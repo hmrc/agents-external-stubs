@@ -1,0 +1,6 @@
+# microservice specific routes
+
+GET         /test/auth/agent-mtd                       @uk.gov.hmrc.agentsexternalstubs.controllers.AgentsExternalStubsController.testAuthAgentMtd
+GET         /test/auth/client-mtd-it                   @uk.gov.hmrc.agentsexternalstubs.controllers.AgentsExternalStubsController.testAuthClientMtdIt
+
+POST        /auth/authorise                            @uk.gov.hmrc.agentsexternalstubs.controllers.AuthController.authorise
