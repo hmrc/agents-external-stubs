@@ -11,14 +11,14 @@ import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import scala.concurrent.Future
 
 @Singleton
-class AuthController @Inject()() extends BaseController {
+class AuthStubController @Inject()() extends BaseController {
 
   def authorise(): Action[JsValue] = Action.async(parse.json) { implicit request =>
     request.headers.get(HeaderNames.AUTHORIZATION) match {
       case None => unauthorized("MissingBearerToken")
-      case Some(token) =>
+      case Some(BearerToken(sessionId)) =>
         for {
-          authSession <- validateAuthToken(token)
+          authSession <- validateSessionId(sessionId)
           response <- withJsonBody[AuthoriseRequest] { authoriseRequest =>
                        unauthorized("InvalidBearerToken")
                      }
@@ -26,7 +26,7 @@ class AuthController @Inject()() extends BaseController {
     }
   }
 
-  def validateAuthToken(token: String): Future[Unit] = Future.successful(())
+  def validateSessionId(token: String): Future[Unit] = Future.successful(())
 
   def unauthorized(reason: String) =
     Future.successful(

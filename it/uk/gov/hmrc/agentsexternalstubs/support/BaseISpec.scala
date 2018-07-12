@@ -7,16 +7,20 @@ import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.twirl.api.HtmlFormat
+import uk.gov.hmrc.agentsexternalstubs.stubs.DataStreamStubs
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.HeaderCarrierConverter
 import uk.gov.hmrc.play.test.UnitSpec
 
-abstract class BaseISpec extends UnitSpec with WireMockSupport {
+abstract class BaseISpec extends UnitSpec with WireMockSupport with DataStreamStubs {
 
   def app: Application
   protected def appBuilder: GuiceApplicationBuilder
 
   protected implicit val materializer = app.materializer
+
+  override def commonStubs(): Unit =
+    givenAuditConnector()
 
   protected def checkHtmlResultWithBodyText(result: Result, expectedSubstring: String): Unit = {
     status(result) shouldBe 200

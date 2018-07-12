@@ -11,7 +11,7 @@ import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import scala.concurrent.Future
 
 @Singleton
-class AgentsExternalStubsController @Inject()(val authConnector: MicroserviceAuthConnector, val env: Environment)(
+class TestController @Inject()(val authConnector: MicroserviceAuthConnector, val env: Environment)(
   implicit val configuration: Configuration)
     extends BaseController with AuthActions {
 

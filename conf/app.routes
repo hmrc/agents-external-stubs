@@ -1,6 +1,12 @@
 # microservice specific routes
 
-GET         /test/auth/agent-mtd                       @uk.gov.hmrc.agentsexternalstubs.controllers.AgentsExternalStubsController.testAuthAgentMtd
-GET         /test/auth/client-mtd-it                   @uk.gov.hmrc.agentsexternalstubs.controllers.AgentsExternalStubsController.testAuthClientMtdIt
+# Authentication
+POST        /agents-external-stubs/sign-in                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.signIn
+GET         /agents-external-stubs/session                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.session(authToken: String)
 
-POST        /auth/authorise                            @uk.gov.hmrc.agentsexternalstubs.controllers.AuthController.authorise
+# Auth stubs
+POST        /auth/authorise                                                  @uk.gov.hmrc.agentsexternalstubs.controllers.AuthStubController.authorise
+
+# Internal test
+GET         /agents-external-stubs/test/auth/agent-mtd                       @uk.gov.hmrc.agentsexternalstubs.controllers.TestController.testAuthAgentMtd
+GET         /agents-external-stubs/test/auth/client-mtd-it                   @uk.gov.hmrc.agentsexternalstubs.controllers.TestController.testAuthClientMtdIt

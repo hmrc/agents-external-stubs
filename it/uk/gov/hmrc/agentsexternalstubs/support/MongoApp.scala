@@ -23,7 +23,7 @@ import uk.gov.hmrc.mongo.{MongoSpecSupport, Awaiting => MongoAwaiting}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.global
 
-trait MongoApp extends MongoSpecSupport with BeforeAndAfterEach with OneAppPerSuite {
+trait MongoApp extends MongoSpecSupport with BeforeAndAfterEach {
   me: Suite with TestSuite =>
 
   override def beforeEach(): Unit = {

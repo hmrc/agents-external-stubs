@@ -15,6 +15,9 @@
  */
 package uk.gov.hmrc.agentsexternalstubs.repository
 
+import java.util.UUID
+
+import org.scalatestplus.play.OneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import reactivemongo.core.errors.DatabaseException
@@ -23,7 +26,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class AgentsExternalStubsRepositoryISpec extends UnitSpec with MongoApp {
+class AuthenticatedSessionRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoApp {
 
   protected def appBuilder: GuiceApplicationBuilder =
     new GuiceApplicationBuilder()
@@ -33,30 +36,31 @@ class AgentsExternalStubsRepositoryISpec extends UnitSpec with MongoApp {
 
   override implicit lazy val app: Application = appBuilder.build()
 
-  def repo: AgentsExternalStubsRepository = app.injector.instanceOf[AgentsExternalStubsRepository]
+  def repo: AuthenticatedSessionRepository = app.injector.instanceOf[AuthenticatedSessionRepository]
 
   override def beforeEach() {
     super.beforeEach()
     await(repo.ensureIndexes)
   }
 
-  "createEntity" should {
+  "create" should {
     "create an entity" in {
-      await(repo.createEntity("foo", "bar"))
+      val authToken = UUID.randomUUID().toString
+      await(repo.create("foobar", authToken))
 
       val result = await(repo.find())
 
       result.size shouldBe 1
-      result.head.id shouldBe "foo"
-      result.head.dummy shouldBe "bar"
+      result.head.authToken shouldBe authToken
+      result.head.userId shouldBe "foobar"
 
     }
 
-    "not allow duplicate entities to be created for the same id" in {
-      await(repo.createEntity("foo", "bar"))
+    "not allow duplicate entities to be created for the same authToken" in {
+      await(repo.create("foo", "bar"))
 
       val e = intercept[DatabaseException] {
-        await(repo.createEntity("foo", "bar"))
+        await(repo.create("foo", "bar"))
       }
 
       e.getMessage() should include("E11000")

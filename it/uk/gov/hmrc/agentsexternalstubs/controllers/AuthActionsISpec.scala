@@ -12,7 +12,7 @@ import scala.concurrent.Future
 
 class AuthActionsISpec extends AppBaseISpec with AuthStubs {
 
-  object TestController extends AuthActions {
+  object UnderTestController extends AuthActions {
 
     override def authConnector: AuthConnector = app.injector.instanceOf[AuthConnector]
 
@@ -44,7 +44,7 @@ class AuthActionsISpec extends AppBaseISpec with AuthStubs {
            |  ]}
            |]}""".stripMargin
       )
-      val result = TestController.withAuthorisedAsAgent
+      val result = UnderTestController.withAuthorisedAsAgent
       status(result) shouldBe 200
       bodyOf(result) shouldBe "fooArn"
     }
@@ -52,7 +52,7 @@ class AuthActionsISpec extends AppBaseISpec with AuthStubs {
     "throw AutorisationException when user not logged in" in {
       givenUnauthorisedWith("MissingBearerToken")
       an[AuthorisationException] shouldBe thrownBy {
-        TestController.withAuthorisedAsAgent
+        UnderTestController.withAuthorisedAsAgent
       }
     }
 
@@ -67,7 +67,7 @@ class AuthActionsISpec extends AppBaseISpec with AuthStubs {
            |]}""".stripMargin
       )
       an[InsufficientEnrolments] shouldBe thrownBy {
-        TestController.withAuthorisedAsAgent
+        UnderTestController.withAuthorisedAsAgent
       }
     }
 
@@ -82,7 +82,7 @@ class AuthActionsISpec extends AppBaseISpec with AuthStubs {
            |]}""".stripMargin
       )
       an[InsufficientEnrolments] shouldBe thrownBy {
-        TestController.withAuthorisedAsAgent
+        UnderTestController.withAuthorisedAsAgent
       }
     }
   }
@@ -100,7 +100,7 @@ class AuthActionsISpec extends AppBaseISpec with AuthStubs {
            |]}""".stripMargin
       )
 
-      val result = TestController.withAuthorisedAsClient
+      val result = UnderTestController.withAuthorisedAsClient
       status(result) shouldBe 200
       bodyOf(result) shouldBe "fooMtdItId"
     }
@@ -116,7 +116,7 @@ class AuthActionsISpec extends AppBaseISpec with AuthStubs {
            |]}""".stripMargin
       )
       an[InsufficientEnrolments] shouldBe thrownBy {
-        TestController.withAuthorisedAsClient
+        UnderTestController.withAuthorisedAsClient
       }
     }
 
@@ -131,7 +131,7 @@ class AuthActionsISpec extends AppBaseISpec with AuthStubs {
            |]}""".stripMargin
       )
       an[InsufficientEnrolments] shouldBe thrownBy {
-        TestController.withAuthorisedAsClient
+        UnderTestController.withAuthorisedAsClient
       }
     }
   }

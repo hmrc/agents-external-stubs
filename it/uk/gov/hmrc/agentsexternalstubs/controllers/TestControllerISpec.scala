@@ -7,7 +7,7 @@ import play.api.libs.json.Json
 import play.api.libs.ws.{WSClient, WSResponse}
 import uk.gov.hmrc.agentsexternalstubs.support.ServerBaseISpec
 
-class AgentsExternalStubsControllerISpec extends ServerBaseISpec {
+class TestControllerISpec extends ServerBaseISpec {
 
   this: Suite with ServerProvider =>
 
@@ -17,14 +17,14 @@ class AgentsExternalStubsControllerISpec extends ServerBaseISpec {
 
   def testAuthAgentMtd(): WSResponse =
     wsClient
-      .url(s"$url/test/auth/agent-mtd")
+      .url(s"$url/agents-external-stubs/test/auth/agent-mtd")
       .withHeaders(HeaderNames.AUTHORIZATION -> "Bearer ABC")
       .get()
       .futureValue
 
-  "AgentsExternalStubsController" when {
+  "TestController" when {
 
-    "GET /test/auth/agent-mtd" should {
+    "GET /agents-external-stubs/test/auth/agent-mtd" should {
       "respond with some data" in {
         val result = testAuthAgentMtd()
         result.status shouldBe 200
