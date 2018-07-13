@@ -14,7 +14,7 @@ import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class SignInController @Inject()(repository: AuthenticatedSessionRepository) extends BaseController {
+class SignInController @Inject()(authSessionRepository: AuthenticatedSessionRepository) extends BaseController {
 
   def signIn(): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withJsonBody[SignInRequest] { signInRequest =>
@@ -22,7 +22,7 @@ class SignInController @Inject()(repository: AuthenticatedSessionRepository) ext
         case None => createNewAuthentication(signInRequest)
         case Some(BearerToken(authToken)) =>
           for {
-            maybeSession <- repository.findByAuthToken(authToken)
+            maybeSession <- authSessionRepository.findByAuthToken(authToken)
             result <- maybeSession match {
                        case Some(session) if session.userId == signInRequest.userId =>
                          Future.successful(
@@ -37,7 +37,7 @@ class SignInController @Inject()(repository: AuthenticatedSessionRepository) ext
 
   def session(authToken: String): Action[AnyContent] = Action.async { implicit request =>
     for {
-      maybeSession <- repository.findByAuthToken(authToken)
+      maybeSession <- authSessionRepository.findByAuthToken(authToken)
     } yield
       maybeSession match {
         case Some(session) => Ok(Json.toJson(session))
@@ -48,8 +48,8 @@ class SignInController @Inject()(repository: AuthenticatedSessionRepository) ext
   private def createNewAuthentication(signInRequest: SignInRequest)(implicit ec: ExecutionContext): Future[Result] = {
     val authToken = UUID.randomUUID().toString
     for {
-      _            <- repository.create(signInRequest.userId, authToken)
-      maybeSession <- repository.findByAuthToken(authToken)
+      _            <- authSessionRepository.create(signInRequest.userId, authToken)
+      maybeSession <- authSessionRepository.findByAuthToken(authToken)
     } yield
       maybeSession match {
         case Some(session) =>
