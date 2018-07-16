@@ -2,7 +2,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import javax.inject.{Inject, Singleton}
 import play.api.http.HeaderNames
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
 import play.api.mvc.{Action, Result}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.AuthenticatedSessionRepository
@@ -10,7 +10,6 @@ import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.control.NonFatal
 
 @Singleton
 class AuthStubController @Inject()(authSessionRepository: AuthenticatedSessionRepository) extends BaseController {
@@ -22,13 +21,17 @@ class AuthStubController @Inject()(authSessionRepository: AuthenticatedSessionRe
           maybeSession <- authSessionRepository.findByAuthToken(authToken)
           response <- maybeSession match {
                        case Some(authSession) =>
-                         withJsonBody[AuthoriseRequest] { authoriseRequest =>
-                           for {
-                             maybeResponse <- prepareResponse(authoriseRequest, authSession)
-                           } yield
-                             maybeResponse.fold(error => unauthorized(error), response => Ok(Json.toJson(response)))
-                         } recover {
-                           case NonFatal(e) => unauthorized(e.getMessage)
+                         request.body.validate[AuthoriseRequest] match {
+                           case JsSuccess(authoriseRequest, _) =>
+                             for {
+                               maybeResponse <- prepareResponse(authoriseRequest, authSession)
+                             } yield
+                               maybeResponse.fold(error => unauthorized(error), response => Ok(Json.toJson(response)))
+                           case JsError(errors) =>
+                             Future.successful(
+                               BadRequest(errors
+                                 .map { case (p, ve) => s"$p -> [${ve.map(v => v.message).mkString(",")}]" }
+                                 .mkString("\n")))
                          }
                        case None => unauthorizedF("SessionRecordNotFound")
                      }

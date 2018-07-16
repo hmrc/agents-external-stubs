@@ -2,7 +2,7 @@ package uk.gov.hmrc.agentsexternalstubs.support
 
 import org.scalatest.concurrent.ScalaFutures
 import play.api.http.{HeaderNames, MimeTypes, Writeable}
-import play.api.libs.json.{JsValue, Writes}
+import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.libs.ws.{WSClient, WSCookie, WSResponse}
 import play.api.mvc.{Cookie, Cookies}
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, SignInRequest}
@@ -13,9 +13,12 @@ trait AuthContext {
 
 object AuthContext {
 
-  def from(authSession: AuthenticatedSession): AuthContext = new AuthContext {
+  def from(authSession: AuthenticatedSession): AuthContext =
+    withToken(authSession.authToken)
+
+  def withToken(authToken: String): AuthContext = new AuthContext {
     override def headers: Seq[(String, String)] = Seq(
-      HeaderNames.AUTHORIZATION -> s"Bearer ${authSession.authToken}"
+      HeaderNames.AUTHORIZATION -> s"Bearer $authToken"
     )
   }
 
@@ -64,6 +67,16 @@ trait TestRequests extends ScalaFutures {
         .get()
         .futureValue
   }
+
+  object AuthStub {
+    def authorise(body: String, authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/auth/authorise")
+        .withHeaders(Seq(HeaderNames.CONTENT_TYPE -> MimeTypes.JSON) ++ authContext.headers: _*)
+        .post(Json.parse(body))
+        .futureValue
+  }
+
 }
 
 object JsonWriteable {
