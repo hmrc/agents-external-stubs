@@ -9,7 +9,7 @@ import uk.gov.hmrc.agentsexternalstubs.repository.AuthenticatedSessionRepository
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class SignInService @Inject()(authSessionRepository: AuthenticatedSessionRepository) {
+class AuthenticationService @Inject()(authSessionRepository: AuthenticatedSessionRepository) {
 
   def findByAuthToken(authToken: String)(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
     authSessionRepository.findByAuthToken(authToken)

@@ -4,9 +4,9 @@ import org.scalatest.Suite
 import org.scalatestplus.play.ServerProvider
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.support.{AuthContext, ServerBaseISpec, TestRequests}
+import uk.gov.hmrc.agentsexternalstubs.support.{AuthContext, MongoApp, ServerBaseISpec, TestRequests}
 
-class TestControllerISpec extends ServerBaseISpec with TestRequests {
+class TestControllerISpec extends ServerBaseISpec with MongoApp with TestRequests {
   this: Suite with ServerProvider =>
 
   val url = s"http://localhost:$port"

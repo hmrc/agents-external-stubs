@@ -4,10 +4,10 @@ import org.scalatest.Suite
 import org.scalatestplus.play.ServerProvider
 import play.api.libs.ws.WSClient
 import play.mvc.Http.HeaderNames
-import uk.gov.hmrc.agentsexternalstubs.services.SignInService
+import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
 import uk.gov.hmrc.agentsexternalstubs.support.{AuthContext, MongoApp, ServerBaseISpec, TestRequests}
 import uk.gov.hmrc.auth.core.authorise.EmptyPredicate
-import uk.gov.hmrc.auth.core.retrieve.EmptyRetrieval
+import uk.gov.hmrc.auth.core.retrieve._
 import uk.gov.hmrc.auth.core.{AuthConnector, InvalidBearerToken, MissingBearerToken, SessionRecordNotFound}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.logging.Authorization
@@ -21,7 +21,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoApp with TestReq
   val wsClient = app.injector.instanceOf[WSClient]
 
   val authConnector: AuthConnector = app.injector.instanceOf[AuthConnector]
-  val signInService: SignInService = app.injector.instanceOf[SignInService]
+  val signInService: AuthenticationService = app.injector.instanceOf[AuthenticationService]
 
   "AuthStubController" when {
 
@@ -54,13 +54,6 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoApp with TestReq
         }
       }
 
-      "return 200 OK if predicate empty" in {
-        val authToken = givenUserAuthenticated("foo")
-        val result =
-          AuthStub.authorise(s"""{"authorise":[],"retrieve":[]}""", AuthContext.withToken(authToken))
-        result.status shouldBe 200
-      }
-
       "return 400 BadRequest if authorise field missing" in {
         val authToken = givenUserAuthenticated("foo")
         val result =
@@ -75,6 +68,34 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoApp with TestReq
           AuthStub.authorise(s"""{"authorise":[{"foo":"FOO"}],"retrieve":[]}""", AuthContext.withToken(authToken))
         result.status shouldBe 400
         result.body shouldBe """/authorise(0) -> [Unsupported predicate {"foo":"FOO"}, should be one of [enrolment,authProviders]]"""
+      }
+
+      "return 200 OK if predicate empty" in {
+        val authToken = givenUserAuthenticated("foo")
+        val result =
+          AuthStub.authorise(s"""{"authorise":[],"retrieve":[]}""", AuthContext.withToken(authToken))
+        result.status shouldBe 200
+      }
+
+      "retrieve credentials" in {
+        val authToken = givenUserAuthenticated("foo")
+        val creds = await(
+          authConnector
+            .authorise[Credentials](EmptyPredicate, Retrievals.credentials)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global))
+        creds.providerId shouldBe "foo"
+        creds.providerType shouldBe "GovernmentGateway"
+      }
+
+      "retrieve authProviderId" in {
+        val authToken = givenUserAuthenticated("foo")
+        val creds = await(
+          authConnector
+            .authorise[LegacyCredentials](EmptyPredicate, Retrievals.authProviderId)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global))
+        creds shouldBe GGCredId("foo")
       }
     }
   }

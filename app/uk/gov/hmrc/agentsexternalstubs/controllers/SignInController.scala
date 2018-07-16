@@ -8,14 +8,14 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, Result}
 import uk.gov.hmrc.agentsexternalstubs.models.SignInRequest
 import uk.gov.hmrc.agentsexternalstubs.repository.AuthenticatedSessionRepository
-import uk.gov.hmrc.agentsexternalstubs.services.SignInService
+import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class SignInController @Inject()(signInService: SignInService) extends BaseController {
+class SignInController @Inject()(signInService: AuthenticationService) extends BaseController {
 
   def signIn(): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withJsonBody[SignInRequest] { signInRequest =>
