@@ -2,21 +2,42 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import play.api.libs.json._
 import play.api.libs.json.Reads._
+import uk.gov.hmrc.agentsexternalstubs.services.RetrievalService
 
+import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
 
 case class AuthoriseRequest(authorise: Seq[Predicate], retrieve: Seq[String])
 
 object AuthoriseRequest {
   implicit val format: Format[AuthoriseRequest] = Json.format[AuthoriseRequest]
-
   val empty: AuthoriseRequest = new AuthoriseRequest(Seq.empty, Seq.empty)
-
 }
 
-sealed trait Predicate
-case class EnrolmentPredicate(enrolment: String) extends Predicate
-case class AuthProviders(authProviders: Seq[String]) extends Predicate
+sealed trait Predicate {
+  def validate(retrievalService: RetrievalService, authenticatedSession: AuthenticatedSession)(
+    implicit ex: ExecutionContext): Future[Either[String, Unit]]
+}
+
+case class EnrolmentPredicate(enrolment: String) extends Predicate {
+  override def validate(retrievalService: RetrievalService, authenticatedSession: AuthenticatedSession)(
+    implicit ex: ExecutionContext): Future[Either[String, Unit]] =
+    for {
+      enrolments <- retrievalService.principalEnrolments(authenticatedSession.userId)
+      authorised = enrolments.collectFirst {
+        case Enrolment(`enrolment`, _) =>
+      }
+    } yield authorised.toRight("InsufficientEnrolments")
+}
+
+case class AuthProviders(authProviders: Seq[String]) extends Predicate {
+  override def validate(retrievalService: RetrievalService, authenticatedSession: AuthenticatedSession)(
+    implicit ex: ExecutionContext): Future[Either[String, Unit]] =
+    Future.successful(authProviders.contains(authenticatedSession.providerType) match {
+      case true  => Right(())
+      case false => Left("UnsupportedAuthProvider")
+    })
+}
 
 object Predicate {
 

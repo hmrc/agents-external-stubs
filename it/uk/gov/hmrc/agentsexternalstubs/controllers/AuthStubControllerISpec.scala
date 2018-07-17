@@ -23,7 +23,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
   "AuthStubController" when {
 
     "POST /auth/authorise" should {
-      "return 401 Unauthorized if token is missing" in {
+      "throw MissingBearerToken if token is missing" in {
         an[MissingBearerToken] shouldBe thrownBy {
           await(
             authConnector
@@ -31,7 +31,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         }
       }
 
-      "return 401 Unauthorized if token is invalid" in {
+      "throw InvalidBearerToken if token is invalid" in {
         an[InvalidBearerToken] shouldBe thrownBy {
           await(
             authConnector
@@ -41,7 +41,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         }
       }
 
-      "return 401 Unauthorized if session could not be found" in {
+      "throw SessionRecordNotFound if session could not be found" in {
         an[SessionRecordNotFound] shouldBe thrownBy {
           await(
             authConnector
@@ -85,6 +85,17 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         creds.providerType shouldBe "GovernmentGateway"
       }
 
+      "throw UnsupportedAuthProvider if user authenticated with another provider" in {
+        val authToken = givenAnAuthenticatedUser("foo", "someOtherProvider")
+        an[UnsupportedAuthProvider] shouldBe thrownBy {
+          await(
+            authConnector
+              .authorise(AuthProviders(AuthProvider.GovernmentGateway), EmptyRetrieval)(
+                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+                concurrent.ExecutionContext.Implicits.global))
+        }
+      }
+
       "retrieve authProviderId" in {
         val authToken = givenAnAuthenticatedUser("foo")
         val creds = await(
@@ -95,18 +106,47 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         creds shouldBe GGCredId("foo")
       }
 
+      "throw InsufficientEnrolments if user not enrolled" in {
+        val authToken = givenAnAuthenticatedUser("foo")
+        an[InsufficientEnrolments] shouldBe thrownBy {
+          await(
+            authConnector
+              .authorise(Enrolment("serviceA"), EmptyRetrieval)(
+                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+                concurrent.ExecutionContext.Implicits.global))
+        }
+      }
+
       "retrieve authorisedEnrolments" in {
         val authToken = givenAnAuthenticatedUser("foo123")
         givenUserEnrolledFor("foo123", "serviceA", "idOfA", "2362168736781263")
+        givenUserEnrolledFor("foo123", "serviceB", "idOfB", "4783748738748778")
 
         val enrolments = await(
           authConnector
-            .authorise[Enrolments](EmptyPredicate, Retrievals.authorisedEnrolments)(
+            .authorise[Enrolments](Enrolment("serviceA"), Retrievals.authorisedEnrolments)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global))
+        enrolments.getEnrolment("serviceA") shouldBe Some(
+          Enrolment("serviceA", Seq(EnrolmentIdentifier("idOfA", "2362168736781263")), "Activated"))
+        enrolments.getEnrolment("serviceB") shouldBe None
+      }
+
+      "retrieve allEnrolments" in {
+        val authToken = givenAnAuthenticatedUser("foo123")
+        givenUserEnrolledFor("foo123", "serviceA", "idOfA", "2362168736781263")
+        givenUserEnrolledFor("foo123", "serviceB", "idOfB", "4783748738748778")
+
+        val enrolments = await(
+          authConnector
+            .authorise[Enrolments](EmptyPredicate, Retrievals.allEnrolments)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global))
         enrolments.getEnrolment("foo") shouldBe None
         enrolments.getEnrolment("serviceA") shouldBe Some(
           Enrolment("serviceA", Seq(EnrolmentIdentifier("idOfA", "2362168736781263")), "Activated"))
+        enrolments.getEnrolment("serviceB") shouldBe Some(
+          Enrolment("serviceB", Seq(EnrolmentIdentifier("idOfB", "4783748738748778")), "Activated"))
       }
     }
   }

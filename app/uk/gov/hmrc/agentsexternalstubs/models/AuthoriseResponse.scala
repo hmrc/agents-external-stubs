@@ -8,7 +8,8 @@ import scala.concurrent.{ExecutionContext, Future}
 case class AuthoriseResponse(
   credentials: Option[Credentials] = None,
   authProviderId: Option[GGCredId] = None,
-  authorisedEnrolments: Seq[Enrolment] = Seq.empty
+  authorisedEnrolments: Seq[Enrolment] = Seq.empty,
+  allEnrolments: Seq[Enrolment] = Seq.empty
 )
 
 object AuthoriseResponse {
@@ -17,14 +18,17 @@ object AuthoriseResponse {
 
 sealed trait Retrieve {
   def key: String
-  def fill(response: AuthoriseResponse, retrievalService: RetrievalService, authenticatedSession: AuthenticatedSession)(
-    implicit ec: ExecutionContext): Future[Either[String, AuthoriseResponse]]
+  def fill(
+    response: AuthoriseResponse,
+    retrievalService: RetrievalService,
+    authenticatedSession: AuthenticatedSession,
+    predicates: Seq[Predicate])(implicit ec: ExecutionContext): Future[Either[String, AuthoriseResponse]]
 }
 
 object Retrieve {
 
   val supportedRetrievals: Set[Retrieve] =
-    Set(CredentialsRetrieve, AuthProviderIdRetrieve, AuthorisedEnrolmentsRetrieve)
+    Set(CredentialsRetrieve, AuthProviderIdRetrieve, AuthorisedEnrolmentsRetrieve, AllEnrolmentsRetrieve)
 
   def of(key: String): Retrieve =
     supportedRetrievals.find(_.key == key).getOrElse(UnsupportedRetrieve(key))
@@ -34,8 +38,8 @@ case class UnsupportedRetrieve(key: String) extends Retrieve {
   override def fill(
     response: AuthoriseResponse,
     retrievalService: RetrievalService,
-    authenticatedSession: AuthenticatedSession)(
-    implicit ec: ExecutionContext): Future[Either[String, AuthoriseResponse]] =
+    authenticatedSession: AuthenticatedSession,
+    predicates: Seq[Predicate])(implicit ec: ExecutionContext): Future[Either[String, AuthoriseResponse]] =
     Future.successful(Left(s"Retrieval of $key not supported"))
 }
 
@@ -49,8 +53,8 @@ case object CredentialsRetrieve extends Retrieve {
   override def fill(
     response: AuthoriseResponse,
     retrievalService: RetrievalService,
-    authenticatedSession: AuthenticatedSession)(
-    implicit ec: ExecutionContext): Future[Either[String, AuthoriseResponse]] =
+    authenticatedSession: AuthenticatedSession,
+    predicates: Seq[Predicate])(implicit ec: ExecutionContext): Future[Either[String, AuthoriseResponse]] =
     Future.successful(
       Right(response.copy(credentials = Some(Credentials(authenticatedSession.userId, "GovernmentGateway")))))
 }
@@ -65,8 +69,8 @@ case object AuthProviderIdRetrieve extends Retrieve {
   override def fill(
     response: AuthoriseResponse,
     retrievalService: RetrievalService,
-    authenticatedSession: AuthenticatedSession)(
-    implicit ec: ExecutionContext): Future[Either[String, AuthoriseResponse]] =
+    authenticatedSession: AuthenticatedSession,
+    predicates: Seq[Predicate])(implicit ec: ExecutionContext): Future[Either[String, AuthoriseResponse]] =
     Future.successful(Right(response.copy(authProviderId = Some(GGCredId(authenticatedSession.userId)))))
 }
 
@@ -85,9 +89,25 @@ case object AuthorisedEnrolmentsRetrieve extends Retrieve {
   override def fill(
     response: AuthoriseResponse,
     retrievalService: RetrievalService,
-    authenticatedSession: AuthenticatedSession)(
-    implicit ec: ExecutionContext): Future[Either[String, AuthoriseResponse]] =
+    authenticatedSession: AuthenticatedSession,
+    predicates: Seq[Predicate])(implicit ec: ExecutionContext): Future[Either[String, AuthoriseResponse]] = {
+    val authorisedServices: Set[String] = predicates.collect { case EnrolmentPredicate(service) => service }.toSet
     retrievalService
       .principalEnrolments(authenticatedSession.userId)
+      .map(_.filter(p => authorisedServices.contains(p.key)))
       .map(pe => Right(response.copy(authorisedEnrolments = pe)))
+  }
+
+}
+
+case object AllEnrolmentsRetrieve extends Retrieve {
+  val key = "allEnrolments"
+  override def fill(
+    response: AuthoriseResponse,
+    retrievalService: RetrievalService,
+    authenticatedSession: AuthenticatedSession,
+    predicates: Seq[Predicate])(implicit ec: ExecutionContext): Future[Either[String, AuthoriseResponse]] =
+    retrievalService
+      .principalEnrolments(authenticatedSession.userId)
+      .map(pe => Right(response.copy(allEnrolments = pe)))
 }

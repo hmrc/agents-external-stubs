@@ -6,6 +6,7 @@ import uk.gov.hmrc.agentsexternalstubs.repository.UsersRepository
 import uk.gov.hmrc.http.NotFoundException
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 @Singleton
 class UsersService @Inject()(usersRepository: UsersRepository) {
@@ -19,6 +20,19 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
       maybeUser <- findByUserId(user.userId)
       newUser = maybeUser.getOrElse(throw new Exception(s"User $user creation failed."))
     } yield newUser
+
+  def tryCreateUser(user: User)(implicit ec: ExecutionContext): Future[Try[User]] =
+    for {
+      maybeUser <- findByUserId(user.userId)
+      result <- maybeUser match {
+                 case Some(_) => Future.successful(Failure(new Exception(s"User ${user.userId} already exists")))
+                 case None =>
+                   for {
+                     _       <- usersRepository.create(user)
+                     newUser <- findByUserId(user.userId)
+                   } yield newUser.map(Success.apply).getOrElse(Failure(new Exception(s"User creation failed")))
+               }
+    } yield result
 
   def updateUser(userId: String, modify: User => User)(implicit ec: ExecutionContext): Future[User] =
     for {

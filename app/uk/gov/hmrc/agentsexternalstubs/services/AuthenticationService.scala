@@ -16,15 +16,11 @@ class AuthenticationService @Inject()(
   def findByAuthToken(authToken: String)(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
     authSessionRepository.findByAuthToken(authToken)
 
-  def createNewAuthentication(userId: String, password: String)(
+  def createNewAuthentication(userId: String, password: String, providerType: String)(
     implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] = {
     val authToken = UUID.randomUUID().toString
     for {
-      _ <- userService.findByUserId(userId).flatMap {
-            case None       => userService.createUser(User(userId))
-            case Some(user) => Future.successful(user)
-          }
-      _            <- authSessionRepository.create(userId, authToken)
+      _            <- authSessionRepository.create(userId, authToken, providerType)
       maybeSession <- authSessionRepository.findByAuthToken(authToken)
     } yield maybeSession
   }

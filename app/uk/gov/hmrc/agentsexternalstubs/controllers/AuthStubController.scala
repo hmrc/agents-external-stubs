@@ -55,32 +55,43 @@ class AuthStubController @Inject()(
     retrievalService: RetrievalService,
     authenticatedSession: AuthenticatedSession)(implicit ex: ExecutionContext): MaybeResponse =
     for {
-      status <- checkPredicates(request.authorise)
+      status <- checkPredicates(request.authorise, retrievalService, authenticatedSession)
       response <- status.fold(
                    error => Future.successful(Left(error)),
-                   _ => retrieveDetails(request.retrieve, retrievalService, authenticatedSession))
+                   _ => retrieveDetails(request, retrievalService, authenticatedSession))
     } yield response
 
-  def checkPredicates(predicates: Seq[Predicate])(implicit ex: ExecutionContext): Future[Either[String, Unit]] =
-    Future.successful(Right(()))
-
-  def retrieveDetails(
-    retrieve: Seq[String],
+  def checkPredicates(
+    predicates: Seq[Predicate],
     retrievalService: RetrievalService,
-    authenticatedSession: AuthenticatedSession)(implicit ex: ExecutionContext): MaybeResponse =
-    retrieve.foldLeft[MaybeResponse](Future.successful(Right(AuthoriseResponse())))(
-      (fr, retrieve) =>
+    authenticatedSession: AuthenticatedSession)(implicit ex: ExecutionContext): Future[Either[String, Unit]] =
+    predicates.foldLeft[Future[Either[String, Unit]]](Future.successful(Right(())))(
+      (fr, p: Predicate) =>
         fr.flatMap(
           _.fold(
             error => Future.successful(Left(error)),
-            response => addDetailToResponse(response, retrieve, retrievalService, authenticatedSession))))
+            _ => p.validate(retrievalService, authenticatedSession)
+          ))
+    )
+
+  def retrieveDetails(
+    request: AuthoriseRequest,
+    retrievalService: RetrievalService,
+    authenticatedSession: AuthenticatedSession)(implicit ex: ExecutionContext): MaybeResponse =
+    request.retrieve.foldLeft[MaybeResponse](Future.successful(Right(AuthoriseResponse())))(
+      (fr, r: String) =>
+        fr.flatMap(
+          _.fold(
+            error => Future.successful(Left(error)),
+            response => addDetailToResponse(response, r, retrievalService, authenticatedSession, request.authorise))))
 
   def addDetailToResponse(
     response: AuthoriseResponse,
     retrieve: String,
     retrievalService: RetrievalService,
-    authenticatedSession: AuthenticatedSession)(implicit ex: ExecutionContext): MaybeResponse =
-    Retrieve.of(retrieve).fill(response, retrievalService, authenticatedSession)
+    authenticatedSession: AuthenticatedSession,
+    predicates: Seq[Predicate])(implicit ex: ExecutionContext): MaybeResponse =
+    Retrieve.of(retrieve).fill(response, retrievalService, authenticatedSession, predicates)
 
   def unauthorizedF(reason: String): Future[Result] =
     Future.successful(unauthorized(reason))

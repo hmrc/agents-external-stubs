@@ -3,6 +3,7 @@ package uk.gov.hmrc.agentsexternalstubs.stubs
 import org.scalatest.Suite
 import org.scalatestplus.play.ServerProvider
 import play.api.Application
+import uk.gov.hmrc.agentsexternalstubs.models.User
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -17,9 +18,14 @@ trait TestStubs {
   lazy val authenticationService: AuthenticationService = app.injector.instanceOf[AuthenticationService]
   lazy val userService: UsersService = app.injector.instanceOf[UsersService]
 
-  def givenAnAuthenticatedUser(userId: String)(implicit ec: ExecutionContext, timeout: Duration): String =
-    await(authenticationService.createNewAuthentication(userId, "any"))
-      .getOrElse(throw new Exception("Could not sing in user"))
+  def givenAnAuthenticatedUser(userId: String, providerType: String = "GovernmentGateway")(
+    implicit ec: ExecutionContext,
+    timeout: Duration): String =
+    await(for {
+      authSession <- authenticationService.createNewAuthentication(userId, "any", providerType)
+      _           <- userService.tryCreateUser(User(userId))
+    } yield authSession)
+      .getOrElse(throw new Exception("Could not sign in user"))
       .authToken
 
   def givenUserEnrolledFor(userId: String, service: String, identifierKey: String, identifierValue: String)(
