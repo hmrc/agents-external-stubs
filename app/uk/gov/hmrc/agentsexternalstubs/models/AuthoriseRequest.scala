@@ -19,26 +19,6 @@ sealed trait Predicate {
     implicit ex: ExecutionContext): Future[Either[String, Unit]]
 }
 
-case class EnrolmentPredicate(enrolment: String) extends Predicate {
-  override def validate(retrievalService: RetrievalService, authenticatedSession: AuthenticatedSession)(
-    implicit ex: ExecutionContext): Future[Either[String, Unit]] =
-    for {
-      enrolments <- retrievalService.principalEnrolments(authenticatedSession.userId)
-      authorised = enrolments.collectFirst {
-        case Enrolment(`enrolment`, _) =>
-      }
-    } yield authorised.toRight("InsufficientEnrolments")
-}
-
-case class AuthProviders(authProviders: Seq[String]) extends Predicate {
-  override def validate(retrievalService: RetrievalService, authenticatedSession: AuthenticatedSession)(
-    implicit ex: ExecutionContext): Future[Either[String, Unit]] =
-    Future.successful(authProviders.contains(authenticatedSession.providerType) match {
-      case true  => Right(())
-      case false => Left("UnsupportedAuthProvider")
-    })
-}
-
 object Predicate {
 
   val supportedPredicateFormats: Set[PredicateFormat[_ <: Predicate]] = Set(
@@ -78,6 +58,26 @@ object Predicate {
     }
   }
 
+}
+
+case class EnrolmentPredicate(enrolment: String) extends Predicate {
+  override def validate(retrievalService: RetrievalService, authenticatedSession: AuthenticatedSession)(
+    implicit ex: ExecutionContext): Future[Either[String, Unit]] =
+    for {
+      enrolments <- retrievalService.principalEnrolments(authenticatedSession.userId)
+      authorised = enrolments.collectFirst {
+        case Enrolment(`enrolment`, _) =>
+      }
+    } yield authorised.toRight("InsufficientEnrolments")
+}
+
+case class AuthProviders(authProviders: Seq[String]) extends Predicate {
+  override def validate(retrievalService: RetrievalService, authenticatedSession: AuthenticatedSession)(
+    implicit ex: ExecutionContext): Future[Either[String, Unit]] =
+    Future.successful(authProviders.contains(authenticatedSession.providerType) match {
+      case true  => Right(())
+      case false => Left("UnsupportedAuthProvider")
+    })
 }
 
 abstract class PredicateFormat[P <: Predicate](val key: String)(implicit val tag: ClassTag[P]) {

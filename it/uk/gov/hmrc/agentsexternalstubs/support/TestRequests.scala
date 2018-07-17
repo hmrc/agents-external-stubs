@@ -40,10 +40,10 @@ trait TestRequests extends ScalaFutures {
   import JsonWriteable._
 
   object SignIn {
-    def signIn(userId: String, password: String): WSResponse =
+    def signIn(userId: String, password: String = "password", providerType: String = "GovernmentGateway"): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/sign-in")
-        .post(SignInRequest(userId, password))
+        .post(SignInRequest(userId, password, providerType))
         .futureValue
 
     def authSessionFor(loginResponse: WSResponse): WSResponse =

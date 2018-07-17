@@ -18,7 +18,7 @@ class SignInController @Inject()(signInService: AuthenticationService, usersServ
   def signIn(): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withJsonBody[SignInRequest] { signInRequest =>
       request.headers.get(HeaderNames.AUTHORIZATION) match {
-        case None => createNewAuthentication(signInRequest, "GovernmentGateway")
+        case None => createNewAuthentication(signInRequest)
         case Some(BearerToken(authToken)) =>
           for {
             maybeSession <- signInService.findByAuthToken(authToken)
@@ -28,18 +28,20 @@ class SignInController @Inject()(signInService: AuthenticationService, usersServ
                            Ok("").withHeaders(
                              HeaderNames.LOCATION -> routes.SignInController.session(session.authToken).url))
                        case _ =>
-                         createNewAuthentication(signInRequest, "GovernmentGateway")
+                         createNewAuthentication(signInRequest)
                      }
           } yield result
       }
     }
   }
 
-  private def createNewAuthentication(signInRequest: SignInRequest, providerType: String)(
-    implicit ec: ExecutionContext): Future[Result] =
+  private def createNewAuthentication(signInRequest: SignInRequest)(implicit ec: ExecutionContext): Future[Result] =
     for {
       maybeSession <- signInService
-                       .createNewAuthentication(signInRequest.userId, signInRequest.plainTextPassword, providerType)
+                       .createNewAuthentication(
+                         signInRequest.userId,
+                         signInRequest.plainTextPassword,
+                         signInRequest.providerType)
       result <- maybeSession match {
                  case Some(session) =>
                    usersService
