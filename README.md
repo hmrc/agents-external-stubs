@@ -44,7 +44,7 @@ Get current user details
 
 Response | Description
 ---|---
-200| `{"userId": "foo", "principalEnrolments": [], "delegatedEnrolments": []}`
+200| `{"userId": "foo", "principalEnrolments": [...], "delegatedEnrolments": [...]}`
 404| when userId not found
 
 #### PUT  /agents-external-stubs/users/:userId
