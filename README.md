@@ -22,7 +22,7 @@ retrievals | `authProviderId`, `credentials`, `authorisedEnrolments`, `allEnrolm
 #### POST /agents-external-stubs/sign-in 
 Authenticate an user
 
-Payload
+*Payload*
 
     {"userId": "foo", "plainTextPassword": "password", "providerType": "GovernmentGateway"}
 
@@ -49,9 +49,10 @@ Response | Description
 
 #### PUT  /agents-external-stubs/users/:userId
 Update an existing user.
-WARNING: payload's `userId` field will not be used nor updated!
 
-Payload
+**WARNING** Payload's `userId` field will not be used to find nor update!
+
+*Payload*
     
     {   
         "userId": "any", 
@@ -89,7 +90,7 @@ Response | Description
 #### POST /agents-external-stubs/users/
 Create a new user
 
-Payload same as above
+*Payload same as above*
 
 Response | Description
 ---|---
