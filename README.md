@@ -5,7 +5,7 @@
 This microservice is part of Agent Services local testing framework, 
 providing dynamic stubs for 3rd party upstream services.
 
-This app SHOULD NOT be run on QA and Production environment.
+This app SHOULD NOT be run on QA nor Production environment.
 
 ## Stubbed API
 
