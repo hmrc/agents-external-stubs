@@ -30,7 +30,7 @@ import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class AuthenticatedSessionRepository @Inject()(mongoComponent: ReactiveMongoComponent)
+class AuthenticatedSessionsRepository @Inject()(mongoComponent: ReactiveMongoComponent)
     extends ReactiveRepository[AuthenticatedSession, BSONObjectID](
       "authenticated-sessions",
       mongoComponent.mongoConnector.db,

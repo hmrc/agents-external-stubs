@@ -4,6 +4,11 @@
 POST        /agents-external-stubs/sign-in                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.signIn
 GET         /agents-external-stubs/session                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.session(authToken: String)
 
+# User mamagement
+GET         /agents-external-stubs/users/:userId                             @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.getUser(userId: String)
+PUT         /agents-external-stubs/users/:userId                             @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.updateUser(userId: String)
+POST        /agents-external-stubs/users/                                    @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.createUser
+
 # Auth stubs
 POST        /auth/authorise                                                  @uk.gov.hmrc.agentsexternalstubs.controllers.AuthStubController.authorise
 

@@ -4,24 +4,21 @@ import org.scalatest.Suite
 import org.scalatestplus.play.ServerProvider
 import play.api.libs.ws.WSClient
 import play.mvc.Http.HeaderNames
-import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
-import uk.gov.hmrc.agentsexternalstubs.support.{AuthContext, MongoApp, ServerBaseISpec, TestRequests}
+import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
+import uk.gov.hmrc.agentsexternalstubs.support.{AuthContext, ServerBaseISpec, TestRequests}
+import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.authorise.EmptyPredicate
 import uk.gov.hmrc.auth.core.retrieve._
-import uk.gov.hmrc.auth.core.{AuthConnector, InvalidBearerToken, MissingBearerToken, SessionRecordNotFound}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.logging.Authorization
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
-class AuthStubControllerISpec extends ServerBaseISpec with MongoApp with TestRequests {
+class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with TestStubs {
   this: Suite with ServerProvider =>
 
   val url = s"http://localhost:$port"
   val wsClient = app.injector.instanceOf[WSClient]
 
   val authConnector: AuthConnector = app.injector.instanceOf[AuthConnector]
-  val signInService: AuthenticationService = app.injector.instanceOf[AuthenticationService]
 
   "AuthStubController" when {
 
@@ -55,7 +52,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoApp with TestReq
       }
 
       "return 400 BadRequest if authorise field missing" in {
-        val authToken = givenUserAuthenticated("foo")
+        val authToken = givenAnAuthenticatedUser("foo")
         val result =
           AuthStub.authorise(s"""{"foo":[{"enrolment":"FOO"}],"retrieve":[]}""", AuthContext.withToken(authToken))
         result.status shouldBe 400
@@ -63,7 +60,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoApp with TestReq
       }
 
       "return 400 BadRequest if predicate not supported" in {
-        val authToken = givenUserAuthenticated("foo")
+        val authToken = givenAnAuthenticatedUser("foo")
         val result =
           AuthStub.authorise(s"""{"authorise":[{"foo":"FOO"}],"retrieve":[]}""", AuthContext.withToken(authToken))
         result.status shouldBe 400
@@ -71,14 +68,14 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoApp with TestReq
       }
 
       "return 200 OK if predicate empty" in {
-        val authToken = givenUserAuthenticated("foo")
+        val authToken = givenAnAuthenticatedUser("foo")
         val result =
           AuthStub.authorise(s"""{"authorise":[],"retrieve":[]}""", AuthContext.withToken(authToken))
         result.status shouldBe 200
       }
 
       "retrieve credentials" in {
-        val authToken = givenUserAuthenticated("foo")
+        val authToken = givenAnAuthenticatedUser("foo")
         val creds = await(
           authConnector
             .authorise[Credentials](EmptyPredicate, Retrievals.credentials)(
@@ -89,7 +86,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoApp with TestReq
       }
 
       "retrieve authProviderId" in {
-        val authToken = givenUserAuthenticated("foo")
+        val authToken = givenAnAuthenticatedUser("foo")
         val creds = await(
           authConnector
             .authorise[LegacyCredentials](EmptyPredicate, Retrievals.authProviderId)(
@@ -97,11 +94,20 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoApp with TestReq
               concurrent.ExecutionContext.Implicits.global))
         creds shouldBe GGCredId("foo")
       }
+
+      "retrieve authorisedEnrolments" in {
+        val authToken = givenAnAuthenticatedUser("foo123")
+        givenUserEnrolledFor("foo123", "serviceA", "idOfA", "2362168736781263")
+
+        val enrolments = await(
+          authConnector
+            .authorise[Enrolments](EmptyPredicate, Retrievals.authorisedEnrolments)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global))
+        enrolments.getEnrolment("foo") shouldBe None
+        enrolments.getEnrolment("serviceA") shouldBe Some(
+          Enrolment("serviceA", Seq(EnrolmentIdentifier("idOfA", "2362168736781263")), "Activated"))
+      }
     }
   }
-
-  def givenUserAuthenticated(userId: String): String =
-    await(signInService.createNewAuthentication(userId, "any"))
-      .getOrElse(throw new Exception("Could not sing in user"))
-      .authToken
 }

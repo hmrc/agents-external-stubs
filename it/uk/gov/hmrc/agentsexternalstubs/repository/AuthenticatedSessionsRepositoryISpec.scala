@@ -26,7 +26,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class AuthenticatedSessionRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoApp {
+class AuthenticatedSessionsRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoApp {
 
   protected def appBuilder: GuiceApplicationBuilder =
     new GuiceApplicationBuilder()
@@ -36,7 +36,7 @@ class AuthenticatedSessionRepositoryISpec extends UnitSpec with OneAppPerSuite w
 
   override implicit lazy val app: Application = appBuilder.build()
 
-  def repo: AuthenticatedSessionRepository = app.injector.instanceOf[AuthenticatedSessionRepository]
+  def repo: AuthenticatedSessionsRepository = app.injector.instanceOf[AuthenticatedSessionsRepository]
 
   override def beforeEach() {
     super.beforeEach()
@@ -44,7 +44,7 @@ class AuthenticatedSessionRepositoryISpec extends UnitSpec with OneAppPerSuite w
   }
 
   "create" should {
-    "create an entity" in {
+    "create a session" in {
       val authToken = UUID.randomUUID().toString
       await(repo.create("foobar", authToken))
 
@@ -56,7 +56,7 @@ class AuthenticatedSessionRepositoryISpec extends UnitSpec with OneAppPerSuite w
 
     }
 
-    "not allow duplicate entities to be created for the same authToken" in {
+    "not allow duplicate sessions to be created for the same authToken" in {
       await(repo.create("foo", "bar"))
 
       val e = intercept[DatabaseException] {

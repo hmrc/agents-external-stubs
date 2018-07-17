@@ -5,7 +5,7 @@ import play.api.http.{HeaderNames, MimeTypes, Writeable}
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.libs.ws.{WSClient, WSCookie, WSResponse}
 import play.api.mvc.{Cookie, Cookies}
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, SignInRequest}
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, SignInRequest, User}
 
 trait AuthContext {
   def headers: Seq[(String, String)]
@@ -39,7 +39,7 @@ trait TestRequests extends ScalaFutures {
 
   import JsonWriteable._
 
-  object ThisApp {
+  object SignIn {
     def signIn(userId: String, password: String): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/sign-in")
@@ -66,6 +66,13 @@ trait TestRequests extends ScalaFutures {
         .withHeaders(authContext.headers: _*)
         .get()
         .futureValue
+
+    def testAuthClientMtdIt(authContext: AuthContext = NotAuthorized): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/test/auth/client-mtd-it")
+        .withHeaders(authContext.headers: _*)
+        .get()
+        .futureValue
   }
 
   object AuthStub {
@@ -74,6 +81,26 @@ trait TestRequests extends ScalaFutures {
         .url(s"$url/auth/authorise")
         .withHeaders(Seq(HeaderNames.CONTENT_TYPE -> MimeTypes.JSON) ++ authContext.headers: _*)
         .post(Json.parse(body))
+        .futureValue
+  }
+
+  object Users {
+    def get(userId: String): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/users/$userId")
+        .get()
+        .futureValue
+
+    def update(user: User): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/users/${user.userId}")
+        .put(Json.toJson(user))
+        .futureValue
+
+    def create(user: User): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/users/")
+        .post(Json.toJson(user))
         .futureValue
   }
 

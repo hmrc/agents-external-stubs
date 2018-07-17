@@ -6,9 +6,13 @@ import org.scalatestplus.play.OneServerPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 
+import scala.concurrent.ExecutionContext
+
 abstract class ServerBaseISpec extends BaseISpec with OneServerPerSuite with ScalaFutures {
 
   override implicit lazy val app: Application = appBuilder.build()
+
+  implicit val ec: ExecutionContext = app.actorSystem.dispatcher
 
   implicit override val patienceConfig: PatienceConfig =
     PatienceConfig(timeout = Span(4, Seconds), interval = Span(1, Seconds))

@@ -1,13 +1,10 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import java.util.UUID
-
 import javax.inject.{Inject, Singleton}
 import play.api.http.HeaderNames
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, Result}
 import uk.gov.hmrc.agentsexternalstubs.models.SignInRequest
-import uk.gov.hmrc.agentsexternalstubs.repository.AuthenticatedSessionRepository
 import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._

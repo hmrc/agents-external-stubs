@@ -7,12 +7,15 @@ import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.twirl.api.HtmlFormat
+import uk.gov.hmrc.agentsexternalstubs.repository.{AuthenticatedSessionsRepository, UsersRepository}
 import uk.gov.hmrc.agentsexternalstubs.stubs.DataStreamStubs
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.HeaderCarrierConverter
 import uk.gov.hmrc.play.test.UnitSpec
 
-abstract class BaseISpec extends UnitSpec with WireMockSupport with DataStreamStubs {
+import scala.concurrent.ExecutionContext.Implicits.global
+
+abstract class BaseISpec extends UnitSpec with MongoApp with WireMockSupport with DataStreamStubs {
 
   def app: Application
   protected def appBuilder: GuiceApplicationBuilder
@@ -36,5 +39,11 @@ abstract class BaseISpec extends UnitSpec with WireMockSupport with DataStreamSt
 
   implicit def hc(implicit request: FakeRequest[_]): HeaderCarrier =
     HeaderCarrierConverter.fromHeadersAndSession(request.headers, Some(request.session))
+
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    await(app.injector.instanceOf[AuthenticatedSessionsRepository].ensureIndexes)
+    await(app.injector.instanceOf[UsersRepository].ensureIndexes)
+  }
 
 }

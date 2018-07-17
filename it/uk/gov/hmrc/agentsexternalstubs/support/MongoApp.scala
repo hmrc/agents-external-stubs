@@ -17,7 +17,6 @@
 package uk.gov.hmrc.agentsexternalstubs.support
 
 import org.scalatest.{BeforeAndAfterEach, Suite, TestSuite}
-import org.scalatestplus.play.OneAppPerSuite
 import uk.gov.hmrc.mongo.{MongoSpecSupport, Awaiting => MongoAwaiting}
 
 import scala.concurrent.ExecutionContext
