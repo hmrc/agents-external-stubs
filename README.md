@@ -14,8 +14,8 @@ This app SHOULD NOT be run on QA and Production environment.
 
 Feature | What's implemented
 -----------|-------------------------- 
-predicates | enrolment, authProviders 
-retrievals | authProviderId, credentials, authorisedEnrolments, allEnrolments
+predicates | `enrolment`, `authProviders` 
+retrievals | `authProviderId`, `credentials`, `authorisedEnrolments`, `allEnrolments`
 
 ## Custom API
 
@@ -37,7 +37,7 @@ Get current user authentication details
 Response | Description
 ---|---
 200| body: `{"userId": "foo", "authToken": "G676JHDJSHJ767676H", "providerType": "GovernmentGateway"}`, `Location` header contains link to get the entity
-404| when authToken not found
+404| when `authToken` not found
     
 #### GET  /agents-external-stubs/users/:userId
 Get current user details
@@ -49,7 +49,7 @@ Response | Description
 
 #### PUT  /agents-external-stubs/users/:userId
 Update an existing user.
-WARNING: payload's userId field will not be used nor updated!
+WARNING: payload's `userId` field will not be used nor updated!
 
 Payload
     
@@ -84,7 +84,7 @@ Payload
 Response | Description
 ---|---
 202| when user accepted, `Location` header contains link to get the entity
-404| when userId not found
+404| when `userId` not found
 
 #### POST /agents-external-stubs/users/
 Create a new user
@@ -94,7 +94,7 @@ Payload same as above
 Response | Description
 ---|---
 201| when user created, `Location` header contains link to get the entity
-404| when userId not found
+404| when `userId` not found
 
 ## Running the tests
 
