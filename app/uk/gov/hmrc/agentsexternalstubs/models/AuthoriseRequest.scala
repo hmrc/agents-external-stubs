@@ -19,8 +19,11 @@ sealed trait Predicate {
 object Predicate {
 
   val supportedPredicateFormats: Set[PredicateFormat[_ <: Predicate]] = Set(
-    EnrolmentPredicateFormat,
-    AuthProvidersPredicateFormat
+    EnrolmentPredicate,
+    AuthProvidersPredicate,
+    CredentialStrength,
+    ConfidenceLevel,
+    AffinityGroup
   )
 
   val supportedKeys = supportedPredicateFormats.map(_.key).mkString(",")
@@ -57,6 +60,10 @@ object Predicate {
 
 }
 
+abstract class PredicateFormat[P <: Predicate](val key: String)(implicit val tag: ClassTag[P]) {
+  val format: Format[P]
+}
+
 case class EnrolmentPredicate(enrolment: String) extends Predicate {
   override def validate(context: AuthoriseContext): Either[String, Unit] =
     context.principalEnrolments
@@ -64,6 +71,10 @@ case class EnrolmentPredicate(enrolment: String) extends Predicate {
         case Enrolment(`enrolment`, _) =>
       }
       .toRight("InsufficientEnrolments")
+}
+
+object EnrolmentPredicate extends PredicateFormat[EnrolmentPredicate]("enrolment") {
+  implicit val format: Format[EnrolmentPredicate] = Json.format[EnrolmentPredicate]
 }
 
 case class AuthProviders(authProviders: Seq[String]) extends Predicate {
@@ -74,14 +85,42 @@ case class AuthProviders(authProviders: Seq[String]) extends Predicate {
     }
 }
 
-abstract class PredicateFormat[P <: Predicate](val key: String)(implicit val tag: ClassTag[P]) {
-  val format: Format[P]
+object AuthProvidersPredicate extends PredicateFormat[AuthProviders]("authProviders") {
+  implicit val format: Format[AuthProviders] = Json.format[AuthProviders]
 }
 
-object EnrolmentPredicateFormat extends PredicateFormat[EnrolmentPredicate]("enrolment") {
-  val format = Json.format[EnrolmentPredicate]
+case class CredentialStrength(credentialStrength: String) extends Predicate {
+  override def validate(context: AuthoriseContext): Either[String, Unit] =
+    context.credentialStrength.contains(credentialStrength) match {
+      case true  => Right(())
+      case false => Left("IncorrectCredentialStrength")
+    }
 }
 
-object AuthProvidersPredicateFormat extends PredicateFormat[AuthProviders]("authProviders") {
-  val format = Json.format[AuthProviders]
+object CredentialStrength extends PredicateFormat[CredentialStrength]("credentialStrength") {
+  implicit val format: Format[CredentialStrength] = Json.format[CredentialStrength]
+}
+
+case class ConfidenceLevel(confidenceLevel: Int) extends Predicate {
+  override def validate(context: AuthoriseContext): Either[String, Unit] =
+    context.confidenceLevel == confidenceLevel match {
+      case true  => Right(())
+      case false => Left("InsufficientConfidenceLevel")
+    }
+}
+
+object ConfidenceLevel extends PredicateFormat[ConfidenceLevel]("confidenceLevel") {
+  implicit val format: Format[ConfidenceLevel] = Json.format[ConfidenceLevel]
+}
+
+case class AffinityGroup(affinityGroup: String) extends Predicate {
+  override def validate(context: AuthoriseContext): Either[String, Unit] =
+    context.affinityGroup.contains(affinityGroup) match {
+      case true  => Right(())
+      case false => Left("UnsupportedAffinityGroup")
+    }
+}
+
+object AffinityGroup extends PredicateFormat[AffinityGroup]("affinityGroup") {
+  implicit val format: Format[AffinityGroup] = Json.format[AffinityGroup]
 }

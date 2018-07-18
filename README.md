@@ -14,7 +14,7 @@ This app SHOULD NOT be run on QA nor Production environment.
 
 Feature | What's implemented
 -----------|-------------------------- 
-predicates | `enrolment`, `authProviders` 
+predicates | `enrolment`, `authProviders`, `affinityGroup`, `confidenceLevel`, `credentialStrength`
 retrievals | `authProviderId`, `credentials`, `authorisedEnrolments`, `allEnrolments`,`affinityGroup`,`confidenceLevel`,`credentialStrength`
 
 ## Custom API
