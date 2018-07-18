@@ -1,18 +1,36 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
-case class AuthoriseContext(user: User, authenticatedSession: AuthenticatedSession, request: AuthoriseRequest) {
+trait AuthoriseContext {
 
-  def principalEnrolments: Seq[Enrolment] = user.principalEnrolments
+  def userId: String
+  def providerType: String
+  def principalEnrolments: Seq[Enrolment]
+  def delegatedEnrolments: Seq[Enrolment]
+  def affinityGroup: Option[String]
+  def confidenceLevel: Int
+  def credentialStrength: Option[String]
+  def authorisedServices: Set[String]
+}
 
-  def delegatedEnrolments: Seq[Enrolment] = user.delegatedEnrolments
+case class FullAuthoriseContext(user: User, authenticatedSession: AuthenticatedSession, request: AuthoriseRequest)
+    extends AuthoriseContext {
 
-  def affinityGroup: Option[String] = user.affinityGroup
+  override def userId: String = user.userId
 
-  def confidenceLevel: Int = user.confidenceLevel
+  override def providerType: String = authenticatedSession.providerType
 
-  def credentialStrength: Option[String] = user.credentialStrength
+  override def principalEnrolments: Seq[Enrolment] = user.principalEnrolments
 
-  lazy val authorisedServices
-    : Set[String] = request.authorise.collect { case EnrolmentPredicate(service) => service }.toSet
+  override def delegatedEnrolments: Seq[Enrolment] = user.delegatedEnrolments
+
+  override def affinityGroup: Option[String] = user.affinityGroup
+
+  override def confidenceLevel: Int = user.confidenceLevel
+
+  override def credentialStrength: Option[String] = user.credentialStrength
+
+  override lazy val authorisedServices: Set[String] = request.authorise.collect {
+    case EnrolmentPredicate(service, _) => service
+  }.toSet
 
 }

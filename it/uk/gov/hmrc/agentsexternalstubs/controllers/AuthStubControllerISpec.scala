@@ -133,6 +133,32 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         }
       }
 
+      "throw InsufficientEnrolments if user not enrolled with expected identifier key" in {
+        val id = randomId
+        val authToken = givenAnAuthenticatedUser(User(id))
+        givenUserEnrolledFor(id, "serviceA", "idOfA", "2362168736781263")
+        an[InsufficientEnrolments] shouldBe thrownBy {
+          await(
+            authConnector
+              .authorise(Enrolment("serviceA").withIdentifier("foo", "123"), EmptyRetrieval)(
+                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+                concurrent.ExecutionContext.Implicits.global))
+        }
+      }
+
+      "throw InsufficientEnrolments if user not enrolled with expected identifier value" in {
+        val id = randomId
+        val authToken = givenAnAuthenticatedUser(User(id))
+        givenUserEnrolledFor(id, "serviceA", "idOfA", "2362168736781263")
+        an[InsufficientEnrolments] shouldBe thrownBy {
+          await(
+            authConnector
+              .authorise(Enrolment("serviceA").withIdentifier("idOfA", "2362168736"), EmptyRetrieval)(
+                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+                concurrent.ExecutionContext.Implicits.global))
+        }
+      }
+
       "retrieve authorisedEnrolments" in {
         val id = randomId
         val authToken = givenAnAuthenticatedUser(User(id))

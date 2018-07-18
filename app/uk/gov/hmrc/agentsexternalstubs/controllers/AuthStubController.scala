@@ -30,7 +30,7 @@ class AuthStubController @Inject()(authSessionRepository: AuthenticatedSessionsR
                                result <- Future(maybeUser match {
                                           case Some(user) =>
                                             prepareAuthoriseResponse(
-                                              AuthoriseContext(user, authenticatedSession, authoriseRequest))
+                                              FullAuthoriseContext(user, authenticatedSession, authoriseRequest))
                                           case None =>
                                             Left("SessionRecordNotFound")
                                         }) map (_.fold(
@@ -51,15 +51,15 @@ class AuthStubController @Inject()(authSessionRepository: AuthenticatedSessionsR
     }
   }
 
-  def prepareAuthoriseResponse(context: AuthoriseContext)(implicit ex: ExecutionContext): Retrieve.MaybeResponse =
+  def prepareAuthoriseResponse(context: FullAuthoriseContext)(implicit ex: ExecutionContext): Retrieve.MaybeResponse =
     checkPredicates(context).fold(error => Left(error), _ => retrieveDetails(context))
 
-  def checkPredicates(context: AuthoriseContext)(implicit ex: ExecutionContext): Either[String, Unit] =
+  def checkPredicates(context: FullAuthoriseContext)(implicit ex: ExecutionContext): Either[String, Unit] =
     context.request.authorise.foldLeft[Either[String, Unit]](Right(()))(
       (result, p: Predicate) => result.fold(error => Left(error), _ => p.validate(context))
     )
 
-  def retrieveDetails(context: AuthoriseContext)(implicit ex: ExecutionContext): Retrieve.MaybeResponse =
+  def retrieveDetails(context: FullAuthoriseContext)(implicit ex: ExecutionContext): Retrieve.MaybeResponse =
     context.request.retrieve.foldLeft[Retrieve.MaybeResponse](Right(AuthoriseResponse()))((result, r: String) =>
       result.fold(error => Left(error), response => addDetailToResponse(response, r, context)))
 

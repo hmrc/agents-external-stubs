@@ -58,7 +58,7 @@ case object CredentialsRetrieve extends Retrieve {
   val key = "credentials"
   override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
     implicit ec: ExecutionContext): MaybeResponse =
-    Right(response.copy(credentials = Some(Credentials(context.user.userId, "GovernmentGateway"))))
+    Right(response.copy(credentials = Some(Credentials(context.userId, "GovernmentGateway"))))
 }
 
 case class GGCredId(ggCredId: String)
@@ -70,7 +70,7 @@ case object AuthProviderIdRetrieve extends Retrieve {
   val key = "authProviderId"
   override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
     implicit ec: ExecutionContext): MaybeResponse =
-    Right(response.copy(authProviderId = Some(GGCredId(context.user.userId))))
+    Right(response.copy(authProviderId = Some(GGCredId(context.userId))))
 }
 
 case class Enrolment(key: String, identifiers: Option[Seq[Identifier]] = None)

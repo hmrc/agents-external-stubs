@@ -64,13 +64,20 @@ abstract class PredicateFormat[P <: Predicate](val key: String)(implicit val tag
   val format: Format[P]
 }
 
-case class EnrolmentPredicate(enrolment: String) extends Predicate {
+case class EnrolmentPredicate(enrolment: String, identifiers: Option[Seq[Identifier]] = None) extends Predicate {
   override def validate(context: AuthoriseContext): Either[String, Unit] =
     context.principalEnrolments
       .collectFirst {
-        case Enrolment(`enrolment`, _) =>
+        case Enrolment(`enrolment`, ii) if identifiersMatches(identifiers, ii) =>
       }
       .toRight("InsufficientEnrolments")
+
+  private def identifiersMatches(expected: Option[Seq[Identifier]], provided: Option[Seq[Identifier]]): Boolean =
+    (expected, provided) match {
+      case (None, _)            => true
+      case (Some(sa), Some(sb)) => sa.forall(i => sb.contains(i))
+      case _                    => false
+    }
 }
 
 object EnrolmentPredicate extends PredicateFormat[EnrolmentPredicate]("enrolment") {
@@ -79,7 +86,7 @@ object EnrolmentPredicate extends PredicateFormat[EnrolmentPredicate]("enrolment
 
 case class AuthProviders(authProviders: Seq[String]) extends Predicate {
   override def validate(context: AuthoriseContext): Either[String, Unit] =
-    authProviders.contains(context.authenticatedSession.providerType) match {
+    authProviders.contains(context.providerType) match {
       case true  => Right(())
       case false => Left("UnsupportedAuthProvider")
     }
