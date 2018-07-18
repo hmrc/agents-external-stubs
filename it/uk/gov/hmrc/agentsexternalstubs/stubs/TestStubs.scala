@@ -20,10 +20,14 @@ trait TestStubs {
 
   def givenAnAuthenticatedUser(userId: String, providerType: String = "GovernmentGateway")(
     implicit ec: ExecutionContext,
+    timeout: Duration): String = givenAnAuthenticatedUser(User(userId), providerType)
+
+  def givenAnAuthenticatedUser(user: User, providerType: String)(
+    implicit ec: ExecutionContext,
     timeout: Duration): String =
     await(for {
-      authSession <- authenticationService.createNewAuthentication(userId, "any", providerType)
-      _           <- userService.tryCreateUser(User(userId))
+      authSession <- authenticationService.createNewAuthentication(user.userId, "any", providerType)
+      _           <- userService.tryCreateUser(user)
     } yield authSession)
       .getOrElse(throw new Exception("Could not sign in user"))
       .authToken

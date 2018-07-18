@@ -6,16 +6,14 @@ import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
 import play.api.mvc.{Action, Result}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.AuthenticatedSessionsRepository
-import uk.gov.hmrc.agentsexternalstubs.services.RetrievalService
+import uk.gov.hmrc.agentsexternalstubs.services.UsersService
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class AuthStubController @Inject()(
-  authSessionRepository: AuthenticatedSessionsRepository,
-  retrievalService: RetrievalService)
+class AuthStubController @Inject()(authSessionRepository: AuthenticatedSessionsRepository, usersService: UsersService)
     extends BaseController {
 
   def authorise(): Action[JsValue] = Action.async(parse.json) { implicit request =>
@@ -28,12 +26,17 @@ class AuthStubController @Inject()(
                          request.body.validate[AuthoriseRequest] match {
                            case JsSuccess(authoriseRequest, _) =>
                              for {
-                               maybeResponse <- prepareAuthoriseResponse(
-                                                 authoriseRequest,
-                                                 retrievalService,
-                                                 authenticatedSession)
-                             } yield
-                               maybeResponse.fold(error => unauthorized(error), response => Ok(Json.toJson(response)))
+                               maybeUser <- usersService.findByUserId(authenticatedSession.userId)
+                               result <- Future(maybeUser match {
+                                          case Some(user) =>
+                                            prepareAuthoriseResponse(
+                                              AuthoriseContext(user, authenticatedSession, authoriseRequest))
+                                          case None =>
+                                            Left("SessionRecordNotFound")
+                                        }) map (_.fold(
+                                          error => unauthorized(error),
+                                          response => Ok(Json.toJson(response))))
+                             } yield result
                            case JsError(errors) =>
                              Future.successful(
                                BadRequest(errors
@@ -48,50 +51,21 @@ class AuthStubController @Inject()(
     }
   }
 
-  type MaybeResponse = Future[Either[String, AuthoriseResponse]]
+  def prepareAuthoriseResponse(context: AuthoriseContext)(implicit ex: ExecutionContext): Retrieve.MaybeResponse =
+    checkPredicates(context).fold(error => Left(error), _ => retrieveDetails(context))
 
-  def prepareAuthoriseResponse(
-    request: AuthoriseRequest,
-    retrievalService: RetrievalService,
-    authenticatedSession: AuthenticatedSession)(implicit ex: ExecutionContext): MaybeResponse =
-    for {
-      status <- checkPredicates(request.authorise, retrievalService, authenticatedSession)
-      response <- status.fold(
-                   error => Future.successful(Left(error)),
-                   _ => retrieveDetails(request, retrievalService, authenticatedSession))
-    } yield response
-
-  def checkPredicates(
-    predicates: Seq[Predicate],
-    retrievalService: RetrievalService,
-    authenticatedSession: AuthenticatedSession)(implicit ex: ExecutionContext): Future[Either[String, Unit]] =
-    predicates.foldLeft[Future[Either[String, Unit]]](Future.successful(Right(())))(
-      (fr, p: Predicate) =>
-        fr.flatMap(
-          _.fold(
-            error => Future.successful(Left(error)),
-            _ => p.validate(retrievalService, authenticatedSession)
-          ))
+  def checkPredicates(context: AuthoriseContext)(implicit ex: ExecutionContext): Either[String, Unit] =
+    context.request.authorise.foldLeft[Either[String, Unit]](Right(()))(
+      (result, p: Predicate) => result.fold(error => Left(error), _ => p.validate(context))
     )
 
-  def retrieveDetails(
-    request: AuthoriseRequest,
-    retrievalService: RetrievalService,
-    authenticatedSession: AuthenticatedSession)(implicit ex: ExecutionContext): MaybeResponse =
-    request.retrieve.foldLeft[MaybeResponse](Future.successful(Right(AuthoriseResponse())))(
-      (fr, r: String) =>
-        fr.flatMap(
-          _.fold(
-            error => Future.successful(Left(error)),
-            response => addDetailToResponse(response, r, retrievalService, authenticatedSession, request.authorise))))
+  def retrieveDetails(context: AuthoriseContext)(implicit ex: ExecutionContext): Retrieve.MaybeResponse =
+    context.request.retrieve.foldLeft[Retrieve.MaybeResponse](Right(AuthoriseResponse()))((result, r: String) =>
+      result.fold(error => Left(error), response => addDetailToResponse(response, r, context)))
 
-  def addDetailToResponse(
-    response: AuthoriseResponse,
-    retrieve: String,
-    retrievalService: RetrievalService,
-    authenticatedSession: AuthenticatedSession,
-    predicates: Seq[Predicate])(implicit ex: ExecutionContext): MaybeResponse =
-    Retrieve.of(retrieve).fill(response, retrievalService, authenticatedSession, predicates)
+  def addDetailToResponse(response: AuthoriseResponse, retrieve: String, context: AuthoriseContext)(
+    implicit ex: ExecutionContext): Retrieve.MaybeResponse =
+    Retrieve.of(retrieve).fill(response, context)
 
   def unauthorizedF(reason: String): Future[Result] =
     Future.successful(unauthorized(reason))

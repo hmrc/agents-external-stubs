@@ -4,6 +4,7 @@ import org.scalatest.Suite
 import org.scalatestplus.play.ServerProvider
 import play.api.libs.ws.WSClient
 import play.mvc.Http.HeaderNames
+import uk.gov.hmrc.agentsexternalstubs.models.User
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{AuthContext, ServerBaseISpec, TestRequests}
 import uk.gov.hmrc.auth.core._
@@ -147,6 +148,40 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
           Enrolment("serviceA", Seq(EnrolmentIdentifier("idOfA", "2362168736781263")), "Activated"))
         enrolments.getEnrolment("serviceB") shouldBe Some(
           Enrolment("serviceB", Seq(EnrolmentIdentifier("idOfB", "4783748738748778")), "Activated"))
+      }
+
+      "retrieve affinityGroup" in {
+        val authToken = givenAnAuthenticatedUser(User("foo133", affinityGroup = Some("Agent")), "GovernmentGateway")
+
+        val groupOpt = await(
+          authConnector
+            .authorise[Option[AffinityGroup]](EmptyPredicate, Retrievals.affinityGroup)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global))
+        groupOpt shouldBe Some(AffinityGroup.Agent)
+      }
+
+      "retrieve confidenceLevel" in {
+        val authToken = givenAnAuthenticatedUser(User("foo133", confidenceLevel = 200), "GovernmentGateway")
+
+        val confidence = await(
+          authConnector
+            .authorise[ConfidenceLevel](EmptyPredicate, Retrievals.confidenceLevel)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global))
+        confidence shouldBe ConfidenceLevel.L200
+      }
+
+      "retrieve credentialStrength" in {
+        val authToken =
+          givenAnAuthenticatedUser(User("foo133", credentialStrength = Some("strong")), "GovernmentGateway")
+
+        val strength = await(
+          authConnector
+            .authorise[Option[String]](EmptyPredicate, Retrievals.credentialStrength)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global))
+        strength shouldBe Some(CredentialStrength.strong)
       }
     }
   }
