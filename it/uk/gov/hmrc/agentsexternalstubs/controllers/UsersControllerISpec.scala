@@ -27,7 +27,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       }
 
       "return an existing user" in {
-        givenAnAuthenticatedUser("712717287")
+        givenAnAuthenticatedUser(User("712717287"))
         val result = Users.get("712717287")
         result.status shouldBe 200
         result.json.as[User] shouldBe User("712717287")
@@ -57,7 +57,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       }
 
       "update an existing user" in {
-        givenAnAuthenticatedUser("7728378273")
+        givenAnAuthenticatedUser(User("7728378273"))
         val result = Users.update(User("7728378273", principalEnrolments = Seq(Enrolment("foo"))))
         result.status shouldBe 202
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/7728378273")

@@ -18,11 +18,7 @@ trait TestStubs {
   lazy val authenticationService: AuthenticationService = app.injector.instanceOf[AuthenticationService]
   lazy val userService: UsersService = app.injector.instanceOf[UsersService]
 
-  def givenAnAuthenticatedUser(userId: String, providerType: String = "GovernmentGateway")(
-    implicit ec: ExecutionContext,
-    timeout: Duration): String = givenAnAuthenticatedUser(User(userId), providerType)
-
-  def givenAnAuthenticatedUser(user: User, providerType: String)(
+  def givenAnAuthenticatedUser(user: User, providerType: String = "GovernmentGateway")(
     implicit ec: ExecutionContext,
     timeout: Duration): String =
     await(for {

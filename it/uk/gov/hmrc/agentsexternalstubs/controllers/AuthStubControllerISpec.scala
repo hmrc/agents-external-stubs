@@ -53,7 +53,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       }
 
       "return 400 BadRequest if authorise field missing" in {
-        val authToken = givenAnAuthenticatedUser("foo")
+        val authToken = givenAnAuthenticatedUser(User("foo"))
         val result =
           AuthStub.authorise(s"""{"foo":[{"enrolment":"FOO"}],"retrieve":[]}""", AuthContext.withToken(authToken))
         result.status shouldBe 400
@@ -61,7 +61,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       }
 
       "return 400 BadRequest if predicate not supported" in {
-        val authToken = givenAnAuthenticatedUser("foo")
+        val authToken = givenAnAuthenticatedUser(User("foo"))
         val result =
           AuthStub.authorise(s"""{"authorise":[{"foo":"FOO"}],"retrieve":[]}""", AuthContext.withToken(authToken))
         result.status shouldBe 400
@@ -69,14 +69,14 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       }
 
       "return 200 OK if predicate empty" in {
-        val authToken = givenAnAuthenticatedUser("foo")
+        val authToken = givenAnAuthenticatedUser(User("foo"))
         val result =
           AuthStub.authorise(s"""{"authorise":[],"retrieve":[]}""", AuthContext.withToken(authToken))
         result.status shouldBe 200
       }
 
       "retrieve credentials" in {
-        val authToken = givenAnAuthenticatedUser("foo")
+        val authToken = givenAnAuthenticatedUser(User("foo"))
         val creds = await(
           authConnector
             .authorise[Credentials](EmptyPredicate, Retrievals.credentials)(
@@ -87,7 +87,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       }
 
       "throw UnsupportedAuthProvider if user authenticated with another provider" in {
-        val authToken = givenAnAuthenticatedUser("foo", "someOtherProvider")
+        val authToken = givenAnAuthenticatedUser(User("foo"), providerType = "someOtherProvider")
         an[UnsupportedAuthProvider] shouldBe thrownBy {
           await(
             authConnector
@@ -98,7 +98,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       }
 
       "retrieve authProviderId" in {
-        val authToken = givenAnAuthenticatedUser("foo")
+        val authToken = givenAnAuthenticatedUser(User("foo"))
         val creds = await(
           authConnector
             .authorise[LegacyCredentials](EmptyPredicate, Retrievals.authProviderId)(
@@ -108,7 +108,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       }
 
       "throw InsufficientEnrolments if user not enrolled" in {
-        val authToken = givenAnAuthenticatedUser("foo")
+        val authToken = givenAnAuthenticatedUser(User("foo"))
         an[InsufficientEnrolments] shouldBe thrownBy {
           await(
             authConnector
@@ -119,7 +119,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       }
 
       "retrieve authorisedEnrolments" in {
-        val authToken = givenAnAuthenticatedUser("foo123")
+        val authToken = givenAnAuthenticatedUser(User("foo123"))
         givenUserEnrolledFor("foo123", "serviceA", "idOfA", "2362168736781263")
         givenUserEnrolledFor("foo123", "serviceB", "idOfB", "4783748738748778")
 
@@ -134,7 +134,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       }
 
       "retrieve allEnrolments" in {
-        val authToken = givenAnAuthenticatedUser("foo123")
+        val authToken = givenAnAuthenticatedUser(User("foo123"))
         givenUserEnrolledFor("foo123", "serviceA", "idOfA", "2362168736781263")
         givenUserEnrolledFor("foo123", "serviceB", "idOfB", "4783748738748778")
 
@@ -162,7 +162,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       }
 
       "retrieve confidenceLevel" in {
-        val authToken = givenAnAuthenticatedUser(User("foo133", confidenceLevel = 200), "GovernmentGateway")
+        val authToken = givenAnAuthenticatedUser(User("foo133", confidenceLevel = 200))
 
         val confidence = await(
           authConnector
@@ -174,7 +174,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
       "retrieve credentialStrength" in {
         val authToken =
-          givenAnAuthenticatedUser(User("foo133", credentialStrength = Some("strong")), "GovernmentGateway")
+          givenAnAuthenticatedUser(User("foo133", credentialStrength = Some("strong")))
 
         val strength = await(
           authConnector
