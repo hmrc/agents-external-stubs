@@ -358,6 +358,17 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
               concurrent.ExecutionContext.Implicits.global))
         groupOpt shouldBe Some(Assistant)
       }
+
+      "retrieve groupIdentifier" in {
+        val authToken = givenAnAuthenticatedUser(User(randomId, groupId = Some("AAA-999-XXX")))
+
+        val groupOpt = await(
+          authConnector
+            .authorise[Option[String]](EmptyPredicate, Retrievals.groupIdentifier)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global))
+        groupOpt shouldBe Some("AAA-999-XXX")
+      }
     }
   }
 }

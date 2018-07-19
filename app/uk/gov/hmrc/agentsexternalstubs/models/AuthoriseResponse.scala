@@ -14,7 +14,8 @@ case class AuthoriseResponse(
   confidenceLevel: Int = 50,
   credentialStrength: Option[String] = None,
   credentialRole: Option[String] = None,
-  nino: Option[Nino] = None
+  nino: Option[Nino] = None,
+  groupIdentifier: Option[String] = None
 )
 
 object AuthoriseResponse {
@@ -41,7 +42,8 @@ object Retrieve {
       ConfidenceLevelRetrieve,
       CredentialStrengthRetrieve,
       NinoRetrieve,
-      CredentialRoleRetrieve
+      CredentialRoleRetrieve,
+      GroupIdentifierRetrieve
     )
 
   def of(key: String): Retrieve =
@@ -126,4 +128,11 @@ case object CredentialRoleRetrieve extends Retrieve {
   override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
     implicit ec: ExecutionContext): MaybeResponse =
     Right(response.copy(credentialRole = context.credentialRole))
+}
+
+case object GroupIdentifierRetrieve extends Retrieve {
+  val key = "groupIdentifier"
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
+    implicit ec: ExecutionContext): MaybeResponse =
+    Right(response.copy(groupIdentifier = context.groupId))
 }

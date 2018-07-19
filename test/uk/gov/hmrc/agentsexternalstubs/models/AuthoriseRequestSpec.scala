@@ -150,6 +150,25 @@ class AuthoriseRequestSpec extends UnitSpec {
         .toJson(AuthoriseRequest(Seq(HasNino(true, Some("AA000002B"))), Seq.empty))
         .toString() shouldBe """{"authorise":[{"hasNino":true,"nino":"AA000002B"}],"retrieve":[]}"""
     }
+
+    "parse authorise request with credentialRole predicate" in {
+      Json.parse(s"""{
+                    |"authorise": [
+                    |   {
+                    |      "credentialRole": "foobar"
+                    |   }
+                    |],
+                    |"retrieve": []
+                    |}""".stripMargin).as[AuthoriseRequest] shouldBe AuthoriseRequest(
+        Seq(CredentialRole("foobar")),
+        Seq.empty)
+    }
+
+    "serialize authorise request with credentialRole predicate" in {
+      Json
+        .toJson(AuthoriseRequest(Seq(CredentialRole("foobar")), Seq.empty))
+        .toString() shouldBe """{"authorise":[{"credentialRole":"foobar"}],"retrieve":[]}"""
+    }
   }
 
   "EnrolmentPredicate" should {

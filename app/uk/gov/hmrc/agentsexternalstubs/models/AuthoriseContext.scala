@@ -14,6 +14,7 @@ trait AuthoriseContext {
   def credentialRole: Option[String]
   def authorisedServices: Set[String]
   def nino: Option[Nino]
+  def groupId: Option[String]
 }
 
 case class FullAuthoriseContext(user: User, authenticatedSession: AuthenticatedSession, request: AuthoriseRequest)
@@ -36,6 +37,8 @@ case class FullAuthoriseContext(user: User, authenticatedSession: AuthenticatedS
   override def credentialRole: Option[String] = user.credentialRole
 
   override def nino: Option[Nino] = user.nino
+
+  override def groupId: Option[String] = user.groupId
 
   override lazy val authorisedServices: Set[String] = request.authorise.collect {
     case EnrolmentPredicate(service, _) => service
