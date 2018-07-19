@@ -14,8 +14,8 @@ This app SHOULD NOT be run on QA nor Production environment.
 
 Feature | What's implemented
 -----------|-------------------------- 
-predicates | `enrolment`, `authProviders`, `affinityGroup`, `confidenceLevel`, `credentialStrength`
-retrievals | `authProviderId`, `credentials`, `authorisedEnrolments`, `allEnrolments`,`affinityGroup`,`confidenceLevel`,`credentialStrength`
+predicates | `enrolment`, `authProviders`, `affinityGroup`, `confidenceLevel`, `credentialStrength`, `nino`
+retrievals | `authProviderId`, `credentials`, `authorisedEnrolments`, `allEnrolments`,`affinityGroup`,`confidenceLevel`,`credentialStrength`, `nino`
 
 ## Custom API
 
@@ -28,8 +28,9 @@ Authenticate an user
 
 Response | Description
 ---|---
-201| when new authentication created
-200| when an existing authentication found
+200| when an existing authentication (based on header) and user found
+201| when new authentication and user created
+202| when new authentication created for an existing user
     
 #### GET  /agents-external-stubs/session/:authToken
 Get current user authentication details
@@ -95,6 +96,7 @@ Create a new user
 Response | Description
 ---|---
 201| when user created, `Location` header contains link to get the entity
+409| when `userId` already exists
 404| when `userId` not found
 
 ## Running the tests

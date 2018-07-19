@@ -9,9 +9,10 @@ import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models.User
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{AuthContext, ServerBaseISpec, TestRequests}
-import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.authorise.EmptyPredicate
 import uk.gov.hmrc.auth.core.retrieve._
+import uk.gov.hmrc.auth.core.{Nino => NinoPredicate, _}
+import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.logging.Authorization
 
@@ -297,6 +298,41 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global))
         groupOpt shouldBe Some(AffinityGroup.Agent)
+      }
+
+      "authorize if user has nino" in {
+        val authToken =
+          givenAnAuthenticatedUser(User(randomId, nino = Some(Nino("HW827856C"))))
+
+        await(
+          authConnector
+            .authorise[Unit](NinoPredicate(true, Some("HW827856C")), EmptyRetrieval)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global))
+      }
+
+      "throw exception if nino does not match" in {
+        val authToken =
+          givenAnAuthenticatedUser(User(randomId, nino = Some(Nino("HW827856C"))))
+
+        an[InternalError] shouldBe thrownBy {
+          await(
+            authConnector
+              .authorise[Unit](NinoPredicate(true, Some("AB827856A")), EmptyRetrieval)(
+                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+                concurrent.ExecutionContext.Implicits.global))
+        }
+      }
+
+      "retrieve nino" in {
+        val authToken = givenAnAuthenticatedUser(User(randomId, nino = Some(Nino("HW827856C"))))
+
+        val groupOpt = await(
+          authConnector
+            .authorise[Option[String]](EmptyPredicate, Retrievals.nino)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global))
+        groupOpt shouldBe Some("HW827856C")
       }
     }
   }

@@ -23,7 +23,8 @@ object Predicate {
     AuthProvidersPredicate,
     CredentialStrength,
     ConfidenceLevel,
-    AffinityGroup
+    AffinityGroup,
+    HasNino
   )
 
   val supportedKeys = supportedPredicateFormats.map(_.key).mkString(",")
@@ -130,4 +131,20 @@ case class AffinityGroup(affinityGroup: String) extends Predicate {
 
 object AffinityGroup extends PredicateFormat[AffinityGroup]("affinityGroup") {
   implicit val format: Format[AffinityGroup] = Json.format[AffinityGroup]
+}
+
+case class HasNino(hasNino: Boolean, nino: Option[String] = None) extends Predicate {
+  override def validate(context: AuthoriseContext): Either[String, Unit] =
+    context.nino.isDefined == hasNino match {
+      case false => if (hasNino) Left("Nino required but not found") else Left("Nino found but not expected")
+      case true =>
+        nino match {
+          case Some(expected) => if (context.nino.exists(_.value == expected)) Right(()) else Left("Nino doesn't match")
+          case None           => Right(())
+        }
+    }
+}
+
+object HasNino extends PredicateFormat[HasNino]("nino") {
+  implicit val format: Format[HasNino] = Json.format[HasNino]
 }

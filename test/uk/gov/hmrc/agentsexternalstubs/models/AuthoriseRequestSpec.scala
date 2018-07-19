@@ -3,6 +3,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import play.api.libs.json.Json
 import uk.gov.hmrc.play.test.UnitSpec
 import org.mockito.Mockito._
+import uk.gov.hmrc.domain.Nino
 
 class AuthoriseRequestSpec extends UnitSpec {
 
@@ -129,6 +130,26 @@ class AuthoriseRequestSpec extends UnitSpec {
         .toJson(AuthoriseRequest(Seq(AffinityGroup("Agent")), Seq.empty))
         .toString() shouldBe """{"authorise":[{"affinityGroup":"Agent"}],"retrieve":[]}"""
     }
+
+    "parse authorise request with nino predicate" in {
+      Json.parse(s"""{
+                    |"authorise": [
+                    |   {
+                    |      "hasNino": true,
+                    |      "nino" : "AA000002B"
+                    |   }
+                    |],
+                    |"retrieve": []
+                    |}""".stripMargin).as[AuthoriseRequest] shouldBe AuthoriseRequest(
+        Seq(HasNino(true, Some("AA000002B"))),
+        Seq.empty)
+    }
+
+    "serialize authorise request with nino predicate" in {
+      Json
+        .toJson(AuthoriseRequest(Seq(HasNino(true, Some("AA000002B"))), Seq.empty))
+        .toString() shouldBe """{"authorise":[{"hasNino":true,"nino":"AA000002B"}],"retrieve":[]}"""
+    }
   }
 
   "EnrolmentPredicate" should {
@@ -165,6 +186,43 @@ class AuthoriseRequestSpec extends UnitSpec {
       when(context.principalEnrolments).thenReturn(Seq(Enrolment("foo", Some(Seq(Identifier("bar", "1234556789"))))))
       val predicate = EnrolmentPredicate("foo", Some(Seq(Identifier("bar", "987654321"))))
       predicate.validate(context) shouldBe Left("InsufficientEnrolments")
+    }
+  }
+
+  "HasNino predicate" should {
+    "accept if nino expected and user has the nino" in {
+      val context = mock(classOf[AuthoriseContext])
+      when(context.nino).thenReturn(Some(Nino("HW827856C")))
+      val predicate = HasNino(true)
+      predicate.validate(context) shouldBe Right(())
+    }
+
+    "accept if user has the nino and check if matches" in {
+      val context = mock(classOf[AuthoriseContext])
+      when(context.nino).thenReturn(Some(Nino("HW827856C")))
+      val predicate = HasNino(true, Some("HW827856C"))
+      predicate.validate(context) shouldBe Right(())
+    }
+
+    "reject if user has no nino but expected" in {
+      val context = mock(classOf[AuthoriseContext])
+      when(context.nino).thenReturn(None)
+      val predicate = HasNino(true)
+      predicate.validate(context) shouldBe Left("Nino required but not found")
+    }
+
+    "reject if user has nino but not expected" in {
+      val context = mock(classOf[AuthoriseContext])
+      when(context.nino).thenReturn(Some(Nino("HW827856C")))
+      val predicate = HasNino(false)
+      predicate.validate(context) shouldBe Left("Nino found but not expected")
+    }
+
+    "reject if user has nino but not matches" in {
+      val context = mock(classOf[AuthoriseContext])
+      when(context.nino).thenReturn(Some(Nino("HW827856C")))
+      val predicate = HasNino(true, Some("foo"))
+      predicate.validate(context) shouldBe Left("Nino doesn't match")
     }
   }
 

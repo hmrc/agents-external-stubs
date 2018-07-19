@@ -10,6 +10,7 @@ import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 @Singleton
 class SignInController @Inject()(signInService: AuthenticationService, usersService: UsersService)
@@ -46,9 +47,15 @@ class SignInController @Inject()(signInService: AuthenticationService, usersServ
                  case Some(session) =>
                    usersService
                      .tryCreateUser(User(session.userId))
-                     .map(_ =>
-                       Created("").withHeaders(
-                         HeaderNames.LOCATION -> routes.SignInController.session(session.authToken).url))
+                     .map {
+                       case Success(_) =>
+                         Created("").withHeaders(
+                           HeaderNames.LOCATION -> routes.SignInController.session(session.authToken).url)
+                       case Failure(_) =>
+                         Accepted("").withHeaders(
+                           HeaderNames.LOCATION -> routes.SignInController.session(session.authToken).url)
+
+                     }
                  case None => Future.successful(Unauthorized("SESSION_CREATE_FAILED"))
                }
     } yield result

@@ -1,6 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import play.api.libs.json.{Format, Json, Writes}
+import uk.gov.hmrc.domain.Nino
 
 import scala.concurrent.ExecutionContext
 
@@ -11,7 +12,8 @@ case class AuthoriseResponse(
   allEnrolments: Seq[Enrolment] = Seq.empty,
   affinityGroup: Option[String] = None,
   confidenceLevel: Int = 50,
-  credentialStrength: Option[String] = None
+  credentialStrength: Option[String] = None,
+  nino: Option[Nino] = None
 )
 
 object AuthoriseResponse {
@@ -36,7 +38,8 @@ object Retrieve {
       AllEnrolmentsRetrieve,
       AffinityGroupRetrieve,
       ConfidenceLevelRetrieve,
-      CredentialStrengthRetrieve
+      CredentialStrengthRetrieve,
+      NinoRetrieve
     )
 
   def of(key: String): Retrieve =
@@ -117,4 +120,11 @@ case object CredentialStrengthRetrieve extends Retrieve {
   override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
     implicit ec: ExecutionContext): MaybeResponse =
     Right(response.copy(credentialStrength = context.credentialStrength))
+}
+
+case object NinoRetrieve extends Retrieve {
+  val key = "nino"
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
+    implicit ec: ExecutionContext): MaybeResponse =
+    Right(response.copy(nino = context.nino))
 }

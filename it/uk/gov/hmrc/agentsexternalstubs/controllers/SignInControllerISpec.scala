@@ -25,7 +25,7 @@ class SignInControllerISpec extends ServerBaseISpec with TestRequests {
         val result1 = SignIn.signIn("foo", "boo")
         val result2 = SignIn.signIn("foo", "boo")
         result1.status shouldBe 201
-        result2.status shouldBe 201
+        result2.status shouldBe 202
         result1.header(HeaderNames.LOCATION) should not be result2.header(HeaderNames.LOCATION)
       }
     }

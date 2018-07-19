@@ -1,5 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
+import uk.gov.hmrc.domain.Nino
+
 trait AuthoriseContext {
 
   def userId: String
@@ -10,6 +12,7 @@ trait AuthoriseContext {
   def confidenceLevel: Int
   def credentialStrength: Option[String]
   def authorisedServices: Set[String]
+  def nino: Option[Nino]
 }
 
 case class FullAuthoriseContext(user: User, authenticatedSession: AuthenticatedSession, request: AuthoriseRequest)
@@ -28,6 +31,8 @@ case class FullAuthoriseContext(user: User, authenticatedSession: AuthenticatedS
   override def confidenceLevel: Int = user.confidenceLevel
 
   override def credentialStrength: Option[String] = user.credentialStrength
+
+  override def nino: Option[Nino] = user.nino
 
   override lazy val authorisedServices: Set[String] = request.authorise.collect {
     case EnrolmentPredicate(service, _) => service
