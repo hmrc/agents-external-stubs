@@ -24,7 +24,8 @@ object Predicate {
     CredentialStrength,
     ConfidenceLevel,
     AffinityGroup,
-    HasNino
+    HasNino,
+    CredentialRole
   )
 
   val supportedKeys = supportedPredicateFormats.map(_.key).mkString(",")
@@ -147,4 +148,16 @@ case class HasNino(hasNino: Boolean, nino: Option[String] = None) extends Predic
 
 object HasNino extends PredicateFormat[HasNino]("nino") {
   implicit val format: Format[HasNino] = Json.format[HasNino]
+}
+
+case class CredentialRole(credentialRole: String) extends Predicate {
+  override def validate(context: AuthoriseContext): Either[String, Unit] =
+    context.credentialRole.contains(credentialRole) match {
+      case true  => Right(())
+      case false => Left("UnsupportedCredentialRole")
+    }
+}
+
+object CredentialRole extends PredicateFormat[CredentialRole]("credentialRole") {
+  implicit val format: Format[CredentialRole] = Json.format[CredentialRole]
 }

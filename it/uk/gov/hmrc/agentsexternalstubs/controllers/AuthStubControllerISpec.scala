@@ -334,6 +334,30 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
               concurrent.ExecutionContext.Implicits.global))
         groupOpt shouldBe Some("HW827856C")
       }
+
+      "throw UnsupportedCredentialRole if credentialRole does not match" in {
+        val authToken =
+          givenAnAuthenticatedUser(User(randomId, credentialRole = Some("Foo")))
+
+        an[UnsupportedCredentialRole] shouldBe thrownBy {
+          await(
+            authConnector
+              .authorise[Unit](Admin, EmptyRetrieval)(
+                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+                concurrent.ExecutionContext.Implicits.global))
+        }
+      }
+
+      "retrieve credentialRole" in {
+        val authToken = givenAnAuthenticatedUser(User(randomId, credentialRole = Some("Assistant")))
+
+        val groupOpt = await(
+          authConnector
+            .authorise[Option[CredentialRole]](EmptyPredicate, Retrievals.credentialRole)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global))
+        groupOpt shouldBe Some(Assistant)
+      }
     }
   }
 }

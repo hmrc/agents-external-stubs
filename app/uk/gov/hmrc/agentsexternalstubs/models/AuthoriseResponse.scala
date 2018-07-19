@@ -13,6 +13,7 @@ case class AuthoriseResponse(
   affinityGroup: Option[String] = None,
   confidenceLevel: Int = 50,
   credentialStrength: Option[String] = None,
+  credentialRole: Option[String] = None,
   nino: Option[Nino] = None
 )
 
@@ -39,7 +40,8 @@ object Retrieve {
       AffinityGroupRetrieve,
       ConfidenceLevelRetrieve,
       CredentialStrengthRetrieve,
-      NinoRetrieve
+      NinoRetrieve,
+      CredentialRoleRetrieve
     )
 
   def of(key: String): Retrieve =
@@ -74,16 +76,6 @@ case object AuthProviderIdRetrieve extends Retrieve {
   override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
     implicit ec: ExecutionContext): MaybeResponse =
     Right(response.copy(authProviderId = Some(GGCredId(context.userId))))
-}
-
-case class Enrolment(key: String, identifiers: Option[Seq[Identifier]] = None)
-object Enrolment {
-  implicit val format: Format[Enrolment] = Json.format[Enrolment]
-}
-
-case class Identifier(key: String, value: String)
-object Identifier {
-  implicit val format: Format[Identifier] = Json.format[Identifier]
 }
 
 case object AuthorisedEnrolmentsRetrieve extends Retrieve {
@@ -127,4 +119,11 @@ case object NinoRetrieve extends Retrieve {
   override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
     implicit ec: ExecutionContext): MaybeResponse =
     Right(response.copy(nino = context.nino))
+}
+
+case object CredentialRoleRetrieve extends Retrieve {
+  val key = "credentialRole"
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
+    implicit ec: ExecutionContext): MaybeResponse =
+    Right(response.copy(credentialRole = context.credentialRole))
 }

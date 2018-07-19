@@ -11,6 +11,7 @@ trait AuthoriseContext {
   def affinityGroup: Option[String]
   def confidenceLevel: Int
   def credentialStrength: Option[String]
+  def credentialRole: Option[String]
   def authorisedServices: Set[String]
   def nino: Option[Nino]
 }
@@ -31,6 +32,8 @@ case class FullAuthoriseContext(user: User, authenticatedSession: AuthenticatedS
   override def confidenceLevel: Int = user.confidenceLevel
 
   override def credentialStrength: Option[String] = user.credentialStrength
+
+  override def credentialRole: Option[String] = user.credentialRole
 
   override def nino: Option[Nino] = user.nino
 

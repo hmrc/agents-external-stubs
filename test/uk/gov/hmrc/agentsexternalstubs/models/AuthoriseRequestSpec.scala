@@ -226,4 +226,27 @@ class AuthoriseRequestSpec extends UnitSpec {
     }
   }
 
+  "CredentialRole predicate" should {
+    "accept if user has expected credential role" in {
+      val context = mock(classOf[AuthoriseContext])
+      when(context.credentialRole).thenReturn(Some("Foo"))
+      val predicate = CredentialRole("Foo")
+      predicate.validate(context) shouldBe Right(())
+    }
+
+    "reject if user has different credential role" in {
+      val context = mock(classOf[AuthoriseContext])
+      when(context.credentialRole).thenReturn(Some("Foo"))
+      val predicate = CredentialRole("Boo")
+      predicate.validate(context) shouldBe Left("UnsupportedCredentialRole")
+    }
+
+    "reject if user hasn't credential role" in {
+      val context = mock(classOf[AuthoriseContext])
+      when(context.credentialRole).thenReturn(None)
+      val predicate = CredentialRole("Boo")
+      predicate.validate(context) shouldBe Left("UnsupportedCredentialRole")
+    }
+  }
+
 }

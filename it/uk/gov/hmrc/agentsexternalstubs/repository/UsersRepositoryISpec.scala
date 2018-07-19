@@ -54,7 +54,7 @@ class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoApp {
     }
 
     "create a user with simple principal enrolment" in {
-      await(repo.create(User("889foo", Seq(Enrolment("foobar")))))
+      await(repo.create(User("889foo", principalEnrolments = Seq(Enrolment("foobar")))))
 
       val result = await(repo.find())
 
@@ -64,9 +64,9 @@ class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoApp {
     }
 
     "create multiple users with the same principal enrolment" in {
-      await(repo.create(User("1foo", Seq(Enrolment("foobar")))))
-      await(repo.create(User("foo2", Seq(Enrolment("foobar")))))
-      await(repo.create(User("3oo", Seq(Enrolment("foobar")))))
+      await(repo.create(User("1foo", principalEnrolments = Seq(Enrolment("foobar")))))
+      await(repo.create(User("foo2", principalEnrolments = Seq(Enrolment("foobar")))))
+      await(repo.create(User("3oo", principalEnrolments = Seq(Enrolment("foobar")))))
 
       val result = await(repo.find())
 
@@ -75,7 +75,7 @@ class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoApp {
     }
 
     "create a user with single principal enrolment" in {
-      await(repo.create(User("abcfoo", Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123"))))))))
+      await(repo.create(User("abcfoo", principalEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123"))))))))
 
       val result = await(repo.find())
 
@@ -89,7 +89,7 @@ class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoApp {
         repo.create(
           User(
             "foo888",
-            Seq(
+            principalEnrolments = Seq(
               Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))),
               Enrolment("barefoot", Some(Seq(Identifier("foo", "foo345"))))
             ))))
@@ -105,7 +105,7 @@ class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoApp {
     }
 
     "create a user with single delegated enrolment" in {
-      await(repo.create(User("abcfoo", Seq.empty, Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123"))))))))
+      await(repo.create(User("abcfoo", delegatedEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123"))))))))
 
       val result = await(repo.find())
 
