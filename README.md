@@ -5,6 +5,8 @@
 This microservice is part of Agent Services local testing framework, 
 providing dynamic stubs for 3rd party upstream services.
 
+You will have to run [frontend stubs](https://github.com/hmrc/agents-external-stubs-frontend) as well in order to experience seamless UI journey.
+
 This app SHOULD NOT be run on QA nor Production environment.
 
 ## Stubbed API
