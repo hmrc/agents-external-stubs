@@ -7,7 +7,7 @@ case class User(
   userId: String,
   groupId: Option[String] = None,
   affinityGroup: Option[String] = None,
-  confidenceLevel: Int = 50,
+  confidenceLevel: Option[Int] = None,
   credentialStrength: Option[String] = None,
   credentialRole: Option[String] = None,
   nino: Option[Nino] = None,

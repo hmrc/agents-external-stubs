@@ -9,7 +9,7 @@ trait AuthoriseContext {
   def principalEnrolments: Seq[Enrolment]
   def delegatedEnrolments: Seq[Enrolment]
   def affinityGroup: Option[String]
-  def confidenceLevel: Int
+  def confidenceLevel: Option[Int]
   def credentialStrength: Option[String]
   def credentialRole: Option[String]
   def authorisedServices: Set[String]
@@ -30,7 +30,7 @@ case class FullAuthoriseContext(user: User, authenticatedSession: AuthenticatedS
 
   override def affinityGroup: Option[String] = user.affinityGroup
 
-  override def confidenceLevel: Int = user.confidenceLevel
+  override def confidenceLevel: Option[Int] = user.confidenceLevel
 
   override def credentialStrength: Option[String] = user.credentialStrength
 

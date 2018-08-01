@@ -196,7 +196,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
       "authorize if confidenceLevel matches" in {
         val authToken =
-          givenAnAuthenticatedUser(User(randomId, confidenceLevel = 300))
+          givenAnAuthenticatedUser(User(randomId, confidenceLevel = Some(300)))
 
         await(
           authConnector
@@ -207,7 +207,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
       "throw IncorrectCredentialStrength if confidenceLevel does not match" in {
         val authToken =
-          givenAnAuthenticatedUser(User(randomId, confidenceLevel = 100))
+          givenAnAuthenticatedUser(User(randomId, confidenceLevel = Some(100)))
 
         an[InsufficientConfidenceLevel] shouldBe thrownBy {
           await(
@@ -219,7 +219,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       }
 
       "retrieve confidenceLevel" in {
-        val authToken = givenAnAuthenticatedUser(User(randomId, confidenceLevel = 200))
+        val authToken = givenAnAuthenticatedUser(User(randomId, confidenceLevel = Some(200)))
 
         val confidence = await(
           authConnector

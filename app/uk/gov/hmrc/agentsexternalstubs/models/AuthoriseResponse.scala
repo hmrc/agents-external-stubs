@@ -11,7 +11,7 @@ case class AuthoriseResponse(
   authorisedEnrolments: Seq[Enrolment] = Seq.empty,
   allEnrolments: Seq[Enrolment] = Seq.empty,
   affinityGroup: Option[String] = None,
-  confidenceLevel: Int = 50,
+  confidenceLevel: Option[Int] = None,
   credentialStrength: Option[String] = None,
   credentialRole: Option[String] = None,
   nino: Option[Nino] = None,

@@ -112,7 +112,7 @@ object CredentialStrength extends PredicateFormat[CredentialStrength]("credentia
 
 case class ConfidenceLevel(confidenceLevel: Int) extends Predicate {
   override def validate(context: AuthoriseContext): Either[String, Unit] =
-    context.confidenceLevel == confidenceLevel match {
+    context.confidenceLevel.contains(confidenceLevel) match {
       case true  => Right(())
       case false => Left("InsufficientConfidenceLevel")
     }
