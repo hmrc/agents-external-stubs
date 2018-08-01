@@ -5,6 +5,7 @@ import org.scalatest.time.{Seconds, Span}
 import org.scalatestplus.play.OneServerPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import uk.gov.hmrc.play.it.Port
 
 import scala.concurrent.ExecutionContext
 
@@ -20,12 +21,13 @@ abstract class ServerBaseISpec extends BaseISpec with OneServerPerSuite with Sca
   protected override def appBuilder: GuiceApplicationBuilder =
     new GuiceApplicationBuilder()
       .configure(
-        "microservice.services.auth.port" -> this.port,
+        "microservice.services.auth.port" -> Port.randomAvailable,
         "metrics.enabled"                 -> true,
         "auditing.enabled"                -> true,
         "auditing.consumer.baseUri.host"  -> wireMockHost,
         "auditing.consumer.baseUri.port"  -> wireMockPort,
-        "mongodb.uri"                     -> s"mongodb://127.0.0.1:27017/test-${this.getClass.getSimpleName}"
+        "mongodb.uri"                     -> s"mongodb://127.0.0.1:27017/test-${this.getClass.getSimpleName}",
+        "http.port"                       -> this.port
       )
 
 }

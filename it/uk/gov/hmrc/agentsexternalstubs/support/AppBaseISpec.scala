@@ -15,7 +15,8 @@ abstract class AppBaseISpec extends BaseISpec with OneAppPerSuite {
         "metrics.enabled"                 -> true,
         "auditing.enabled"                -> true,
         "auditing.consumer.baseUri.host"  -> wireMockHost,
-        "auditing.consumer.baseUri.port"  -> wireMockPort
+        "auditing.consumer.baseUri.port"  -> wireMockPort,
+        "proxies.start"                   -> "false"
       )
 
 }

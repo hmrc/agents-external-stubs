@@ -5,6 +5,7 @@ import com.google.inject.name.{Named, Names}
 import javax.inject.{Inject, Provider, Singleton}
 import org.slf4j.MDC
 import play.api.{Configuration, Environment, Logger}
+import uk.gov.hmrc.agentsexternalstubs.HttpProxies
 import uk.gov.hmrc.agentsexternalstubs.connectors.MicroserviceAuthConnector
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http._
@@ -29,16 +30,17 @@ class MicroserviceModule(val environment: Environment, val configuration: Config
 
     bindProperty("appName")
 
+    bindProperty("http.port")
+    bindProperty("proxies.start")
+    bindServiceConfigProperty[Int]("auth.port")
+
     bind(classOf[HttpGet]).to(classOf[HttpVerbs])
     bind(classOf[HttpPost]).to(classOf[HttpVerbs])
     bind(classOf[AuthConnector]).to(classOf[MicroserviceAuthConnector])
 
-    //example of service property bindings
-    bindServiceConfigProperty[Int]("foo.someInt")
-    bindServiceConfigProperty[String]("foo.someString")
-    bindServiceConfigProperty[Boolean]("foo.someBoolean")
-
     bindBaseUrl("auth")
+
+    bind(classOf[HttpProxies]).asEagerSingleton()
   }
 
   private def bindBaseUrl(serviceName: String) =
