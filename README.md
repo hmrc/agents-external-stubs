@@ -5,11 +5,19 @@
 This microservice is part of Agent Services local testing framework, 
 providing dynamic stubs for 3rd party upstream services.
 
-You will have to run [frontend stubs](https://github.com/hmrc/agents-external-stubs-frontend) as well in order to experience seamless UI journey.
+You will have to run [UI stubs](https://github.com/hmrc/agents-external-stubs-frontend) as well in order to be able to sign-in seamlessly into your application.
 
 This app SHOULD NOT be run on QA nor Production environment.
 
-## Stubbed API
+## How requests to the stubbed APIs are handled?
+
+To handle requests aimed at stubbed API microservices we provide necessary TCP proxies:
+
+- listening on 8500 for auth requests
+
+You can switch this behaviour off by setting `proxies.start` config property to `false`.
+
+## Stubbed APIs
 
 ### [Auth](https://github.com/hmrc/auth/blob/master/README.md)
 #### POST /auth/authorise
