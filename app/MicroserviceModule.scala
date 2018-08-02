@@ -5,7 +5,7 @@ import com.google.inject.name.{Named, Names}
 import javax.inject.{Inject, Provider, Singleton}
 import org.slf4j.MDC
 import play.api.{Configuration, Environment, Logger}
-import uk.gov.hmrc.agentsexternalstubs.HttpProxies
+import uk.gov.hmrc.agentsexternalstubs.TcpProxies
 import uk.gov.hmrc.agentsexternalstubs.connectors.MicroserviceAuthConnector
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http._
@@ -32,6 +32,7 @@ class MicroserviceModule(val environment: Environment, val configuration: Config
 
     bindProperty("http.port")
     bindProperty("proxies.start")
+
     bindServiceConfigProperty[Int]("auth.port")
 
     bind(classOf[HttpGet]).to(classOf[HttpVerbs])
@@ -40,7 +41,7 @@ class MicroserviceModule(val environment: Environment, val configuration: Config
 
     bindBaseUrl("auth")
 
-    bind(classOf[HttpProxies]).asEagerSingleton()
+    bind(classOf[TcpProxies]).asEagerSingleton()
   }
 
   private def bindBaseUrl(serviceName: String) =
