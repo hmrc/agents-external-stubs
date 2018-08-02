@@ -4,7 +4,7 @@ import org.scalatest.Suite
 import org.scalatestplus.play.ServerProvider
 import play.api.libs.ws.WSClient
 import play.mvc.Http.HeaderNames
-import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests}
+import uk.gov.hmrc.agentsexternalstubs.support.{AuthContext, ServerBaseISpec, TestRequests}
 
 class SignInControllerISpec extends ServerBaseISpec with TestRequests {
   this: Suite with ServerProvider =>
@@ -37,6 +37,15 @@ class SignInControllerISpec extends ServerBaseISpec with TestRequests {
         val result2 = SignIn.authSessionFor(result1)
         (result2.json \ "userId").as[String] shouldBe "foo123"
         (result2.json \ "authToken").as[String] should not be empty
+      }
+    }
+
+    "GET /agents-external-stubs/sign-out" should {
+      "remove authentication" in {
+        val authToken = SignIn.signInAndGetSession("foo", "boo").authToken
+        val result = SignIn.signOut(AuthContext.withToken(authToken))
+        result.status shouldBe 204
+        result.header(HeaderNames.LOCATION) should be(empty)
       }
     }
   }

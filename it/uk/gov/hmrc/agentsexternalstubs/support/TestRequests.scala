@@ -57,6 +57,13 @@ trait TestRequests extends ScalaFutures {
       val session = authSessionFor(signedIn)
       session.json.as[AuthenticatedSession]
     }
+
+    def signOut(authContext: AuthContext = NotAuthorized): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/sign-out")
+        .withHeaders(authContext.headers: _*)
+        .get()
+        .futureValue
   }
 
   object TestMe {

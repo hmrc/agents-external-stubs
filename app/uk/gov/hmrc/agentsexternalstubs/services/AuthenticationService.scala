@@ -24,4 +24,8 @@ class AuthenticationService @Inject()(
       maybeSession <- authSessionRepository.findByAuthToken(authToken)
     } yield maybeSession
   }
+
+  def removeAuthentication(authToken: String)(implicit ec: ExecutionContext): Future[Unit] =
+    authSessionRepository.delete(authToken).map(_ => ())
+
 }

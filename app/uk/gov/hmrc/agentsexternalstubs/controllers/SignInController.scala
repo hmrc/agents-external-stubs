@@ -3,6 +3,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import javax.inject.{Inject, Singleton}
 import play.api.http.HeaderNames
 import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.Results.EmptyContent
 import play.api.mvc.{Action, AnyContent, Result}
 import uk.gov.hmrc.agentsexternalstubs.models.{SignInRequest, User}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
@@ -33,6 +34,22 @@ class SignInController @Inject()(signInService: AuthenticationService, usersServ
                      }
           } yield result
       }
+    }
+  }
+
+  def signOut(): Action[AnyContent] = Action.async { implicit request =>
+    request.headers.get(HeaderNames.AUTHORIZATION) match {
+      case None => Future.successful(NoContent)
+      case Some(BearerToken(authToken)) =>
+        for {
+          maybeSession <- signInService.findByAuthToken(authToken)
+          result <- maybeSession match {
+                     case Some(session) =>
+                       signInService.removeAuthentication(session.authToken).map(_ => NoContent)
+                     case _ =>
+                       Future.successful(NoContent)
+                   }
+        } yield result
     }
   }
 

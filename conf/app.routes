@@ -3,6 +3,7 @@
 # Authentication
 POST        /agents-external-stubs/sign-in                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.signIn
 GET         /agents-external-stubs/session                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.session(authToken: String)
+GET         /agents-external-stubs/sign-out                                  @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.signOut
 
 # User management
 GET         /agents-external-stubs/users/:userId                             @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.getUser(userId: String)
