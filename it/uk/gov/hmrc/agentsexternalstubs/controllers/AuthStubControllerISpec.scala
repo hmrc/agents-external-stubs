@@ -1,7 +1,5 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import java.util.UUID
-
 import org.scalatest.Suite
 import org.scalatestplus.play.ServerProvider
 import play.api.libs.ws.WSClient
@@ -23,8 +21,6 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
   val wsClient = app.injector.instanceOf[WSClient]
 
   val authConnector: AuthConnector = app.injector.instanceOf[AuthConnector]
-
-  private def randomId = UUID.randomUUID().toString
 
   "AuthStubController" when {
 
@@ -60,7 +56,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       "return 400 BadRequest if authorise field missing" in {
         val authToken = givenAnAuthenticatedUser(User(randomId))
         val result =
-          AuthStub.authorise(s"""{"foo":[{"enrolment":"FOO"}],"retrieve":[]}""", AuthContext.withToken(authToken))
+          AuthStub.authorise(s"""{"foo":[{"enrolment":"FOO"}],"retrieve":[]}""")(AuthContext.withToken(authToken))
         result.status shouldBe 400
         result.body shouldBe """/authorise -> [error.path.missing]"""
       }
@@ -68,7 +64,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       "return 400 BadRequest if predicate not supported" in {
         val authToken = givenAnAuthenticatedUser(User(randomId))
         val result =
-          AuthStub.authorise(s"""{"authorise":[{"foo":"FOO"}],"retrieve":[]}""", AuthContext.withToken(authToken))
+          AuthStub.authorise(s"""{"authorise":[{"foo":"FOO"}],"retrieve":[]}""")(AuthContext.withToken(authToken))
         result.status shouldBe 400
         result.body should include("""/authorise(0) -> [Unsupported predicate {"foo":"FOO"}, should be one of [""")
       }
@@ -76,7 +72,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       "return 200 OK if predicate empty" in {
         val authToken = givenAnAuthenticatedUser(User(randomId))
         val result =
-          AuthStub.authorise(s"""{"authorise":[],"retrieve":[]}""", AuthContext.withToken(authToken))
+          AuthStub.authorise(s"""{"authorise":[],"retrieve":[]}""")(AuthContext.withToken(authToken))
         result.status shouldBe 200
       }
 
@@ -137,7 +133,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       "throw InsufficientEnrolments if user not enrolled with expected identifier key" in {
         val id = randomId
         val authToken = givenAnAuthenticatedUser(User(id))
-        givenUserEnrolledFor(id, "serviceA", "idOfA", "2362168736781263")
+        givenUserEnrolledFor(id, "juniper", "serviceA", "idOfA", "2362168736781263")
         an[InsufficientEnrolments] shouldBe thrownBy {
           await(
             authConnector
@@ -150,7 +146,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       "throw InsufficientEnrolments if user not enrolled with expected identifier value" in {
         val id = randomId
         val authToken = givenAnAuthenticatedUser(User(id))
-        givenUserEnrolledFor(id, "serviceA", "idOfA", "2362168736781263")
+        givenUserEnrolledFor(id, "juniper", "serviceA", "idOfA", "2362168736781263")
         an[InsufficientEnrolments] shouldBe thrownBy {
           await(
             authConnector
@@ -163,8 +159,8 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       "retrieve authorisedEnrolments" in {
         val id = randomId
         val authToken = givenAnAuthenticatedUser(User(id))
-        givenUserEnrolledFor(id, "serviceA", "idOfA", "2362168736781263")
-        givenUserEnrolledFor(id, "serviceB", "idOfB", "4783748738748778")
+        givenUserEnrolledFor(id, "juniper", "serviceA", "idOfA", "2362168736781263")
+        givenUserEnrolledFor(id, "juniper", "serviceB", "idOfB", "4783748738748778")
 
         val enrolments = await(
           authConnector
@@ -179,8 +175,8 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       "retrieve allEnrolments" in {
         val id = randomId
         val authToken = givenAnAuthenticatedUser(User(id))
-        givenUserEnrolledFor(id, "serviceA", "idOfA", "2362168736781263")
-        givenUserEnrolledFor(id, "serviceB", "idOfB", "4783748738748778")
+        givenUserEnrolledFor(id, "juniper", "serviceA", "idOfA", "2362168736781263")
+        givenUserEnrolledFor(id, "juniper", "serviceB", "idOfB", "4783748738748778")
 
         val enrolments = await(
           authConnector

@@ -1,5 +1,11 @@
 # microservice specific routes
 
+# Auth stubs
+POST        /auth/authorise                                                  @uk.gov.hmrc.agentsexternalstubs.controllers.AuthStubController.authorise
+
+# Citizen details stubs
+GET         /citizen-details/:idName/:taxId                                  @uk.gov.hmrc.agentsexternalstubs.controllers.CitizenDetailsStubController.getCitizen(idName: String, taxId: String)
+
 # Authentication
 POST        /agents-external-stubs/sign-in                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.signIn
 GET         /agents-external-stubs/session                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.session(authToken: String)
@@ -9,9 +15,6 @@ GET         /agents-external-stubs/sign-out                                  @uk
 GET         /agents-external-stubs/users/:userId                             @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.getUser(userId: String)
 PUT         /agents-external-stubs/users/:userId                             @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.updateUser(userId: String)
 POST        /agents-external-stubs/users/                                    @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.createUser
-
-# Auth stubs
-POST        /auth/authorise                                                  @uk.gov.hmrc.agentsexternalstubs.controllers.AuthStubController.authorise
 
 # Internal test
 GET         /agents-external-stubs/test/auth/agent-mtd                       @uk.gov.hmrc.agentsexternalstubs.controllers.TestController.testAuthAgentMtd

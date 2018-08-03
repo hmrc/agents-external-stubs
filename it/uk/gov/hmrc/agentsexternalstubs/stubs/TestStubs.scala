@@ -18,19 +18,22 @@ trait TestStubs {
   lazy val authenticationService: AuthenticationService = app.injector.instanceOf[AuthenticationService]
   lazy val userService: UsersService = app.injector.instanceOf[UsersService]
 
-  def givenAnAuthenticatedUser(user: User, providerType: String = "GovernmentGateway")(
+  def givenAnAuthenticatedUser(user: User, providerType: String = "GovernmentGateway", planetId: String = "juniper")(
     implicit ec: ExecutionContext,
     timeout: Duration): String =
     await(for {
-      authSession <- authenticationService.createNewAuthentication(user.userId, "any", providerType)
-      _           <- userService.tryCreateUser(user)
+      authSession <- authenticationService.createNewAuthentication(user.userId, "any", providerType, planetId)
+      _           <- userService.tryCreateUser(user, planetId)
     } yield authSession)
       .getOrElse(throw new Exception("Could not sign in user"))
       .authToken
 
-  def givenUserEnrolledFor(userId: String, service: String, identifierKey: String, identifierValue: String)(
-    implicit ec: ExecutionContext,
-    timeout: Duration): Unit =
-    await(userService.addEnrolment(userId, service, identifierKey, identifierValue))
+  def givenUserEnrolledFor(
+    userId: String,
+    planetId: String,
+    service: String,
+    identifierKey: String,
+    identifierValue: String)(implicit ec: ExecutionContext, timeout: Duration): Unit =
+    await(userService.addEnrolment(userId, planetId, service, identifierKey, identifierValue))
 
 }

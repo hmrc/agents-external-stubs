@@ -13,8 +13,8 @@ trait AuthContext {
 
 object AuthContext {
 
-  def from(authSession: AuthenticatedSession): AuthContext =
-    withToken(authSession.authToken)
+  implicit def fromAuthenticatedSession(implicit authSession: AuthenticatedSession): AuthContext =
+    AuthContext.withToken(authSession.authToken)
 
   def withToken(authToken: String): AuthContext = new AuthContext {
     override def headers: Seq[(String, String)] = Seq(
@@ -40,10 +40,14 @@ trait TestRequests extends ScalaFutures {
   import JsonWriteable._
 
   object SignIn {
-    def signIn(userId: String, password: String = "password", providerType: String = "GovernmentGateway"): WSResponse =
+    def signIn(
+      userId: String,
+      password: String = "p@ssw0rd",
+      providerType: String = "GovernmentGateway",
+      planetId: String = "juniper"): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/sign-in")
-        .post(SignInRequest(userId, password, providerType))
+        .post(SignInRequest(userId, password, providerType, planetId))
         .futureValue
 
     def authSessionFor(loginResponse: WSResponse): WSResponse =
@@ -52,13 +56,16 @@ trait TestRequests extends ScalaFutures {
         .get()
         .futureValue
 
-    def signInAndGetSession(userId: String, password: String): AuthenticatedSession = {
-      val signedIn = signIn(userId, password)
+    def signInAndGetSession(
+      userId: String,
+      password: String = "p@ssw0rd",
+      planetId: String = "juniper"): AuthenticatedSession = {
+      val signedIn = signIn(userId, password, planetId = planetId)
       val session = authSessionFor(signedIn)
       session.json.as[AuthenticatedSession]
     }
 
-    def signOut(authContext: AuthContext = NotAuthorized): WSResponse =
+    def signOut(implicit authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/sign-out")
         .withHeaders(authContext.headers: _*)
@@ -67,14 +74,14 @@ trait TestRequests extends ScalaFutures {
   }
 
   object TestMe {
-    def testAuthAgentMtd(authContext: AuthContext = NotAuthorized): WSResponse =
+    def testAuthAgentMtd(implicit authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/test/auth/agent-mtd")
         .withHeaders(authContext.headers: _*)
         .get()
         .futureValue
 
-    def testAuthClientMtdIt(authContext: AuthContext = NotAuthorized): WSResponse =
+    def testAuthClientMtdIt(implicit authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/test/auth/client-mtd-it")
         .withHeaders(authContext.headers: _*)
@@ -83,7 +90,7 @@ trait TestRequests extends ScalaFutures {
   }
 
   object AuthStub {
-    def authorise(body: String, authContext: AuthContext): WSResponse =
+    def authorise(body: String)(implicit authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/auth/authorise")
         .withHeaders(Seq(HeaderNames.CONTENT_TYPE -> MimeTypes.JSON) ++ authContext.headers: _*)
@@ -92,22 +99,34 @@ trait TestRequests extends ScalaFutures {
   }
 
   object Users {
-    def get(userId: String): WSResponse =
+    def get(userId: String)(implicit authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/users/$userId")
+        .withHeaders(authContext.headers: _*)
         .get()
         .futureValue
 
-    def update(user: User): WSResponse =
+    def update(user: User)(implicit authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/users/${user.userId}")
+        .withHeaders(authContext.headers: _*)
         .put(Json.toJson(user))
         .futureValue
 
-    def create(user: User): WSResponse =
+    def create(user: User)(implicit authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/users/")
+        .withHeaders(authContext.headers: _*)
         .post(Json.toJson(user))
+        .futureValue
+  }
+
+  object CitizenDetailsStub {
+    def getCitizen(idName: String, taxId: String)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/citizen-details/$idName/$taxId")
+        .withHeaders(authContext.headers: _*)
+        .get()
         .futureValue
   }
 

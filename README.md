@@ -51,7 +51,7 @@ Response | Description
 404| when `authToken` not found
     
 #### GET  /agents-external-stubs/users/:userId
-Get current user details
+Get current user details. (_requires valid bearer token_)
 
 Response | Description
 ---|---
@@ -59,7 +59,7 @@ Response | Description
 404| when userId not found
 
 #### PUT  /agents-external-stubs/users/:userId
-Update an existing user.
+Update an existing user. (_requires valid bearer token_)
 
 **WARNING** Payload's `userId` field will not be used to find nor update!
 
@@ -99,7 +99,7 @@ Response | Description
 404| when `userId` not found
 
 #### POST /agents-external-stubs/users/
-Create a new user
+Create a new user. (_requires valid bearer token_)
 
 *Payload same as above*
 

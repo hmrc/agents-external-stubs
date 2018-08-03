@@ -26,7 +26,8 @@ class AuthStubController @Inject()(authSessionRepository: AuthenticatedSessionsR
                          request.body.validate[AuthoriseRequest] match {
                            case JsSuccess(authoriseRequest, _) =>
                              for {
-                               maybeUser <- usersService.findByUserId(authenticatedSession.userId)
+                               maybeUser <- usersService
+                                             .findByUserId(authenticatedSession.userId, authenticatedSession.planetId)
                                result <- Future(maybeUser match {
                                           case Some(user) =>
                                             prepareAuthoriseResponse(

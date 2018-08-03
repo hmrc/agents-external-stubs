@@ -41,15 +41,16 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
 
   import ImplicitBSONHandlers._
 
-  def findByUserId(userId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
-    find(Seq("userId" -> Option(userId)).map(option => option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*).map {
+  def findByUserId(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
+    find(Seq("userId" -> Option(userId), "planetId" -> Option(planetId)).map(option =>
+      option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*).map {
       case Nil      => None
       case x :: Nil => Some(x)
       case x :: xs  => throw new IllegalStateException(s"Duplicated userId $userId")
     }
 
   override def indexes = Seq(
-    Index(Seq("userId" -> Ascending), Some("Users"), unique = true)
+    Index(Seq("userId" -> Ascending, "planetId" -> Ascending), Some("Users"), unique = true)
   )
 
   def create(user: User)(implicit ec: ExecutionContext): Future[Unit] =
@@ -57,12 +58,13 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
 
   def update(user: User)(implicit ec: ExecutionContext): Future[Unit] =
     (User.formats.writes(user) match {
-      case d @ JsObject(_) => collection.update(Json.obj("userId" -> user.userId), d, upsert = true)
+      case u @ JsObject(_) =>
+        collection.update(Json.obj("userId" -> user.userId, "planetId" -> user.planetId), u, upsert = true)
       case _ =>
-        Future.failed[WriteResult](new Exception("cannot write object"))
+        Future.failed[WriteResult](new Exception("cannot update User"))
     }).map(_ => ())
 
-  def delete(userId: String)(implicit ec: ExecutionContext): Future[WriteResult] =
-    remove("userId" -> userId)
+  def delete(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[WriteResult] =
+    remove("userId" -> userId, "planetId" -> planetId)
 
 }

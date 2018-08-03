@@ -46,7 +46,7 @@ class AuthenticatedSessionsRepositoryISpec extends UnitSpec with OneAppPerSuite 
   "create" should {
     "create a session" in {
       val authToken = UUID.randomUUID().toString
-      await(repo.create("foobar", authToken, "bla"))
+      await(repo.create("foobar", authToken, "bla", "juniper"))
 
       val result = await(repo.find())
 
@@ -57,10 +57,10 @@ class AuthenticatedSessionsRepositoryISpec extends UnitSpec with OneAppPerSuite 
     }
 
     "not allow duplicate sessions to be created for the same authToken" in {
-      await(repo.create("foo", "bar", "bla"))
+      await(repo.create("foo", "bar", "bla", "juniper"))
 
       val e = intercept[DatabaseException] {
-        await(repo.create("foo", "bar", "ala"))
+        await(repo.create("foo", "bar", "ala", "juniper"))
       }
 
       e.getMessage() should include("E11000")

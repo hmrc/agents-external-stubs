@@ -12,7 +12,8 @@ case class User(
   credentialRole: Option[String] = None,
   nino: Option[Nino] = None,
   principalEnrolments: Seq[Enrolment] = Seq.empty,
-  delegatedEnrolments: Seq[Enrolment] = Seq.empty
+  delegatedEnrolments: Seq[Enrolment] = Seq.empty,
+  planetId: Option[String] = None
 )
 
 object User {

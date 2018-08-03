@@ -3,7 +3,6 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import javax.inject.{Inject, Singleton}
 import play.api.http.HeaderNames
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.Results.EmptyContent
 import play.api.mvc.{Action, AnyContent, Result}
 import uk.gov.hmrc.agentsexternalstubs.models.{SignInRequest, User}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
@@ -59,11 +58,12 @@ class SignInController @Inject()(signInService: AuthenticationService, usersServ
                        .createNewAuthentication(
                          signInRequest.userId,
                          signInRequest.plainTextPassword,
-                         signInRequest.providerType)
+                         signInRequest.providerType,
+                         signInRequest.planetId)
       result <- maybeSession match {
                  case Some(session) =>
                    usersService
-                     .tryCreateUser(User(session.userId))
+                     .tryCreateUser(User(session.userId), session.planetId)
                      .map {
                        case Success(_) =>
                          Created("").withHeaders(

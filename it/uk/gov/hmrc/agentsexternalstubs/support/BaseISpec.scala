@@ -1,5 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.support
 
+import java.util.UUID
+
 import play.api.Application
 import play.api.i18n.{Lang, Messages, MessagesApi}
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -45,5 +47,7 @@ abstract class BaseISpec extends UnitSpec with MongoApp with WireMockSupport wit
     await(app.injector.instanceOf[AuthenticatedSessionsRepository].ensureIndexes)
     await(app.injector.instanceOf[UsersRepository].ensureIndexes)
   }
+
+  def randomId = UUID.randomUUID().toString
 
 }

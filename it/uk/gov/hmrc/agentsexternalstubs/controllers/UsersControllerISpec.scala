@@ -5,7 +5,7 @@ import org.scalatestplus.play.ServerProvider
 import play.api.http.Status
 import play.api.libs.ws.WSClient
 import play.mvc.Http.HeaderNames
-import uk.gov.hmrc.agentsexternalstubs.models.{Enrolment, User}
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, Enrolment, User}
 import uk.gov.hmrc.agentsexternalstubs.services.UsersService
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests}
@@ -14,34 +14,45 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
   this: Suite with ServerProvider =>
 
   val url = s"http://localhost:$port"
-  val wsClient = app.injector.instanceOf[WSClient]
 
+  val wsClient = app.injector.instanceOf[WSClient]
   val usersService = app.injector.instanceOf[UsersService]
 
   "UsersController" when {
 
     "GET /agents-external-stubs/users/:userId" should {
       "return 404 NotFound for non existent user id" in {
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         val result = Users.get("1261a762761")
         result.status shouldBe 404
       }
 
+      "return 404 NotFound if user exists but on a different planet" in {
+        SignIn.signInAndGetSession("foo", planetId = "saturn")
+        implicit val authSession2: AuthenticatedSession = SignIn.signInAndGetSession("boo", planetId = "x123")
+        val result = Users.get("foo")
+        result.status shouldBe 404
+      }
+
       "return an existing user" in {
-        givenAnAuthenticatedUser(User("712717287"))
+        SignIn.signInAndGetSession("712717287", planetId = "saturn")
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "saturn")
         val result = Users.get("712717287")
         result.status shouldBe 200
-        result.json.as[User] shouldBe User("712717287")
+        result.json.as[User] shouldBe User("712717287", planetId = Some("saturn"))
       }
     }
 
     "POST /agents-external-stubs/users/" should {
       "create a new user" in {
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         val result = Users.create(User("yuwyquhh"))
         result.status shouldBe 201
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/yuwyquhh")
       }
 
       "fail if trying to create duplicated user" in {
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         val result1 = Users.create(User("yuwyquhh"))
         result1.status shouldBe 201
         result1.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/yuwyquhh")
@@ -52,12 +63,13 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
 
     "PUT /agents-external-stubs/users/:userId" should {
       "return 404 if userId not found" in {
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         val result = Users.update(User("7728378273", principalEnrolments = Seq(Enrolment("foo"))))
         result.status shouldBe 404
       }
 
       "update an existing user" in {
-        givenAnAuthenticatedUser(User("7728378273"))
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
         val result = Users.update(User("7728378273", principalEnrolments = Seq(Enrolment("foo"))))
         result.status shouldBe 202
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/7728378273")
