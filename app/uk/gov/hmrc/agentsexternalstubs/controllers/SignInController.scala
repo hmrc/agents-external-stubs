@@ -13,48 +13,29 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 @Singleton
-class SignInController @Inject()(signInService: AuthenticationService, usersService: UsersService)
-    extends BaseController {
+class SignInController @Inject()(val authenticationService: AuthenticationService, usersService: UsersService)
+    extends BaseController with CurrentSession {
 
   def signIn(): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withJsonBody[SignInRequest] { signInRequest =>
-      request.headers.get(HeaderNames.AUTHORIZATION) match {
-        case None => createNewAuthentication(signInRequest)
-        case Some(BearerToken(authToken)) =>
-          for {
-            maybeSession <- signInService.findByAuthToken(authToken)
-            result <- maybeSession match {
-                       case Some(session) if session.userId == signInRequest.userId =>
-                         Future.successful(
-                           Ok("").withHeaders(
-                             HeaderNames.LOCATION -> routes.SignInController.session(session.authToken).url))
-                       case _ =>
-                         createNewAuthentication(signInRequest)
-                     }
-          } yield result
-      }
+      withCurrentSession { session =>
+        if (session.userId == signInRequest.userId)
+          Future.successful(
+            Ok("").withHeaders(HeaderNames.LOCATION -> routes.SignInController.session(session.authToken).url))
+        else createNewAuthentication(signInRequest)
+      }(createNewAuthentication(signInRequest))
     }
   }
 
   def signOut(): Action[AnyContent] = Action.async { implicit request =>
-    request.headers.get(HeaderNames.AUTHORIZATION) match {
-      case None => Future.successful(NoContent)
-      case Some(BearerToken(authToken)) =>
-        for {
-          maybeSession <- signInService.findByAuthToken(authToken)
-          result <- maybeSession match {
-                     case Some(session) =>
-                       signInService.removeAuthentication(session.authToken).map(_ => NoContent)
-                     case _ =>
-                       Future.successful(NoContent)
-                   }
-        } yield result
-    }
+    withCurrentSession { session =>
+      authenticationService.removeAuthentication(session.authToken).map(_ => NoContent)
+    }(Future.successful(NoContent))
   }
 
   private def createNewAuthentication(signInRequest: SignInRequest)(implicit ec: ExecutionContext): Future[Result] =
     for {
-      maybeSession <- signInService
+      maybeSession <- authenticationService
                        .createNewAuthentication(
                          signInRequest.userId,
                          signInRequest.plainTextPassword,
@@ -79,7 +60,7 @@ class SignInController @Inject()(signInService: AuthenticationService, usersServ
 
   def session(authToken: String): Action[AnyContent] = Action.async { implicit request =>
     for {
-      maybeSession <- signInService.findByAuthToken(authToken)
+      maybeSession <- authenticationService.findByAuthToken(authToken)
     } yield
       maybeSession match {
         case Some(session) => Ok(Json.toJson(session))
