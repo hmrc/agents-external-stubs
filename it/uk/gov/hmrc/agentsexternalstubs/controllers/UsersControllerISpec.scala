@@ -9,6 +9,7 @@ import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, Enrolment, 
 import uk.gov.hmrc.agentsexternalstubs.services.UsersService
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests}
+import uk.gov.hmrc.domain.Nino
 
 class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestStubs {
   this: Suite with ServerProvider =>
@@ -58,6 +59,12 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
         result1.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/yuwyquhh")
         val result2 = Users.create(User("yuwyquhh"))
         result2.status shouldBe Status.CONFLICT
+      }
+
+      "fail if trying to create invalid user" in {
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        val result = Users.create(User("yuwyquhh", nino = Some(Nino("HW827856C"))))
+        result.status shouldBe 400
       }
     }
 

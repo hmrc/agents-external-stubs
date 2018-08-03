@@ -24,7 +24,7 @@ lazy val compileDeps = Seq(
   "com.github.blemale" %% "scaffeine" % "2.5.0",
   "uk.gov.hmrc" %% "agent-kenshoo-monitoring" % "3.0.1",
   "uk.gov.hmrc" %% "play-reactivemongo" % "6.2.0",
-  "com.typesafe.akka" %% "akka-http"   % "10.0.11",
+  "org.typelevel" %% "cats-core" % "1.2.0",
   ws
 )
 

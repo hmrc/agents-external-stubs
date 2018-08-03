@@ -1,5 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
+import cats.data.Validated.{Invalid, Valid}
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent}
@@ -7,9 +8,11 @@ import play.mvc.Http.HeaderNames
 import reactivemongo.core.errors.DatabaseException
 import uk.gov.hmrc.agentsexternalstubs.models.User
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
-import uk.gov.hmrc.http.NotFoundException
+import uk.gov.hmrc.http.{BadRequestException, NotFoundException}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+
+import scala.concurrent.Future
 
 @Singleton
 class UsersController @Inject()(usersService: UsersService, val authenticationService: AuthenticationService)
@@ -28,11 +31,12 @@ class UsersController @Inject()(usersService: UsersService, val authenticationSe
     withCurrentSession { session =>
       withJsonBody[User](
         updatedUser =>
-          usersService
-            .updateUser(userId, session.planetId, _ => updatedUser)
-            .map(_ =>
-              Accepted(s"User $userId has been updated").withHeaders(
-                HeaderNames.LOCATION -> routes.UsersController.getUser(userId).url))
+          (for {
+            _ <- validateUser(updatedUser)
+            _ <- usersService.updateUser(userId, session.planetId, _ => updatedUser)
+          } yield
+            Accepted(s"User $userId has been updated").withHeaders(
+              HeaderNames.LOCATION -> routes.UsersController.getUser(userId).url))
             .recover {
               case e: NotFoundException => NotFound(e.getMessage)
           })
@@ -43,11 +47,12 @@ class UsersController @Inject()(usersService: UsersService, val authenticationSe
     withCurrentSession { session =>
       withJsonBody[User](
         newUser =>
-          usersService
-            .createUser(newUser, session.planetId)
-            .map(theUser =>
-              Created(s"User ${theUser.userId} has been created.")
-                .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url))
+          (for {
+            _       <- validateUser(newUser)
+            theUser <- usersService.createUser(newUser, session.planetId)
+          } yield
+            Created(s"User ${theUser.userId} has been created.")
+              .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url))
             .recover {
               case e: DatabaseException if e.code.contains(11000) =>
                 Conflict(s"User ${newUser.userId} already exists")
@@ -55,5 +60,11 @@ class UsersController @Inject()(usersService: UsersService, val authenticationSe
     }(SessionRecordNotFound)
 
   }
+
+  protected def validateUser(user: User): Future[Unit] =
+    User.validate(user) match {
+      case Valid(_)        => Future.successful(())
+      case Invalid(errors) => Future.failed(new BadRequestException(errors.toList.mkString(", ")))
+    }
 
 }
