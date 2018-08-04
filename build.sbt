@@ -25,6 +25,7 @@ lazy val compileDeps = Seq(
   "uk.gov.hmrc" %% "agent-kenshoo-monitoring" % "3.0.1",
   "uk.gov.hmrc" %% "play-reactivemongo" % "6.2.0",
   "org.typelevel" %% "cats-core" % "1.2.0",
+  "uk.gov.hmrc" %% "stub-data-generator" % "0.5.3",
   ws
 )
 

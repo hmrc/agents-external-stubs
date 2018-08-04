@@ -3,7 +3,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import cats.{Semigroup, SemigroupK}
 import cats.data.{NonEmptyList, Validated}
 import cats.data.Validated.{Invalid, Valid}
-import play.api.libs.json.{Format, Json}
+import play.api.libs.json._
 import uk.gov.hmrc.domain.Nino
 
 case class User(
@@ -20,7 +20,42 @@ case class User(
 )
 
 object User {
-  implicit val formats: Format[User] = Json.format[User]
+
+  implicit val reads: Reads[User] = Json.reads[User]
+  implicit val writes: Writes[User] = Json
+    .writes[User]
+    .transform(addNormalizedUserIndexKey _)
+    .transform(addNormalizedNinoIndexKey _)
+
+  val formats = Format(reads, writes)
+
+  val user_index_key = "user_index_key"
+  val nino_index_key = "nino_index_key"
+
+  def userIndexKey(userId: String, planetId: String): String = s"$userId@$planetId"
+  def ninoIndexKey(nino: String, planetId: String): String = s"${nino.replace(" ", "")}@$planetId"
+
+  private def addNormalizedUserIndexKey(json: JsObject): JsObject = {
+    val userId = (json \ "userId").as[String]
+    val planetId = (json \ "planetId").asOpt[String].getOrElse("hmrc")
+    json + (user_index_key, JsString(userIndexKey(userId, planetId)))
+  }
+
+  private def addNormalizedNinoIndexKey(json: JsObject): JsObject =
+    (json \ "nino")
+      .asOpt[String]
+      .map(nino => {
+        val planetId = (json \ "planetId").asOpt[String].getOrElse("hmrc")
+        json + (nino_index_key, JsString(ninoIndexKey(nino, planetId)))
+      })
+      .getOrElse(json)
+
+  def individual(userId: String, confidenceLevel: Int, nino: String): User =
+    User(
+      userId = userId,
+      affinityGroup = Some("Individual"),
+      confidenceLevel = Some(confidenceLevel),
+      nino = Some(Nino(nino)))
 
   implicit val nelS: Semigroup[NonEmptyList[String]] =
     SemigroupK[NonEmptyList].algebra[String]

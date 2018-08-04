@@ -7,6 +7,7 @@ import play.api.mvc.{Action, AnyContent}
 import play.mvc.Http.HeaderNames
 import reactivemongo.core.errors.DatabaseException
 import uk.gov.hmrc.agentsexternalstubs.models.User
+import uk.gov.hmrc.agentsexternalstubs.repository.DuplicateUserException
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.http.{BadRequestException, NotFoundException}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
@@ -38,7 +39,8 @@ class UsersController @Inject()(usersService: UsersService, val authenticationSe
             Accepted(s"User $userId has been updated").withHeaders(
               HeaderNames.LOCATION -> routes.UsersController.getUser(userId).url))
             .recover {
-              case e: NotFoundException => NotFound(e.getMessage)
+              case DuplicateUserException(msg) => Conflict(msg)
+              case e: NotFoundException        => NotFound(e.getMessage)
           })
     }(SessionRecordNotFound)
   }
@@ -54,8 +56,7 @@ class UsersController @Inject()(usersService: UsersService, val authenticationSe
             Created(s"User ${theUser.userId} has been created.")
               .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url))
             .recover {
-              case e: DatabaseException if e.code.contains(11000) =>
-                Conflict(s"User ${newUser.userId} already exists")
+              case DuplicateUserException(msg) => Conflict(msg)
           })
     }(SessionRecordNotFound)
 

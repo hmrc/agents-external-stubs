@@ -14,9 +14,12 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
   def findByUserId(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
     usersRepository.findByUserId(userId, planetId)
 
+  def findByNino(nino: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
+    usersRepository.findByNino(nino, planetId)
+
   def createUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] =
     for {
-      _         <- usersRepository.create(user.copy(planetId = Some(planetId)))
+      _         <- usersRepository.create(user, planetId)
       maybeUser <- findByUserId(user.userId, planetId)
       newUser = maybeUser.getOrElse(throw new Exception(s"User $user creation failed."))
     } yield newUser
@@ -28,7 +31,7 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
                  case Some(_) => Future.successful(Failure(new Exception(s"User ${user.userId} already exists")))
                  case None =>
                    for {
-                     _       <- usersRepository.create(user.copy(planetId = Some(planetId)))
+                     _       <- usersRepository.create(user, planetId)
                      newUser <- findByUserId(user.userId, planetId)
                    } yield newUser.map(Success.apply).getOrElse(Failure(new Exception(s"User creation failed")))
                }
@@ -39,9 +42,9 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
       maybeUser <- findByUserId(userId, planetId)
       updatedUser <- maybeUser match {
                       case Some(existingUser) =>
-                        val modified = modify(existingUser).copy(userId = userId, planetId = Some(planetId))
+                        val modified = modify(existingUser).copy(userId = userId)
                         if (modified != existingUser) for {
-                          _         <- usersRepository.update(modified)
+                          _         <- usersRepository.update(modified, planetId)
                           maybeUser <- usersRepository.findByUserId(userId, planetId)
                         } yield maybeUser.getOrElse(throw new Exception)
                         else Future.successful(existingUser)

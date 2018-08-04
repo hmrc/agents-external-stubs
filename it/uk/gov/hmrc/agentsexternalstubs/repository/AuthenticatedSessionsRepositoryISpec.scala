@@ -31,7 +31,8 @@ class AuthenticatedSessionsRepositoryISpec extends UnitSpec with OneAppPerSuite 
   protected def appBuilder: GuiceApplicationBuilder =
     new GuiceApplicationBuilder()
       .configure(
-        "mongodb.uri" -> s"mongodb://127.0.0.1:27017/test-${this.getClass.getSimpleName}"
+        "mongodb.uri"   -> s"mongodb://127.0.0.1:27017/test-${this.getClass.getSimpleName}",
+        "proxies.start" -> "false"
       )
 
   override implicit lazy val app: Application = appBuilder.build()

@@ -52,7 +52,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/yuwyquhh")
       }
 
-      "fail if trying to create duplicated user" in {
+      "fail if trying to create user with duplicated userId on the same planet" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         val result1 = Users.create(User("yuwyquhh"))
         result1.status shouldBe 201

@@ -23,6 +23,7 @@ import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.bson.BSONObjectID
+import reactivemongo.core.errors.DatabaseException
 import reactivemongo.play.json.ImplicitBSONHandlers
 import uk.gov.hmrc.agentsexternalstubs.models.User
 import uk.gov.hmrc.mongo.ReactiveRepository
@@ -30,6 +31,8 @@ import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
 import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
+
+case class DuplicateUserException(msg: String) extends IllegalStateException(msg)
 
 @Singleton
 class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
@@ -41,30 +44,64 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
 
   import ImplicitBSONHandlers._
 
+  private final val UsersIndexName = "Users"
+  private final val NinosIndexName = "Ninos"
+
+  override def indexes = Seq(
+    Index(Seq(User.user_index_key -> Ascending), Some(UsersIndexName), unique = true),
+    Index(Seq(User.nino_index_key -> Ascending), Some(NinosIndexName), unique = true, sparse = true)
+  )
+
   def findByUserId(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
-    find(Seq("userId" -> Option(userId), "planetId" -> Option(planetId)).map(option =>
+    find(Seq(User.user_index_key -> Option(User.userIndexKey(userId, planetId))).map(option =>
       option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*).map {
       case Nil      => None
       case x :: Nil => Some(x)
-      case x :: xs  => throw new IllegalStateException(s"Duplicated userId $userId")
+      case x :: xs  => throw DuplicateUserException(s"Duplicated userId $userId for $planetId")
     }
 
-  override def indexes = Seq(
-    Index(Seq("userId" -> Ascending, "planetId" -> Ascending), Some("Users"), unique = true)
-  )
+  def findByNino(nino: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
+    find(Seq(User.nino_index_key -> Option(User.ninoIndexKey(nino, planetId))).map(option =>
+      option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*).map {
+      case Nil      => None
+      case x :: Nil => Some(x)
+      case x :: xs  => throw DuplicateUserException(s"Duplicated nino $nino for $planetId")
+    }
 
-  def create(user: User)(implicit ec: ExecutionContext): Future[Unit] =
-    insert(user).map(_ => ())
+  def create(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+    insert(user.copy(planetId = Some(planetId))).map(_ => ()).recover {
+      case e: DatabaseException if e.code.contains(11000) =>
+        throw DuplicateUserException(transformMessage(e.getMessage(), user, planetId))
+    }
 
-  def update(user: User)(implicit ec: ExecutionContext): Future[Unit] =
-    (User.formats.writes(user) match {
+  def update(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+    (User.formats.writes(user.copy(planetId = Some(planetId))) match {
       case u @ JsObject(_) =>
-        collection.update(Json.obj("userId" -> user.userId, "planetId" -> user.planetId), u, upsert = true)
+        collection.update(Json.obj(User.user_index_key -> User.userIndexKey(user.userId, planetId)), u, upsert = true)
       case _ =>
-        Future.failed[WriteResult](new Exception("cannot update User"))
-    }).map(_ => ())
+        Future.failed[WriteResult](new Exception("Cannot update User"))
+    }).map(_ => ()).recover {
+      case e: DatabaseException if e.code.contains(11000) =>
+        throw DuplicateUserException(transformMessage(e.getMessage(), user, planetId))
+    }
 
   def delete(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[WriteResult] =
-    remove("userId" -> userId, "planetId" -> planetId)
+    remove(User.user_index_key -> Option(User.userIndexKey(userId, planetId)))
+
+  val indexNameRegex = """\sindex\:\s(\w*?)\s""".r
+
+  def transformMessage(msg: String, user: User, planetId: String): String =
+    if (msg.contains("11000")) {
+      indexNameRegex
+        .findFirstMatchIn(msg)
+        .map(_.group(1))
+        .flatMap(i => duplicatedUserMessageByIndex.get(i).map(_(user)(planetId)))
+        .getOrElse(s"Duplicated user setup on $planetId")
+    } else msg
+
+  val duplicatedUserMessageByIndex: Map[String, User => String => String] = Map(
+    UsersIndexName -> (u => p => s"Duplicated userId ${u.userId} on $p"),
+    NinosIndexName -> (u => p => s"Duplicated NINO ${u.nino.get} on $p")
+  )
 
 }
