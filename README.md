@@ -96,6 +96,7 @@ Update an existing user. (_requires valid bearer token_)
 Response | Description
 ---|---
 202| when user accepted, `Location` header contains link to get the entity
+409| when user cannot be updated because of a unique constraint violation
 404| when `userId` not found
 
 #### POST /agents-external-stubs/users/
@@ -106,7 +107,7 @@ Create a new user. (_requires valid bearer token_)
 Response | Description
 ---|---
 201| when user created, `Location` header contains link to get the entity
-409| when `userId` already exists
+409| when `userId` already exists or any other unique constraint violation
 404| when `userId` not found
 
 ## Running the tests
