@@ -35,7 +35,7 @@ object UserGenerator extends Names with Temporal {
     dateOfBirth: String = "1975-03-29"): User =
     User(
       userId = userId,
-      affinityGroup = Some("Individual"),
+      affinityGroup = Some(User.AG.Individual),
       confidenceLevel = Some(confidenceLevel),
       credentialRole = Some(credentialRole),
       nino = Some(Nino(nino)),

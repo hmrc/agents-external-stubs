@@ -263,7 +263,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
       "authorize if affinityGroup matches" in {
         val authToken =
-          givenAnAuthenticatedUser(User(randomId, affinityGroup = Some("Agent")))
+          givenAnAuthenticatedUser(User(randomId, affinityGroup = Some(User.AG.Agent)))
 
         await(
           authConnector
@@ -274,7 +274,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
       "throw UnsupportedAffinityGroup if affinityGroup does not match" in {
         val authToken =
-          givenAnAuthenticatedUser(User(randomId, affinityGroup = Some("Individual")))
+          givenAnAuthenticatedUser(User(randomId, affinityGroup = Some(User.AG.Individual)))
 
         an[UnsupportedAffinityGroup] shouldBe thrownBy {
           await(
@@ -286,7 +286,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       }
 
       "retrieve affinityGroup" in {
-        val authToken = givenAnAuthenticatedUser(User(randomId, affinityGroup = Some("Agent")))
+        val authToken = givenAnAuthenticatedUser(User(randomId, affinityGroup = Some(User.AG.Agent)))
 
         val groupOpt = await(
           authConnector

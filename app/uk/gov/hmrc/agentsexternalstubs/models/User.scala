@@ -1,10 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import java.util.UUID
-
 import cats.data.{NonEmptyList, Validated}
 import org.joda.time.LocalDate
-import org.joda.time.format.ISODateTimeFormat
 import play.api.libs.json._
 import uk.gov.hmrc.domain.Nino
 
@@ -25,6 +22,12 @@ case class User(
 )
 
 object User {
+
+  object AG {
+    final val Individual = "Individual"
+    final val Organisation = "Organisation"
+    final val Agent = "Agent"
+  }
 
   implicit val reads: Reads[User] = Json.reads[User]
   implicit val writes: Writes[User] = Json

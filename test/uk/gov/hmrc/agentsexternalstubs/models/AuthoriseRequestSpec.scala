@@ -121,13 +121,13 @@ class AuthoriseRequestSpec extends UnitSpec {
                     |],
                     |"retrieve": []
                     |}""".stripMargin).as[AuthoriseRequest] shouldBe AuthoriseRequest(
-        Seq(AffinityGroup("Organisation")),
+        Seq(AffinityGroup(User.AG.Organisation)),
         Seq.empty)
     }
 
     "serialize authorise request with affinityGroup predicate" in {
       Json
-        .toJson(AuthoriseRequest(Seq(AffinityGroup("Agent")), Seq.empty))
+        .toJson(AuthoriseRequest(Seq(AffinityGroup(User.AG.Agent)), Seq.empty))
         .toString() shouldBe """{"authorise":[{"affinityGroup":"Agent"}],"retrieve":[]}"""
     }
 

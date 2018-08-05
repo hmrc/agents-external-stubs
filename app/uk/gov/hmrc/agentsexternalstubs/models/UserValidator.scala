@@ -24,14 +24,14 @@ object UserValidator {
       ).reduce(_ combine _)
 
   def validateAffinityGroup(user: User): Validated[NonEmptyList[String], Unit] = user.affinityGroup match {
-    case Some("Individual") | Some("Organisation") | Some("Agent") | None => Valid(())
+    case Some(User.AG.Individual) | Some(User.AG.Organisation) | Some(User.AG.Agent) | None => Valid(())
     case _ =>
       Invalid(NonEmptyList.of("affinityGroup must be none, or one of [\"Individual\",\"Organisation\",\"Agent\"]"))
   }
 
   def validateConfidenceLevel(user: User): Validated[NonEmptyList[String], Unit] = user.confidenceLevel match {
     case Some(50) | Some(100) | Some(200) | Some(300)
-        if user.affinityGroup.contains("Individual") && user.nino.isDefined =>
+        if user.affinityGroup.contains(User.AG.Individual) && user.nino.isDefined =>
       Valid(())
     case None => Valid(())
     case _ =>
@@ -46,7 +46,7 @@ object UserValidator {
 
   def validateCredentialRole(user: User): Validated[NonEmptyList[String], Unit] = user.credentialRole match {
     case Some("Admin") | Some("User") | Some("Assistant")
-        if user.affinityGroup.exists(Set("Individual", "Agent").contains) =>
+        if user.affinityGroup.exists(Set(User.AG.Individual, User.AG.Agent).contains) =>
       Valid(())
     case None => Valid(())
     case _ =>
@@ -56,25 +56,25 @@ object UserValidator {
   }
 
   def validateNino(user: User): Validated[NonEmptyList[String], Unit] = user.nino match {
-    case Some(_) if user.affinityGroup.contains("Individual") => Valid(())
-    case None                                                 => Valid(())
-    case _                                                    => Invalid(NonEmptyList.of("NINO can be only set for Individual"))
+    case Some(_) if user.affinityGroup.contains(User.AG.Individual) => Valid(())
+    case None                                                       => Valid(())
+    case _                                                          => Invalid(NonEmptyList.of("NINO can be only set for Individual"))
   }
 
   def validateConfidenceLevelAndNino(user: User): Validated[NonEmptyList[String], Unit] =
     (user.affinityGroup, user.nino, user.confidenceLevel) match {
-      case (Some("Individual"), Some(_), Some(_)) => Valid(())
-      case (Some("Individual"), None, Some(_)) =>
+      case (Some(User.AG.Individual), Some(_), Some(_)) => Valid(())
+      case (Some(User.AG.Individual), None, Some(_)) =>
         Invalid(NonEmptyList.of("confidenceLevel must be accompanied by NINO"))
-      case (Some("Individual"), Some(_), None) =>
+      case (Some(User.AG.Individual), Some(_), None) =>
         Invalid(NonEmptyList.of("NINO must be accompanied by confidenceLevel"))
       case _ => Valid(())
     }
 
   def validateDelegatedEnrolments(user: User): Validated[NonEmptyList[String], Unit] = user.delegatedEnrolments match {
-    case s if s.isEmpty                            => Valid(())
-    case _ if user.affinityGroup.contains("Agent") => Valid(())
-    case _                                         => Invalid(NonEmptyList.of("Only Agents can have delegated enrolments"))
+    case s if s.isEmpty                                  => Valid(())
+    case _ if user.affinityGroup.contains(User.AG.Agent) => Valid(())
+    case _                                               => Invalid(NonEmptyList.of("Only Agents can have delegated enrolments"))
   }
 
 }
