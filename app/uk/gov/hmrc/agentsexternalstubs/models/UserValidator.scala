@@ -45,7 +45,7 @@ object UserValidator {
   }
 
   def validateCredentialRole(user: User): Validated[NonEmptyList[String], Unit] = user.credentialRole match {
-    case Some("Admin") | Some("User") | Some("Assistant")
+    case Some(User.CR.Admin) | Some(User.CR.User) | Some(User.CR.Assistant)
         if user.affinityGroup.exists(Set(User.AG.Individual, User.AG.Agent).contains) =>
       Valid(())
     case None => Valid(())

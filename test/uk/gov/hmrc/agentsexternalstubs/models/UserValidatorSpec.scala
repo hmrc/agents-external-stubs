@@ -95,10 +95,10 @@ class UserValidatorSpec extends UnitSpec {
 
     "validate only when credentialRole is none, or one of [User, Assistant] for Individual or Agent" in {
       User
-        .validate(User("foo", credentialRole = Some("User"), affinityGroup = Some(User.AG.Individual)))
+        .validate(User("foo", credentialRole = Some(User.CR.User), affinityGroup = Some(User.AG.Individual)))
         .isValid shouldBe true
       User
-        .validate(User("foo", credentialRole = Some("User"), affinityGroup = Some(User.AG.Agent)))
+        .validate(User("foo", credentialRole = Some(User.CR.User), affinityGroup = Some(User.AG.Agent)))
         .isValid shouldBe true
       User
         .validate(User("foo", credentialRole = Some("Assistant"), affinityGroup = Some(User.AG.Individual)))

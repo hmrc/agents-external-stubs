@@ -29,6 +29,12 @@ object User {
     final val Agent = "Agent"
   }
 
+  object CR {
+    final val Admin = "Admin"
+    final val User = "User"
+    final val Assistant = "Assistant"
+  }
+
   implicit val reads: Reads[User] = Json.reads[User]
   implicit val writes: Writes[User] = Json
     .writes[User]

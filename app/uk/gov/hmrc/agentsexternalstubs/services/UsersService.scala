@@ -20,7 +20,7 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
 
   def createUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] =
     for {
-      sanitized <- Future(UserSanitizer.sanitizeUser(user))
+      sanitized <- Future(UserSanitizer.sanitize(user))
       _         <- validateUser(sanitized)
       _         <- usersRepository.create(sanitized, planetId)
       maybeUser <- findByUserId(sanitized.userId, planetId)
@@ -34,7 +34,7 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
                  case Some(_) => Future.successful(Failure(new Exception(s"User ${user.userId} already exists")))
                  case None =>
                    for {
-                     sanitized <- Future(UserSanitizer.sanitizeUser(user))
+                     sanitized <- Future(UserSanitizer.sanitize(user))
                      _         <- validateUser(sanitized)
                      _         <- usersRepository.create(sanitized, planetId)
                      newUser   <- findByUserId(sanitized.userId, planetId)
@@ -49,7 +49,7 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
                       case Some(existingUser) =>
                         val modified = modify(existingUser).copy(userId = userId)
                         if (modified != existingUser) for {
-                          sanitized <- Future(UserSanitizer.sanitizeUser(modified))
+                          sanitized <- Future(UserSanitizer.sanitize(modified))
                           _         <- validateUser(sanitized)
                           _         <- usersRepository.update(sanitized, planetId)
                           maybeUser <- usersRepository.findByUserId(userId, planetId)

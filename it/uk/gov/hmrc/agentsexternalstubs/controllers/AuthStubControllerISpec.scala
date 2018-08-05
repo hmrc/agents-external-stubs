@@ -10,7 +10,6 @@ import uk.gov.hmrc.agentsexternalstubs.support.{AuthContext, ServerBaseISpec, Te
 import uk.gov.hmrc.auth.core.authorise.EmptyPredicate
 import uk.gov.hmrc.auth.core.retrieve._
 import uk.gov.hmrc.auth.core.{Nino => NinoPredicate, _}
-import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.logging.Authorization
 
