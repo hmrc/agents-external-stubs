@@ -2,7 +2,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 
 import cats.data.Validated.{Invalid, Valid}
 import javax.inject.{Inject, Singleton}
-import uk.gov.hmrc.agentsexternalstubs.models.{Enrolment, Identifier, User}
+import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.UsersRepository
 import uk.gov.hmrc.http.{BadRequestException, NotFoundException}
 
@@ -20,9 +20,10 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
 
   def createUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] =
     for {
-      _         <- validateUser(user)
-      _         <- usersRepository.create(user, planetId)
-      maybeUser <- findByUserId(user.userId, planetId)
+      sanitized <- Future(UserSanitizer.sanitizeUser(user))
+      _         <- validateUser(sanitized)
+      _         <- usersRepository.create(sanitized, planetId)
+      maybeUser <- findByUserId(sanitized.userId, planetId)
       newUser = maybeUser.getOrElse(throw new Exception(s"User $user creation failed."))
     } yield newUser
 
@@ -33,10 +34,11 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
                  case Some(_) => Future.successful(Failure(new Exception(s"User ${user.userId} already exists")))
                  case None =>
                    for {
-                     _       <- validateUser(user)
-                     _       <- usersRepository.create(user, planetId)
-                     newUser <- findByUserId(user.userId, planetId)
-                   } yield newUser.map(Success.apply).getOrElse(Failure(new Exception(s"User creation failed")))
+                     sanitized <- Future(UserSanitizer.sanitizeUser(user))
+                     _         <- validateUser(sanitized)
+                     _         <- usersRepository.create(sanitized, planetId)
+                     newUser   <- findByUserId(sanitized.userId, planetId)
+                   } yield newUser.map(Success.apply).getOrElse(Failure(new Exception(s"User $user creation failed")))
                }
     } yield result
 
@@ -47,8 +49,9 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
                       case Some(existingUser) =>
                         val modified = modify(existingUser).copy(userId = userId)
                         if (modified != existingUser) for {
-                          _         <- validateUser(modified)
-                          _         <- usersRepository.update(modified, planetId)
+                          sanitized <- Future(UserSanitizer.sanitizeUser(modified))
+                          _         <- validateUser(sanitized)
+                          _         <- usersRepository.update(sanitized, planetId)
                           maybeUser <- usersRepository.findByUserId(userId, planetId)
                         } yield maybeUser.getOrElse(throw new Exception)
                         else Future.successful(existingUser)
@@ -68,7 +71,7 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
             Some(Seq(Identifier(identifierKey, identifierValue)))))
     )
 
-  def validateUser(user: User): Future[Unit] =
+  private def validateUser(user: User)(implicit ec: ExecutionContext): Future[Unit] =
     User.validate(user) match {
       case Valid(_)        => Future.successful(())
       case Invalid(errors) => Future.failed(new BadRequestException(errors.toList.mkString(", ")))

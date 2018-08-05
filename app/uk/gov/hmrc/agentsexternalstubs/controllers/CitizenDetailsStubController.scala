@@ -27,7 +27,7 @@ class CitizenDetailsStubController @Inject()(
             case true =>
               usersService.findByNino(taxId, session.planetId).map {
                 case None       => NotFound(s"Citizen record for $idName=$taxId not found")
-                case Some(user) => Ok(Json.toJson(toGetCitizenResponse(user)))
+                case Some(user) => Ok(Json.toJson(CitizenDetailsStubController.toGetCitizenResponse(user)))
               }
           }
         case _ => Future.successful(BadRequest(s"tax identifier $idName not supported"))
@@ -35,22 +35,27 @@ class CitizenDetailsStubController @Inject()(
     }(SessionRecordNotFound)
   }
 
+}
+
+object CitizenDetailsStubController {
+
   def toGetCitizenResponse(user: User): GetCitizenResponse =
     GetCitizenResponse(
-      name = Names(
-        current = user.name
-          .map(n => {
-            val nameParts = n.split(" ")
-            val (fn, ln) = if (nameParts.length > 1) {
-              (nameParts.init.mkString(" "), Some(nameParts.last))
-            } else (nameParts.headOption.getOrElse("John"), Some("Smith"))
-            Name(fn, ln)
-          })
-          .getOrElse(Name("John", Some("Smith")))),
+      name = Names(current = convertTheName(user.name)),
       ids = Ids(nino = user.nino),
       dateOfBirth = user.dateOfBirth.map(_.toString("ddMMyyyy"))
     )
 
+  def convertTheName(name: Option[String]): Name =
+    name
+      .map(n => {
+        val nameParts = n.split(" ")
+        val (fn, ln) = if (nameParts.length > 1) {
+          (nameParts.init.mkString(" "), Some(nameParts.last))
+        } else (nameParts.headOption.getOrElse("John"), Some("Smith"))
+        Name(fn, ln)
+      })
+      .getOrElse(Name("John", Some("Smith")))
 }
 
 /**

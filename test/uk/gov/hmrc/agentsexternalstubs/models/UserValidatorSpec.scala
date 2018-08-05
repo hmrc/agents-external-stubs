@@ -3,10 +3,10 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.test.UnitSpec
 
-class UserSpec extends UnitSpec {
+class UserValidatorSpec extends UnitSpec {
 
-  "User" should {
-    "be valid only when affinityGroup is none or one of [Individual, Organisation, Agent]" in {
+  "UserValidator" should {
+    "validate only when affinityGroup is none or one of [Individual, Organisation, Agent]" in {
       User.validate(User("foo", affinityGroup = Some("Individual"))).isValid shouldBe true
       User.validate(User("foo", affinityGroup = Some("Organisation"))).isValid shouldBe true
       User.validate(User("foo", affinityGroup = Some("Agent"))).isValid shouldBe true
@@ -16,7 +16,7 @@ class UserSpec extends UnitSpec {
       User.validate(User("foo", affinityGroup = Some(""))).isValid shouldBe false
     }
 
-    "be valid only when confidenceLevel is none, or one of [50,100,200,300] and user is Individual and NINO is not empty" in {
+    "validate only when confidenceLevel is none, or one of [50,100,200,300] and user is Individual and NINO is not empty" in {
       User
         .validate(
           User("foo", confidenceLevel = Some(50), affinityGroup = Some("Individual"), nino = Some(Nino("HW827856C"))))
@@ -59,7 +59,7 @@ class UserSpec extends UnitSpec {
         .isValid shouldBe false
     }
 
-    "be valid only when credentialStrength is none, or one of [weak, strong]" in {
+    "validate only when credentialStrength is none, or one of [weak, strong]" in {
       User.validate(User("foo", credentialStrength = Some("weak"))).isValid shouldBe true
       User.validate(User("foo", credentialStrength = Some("strong"))).isValid shouldBe true
       User.validate(User("foo", credentialStrength = None)).isValid shouldBe true
@@ -69,7 +69,7 @@ class UserSpec extends UnitSpec {
       User.validate(User("foo", credentialStrength = Some(""))).isValid shouldBe false
     }
 
-    "be valid only when credentialRole is none, or one of [User, Assistant] for Individual or Agent" in {
+    "validate only when credentialRole is none, or one of [User, Assistant] for Individual or Agent" in {
       User
         .validate(User("foo", credentialRole = Some("User"), affinityGroup = Some("Individual")))
         .isValid shouldBe true
@@ -92,7 +92,7 @@ class UserSpec extends UnitSpec {
         .isValid shouldBe false
     }
 
-    "be valid only when nino is none or set for an Individual" in {
+    "validate only when nino is none or set for an Individual" in {
       User
         .validate(
           User("foo", nino = Some(Nino("HW827856C")), affinityGroup = Some("Individual"), confidenceLevel = Some(200)))
@@ -113,7 +113,7 @@ class UserSpec extends UnitSpec {
         .isValid shouldBe false
     }
 
-    "be valid only when delegatedEnrolments are empty or user is an Agent" in {
+    "validate only when delegatedEnrolments are empty or user is an Agent" in {
       User.validate(User("foo", delegatedEnrolments = Seq.empty)).isValid shouldBe true
       User
         .validate(User("foo", delegatedEnrolments = Seq(Enrolment("A")), affinityGroup = Some("Agent")))

@@ -4,7 +4,7 @@ import org.scalatest.Suite
 import org.scalatestplus.play.ServerProvider
 import play.api.libs.ws.WSClient
 import play.mvc.Http.HeaderNames
-import uk.gov.hmrc.agentsexternalstubs.models.User
+import uk.gov.hmrc.agentsexternalstubs.models.{User, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{AuthContext, ServerBaseISpec, TestRequests}
 import uk.gov.hmrc.auth.core.authorise.EmptyPredicate
@@ -192,7 +192,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
       "authorize if confidenceLevel matches" in {
         val authToken =
-          givenAnAuthenticatedUser(User.individual(confidenceLevel = 300))
+          givenAnAuthenticatedUser(UserGenerator.individual(confidenceLevel = 300))
 
         await(
           authConnector
@@ -203,7 +203,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
       "throw IncorrectCredentialStrength if confidenceLevel does not match" in {
         val authToken =
-          givenAnAuthenticatedUser(User.individual(confidenceLevel = 100))
+          givenAnAuthenticatedUser(UserGenerator.individual(confidenceLevel = 100))
 
         an[InsufficientConfidenceLevel] shouldBe thrownBy {
           await(
@@ -215,7 +215,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       }
 
       "retrieve confidenceLevel" in {
-        val authToken = givenAnAuthenticatedUser(User.individual(confidenceLevel = 200))
+        val authToken = givenAnAuthenticatedUser(UserGenerator.individual(confidenceLevel = 200))
 
         val confidence = await(
           authConnector
@@ -298,7 +298,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
       "authorize if user has nino" in {
         val authToken =
-          givenAnAuthenticatedUser(User.individual(nino = "HW827856C"))
+          givenAnAuthenticatedUser(UserGenerator.individual(nino = "HW827856C"))
 
         await(
           authConnector
@@ -309,7 +309,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
       "throw exception if nino does not match" in {
         val authToken =
-          givenAnAuthenticatedUser(User.individual(nino = "HW827856C"))
+          givenAnAuthenticatedUser(UserGenerator.individual(nino = "HW827856C"))
 
         an[InternalError] shouldBe thrownBy {
           await(
@@ -321,7 +321,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       }
 
       "retrieve nino" in {
-        val authToken = givenAnAuthenticatedUser(User.individual(nino = "HW827856C"))
+        val authToken = givenAnAuthenticatedUser(UserGenerator.individual(nino = "HW827856C"))
 
         val groupOpt = await(
           authConnector
@@ -345,7 +345,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       }
 
       "retrieve credentialRole" in {
-        val authToken = givenAnAuthenticatedUser(User.individual(credentialRole = "Assistant"))
+        val authToken = givenAnAuthenticatedUser(UserGenerator.individual(credentialRole = "Assistant"))
 
         val groupOpt = await(
           authConnector

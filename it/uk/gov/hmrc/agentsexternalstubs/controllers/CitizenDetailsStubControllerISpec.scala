@@ -3,7 +3,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import org.scalatest.Suite
 import org.scalatestplus.play.ServerProvider
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, User}
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, User, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{NotAuthorized, ServerBaseISpec, TestRequests}
 
@@ -18,7 +18,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
     "GET /citizen-details/nino/:nino" should {
       "respond 200 with citizen data if found" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
-        Users.update(User
+        Users.update(UserGenerator
           .individual(userId = "foo", nino = "HW 82 78 56 C", name = "Alan Brian Foo-Foe", dateOfBirth = "1975-12-18"))
 
         val result = CitizenDetailsStub.getCitizen("nino", "HW827856C")
@@ -33,7 +33,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
 
       "respond 404 if not found" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
-        Users.update(User
+        Users.update(UserGenerator
           .individual(userId = "foo", nino = "JH 59 92 01 D", name = "Alan Brian Foo-Foe", dateOfBirth = "1975-12-18"))
 
         val result = CitizenDetailsStub.getCitizen("nino", "HW827856C")
