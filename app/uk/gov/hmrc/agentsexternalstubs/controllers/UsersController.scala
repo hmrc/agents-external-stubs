@@ -32,12 +32,11 @@ class UsersController @Inject()(usersService: UsersService, val authenticationSe
     withCurrentSession { session =>
       withJsonBody[User](
         updatedUser =>
-          (for {
-            _ <- validateUser(updatedUser)
-            _ <- usersService.updateUser(userId, session.planetId, _ => updatedUser)
-          } yield
-            Accepted(s"User $userId has been updated").withHeaders(
-              HeaderNames.LOCATION -> routes.UsersController.getUser(userId).url))
+          usersService
+            .updateUser(userId, session.planetId, _ => updatedUser)
+            .map(theUser =>
+              Accepted(s"User ${theUser.userId} has been updated")
+                .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url))
             .recover {
               case DuplicateUserException(msg) => Conflict(msg)
               case e: NotFoundException        => NotFound(e.getMessage)
@@ -49,23 +48,16 @@ class UsersController @Inject()(usersService: UsersService, val authenticationSe
     withCurrentSession { session =>
       withJsonBody[User](
         newUser =>
-          (for {
-            _       <- validateUser(newUser)
-            theUser <- usersService.createUser(newUser, session.planetId)
-          } yield
-            Created(s"User ${theUser.userId} has been created.")
-              .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url))
+          usersService
+            .createUser(newUser, session.planetId)
+            .map(theUser =>
+              Created(s"User ${theUser.userId} has been created.")
+                .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url))
             .recover {
               case DuplicateUserException(msg) => Conflict(msg)
           })
     }(SessionRecordNotFound)
 
   }
-
-  protected def validateUser(user: User): Future[Unit] =
-    User.validate(user) match {
-      case Valid(_)        => Future.successful(())
-      case Invalid(errors) => Future.failed(new BadRequestException(errors.toList.mkString(", ")))
-    }
 
 }

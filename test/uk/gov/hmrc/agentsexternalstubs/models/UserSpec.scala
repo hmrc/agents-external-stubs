@@ -33,6 +33,7 @@ class UserSpec extends UnitSpec {
         .validate(
           User("foo", confidenceLevel = Some(300), affinityGroup = Some("Individual"), nino = Some(Nino("HW827856C"))))
         .isValid shouldBe true
+
       User
         .validate(
           User("foo", confidenceLevel = Some(200), affinityGroup = Some("Agent"), nino = Some(Nino("HW827856C"))))
@@ -45,7 +46,6 @@ class UserSpec extends UnitSpec {
             affinityGroup = Some("Organisation"),
             nino = Some(Nino("HW827856C"))))
         .isValid shouldBe false
-
       User
         .validate(User("foo", confidenceLevel = Some(200), affinityGroup = Some("Individual"), nino = None))
         .isValid shouldBe false
@@ -125,6 +125,63 @@ class UserSpec extends UnitSpec {
       User
         .validate(User("foo", delegatedEnrolments = Seq(Enrolment("A")), affinityGroup = Some("Organisation")))
         .isValid shouldBe false
+    }
+
+    "skip validation if isNonStandardFlag is set to true" in {
+      User.validate(User("foo", affinityGroup = Some("Foo"), isNonStandardUser = Some(true))).isValid shouldBe true
+      User.validate(User("foo", affinityGroup = Some(""), isNonStandardUser = Some(true))).isValid shouldBe true
+      User
+        .validate(
+          User(
+            "foo",
+            confidenceLevel = Some(200),
+            affinityGroup = Some("Agent"),
+            nino = Some(Nino("HW827856C")),
+            isNonStandardUser = Some(true)))
+        .isValid shouldBe true
+      User
+        .validate(
+          User(
+            "foo",
+            confidenceLevel = Some(200),
+            affinityGroup = Some("Organisation"),
+            nino = Some(Nino("HW827856C")),
+            isNonStandardUser = Some(true)))
+        .isValid shouldBe true
+      User
+        .validate(
+          User(
+            "foo",
+            confidenceLevel = Some(200),
+            affinityGroup = Some("Individual"),
+            nino = None,
+            isNonStandardUser = Some(true)))
+        .isValid shouldBe true
+      User
+        .validate(
+          User(
+            "foo",
+            confidenceLevel = Some(55),
+            affinityGroup = Some("Individual"),
+            nino = Some(Nino("HW827856C")),
+            isNonStandardUser = Some(true)))
+        .isValid shouldBe true
+      User
+        .validate(
+          User(
+            "foo",
+            confidenceLevel = Some(0),
+            affinityGroup = Some("Individual"),
+            nino = Some(Nino("HW827856C")),
+            isNonStandardUser = Some(true)))
+        .isValid shouldBe true
+      User
+        .validate(User("foo", credentialStrength = Some("very strong"), isNonStandardUser = Some(true)))
+        .isValid shouldBe true
+      User
+        .validate(User("foo", credentialStrength = Some("little weak"), isNonStandardUser = Some(true)))
+        .isValid shouldBe true
+      User.validate(User("foo", credentialStrength = Some(""), isNonStandardUser = Some(true))).isValid shouldBe true
     }
   }
 

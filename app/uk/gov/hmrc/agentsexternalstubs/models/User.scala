@@ -1,8 +1,12 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import cats.{Semigroup, SemigroupK}
-import cats.data.{NonEmptyList, Validated}
+import java.util.UUID
+
 import cats.data.Validated.{Invalid, Valid}
+import cats.data.{NonEmptyList, Validated}
+import cats.{Semigroup, SemigroupK}
+import org.joda.time.LocalDate
+import org.joda.time.format.ISODateTimeFormat
 import play.api.libs.json._
 import uk.gov.hmrc.domain.Nino
 
@@ -16,7 +20,10 @@ case class User(
   nino: Option[Nino] = None,
   principalEnrolments: Seq[Enrolment] = Seq.empty,
   delegatedEnrolments: Seq[Enrolment] = Seq.empty,
-  planetId: Option[String] = None
+  name: Option[String] = None,
+  dateOfBirth: Option[LocalDate] = None,
+  planetId: Option[String] = None,
+  isNonStandardUser: Option[Boolean] = None
 )
 
 object User {
@@ -50,12 +57,22 @@ object User {
       })
       .getOrElse(json)
 
-  def individual(userId: String, confidenceLevel: Int, nino: String): User =
+  def individual(
+    userId: String = UUID.randomUUID().toString,
+    confidenceLevel: Int = 50,
+    credentialRole: String = "User",
+    nino: String = "HW827856C",
+    name: String = "John Smith",
+    dateOfBirth: String = "1975-03-29"): User =
     User(
       userId = userId,
       affinityGroup = Some("Individual"),
       confidenceLevel = Some(confidenceLevel),
-      nino = Some(Nino(nino)))
+      credentialRole = Some(credentialRole),
+      nino = Some(Nino(nino)),
+      name = Some(name),
+      dateOfBirth = Some(LocalDate.parse(dateOfBirth, ISODateTimeFormat.date()))
+    )
 
   implicit val nelS: Semigroup[NonEmptyList[String]] =
     SemigroupK[NonEmptyList].algebra[String]
@@ -63,15 +80,17 @@ object User {
   implicit val userS: Semigroup[Unit] = Semigroup.instance((_, _) => ())
 
   def validate(user: User): Validated[NonEmptyList[String], Unit] =
-    Seq(
-      validateAffinityGroup(user),
-      validateConfidenceLevel(user),
-      validateCredentialStrength(user),
-      validateCredentialRole(user),
-      validateNino(user),
-      validateConfidenceLevelAndNino(user),
-      validateDelegatedEnrolments(user)
-    ).reduce(_ combine _)
+    if (user.isNonStandardUser.contains(true)) Valid(())
+    else
+      Seq(
+        validateAffinityGroup(user),
+        validateConfidenceLevel(user),
+        validateCredentialStrength(user),
+        validateCredentialRole(user),
+        validateNino(user),
+        validateConfidenceLevelAndNino(user),
+        validateDelegatedEnrolments(user)
+      ).reduce(_ combine _)
 
   def validateAffinityGroup(user: User): Validated[NonEmptyList[String], Unit] = user.affinityGroup match {
     case Some("Individual") | Some("Organisation") | Some("Agent") | None => Valid(())
@@ -95,11 +114,14 @@ object User {
   }
 
   def validateCredentialRole(user: User): Validated[NonEmptyList[String], Unit] = user.credentialRole match {
-    case Some("User") | Some("Assistant") if user.affinityGroup.exists(Set("Individual", "Agent").contains) => Valid(())
-    case None                                                                                               => Valid(())
+    case Some("Admin") | Some("User") | Some("Assistant")
+        if user.affinityGroup.exists(Set("Individual", "Agent").contains) =>
+      Valid(())
+    case None => Valid(())
     case _ =>
       Invalid(
-        NonEmptyList.of("credentialRole must be none, or one of [\"User\",\"Assistant\"] for Individual or Agent"))
+        NonEmptyList.of(
+          "credentialRole must be none, or one of [\"Admin\",\"User\",\"Assistant\"] for Individual or Agent only"))
   }
 
   def validateNino(user: User): Validated[NonEmptyList[String], Unit] = user.nino match {

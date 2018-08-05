@@ -13,23 +13,28 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
   val url = s"http://localhost:$port"
   val wsClient = app.injector.instanceOf[WSClient]
 
-  "AuthStubController" when {
+  "CitizenDetailsStubController" when {
 
     "GET /citizen-details/nino/:nino" should {
       "respond 200 with citizen data if found" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
-        Users.update(User.individual("foo", 50, "HW 82 78 56 C"))
+        Users.update(User
+          .individual(userId = "foo", nino = "HW 82 78 56 C", name = "Alan Brian Foo-Foe", dateOfBirth = "1975-12-18"))
 
         val result = CitizenDetailsStub.getCitizen("nino", "HW827856C")
 
         result.status shouldBe 200
         val json = result.json
         (json \ "ids" \ "nino").as[String] shouldBe "HW 82 78 56 C"
+        (json \ "dateOfBirth").as[String] shouldBe "18121975"
+        (json \ "name" \ "current" \ "firstName").as[String] shouldBe "Alan Brian"
+        (json \ "name" \ "current" \ "lastName").as[String] shouldBe "Foo-Foe"
       }
 
       "respond 404 if not found" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
-        Users.update(User.individual("foo", 50, "JH 59 92 01 D"))
+        Users.update(User
+          .individual(userId = "foo", nino = "JH 59 92 01 D", name = "Alan Brian Foo-Foe", dateOfBirth = "1975-12-18"))
 
         val result = CitizenDetailsStub.getCitizen("nino", "HW827856C")
 

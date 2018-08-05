@@ -192,7 +192,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
       "authorize if confidenceLevel matches" in {
         val authToken =
-          givenAnAuthenticatedUser(User(randomId, confidenceLevel = Some(300)))
+          givenAnAuthenticatedUser(User.individual(confidenceLevel = 300))
 
         await(
           authConnector
@@ -203,7 +203,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
       "throw IncorrectCredentialStrength if confidenceLevel does not match" in {
         val authToken =
-          givenAnAuthenticatedUser(User(randomId, confidenceLevel = Some(100)))
+          givenAnAuthenticatedUser(User.individual(confidenceLevel = 100))
 
         an[InsufficientConfidenceLevel] shouldBe thrownBy {
           await(
@@ -215,7 +215,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       }
 
       "retrieve confidenceLevel" in {
-        val authToken = givenAnAuthenticatedUser(User(randomId, confidenceLevel = Some(200)))
+        val authToken = givenAnAuthenticatedUser(User.individual(confidenceLevel = 200))
 
         val confidence = await(
           authConnector
@@ -298,30 +298,30 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
       "authorize if user has nino" in {
         val authToken =
-          givenAnAuthenticatedUser(User(randomId, nino = Some(Nino("HW827856C"))))
+          givenAnAuthenticatedUser(User.individual(nino = "HW827856C"))
 
         await(
           authConnector
-            .authorise[Unit](NinoPredicate(true, Some("HW827856C")), EmptyRetrieval)(
+            .authorise[Unit](NinoPredicate(hasNino = true, Some("HW827856C")), EmptyRetrieval)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global))
       }
 
       "throw exception if nino does not match" in {
         val authToken =
-          givenAnAuthenticatedUser(User(randomId, nino = Some(Nino("HW827856C"))))
+          givenAnAuthenticatedUser(User.individual(nino = "HW827856C"))
 
         an[InternalError] shouldBe thrownBy {
           await(
             authConnector
-              .authorise[Unit](NinoPredicate(true, Some("AB827856A")), EmptyRetrieval)(
+              .authorise[Unit](NinoPredicate(hasNino = true, Some("AB827856A")), EmptyRetrieval)(
                 HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
                 concurrent.ExecutionContext.Implicits.global))
         }
       }
 
       "retrieve nino" in {
-        val authToken = givenAnAuthenticatedUser(User(randomId, nino = Some(Nino("HW827856C"))))
+        val authToken = givenAnAuthenticatedUser(User.individual(nino = "HW827856C"))
 
         val groupOpt = await(
           authConnector
@@ -333,7 +333,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
       "throw UnsupportedCredentialRole if credentialRole does not match" in {
         val authToken =
-          givenAnAuthenticatedUser(User(randomId, credentialRole = Some("Foo")))
+          givenAnAuthenticatedUser(User(randomId, credentialRole = Some("Foo"), isNonStandardUser = Some(true)))
 
         an[UnsupportedCredentialRole] shouldBe thrownBy {
           await(
@@ -345,7 +345,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       }
 
       "retrieve credentialRole" in {
-        val authToken = givenAnAuthenticatedUser(User(randomId, credentialRole = Some("Assistant")))
+        val authToken = givenAnAuthenticatedUser(User.individual(credentialRole = "Assistant"))
 
         val groupOpt = await(
           authConnector

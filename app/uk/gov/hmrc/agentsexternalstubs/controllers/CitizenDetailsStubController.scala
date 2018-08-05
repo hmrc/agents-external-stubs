@@ -37,9 +37,19 @@ class CitizenDetailsStubController @Inject()(
 
   def toGetCitizenResponse(user: User): GetCitizenResponse =
     GetCitizenResponse(
-      name = Names(current = Name("John", Some("Smith"))),
+      name = Names(
+        current = user.name
+          .map(n => {
+            val nameParts = n.split(" ")
+            val (fn, ln) = if (nameParts.length > 1) {
+              (nameParts.init.mkString(" "), Some(nameParts.last))
+            } else (nameParts.headOption.getOrElse("John"), Some("Smith"))
+            Name(fn, ln)
+          })
+          .getOrElse(Name("John", Some("Smith")))),
       ids = Ids(nino = user.nino),
-      dateOfBirth = "11121971")
+      dateOfBirth = user.dateOfBirth.map(_.toString("ddMMyyyy"))
+    )
 
 }
 
@@ -58,7 +68,7 @@ class CitizenDetailsStubController @Inject()(
   *   "dateOfBirth": "11121971"
   * }
   */
-case class GetCitizenResponse(name: GetCitizenResponse.Names, ids: GetCitizenResponse.Ids, dateOfBirth: String)
+case class GetCitizenResponse(name: GetCitizenResponse.Names, ids: GetCitizenResponse.Ids, dateOfBirth: Option[String])
 
 object GetCitizenResponse {
 
