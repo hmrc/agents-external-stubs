@@ -1,5 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
+import org.joda.time.LocalDate
 import org.scalatest.Suite
 import org.scalatestplus.play.ServerProvider
 import play.api.libs.ws.WSClient
@@ -287,12 +288,12 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       "retrieve affinityGroup" in {
         val authToken = givenAnAuthenticatedUser(User(randomId, affinityGroup = Some(User.AG.Agent)))
 
-        val groupOpt = await(
+        val affinityGroupOpt = await(
           authConnector
             .authorise[Option[AffinityGroup]](EmptyPredicate, Retrievals.affinityGroup)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global))
-        groupOpt shouldBe Some(AffinityGroup.Agent)
+        affinityGroupOpt shouldBe Some(AffinityGroup.Agent)
       }
 
       "authorize if user has nino" in {
@@ -322,12 +323,12 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       "retrieve nino" in {
         val authToken = givenAnAuthenticatedUser(UserGenerator.individual(nino = "HW827856C"))
 
-        val groupOpt = await(
+        val ninoOpt = await(
           authConnector
             .authorise[Option[String]](EmptyPredicate, Retrievals.nino)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global))
-        groupOpt shouldBe Some("HW827856C")
+        ninoOpt shouldBe Some("HW827856C")
       }
 
       "throw UnsupportedCredentialRole if credentialRole does not match" in {
@@ -346,23 +347,45 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
       "retrieve credentialRole" in {
         val authToken = givenAnAuthenticatedUser(UserGenerator.individual(credentialRole = "Assistant"))
 
-        val groupOpt = await(
+        val credentialRoleOpt = await(
           authConnector
             .authorise[Option[CredentialRole]](EmptyPredicate, Retrievals.credentialRole)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global))
-        groupOpt shouldBe Some(Assistant)
+        credentialRoleOpt shouldBe Some(Assistant)
       }
 
       "retrieve groupIdentifier" in {
         val authToken = givenAnAuthenticatedUser(User(randomId, groupId = Some("AAA-999-XXX")))
 
-        val groupOpt = await(
+        val groupIdentifierOpt = await(
           authConnector
             .authorise[Option[String]](EmptyPredicate, Retrievals.groupIdentifier)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global))
-        groupOpt shouldBe Some("AAA-999-XXX")
+        groupIdentifierOpt shouldBe Some("AAA-999-XXX")
+      }
+
+      "retrieve name" in {
+        val authToken = givenAnAuthenticatedUser(UserGenerator.individual(name = "Foo Boo"))
+
+        val nameOpt = await(
+          authConnector
+            .authorise[Name](EmptyPredicate, Retrievals.name)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global))
+        nameOpt shouldBe Name(Some("Foo"), Some("Boo"))
+      }
+
+      "retrieve dateOfBirth" in {
+        val authToken = givenAnAuthenticatedUser(User(randomId, dateOfBirth = Some(LocalDate.parse("1985-09-17"))))
+
+        val dateOfBirthOpt = await(
+          authConnector
+            .authorise[Option[LocalDate]](EmptyPredicate, Retrievals.dateOfBirth)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global))
+        dateOfBirthOpt shouldBe Some(LocalDate.parse("1985-09-17"))
       }
     }
   }

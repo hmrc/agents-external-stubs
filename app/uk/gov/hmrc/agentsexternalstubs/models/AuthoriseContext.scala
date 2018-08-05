@@ -1,5 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
+import org.joda.time.LocalDate
 import uk.gov.hmrc.domain.Nino
 
 trait AuthoriseContext {
@@ -15,6 +16,8 @@ trait AuthoriseContext {
   def authorisedServices: Set[String]
   def nino: Option[Nino]
   def groupId: Option[String]
+  def name: Option[String]
+  def dateOfBirth: Option[LocalDate]
 }
 
 case class FullAuthoriseContext(user: User, authenticatedSession: AuthenticatedSession, request: AuthoriseRequest)
@@ -39,6 +42,10 @@ case class FullAuthoriseContext(user: User, authenticatedSession: AuthenticatedS
   override def nino: Option[Nino] = user.nino
 
   override def groupId: Option[String] = user.groupId
+
+  override def name: Option[String] = user.name
+
+  override def dateOfBirth: Option[LocalDate] = user.dateOfBirth
 
   override lazy val authorisedServices: Set[String] = request.authorise.collect {
     case EnrolmentPredicate(service, _) => service

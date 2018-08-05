@@ -1,5 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
+import org.joda.time.LocalDate
 import play.api.libs.json.{Format, Json, Writes}
 import uk.gov.hmrc.domain.Nino
 
@@ -15,7 +16,9 @@ case class AuthoriseResponse(
   credentialStrength: Option[String] = None,
   credentialRole: Option[String] = None,
   nino: Option[Nino] = None,
-  groupIdentifier: Option[String] = None
+  groupIdentifier: Option[String] = None,
+  name: Option[Name] = None,
+  dateOfBirth: Option[LocalDate] = None
 )
 
 object AuthoriseResponse {
@@ -43,7 +46,9 @@ object Retrieve {
       CredentialStrengthRetrieve,
       NinoRetrieve,
       CredentialRoleRetrieve,
-      GroupIdentifierRetrieve
+      GroupIdentifierRetrieve,
+      NameRetrieve,
+      DateOfBirthRetrieve
     )
 
   def of(key: String): Retrieve =
@@ -135,4 +140,35 @@ case object GroupIdentifierRetrieve extends Retrieve {
   override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
     implicit ec: ExecutionContext): MaybeResponse =
     Right(response.copy(groupIdentifier = context.groupId))
+}
+
+case class Name(name: Option[String], lastName: Option[String])
+object Name {
+  implicit val format: Format[Name] = Json.format[Name]
+
+  def from(name: Option[String]): Name =
+    name
+      .map(n => {
+        val p = n.split(" ")
+        if (p.isEmpty) Name(None, None)
+        else if (p.length == 1) Name(Some(n), None)
+        else {
+          Name(Some(p.init.mkString(" ")), Some(p.last))
+        }
+      })
+      .getOrElse(Name(None, None))
+}
+
+case object NameRetrieve extends Retrieve {
+  val key = "name"
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
+    implicit ec: ExecutionContext): MaybeResponse =
+    Right(response.copy(name = Some(Name.from(context.name))))
+}
+
+case object DateOfBirthRetrieve extends Retrieve {
+  val key = "dateOfBirth"
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
+    implicit ec: ExecutionContext): MaybeResponse =
+    Right(response.copy(dateOfBirth = context.dateOfBirth))
 }
