@@ -378,7 +378,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with 
       }
 
       "retrieve dateOfBirth" in {
-        val authToken = givenAnAuthenticatedUser(User(randomId, dateOfBirth = Some(LocalDate.parse("1985-09-17"))))
+        val authToken = givenAnAuthenticatedUser(UserGenerator.individual(dateOfBirth = "1985-09-17"))
 
         val dateOfBirthOpt = await(
           authConnector
