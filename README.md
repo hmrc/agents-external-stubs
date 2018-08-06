@@ -14,6 +14,7 @@ This app SHOULD NOT be run on QA nor Production environment.
 To handle requests aimed at stubbed API microservices we provide necessary TCP proxies:
 
 - listening on 8500 for auth requests
+- listening on 9337 for citizen-details requests
 
 You can switch this behaviour off by setting `proxies.start` config property to `false`.
 
@@ -25,7 +26,7 @@ You can switch this behaviour off by setting `proxies.start` config property to 
 Feature | What's implemented
 -----------|-------------------------- 
 predicates | `enrolment`, `authProviders`, `affinityGroup`, `confidenceLevel`, `credentialStrength`, `nino`, `credentialRole`
-retrievals | `authProviderId`, `credentials`, `authorisedEnrolments`, `allEnrolments`,`affinityGroup`,`confidenceLevel`,`credentialStrength`, `credentialRole`, `nino`, `groupIdentifier`
+retrievals | `authProviderId`, `credentials`, `authorisedEnrolments`, `allEnrolments`,`affinityGroup`,`confidenceLevel`,`credentialStrength`, `credentialRole`, `nino`, `groupIdentifier`, `name`, `dateOfBirth`
 
 ## Custom API
 
@@ -34,7 +35,7 @@ Authenticate an user
 
 *Payload*
 
-    {"userId": "foo", "plainTextPassword": "password", "providerType": "GovernmentGateway"}
+    {"userId": "foo", "plainTextPassword": "password", "providerType": "GovernmentGateway", "planetId":"your_test_planet"}
 
 Response | Description
 ---|---
@@ -47,7 +48,7 @@ Get current user authentication details
 
 Response | Description
 ---|---
-200| body: `{"userId": "foo", "authToken": "G676JHDJSHJ767676H", "providerType": "GovernmentGateway"}`, `Location` header contains link to get the entity
+200| body: `{"userId": "foo", "authToken": "G676JHDJSHJ767676H", "providerType": "GovernmentGateway", "planetId": "your_test_planetId"}`, `Location` header contains link to get the entity
 404| when `authToken` not found
     
 #### GET  /agents-external-stubs/users/:userId
@@ -55,7 +56,7 @@ Get current user details. (_requires valid bearer token_)
 
 Response | Description
 ---|---
-200| `{"userId": "foo", "principalEnrolments": [...], "delegatedEnrolments": [...]}`
+200| user entity details
 404| when userId not found
 
 #### PUT  /agents-external-stubs/users/:userId
@@ -64,6 +65,8 @@ Update an existing user. (_requires valid bearer token_)
 **WARNING** Payload's `userId` field will not be used to find nor update!
 
 *Payload*
+
+User entity, e.g.,
     
     {   
         "userId": "any", 
@@ -96,8 +99,9 @@ Update an existing user. (_requires valid bearer token_)
 Response | Description
 ---|---
 202| when user accepted, `Location` header contains link to get the entity
-409| when user cannot be updated because of a unique constraint violation
+400| when user payload has not passed validation
 404| when `userId` not found
+409| when user cannot be updated because of a unique constraint violation
 
 #### POST /agents-external-stubs/users/
 Create a new user. (_requires valid bearer token_)
@@ -107,8 +111,9 @@ Create a new user. (_requires valid bearer token_)
 Response | Description
 ---|---
 201| when user created, `Location` header contains link to get the entity
-409| when `userId` already exists or any other unique constraint violation
+400| when user payload has not passed validation
 404| when `userId` not found
+409| when `userId` already exists or any other unique constraint violation
 
 ## Running the tests
 
