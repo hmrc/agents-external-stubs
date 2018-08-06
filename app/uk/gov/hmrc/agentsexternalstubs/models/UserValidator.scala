@@ -20,13 +20,14 @@ object UserValidator {
         validateCredentialRole(user),
         validateNino(user),
         validateConfidenceLevelAndNino(user),
-        validateDelegatedEnrolments(user)
+        validateDelegatedEnrolments(user),
+        validateDateOfBirth(user)
       ).reduce(_ combine _)
 
   def validateAffinityGroup(user: User): Validated[NonEmptyList[String], Unit] = user.affinityGroup match {
     case Some(User.AG.Individual) | Some(User.AG.Organisation) | Some(User.AG.Agent) | None => Valid(())
     case _ =>
-      Invalid(NonEmptyList.of("affinityGroup must be none, or one of [\"Individual\",\"Organisation\",\"Agent\"]"))
+      Invalid(NonEmptyList.of("affinityGroup must be none, or one of [Individual, Organisation, Agent]"))
   }
 
   def validateConfidenceLevel(user: User): Validated[NonEmptyList[String], Unit] = user.confidenceLevel match {
@@ -35,13 +36,14 @@ object UserValidator {
       Valid(())
     case None => Valid(())
     case _ =>
-      Invalid(NonEmptyList.of("confidenceLevel can only be set for Individuals and has to be one of [50,100,200,300]"))
+      Invalid(
+        NonEmptyList.of("confidenceLevel can only be set for Individuals and has to be one of [50, 100, 200, 300]"))
   }
 
   def validateCredentialStrength(user: User): Validated[NonEmptyList[String], Unit] = user.credentialStrength match {
     case Some("weak") | Some("strong") | None => Valid(())
     case _ =>
-      Invalid(NonEmptyList.of("credentialStrength must be none, or one of [\"weak\",\"strong\"]"))
+      Invalid(NonEmptyList.of("credentialStrength must be none, or one of [weak, strong]"))
   }
 
   def validateCredentialRole(user: User): Validated[NonEmptyList[String], Unit] = user.credentialRole match {
@@ -51,8 +53,7 @@ object UserValidator {
     case None => Valid(())
     case _ =>
       Invalid(
-        NonEmptyList.of(
-          "credentialRole must be none, or one of [\"Admin\",\"User\",\"Assistant\"] for Individual or Agent only"))
+        NonEmptyList.of("credentialRole must be none, or one of [Admin, User, Assistant] for Individual or Agent only"))
   }
 
   def validateNino(user: User): Validated[NonEmptyList[String], Unit] = user.nino match {
@@ -75,6 +76,12 @@ object UserValidator {
     case s if s.isEmpty                                  => Valid(())
     case _ if user.affinityGroup.contains(User.AG.Agent) => Valid(())
     case _                                               => Invalid(NonEmptyList.of("Only Agents can have delegated enrolments"))
+  }
+
+  def validateDateOfBirth(user: User): Validated[NonEmptyList[String], Unit] = user.dateOfBirth match {
+    case Some(_) if user.affinityGroup.contains(User.AG.Individual) => Valid(())
+    case None                                                       => Valid(())
+    case _                                                          => Invalid(NonEmptyList.of("dateOfBirth can be only set for Individual"))
   }
 
 }

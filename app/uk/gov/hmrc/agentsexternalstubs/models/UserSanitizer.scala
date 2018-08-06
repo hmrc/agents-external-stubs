@@ -32,12 +32,20 @@ object UserSanitizer {
   }
 
   private val ensureUserCredentialRole: User => User = user =>
-    if (user.credentialRole.isEmpty)
-      user.copy(credentialRole = user.affinityGroup match {
-        case Some(User.AG.Individual | User.AG.Agent) => Some(User.CR.User)
-        case _                                        => None
-      })
-    else user
+    user.affinityGroup match {
+      case Some(User.AG.Individual | User.AG.Agent) =>
+        if (user.credentialRole.isEmpty) user.copy(credentialRole = Some(User.CR.User)) else user
+      case _ => user.copy(credentialRole = None)
+  }
+
+  private val ensureOnlyIndividualUserHaveDateOfBirth: User => User = user =>
+    user.affinityGroup match {
+      case Some(User.AG.Individual) =>
+        if (user.dateOfBirth.isEmpty)
+          user.copy(dateOfBirth = Some(UserGenerator.dateOfBirth(user.userId)))
+        else user
+      case _ => user.copy(dateOfBirth = None)
+  }
 
   private val userSanitizers =
     Seq(
@@ -45,7 +53,8 @@ object UserSanitizer {
       ensureIndividualUserHaveDateOfBirth,
       ensureOnlyIndividualUserHaveNINO,
       ensureOnlyIndividualUserHaveConfidenceLevel,
-      ensureUserCredentialRole
+      ensureUserCredentialRole,
+      ensureOnlyIndividualUserHaveDateOfBirth
     )
 
 }

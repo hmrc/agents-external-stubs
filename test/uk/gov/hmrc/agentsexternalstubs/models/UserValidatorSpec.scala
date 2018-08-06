@@ -1,5 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
+import org.joda.time.LocalDate
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.test.UnitSpec
 
@@ -143,6 +144,17 @@ class UserValidatorSpec extends UnitSpec {
         .isValid shouldBe false
     }
 
+    "validate only when dateOfBirth is none or set for an Individual" in {
+      val now = LocalDate.now()
+      User
+        .validate(UserGenerator.individual(userId = "foo", dateOfBirth = "1975-03-29"))
+        .isValid shouldBe true
+
+      User
+        .validate(User("foo", affinityGroup = Some(User.AG.Organisation), dateOfBirth = Some(now)))
+        .isValid shouldBe false
+    }
+
     "validate only when delegatedEnrolments are empty or user is an Agent" in {
       User.validate(User("foo", delegatedEnrolments = Seq.empty)).isValid shouldBe true
       User
@@ -158,8 +170,12 @@ class UserValidatorSpec extends UnitSpec {
     }
 
     "skip validation if isNonStandardFlag is set to true" in {
-      User.validate(User("foo", affinityGroup = Some("Foo"), isNonStandardUser = Some(true))).isValid shouldBe true
-      User.validate(User("foo", affinityGroup = Some(""), isNonStandardUser = Some(true))).isValid shouldBe true
+      User
+        .validate(User("foo", affinityGroup = Some("Foo"), isNonStandardUser = Some(true)))
+        .isValid shouldBe true
+      User
+        .validate(User("foo", affinityGroup = Some(""), isNonStandardUser = Some(true)))
+        .isValid shouldBe true
       User
         .validate(
           User(
@@ -211,7 +227,9 @@ class UserValidatorSpec extends UnitSpec {
       User
         .validate(User("foo", credentialStrength = Some("little weak"), isNonStandardUser = Some(true)))
         .isValid shouldBe true
-      User.validate(User("foo", credentialStrength = Some(""), isNonStandardUser = Some(true))).isValid shouldBe true
+      User
+        .validate(User("foo", credentialStrength = Some(""), isNonStandardUser = Some(true)))
+        .isValid shouldBe true
     }
   }
 

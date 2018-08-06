@@ -51,13 +51,32 @@ class UserSanitizerSpec extends UnitSpec {
         .confidenceLevel shouldBe None
     }
 
-    "add missing CredentialRole if appropriate" in {
+    "add or remove CredentialRole when appropriate" in {
       UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Individual))).credentialRole shouldBe Some(
         User.CR.User)
       UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Agent))).credentialRole shouldBe Some(
         User.CR.User)
       UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Organisation))).credentialRole shouldBe None
       UserSanitizer.sanitize(User("foo", affinityGroup = None)).credentialRole shouldBe None
+      UserSanitizer
+        .sanitize(User("foo", affinityGroup = Some(User.AG.Organisation), credentialRole = Some("User")))
+        .credentialRole shouldBe None
+      UserSanitizer
+        .sanitize(User("foo", affinityGroup = None, credentialRole = Some("User")))
+        .credentialRole shouldBe None
+    }
+
+    "remove DateOfBirth if not Individual" in {
+      val now = LocalDate.now()
+      UserSanitizer
+        .sanitize(User("foo", affinityGroup = Some(User.AG.Individual), dateOfBirth = Some(now)))
+        .dateOfBirth shouldBe Some(now)
+      UserSanitizer
+        .sanitize(User("foo", affinityGroup = Some(User.AG.Organisation), dateOfBirth = Some(now)))
+        .dateOfBirth shouldBe None
+      UserSanitizer
+        .sanitize(User("foo", affinityGroup = Some(User.AG.Agent), dateOfBirth = Some(now)))
+        .dateOfBirth shouldBe None
     }
   }
 
