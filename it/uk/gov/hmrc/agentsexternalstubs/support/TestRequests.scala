@@ -6,6 +6,8 @@ import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.libs.ws.{WSClient, WSCookie, WSResponse}
 import play.api.mvc.{Cookie, Cookies}
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, SignInRequest, User}
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.logging.Authorization
 
 trait AuthContext {
   def headers: Seq[(String, String)]
@@ -38,6 +40,9 @@ trait TestRequests extends ScalaFutures {
   def wsClient: WSClient
 
   import JsonWriteable._
+
+  implicit def headerCarrier(implicit authSession: AuthenticatedSession): HeaderCarrier =
+    HeaderCarrier(authorization = Some(Authorization(s"Bearer ${authSession.authToken}")))
 
   object SignIn {
     def signIn(

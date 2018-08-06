@@ -13,10 +13,11 @@ import scala.util.Try
 class TcpProxies @Inject()(
   @Named("proxies.start") startProxies: String,
   @Named("auth.port") authPort: Int,
+  @Named("citizen-details.port") citizenDetailsPort: Int,
   @Named("http.port") httpPort: String)(implicit system: ActorSystem, materializer: Materializer) {
 
   if (startProxies == "true") {
-    println("Starting TCP proxies ...")
+    println("Starting local TCP proxies ...")
 
     implicit val ec: ExecutionContext = system.dispatcher
 
@@ -27,12 +28,20 @@ class TcpProxies @Inject()(
 
     val tcpProxy = Flow[ByteString].via(tcpOutgoingConnection)
 
-    Tcp(system)
-      .bindAndHandle(tcpProxy, interface = "localhost", port = authPort)
-      .map(s => println(s"Listening for auth requests on ${s.localAddress}"))
+    startProxy(authPort, "auth")
+    startProxy(citizenDetailsPort, "citizen-details")
+
+    def startProxy(port: Int, serviceName: String): Future[Unit] =
+      Tcp(system)
+        .bindAndHandle(tcpProxy, interface = "localhost", port = port)
+        .map(s => println(s"Listening for $serviceName requests on ${s.localAddress}"))
+        .recover {
+          case e: Exception =>
+            println(s"Could not start tcp proxy for $serviceName requests on $port because of $e")
+        }
 
   } else {
-    println("TCP proxies feature switched off")
+    println("TCP proxies feature is switched off")
   }
 
 }

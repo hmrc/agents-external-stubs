@@ -11,12 +11,13 @@ abstract class AppBaseISpec extends BaseISpec with OneAppPerSuite {
   protected override def appBuilder: GuiceApplicationBuilder =
     new GuiceApplicationBuilder()
       .configure(
-        "microservice.services.auth.port" -> wireMockPort,
-        "metrics.enabled"                 -> true,
-        "auditing.enabled"                -> true,
-        "auditing.consumer.baseUri.host"  -> wireMockHost,
-        "auditing.consumer.baseUri.port"  -> wireMockPort,
-        "proxies.start"                   -> "false"
+        "microservice.services.auth.port"            -> wireMockPort,
+        "microservice.services.citizen-details.port" -> wireMockPort,
+        "metrics.enabled"                            -> true,
+        "auditing.enabled"                           -> true,
+        "auditing.consumer.baseUri.host"             -> wireMockHost,
+        "auditing.consumer.baseUri.port"             -> wireMockPort,
+        "proxies.start"                              -> "false"
       )
 
 }

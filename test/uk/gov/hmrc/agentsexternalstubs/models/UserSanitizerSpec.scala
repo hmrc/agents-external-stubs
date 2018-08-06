@@ -16,9 +16,9 @@ class UserSanitizerSpec extends UnitSpec {
 
     "add missing dateOfBirth to the Individual" in {
       UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Individual))).dateOfBirth shouldBe Some(
-        LocalDate.parse("1939-09-23"))
+        LocalDate.parse("1939-09-24"))
       UserSanitizer.sanitize(User("boo", affinityGroup = Some(User.AG.Individual))).dateOfBirth shouldBe Some(
-        LocalDate.parse("1966-04-23"))
+        LocalDate.parse("1966-04-24"))
     }
 
     "add missing NINO to the Individual" in {

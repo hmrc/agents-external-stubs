@@ -34,12 +34,14 @@ class MicroserviceModule(val environment: Environment, val configuration: Config
     bindProperty("proxies.start")
 
     bindServiceConfigProperty[Int]("auth.port")
+    bindServiceConfigProperty[Int]("citizen-details.port")
 
     bind(classOf[HttpGet]).to(classOf[HttpVerbs])
     bind(classOf[HttpPost]).to(classOf[HttpVerbs])
     bind(classOf[AuthConnector]).to(classOf[MicroserviceAuthConnector])
 
     bindBaseUrl("auth")
+    bindBaseUrl("citizen-details")
 
     bind(classOf[TcpProxies]).asEagerSingleton()
   }
