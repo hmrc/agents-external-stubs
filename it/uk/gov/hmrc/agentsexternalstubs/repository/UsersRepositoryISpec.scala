@@ -19,13 +19,13 @@ import org.scalatestplus.play.OneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.agentsexternalstubs.models.{Enrolment, Identifier, User}
-import uk.gov.hmrc.agentsexternalstubs.support.MongoApp
+import uk.gov.hmrc.agentsexternalstubs.support.MongoDbPerSuite
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoApp {
+class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPerSuite {
 
   protected def appBuilder: GuiceApplicationBuilder =
     new GuiceApplicationBuilder()
@@ -37,11 +37,6 @@ class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoApp {
   override implicit lazy val app: Application = appBuilder.build()
 
   def repo: UsersRepository = app.injector.instanceOf[UsersRepository]
-
-  override def beforeEach() {
-    super.beforeEach()
-    await(repo.ensureIndexes)
-  }
 
   "create" should {
     "create a simple user" in {

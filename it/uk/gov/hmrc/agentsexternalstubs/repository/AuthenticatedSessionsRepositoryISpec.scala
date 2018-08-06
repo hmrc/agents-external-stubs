@@ -21,12 +21,12 @@ import org.scalatestplus.play.OneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import reactivemongo.core.errors.DatabaseException
-import uk.gov.hmrc.agentsexternalstubs.support.MongoApp
+import uk.gov.hmrc.agentsexternalstubs.support.MongoDbPerSuite
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class AuthenticatedSessionsRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoApp {
+class AuthenticatedSessionsRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPerSuite {
 
   protected def appBuilder: GuiceApplicationBuilder =
     new GuiceApplicationBuilder()
@@ -38,11 +38,6 @@ class AuthenticatedSessionsRepositoryISpec extends UnitSpec with OneAppPerSuite 
   override implicit lazy val app: Application = appBuilder.build()
 
   def repo: AuthenticatedSessionsRepository = app.injector.instanceOf[AuthenticatedSessionsRepository]
-
-  override def beforeEach() {
-    super.beforeEach()
-    await(repo.ensureIndexes)
-  }
 
   "create" should {
     "create a session" in {

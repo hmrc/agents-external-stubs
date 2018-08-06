@@ -18,15 +18,13 @@ abstract class ServerBaseISpec extends BaseISpec with OneServerPerSuite with Sca
   implicit override val patienceConfig: PatienceConfig =
     PatienceConfig(timeout = Span(4, Seconds), interval = Span(1, Seconds))
 
-  protected override def appBuilder: GuiceApplicationBuilder =
+  protected def appBuilder: GuiceApplicationBuilder =
     new GuiceApplicationBuilder()
       .configure(
         "microservice.services.auth.port"            -> Port.randomAvailable,
         "microservice.services.citizen-details.port" -> Port.randomAvailable,
         "metrics.enabled"                            -> true,
-        "auditing.enabled"                           -> true,
-        "auditing.consumer.baseUri.host"             -> wireMockHost,
-        "auditing.consumer.baseUri.port"             -> wireMockPort,
+        "auditing.enabled"                           -> false,
         "mongodb.uri"                                -> s"mongodb://127.0.0.1:27017/test-${this.getClass.getSimpleName}",
         "http.port"                                  -> this.port
       )

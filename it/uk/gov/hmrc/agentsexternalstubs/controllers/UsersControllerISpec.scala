@@ -8,10 +8,10 @@ import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, Enrolment, User}
 import uk.gov.hmrc.agentsexternalstubs.services.UsersService
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
-import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests}
+import uk.gov.hmrc.agentsexternalstubs.support.{MongoDbPerSuite, ServerBaseISpec, TestRequests}
 import uk.gov.hmrc.domain.Nino
 
-class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestStubs {
+class UsersControllerISpec extends ServerBaseISpec with MongoDbPerSuite with TestRequests with TestStubs {
   this: Suite with ServerProvider =>
 
   val url = s"http://localhost:$port"
@@ -61,10 +61,10 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
         result2.status shouldBe Status.CONFLICT
       }
 
-      "fail if trying to create invalid user" in {
+      "sanitize invalid user and succeed" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         val result = Users.create(User("yuwyquhh", nino = Some(Nino("HW827856C"))))
-        result.status shouldBe 400
+        result.status shouldBe 201
       }
     }
 

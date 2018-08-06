@@ -7,14 +7,14 @@ import play.api.libs.ws.WSClient
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models.{User, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
-import uk.gov.hmrc.agentsexternalstubs.support.{AuthContext, ServerBaseISpec, TestRequests}
+import uk.gov.hmrc.agentsexternalstubs.support._
 import uk.gov.hmrc.auth.core.authorise.EmptyPredicate
 import uk.gov.hmrc.auth.core.retrieve._
 import uk.gov.hmrc.auth.core.{Nino => NinoPredicate, _}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.logging.Authorization
 
-class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with TestStubs {
+class AuthStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with TestRequests with TestStubs {
   this: Suite with ServerProvider =>
 
   val url = s"http://localhost:$port"

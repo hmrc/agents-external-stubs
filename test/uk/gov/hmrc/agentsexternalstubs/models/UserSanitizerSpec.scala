@@ -28,9 +28,27 @@ class UserSanitizerSpec extends UnitSpec {
         Nino("HW 82 78 56 C"))
     }
 
+    "remove NINO if not Individual" in {
+      UserSanitizer
+        .sanitize(User("foo", affinityGroup = Some(User.AG.Organisation), nino = Some(Nino("XC 93 60 45 D"))))
+        .nino shouldBe None
+      UserSanitizer
+        .sanitize(User("foo", affinityGroup = Some(User.AG.Agent), nino = Some(Nino("XC 93 60 45 D"))))
+        .nino shouldBe None
+    }
+
     "add missing ConfidenceLevel to the Individual" in {
       UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Individual))).confidenceLevel shouldBe Some(50)
       UserSanitizer.sanitize(User("boo", affinityGroup = Some(User.AG.Individual))).confidenceLevel shouldBe Some(50)
+    }
+
+    "remove ConfidenceLevel if not Individual" in {
+      UserSanitizer
+        .sanitize(User("foo", affinityGroup = Some(User.AG.Organisation), confidenceLevel = Some(100)))
+        .confidenceLevel shouldBe None
+      UserSanitizer
+        .sanitize(User("foo", affinityGroup = Some(User.AG.Agent), confidenceLevel = Some(100)))
+        .confidenceLevel shouldBe None
     }
 
     "add missing CredentialRole if appropriate" in {

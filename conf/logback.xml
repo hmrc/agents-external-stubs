@@ -51,9 +51,13 @@
 
     <logger name="uk.gov.hmrc.audit" level="ERROR"/>
 
+    <logger name="uk.gov.hmrc.play.bootstrap.audit" level="ERROR"/>
+
     <logger name="uk.gov.hmrc.agentsexternalstubs" level="INFO"/>
 
     <logger name="uk.gov.hmrc.agentsexternalstubs.repository" level="ERROR"/>
+
+    <logger name="uk.gov.hmrc.agentsexternalstubs.wiring" level="ERROR"/>
 
     <logger name="akka" level="ERROR"/>
 

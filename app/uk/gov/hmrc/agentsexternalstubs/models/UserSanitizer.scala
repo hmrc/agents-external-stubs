@@ -15,22 +15,27 @@ object UserSanitizer {
       user.copy(dateOfBirth = Some(UserGenerator.dateOfBirth(user.userId)))
     else user
 
-  private val ensureIndividualUserHaveNINO: User => User = user =>
-    if (user.affinityGroup.contains(User.AG.Individual) && user.nino.isEmpty)
-      user.copy(nino = Some(UserGenerator.nino(user.userId)))
-    else user
+  private val ensureOnlyIndividualUserHaveNINO: User => User = user =>
+    user.affinityGroup match {
+      case Some(User.AG.Individual) =>
+        if (user.nino.isEmpty) user.copy(nino = Some(UserGenerator.nino(user.userId))) else user
+      case _ => user.copy(nino = None)
+  }
 
-  private val ensureIndividualUserHaveConfidenceLevel: User => User = user =>
-    if (user.affinityGroup.contains(User.AG.Individual) && user.confidenceLevel.isEmpty)
-      user.copy(confidenceLevel = Some(50))
-    else user
+  private val ensureOnlyIndividualUserHaveConfidenceLevel: User => User = user =>
+    user.affinityGroup match {
+      case Some(User.AG.Individual) =>
+        if (user.confidenceLevel.isEmpty)
+          user.copy(confidenceLevel = Some(50))
+        else user
+      case _ => user.copy(confidenceLevel = None)
+  }
 
   private val ensureUserCredentialRole: User => User = user =>
     if (user.credentialRole.isEmpty)
       user.copy(credentialRole = user.affinityGroup match {
-        case None                                     => None
-        case Some(User.AG.Organisation)               => None
         case Some(User.AG.Individual | User.AG.Agent) => Some(User.CR.User)
+        case _                                        => None
       })
     else user
 
@@ -38,8 +43,8 @@ object UserSanitizer {
     Seq(
       ensureIndividualUserHaveName,
       ensureIndividualUserHaveDateOfBirth,
-      ensureIndividualUserHaveNINO,
-      ensureIndividualUserHaveConfidenceLevel,
+      ensureOnlyIndividualUserHaveNINO,
+      ensureOnlyIndividualUserHaveConfidenceLevel,
       ensureUserCredentialRole
     )
 

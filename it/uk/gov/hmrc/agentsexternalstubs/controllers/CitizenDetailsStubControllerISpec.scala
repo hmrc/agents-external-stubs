@@ -3,11 +3,11 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import org.scalatest.Suite
 import org.scalatestplus.play.ServerProvider
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, User, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
-import uk.gov.hmrc.agentsexternalstubs.support.{NotAuthorized, ServerBaseISpec, TestRequests}
+import uk.gov.hmrc.agentsexternalstubs.support.{MongoDbPerSuite, NotAuthorized, ServerBaseISpec, TestRequests}
 
-class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequests with TestStubs {
+class CitizenDetailsStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with TestRequests with TestStubs {
   this: Suite with ServerProvider =>
 
   val url = s"http://localhost:$port"
