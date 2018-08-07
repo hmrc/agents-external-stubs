@@ -14,11 +14,21 @@ class UserSanitizerSpec extends UnitSpec {
         "Nicholas Isnard")
     }
 
+    "add missing name to the Agent" in {
+      UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Agent))).name shouldBe Some("Avery Goulding")
+      UserSanitizer.sanitize(User("boo", affinityGroup = Some(User.AG.Agent))).name shouldBe Some("Isaac Pearson")
+    }
+
+    "add missing name to the Organisation" in {
+      UserSanitizer.sanitize(User("boo", affinityGroup = Some(User.AG.Organisation))).name shouldBe Some(
+        "Petroleum Inc.")
+      UserSanitizer.sanitize(User("zoo", affinityGroup = Some(User.AG.Organisation))).name shouldBe Some(
+        "Markets Mutual FedEx Holdings")
+    }
+
     "add missing dateOfBirth to the Individual" in {
-      UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Individual))).dateOfBirth shouldBe Some(
-        LocalDate.parse("1939-09-24"))
-      UserSanitizer.sanitize(User("boo", affinityGroup = Some(User.AG.Individual))).dateOfBirth shouldBe Some(
-        LocalDate.parse("1966-04-24"))
+      UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Individual))).dateOfBirth.isDefined shouldBe true
+      UserSanitizer.sanitize(User("boo", affinityGroup = Some(User.AG.Individual))).dateOfBirth.isDefined shouldBe true
     }
 
     "add missing NINO to the Individual" in {
@@ -77,6 +87,13 @@ class UserSanitizerSpec extends UnitSpec {
       UserSanitizer
         .sanitize(User("foo", affinityGroup = Some(User.AG.Agent), dateOfBirth = Some(now)))
         .dateOfBirth shouldBe None
+    }
+
+    "add missing GroupIdentifier" in {
+      UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Individual))).groupId.isDefined shouldBe true
+      UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Agent))).groupId.isDefined shouldBe true
+      UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Organisation))).groupId.isDefined shouldBe true
+      UserSanitizer.sanitize(User("foo", affinityGroup = None)).groupId.isDefined shouldBe true
     }
   }
 

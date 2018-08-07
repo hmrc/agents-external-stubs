@@ -5,10 +5,14 @@ object UserSanitizer {
   def sanitize(user: User): User =
     if (user.isNonStandardUser.contains(true)) user else userSanitizers.foldLeft(user)((u, fx) => fx(u))
 
-  private val ensureIndividualUserHaveName: User => User = user =>
-    if (user.affinityGroup.contains(User.AG.Individual) && user.name.isEmpty)
-      user.copy(name = Some(UserGenerator.name(user.userId)))
-    else user
+  private val ensureUserHaveName: User => User = user =>
+    if (user.name.isEmpty)
+      user.affinityGroup match {
+        case Some(User.AG.Individual)   => user.copy(name = Some(UserGenerator.nameForIndividual(user.userId)))
+        case Some(User.AG.Agent)        => user.copy(name = Some(UserGenerator.nameForAgent(user.userId)))
+        case Some(User.AG.Organisation) => user.copy(name = Some(UserGenerator.nameForOrganisation(user.userId)))
+        case None                       => user
+      } else user
 
   private val ensureIndividualUserHaveDateOfBirth: User => User = user =>
     if (user.affinityGroup.contains(User.AG.Individual) && user.dateOfBirth.isEmpty)
@@ -47,14 +51,18 @@ object UserSanitizer {
       case _ => user.copy(dateOfBirth = None)
   }
 
+  private val ensureUserHaveGroupIdentifier: User => User = user =>
+    if (user.groupId.isEmpty) user.copy(groupId = Some(UserGenerator.groupId(user.userId))) else user
+
   private val userSanitizers =
     Seq(
-      ensureIndividualUserHaveName,
+      ensureUserHaveName,
       ensureIndividualUserHaveDateOfBirth,
       ensureOnlyIndividualUserHaveNINO,
       ensureOnlyIndividualUserHaveConfidenceLevel,
       ensureUserCredentialRole,
-      ensureOnlyIndividualUserHaveDateOfBirth
+      ensureOnlyIndividualUserHaveDateOfBirth,
+      ensureUserHaveGroupIdentifier
     )
 
 }

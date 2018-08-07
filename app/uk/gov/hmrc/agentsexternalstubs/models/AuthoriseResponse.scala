@@ -142,11 +142,11 @@ case object GroupIdentifierRetrieve extends Retrieve {
     Right(response.copy(groupIdentifier = context.groupId))
 }
 
-case class Name(name: Option[String], lastName: Option[String])
+case class Name(name: Option[String], lastName: Option[String] = None)
 object Name {
   implicit val format: Format[Name] = Json.format[Name]
 
-  def from(name: Option[String]): Name =
+  def parse(name: Option[String]): Name =
     name
       .map(n => {
         val p = n.split(" ")
@@ -162,8 +162,13 @@ object Name {
 case object NameRetrieve extends Retrieve {
   val key = "name"
   override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
-    implicit ec: ExecutionContext): MaybeResponse =
-    Right(response.copy(name = Some(Name.from(context.name))))
+    implicit ec: ExecutionContext): MaybeResponse = {
+    val name = context.affinityGroup match {
+      case Some(User.AG.Individual | User.AG.Agent) => Some(Name.parse(context.name))
+      case _                                        => Some(Name(name = context.name))
+    }
+    Right(response.copy(name = name))
+  }
 }
 
 case object DateOfBirthRetrieve extends Retrieve {

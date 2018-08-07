@@ -40,7 +40,9 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDbPerSuite with Tes
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "saturn")
         val result = Users.get("712717287")
         result.status shouldBe 200
-        result.json.as[User] shouldBe User("712717287", planetId = Some("saturn"))
+        val user = result.json.as[User]
+        user.userId shouldBe "712717287"
+        user.planetId shouldBe Some("saturn")
       }
     }
 

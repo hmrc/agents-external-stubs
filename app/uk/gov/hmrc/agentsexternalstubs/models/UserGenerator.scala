@@ -4,11 +4,11 @@ import java.util.UUID
 import org.joda.time.LocalDate
 import org.joda.time.format.ISODateTimeFormat
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.smartstub.{Names, Temporal}
+import uk.gov.hmrc.smartstub.{Companies, Names, Temporal}
 
 import scala.util.control.NonFatal
 
-object UserGenerator extends Names with Temporal {
+object UserGenerator extends Names with Temporal with Companies {
 
   import uk.gov.hmrc.smartstub._
 
@@ -16,11 +16,19 @@ object UserGenerator extends Names with Temporal {
     def asLong(s: String): Long = s.hashCode.toLong
   }
 
-  def name(userId: String): String =
+  def nameForIndividual(userId: String): String =
     (for {
       fn <- forename()
       ln <- surname
     } yield s"$fn $ln").seeded(userId).get
+
+  def nameForAgent(userId: String): String =
+    (for {
+      fn <- forename()
+      ln <- surname
+    } yield s"$fn $ln").seeded(userId + "_agent").get
+
+  def nameForOrganisation(userId: String): String = company.seeded(userId).get
 
   private final val dateOfBirthLow: java.time.LocalDate = java.time.LocalDate.now().minusYears(100)
   private final val dateOfBirthHigh: java.time.LocalDate = java.time.LocalDate.now().minusYears(18)
@@ -32,6 +40,10 @@ object UserGenerator extends Names with Temporal {
 
   def nino(userId: String): Nino =
     ninoGen.seeded(userId).map(n => try { Nino.apply(n) } catch { case NonFatal(_) => Nino("HW 82 78 56 C") }).get
+
+  private final val groupIdGen = pattern"9Z9Z-Z9Z9-9Z9Z-Z9Z9".gen
+
+  def groupId(userId: String): String = groupIdGen.seeded(userId).get
 
   def individual(
     userId: String = UUID.randomUUID().toString,
