@@ -22,7 +22,7 @@ import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
-import reactivemongo.bson.BSONObjectID
+import reactivemongo.bson.{BSONBoolean, BSONDocument, BSONObjectID}
 import reactivemongo.core.errors.DatabaseException
 import reactivemongo.play.json.ImplicitBSONHandlers
 import uk.gov.hmrc.agentsexternalstubs.models.User
@@ -46,10 +46,17 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
 
   private final val UsersIndexName = "Users"
   private final val NinosIndexName = "Ninos"
+  private final val TTLIndexName = "TTL"
 
   override def indexes = Seq(
     Index(Seq(User.user_index_key -> Ascending), Some(UsersIndexName), unique = true),
-    Index(Seq(User.nino_index_key -> Ascending), Some(NinosIndexName), unique = true, sparse = true)
+    Index(Seq(User.nino_index_key -> Ascending), Some(NinosIndexName), unique = true, sparse = true),
+    Index(
+      Seq("planetId" -> Ascending),
+      Some(TTLIndexName),
+      partialFilter = Some(BSONDocument("isPermanent" -> BSONDocument("$eq" -> BSONBoolean(false)))),
+      options = BSONDocument("expireAfterSeconds" -> 43200)
+    )
   )
 
   def findByUserId(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
@@ -57,7 +64,7 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
       option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*).map {
       case Nil      => None
       case x :: Nil => Some(x)
-      case x :: xs  => throw DuplicateUserException(s"Duplicated userId $userId for $planetId")
+      case _ :: _   => throw DuplicateUserException(s"Duplicated userId $userId for $planetId")
     }
 
   def findByNino(nino: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
@@ -65,17 +72,17 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
       option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*).map {
       case Nil      => None
       case x :: Nil => Some(x)
-      case x :: xs  => throw DuplicateUserException(s"Duplicated nino $nino for $planetId")
+      case _ :: _   => throw DuplicateUserException(s"Duplicated nino $nino for $planetId")
     }
 
   def create(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
-    insert(user.copy(planetId = Some(planetId))).map(_ => ()).recover {
+    insert(user.copy(planetId = Some(planetId), isPermanent = explicitFlag(user.isPermanent))).map(_ => ()).recover {
       case e: DatabaseException if e.code.contains(11000) =>
         throw DuplicateUserException(transformMessage(e.getMessage(), user, planetId))
     }
 
   def update(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
-    (User.formats.writes(user.copy(planetId = Some(planetId))) match {
+    (User.formats.writes(user.copy(planetId = Some(planetId), isPermanent = explicitFlag(user.isPermanent))) match {
       case u @ JsObject(_) =>
         collection.update(Json.obj(User.user_index_key -> User.userIndexKey(user.userId, planetId)), u, upsert = true)
       case _ =>
@@ -103,5 +110,10 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
     UsersIndexName -> (u => p => s"Duplicated userId ${u.userId} on $p"),
     NinosIndexName -> (u => p => s"Duplicated NINO ${u.nino.get} on $p")
   )
+
+  private def explicitFlag(flag: Option[Boolean]): Option[Boolean] = flag match {
+    case Some(true) => Some(true)
+    case _          => Some(false)
+  }
 
 }

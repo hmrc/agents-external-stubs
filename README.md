@@ -19,9 +19,12 @@ To handle requests aimed at stubbed API microservices we provide necessary TCP p
 You can switch this behaviour off by setting `proxies.start` config property to `false`.
 
 ## Data Model
-Every stubbed user and other data live on some test planet. 
+Every stubbed user and other data live is some test sandbox (planet). 
 You have to declare existing or a new planet whenever you sign-in. Each authenticated session have planetId information. 
-Stubbed and custom APIs will consider only users and data assigned to this planet.
+Stubbed and custom UIs will consider only users and data assigned to the current planet.
+
+User authentication expires after 15 minutes and so does the bearer token.
+All users and other data on each planet are removed after 12h unless marked as permanent.
 
 ## Stubbed APIs
 
@@ -38,18 +41,20 @@ retrievals | `authProviderId`, `credentials`, `authorisedEnrolments`, `allEnrolm
 
 ## Custom API
 
-### Test Users Management
+### Authentication
 
 #### POST /agents-external-stubs/sign-in 
-Authenticate an user
+Authenticate an user. 
+
+Returns `Location` header with a link to the authentication details.
 
 *Payload*
 
-    {"userId": "foo", "plainTextPassword": "password", "providerType": "GovernmentGateway", "planetId":"your_test_planet"}
+    {"userId": "foo", "plainTextPassword": "not_required", "providerType": "GovernmentGateway", "planetId":"your_test_planet"}
 
 Response | Description
 ---|---
-200| when an existing authentication (based on header) and user found
+200| when an existing authentication (based on a header) and user found
 201| when new authentication and user created
 202| when new authentication created for an existing user
     
@@ -60,6 +65,8 @@ Response | Description
 ---|---
 200| body: `{"userId": "foo", "authToken": "G676JHDJSHJ767676H", "providerType": "GovernmentGateway", "planetId": "your_test_planetId"}`, `Location` header contains link to get the entity
 404| when `authToken` not found
+
+### Test Users Management
     
 #### GET  /agents-external-stubs/users/:userId
 Get current user details. (_requires valid bearer token_)
