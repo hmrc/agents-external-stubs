@@ -17,6 +17,8 @@ case class User(
   delegatedEnrolments: Seq[Enrolment] = Seq.empty,
   name: Option[String] = None,
   dateOfBirth: Option[LocalDate] = None,
+  agentCode: Option[String] = None,
+  agentFriendlyName: Option[String] = None,
   planetId: Option[String] = None,
   isNonStandardUser: Option[Boolean] = None
 )

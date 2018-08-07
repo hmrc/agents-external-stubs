@@ -54,7 +54,25 @@ object UserSanitizer {
   private val ensureUserHaveGroupIdentifier: User => User = user =>
     if (user.groupId.isEmpty) user.copy(groupId = Some(UserGenerator.groupId(user.userId))) else user
 
-  private val userSanitizers =
+  private val ensureAgentHaveAgentCode: User => User = user =>
+    user.affinityGroup match {
+      case Some(User.AG.Agent) =>
+        if (user.agentCode.isEmpty)
+          user.copy(agentCode = Some(UserGenerator.agentCode(user.userId)))
+        else user
+      case _ => user.copy(agentCode = None)
+  }
+
+  private val ensureAgentHaveFriendlyName: User => User = user =>
+    user.affinityGroup match {
+      case Some(User.AG.Agent) =>
+        if (user.agentFriendlyName.isEmpty)
+          user.copy(agentFriendlyName = Some(UserGenerator.agentFriendlyName(user.userId)))
+        else user
+      case _ => user.copy(agentFriendlyName = None)
+  }
+
+  private val userSanitizers: Seq[User => User] =
     Seq(
       ensureUserHaveName,
       ensureIndividualUserHaveDateOfBirth,
@@ -62,7 +80,9 @@ object UserSanitizer {
       ensureOnlyIndividualUserHaveConfidenceLevel,
       ensureUserCredentialRole,
       ensureOnlyIndividualUserHaveDateOfBirth,
-      ensureUserHaveGroupIdentifier
+      ensureUserHaveGroupIdentifier,
+      ensureAgentHaveAgentCode,
+      ensureAgentHaveFriendlyName
     )
 
 }

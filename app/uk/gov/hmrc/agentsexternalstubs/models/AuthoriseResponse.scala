@@ -18,7 +18,9 @@ case class AuthoriseResponse(
   nino: Option[Nino] = None,
   groupIdentifier: Option[String] = None,
   name: Option[Name] = None,
-  dateOfBirth: Option[LocalDate] = None
+  dateOfBirth: Option[LocalDate] = None,
+  agentCode: Option[String] = None,
+  agentInformation: Option[AgentInformation] = None
 )
 
 object AuthoriseResponse {
@@ -48,7 +50,9 @@ object Retrieve {
       CredentialRoleRetrieve,
       GroupIdentifierRetrieve,
       NameRetrieve,
-      DateOfBirthRetrieve
+      DateOfBirthRetrieve,
+      AgentCodeRetrieve,
+      AgentInformationRetrieve
     )
 
   def of(key: String): Retrieve =
@@ -176,4 +180,24 @@ case object DateOfBirthRetrieve extends Retrieve {
   override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
     implicit ec: ExecutionContext): MaybeResponse =
     Right(response.copy(dateOfBirth = context.dateOfBirth))
+}
+
+case object AgentCodeRetrieve extends Retrieve {
+  val key = "agentCode"
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
+    implicit ec: ExecutionContext): MaybeResponse =
+    Right(response.copy(agentCode = context.agentCode))
+}
+
+case class AgentInformation(agentCode: Option[String], agentFriendlyName: Option[String], agentId: Option[String])
+object AgentInformation {
+  implicit val format: Format[AgentInformation] = Json.format[AgentInformation]
+}
+
+case object AgentInformationRetrieve extends Retrieve {
+  val key = "agentInformation"
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
+    implicit ec: ExecutionContext): MaybeResponse =
+    Right(response.copy(agentInformation = context.agentCode.map(ac =>
+      AgentInformation(Some(ac), context.agentFriendlyName, context.agentId))))
 }

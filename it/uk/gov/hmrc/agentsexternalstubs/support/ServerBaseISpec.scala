@@ -11,6 +11,8 @@ import scala.concurrent.ExecutionContext
 
 abstract class ServerBaseISpec extends BaseISpec with OneServerPerSuite with ScalaFutures {
 
+  override lazy val port: Int = Port.randomAvailable
+
   override implicit lazy val app: Application = appBuilder.build()
 
   implicit val ec: ExecutionContext = app.actorSystem.dispatcher

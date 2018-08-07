@@ -387,6 +387,31 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with 
               concurrent.ExecutionContext.Implicits.global))
         dateOfBirthOpt shouldBe Some(LocalDate.parse("1985-09-17"))
       }
+
+      "retrieve agentCode" in {
+        val authToken = givenAnAuthenticatedUser(UserGenerator.agent(agentCode = "AAABBB1234567"))
+
+        val agentCodeOpt = await(
+          authConnector
+            .authorise[Option[String]](EmptyPredicate, Retrievals.agentCode)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global))
+        agentCodeOpt shouldBe Some("AAABBB1234567")
+      }
+
+      "retrieve agentInformation" in {
+        val authToken =
+          givenAnAuthenticatedUser(UserGenerator.agent(agentCode = "AAABBB1234567", agentFriendlyName = "Fox & Co"))
+
+        val agentInfo = await(
+          authConnector
+            .authorise[AgentInformation](EmptyPredicate, Retrievals.agentInformation)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global))
+        agentInfo.agentCode shouldBe Some("AAABBB1234567")
+        agentInfo.agentFriendlyName shouldBe Some("Fox & Co")
+        agentInfo.agentId.isDefined shouldBe true
+      }
     }
   }
 }

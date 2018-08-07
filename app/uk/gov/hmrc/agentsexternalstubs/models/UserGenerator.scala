@@ -3,6 +3,7 @@ import java.util.UUID
 
 import org.joda.time.LocalDate
 import org.joda.time.format.ISODateTimeFormat
+import org.scalacheck.Gen
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.smartstub.{Companies, Names, Temporal}
 
@@ -37,13 +38,30 @@ object UserGenerator extends Names with Temporal with Companies {
     date(dateOfBirthLow, dateOfBirthHigh).seeded(userId).map(d => LocalDate.parse(d.toString)).get
 
   private final val ninoGen = Enumerable.instances.ninoEnum.gen
-
   def nino(userId: String): Nino =
     ninoGen.seeded(userId).map(n => try { Nino.apply(n) } catch { case NonFatal(_) => Nino("HW 82 78 56 C") }).get
 
   private final val groupIdGen = pattern"9Z9Z-Z9Z9-9Z9Z-Z9Z9".gen
-
   def groupId(userId: String): String = groupIdGen.seeded(userId).get
+
+  private final val agentCodeGen = pattern"ZZZZZZ999999".gen
+  def agentCode(userId: String): String = agentCodeGen.seeded(userId).get
+
+  def agentFriendlyName(userId: String): String =
+    (for {
+      ln <- surname
+      suffix <- Gen.oneOf(
+                 " Accountants",
+                 " and Company",
+                 " & Co",
+                 " Professional Services",
+                 " Accountancy",
+                 " Chartered Accountants & Business Advisers",
+                 " Group of Accountants",
+                 " Professional",
+                 " & " + ln
+               )
+    } yield s"$ln$suffix").seeded(userId + "_agent").get
 
   def individual(
     userId: String = UUID.randomUUID().toString,
@@ -60,6 +78,23 @@ object UserGenerator extends Names with Temporal with Companies {
       nino = Some(Nino(nino)),
       name = Some(name),
       dateOfBirth = Some(LocalDate.parse(dateOfBirth, ISODateTimeFormat.date()))
+    )
+
+  def agent(
+    userId: String = UUID.randomUUID().toString,
+    credentialRole: Option[String] = Some(User.CR.User),
+    name: String = "Mike Agent",
+    agentCode: String = "LMNOPQ234568",
+    agentFriendlyName: String = "Mike's Accountants",
+    delegatedEnrolments: Seq[Enrolment] = Seq.empty): User =
+    User(
+      userId = userId,
+      affinityGroup = Some(User.AG.Agent),
+      credentialRole = credentialRole,
+      name = Some(name),
+      agentCode = Some(agentCode),
+      agentFriendlyName = Some(agentFriendlyName),
+      delegatedEnrolments = delegatedEnrolments
     )
 
 }

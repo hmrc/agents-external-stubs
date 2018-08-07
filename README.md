@@ -20,13 +20,16 @@ You can switch this behaviour off by setting `proxies.start` config property to 
 
 ## Stubbed APIs
 
-### [Auth](https://github.com/hmrc/auth/blob/master/README.md)
-#### POST /auth/authorise
+### [Auth](https://github.com/hmrc/auth)
+#### [POST /auth/authorise](https://github.com/hmrc/auth/blob/master/docs/main.md#post-authauthorise)
 
 Feature | What's implemented
 -----------|-------------------------- 
 predicates | `enrolment`, `authProviders`, `affinityGroup`, `confidenceLevel`, `credentialStrength`, `nino`, `credentialRole`
-retrievals | `authProviderId`, `credentials`, `authorisedEnrolments`, `allEnrolments`,`affinityGroup`,`confidenceLevel`,`credentialStrength`, `credentialRole`, `nino`, `groupIdentifier`, `name`, `dateOfBirth`
+retrievals | `authProviderId`, `credentials`, `authorisedEnrolments`, `allEnrolments`,`affinityGroup`,`confidenceLevel`,`credentialStrength`, `credentialRole`, `nino`, `groupIdentifier`, `name`, `dateOfBirth`, `agentCode`, `agentInformation`
+
+### [Citizen Details](https://github.com/hmrc/citizen-details)
+##### [GET /citizen-details/:idName/:taxId](https://github.com/hmrc/citizen-details#get-citizen-detailsidnametaxid)
 
 ## Custom API
 
@@ -114,6 +117,14 @@ Response | Description
 400| when user payload has not passed validation
 404| when `userId` not found
 409| when `userId` already exists or any other unique constraint violation
+
+#### DELETE  /agents-external-stubs/users/:userId
+Delete user. (_requires valid bearer token_)
+
+Response | Description
+---|---
+204| user has been removed
+404| when userId not found
 
 ## Running the tests
 

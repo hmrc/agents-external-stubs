@@ -95,6 +95,25 @@ class UserSanitizerSpec extends UnitSpec {
       UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Organisation))).groupId.isDefined shouldBe true
       UserSanitizer.sanitize(User("foo", affinityGroup = None)).groupId.isDefined shouldBe true
     }
+
+    "add missing AgentCode to Agent" in {
+      UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Agent))).agentCode.isDefined shouldBe true
+    }
+
+    "remove AgentCode from Individual or Organisation" in {
+      UserSanitizer
+        .sanitize(User("foo", affinityGroup = Some(User.AG.Individual), agentCode = Some("foo")))
+        .agentCode
+        .isDefined shouldBe false
+      UserSanitizer
+        .sanitize(User("foo", affinityGroup = Some(User.AG.Organisation), agentCode = Some("foo")))
+        .agentCode
+        .isDefined shouldBe false
+    }
+
+    "add missing friendly name to Agent" in {
+      UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Agent))).agentFriendlyName.isDefined shouldBe true
+    }
   }
 
 }
