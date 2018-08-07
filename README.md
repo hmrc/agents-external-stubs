@@ -18,6 +18,11 @@ To handle requests aimed at stubbed API microservices we provide necessary TCP p
 
 You can switch this behaviour off by setting `proxies.start` config property to `false`.
 
+## Data Model
+Every stubbed user and other data live on some test planet. 
+You have to declare existing or a new planet whenever you sign-in. Each authenticated session have planetId information. 
+Stubbed and custom APIs will consider only users and data assigned to this planet.
+
 ## Stubbed APIs
 
 ### [Auth](https://github.com/hmrc/auth)
@@ -32,6 +37,8 @@ retrievals | `authProviderId`, `credentials`, `authorisedEnrolments`, `allEnrolm
 ##### [GET /citizen-details/:idName/:taxId](https://github.com/hmrc/citizen-details#get-citizen-detailsidnametaxid)
 
 ## Custom API
+
+### Test Users Management
 
 #### POST /agents-external-stubs/sign-in 
 Authenticate an user
