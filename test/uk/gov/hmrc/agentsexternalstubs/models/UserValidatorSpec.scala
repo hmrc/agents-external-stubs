@@ -181,10 +181,10 @@ class UserValidatorSpec extends UnitSpec {
 
     "skip validation if isNonStandardFlag is set to true" in {
       User
-        .validate(User("foo", affinityGroup = Some("Foo"), isNonStandardUser = Some(true)))
+        .validate(User("foo", affinityGroup = Some("Foo"), isNonCompliant = Some(true)))
         .isValid shouldBe true
       User
-        .validate(User("foo", affinityGroup = Some(""), isNonStandardUser = Some(true)))
+        .validate(User("foo", affinityGroup = Some(""), isNonCompliant = Some(true)))
         .isValid shouldBe true
       User
         .validate(
@@ -193,7 +193,7 @@ class UserValidatorSpec extends UnitSpec {
             confidenceLevel = Some(200),
             affinityGroup = Some(User.AG.Agent),
             nino = Some(Nino("HW827856C")),
-            isNonStandardUser = Some(true)))
+            isNonCompliant = Some(true)))
         .isValid shouldBe true
       User
         .validate(
@@ -202,7 +202,7 @@ class UserValidatorSpec extends UnitSpec {
             confidenceLevel = Some(200),
             affinityGroup = Some(User.AG.Organisation),
             nino = Some(Nino("HW827856C")),
-            isNonStandardUser = Some(true)))
+            isNonCompliant = Some(true)))
         .isValid shouldBe true
       User
         .validate(
@@ -211,7 +211,7 @@ class UserValidatorSpec extends UnitSpec {
             confidenceLevel = Some(200),
             affinityGroup = Some(User.AG.Individual),
             nino = None,
-            isNonStandardUser = Some(true)))
+            isNonCompliant = Some(true)))
         .isValid shouldBe true
       User
         .validate(
@@ -220,7 +220,7 @@ class UserValidatorSpec extends UnitSpec {
             confidenceLevel = Some(55),
             affinityGroup = Some(User.AG.Individual),
             nino = Some(Nino("HW827856C")),
-            isNonStandardUser = Some(true)))
+            isNonCompliant = Some(true)))
         .isValid shouldBe true
       User
         .validate(
@@ -229,16 +229,16 @@ class UserValidatorSpec extends UnitSpec {
             confidenceLevel = Some(0),
             affinityGroup = Some(User.AG.Individual),
             nino = Some(Nino("HW827856C")),
-            isNonStandardUser = Some(true)))
+            isNonCompliant = Some(true)))
         .isValid shouldBe true
       User
-        .validate(User("foo", credentialStrength = Some("very strong"), isNonStandardUser = Some(true)))
+        .validate(User("foo", credentialStrength = Some("very strong"), isNonCompliant = Some(true)))
         .isValid shouldBe true
       User
-        .validate(User("foo", credentialStrength = Some("little weak"), isNonStandardUser = Some(true)))
+        .validate(User("foo", credentialStrength = Some("little weak"), isNonCompliant = Some(true)))
         .isValid shouldBe true
       User
-        .validate(User("foo", credentialStrength = Some(""), isNonStandardUser = Some(true)))
+        .validate(User("foo", credentialStrength = Some(""), isNonCompliant = Some(true)))
         .isValid shouldBe true
     }
   }

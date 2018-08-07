@@ -333,7 +333,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with 
 
       "throw UnsupportedCredentialRole if credentialRole does not match" in {
         val authToken =
-          givenAnAuthenticatedUser(User(randomId, credentialRole = Some("Foo"), isNonStandardUser = Some(true)))
+          givenAnAuthenticatedUser(User(randomId, credentialRole = Some("Foo"), isNonCompliant = Some(true)))
 
         an[UnsupportedCredentialRole] shouldBe thrownBy {
           await(

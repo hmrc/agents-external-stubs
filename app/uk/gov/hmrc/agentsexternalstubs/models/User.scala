@@ -20,7 +20,7 @@ case class User(
   agentCode: Option[String] = None,
   agentFriendlyName: Option[String] = None,
   planetId: Option[String] = None,
-  isNonStandardUser: Option[Boolean] = None,
+  isNonCompliant: Option[Boolean] = None,
   isPermanent: Option[Boolean] = None
 )
 

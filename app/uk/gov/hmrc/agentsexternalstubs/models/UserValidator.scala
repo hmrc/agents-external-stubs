@@ -11,7 +11,7 @@ object UserValidator {
   private implicit val userS: Semigroup[Unit] = Semigroup.instance((_, _) => ())
 
   def validate(user: User): Validated[NonEmptyList[String], Unit] =
-    if (user.isNonStandardUser.contains(true)) Valid(())
+    if (user.isNonCompliant.contains(true)) Valid(())
     else
       userValidators.foldLeft[Validated[NonEmptyList[String], Unit]](Valid())((v, fx) => v combine fx(user))
 

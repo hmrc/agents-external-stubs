@@ -3,7 +3,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 object UserSanitizer {
 
   def sanitize(user: User): User =
-    if (user.isNonStandardUser.contains(true)) user else userSanitizers.foldLeft(user)((u, fx) => fx(u))
+    if (user.isNonCompliant.contains(true)) user else userSanitizers.foldLeft(user)((u, fx) => fx(u))
 
   private val ensureUserHaveName: User => User = user =>
     if (user.name.isEmpty)
