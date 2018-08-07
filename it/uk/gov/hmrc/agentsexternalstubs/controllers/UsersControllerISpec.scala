@@ -86,5 +86,19 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDbPerSuite with Tes
         result2.json.as[User].principalEnrolments should contain(Enrolment("foo"))
       }
     }
+
+    "DELETE /agents-external-stubs/users/:userId" should {
+      "return 204 if user exists" in {
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        val result = Users.delete("foo")
+        result.status shouldBe 204
+      }
+
+      "return 404 if userId not found" in {
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        val result = Users.delete("ABC123")
+        result.status shouldBe 404
+      }
+    }
   }
 }

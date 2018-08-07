@@ -124,6 +124,13 @@ trait TestRequests extends ScalaFutures {
         .withHeaders(authContext.headers: _*)
         .post(Json.toJson(user))
         .futureValue
+
+    def delete(userId: String)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/users/$userId")
+        .withHeaders(authContext.headers: _*)
+        .delete()
+        .futureValue
   }
 
   object CitizenDetailsStub {

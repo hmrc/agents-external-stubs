@@ -57,7 +57,15 @@ class UsersController @Inject()(usersService: UsersService, val authenticationSe
               case DuplicateUserException(msg) => Conflict(msg)
           })
     }(SessionRecordNotFound)
+  }
 
+  def deleteUser(userId: String): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      usersService.findByUserId(userId, session.planetId).flatMap {
+        case Some(_) => usersService.deleteUser(userId, session.planetId).map(_ => NoContent)
+        case None    => Future.successful(NotFound(s"Could not found user $userId"))
+      }
+    }(SessionRecordNotFound)
   }
 
 }

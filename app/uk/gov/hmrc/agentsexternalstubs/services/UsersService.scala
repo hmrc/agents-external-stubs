@@ -71,6 +71,9 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
             Some(Seq(Identifier(identifierKey, identifierValue)))))
     )
 
+  def deleteUser(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+    usersRepository.delete(userId, planetId).map(_ => ())
+
   private def validateUser(user: User)(implicit ec: ExecutionContext): Future[Unit] =
     User.validate(user) match {
       case Valid(_)        => Future.successful(())

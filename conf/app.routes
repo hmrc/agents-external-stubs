@@ -15,6 +15,7 @@ GET         /agents-external-stubs/sign-out                                  @uk
 GET         /agents-external-stubs/users/:userId                             @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.getUser(userId: String)
 PUT         /agents-external-stubs/users/:userId                             @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.updateUser(userId: String)
 POST        /agents-external-stubs/users/                                    @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.createUser
+DELETE      /agents-external-stubs/users/:userId                             @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.deleteUser(userId: String)
 
 # Internal test
 GET         /agents-external-stubs/test/auth/agent-mtd                       @uk.gov.hmrc.agentsexternalstubs.controllers.TestController.testAuthAgentMtd
