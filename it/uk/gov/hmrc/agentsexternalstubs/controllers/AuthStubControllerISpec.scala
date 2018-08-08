@@ -132,8 +132,13 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with 
 
       "throw InsufficientEnrolments if user not enrolled with expected identifier key" in {
         val id = randomId
-        val authToken = givenAnAuthenticatedUser(User(id))
-        givenUserEnrolledFor(id, "juniper", "serviceA", "idOfA", "2362168736781263")
+        val authToken = givenAnAuthenticatedUser(User(id), planetId = id)
+        givenUserEnrolledFor(
+          id,
+          planetId = id,
+          service = "serviceA",
+          identifierKey = "idOfA",
+          identifierValue = "2362168736781263")
         an[InsufficientEnrolments] shouldBe thrownBy {
           await(
             authConnector
@@ -145,8 +150,8 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with 
 
       "throw InsufficientEnrolments if user not enrolled with expected identifier value" in {
         val id = randomId
-        val authToken = givenAnAuthenticatedUser(User(id))
-        givenUserEnrolledFor(id, "juniper", "serviceA", "idOfA", "2362168736781263")
+        val authToken = givenAnAuthenticatedUser(User(id), planetId = id)
+        givenUserEnrolledFor(id, planetId = id, "serviceA", "idOfA", "2362168736781263")
         an[InsufficientEnrolments] shouldBe thrownBy {
           await(
             authConnector
@@ -158,9 +163,9 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with 
 
       "retrieve authorisedEnrolments" in {
         val id = randomId
-        val authToken = givenAnAuthenticatedUser(User(id))
-        givenUserEnrolledFor(id, "juniper", "serviceA", "idOfA", "2362168736781263")
-        givenUserEnrolledFor(id, "juniper", "serviceB", "idOfB", "4783748738748778")
+        val authToken = givenAnAuthenticatedUser(User(id), planetId = id)
+        givenUserEnrolledFor(id, planetId = id, "serviceA", "idOfA", "2362168736781263")
+        givenUserEnrolledFor(id, planetId = id, "serviceB", "idOfB", "4783748738748778")
 
         val enrolments = await(
           authConnector
@@ -174,9 +179,9 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with 
 
       "retrieve allEnrolments" in {
         val id = randomId
-        val authToken = givenAnAuthenticatedUser(User(id))
-        givenUserEnrolledFor(id, "juniper", "serviceA", "idOfA", "2362168736781263")
-        givenUserEnrolledFor(id, "juniper", "serviceB", "idOfB", "4783748738748778")
+        val authToken = givenAnAuthenticatedUser(User(id), planetId = id)
+        givenUserEnrolledFor(id, planetId = id, "serviceA", "idOfA", "2362168736781263")
+        givenUserEnrolledFor(id, planetId = id, "serviceB", "idOfB", "4783748738748778")
 
         val enrolments = await(
           authConnector

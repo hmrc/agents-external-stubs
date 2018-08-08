@@ -1,5 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.stubs
 
+import java.util.UUID
+
 import org.scalatest.Suite
 import org.scalatestplus.play.ServerProvider
 import play.api.Application
@@ -18,9 +20,10 @@ trait TestStubs {
   lazy val authenticationService: AuthenticationService = app.injector.instanceOf[AuthenticationService]
   lazy val userService: UsersService = app.injector.instanceOf[UsersService]
 
-  def givenAnAuthenticatedUser(user: User, providerType: String = "GovernmentGateway", planetId: String = "juniper")(
-    implicit ec: ExecutionContext,
-    timeout: Duration): String =
+  def givenAnAuthenticatedUser(
+    user: User,
+    providerType: String = "GovernmentGateway",
+    planetId: String = UUID.randomUUID().toString)(implicit ec: ExecutionContext, timeout: Duration): String =
     await(for {
       authSession <- authenticationService.createNewAuthentication(user.userId, "any", providerType, planetId)
       _           <- userService.tryCreateUser(user, planetId)

@@ -35,13 +35,10 @@ trait MongoDbPerTest extends MongoSpecSupport with BeforeAndAfterEach {
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    dropMongoDb()
+    await(mongo().drop())
     await(app.injector.instanceOf[AuthenticatedSessionsRepository].ensureIndexes)
     await(app.injector.instanceOf[UsersRepository].ensureIndexes)
   }
-
-  def dropMongoDb()(implicit ec: ExecutionContext = global): Unit =
-    Awaiting.await(mongo().drop())
 }
 
 object Awaiting extends MongoAwaiting

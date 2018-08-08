@@ -17,6 +17,12 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
   def findByNino(nino: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
     usersRepository.findByNino(nino, planetId)
 
+  def findByPlanetId(planetId: String, affinityGroup: Option[String])(limit: Int)(
+    implicit ec: ExecutionContext): Future[List[UserIdWithAffinityGroup]] = {
+    require(affinityGroup.isEmpty || affinityGroup.exists(User.AG.contains))
+    usersRepository.findByPlanetId(planetId, affinityGroup)(limit)
+  }
+
   def createUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] =
     for {
       sanitized <- Future(UserSanitizer.sanitize(user))

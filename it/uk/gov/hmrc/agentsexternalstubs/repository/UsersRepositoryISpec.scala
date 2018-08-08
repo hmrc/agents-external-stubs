@@ -19,18 +19,18 @@ import org.scalatestplus.play.OneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.agentsexternalstubs.models.{Enrolment, Identifier, User}
-import uk.gov.hmrc.agentsexternalstubs.support.MongoDbPerSuite
+import uk.gov.hmrc.agentsexternalstubs.support.MongoDbPerTest
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPerSuite {
+class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPerTest {
 
   protected def appBuilder: GuiceApplicationBuilder =
     new GuiceApplicationBuilder()
       .configure(
-        "mongodb.uri" -> s"mongodb://127.0.0.1:27017/test-${this.getClass.getSimpleName}",
+        "mongodb.uri" -> mongoUri,
         "proxies.start" -> "false"
       )
 
@@ -215,6 +215,35 @@ class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPerS
 
       await(repo.delete("foo", "saturn"))
       await(repo.find()).size shouldBe 1
+    }
+  }
+
+  "findByPlanetId" should {
+    "return id and affinity of users having given planetId" in {
+      await(repo.create(User("boo", affinityGroup = Some("Individual")), "juniper"))
+      await(repo.create(User("foo", affinityGroup = Some("Agent")), "juniper"))
+      await(repo.create(User("foo", affinityGroup = Some("Individual")), "saturn"))
+      await(repo.find()).size shouldBe 3
+
+      val result1 = await(repo.findByPlanetId("juniper", None)(10))
+      result1.size shouldBe 2
+      result1.map(_.userId) should contain("foo")
+      result1.map(_.userId) should contain("boo")
+      result1.flatMap(_.affinityGroup) should contain("Individual")
+      result1.flatMap(_.affinityGroup) should contain("Agent")
+
+      val result2 = await(repo.findByPlanetId("juniper", Some("Agent"))(10))
+      result2.size shouldBe 1
+      result2.map(_.userId) should contain("foo")
+      result2.map(_.userId) should not contain "boo"
+      result2.flatMap(_.affinityGroup) should not contain "Individual"
+      result2.flatMap(_.affinityGroup) should contain("Agent")
+
+      val result3 = await(repo.findByPlanetId("juniper", Some("foo"))(10))
+      result3.size shouldBe 0
+
+      val result4 = await(repo.findByPlanetId("saturn", Some("Agent"))(10))
+      result4.size shouldBe 0
     }
   }
 }

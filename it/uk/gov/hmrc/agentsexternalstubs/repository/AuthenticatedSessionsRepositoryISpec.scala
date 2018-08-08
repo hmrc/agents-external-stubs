@@ -21,17 +21,17 @@ import org.scalatestplus.play.OneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import reactivemongo.core.errors.DatabaseException
-import uk.gov.hmrc.agentsexternalstubs.support.MongoDbPerSuite
+import uk.gov.hmrc.agentsexternalstubs.support.{MongoDbPerSuite, MongoDbPerTest}
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class AuthenticatedSessionsRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPerSuite {
+class AuthenticatedSessionsRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPerTest {
 
   protected def appBuilder: GuiceApplicationBuilder =
     new GuiceApplicationBuilder()
       .configure(
-        "mongodb.uri"   -> s"mongodb://127.0.0.1:27017/test-${this.getClass.getSimpleName}",
+        "mongodb.uri"   -> mongoUri,
         "proxies.start" -> "false"
       )
 

@@ -23,39 +23,39 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDbPerSuite with Tes
 
     "GET /agents-external-stubs/users/:userId" should {
       "return 404 NotFound for non existent user id" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "A")
         val result = Users.get("1261a762761")
         result.status shouldBe 404
       }
 
       "return 404 NotFound if user exists but on a different planet" in {
-        SignIn.signInAndGetSession("foo", planetId = "saturn")
-        implicit val authSession2: AuthenticatedSession = SignIn.signInAndGetSession("boo", planetId = "x123")
+        SignIn.signInAndGetSession("foo", planetId = "B1")
+        implicit val authSession2: AuthenticatedSession = SignIn.signInAndGetSession("boo", planetId = "B2")
         val result = Users.get("foo")
         result.status shouldBe 404
       }
 
       "return an existing user" in {
-        SignIn.signInAndGetSession("712717287", planetId = "saturn")
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "saturn")
+        SignIn.signInAndGetSession("712717287", planetId = "C")
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "C")
         val result = Users.get("712717287")
         result.status shouldBe 200
         val user = result.json.as[User]
         user.userId shouldBe "712717287"
-        user.planetId shouldBe Some("saturn")
+        user.planetId shouldBe Some("C")
       }
     }
 
     "POST /agents-external-stubs/users/" should {
       "create a new user" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "D")
         val result = Users.create(User("yuwyquhh"))
         result.status shouldBe 201
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/yuwyquhh")
       }
 
       "fail if trying to create user with duplicated userId on the same planet" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "E")
         val result1 = Users.create(User("yuwyquhh"))
         result1.status shouldBe 201
         result1.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/yuwyquhh")
@@ -64,7 +64,7 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDbPerSuite with Tes
       }
 
       "sanitize invalid user and succeed" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "F")
         val result = Users.create(User("yuwyquhh", nino = Some(Nino("HW827856C"))))
         result.status shouldBe 201
       }
@@ -72,13 +72,13 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDbPerSuite with Tes
 
     "PUT /agents-external-stubs/users/:userId" should {
       "return 404 if userId not found" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "G")
         val result = Users.update(User("7728378273", principalEnrolments = Seq(Enrolment("foo"))))
         result.status shouldBe 404
       }
 
       "update an existing user" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273", planetId = "H")
         val result = Users.update(User("7728378273", principalEnrolments = Seq(Enrolment("foo"))))
         result.status shouldBe 202
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/7728378273")
@@ -89,13 +89,13 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDbPerSuite with Tes
 
     "DELETE /agents-external-stubs/users/:userId" should {
       "return 204 if user exists" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "I")
         val result = Users.delete("foo")
         result.status shouldBe 204
       }
 
       "return 404 if userId not found" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "J")
         val result = Users.delete("ABC123")
         result.status shouldBe 404
       }

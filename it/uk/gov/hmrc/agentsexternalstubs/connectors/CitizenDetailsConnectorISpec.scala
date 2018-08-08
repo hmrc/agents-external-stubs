@@ -6,10 +6,10 @@ import org.scalatestplus.play.ServerProvider
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
-import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests}
+import uk.gov.hmrc.agentsexternalstubs.support.{MongoDbPerSuite, ServerBaseISpec, TestRequests}
 import uk.gov.hmrc.domain.Nino
 
-class CitizenDetailsConnectorISpec extends ServerBaseISpec with TestRequests with TestStubs {
+class CitizenDetailsConnectorISpec extends ServerBaseISpec with MongoDbPerSuite with TestRequests with TestStubs {
   this: Suite with ServerProvider =>
 
   val url = s"http://localhost:$port"

@@ -1,15 +1,13 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import cats.data.Validated.{Invalid, Valid}
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent}
 import play.mvc.Http.HeaderNames
-import reactivemongo.core.errors.DatabaseException
-import uk.gov.hmrc.agentsexternalstubs.models.User
+import uk.gov.hmrc.agentsexternalstubs.models.{User, Users}
 import uk.gov.hmrc.agentsexternalstubs.repository.DuplicateUserException
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
-import uk.gov.hmrc.http.{BadRequestException, NotFoundException}
+import uk.gov.hmrc.http.NotFoundException
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
@@ -18,6 +16,15 @@ import scala.concurrent.Future
 @Singleton
 class UsersController @Inject()(usersService: UsersService, val authenticationService: AuthenticationService)
     extends BaseController with CurrentSession {
+
+  def getUsers(affinityGroupFilter: Option[String], limit: Int = 100): Action[AnyContent] = Action.async {
+    implicit request =>
+      withCurrentSession { session =>
+        usersService.findByPlanetId(session.planetId, affinityGroupFilter)(limit).map { users =>
+          Ok(Json.toJson(Users(users)))
+        }
+      }(SessionRecordNotFound)
+  }
 
   def getUser(userId: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>

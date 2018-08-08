@@ -16,16 +16,16 @@
 
 package uk.gov.hmrc.agentsexternalstubs.support
 
-import org.scalatest.{BeforeAndAfter, TestSuite}
+import org.scalatest.{BeforeAndAfterAll, TestSuite}
 import play.api.Application
 import uk.gov.hmrc.agentsexternalstubs.repository.{AuthenticatedSessionsRepository, UsersRepository}
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.concurrent.duration.{Duration, _}
-import scala.concurrent.{ExecutionContext, Future}
 
-trait MongoDbPerSuite extends MongoSpecSupport with BeforeAndAfter {
+trait MongoDbPerSuite extends MongoSpecSupport with BeforeAndAfterAll {
   me: TestSuite =>
 
   private implicit val timeout: Duration = 5 seconds
@@ -33,12 +33,10 @@ trait MongoDbPerSuite extends MongoSpecSupport with BeforeAndAfter {
   def app: Application
   def await[A](future: Future[A])(implicit timeout: Duration): A
 
-  before {
-    dropMongoDb()
+  override def beforeAll(): Unit = {
+    super.beforeAll()
+    await(mongo().drop())
     await(app.injector.instanceOf[AuthenticatedSessionsRepository].ensureIndexes)
     await(app.injector.instanceOf[UsersRepository].ensureIndexes)
   }
-
-  def dropMongoDb()(implicit ec: ExecutionContext = global): Unit =
-    Awaiting.await(mongo().drop())
 }

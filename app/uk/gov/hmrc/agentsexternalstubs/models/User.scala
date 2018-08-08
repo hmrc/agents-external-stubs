@@ -32,6 +32,8 @@ object User {
     final val Individual = "Individual"
     final val Organisation = "Organisation"
     final val Agent = "Agent"
+
+    val contains = Set(Individual, Organisation, Agent).contains _
   }
 
   object CR {
@@ -45,11 +47,13 @@ object User {
     .writes[User]
     .transform(addNormalizedUserIndexKey _)
     .transform(addNormalizedNinoIndexKey _)
+    .transform(addTTLIndexKey _)
 
   val formats = Format(reads, writes)
 
   val user_index_key = "user_index_key"
   val nino_index_key = "nino_index_key"
+  val ttl_index_key = "ttl_index_key"
 
   def userIndexKey(userId: String, planetId: String): String = s"$userId@$planetId"
   def ninoIndexKey(nino: String, planetId: String): String = s"${nino.replace(" ", "")}@$planetId"
@@ -68,6 +72,15 @@ object User {
         json + (nino_index_key, JsString(ninoIndexKey(nino, planetId)))
       })
       .getOrElse(json)
+
+  private def addTTLIndexKey(json: JsObject): JsObject =
+    (json \ "isPermanent")
+      .asOpt[Boolean] match {
+      case None | Some(false) =>
+        val planetId = (json \ "planetId").asOpt[String].getOrElse("hmrc")
+        json + (ttl_index_key, JsString(planetId))
+      case _ => json
+    }
 
   def validate(user: User): Validated[NonEmptyList[String], Unit] = UserValidator.validate(user)
 

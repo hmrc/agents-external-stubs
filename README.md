@@ -66,7 +66,26 @@ Response | Description
 200| body: `{"userId": "foo", "authToken": "G676JHDJSHJ767676H", "providerType": "GovernmentGateway", "planetId": "your_test_planetId"}`, `Location` header contains link to get the entity
 404| when `authToken` not found
 
+#### GET /agents-external-stubs/sign-out
+Terminate current authentication and invalidate bearer token.
+
+Response | Description
+---|---
+204| when success
+
 ### Test Users Management
+
+#### GET  /agents-external-stubs/users?affinityGroup=X&limit=Y
+Get all users available at the current planet (_requires valid bearer token_)
+
+Optional params:
+   * affinityGroup: only return users with this affinity
+   * limit: max number of users returned
+
+Response | Description
+---|---
+200| users list `{ "users": [{ "id": "123", "affinity": "Agent" }, ...] }`
+404| when userId not found
     
 #### GET  /agents-external-stubs/users/:userId
 Get current user details. (_requires valid bearer token_)

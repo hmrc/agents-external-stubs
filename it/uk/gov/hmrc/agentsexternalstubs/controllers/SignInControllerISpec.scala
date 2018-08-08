@@ -16,14 +16,14 @@ class SignInControllerISpec extends ServerBaseISpec with MongoDbPerSuite with Te
 
     "GET /agents-external-stubs/sign-in" should {
       "authenticate user and return session data" in {
-        val result = SignIn.signIn("foo", "boo")
+        val result = SignIn.signIn("foo", "boo", planetId = "A")
         result.status shouldBe 201
         result.header(HeaderNames.LOCATION) should not be empty
       }
 
       "authenticate same user again and return new session data" in {
-        val result1 = SignIn.signIn("foo", "boo")
-        val result2 = SignIn.signIn("foo", "boo")
+        val result1 = SignIn.signIn("foo", "boo", planetId = "B")
+        val result2 = SignIn.signIn("foo", "boo", planetId = "B")
         result1.status shouldBe 201
         result2.status shouldBe 202
         result1.header(HeaderNames.LOCATION) should not be result2.header(HeaderNames.LOCATION)
@@ -32,7 +32,7 @@ class SignInControllerISpec extends ServerBaseISpec with MongoDbPerSuite with Te
 
     "GET /agents-external-stubs/session" should {
       "return session data" in {
-        val result1 = SignIn.signIn("foo123", "boo")
+        val result1 = SignIn.signIn("foo123", "boo", planetId = "C")
         result1.status shouldBe 201
         val result2 = SignIn.authSessionFor(result1)
         (result2.json \ "userId").as[String] shouldBe "foo123"
@@ -42,7 +42,7 @@ class SignInControllerISpec extends ServerBaseISpec with MongoDbPerSuite with Te
 
     "GET /agents-external-stubs/sign-out" should {
       "remove authentication" in {
-        val authToken = SignIn.signInAndGetSession("foo", "boo").authToken
+        val authToken = SignIn.signInAndGetSession("foo", "boo", planetId = "D").authToken
         val result = SignIn.signOut(AuthContext.withToken(authToken))
         result.status shouldBe 204
         result.header(HeaderNames.LOCATION) should be(empty)
