@@ -181,13 +181,13 @@ class UserValidatorSpec extends UnitSpec {
 
     "skip validation if isNonStandardFlag is set to true" in {
       User
-        .validate(User("foo", affinityGroup = Some("Foo"), isNonCompliant = Some(true)))
+        .validateAndFlagCompliance(User("foo", affinityGroup = Some("Foo"), isNonCompliant = Some(true)))
         .isValid shouldBe true
       User
-        .validate(User("foo", affinityGroup = Some(""), isNonCompliant = Some(true)))
+        .validateAndFlagCompliance(User("foo", affinityGroup = Some(""), isNonCompliant = Some(true)))
         .isValid shouldBe true
       User
-        .validate(
+        .validateAndFlagCompliance(
           User(
             "foo",
             confidenceLevel = Some(200),
@@ -196,7 +196,7 @@ class UserValidatorSpec extends UnitSpec {
             isNonCompliant = Some(true)))
         .isValid shouldBe true
       User
-        .validate(
+        .validateAndFlagCompliance(
           User(
             "foo",
             confidenceLevel = Some(200),
@@ -205,7 +205,7 @@ class UserValidatorSpec extends UnitSpec {
             isNonCompliant = Some(true)))
         .isValid shouldBe true
       User
-        .validate(
+        .validateAndFlagCompliance(
           User(
             "foo",
             confidenceLevel = Some(200),
@@ -214,7 +214,7 @@ class UserValidatorSpec extends UnitSpec {
             isNonCompliant = Some(true)))
         .isValid shouldBe true
       User
-        .validate(
+        .validateAndFlagCompliance(
           User(
             "foo",
             confidenceLevel = Some(55),
@@ -223,7 +223,7 @@ class UserValidatorSpec extends UnitSpec {
             isNonCompliant = Some(true)))
         .isValid shouldBe true
       User
-        .validate(
+        .validateAndFlagCompliance(
           User(
             "foo",
             confidenceLevel = Some(0),
@@ -232,13 +232,13 @@ class UserValidatorSpec extends UnitSpec {
             isNonCompliant = Some(true)))
         .isValid shouldBe true
       User
-        .validate(User("foo", credentialStrength = Some("very strong"), isNonCompliant = Some(true)))
+        .validateAndFlagCompliance(User("foo", credentialStrength = Some("very strong"), isNonCompliant = Some(true)))
         .isValid shouldBe true
       User
-        .validate(User("foo", credentialStrength = Some("little weak"), isNonCompliant = Some(true)))
+        .validateAndFlagCompliance(User("foo", credentialStrength = Some("little weak"), isNonCompliant = Some(true)))
         .isValid shouldBe true
       User
-        .validate(User("foo", credentialStrength = Some(""), isNonCompliant = Some(true)))
+        .validateAndFlagCompliance(User("foo", credentialStrength = Some(""), isNonCompliant = Some(true)))
         .isValid shouldBe true
     }
   }

@@ -1,5 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
+import cats.data.Validated.{Invalid, Valid}
 import cats.data.{NonEmptyList, Validated}
 import org.joda.time.LocalDate
 import play.api.libs.json._
@@ -21,6 +22,7 @@ case class User(
   agentFriendlyName: Option[String] = None,
   planetId: Option[String] = None,
   isNonCompliant: Option[Boolean] = None,
+  complianceIssues: Option[Seq[String]] = None,
   isPermanent: Option[Boolean] = None
 )
 
@@ -68,6 +70,14 @@ object User {
       .getOrElse(json)
 
   def validate(user: User): Validated[NonEmptyList[String], Unit] = UserValidator.validate(user)
+
+  def validateAndFlagCompliance(user: User): Validated[String, User] = validate(user) match {
+    case Valid(_) => Valid(user.copy(isNonCompliant = None, complianceIssues = None))
+    case Invalid(errors) =>
+      if (user.isNonCompliant.contains(true))
+        Valid(user.copy(isNonCompliant = Some(true), complianceIssues = Some(errors.toList)))
+      else Invalid(errors.toList.mkString(", "))
+  }
 
 }
 

@@ -1,7 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
-import cats.{Semigroup, SemigroupK}
-import cats.data.{NonEmptyList, Validated}
 import cats.data.Validated.{Invalid, Valid}
+import cats.data.{NonEmptyList, Validated}
+import cats.{Semigroup, SemigroupK}
 
 object UserValidator {
 
@@ -11,9 +11,7 @@ object UserValidator {
   private implicit val userS: Semigroup[Unit] = Semigroup.instance((_, _) => ())
 
   def validate(user: User): Validated[NonEmptyList[String], Unit] =
-    if (user.isNonCompliant.contains(true)) Valid(())
-    else
-      userValidators.foldLeft[Validated[NonEmptyList[String], Unit]](Valid())((v, fx) => v combine fx(user))
+    userValidators.foldLeft[Validated[NonEmptyList[String], Unit]](Valid())((v, fx) => v combine fx(user))
 
   type UserValidator = User => Validated[NonEmptyList[String], Unit]
 
