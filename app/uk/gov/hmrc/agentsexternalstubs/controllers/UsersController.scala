@@ -17,10 +17,10 @@ import scala.concurrent.Future
 class UsersController @Inject()(usersService: UsersService, val authenticationService: AuthenticationService)
     extends BaseController with CurrentSession {
 
-  def getUsers(affinityGroupFilter: Option[String], limit: Int = 100): Action[AnyContent] = Action.async {
+  def getUsers(affinityGroup: Option[String], limit: Option[Int]): Action[AnyContent] = Action.async {
     implicit request =>
       withCurrentSession { session =>
-        usersService.findByPlanetId(session.planetId, affinityGroupFilter)(limit).map { users =>
+        usersService.findByPlanetId(session.planetId, affinityGroup)(limit.getOrElse(100)).map { users =>
           Ok(Json.toJson(Users(users)))
         }
       }(SessionRecordNotFound)

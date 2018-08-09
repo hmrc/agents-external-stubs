@@ -12,7 +12,7 @@ GET         /agents-external-stubs/session                                   @uk
 GET         /agents-external-stubs/sign-out                                  @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.signOut
 
 # User management
-GET         /agents-external-stubs/users                                     @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.getUsers(affinityGroupFilter: Option[String], limit: Int)
+GET         /agents-external-stubs/users                                     @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.getUsers(affinityGroup: Option[String], limit: Option[Int])
 GET         /agents-external-stubs/users/:userId                             @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.getUser(userId: String)
 PUT         /agents-external-stubs/users/:userId                             @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.updateUser(userId: String)
 POST        /agents-external-stubs/users/                                    @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.createUser

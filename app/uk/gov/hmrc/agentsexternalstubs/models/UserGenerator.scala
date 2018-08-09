@@ -67,34 +67,43 @@ object UserGenerator extends Names with Temporal with Companies {
     userId: String = UUID.randomUUID().toString,
     confidenceLevel: Int = 50,
     credentialRole: String = User.CR.User,
-    nino: String = "HW827856C",
-    name: String = "John Smith",
-    dateOfBirth: String = "1975-03-29"): User =
+    nino: String = null,
+    name: String = null,
+    dateOfBirth: String = null): User =
     User(
       userId = userId,
       affinityGroup = Some(User.AG.Individual),
       confidenceLevel = Some(confidenceLevel),
       credentialRole = Some(credentialRole),
-      nino = Some(Nino(nino)),
-      name = Some(name),
-      dateOfBirth = Some(LocalDate.parse(dateOfBirth, ISODateTimeFormat.date()))
+      nino = Option(nino).map(Nino.apply).orElse(Option(UserGenerator.nino(userId))),
+      name = Option(name).orElse(Option(UserGenerator.nameForIndividual(userId))),
+      dateOfBirth = Option(dateOfBirth)
+        .map(LocalDate.parse(_, ISODateTimeFormat.date()))
+        .orElse(Option(UserGenerator.dateOfBirth(userId)))
     )
 
   def agent(
     userId: String = UUID.randomUUID().toString,
     credentialRole: Option[String] = Some(User.CR.User),
-    name: String = "Mike Agent",
-    agentCode: String = "LMNOPQ234568",
-    agentFriendlyName: String = "Mike's Accountants",
+    name: String = null,
+    agentCode: String = null,
+    agentFriendlyName: String = null,
     delegatedEnrolments: Seq[Enrolment] = Seq.empty): User =
     User(
       userId = userId,
       affinityGroup = Some(User.AG.Agent),
       credentialRole = credentialRole,
-      name = Some(name),
-      agentCode = Some(agentCode),
-      agentFriendlyName = Some(agentFriendlyName),
+      name = Option(name).orElse(Option(UserGenerator.nameForAgent(userId))),
+      agentCode = Option(agentCode).orElse(Option(UserGenerator.agentCode(userId))),
+      agentFriendlyName = Option(agentFriendlyName).orElse(Option(UserGenerator.agentFriendlyName(userId))),
       delegatedEnrolments = delegatedEnrolments
+    )
+
+  def organisation(userId: String = UUID.randomUUID().toString, name: String = null): User =
+    User(
+      userId = userId,
+      affinityGroup = Some(User.AG.Organisation),
+      name = Option(name).orElse(Option(UserGenerator.nameForOrganisation(userId)))
     )
 
 }

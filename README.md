@@ -80,12 +80,12 @@ Get all users available at the current planet (_requires valid bearer token_)
 
 Optional params:
    * affinityGroup: only return users with this affinity
-   * limit: max number of users returned
+   * limit: max number of users returned, default to 100
 
 Response | Description
 ---|---
-200| users list `{ "users": [{ "id": "123", "affinity": "Agent" }, ...] }`
-404| when userId not found
+200| list of users as `{ "users": [{ "id": "123", "affinity": "Agent" }, ...] }`
+204| empty list of users
     
 #### GET  /agents-external-stubs/users/:userId
 Get current user details. (_requires valid bearer token_)

@@ -5,7 +5,7 @@ import play.api.http.{HeaderNames, MimeTypes, Writeable}
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.libs.ws.{WSClient, WSCookie, WSResponse}
 import play.api.mvc.{Cookie, Cookies}
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, SignInRequest, User}
+import uk.gov.hmrc.agentsexternalstubs.models.{AffinityGroup, AuthenticatedSession, SignInRequest, User}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.logging.Authorization
 
@@ -14,9 +14,6 @@ trait AuthContext {
 }
 
 object AuthContext {
-
-  implicit def fromAuthenticatedSession(implicit authSession: AuthenticatedSession): AuthContext =
-    AuthContext.withToken(authSession.authToken)
 
   def withToken(authToken: String): AuthContext = new AuthContext {
     override def headers: Seq[(String, String)] = Seq(
@@ -43,6 +40,12 @@ trait TestRequests extends ScalaFutures {
 
   implicit def headerCarrier(implicit authSession: AuthenticatedSession): HeaderCarrier =
     HeaderCarrier(authorization = Some(Authorization(s"Bearer ${authSession.authToken}")))
+
+  implicit def fromImplicitAuthenticatedSession(implicit authSession: AuthenticatedSession): AuthContext =
+    AuthContext.withToken(authSession.authToken)
+
+  implicit def fromAuthenticatedSession(authSession: AuthenticatedSession): AuthContext =
+    AuthContext.withToken(authSession.authToken)
 
   object SignIn {
     def signIn(
@@ -104,6 +107,18 @@ trait TestRequests extends ScalaFutures {
   }
 
   object Users {
+
+    def getAll(affinityGroup: Option[String] = None, limit: Option[Int] = None)(
+      implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/users")
+        .withQueryString(Seq("affinityGroup" -> affinityGroup, "limit" -> limit.toString).collect {
+          case (name, Some(value: String)) => (name, value)
+        }: _*)
+        .withHeaders(authContext.headers: _*)
+        .get()
+        .futureValue
+
     def get(userId: String)(implicit authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/users/$userId")

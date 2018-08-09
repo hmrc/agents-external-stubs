@@ -5,7 +5,7 @@ import org.scalatestplus.play.ServerProvider
 import play.api.http.Status
 import play.api.libs.ws.WSClient
 import play.mvc.Http.HeaderNames
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, Enrolment, User}
+import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.services.UsersService
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{MongoDbPerSuite, ServerBaseISpec, TestRequests}
@@ -98,6 +98,54 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDbPerSuite with Tes
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "J")
         val result = Users.delete("ABC123")
         result.status shouldBe 404
+      }
+    }
+
+    "GET /agents-external-stubs/users" should {
+      "return 200 with the list of users on the current planet only" in {
+        val otherPlanetAuthSession: AuthenticatedSession = SignIn.signInAndGetSession("boo", planetId = "K1")
+        Users.create(UserGenerator.individual("boo1"))(otherPlanetAuthSession)
+        Users.create(UserGenerator.organisation("boo2"))(otherPlanetAuthSession)
+
+        implicit val currentAuthSession: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "K2")
+        Users.create(UserGenerator.individual("foo1"))
+        Users.create(UserGenerator.organisation("foo2"))
+        Users.create(UserGenerator.agent("foo3"))
+
+        val result1 = Users.getAll()
+        result1.status shouldBe 200
+        val users1 = result1.json.as[Users].users
+        users1.size shouldBe 4
+        users1.map(_.userId) should contain.only("foo", "foo1", "foo2", "foo3")
+        users1.flatMap(_.affinityGroup) should contain.only("Individual", "Agent", "Organisation")
+
+        val result2 = Users.getAll()(otherPlanetAuthSession)
+        result2.status shouldBe 200
+        val users2 = result2.json.as[Users].users
+        users2.size shouldBe 3
+        users2.map(_.userId) should contain.only("boo", "boo1", "boo2")
+        users2.flatMap(_.affinityGroup) should contain.only("Individual", "Organisation")
+      }
+
+      "return 200 with the list of users having given affinity" in {
+        implicit val currentAuthSession: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "K2")
+        Users.create(UserGenerator.individual("foo1"))
+        Users.create(UserGenerator.organisation("foo2"))
+        Users.create(UserGenerator.agent("foo3"))
+
+        val result1 = Users.getAll(affinityGroup = Some("Agent"))
+        result1.status shouldBe 200
+        val users1 = result1.json.as[Users].users
+        users1.size shouldBe 1
+        users1.map(_.userId) should contain.only("foo3")
+        users1.flatMap(_.affinityGroup) should contain.only("Agent")
+
+        val result2 = Users.getAll(affinityGroup = Some("Individual"))
+        result2.status shouldBe 200
+        val users2 = result2.json.as[Users].users
+        users2.size shouldBe 1
+        users2.map(_.userId) should contain.only("foo1")
+        users2.flatMap(_.affinityGroup) should contain.only("Individual")
       }
     }
   }
