@@ -33,7 +33,7 @@ All users and other data on each planet are removed after 12h unless marked as p
 
 Endpoint | Description
 ---|---
-[`POST /auth/authorise`](https://github.com/hmrc/auth/blob/master/docs/main.md#post-authauthorise) | 
+[`POST /auth/authorise`](https://github.com/hmrc/auth/blob/master/docs/main.md#post-authauthorise) | general authorisation endpoint
 
 Feature | What's implemented
 -----------|-------------------------- 
@@ -44,16 +44,16 @@ retrievals | `authProviderId`, `credentials`, `authorisedEnrolments`, `allEnrolm
 
 Endpoint | Description
 ---|---
-[`GET /citizen-details/:idName/:taxId`](https://github.com/hmrc/citizen-details#get-citizen-detailsidnametaxid) | 
+[`GET /citizen-details/:idName/:taxId`](https://github.com/hmrc/citizen-details#get-citizen-detailsidnametaxid) | citizen information
 
 ### [User Groups Search](https://github.com/hmrc/users-groups-search)
 
 Endpoint | Description
 ---|---
-`GET /users-groups-search/users/:userId` |
-`GET /users-groups-search/groups/:groupId` |
-`GET /users-groups-search/groups/:groupId/users` |
-`GET /users-groups-search/groups?agentCode=:agentCode&agentId=:agentId` |
+`GET /users-groups-search/users/:userId` | user details
+`GET /users-groups-search/groups/:groupId` | group details
+`GET /users-groups-search/groups/:groupId/users` | users in the group
+`GET /users-groups-search/groups?agentCode=:agentCode&agentId=:agentId` | group having the given agentCode, agentId is ignored
 
 ## Custom API
 
