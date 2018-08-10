@@ -11,7 +11,7 @@ This app SHOULD NOT be run on QA nor Production environment.
 
 ## How requests to the stubbed APIs are handled?
 
-To handle requests aimed locally at the stubbed API microservices we provide necessary TCP proxies:
+To handle requests locally without requiring existing applications to reconfigure, we provide necessary TCP proxies:
 
 - listening on 8500 for auth requests
 - listening on 9337 for citizen-details requests
@@ -20,7 +20,7 @@ To handle requests aimed locally at the stubbed API microservices we provide nec
 You can switch this behaviour off by setting `proxies.start` config property to `false`.
 
 ## Data Model
-Every stubbed user and other data live is some test sandbox (planet). 
+Every stubbed user and other data live in some test sandbox (planet). 
 You have to declare existing or a new planet whenever you sign-in. Each authenticated session have planetId information. 
 Stubbed and custom UIs will consider only users and data assigned to the current planet.
 
