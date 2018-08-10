@@ -1,11 +1,13 @@
 package uk.gov.hmrc.agentsexternalstubs.support
 
+import java.util.UUID
+
 import org.scalatest.concurrent.ScalaFutures
 import play.api.http.{HeaderNames, MimeTypes, Writeable}
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.libs.ws.{WSClient, WSCookie, WSResponse}
 import play.api.mvc.{Cookie, Cookies}
-import uk.gov.hmrc.agentsexternalstubs.models.{AffinityGroup, AuthenticatedSession, SignInRequest, User}
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, SignInRequest, User}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.logging.Authorization
 
@@ -52,7 +54,7 @@ trait TestRequests extends ScalaFutures {
       userId: String,
       password: String = "p@ssw0rd",
       providerType: String = "GovernmentGateway",
-      planetId: String = "juniper"): WSResponse =
+      planetId: String): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/sign-in")
         .post(SignInRequest(userId, password, providerType, planetId))
@@ -67,7 +69,7 @@ trait TestRequests extends ScalaFutures {
     def signInAndGetSession(
       userId: String,
       password: String = "p@ssw0rd",
-      planetId: String = "juniper"): AuthenticatedSession = {
+      planetId: String = UUID.randomUUID().toString): AuthenticatedSession = {
       val signedIn = signIn(userId, password, planetId = planetId)
       val session = authSessionFor(signedIn)
       session.json.as[AuthenticatedSession]
@@ -152,6 +154,37 @@ trait TestRequests extends ScalaFutures {
     def getCitizen(idName: String, taxId: String)(implicit authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/citizen-details/$idName/$taxId")
+        .withHeaders(authContext.headers: _*)
+        .get()
+        .futureValue
+  }
+
+  object UsersGroupSearchStub {
+    def getUser(userId: String)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/users-groups-search/users/$userId")
+        .withHeaders(authContext.headers: _*)
+        .get()
+        .futureValue
+
+    def getGroup(groupId: String)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/users-groups-search/groups/$groupId")
+        .withHeaders(authContext.headers: _*)
+        .get()
+        .futureValue
+
+    def getGroupUsers(groupId: String)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/users-groups-search/groups/$groupId/users")
+        .withHeaders(authContext.headers: _*)
+        .get()
+        .futureValue
+
+    def getGroupByAgentCode(agentCode: String, agentId: String)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/users-groups-search/groups")
+        .withQueryString("agentCode" -> agentCode, "agentId" -> agentId)
         .withHeaders(authContext.headers: _*)
         .get()
         .futureValue

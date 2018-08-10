@@ -18,10 +18,17 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
     usersRepository.findByNino(nino, planetId)
 
   def findByPlanetId(planetId: String, affinityGroup: Option[String])(limit: Int)(
-    implicit ec: ExecutionContext): Future[List[UserIdWithAffinityGroup]] = {
+    implicit ec: ExecutionContext): Future[Seq[UserIdWithAffinityGroup]] = {
     require(affinityGroup.isEmpty || affinityGroup.exists(User.AG.contains))
     usersRepository.findByPlanetId(planetId, affinityGroup)(limit)
   }
+
+  def findByGroupId(groupId: String, planetId: String)(limit: Int)(implicit ec: ExecutionContext): Future[Seq[User]] =
+    usersRepository.findByGroupId(groupId, planetId)(limit)
+
+  def findByAgentCode(agentCode: String, planetId: String)(limit: Int)(
+    implicit ec: ExecutionContext): Future[Seq[User]] =
+    usersRepository.findByAgentCode(agentCode, planetId)(limit)
 
   def createUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] =
     for {

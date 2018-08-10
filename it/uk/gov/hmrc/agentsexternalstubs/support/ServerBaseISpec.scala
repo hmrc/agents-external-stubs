@@ -23,12 +23,15 @@ abstract class ServerBaseISpec extends BaseISpec with OneServerPerSuite with Sca
   protected def appBuilder: GuiceApplicationBuilder =
     new GuiceApplicationBuilder()
       .configure(
-        "microservice.services.auth.port"            -> Port.randomAvailable,
-        "microservice.services.citizen-details.port" -> Port.randomAvailable,
-        "metrics.enabled"                            -> true,
-        "auditing.enabled"                           -> false,
-        "mongodb.uri"                                -> s"mongodb://127.0.0.1:27017/test-${this.getClass.getSimpleName}",
-        "http.port"                                  -> this.port
+        "microservice.services.auth.port"                  -> Port.randomAvailable,
+        "microservice.services.citizen-details.port"       -> Port.randomAvailable,
+        "microservice.services.users-groups-search.port"   -> Port.randomAvailable,
+        "microservice.services.enrolment-store-proxy.port" -> Port.randomAvailable,
+        "microservice.services.tax-enrolments.port"        -> Port.randomAvailable,
+        "metrics.enabled"                                  -> true,
+        "auditing.enabled"                                 -> false,
+        "mongodb.uri"                                      -> s"mongodb://127.0.0.1:27017/test-${this.getClass.getSimpleName}",
+        "http.port"                                        -> this.port
       )
 
 }

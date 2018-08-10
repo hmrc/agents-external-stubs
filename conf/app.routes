@@ -6,6 +6,12 @@ POST        /auth/authorise                                                  @uk
 # Citizen details stubs
 GET         /citizen-details/:idName/:taxId                                  @uk.gov.hmrc.agentsexternalstubs.controllers.CitizenDetailsStubController.getCitizen(idName: String, taxId: String)
 
+# Users Groups Search stubs
+GET         /users-groups-search/users/:userId                               @uk.gov.hmrc.agentsexternalstubs.controllers.UsersGroupsSearchStubController.getUser(userId: String)
+GET         /users-groups-search/groups/:groupId                             @uk.gov.hmrc.agentsexternalstubs.controllers.UsersGroupsSearchStubController.getGroup(groupId: String)
+GET         /users-groups-search/groups/:groupId/users                       @uk.gov.hmrc.agentsexternalstubs.controllers.UsersGroupsSearchStubController.getGroupUsers(groupId: String)
+GET         /users-groups-search/groups                                      @uk.gov.hmrc.agentsexternalstubs.controllers.UsersGroupsSearchStubController.getGroupByAgentCode(agentCode: String, agentId: String)
+
 # Authentication
 POST        /agents-external-stubs/sign-in                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.signIn
 GET         /agents-external-stubs/session                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.session(authToken: String)

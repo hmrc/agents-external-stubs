@@ -21,39 +21,27 @@ import java.net.URL
 import com.codahale.metrics.MetricRegistry
 import com.kenshoo.play.metrics.Metrics
 import javax.inject.{Inject, Named, Singleton}
-import org.joda.time.LocalDate
-import org.joda.time.format._
-import play.api.libs.json.{JsPath, Reads}
+import play.api.libs.json._
 import uk.gov.hmrc.agent.kenshoo.monitoring.HttpAPIMonitor
-import uk.gov.hmrc.domain.Nino
+import uk.gov.hmrc.domain.AgentCode
 import uk.gov.hmrc.http._
 
 import scala.concurrent.{ExecutionContext, Future}
 
-case class CitizenDateOfBirth(dateOfBirth: Option[LocalDate])
+case class GroupInfo(groupId: String, affinityGroup: Option[String], agentCode: Option[AgentCode])
 
-object CitizenDateOfBirth {
-  val format = DateTimeFormat.forPattern("ddMMyyyy")
-  implicit val reads: Reads[CitizenDateOfBirth] =
-    (JsPath \ "dateOfBirth")
-      .readNullable[String]
-      .map {
-        case Some(dob) => CitizenDateOfBirth(Some(LocalDate.parse(dob, format)))
-        case None      => CitizenDateOfBirth(None)
-      }
+object GroupInfo {
+  implicit val formats: Format[GroupInfo] = Json.format[GroupInfo]
 }
 
 @Singleton
-class CitizenDetailsConnector @Inject()(
-  @Named("citizen-details-baseUrl") baseUrl: URL,
-  http: HttpGet with HttpDelete,
+class UsersGroupsSearchConnector @Inject()(
+  @Named("users-groups-search-baseUrl") baseUrl: URL,
+  httpGet: HttpGet,
   metrics: Metrics) {
 
-  def getCitizenDateOfBirth(
-    nino: Nino)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[CitizenDateOfBirth]] = {
-    val url = new URL(baseUrl, s"/citizen-details/nino/${nino.value}")
-    http.GET[Option[CitizenDateOfBirth]](url.toString).recover {
-      case _ => None
-    }
+  def getGroupInfo(groupId: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[GroupInfo] = {
+    val url = new URL(baseUrl, s"/users-groups-search/groups/$groupId")
+    httpGet.GET[GroupInfo](url.toString)
   }
 }

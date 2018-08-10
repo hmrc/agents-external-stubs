@@ -3,7 +3,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{Format, Json}
 import play.api.mvc.{Action, AnyContent}
-import uk.gov.hmrc.agentsexternalstubs.controllers.GetCitizenResponse.{Ids, Name, Names}
+import uk.gov.hmrc.agentsexternalstubs.controllers.CitizenDetailsStubController.GetCitizenResponse
 import uk.gov.hmrc.agentsexternalstubs.models.User
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.domain.Nino
@@ -27,7 +27,7 @@ class CitizenDetailsStubController @Inject()(
             case true =>
               usersService.findByNino(taxId, session.planetId).map {
                 case None       => NotFound(s"Citizen record for $idName=$taxId not found")
-                case Some(user) => Ok(Json.toJson(CitizenDetailsStubController.toGetCitizenResponse(user)))
+                case Some(user) => Ok(RestfulResponse(GetCitizenResponse.from(user)))
               }
           }
         case _ => Future.successful(BadRequest(s"tax identifier $idName not supported"))
@@ -39,51 +39,54 @@ class CitizenDetailsStubController @Inject()(
 
 object CitizenDetailsStubController {
 
-  def toGetCitizenResponse(user: User): GetCitizenResponse =
-    GetCitizenResponse(
-      name = Names(current = convertTheName(user.name)),
-      ids = Ids(nino = user.nino),
-      dateOfBirth = user.dateOfBirth.map(_.toString("ddMMyyyy"))
-    )
+  /**
+    * {
+    *   "name": {
+    *     "current": {
+    *       "firstName": "John",
+    *       "lastName": "Smith"
+    *     },
+    *     "previous": []
+    *   },
+    *   "ids": {
+    *     "nino": "AA055075C"
+    *   },
+    *   "dateOfBirth": "11121971"
+    * }
+    */
+  case class GetCitizenResponse(
+    name: GetCitizenResponse.Names,
+    ids: GetCitizenResponse.Ids,
+    dateOfBirth: Option[String])
 
-  def convertTheName(name: Option[String]): Name =
-    name
-      .map(n => {
-        val nameParts = n.split(" ")
-        val (fn, ln) = if (nameParts.length > 1) {
-          (nameParts.init.mkString(" "), Some(nameParts.last))
-        } else (nameParts.headOption.getOrElse("John"), Some("Smith"))
-        Name(fn, ln)
-      })
-      .getOrElse(Name("John", Some("Smith")))
-}
+  object GetCitizenResponse {
 
-/**
-  * {
-  *   "name": {
-  *     "current": {
-  *       "firstName": "John",
-  *       "lastName": "Smith"
-  *     },
-  *     "previous": []
-  *   },
-  *   "ids": {
-  *     "nino": "AA055075C"
-  *   },
-  *   "dateOfBirth": "11121971"
-  * }
-  */
-case class GetCitizenResponse(name: GetCitizenResponse.Names, ids: GetCitizenResponse.Ids, dateOfBirth: Option[String])
+    case class Name(firstName: String, lastName: Option[String] = None)
+    case class Names(current: Name, previous: Seq[Name] = Seq.empty)
+    case class Ids(nino: Option[Nino])
 
-object GetCitizenResponse {
+    implicit val formats1: Format[Name] = Json.format[Name]
+    implicit val formats2: Format[Names] = Json.format[Names]
+    implicit val formats3: Format[Ids] = Json.format[Ids]
+    implicit val formats4: Format[GetCitizenResponse] = Json.format[GetCitizenResponse]
 
-  case class Name(firstName: String, lastName: Option[String] = None)
-  case class Names(current: Name, previous: Seq[Name] = Seq.empty)
-  case class Ids(nino: Option[Nino])
+    private def convertName(name: Option[String]): Name =
+      name
+        .map(n => {
+          val nameParts = n.split(" ")
+          val (fn, ln) = if (nameParts.length > 1) {
+            (nameParts.init.mkString(" "), Some(nameParts.last))
+          } else (nameParts.headOption.getOrElse("John"), Some("Smith"))
+          Name(fn, ln)
+        })
+        .getOrElse(Name("John", Some("Smith")))
 
-  implicit val formats1: Format[Name] = Json.format[Name]
-  implicit val formats2: Format[Names] = Json.format[Names]
-  implicit val formats3: Format[Ids] = Json.format[Ids]
-  implicit val formats4: Format[GetCitizenResponse] = Json.format[GetCitizenResponse]
+    def from(user: User): GetCitizenResponse =
+      GetCitizenResponse(
+        name = Names(current = convertName(user.name)),
+        ids = Ids(nino = user.nino),
+        dateOfBirth = user.dateOfBirth.map(_.toString("ddMMyyyy"))
+      )
 
+  }
 }

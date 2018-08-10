@@ -35,6 +35,9 @@ class MicroserviceModule(val environment: Environment, val configuration: Config
 
     bindServiceConfigProperty[Int]("auth.port")
     bindServiceConfigProperty[Int]("citizen-details.port")
+    bindServiceConfigProperty[Int]("users-groups-search.port")
+    bindServiceConfigProperty[Int]("enrolment-store-proxy.port")
+    bindServiceConfigProperty[Int]("tax-enrolments.port")
 
     bind(classOf[HttpGet]).to(classOf[HttpVerbs])
     bind(classOf[HttpPost]).to(classOf[HttpVerbs])
@@ -42,6 +45,9 @@ class MicroserviceModule(val environment: Environment, val configuration: Config
 
     bindBaseUrl("auth")
     bindBaseUrl("citizen-details")
+    bindBaseUrl("users-groups-search")
+    bindBaseUrl("enrolment-store-proxy")
+    bindBaseUrl("tax-enrolments")
 
     bind(classOf[TcpProxies]).asEagerSingleton()
   }

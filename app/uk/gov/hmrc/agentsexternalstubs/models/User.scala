@@ -20,11 +20,17 @@ case class User(
   dateOfBirth: Option[LocalDate] = None,
   agentCode: Option[String] = None,
   agentFriendlyName: Option[String] = None,
+  agentId: Option[String] = None,
   planetId: Option[String] = None,
   isNonCompliant: Option[Boolean] = None,
   complianceIssues: Option[Seq[String]] = None,
   isPermanent: Option[Boolean] = None
-)
+) {
+
+  def isIndividual: Boolean = affinityGroup.contains(User.AG.Individual)
+  def isOrganisation: Boolean = affinityGroup.contains(User.AG.Organisation)
+  def isAgent: Boolean = affinityGroup.contains(User.AG.Agent)
+}
 
 object User {
 

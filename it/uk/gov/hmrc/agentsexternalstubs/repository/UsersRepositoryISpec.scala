@@ -246,4 +246,47 @@ class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPerT
       result4.size shouldBe 0
     }
   }
+
+  "findByGroupId" should {
+    "return users having given groupId and planetId" in {
+      await(repo.create(User("boo", affinityGroup = Some("Individual"), groupId = Some("ABC")), planetId = "juniper"))
+      await(repo.create(User("foo", affinityGroup = Some("Agent"), groupId = Some("ABC")), planetId = "juniper"))
+      await(repo.create(User("zoo", affinityGroup = Some("Individual"), groupId = Some("ABC")), planetId = "saturn"))
+      await(repo.find()).size shouldBe 3
+
+      val result1 = await(repo.findByGroupId(groupId = "ABC", planetId = "juniper")(10))
+      result1.size shouldBe 2
+      result1.flatMap(_.groupId) should contain("ABC")
+      result1.map(_.userId) should contain("foo")
+      result1.map(_.userId) should contain("boo")
+      result1.flatMap(_.affinityGroup) should contain("Individual")
+      result1.flatMap(_.affinityGroup) should contain("Agent")
+    }
+  }
+
+  "findByAgentCode" should {
+    "return users having given agentCode and planetId" in {
+      await(repo.create(User("foo1", affinityGroup = Some("Agent"), agentCode = Some("ABC")), planetId = "juniper"))
+      await(repo.create(User("foo2", affinityGroup = Some("Agent"), agentCode = Some("ABC")), planetId = "juniper"))
+      await(repo.create(User("foo3", affinityGroup = Some("Agent"), agentCode = Some("ABC")), planetId = "saturn"))
+      await(repo.find()).size shouldBe 3
+
+      val result1 = await(repo.findByAgentCode(agentCode = "ABC", planetId = "juniper")(10))
+      result1.size shouldBe 2
+      result1.flatMap(_.agentCode) should contain("ABC")
+      result1.map(_.userId) should contain("foo1")
+      result1.map(_.userId) should contain("foo2")
+      result1.flatMap(_.affinityGroup) should contain("Agent")
+    }
+
+    "return empty list if none user with the agentCode and planetId exist" in {
+      await(repo.create(User("foo1", affinityGroup = Some("Agent")), planetId = "juniper"))
+      await(repo.create(User("foo2", affinityGroup = Some("Individual")), planetId = "juniper"))
+      await(repo.create(User("foo3", affinityGroup = Some("Agent"), agentCode = Some("ABC")), planetId = "saturn"))
+      await(repo.find()).size shouldBe 3
+
+      val result1 = await(repo.findByAgentCode(agentCode = "ABC", planetId = "juniper")(10))
+      result1.size shouldBe 0
+    }
+  }
 }

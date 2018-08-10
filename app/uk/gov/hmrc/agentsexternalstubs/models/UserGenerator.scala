@@ -7,8 +7,6 @@ import org.scalacheck.Gen
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.smartstub.{Companies, Names, Temporal}
 
-import scala.util.control.NonFatal
-
 object UserGenerator extends Names with Temporal with Companies {
 
   import uk.gov.hmrc.smartstub._
@@ -39,13 +37,16 @@ object UserGenerator extends Names with Temporal with Companies {
 
   private final val ninoGen = Enumerable.instances.ninoEnum.gen
   def nino(userId: String): Nino =
-    ninoGen.seeded(userId).map(n => try { Nino.apply(n) } catch { case NonFatal(_) => Nino("HW 82 78 56 C") }).get
+    ninoGen.seeded(userId).map(n => if (Nino.isValid(n)) Nino.apply(n) else nino("_" + userId)).get
 
   private final val groupIdGen = pattern"9Z9Z-Z9Z9-9Z9Z-Z9Z9".gen
   def groupId(userId: String): String = groupIdGen.seeded(userId).get
 
   private final val agentCodeGen = pattern"ZZZZZZ999999".gen
   def agentCode(userId: String): String = agentCodeGen.seeded(userId).get
+
+  private final val agentIdGen = pattern"999999".gen
+  def agentId(userId: String): String = agentIdGen.seeded(userId).get
 
   def agentFriendlyName(userId: String): String =
     (for {
@@ -69,7 +70,8 @@ object UserGenerator extends Names with Temporal with Companies {
     credentialRole: String = User.CR.User,
     nino: String = null,
     name: String = null,
-    dateOfBirth: String = null): User =
+    dateOfBirth: String = null,
+    groupId: String = null): User =
     User(
       userId = userId,
       affinityGroup = Some(User.AG.Individual),
@@ -79,7 +81,8 @@ object UserGenerator extends Names with Temporal with Companies {
       name = Option(name).orElse(Option(UserGenerator.nameForIndividual(userId))),
       dateOfBirth = Option(dateOfBirth)
         .map(LocalDate.parse(_, ISODateTimeFormat.date()))
-        .orElse(Option(UserGenerator.dateOfBirth(userId)))
+        .orElse(Option(UserGenerator.dateOfBirth(userId))),
+      groupId = Option(groupId).orElse(Option(UserGenerator.groupId(userId)))
     )
 
   def agent(
@@ -88,22 +91,28 @@ object UserGenerator extends Names with Temporal with Companies {
     name: String = null,
     agentCode: String = null,
     agentFriendlyName: String = null,
-    delegatedEnrolments: Seq[Enrolment] = Seq.empty): User =
+    agentId: String = null,
+    delegatedEnrolments: Seq[Enrolment] = Seq.empty,
+    groupId: String = null): User =
     User(
       userId = userId,
       affinityGroup = Some(User.AG.Agent),
       credentialRole = credentialRole,
       name = Option(name).orElse(Option(UserGenerator.nameForAgent(userId))),
-      agentCode = Option(agentCode).orElse(Option(UserGenerator.agentCode(userId))),
-      agentFriendlyName = Option(agentFriendlyName).orElse(Option(UserGenerator.agentFriendlyName(userId))),
-      delegatedEnrolments = delegatedEnrolments
+      agentCode = Option(agentCode).orElse(Option(UserGenerator.agentCode(Option(groupId).getOrElse(userId)))),
+      agentFriendlyName =
+        Option(agentFriendlyName).orElse(Option(UserGenerator.agentFriendlyName(Option(groupId).getOrElse(userId)))),
+      agentId = Option(agentId).orElse(Option(UserGenerator.agentId(Option(groupId).getOrElse(userId)))),
+      delegatedEnrolments = delegatedEnrolments,
+      groupId = Option(groupId).orElse(Option(UserGenerator.groupId(userId)))
     )
 
-  def organisation(userId: String = UUID.randomUUID().toString, name: String = null): User =
+  def organisation(userId: String = UUID.randomUUID().toString, name: String = null, groupId: String = null): User =
     User(
       userId = userId,
       affinityGroup = Some(User.AG.Organisation),
-      name = Option(name).orElse(Option(UserGenerator.nameForOrganisation(userId)))
+      name = Option(name).orElse(Option(UserGenerator.nameForOrganisation(userId))),
+      groupId = Option(groupId).orElse(Option(UserGenerator.groupId(userId)))
     )
 
 }

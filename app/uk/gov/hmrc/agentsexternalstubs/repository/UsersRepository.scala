@@ -17,7 +17,7 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json.toJsFieldJsValueWrapper
-import play.api.libs.json.{JsObject, Json, Writes}
+import play.api.libs.json.{JsObject, Json}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.Index
@@ -30,7 +30,6 @@ import uk.gov.hmrc.agentsexternalstubs.models.{User, UserIdWithAffinityGroup}
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
-import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
 case class DuplicateUserException(msg: String) extends IllegalStateException(msg)
@@ -51,8 +50,10 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
   override def indexes = Seq(
     Index(Seq(User.user_index_key -> Ascending), Some(UsersIndexName), unique = true),
     Index(Seq(User.nino_index_key -> Ascending), Some(NinosIndexName), unique = true, sparse = true),
-    Index(Seq("planetId"          -> Ascending), Some("Planet")),
-    Index(Seq("planetId"          -> Ascending, "affinityGroup" -> Ascending), Some("PlanetWithAffinityGroup")),
+    Index(Seq("planetId"          -> Ascending), Some("Planets")),
+    Index(Seq("planetId"          -> Ascending, "affinityGroup" -> Ascending), Some("PlanetsWithAffinityGroup")),
+    Index(Seq("groupId"           -> Ascending, "planetId" -> Ascending), Some("Groups"), sparse = true),
+    Index(Seq("agentCode"         -> Ascending, "planetId" -> Ascending), Some("AgentCodes"), sparse = true),
     Index(
       Seq(User.ttl_index_key -> Ascending),
       Some("TTL"),
@@ -78,11 +79,24 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
     }
 
   def findByPlanetId(planetId: String, affinityGroup: Option[String])(limit: Int)(
-    implicit ec: ExecutionContext): Future[List[UserIdWithAffinityGroup]] =
+    implicit ec: ExecutionContext): Future[Seq[UserIdWithAffinityGroup]] =
     cursor(
       Seq("planetId" -> Option(planetId), "affinityGroup" -> affinityGroup),
       Seq("userId"   -> 1, "affinityGroup"                -> 1))(UserIdWithAffinityGroup.formats)
-      .collect[List](maxDocs = limit, err = Cursor.ContOnError[List[UserIdWithAffinityGroup]]())
+      .collect[Seq](maxDocs = limit, err = Cursor.ContOnError[Seq[UserIdWithAffinityGroup]]())
+
+  def findByGroupId(groupId: String, planetId: String)(limit: Int)(implicit ec: ExecutionContext): Future[Seq[User]] =
+    cursor(
+      Seq("groupId" -> Option(groupId), "planetId" -> Option(planetId))
+    )(User.formats)
+      .collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[User]]())
+
+  def findByAgentCode(agentCode: String, planetId: String)(limit: Int)(
+    implicit ec: ExecutionContext): Future[Seq[User]] =
+    cursor(
+      Seq("agentCode" -> Option(agentCode), "planetId" -> Option(planetId))
+    )(User.formats)
+      .collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[User]]())
 
   private val toJsWrapper: PartialFunction[(String, Option[String]), (String, Json.JsValueWrapper)] = {
     case (name, Some(value)) => name -> toJsFieldJsValueWrapper(value)

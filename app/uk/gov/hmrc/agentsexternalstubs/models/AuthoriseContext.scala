@@ -54,7 +54,7 @@ case class FullAuthoriseContext(user: User, authenticatedSession: AuthenticatedS
 
   override def agentFriendlyName: Option[String] = user.agentFriendlyName
 
-  override def agentId: Option[String] = Some(user.userId)
+  override def agentId: Option[String] = user.agentId
 
   override lazy val authorisedServices: Set[String] = request.authorise.collect {
     case EnrolmentPredicate(service, _) => service
