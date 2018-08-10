@@ -63,7 +63,7 @@ class SignInController @Inject()(val authenticationService: AuthenticationServic
       maybeSession <- authenticationService.findByAuthToken(authToken)
     } yield
       maybeSession match {
-        case Some(session) => Ok(Json.toJson(session))
+        case Some(session) => Ok(RestfulResponse(session, Link("delete", routes.SignInController.signOut().url)))
         case None          => NotFound("AUTH_SESSION_NOT_FOUND")
       }
   }

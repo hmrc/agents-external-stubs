@@ -1,7 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import javax.inject.{Inject, Singleton}
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.JsValue
 import play.api.mvc.{Action, AnyContent}
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models.{User, Users}
@@ -21,7 +21,7 @@ class UsersController @Inject()(usersService: UsersService, val authenticationSe
     implicit request =>
       withCurrentSession { session =>
         usersService.findByPlanetId(session.planetId, affinityGroup)(limit.getOrElse(100)).map { users =>
-          Ok(Json.toJson(Users(users)))
+          Ok(RestfulResponse(Users(users)))
         }
       }(SessionRecordNotFound)
   }
@@ -29,8 +29,15 @@ class UsersController @Inject()(usersService: UsersService, val authenticationSe
   def getUser(userId: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       usersService.findByUserId(userId, session.planetId).map {
-        case Some(user) => Ok(Json.toJson(user))
-        case None       => NotFound(s"Could not found user $userId")
+        case Some(user) =>
+          Ok(RestfulResponse(
+            user,
+            Link("update", routes.UsersController.updateUser(userId).url),
+            Link("delete", routes.UsersController.deleteUser(userId).url),
+            Link("create", routes.UsersController.createUser().url),
+            Link("list", routes.UsersController.getUsers(None, None).url)
+          ))
+        case None => NotFound(s"Could not found user $userId")
       }
     }(SessionRecordNotFound)
   }
