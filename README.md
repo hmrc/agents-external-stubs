@@ -11,10 +11,11 @@ This app SHOULD NOT be run on QA nor Production environment.
 
 ## How requests to the stubbed APIs are handled?
 
-To handle requests aimed at stubbed API microservices we provide necessary TCP proxies:
+To handle requests aimed locally at the stubbed API microservices we provide necessary TCP proxies:
 
 - listening on 8500 for auth requests
 - listening on 9337 for citizen-details requests
+- listening on 9984 for users-groups-search requests
 
 You can switch this behaviour off by setting `proxies.start` config property to `false`.
 
@@ -29,7 +30,10 @@ All users and other data on each planet are removed after 12h unless marked as p
 ## Stubbed APIs
 
 ### [Auth](https://github.com/hmrc/auth)
-#### [POST /auth/authorise](https://github.com/hmrc/auth/blob/master/docs/main.md#post-authauthorise)
+
+Endpoint | Description
+---|---
+[`POST /auth/authorise`](https://github.com/hmrc/auth/blob/master/docs/main.md#post-authauthorise) | 
 
 Feature | What's implemented
 -----------|-------------------------- 
@@ -37,7 +41,19 @@ predicates | `enrolment`, `authProviders`, `affinityGroup`, `confidenceLevel`, `
 retrievals | `authProviderId`, `credentials`, `authorisedEnrolments`, `allEnrolments`,`affinityGroup`,`confidenceLevel`,`credentialStrength`, `credentialRole`, `nino`, `groupIdentifier`, `name`, `dateOfBirth`, `agentCode`, `agentInformation`
 
 ### [Citizen Details](https://github.com/hmrc/citizen-details)
-##### [GET /citizen-details/:idName/:taxId](https://github.com/hmrc/citizen-details#get-citizen-detailsidnametaxid)
+
+Endpoint | Description
+---|---
+[`GET /citizen-details/:idName/:taxId`](https://github.com/hmrc/citizen-details#get-citizen-detailsidnametaxid) | 
+
+### [User Groups Search](https://github.com/hmrc/users-groups-search)
+
+Endpoint | Description
+---|---
+`GET /users-groups-search/users/:userId` |
+`GET /users-groups-search/groups/:groupId` |
+`GET /users-groups-search/groups/:groupId/users` |
+`GET /users-groups-search/groups?agentCode=:agentCode&agentId=:agentId` |
 
 ## Custom API
 
