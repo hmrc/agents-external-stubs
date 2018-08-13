@@ -54,7 +54,7 @@ lazy val root = (project in file("."))
     publishingSettings,
     scoverageSettings,
     unmanagedResourceDirectories in Compile += baseDirectory.value / "resources",
-    routesImport ++= Seq("uk.gov.hmrc.agentsexternalstubs.binders.UrlBinders._"),
+    routesImport ++= Seq("uk.gov.hmrc.agentsexternalstubs.binders.UrlBinders._","uk.gov.hmrc.agentsexternalstubs.models._"),
     scalafmtOnCompile in Compile := true,
     scalafmtOnCompile in Test := true
   )

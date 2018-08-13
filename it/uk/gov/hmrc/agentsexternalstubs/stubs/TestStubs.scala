@@ -37,6 +37,6 @@ trait TestStubs {
     service: String,
     identifierKey: String,
     identifierValue: String)(implicit ec: ExecutionContext, timeout: Duration): Unit =
-    await(userService.addEnrolment(userId, planetId, service, identifierKey, identifierValue))
+    await(userService.addPrincipalEnrolment(userId, planetId, service, identifierKey, identifierValue))
 
 }

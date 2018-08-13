@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import uk.gov.hmrc.agentsexternalstubs.models.{Enrolment, Identifier, User}
+import uk.gov.hmrc.agentsexternalstubs.models.{Enrolment, EnrolmentKey, Identifier, User}
 import uk.gov.hmrc.agentsexternalstubs.support.MongoDbPerTest
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.test.UnitSpec
@@ -68,15 +68,23 @@ class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPerT
       result.head.principalEnrolments shouldBe Seq(Enrolment("foobar"))
     }
 
-    "create multiple users with the same principal enrolment" in {
-      await(repo.create(User("1foo", principalEnrolments = Seq(Enrolment("foobar"))), "juniper"))
-      await(repo.create(User("foo2", principalEnrolments = Seq(Enrolment("foobar"))), "juniper"))
-      await(repo.create(User("3oo", principalEnrolments = Seq(Enrolment("foobar"))), "juniper"))
+    "do not allow users with the same principal enrolment on a same planet" in {
+      await(repo.create(User("1foo", principalEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("A","1")))))), "juniper"))
+      val e = intercept[DuplicateUserException] {
+        await(repo.create(User("foo2", principalEnrolments = Seq(Enrolment("something", Some(Seq(Identifier("B","2")))), Enrolment("foobar", Some(Seq(Identifier("A","1")))))), "juniper"))
+      }
+
+      e.getMessage should include("Duplicated principal enrolment")
+    }
+
+    "allow users with the same principal enrolment on a different planets" in {
+      await(repo.create(User("1foo", principalEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("A","1")))))), "juniper"))
+      await(repo.create(User("foo2", principalEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("A","1")))))), "saturn"))
+      await(repo.create(User("foo2", principalEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("A","1")))), Enrolment("barfoo", Some(Seq(Identifier("B","2")))))), "mars"))
 
       val result = await(repo.find())
 
       result.size shouldBe 3
-      result.flatMap(_.principalEnrolments).toSet shouldBe Set(Enrolment("foobar"))
     }
 
     "create a user with single principal enrolment" in {
@@ -116,6 +124,18 @@ class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPerT
 
       result.size shouldBe 1
       result.head.userId shouldBe "abcfoo"
+      result.head.principalEnrolments shouldBe Seq.empty
+      result.head.delegatedEnrolments shouldBe Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))
+    }
+
+    "allow different users with same delegated enrolment" in {
+      await(repo.create(User("abcfoo1", delegatedEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))), "juniper"))
+      await(repo.create(User("abcfoo2", delegatedEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))), "juniper"))
+
+      val result = await(repo.find())
+
+      result.size shouldBe 2
+      result.head.userId shouldBe "abcfoo1"
       result.head.principalEnrolments shouldBe Seq.empty
       result.head.delegatedEnrolments shouldBe Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))
     }
@@ -219,7 +239,7 @@ class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPerT
   }
 
   "findByPlanetId" should {
-    "return id and affinity of users having given planetId" in {
+    "return id and affinity of users having provided planetId" in {
       await(repo.create(User("boo", affinityGroup = Some("Individual")), "juniper"))
       await(repo.create(User("foo", affinityGroup = Some("Agent")), "juniper"))
       await(repo.create(User("foo", affinityGroup = Some("Individual")), "saturn"))
@@ -248,7 +268,7 @@ class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPerT
   }
 
   "findByGroupId" should {
-    "return users having given groupId and planetId" in {
+    "return users having provided groupId and planetId" in {
       await(repo.create(User("boo", affinityGroup = Some("Individual"), groupId = Some("ABC")), planetId = "juniper"))
       await(repo.create(User("foo", affinityGroup = Some("Agent"), groupId = Some("ABC")), planetId = "juniper"))
       await(repo.create(User("zoo", affinityGroup = Some("Individual"), groupId = Some("ABC")), planetId = "saturn"))
@@ -265,7 +285,7 @@ class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPerT
   }
 
   "findByAgentCode" should {
-    "return users having given agentCode and planetId" in {
+    "return users having provided agentCode and planetId" in {
       await(repo.create(User("foo1", affinityGroup = Some("Agent"), agentCode = Some("ABC")), planetId = "juniper"))
       await(repo.create(User("foo2", affinityGroup = Some("Agent"), agentCode = Some("ABC")), planetId = "juniper"))
       await(repo.create(User("foo3", affinityGroup = Some("Agent"), agentCode = Some("ABC")), planetId = "saturn"))
@@ -287,6 +307,34 @@ class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPerT
 
       val result1 = await(repo.findByAgentCode(agentCode = "ABC", planetId = "juniper")(10))
       result1.size shouldBe 0
+    }
+  }
+
+  "findByPrincipalEnrolmentKey" should {
+    "return user having provided principal enrolment key" in {
+      await(repo.create(User("foo1", affinityGroup = Some("Agent"), principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = "juniper"))
+      await(repo.create(User("foo2", affinityGroup = Some("Agent"), delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = "juniper"))
+      await(repo.create(User("foo3", affinityGroup = Some("Agent"), principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","222")))))), planetId = "juniper"))
+      await(repo.create(User("foo4", affinityGroup = Some("Agent"), principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = "saturn"))
+
+      val result1 = await(repo.findByPrincipalEnrolmentKey(EnrolmentKey.from("FOO", "AAA" -> "111"), planetId = "juniper"))
+      result1.isDefined shouldBe true
+      result1.get.userId shouldBe "foo1"
+      result1.get.principalEnrolments should contain.only(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))
+    }
+  }
+
+  "findByDelegatedEnrolmentKey" should {
+    "return users having provided delegated enrolment key" in {
+      await(repo.create(User("foo1", affinityGroup = Some("Agent"), delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = "juniper"))
+      await(repo.create(User("foo3", affinityGroup = Some("Agent"), principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = "juniper"))
+      await(repo.create(User("foo2", affinityGroup = Some("Agent"), delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = "juniper"))
+      await(repo.create(User("foo4", affinityGroup = Some("Agent"), delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = "saturn"))
+
+      val result1 = await(repo.findByDelegatedEnrolmentKey(EnrolmentKey.from("FOO", "AAA" -> "111"), planetId = "juniper")(10))
+      result1.size shouldBe 2
+      result1.map(_.userId) should contain.only("foo1","foo2")
+      result1.flatMap(_.delegatedEnrolments).distinct should contain.only(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))
     }
   }
 }

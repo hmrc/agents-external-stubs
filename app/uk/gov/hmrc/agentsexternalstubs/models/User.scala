@@ -54,20 +54,25 @@ object User {
     .transform(addNormalizedUserIndexKey _)
     .transform(addNormalizedNinoIndexKey _)
     .transform(addTTLIndexKey _)
+    .transform(addPrincipalEnrolmentKeys _)
+    .transform(addDelegatedEnrolmentKeys _)
 
   val formats = Format(reads, writes)
 
   val user_index_key = "user_index_key"
   val nino_index_key = "nino_index_key"
   val ttl_index_key = "ttl_index_key"
+  val principal_enrolment_keys = "principal_enrolment_keys"
+  val delegated_enrolment_keys = "delegated_enrolment_keys"
 
   def userIndexKey(userId: String, planetId: String): String = s"$userId@$planetId"
   def ninoIndexKey(nino: String, planetId: String): String = s"${nino.replace(" ", "")}@$planetId"
+  def enrolmentIndexKey(key: String, planetId: String): String = s"$key@$planetId"
 
   private def addNormalizedUserIndexKey(json: JsObject): JsObject = {
     val userId = (json \ "userId").as[String]
     val planetId = (json \ "planetId").asOpt[String].getOrElse("hmrc")
-    json + (user_index_key, JsString(userIndexKey(userId, planetId)))
+    json + ((user_index_key, JsString(userIndexKey(userId, planetId))))
   }
 
   private def addNormalizedNinoIndexKey(json: JsObject): JsObject =
@@ -75,7 +80,7 @@ object User {
       .asOpt[String]
       .map(nino => {
         val planetId = (json \ "planetId").asOpt[String].getOrElse("hmrc")
-        json + (nino_index_key, JsString(ninoIndexKey(nino, planetId)))
+        json + ((nino_index_key, JsString(ninoIndexKey(nino, planetId))))
       })
       .getOrElse(json)
 
@@ -84,9 +89,30 @@ object User {
       .asOpt[Boolean] match {
       case None | Some(false) =>
         val planetId = (json \ "planetId").asOpt[String].getOrElse("hmrc")
-        json + (ttl_index_key, JsString(planetId))
+        json + ((ttl_index_key, JsString(planetId)))
       case _ => json
     }
+
+  private def addPrincipalEnrolmentKeys(json: JsObject): JsObject = {
+    val enrolments = (json \ "principalEnrolments").as[Seq[Enrolment]]
+    if (enrolments.isEmpty) json
+    else {
+      val planetId = (json \ "planetId").asOpt[String].getOrElse("hmrc")
+      val keys =
+        enrolments.map(_.toEnrolmentKey).collect { case Some(key) => enrolmentIndexKey(key, planetId) }
+      if (keys.isEmpty) json else json + ((principal_enrolment_keys, JsArray(keys.map(JsString))))
+    }
+  }
+
+  private def addDelegatedEnrolmentKeys(json: JsObject): JsObject = {
+    val enrolments = (json \ "delegatedEnrolments").as[Seq[Enrolment]]
+    if (enrolments.isEmpty) json
+    else {
+      val planetId = (json \ "planetId").asOpt[String].getOrElse("hmrc")
+      val keys = enrolments.map(_.toEnrolmentKey).collect { case Some(key) => enrolmentIndexKey(key, planetId) }
+      if (keys.isEmpty) json else json + ((delegated_enrolment_keys, JsArray(keys.map(JsString))))
+    }
+  }
 
   def validate(user: User): Validated[NonEmptyList[String], Unit] = UserValidator.validate(user)
 
@@ -98,16 +124,18 @@ object User {
       else Invalid(errors.toList.mkString(", "))
   }
 
-}
+  implicit class UserBuilder(val user: User) extends AnyVal {
+    def withPrincipalEnrolment(service: String, identifierKey: String, identifierValue: String): User =
+      user.copy(
+        principalEnrolments = user.principalEnrolments :+ Enrolment(
+          service,
+          Some(Seq(Identifier(identifierKey, identifierValue)))))
 
-case class Enrolment(key: String, identifiers: Option[Seq[Identifier]] = None)
+    def withDelegatedEnrolment(service: String, identifierKey: String, identifierValue: String): User =
+      user.copy(
+        delegatedEnrolments = user.delegatedEnrolments :+ Enrolment(
+          service,
+          Some(Seq(Identifier(identifierKey, identifierValue)))))
+  }
 
-object Enrolment {
-  implicit val format: Format[Enrolment] = Json.format[Enrolment]
-}
-
-case class Identifier(key: String, value: String)
-
-object Identifier {
-  implicit val format: Format[Identifier] = Json.format[Identifier]
 }

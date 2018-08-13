@@ -30,6 +30,14 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
     implicit ec: ExecutionContext): Future[Seq[User]] =
     usersRepository.findByAgentCode(agentCode, planetId)(limit)
 
+  def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
+    implicit ec: ExecutionContext): Future[Option[User]] =
+    usersRepository.findByPrincipalEnrolmentKey(enrolmentKey, planetId)
+
+  def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(
+    implicit ec: ExecutionContext): Future[Seq[User]] =
+    usersRepository.findByDelegatedEnrolmentKey(enrolmentKey, planetId)(limit)
+
   def createUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] =
     for {
       sanitized <- Future(UserSanitizer.sanitize(user))
@@ -77,8 +85,12 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
                     }
     } yield updatedUser
 
-  def addEnrolment(userId: String, planetId: String, service: String, identifierKey: String, identifierValue: String)(
-    implicit ec: ExecutionContext): Future[User] =
+  def addPrincipalEnrolment(
+    userId: String,
+    planetId: String,
+    service: String,
+    identifierKey: String,
+    identifierValue: String)(implicit ec: ExecutionContext): Future[User] =
     updateUser(
       userId,
       planetId,

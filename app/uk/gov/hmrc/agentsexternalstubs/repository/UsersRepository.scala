@@ -26,7 +26,7 @@ import reactivemongo.api.{Cursor, CursorProducer, ReadPreference}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.core.errors.DatabaseException
 import reactivemongo.play.json.ImplicitBSONHandlers
-import uk.gov.hmrc.agentsexternalstubs.models.{User, UserIdWithAffinityGroup}
+import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, User, UserIdWithAffinityGroup}
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
@@ -46,14 +46,21 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
 
   private final val UsersIndexName = "Users"
   private final val NinosIndexName = "Ninos"
+  private final val PrincipalEnrolmentKeysIndexName = "PrincipalEnrolmentKeys"
 
   override def indexes = Seq(
     Index(Seq(User.user_index_key -> Ascending), Some(UsersIndexName), unique = true),
     Index(Seq(User.nino_index_key -> Ascending), Some(NinosIndexName), unique = true, sparse = true),
-    Index(Seq("planetId"          -> Ascending), Some("Planets")),
-    Index(Seq("planetId"          -> Ascending, "affinityGroup" -> Ascending), Some("PlanetsWithAffinityGroup")),
-    Index(Seq("groupId"           -> Ascending, "planetId" -> Ascending), Some("Groups"), sparse = true),
-    Index(Seq("agentCode"         -> Ascending, "planetId" -> Ascending), Some("AgentCodes"), sparse = true),
+    Index(
+      Seq(User.principal_enrolment_keys -> Ascending),
+      Some(PrincipalEnrolmentKeysIndexName),
+      unique = true,
+      sparse = true),
+    Index(Seq(User.delegated_enrolment_keys -> Ascending), Some("DelegatedEnrolmentKeys"), sparse = true),
+    Index(Seq("planetId"                    -> Ascending), Some("Planets")),
+    Index(Seq("planetId"                    -> Ascending, "affinityGroup" -> Ascending), Some("PlanetsWithAffinityGroup")),
+    Index(Seq("groupId"                     -> Ascending, "planetId" -> Ascending), Some("Groups"), sparse = true),
+    Index(Seq("agentCode"                   -> Ascending, "planetId" -> Ascending), Some("AgentCodes"), sparse = true),
     Index(
       Seq(User.ttl_index_key -> Ascending),
       Some("TTL"),
@@ -95,6 +102,23 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
     implicit ec: ExecutionContext): Future[Seq[User]] =
     cursor(
       Seq("agentCode" -> Option(agentCode), "planetId" -> Option(planetId))
+    )(User.formats)
+      .collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[User]]())
+
+  def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
+    implicit ec: ExecutionContext): Future[Option[User]] =
+    find(
+      Seq(User.principal_enrolment_keys -> Option(User.enrolmentIndexKey(enrolmentKey.toString, planetId)))
+        .map(option => option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*).map {
+      case Nil      => None
+      case x :: Nil => Some(x)
+      case _ :: _   => throw DuplicateUserException(s"Duplicated enrolment key $enrolmentKey for $planetId")
+    }
+
+  def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(
+    implicit ec: ExecutionContext): Future[Seq[User]] =
+    cursor(
+      Seq(User.delegated_enrolment_keys -> Option(User.enrolmentIndexKey(enrolmentKey.toString, planetId)))
     )(User.formats)
       .collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[User]]())
 
@@ -144,7 +168,12 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
 
   private val duplicatedUserMessageByIndex: Map[String, User => String => String] = Map(
     UsersIndexName -> (u => p => s"Duplicated userId ${u.userId} on $p"),
-    NinosIndexName -> (u => p => s"Duplicated NINO ${u.nino.get} on $p")
+    NinosIndexName -> (u => p => s"Duplicated NINO ${u.nino.get} on $p"),
+    PrincipalEnrolmentKeysIndexName -> (u =>
+      p =>
+        s"Duplicated principal${if (u.principalEnrolments.size > 1) " enrolment, one of" else ""} ${u.principalEnrolments
+          .map(_.description)
+          .mkString(", ")} on $p")
   )
 
   private def explicitFlag(flag: Option[Boolean]): Option[Boolean] = flag match {

@@ -1,7 +1,12 @@
 package uk.gov.hmrc.agentsexternalstubs.binders
 
-import uk.gov.hmrc.agentmtdidentifiers.model.Utr
+import play.api.mvc.PathBindable
+import uk.gov.hmrc.agentsexternalstubs.models.EnrolmentKey
 
 object UrlBinders {
-  implicit val utrBinder = new SimpleObjectBinder[Utr](Utr.apply, _.value)
+
+  implicit val enrolmentKeyBinder: PathBindable[EnrolmentKey] = new PathBindable[EnrolmentKey] {
+    override def bind(key: String, value: String): Either[String, EnrolmentKey] = EnrolmentKey.parse(value)
+    override def unbind(key: String, value: EnrolmentKey): String = value.toString
+  }
 }

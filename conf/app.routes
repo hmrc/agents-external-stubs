@@ -12,6 +12,9 @@ GET         /users-groups-search/groups/:groupId                             @uk
 GET         /users-groups-search/groups/:groupId/users                       @uk.gov.hmrc.agentsexternalstubs.controllers.UsersGroupsSearchStubController.getGroupUsers(groupId: String)
 GET         /users-groups-search/groups                                      @uk.gov.hmrc.agentsexternalstubs.controllers.UsersGroupsSearchStubController.getGroupByAgentCode(agentCode: String, agentId: String)
 
+# Enrolment Store Proxy stubs
+GET         /enrolment-store/enrolments/:enrolmentKey/users                  @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.getUserIds(enrolmentKey: EnrolmentKey, `type`: String ?= "all")
+
 # Authentication
 POST        /agents-external-stubs/sign-in                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.signIn
 GET         /agents-external-stubs/session                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.session(authToken: String)

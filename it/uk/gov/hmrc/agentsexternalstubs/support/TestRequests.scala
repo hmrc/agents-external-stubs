@@ -190,6 +190,16 @@ trait TestRequests extends ScalaFutures {
         .futureValue
   }
 
+  object EnrolmentStoreProxyStub {
+    def getUserIds(enrolmentKey: String, _type: String = "all")(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/enrolment-store/enrolments/$enrolmentKey/users")
+        .withQueryString("type" -> _type)
+        .withHeaders(authContext.headers: _*)
+        .get()
+        .futureValue
+  }
+
 }
 
 object JsonWriteable {
