@@ -23,14 +23,14 @@ class CitizenDetailsStubController @Inject()(
       idName match {
         case "nino" =>
           Nino.isValid(taxId) match {
-            case false => Future.successful(BadRequest(s"Provided NINO $taxId is not valid"))
+            case false => badRequestF("INVALID_NINO", s"Provided NINO $taxId is not valid")
             case true =>
               usersService.findByNino(taxId, session.planetId).map {
-                case None       => NotFound(s"Citizen record for $idName=$taxId not found")
+                case None       => notFound("CITIZEN_RECORD_NOT_FOUND", s"Citizen record for $idName=$taxId not found")
                 case Some(user) => Ok(RestfulResponse(GetCitizenResponse.from(user)))
               }
           }
-        case _ => Future.successful(BadRequest(s"tax identifier $idName not supported"))
+        case _ => badRequestF("TAX_IDENTIFIER_NOT_SUPPORTED", s"tax identifier $idName not supported")
       }
     }(SessionRecordNotFound)
   }

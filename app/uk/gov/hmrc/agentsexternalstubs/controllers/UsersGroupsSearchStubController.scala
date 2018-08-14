@@ -19,7 +19,7 @@ class UsersGroupsSearchStubController @Inject()(
     withCurrentSession { session =>
       usersService.findByUserId(userId, session.planetId).map {
         case Some(user) => NonAuthoritativeInformation(RestfulResponse(GetUserResponse.from(user)))
-        case None       => NotFound("USER_NOT_FOUND")
+        case None       => notFound("USER_NOT_FOUND")
       }
     }(SessionRecordNotFound)
   }
@@ -35,7 +35,7 @@ class UsersGroupsSearchStubController @Inject()(
                 RestfulResponse(
                   GetGroupResponse.from(groupId, user),
                   Link("users", routes.UsersGroupsSearchStubController.getGroupUsers(groupId).url)))
-            case None => NotFound("GROUP_NOT_FOUND")
+            case None => notFound("GROUP_NOT_FOUND")
         })
     }(SessionRecordNotFound)
   }
@@ -46,7 +46,7 @@ class UsersGroupsSearchStubController @Inject()(
         .findByGroupId(groupId, session.planetId)(100)
         .map {
           case users if users.isEmpty =>
-            NotFound("GROUP_NOT_FOUND")
+            notFound("GROUP_NOT_FOUND")
           case users =>
             NonAuthoritativeInformation(RestfulResponse(users))
         }
@@ -64,7 +64,7 @@ class UsersGroupsSearchStubController @Inject()(
                 GetGroupResponse.from(user.groupId.getOrElse(""), user),
                 Link("users", routes.UsersGroupsSearchStubController.getGroupUsers(user.groupId.getOrElse("")).url)
               ))
-            case None => NotFound("GROUP_NOT_FOUND")
+            case None => notFound("GROUP_NOT_FOUND")
         })
     }(SessionRecordNotFound)
   }

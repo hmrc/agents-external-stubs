@@ -15,4 +15,7 @@ object Enrolment {
 
   def from(ek: EnrolmentKey): Enrolment =
     Enrolment(ek.service, if (ek.identifiers.isEmpty) None else Some(ek.identifiers))
+
+  def apply(key: String, identifierKey: String, identifierValue: String): Enrolment =
+    Enrolment(key, Some(Seq(Identifier(identifierKey, identifierValue))))
 }

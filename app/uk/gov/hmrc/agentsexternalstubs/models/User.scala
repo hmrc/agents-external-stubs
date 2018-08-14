@@ -126,10 +126,7 @@ object User {
 
   implicit class UserBuilder(val user: User) extends AnyVal {
     def withPrincipalEnrolment(service: String, identifierKey: String, identifierValue: String): User =
-      user.copy(
-        principalEnrolments = user.principalEnrolments :+ Enrolment(
-          service,
-          Some(Seq(Identifier(identifierKey, identifierValue)))))
+      user.copy(principalEnrolments = user.principalEnrolments :+ Enrolment(service, identifierKey, identifierValue))
 
     def withDelegatedEnrolment(service: String, identifierKey: String, identifierValue: String): User =
       user.copy(

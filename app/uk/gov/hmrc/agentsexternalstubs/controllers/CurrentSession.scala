@@ -6,7 +6,7 @@ import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersSer
 
 import scala.concurrent.{ExecutionContext, Future}
 
-trait CurrentSession {
+trait CurrentSession extends HttpHelpers {
 
   def authenticationService: AuthenticationService
 
@@ -34,14 +34,4 @@ trait CurrentSession {
         case Some(user) => body(user, session)
       }
     }(SessionRecordNotFound)
-
-  def unauthorizedF(reason: String): Future[Result] =
-    Future.successful(unauthorized(reason))
-
-  def unauthorized(reason: String): Result =
-    Results
-      .Unauthorized("")
-      .withHeaders("WWW-Authenticate" -> s"""MDTP detail="$reason"""")
-
-  val SessionRecordNotFound = unauthorizedF("SessionRecordNotFound")
 }

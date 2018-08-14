@@ -4,7 +4,7 @@ import org.scalatest.Suite
 import org.scalatestplus.play.ServerProvider
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, Enrolment, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{MongoDbPerSuite, ServerBaseISpec, TestRequests}
 
@@ -102,6 +102,14 @@ class EnrolmentStoreProxyStubControllerISpec
 
         result.status shouldBe 204
       }
+
+      "respond 400 if enrolment key is invalid" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+
+        val result = EnrolmentStoreProxyStub.getUserIds("IR-SA~~87654321", "all")
+
+        result.status shouldBe 400
+      }
     }
 
     "GET /enrolment-store/enrolments/:enrolmentKey/groups?type=principal" should {
@@ -175,6 +183,15 @@ class EnrolmentStoreProxyStubControllerISpec
         (json \ "principalGroupIds").as[Seq[String]] should contain.only("group1")
         (json \ "delegatedGroupIds").as[Seq[String]] should contain.only("group2")
       }
+
+      "respond 400 if enrolment key is invalid" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+
+        val result = EnrolmentStoreProxyStub.getGroupIds("~UTR~87654321", "all")
+
+        result.status shouldBe 400
+      }
+
     }
 
     "POST /enrolment-store/groups/:groupId/enrolments/:enrolmentKey" should {
@@ -203,6 +220,9 @@ class EnrolmentStoreProxyStubControllerISpec
         )
 
         result.status shouldBe 201
+
+        val user = await(userService.findByUserId(session.userId, session.planetId)).get
+        user.principalEnrolments should contain.only(Enrolment("IR-SA", "UTR", "12345678"))
       }
 
       "allocate delegated enrolment to the agent identified by userId and groupId" in {
@@ -219,6 +239,9 @@ class EnrolmentStoreProxyStubControllerISpec
         )
 
         result.status shouldBe 201
+
+        val user = await(userService.findByUserId(session.userId, session.planetId)).get
+        user.delegatedEnrolments should contain.only(Enrolment("IR-SA", "UTR", "12345678"))
       }
 
       "allocate delegated enrolment to the agent identified by legacy-agentCode" in {
@@ -236,6 +259,57 @@ class EnrolmentStoreProxyStubControllerISpec
         )
 
         result.status shouldBe 201
+
+        val user = await(userService.findByUserId(session.userId, session.planetId)).get
+        user.delegatedEnrolments should contain.only(Enrolment("IR-SA", "UTR", "12345678"))
+      }
+
+      "return 400 if groupId does not match the current user" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("00000000123166122235")
+        Users.update(UserGenerator.individual(userId = "00000000123166122235", groupId = "group1"))
+
+        val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
+          "group2",
+          "IR-SA~UTR~12345678",
+          Json.parse("""{
+                       |    "userId" : "00000000123166122235",
+                       |    "type":         "principal"
+                       |}""".stripMargin)
+        )
+
+        result.status shouldBe 400
+      }
+
+      "return 400 if userId does not match the current user" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("00000000123166122235")
+        Users.update(UserGenerator.individual(userId = "00000000123166122235", groupId = "group1"))
+
+        val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
+          "group1",
+          "IR-SA~UTR~12345678",
+          Json.parse("""{
+                       |    "userId" : "foo1",
+                       |    "type":         "principal"
+                       |}""".stripMargin)
+        )
+
+        result.status shouldBe 400
+      }
+
+      "return 400 if enrolment key is invalid" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("00000000123166122235")
+        Users.update(UserGenerator.individual(userId = "00000000123166122235", groupId = "group1"))
+
+        val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
+          "00000000123166122235",
+          "IR-SA~UTR~",
+          Json.parse("""{
+                       |    "userId" : "foo1",
+                       |    "type":         "principal"
+                       |}""".stripMargin)
+        )
+
+        result.status shouldBe 400
       }
     }
   }

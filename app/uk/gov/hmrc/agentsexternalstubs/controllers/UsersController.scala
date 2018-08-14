@@ -11,8 +11,6 @@ import uk.gov.hmrc.http.NotFoundException
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
-import scala.concurrent.Future
-
 @Singleton
 class UsersController @Inject()(usersService: UsersService, val authenticationService: AuthenticationService)
     extends BaseController with CurrentSession {
@@ -37,7 +35,7 @@ class UsersController @Inject()(usersService: UsersService, val authenticationSe
             Link("create", routes.UsersController.createUser().url),
             Link("list", routes.UsersController.getUsers(None, None).url)
           ))
-        case None => NotFound(s"Could not found user $userId")
+        case None => notFound("USER_NOT_FOUND", s"Could not found user $userId")
       }
     }(SessionRecordNotFound)
   }
@@ -53,7 +51,7 @@ class UsersController @Inject()(usersService: UsersService, val authenticationSe
                 .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url))
             .recover {
               case DuplicateUserException(msg) => Conflict(msg)
-              case e: NotFoundException        => NotFound(e.getMessage)
+              case e: NotFoundException        => notFound("USER_NOT_FOUND", e.getMessage)
           })
     }(SessionRecordNotFound)
   }
@@ -77,7 +75,7 @@ class UsersController @Inject()(usersService: UsersService, val authenticationSe
     withCurrentSession { session =>
       usersService.findByUserId(userId, session.planetId).flatMap {
         case Some(_) => usersService.deleteUser(userId, session.planetId).map(_ => NoContent)
-        case None    => Future.successful(NotFound(s"Could not found user $userId"))
+        case None    => notFoundF("USER_NOT_FOUND", s"Could not found user $userId")
       }
     }(SessionRecordNotFound)
   }
