@@ -16,6 +16,7 @@ To handle requests locally without requiring existing applications to reconfigur
 - listening on 8500 for auth requests
 - listening on 9337 for citizen-details requests
 - listening on 9984 for users-groups-search requests
+- listening on 7775 for enrolment-store-proxy requests
 
 You can switch this behaviour off by setting `proxies.start` config property to `false`.
 
@@ -54,6 +55,13 @@ Endpoint | Description
 `GET /users-groups-search/groups/:groupId` | group details
 `GET /users-groups-search/groups/:groupId/users` | users in the group
 `GET /users-groups-search/groups?agentCode=:agentCode&agentId=:agentId` | group having the given agentCode, agentId is ignored
+
+### [Enrolment Store Proxy](https://github.com/hmrc/enrolment-store-proxy)
+
+Endpoint | Description
+---|---
+`GET /enrolment-store/enrolments/:enrolmentKey/users` | get user ids for the enrolment
+`GET /enrolment-store/enrolments/:enrolmentKey/groups` | get group ids for the enrolment
 
 ## Custom API
 

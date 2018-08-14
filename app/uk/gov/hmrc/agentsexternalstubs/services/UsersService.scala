@@ -38,6 +38,14 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
     implicit ec: ExecutionContext): Future[Seq[User]] =
     usersRepository.findByDelegatedEnrolmentKey(enrolmentKey, planetId)(limit)
 
+  def findUserIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(
+    implicit ec: ExecutionContext): Future[Seq[String]] =
+    usersRepository.findUserIdsByDelegatedEnrolmentKey(enrolmentKey, planetId)(limit)
+
+  def findGroupIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(
+    implicit ec: ExecutionContext): Future[Seq[Option[String]]] =
+    usersRepository.findGroupIdsByDelegatedEnrolmentKey(enrolmentKey, planetId)(limit)
+
   def createUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] =
     for {
       sanitized <- Future(UserSanitizer.sanitize(user))

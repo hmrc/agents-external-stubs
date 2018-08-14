@@ -17,7 +17,7 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json.toJsFieldJsValueWrapper
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.Index
@@ -121,6 +121,29 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
       Seq(User.delegated_enrolment_keys -> Option(User.enrolmentIndexKey(enrolmentKey.toString, planetId)))
     )(User.formats)
       .collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[User]]())
+
+  private val userIdReads = new Reads[String] {
+    override def reads(json: JsValue): JsResult[String] = JsSuccess((json \ "userId").as[String])
+  }
+
+  def findUserIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(
+    implicit ec: ExecutionContext): Future[Seq[String]] =
+    cursor(
+      Seq(User.delegated_enrolment_keys -> Option(User.enrolmentIndexKey(enrolmentKey.toString, planetId))),
+      Seq("userId"                      -> 1)
+    )(userIdReads).collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[String]]())
+
+  private val groupIdReads = new Reads[Option[String]] {
+    override def reads(json: JsValue): JsResult[Option[String]] = JsSuccess((json \ "groupId").asOpt[String])
+  }
+
+  def findGroupIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(
+    implicit ec: ExecutionContext): Future[Seq[Option[String]]] =
+    cursor(
+      Seq(User.delegated_enrolment_keys -> Option(User.enrolmentIndexKey(enrolmentKey.toString, planetId))),
+      Seq("groupId"                     -> 1)
+    )(groupIdReads)
+      .collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[Option[String]]]())
 
   private val toJsWrapper: PartialFunction[(String, Option[String]), (String, Json.JsValueWrapper)] = {
     case (name, Some(value)) => name -> toJsFieldJsValueWrapper(value)

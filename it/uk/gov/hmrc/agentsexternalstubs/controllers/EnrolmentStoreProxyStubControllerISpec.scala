@@ -16,7 +16,7 @@ class EnrolmentStoreProxyStubControllerISpec
 
   "EnrolmentStoreProxyStubController" when {
 
-    "GET  /enrolment-store/enrolments/:enrolmentKey/users?type=principal" should {
+    "GET /enrolment-store/enrolments/:enrolmentKey/users?type=principal" should {
       "respond 200 with user ids matching provided principal enrolment key" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         Users.update(
@@ -100,6 +100,79 @@ class EnrolmentStoreProxyStubControllerISpec
         val result = EnrolmentStoreProxyStub.getUserIds("IR-SA~UTR~87654321", "all")
 
         result.status shouldBe 204
+      }
+    }
+
+    "GET /enrolment-store/enrolments/:enrolmentKey/groups?type=principal" should {
+      "respond 200 with group ids matching provided principal enrolment key" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        Users.update(
+          UserGenerator
+            .individual(userId = "foo1", groupId = "group1")
+            .withPrincipalEnrolment("IR-SA", "UTR", "12345678"))
+        Users.create(
+          UserGenerator
+            .agent(userId = "foo2", groupId = "group2")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678"))
+
+        val result = EnrolmentStoreProxyStub.getGroupIds("IR-SA~UTR~12345678", "principal")
+
+        result.status shouldBe 200
+        val json = result.json
+        (json \ "principalGroupIds").as[Seq[String]] should contain.only("group1")
+        (json \ "delegatedGroupIds").asOpt[Seq[String]] shouldBe None
+      }
+
+      "respond 200 with group ids matching provided delegated enrolment key" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        Users.update(
+          UserGenerator
+            .individual(userId = "foo1", groupId = "group1")
+            .withPrincipalEnrolment("IR-SA", "UTR", "12345678"))
+        Users.create(
+          UserGenerator
+            .agent(userId = "foo2", groupId = "group2")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678"))
+
+        val result = EnrolmentStoreProxyStub.getGroupIds("IR-SA~UTR~12345678", "delegated")
+
+        result.status shouldBe 200
+        val json = result.json
+        (json \ "principalGroupIds").asOpt[Seq[String]] shouldBe None
+        (json \ "delegatedGroupIds").as[Seq[String]] should contain.only("group2")
+      }
+
+      "respond 200 with group ids matching provided principal and delegated enrolment key" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        Users.update(
+          UserGenerator
+            .individual(userId = "foo1", groupId = "group1")
+            .withPrincipalEnrolment("IR-SA", "UTR", "12345678"))
+        Users.create(
+          UserGenerator
+            .individual(userId = "foo2", groupId = "group1")
+            .withPrincipalEnrolment("IR-SA", "UTR", "87654321"))
+        Users.create(
+          UserGenerator
+            .agent(userId = "foo3", groupId = "group2")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678"))
+        Users.create(
+          UserGenerator
+            .agent(userId = "foo4", groupId = "group2")
+            .withDelegatedEnrolment("IR-SA", "UTR", "87654321"))
+
+        val otherSession: AuthenticatedSession = SignIn.signInAndGetSession("foo5", planetId = "saturn")
+        Users.update(
+          UserGenerator
+            .individual(userId = "foo3", groupId = "group1")
+            .withPrincipalEnrolment("IR-SA", "UTR", "12345678"))(otherSession)
+
+        val result = EnrolmentStoreProxyStub.getGroupIds("IR-SA~UTR~12345678", "all")
+
+        result.status shouldBe 200
+        val json = result.json
+        (json \ "principalGroupIds").as[Seq[String]] should contain.only("group1")
+        (json \ "delegatedGroupIds").as[Seq[String]] should contain.only("group2")
       }
     }
   }

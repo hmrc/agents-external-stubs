@@ -48,6 +48,7 @@ class TcpProxies @Inject()(tcpProxiesConfig: TcpProxiesConfig, @Named("http.port
     startProxy(tcpProxiesConfig.authPort, "auth")
     startProxy(tcpProxiesConfig.citizenDetailsPort, "citizen-details")
     startProxy(tcpProxiesConfig.usersGroupsSearchPort, "users-groups-search")
+    startProxy(tcpProxiesConfig.enrolmentStoreProxyPort, "enrolment-store-proxy")
 
   } else {
     Logger(getClass).info("TCP proxying feature is switched off")

@@ -14,6 +14,7 @@ GET         /users-groups-search/groups                                      @uk
 
 # Enrolment Store Proxy stubs
 GET         /enrolment-store/enrolments/:enrolmentKey/users                  @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.getUserIds(enrolmentKey: EnrolmentKey, `type`: String ?= "all")
+GET         /enrolment-store/enrolments/:enrolmentKey/groups                 @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.getGroupIds(enrolmentKey: EnrolmentKey, `type`: String ?= "all")
 
 # Authentication
 POST        /agents-external-stubs/sign-in                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.signIn

@@ -198,6 +198,14 @@ trait TestRequests extends ScalaFutures {
         .withHeaders(authContext.headers: _*)
         .get()
         .futureValue
+
+    def getGroupIds(enrolmentKey: String, _type: String = "all")(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/enrolment-store/enrolments/$enrolmentKey/groups")
+        .withQueryString("type" -> _type)
+        .withHeaders(authContext.headers: _*)
+        .get()
+        .futureValue
   }
 
 }

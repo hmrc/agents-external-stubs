@@ -337,4 +337,30 @@ class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPerT
       result1.flatMap(_.delegatedEnrolments).distinct should contain.only(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))
     }
   }
+
+  "findUserIdsByDelegatedEnrolmentKey" should {
+    "return users having provided delegated enrolment key" in {
+      await(repo.create(User("foo1", affinityGroup = Some("Agent"), delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = "juniper"))
+      await(repo.create(User("foo3", affinityGroup = Some("Agent"), principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = "juniper"))
+      await(repo.create(User("foo2", affinityGroup = Some("Agent"), delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = "juniper"))
+      await(repo.create(User("foo4", affinityGroup = Some("Agent"), delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = "saturn"))
+
+      val result1 = await(repo.findUserIdsByDelegatedEnrolmentKey(EnrolmentKey.from("FOO", "AAA" -> "111"), planetId = "juniper")(10))
+      result1.size shouldBe 2
+      result1 should contain.only("foo1","foo2")
+    }
+  }
+
+  "findGroupIdsByDelegatedEnrolmentKey" should {
+    "return users having provided delegated enrolment key" in {
+      await(repo.create(User("foo1", groupId = Some("group1"), affinityGroup = Some("Agent"), delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = "juniper"))
+      await(repo.create(User("foo3", groupId = Some("group2"), affinityGroup = Some("Agent"), principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = "juniper"))
+      await(repo.create(User("foo2", groupId = Some("group3"), affinityGroup = Some("Agent"), delegatedEnrolments = Seq(Enrolment("BAR", Some(Seq(Identifier("AAA","111")))))), planetId = "juniper"))
+      await(repo.create(User("foo4", groupId = Some("group4"), affinityGroup = Some("Agent"), delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = "saturn"))
+
+      val result1 = await(repo.findGroupIdsByDelegatedEnrolmentKey(EnrolmentKey.from("FOO", "AAA" -> "111"), planetId = "juniper")(10))
+      result1.size shouldBe 1
+      result1 should contain.only(Some("group1"))
+    }
+  }
 }
