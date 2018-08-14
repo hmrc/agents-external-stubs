@@ -2,8 +2,9 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import org.scalatest.Suite
 import org.scalatestplus.play.ServerProvider
+import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, User, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{MongoDbPerSuite, ServerBaseISpec, TestRequests}
 
@@ -173,6 +174,68 @@ class EnrolmentStoreProxyStubControllerISpec
         val json = result.json
         (json \ "principalGroupIds").as[Seq[String]] should contain.only("group1")
         (json \ "delegatedGroupIds").as[Seq[String]] should contain.only("group2")
+      }
+    }
+
+    "POST /enrolment-store/groups/:groupId/enrolments/:enrolmentKey" should {
+      "allocate principal enrolment to the group identified by groupId" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("00000000123166122235")
+        Users.update(UserGenerator.individual(userId = "00000000123166122235", groupId = "group1"))
+
+        val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
+          "group1",
+          "IR-SA~UTR~12345678",
+          Json.parse("""{
+                       |    "userId" : "00000000123166122235",
+                       |    "friendlyName": "My Self Assessment",
+                       |    "type":         "principal",
+                       |    "verifiers": [
+                       |       {
+                       |          "key": "Postcode",
+                       |          "value": "aa11aa"
+                       |       },
+                       |       {
+                       |          "key": "NINO",
+                       |          "value": "aa123456a"
+                       |       }
+                       |    ]
+                       |}""".stripMargin)
+        )
+
+        result.status shouldBe 201
+      }
+
+      "allocate delegated enrolment to the agent identified by userId and groupId" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("0000000021313132")
+        Users.update(UserGenerator.agent(userId = "0000000021313132", groupId = "group1"))
+
+        val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
+          "group1",
+          "IR-SA~UTR~12345678",
+          Json.parse("""{
+                       |    "userId" : "0000000021313132",
+                       |    "type" :         "delegated"
+                       |}""".stripMargin)
+        )
+
+        result.status shouldBe 201
+      }
+
+      "allocate delegated enrolment to the agent identified by legacy-agentCode" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("0000000021313132")
+        Users.update(UserGenerator.agent(userId = "0000000021313132", groupId = "group1", agentCode = "ABC123"))
+
+        val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
+          "group1",
+          "IR-SA~UTR~12345678",
+          Json.parse("""{
+                       |    "userId" : "0000000021313132",
+                       |    "type" :         "delegated"
+                       |}""".stripMargin),
+          `legacy-agentCode` = Some("ABC123")
+        )
+
+        result.status shouldBe 201
       }
     }
   }

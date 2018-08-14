@@ -4,7 +4,7 @@ import java.util.UUID
 
 import org.scalatest.concurrent.ScalaFutures
 import play.api.http.{HeaderNames, MimeTypes, Writeable}
-import play.api.libs.json.{JsValue, Json, Writes}
+import play.api.libs.json.{JsObject, JsValue, Json, Writes}
 import play.api.libs.ws.{WSClient, WSCookie, WSResponse}
 import play.api.mvc.{Cookie, Cookies}
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, SignInRequest, User}
@@ -205,6 +205,20 @@ trait TestRequests extends ScalaFutures {
         .withQueryString("type" -> _type)
         .withHeaders(authContext.headers: _*)
         .get()
+        .futureValue
+
+    def allocateEnrolmentToGroup[T: Writeable](
+      groupId: String,
+      enrolmentKey: String,
+      payload: T,
+      `legacy-agentCode`: Option[String] = None)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/enrolment-store/groups/$groupId/enrolments/$enrolmentKey")
+        .withQueryString(Seq("legacy-agentCode" -> `legacy-agentCode`).collect {
+          case (name, Some(value: String)) => (name, value)
+        }: _*)
+        .withHeaders(authContext.headers: _*)
+        .post[T](payload)
         .futureValue
   }
 

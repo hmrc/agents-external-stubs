@@ -62,6 +62,13 @@ Endpoint | Description
 ---|---
 `GET /enrolment-store/enrolments/:enrolmentKey/users` | get user ids for the enrolment
 `GET /enrolment-store/enrolments/:enrolmentKey/groups` | get group ids for the enrolment
+`POST /enrolment-store/groups/:groupId/enrolments/:enrolmentKey` | allocate an enrolment to a group (agent)
+
+### [Tax Enrolments](https://github.com/hmrc/tax-enrolments)
+
+Endpoint | Description
+---|---
+`POST /tax-enrolments/groups/:groupId/enrolments/:enrolmentKey` | allocate an enrolment to a group (agent)
 
 ## Custom API
 
