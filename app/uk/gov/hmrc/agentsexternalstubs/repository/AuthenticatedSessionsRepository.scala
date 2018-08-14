@@ -15,6 +15,8 @@
  */
 package uk.gov.hmrc.agentsexternalstubs.repository
 
+import java.util.UUID
+
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json.toJsFieldJsValueWrapper
 import play.modules.reactivemongo.ReactiveMongoComponent
@@ -55,7 +57,7 @@ class AuthenticatedSessionsRepository @Inject()(mongoComponent: ReactiveMongoCom
 
   def create(userId: String, authToken: String, providerType: String, planetId: String)(
     implicit ec: ExecutionContext): Future[Unit] =
-    insert(AuthenticatedSession(userId, authToken, providerType, planetId)).map(_ => ())
+    insert(AuthenticatedSession(UUID.randomUUID().toString, userId, authToken, providerType, planetId)).map(_ => ())
 
   def delete(sessionId: String)(implicit ec: ExecutionContext): Future[WriteResult] =
     remove("authToken" -> sessionId)
