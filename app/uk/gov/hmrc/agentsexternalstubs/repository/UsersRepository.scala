@@ -47,15 +47,21 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
   private final val UsersIndexName = "Users"
   private final val NinosIndexName = "Ninos"
   private final val PrincipalEnrolmentKeysIndexName = "PrincipalEnrolmentKeys"
+  private final val AgentCodesIndexName = "UniqueAgentCodes"
+  private final val GroupIdsIndexName = "UniqueGroupIds"
 
   override def indexes = Seq(
-    Index(Seq(User.user_index_key -> Ascending), Some(UsersIndexName), unique = true),
-    Index(Seq(User.nino_index_key -> Ascending), Some(NinosIndexName), unique = true, sparse = true),
+    // Unique indexes
+    Index(Seq(User.user_index_key       -> Ascending), Some(UsersIndexName), unique = true),
+    Index(Seq(User.nino_index_key       -> Ascending), Some(NinosIndexName), unique = true, sparse = true),
+    Index(Seq(User.agent_code_index_key -> Ascending), Some(AgentCodesIndexName), unique = true, sparse = true),
+    Index(Seq(User.group_id_index_key   -> Ascending), Some(GroupIdsIndexName), unique = true, sparse = true),
     Index(
       Seq(User.principal_enrolment_keys -> Ascending),
       Some(PrincipalEnrolmentKeysIndexName),
       unique = true,
       sparse = true),
+    // Lookup indexes
     Index(Seq(User.delegated_enrolment_keys -> Ascending), Some("DelegatedEnrolmentKeys"), sparse = true),
     Index(Seq("planetId"                    -> Ascending), Some("Planets")),
     Index(Seq("planetId"                    -> Ascending, "affinityGroup" -> Ascending), Some("PlanetsWithAffinityGroup")),
@@ -214,6 +220,10 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
   private val duplicatedUserMessageByIndex: Map[String, User => String => String] = Map(
     UsersIndexName -> (u => p => s"Duplicated userId ${u.userId} on $p"),
     NinosIndexName -> (u => p => s"Duplicated NINO ${u.nino.get} on $p"),
+    GroupIdsIndexName -> (u =>
+      p => s"Duplicated groupId ${u.groupId.get} on $p. Two Admin users cannot share the same groupId."),
+    AgentCodesIndexName -> (u =>
+      p => s"Duplicated agentCode ${u.agentCode.get} on $p. Two Admin agents cannot share the same agentCode."),
     PrincipalEnrolmentKeysIndexName -> (u =>
       p =>
         s"Duplicated principal${if (u.principalEnrolments.size > 1) " enrolment, one of" else ""} ${u.principalEnrolments
