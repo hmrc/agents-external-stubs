@@ -30,17 +30,20 @@ class GroupValidatorSpec extends UnitSpec {
           UserGenerator.individual(credentialRole = "User"),
           UserGenerator.individual(credentialRole = "Assistant"))) shouldBe Right(())
 
-      GroupValidator.validate(Seq(
-        UserGenerator.agent(credentialRole = "Admin"),
-        UserGenerator.agent(credentialRole = "User"))) shouldBe Right(())
-      GroupValidator.validate(Seq(
-        UserGenerator.agent(credentialRole = "Admin"),
-        UserGenerator.agent(credentialRole = "Assistant"))) shouldBe Right(())
       GroupValidator.validate(
         Seq(
-          UserGenerator.agent(credentialRole = "Admin"),
-          UserGenerator.agent(credentialRole = "User"),
-          UserGenerator.agent(credentialRole = "Assistant"))) shouldBe Right(())
+          UserGenerator.agent(groupId = "A", credentialRole = "Admin"),
+          UserGenerator.agent(groupId = "A", credentialRole = "User"))) shouldBe Right(())
+      GroupValidator.validate(
+        Seq(
+          UserGenerator.agent(groupId = "A", credentialRole = "Admin"),
+          UserGenerator.agent(groupId = "A", credentialRole = "Assistant"))) shouldBe Right(())
+      GroupValidator.validate(
+        Seq(
+          UserGenerator.agent(groupId = "A", credentialRole = "Admin"),
+          UserGenerator.agent(groupId = "A", credentialRole = "User"),
+          UserGenerator.agent(groupId = "A", credentialRole = "Assistant")
+        )) shouldBe Right(())
 
       GroupValidator.validate(Seq(UserGenerator.individual(credentialRole = "User"))).isLeft shouldBe true
     }
@@ -74,9 +77,10 @@ class GroupValidatorSpec extends UnitSpec {
         .isLeft shouldBe true
     }
     "validate if agents are not in the group with Organisation and Individuals" in {
-      GroupValidator.validate(Seq(UserGenerator.agent(credentialRole = "Admin"))) shouldBe Right(())
-      GroupValidator.validate(Seq(UserGenerator.agent(credentialRole = "Admin"), UserGenerator.agent())) shouldBe Right(
-        ())
+      GroupValidator.validate(Seq(UserGenerator.agent(groupId = "A", credentialRole = "Admin"))) shouldBe Right(())
+      GroupValidator.validate(Seq(
+        UserGenerator.agent(groupId = "A", credentialRole = "Admin"),
+        UserGenerator.agent(groupId = "A"))) shouldBe Right(())
       GroupValidator.validate(Seq(UserGenerator.agent(credentialRole = "Admin"), User("foo"))) shouldBe Right(())
 
       GroupValidator
@@ -91,6 +95,13 @@ class GroupValidatorSpec extends UnitSpec {
       GroupValidator
         .validate(Seq(UserGenerator.organisation(), UserGenerator.agent(credentialRole = "Assistant")))
         .isLeft shouldBe true
+    }
+    "validate if all Agents in the group share the same agentCode" in {
+      GroupValidator.validate(Seq(UserGenerator.agent(credentialRole = "Admin", agentCode = "A"))) shouldBe Right(())
+      GroupValidator.validate(
+        Seq(
+          UserGenerator.agent(groupId = "A", credentialRole = "Admin", agentCode = "A"),
+          UserGenerator.agent(groupId = "A", credentialRole = "User", agentCode = "A"))) shouldBe Right(())
     }
   }
 

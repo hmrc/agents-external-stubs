@@ -10,6 +10,7 @@ object GroupValidator {
         - Group CAN have at most 100 users
         - Organisation MUST be an Admin in the group
         - Agent MAY NOT be in the group with Organisation and Individuals
+        - All Agents in the group MUST have the same AgentCode
    */
 
   type GroupConstraint = Seq[User] => Either[String, Unit]
@@ -36,6 +37,10 @@ object GroupValidator {
         })) Right(())
     else Left("Agents MAY NOT be in the group with Organisation and Individuals")
 
+  val allAgentsInTheGroupMustShareTheSameAgentCode: GroupConstraint = users =>
+    if (users.filter(_.isAgent).map(_.agentCode).distinct.size <= 1) Right(())
+    else Left("All Agents in the group MUST share the same AgentCode")
+
   val constraints: Seq[GroupConstraint] =
     Seq(
       groupMustHaveOneAndAtMostOneAdmin,
@@ -43,7 +48,8 @@ object GroupValidator {
       groupMayNotHaveOnlyAssistants,
       groupCanHaveAtMost100Users,
       organisationMustBeAnAdminInTheGroup,
-      agentMayNotBeInTheGroupWithOrganisationAndIndividuals
+      agentMayNotBeInTheGroupWithOrganisationAndIndividuals,
+      allAgentsInTheGroupMustShareTheSameAgentCode
     )
 
   def validate(users: Seq[User]): Either[String, Unit] =

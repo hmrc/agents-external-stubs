@@ -2,7 +2,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 
 import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.agentsexternalstubs.models.{User, _}
-import uk.gov.hmrc.agentsexternalstubs.repository.{DuplicateUserException, UsersRepository}
+import uk.gov.hmrc.agentsexternalstubs.repository.UsersRepository
 import uk.gov.hmrc.http.{BadRequestException, NotFoundException}
 
 import scala.concurrent.{ExecutionContext, Future}
