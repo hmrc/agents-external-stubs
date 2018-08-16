@@ -220,6 +220,22 @@ trait TestRequests extends ScalaFutures {
         .withHeaders(authContext.headers: _*)
         .post[T](payload)
         .futureValue
+
+    def deallocateEnrolmentFromGroup(
+      groupId: String,
+      enrolmentKey: String,
+      `legacy-agentCode`: Option[String] = None,
+      keepAgentAllocations: Option[String] = None
+    )(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/enrolment-store/groups/$groupId/enrolments/$enrolmentKey")
+        .withQueryString(
+          Seq("legacy-agentCode" -> `legacy-agentCode`, "keepAgentAllocations" -> keepAgentAllocations).collect {
+            case (name, Some(value: String)) => (name, value)
+          }: _*)
+        .withHeaders(authContext.headers: _*)
+        .delete()
+        .futureValue
   }
 
 }

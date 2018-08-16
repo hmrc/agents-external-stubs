@@ -41,15 +41,16 @@ object UserValidator {
   }
 
   val validateCredentialRole: UserValidator = user =>
-    user.credentialRole match {
-      case Some(User.CR.Admin) | Some(User.CR.User) | Some(User.CR.Assistant)
-          if user.affinityGroup.exists(Set(User.AG.Individual, User.AG.Agent).contains) =>
-        Valid(())
-      case None => Valid(())
-      case _ =>
-        Invalid(
-          NonEmptyList.of(
-            "credentialRole must be none, or one of [Admin, User, Assistant] for Individual or Agent only"))
+    user.affinityGroup match {
+      case Some(User.AG.Individual | User.AG.Agent) =>
+        if (user.credentialRole.isEmpty || user.credentialRole.exists(User.CR.all)) Valid(())
+        else
+          Invalid(
+            NonEmptyList.of("credentialRole must be none, or one of [Admin, User, Assistant] for Individual or Agent"))
+      case Some(User.AG.Organisation) =>
+        if (user.credentialRole.contains(User.CR.Admin)) Valid(())
+        else Invalid(NonEmptyList.of("credentialRole must be Admin for Organisation"))
+      case _ => Valid(())
   }
 
   val validateNino: UserValidator = user =>
@@ -91,7 +92,7 @@ object UserValidator {
       case _ => Valid(())
   }
 
-  private val userValidators: Seq[UserValidator] = Seq(
+  val userValidators: Seq[UserValidator] = Seq(
     validateAffinityGroup,
     validateConfidenceLevel,
     validateCredentialStrength,

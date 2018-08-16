@@ -8,12 +8,16 @@ import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, Enrolment, 
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{MongoDbPerSuite, ServerBaseISpec, TestRequests}
 
+import scala.concurrent.duration._
+
 class EnrolmentStoreProxyStubControllerISpec
     extends ServerBaseISpec with MongoDbPerSuite with TestRequests with TestStubs {
   this: Suite with ServerProvider =>
 
   val url = s"http://localhost:$port"
   val wsClient = app.injector.instanceOf[WSClient]
+
+  override implicit val defaultTimeout = 60.seconds
 
   "EnrolmentStoreProxyStubController" when {
 
@@ -264,7 +268,7 @@ class EnrolmentStoreProxyStubControllerISpec
         user.delegatedEnrolments should contain.only(Enrolment("IR-SA", "UTR", "12345678"))
       }
 
-      "return 400 if groupId does not match the current user" in {
+      "return 400 if groupId does not exist" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("00000000123166122235")
         Users.update(UserGenerator.individual(userId = "00000000123166122235", groupId = "group1"))
 
@@ -280,7 +284,7 @@ class EnrolmentStoreProxyStubControllerISpec
         result.status shouldBe 400
       }
 
-      "return 400 if userId does not match the current user" in {
+      "return 400 if userId does not exist" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("00000000123166122235")
         Users.update(UserGenerator.individual(userId = "00000000123166122235", groupId = "group1"))
 
@@ -310,6 +314,38 @@ class EnrolmentStoreProxyStubControllerISpec
         )
 
         result.status shouldBe 400
+      }
+    }
+
+    "DELETE /enrolment-store/groups/:groupId/enrolments/:enrolmentKey" should {
+      "deallocate principal enrolment from the group identified by groupId" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        Users.update(
+          UserGenerator
+            .individual(userId = "foo1", groupId = "group1")
+            .withPrincipalEnrolment("IR-SA", "UTR", "12345678"))
+
+        val result = EnrolmentStoreProxyStub.deallocateEnrolmentFromGroup("group1", "IR-SA~UTR~12345678")
+
+        result.status shouldBe 204
+
+        val user = await(userService.findByUserId(session.userId, session.planetId)).get
+        user.principalEnrolments.isEmpty shouldBe true
+      }
+
+      "deallocate delegated enrolment from the group identified by groupId" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        Users.update(
+          UserGenerator
+            .agent(userId = "foo1", groupId = "group1")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678"))
+
+        val result = EnrolmentStoreProxyStub.deallocateEnrolmentFromGroup("group1", "IR-SA~UTR~12345678")
+
+        result.status shouldBe 204
+
+        val user = await(userService.findByUserId(session.userId, session.planetId)).get
+        user.principalEnrolments.isEmpty shouldBe true
       }
     }
   }

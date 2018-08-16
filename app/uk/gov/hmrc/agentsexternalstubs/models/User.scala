@@ -30,6 +30,10 @@ case class User(
   def isIndividual: Boolean = affinityGroup.contains(User.AG.Individual)
   def isOrganisation: Boolean = affinityGroup.contains(User.AG.Organisation)
   def isAgent: Boolean = affinityGroup.contains(User.AG.Agent)
+
+  def isAdmin: Boolean = credentialRole.contains(User.CR.Admin)
+  def isUser: Boolean = credentialRole.contains(User.CR.User)
+  def isAssistant: Boolean = credentialRole.contains(User.CR.Assistant)
 }
 
 object User {
@@ -39,13 +43,15 @@ object User {
     final val Organisation = "Organisation"
     final val Agent = "Agent"
 
-    val contains = Set(Individual, Organisation, Agent).contains _
+    val all = Set(Individual, Organisation, Agent).contains _
   }
 
   object CR {
     final val Admin = "Admin"
     final val User = "User"
     final val Assistant = "Assistant"
+
+    val all = Set(Admin, User, Assistant).contains _
   }
 
   implicit val reads: Reads[User] = Json.reads[User]
@@ -99,7 +105,7 @@ object User {
     else {
       val planetId = (json \ "planetId").asOpt[String].getOrElse("hmrc")
       val keys =
-        enrolments.map(_.toEnrolmentKey).collect { case Some(key) => enrolmentIndexKey(key, planetId) }
+        enrolments.map(_.toEnrolmentKeyTag).collect { case Some(key) => enrolmentIndexKey(key, planetId) }
       if (keys.isEmpty) json else json + ((principal_enrolment_keys, JsArray(keys.map(JsString))))
     }
   }
@@ -109,7 +115,7 @@ object User {
     if (enrolments.isEmpty) json
     else {
       val planetId = (json \ "planetId").asOpt[String].getOrElse("hmrc")
-      val keys = enrolments.map(_.toEnrolmentKey).collect { case Some(key) => enrolmentIndexKey(key, planetId) }
+      val keys = enrolments.map(_.toEnrolmentKeyTag).collect { case Some(key) => enrolmentIndexKey(key, planetId) }
       if (keys.isEmpty) json else json + ((delegated_enrolment_keys, JsArray(keys.map(JsString))))
     }
   }

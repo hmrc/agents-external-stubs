@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import uk.gov.hmrc.agentsexternalstubs.models.{Enrolment, EnrolmentKey, Identifier, User}
+import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.support.MongoDbPerTest
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.test.UnitSpec
@@ -361,6 +361,52 @@ class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPerT
       val result1 = await(repo.findGroupIdsByDelegatedEnrolmentKey(EnrolmentKey.from("FOO", "AAA" -> "111"), planetId = "juniper")(10))
       result1.size shouldBe 1
       result1 should contain.only(Some("group1"))
+    }
+  }
+
+  "findAdminByGroupId" should {
+    "return Admin user having provided groupId" in {
+      await(repo.create(UserGenerator.individual("foo1", groupId = "group1", credentialRole = User.CR.Admin), planetId = "juniper"))
+      await(repo.create(UserGenerator.individual("foo2", groupId = "group1", credentialRole = User.CR.User), planetId = "juniper"))
+      await(repo.create(UserGenerator.individual("foo3", groupId = "group1", credentialRole = User.CR.Assistant), planetId = "juniper"))
+      await(repo.create(UserGenerator.individual("foo4", groupId = "group2", credentialRole = User.CR.Admin), planetId = "juniper"))
+
+      val result1 = await(repo.findAdminByGroupId("group1", planetId = "juniper"))
+
+      result1.size shouldBe 1
+      result1.map(_.userId) shouldBe Some("foo1")
+
+      val result2 = await(repo.findAdminByGroupId("group2", planetId = "juniper"))
+
+      result2.size shouldBe 1
+      result2.map(_.userId) shouldBe Some("foo4")
+
+      val result3 = await(repo.findAdminByGroupId("group3", planetId = "juniper"))
+
+      result3.size shouldBe 0
+    }
+  }
+
+  "findAdminByAgentCode" should {
+    "return Admin user having provided groupId" in {
+      await(repo.create(UserGenerator.agent("foo1", agentCode = "ABC123", credentialRole = User.CR.Admin), planetId = "juniper"))
+      await(repo.create(UserGenerator.agent("foo2", agentCode = "ABC123", credentialRole = User.CR.User), planetId = "juniper"))
+      await(repo.create(UserGenerator.agent("foo3", agentCode = "ABC123", credentialRole = User.CR.Assistant), planetId = "juniper"))
+      await(repo.create(UserGenerator.agent("foo4", groupId="group2", agentCode = "ABC456", credentialRole = User.CR.Admin), planetId = "juniper"))
+
+      val result1 = await(repo.findAdminByAgentCode("ABC123", planetId = "juniper"))
+
+      result1.size shouldBe 1
+      result1.map(_.userId) shouldBe Some("foo1")
+
+      val result2 = await(repo.findAdminByAgentCode("ABC456", planetId = "juniper"))
+
+      result2.size shouldBe 1
+      result2.map(_.userId) shouldBe Some("foo4")
+
+      val result3 = await(repo.findAdminByAgentCode("FOOBAR", planetId = "juniper"))
+
+      result3.size shouldBe 0
     }
   }
 }

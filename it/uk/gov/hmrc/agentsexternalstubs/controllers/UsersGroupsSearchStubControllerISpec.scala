@@ -34,7 +34,7 @@ class UsersGroupsSearchStubControllerISpec
         (json \ "agentCode").asOpt[String] shouldBe None
         (json \ "agentFriendlyName").asOpt[String] shouldBe None
         (json \ "agentId").asOpt[String] shouldBe None
-        (json \ "credentialRole").as[String] shouldBe "User"
+        (json \ "credentialRole").as[String] shouldBe "Admin"
         (json \ "description").asOpt[String] shouldBe None
         (json \ "groupId").as[String] shouldBe "foo-group-1"
       }
@@ -62,7 +62,7 @@ class UsersGroupsSearchStubControllerISpec
         (json \ "agentCode").as[String] shouldBe "AAABBBCCCDDD"
         (json \ "agentFriendlyName").as[String] shouldBe "Foo-Foe Accountants"
         (json \ "agentId").as[String] shouldBe "1234567"
-        (json \ "credentialRole").as[String] shouldBe "User"
+        (json \ "credentialRole").as[String] shouldBe "Admin"
         (json \ "description").asOpt[String] shouldBe None
         (json \ "groupId").as[String] shouldBe "foo-group-2"
       }

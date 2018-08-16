@@ -35,10 +35,12 @@ object UserSanitizer {
       case _ => user.copy(confidenceLevel = None)
   }
 
-  private val ensureUserCredentialRole: User => User = user =>
+  private val ensureUserHaveCredentialRole: User => User = user =>
     user.affinityGroup match {
       case Some(User.AG.Individual | User.AG.Agent) =>
         if (user.credentialRole.isEmpty) user.copy(credentialRole = Some(User.CR.User)) else user
+      case Some(User.AG.Organisation) =>
+        user.copy(credentialRole = Some(User.CR.Admin))
       case _ => user.copy(credentialRole = None)
   }
 
@@ -87,7 +89,7 @@ object UserSanitizer {
       ensureIndividualUserHaveDateOfBirth,
       ensureOnlyIndividualUserHaveNINO,
       ensureOnlyIndividualUserHaveConfidenceLevel,
-      ensureUserCredentialRole,
+      ensureUserHaveCredentialRole,
       ensureOnlyIndividualUserHaveDateOfBirth,
       ensureUserHaveGroupIdentifier,
       ensureAgentHaveAgentCode,

@@ -3,7 +3,8 @@ import play.api.libs.json._
 
 case class EnrolmentKey(service: String, identifiers: Seq[Identifier]) {
   def isSingle: Boolean = identifiers.size == 1
-  override def toString: String = s"$service~${identifiers.sorted.mkString("~")}"
+  lazy val tag = s"$service~${identifiers.sorted.mkString("~")}"
+  override def toString: String = tag
 }
 
 object EnrolmentKey {

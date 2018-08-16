@@ -60,7 +60,15 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
     Index(Seq("planetId"                    -> Ascending), Some("Planets")),
     Index(Seq("planetId"                    -> Ascending, "affinityGroup" -> Ascending), Some("PlanetsWithAffinityGroup")),
     Index(Seq("groupId"                     -> Ascending, "planetId" -> Ascending), Some("Groups"), sparse = true),
-    Index(Seq("agentCode"                   -> Ascending, "planetId" -> Ascending), Some("AgentCodes"), sparse = true),
+    Index(
+      Seq("groupId" -> Ascending, "planetId" -> Ascending, "credentialRole" -> Ascending),
+      Some("GroupsWithCredentialRole"),
+      sparse = true),
+    Index(
+      Seq("agentCode" -> Ascending, "planetId" -> Ascending, "credentialRole" -> Ascending),
+      Some("AgentCodesWithCredentialRole"),
+      sparse = true),
+    Index(Seq("agentCode" -> Ascending, "planetId" -> Ascending), Some("AgentCodes"), sparse = true),
     Index(
       Seq(User.ttl_index_key -> Ascending),
       Some("TTL"),
@@ -98,12 +106,26 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
     )(User.formats)
       .collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[User]]())
 
+  def findAdminByGroupId(groupId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
+    cursor(
+      Seq("groupId" -> Option(groupId), "credentialRole" -> Option(User.CR.Admin), "planetId" -> Option(planetId))
+    )(User.formats)
+      .collect[Seq](maxDocs = 1, err = Cursor.FailOnError[Seq[User]]())
+      .map(_.headOption)
+
   def findByAgentCode(agentCode: String, planetId: String)(limit: Int)(
     implicit ec: ExecutionContext): Future[Seq[User]] =
     cursor(
       Seq("agentCode" -> Option(agentCode), "planetId" -> Option(planetId))
     )(User.formats)
       .collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[User]]())
+
+  def findAdminByAgentCode(agentCode: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
+    cursor(
+      Seq("agentCode" -> Option(agentCode), "credentialRole" -> Option(User.CR.Admin), "planetId" -> Option(planetId))
+    )(User.formats)
+      .collect[Seq](maxDocs = 1, err = Cursor.FailOnError[Seq[User]]())
+      .map(_.headOption)
 
   def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[User]] =

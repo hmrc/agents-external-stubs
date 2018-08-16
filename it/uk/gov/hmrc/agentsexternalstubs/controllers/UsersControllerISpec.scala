@@ -68,6 +68,22 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDbPerSuite with Tes
         val result = Users.create(User("yuwyquhh", nino = Some(Nino("HW827856C"))))
         result.status shouldBe 201
       }
+
+      "make user Admin if none exist in the group" in {
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "F")
+        val result = Users.update(UserGenerator.agent("foo", credentialRole = User.CR.User))
+        result.status shouldBe 202
+        Users.get("foo").json.as[User].credentialRole shouldBe Some(User.CR.Admin)
+      }
+
+      "return 400 if Admin exists already in the group" in {
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "F")
+        val result1 = Users.update(UserGenerator.agent("foo", groupId = "group1", credentialRole = User.CR.User))
+        result1.status shouldBe 202
+        Users.get("foo").json.as[User].credentialRole shouldBe Some(User.CR.Admin)
+        val result2 = Users.create(UserGenerator.agent("bar", groupId = "group1", credentialRole = User.CR.Admin))
+        result2.status shouldBe 400
+      }
     }
 
     "PUT /agents-external-stubs/users/:userId" should {
@@ -88,7 +104,7 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDbPerSuite with Tes
     }
 
     "DELETE /agents-external-stubs/users/:userId" should {
-      "return 204 if user exists" in {
+      "return 204 if user can be removed" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "I")
         val result = Users.delete("foo")
         result.status shouldBe 204
@@ -99,10 +115,18 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDbPerSuite with Tes
         val result = Users.delete("ABC123")
         result.status shouldBe 404
       }
+
+      "return 400 if user can't be removed without breaking group constraint" in {
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "J1")
+        Users.update(User("foo", groupId = Some("group1")))
+        Users.create(UserGenerator.individual(userId = "bar", groupId = "group1", credentialRole = "User"))
+        val result = Users.delete("foo")
+        result.status shouldBe 400
+      }
     }
 
     "GET /agents-external-stubs/users" should {
-      "return 200 with the list of users on the current planet only" in {
+      "return 200 with the list of all users on the current planet only" in {
         val otherPlanetAuthSession: AuthenticatedSession = SignIn.signInAndGetSession("boo", planetId = "K1")
         Users.create(UserGenerator.individual("boo1"))(otherPlanetAuthSession)
         Users.create(UserGenerator.organisation("boo2"))(otherPlanetAuthSession)

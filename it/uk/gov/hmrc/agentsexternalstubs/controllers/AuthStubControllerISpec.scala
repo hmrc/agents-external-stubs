@@ -350,7 +350,14 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with 
       }
 
       "retrieve credentialRole" in {
-        val authToken = givenAnAuthenticatedUser(UserGenerator.individual(credentialRole = "Assistant"))
+        givenAnAuthenticatedUser(
+          UserGenerator.individual(groupId = "group1", credentialRole = "User"),
+          planetId = "saturn")
+
+        val authToken =
+          givenAnAuthenticatedUser(
+            UserGenerator.individual(groupId = "group1", credentialRole = "Assistant"),
+            planetId = "saturn")
 
         val credentialRoleOpt = await(
           authConnector

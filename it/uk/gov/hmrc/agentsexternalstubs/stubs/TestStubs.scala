@@ -5,7 +5,7 @@ import java.util.UUID
 import org.scalatest.Suite
 import org.scalatestplus.play.ServerProvider
 import play.api.Application
-import uk.gov.hmrc.agentsexternalstubs.models.User
+import uk.gov.hmrc.agentsexternalstubs.models.{Enrolment, Identifier, User}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -37,6 +37,22 @@ trait TestStubs {
     service: String,
     identifierKey: String,
     identifierValue: String)(implicit ec: ExecutionContext, timeout: Duration): Unit =
-    await(userService.addPrincipalEnrolment(userId, planetId, service, identifierKey, identifierValue))
+    await(addPrincipalEnrolment(userId, planetId, service, identifierKey, identifierValue))
+
+  private def addPrincipalEnrolment(
+    userId: String,
+    planetId: String,
+    service: String,
+    identifierKey: String,
+    identifierValue: String)(implicit ec: ExecutionContext): Future[User] =
+    userService.updateUser(
+      userId,
+      planetId,
+      user =>
+        user.copy(
+          principalEnrolments = user.principalEnrolments :+ Enrolment(
+            service,
+            Some(Seq(Identifier(identifierKey, identifierValue)))))
+    )
 
 }

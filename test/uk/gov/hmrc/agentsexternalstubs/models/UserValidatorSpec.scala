@@ -9,7 +9,9 @@ class UserValidatorSpec extends UnitSpec {
   "UserValidator" should {
     "validate only when affinityGroup is none or one of [Individual, Organisation, Agent]" in {
       User.validate(User("foo", affinityGroup = Some(User.AG.Individual))).isValid shouldBe true
-      User.validate(User("foo", affinityGroup = Some(User.AG.Organisation))).isValid shouldBe true
+      User
+        .validate(User("foo", affinityGroup = Some(User.AG.Organisation), credentialRole = Some(User.CR.Admin)))
+        .isValid shouldBe true
       User.validate(UserGenerator.agent("foo")).isValid shouldBe true
       User.validate(User("foo", affinityGroup = None)).isValid shouldBe true
 
@@ -94,26 +96,39 @@ class UserValidatorSpec extends UnitSpec {
       User.validate(User("foo", credentialStrength = Some(""))).isValid shouldBe false
     }
 
-    "validate only when credentialRole is none, or one of [User, Assistant] for Individual or Agent" in {
+    "validate only when credentialRole is none, or one of [Admin, User, Assistant] for Individual or Agent" in {
       User
         .validate(User("foo", credentialRole = Some(User.CR.User), affinityGroup = Some(User.AG.Individual)))
         .isValid shouldBe true
       User
-        .validate(UserGenerator.agent("foo", credentialRole = Some(User.CR.User)))
+        .validate(UserGenerator.agent("foo", credentialRole = User.CR.User))
         .isValid shouldBe true
       User
         .validate(User("foo", credentialRole = Some("Assistant"), affinityGroup = Some(User.AG.Individual)))
         .isValid shouldBe true
       User
-        .validate(UserGenerator.agent("foo", credentialRole = Some("Assistant")))
+        .validate(UserGenerator.agent("foo", credentialRole = "Assistant"))
         .isValid shouldBe true
       User
-        .validate(UserGenerator.agent("foo", credentialRole = None))
+        .validate(UserGenerator.agent("foo"))
         .isValid shouldBe true
       User
         .validate(User("foo", credentialRole = None, affinityGroup = Some(User.AG.Individual)))
         .isValid shouldBe true
 
+      User
+        .validate(User("foo", credentialRole = Some("Assistant"), affinityGroup = Some(User.AG.Organisation)))
+        .isValid shouldBe false
+    }
+
+    "validate only when credentialRole is Admin for Organisation" in {
+      User
+        .validate(User("foo", credentialRole = Some("Admin"), affinityGroup = Some(User.AG.Organisation)))
+        .isValid shouldBe true
+
+      User
+        .validate(User("foo", credentialRole = Some("User"), affinityGroup = Some(User.AG.Organisation)))
+        .isValid shouldBe false
       User
         .validate(User("foo", credentialRole = Some("Assistant"), affinityGroup = Some(User.AG.Organisation)))
         .isValid shouldBe false

@@ -75,8 +75,8 @@ object UserGenerator extends Names with Temporal with Companies {
     User(
       userId = userId,
       affinityGroup = Some(User.AG.Individual),
-      confidenceLevel = Some(confidenceLevel),
-      credentialRole = Some(credentialRole),
+      confidenceLevel = Option(confidenceLevel),
+      credentialRole = Option(credentialRole),
       nino = Option(nino).map(Nino.apply).orElse(Option(UserGenerator.nino(userId))),
       name = Option(name).orElse(Option(UserGenerator.nameForIndividual(userId))),
       dateOfBirth = Option(dateOfBirth)
@@ -87,7 +87,7 @@ object UserGenerator extends Names with Temporal with Companies {
 
   def agent(
     userId: String = UUID.randomUUID().toString,
-    credentialRole: Option[String] = Some(User.CR.User),
+    credentialRole: String = null,
     name: String = null,
     agentCode: String = null,
     agentFriendlyName: String = null,
@@ -97,7 +97,7 @@ object UserGenerator extends Names with Temporal with Companies {
     User(
       userId = userId,
       affinityGroup = Some(User.AG.Agent),
-      credentialRole = credentialRole,
+      credentialRole = Option(credentialRole),
       name = Option(name).orElse(Option(UserGenerator.nameForAgent(userId))),
       agentCode = Option(agentCode).orElse(Option(UserGenerator.agentCode(Option(groupId).getOrElse(userId)))),
       agentFriendlyName =
@@ -112,7 +112,8 @@ object UserGenerator extends Names with Temporal with Companies {
       userId = userId,
       affinityGroup = Some(User.AG.Organisation),
       name = Option(name).orElse(Option(UserGenerator.nameForOrganisation(userId))),
-      groupId = Option(groupId).orElse(Option(UserGenerator.groupId(userId)))
+      groupId = Option(groupId).orElse(Option(UserGenerator.groupId(userId))),
+      credentialRole = Some(User.CR.Admin)
     )
 
 }
