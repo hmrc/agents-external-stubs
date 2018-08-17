@@ -111,8 +111,9 @@ Get all users available at the current planet (_requires valid bearer token_)
 
 Optional params:
    * affinityGroup: only return users with this affinity
+   * agentCode: only return agents with this agentCode
    * limit: max number of users returned, default to 100
-
+   
 Response | Description
 ---|---
 200| list of users as `{ "users": [{ "id": "123", "affinity": "Agent" }, ...] }`

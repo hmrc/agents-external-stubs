@@ -4,7 +4,7 @@ import java.util.UUID
 
 import org.scalatest.concurrent.ScalaFutures
 import play.api.http.{HeaderNames, MimeTypes, Writeable}
-import play.api.libs.json.{JsObject, JsValue, Json, Writes}
+import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.libs.ws.{WSClient, WSCookie, WSResponse}
 import play.api.mvc.{Cookie, Cookies}
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, SignInRequest, User}
@@ -110,13 +110,14 @@ trait TestRequests extends ScalaFutures {
 
   object Users {
 
-    def getAll(affinityGroup: Option[String] = None, limit: Option[Int] = None)(
+    def getAll(affinityGroup: Option[String] = None, limit: Option[Int] = None, agentCode: Option[String] = None)(
       implicit authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/users")
-        .withQueryString(Seq("affinityGroup" -> affinityGroup, "limit" -> limit.toString).collect {
-          case (name, Some(value: String)) => (name, value)
-        }: _*)
+        .withQueryString(
+          Seq("affinityGroup" -> affinityGroup, "limit" -> limit.toString, "agentCode" -> agentCode).collect {
+            case (name, Some(value: String)) => (name, value)
+          }: _*)
         .withHeaders(authContext.headers: _*)
         .get()
         .futureValue
@@ -193,7 +194,7 @@ trait TestRequests extends ScalaFutures {
   object EnrolmentStoreProxyStub {
     def getUserIds(enrolmentKey: String, _type: String = "all")(implicit authContext: AuthContext): WSResponse =
       wsClient
-        .url(s"$url/enrolment-store/enrolments/$enrolmentKey/users")
+        .url(s"$url/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/users")
         .withQueryString("type" -> _type)
         .withHeaders(authContext.headers: _*)
         .get()
@@ -201,7 +202,7 @@ trait TestRequests extends ScalaFutures {
 
     def getGroupIds(enrolmentKey: String, _type: String = "all")(implicit authContext: AuthContext): WSResponse =
       wsClient
-        .url(s"$url/enrolment-store/enrolments/$enrolmentKey/groups")
+        .url(s"$url/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/groups")
         .withQueryString("type" -> _type)
         .withHeaders(authContext.headers: _*)
         .get()
@@ -213,7 +214,7 @@ trait TestRequests extends ScalaFutures {
       payload: T,
       `legacy-agentCode`: Option[String] = None)(implicit authContext: AuthContext): WSResponse =
       wsClient
-        .url(s"$url/enrolment-store/groups/$groupId/enrolments/$enrolmentKey")
+        .url(s"$url/enrolment-store-proxy/enrolment-store/groups/$groupId/enrolments/$enrolmentKey")
         .withQueryString(Seq("legacy-agentCode" -> `legacy-agentCode`).collect {
           case (name, Some(value: String)) => (name, value)
         }: _*)
@@ -228,7 +229,7 @@ trait TestRequests extends ScalaFutures {
       keepAgentAllocations: Option[String] = None
     )(implicit authContext: AuthContext): WSResponse =
       wsClient
-        .url(s"$url/enrolment-store/groups/$groupId/enrolments/$enrolmentKey")
+        .url(s"$url/enrolment-store-proxy/enrolment-store/groups/$groupId/enrolments/$enrolmentKey")
         .withQueryString(
           Seq("legacy-agentCode" -> `legacy-agentCode`, "keepAgentAllocations" -> keepAgentAllocations).collect {
             case (name, Some(value: String)) => (name, value)

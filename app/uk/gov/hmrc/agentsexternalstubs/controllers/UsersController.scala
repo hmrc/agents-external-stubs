@@ -4,7 +4,7 @@ import javax.inject.{Inject, Singleton}
 import play.api.libs.json.JsValue
 import play.api.mvc.{Action, AnyContent}
 import play.mvc.Http.HeaderNames
-import uk.gov.hmrc.agentsexternalstubs.models.{User, Users}
+import uk.gov.hmrc.agentsexternalstubs.models.{User, UserIdWithAffinityGroup, Users}
 import uk.gov.hmrc.agentsexternalstubs.repository.DuplicateUserException
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.http.NotFoundException
@@ -15,14 +15,18 @@ import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 class UsersController @Inject()(usersService: UsersService, val authenticationService: AuthenticationService)
     extends BaseController with CurrentSession {
 
-  def getUsers(affinityGroup: Option[String], limit: Option[Int]): Action[AnyContent] = Action.async {
-    implicit request =>
+  def getUsers(affinityGroup: Option[String], limit: Option[Int], agentCode: Option[String]): Action[AnyContent] =
+    Action.async { implicit request =>
       withCurrentSession { session =>
-        usersService.findByPlanetId(session.planetId, affinityGroup)(limit.getOrElse(100)).map { users =>
+        (if (agentCode.isDefined)
+           usersService
+             .findByAgentCode(agentCode.get, session.planetId)(limit.getOrElse(100))
+             .map(_.map(u => UserIdWithAffinityGroup(u.userId, u.affinityGroup)))
+         else usersService.findByPlanetId(session.planetId, affinityGroup)(limit.getOrElse(100))).map { users =>
           Ok(RestfulResponse(Users(users)))
         }
       }(SessionRecordNotFound)
-  }
+    }
 
   def getUser(userId: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>

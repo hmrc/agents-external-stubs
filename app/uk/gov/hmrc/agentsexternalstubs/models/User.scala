@@ -65,14 +65,17 @@ object User {
   }
 
   implicit class UserBuilder(val user: User) extends AnyVal {
+    def withPrincipalEnrolment(enrolment: Enrolment): User =
+      user.copy(principalEnrolments = user.principalEnrolments :+ enrolment)
+
     def withPrincipalEnrolment(service: String, identifierKey: String, identifierValue: String): User =
-      user.copy(principalEnrolments = user.principalEnrolments :+ Enrolment(service, identifierKey, identifierValue))
+      withPrincipalEnrolment(Enrolment(service, identifierKey, identifierValue))
+
+    def withDelegatedEnrolment(enrolment: Enrolment): User =
+      user.copy(delegatedEnrolments = user.delegatedEnrolments :+ enrolment)
 
     def withDelegatedEnrolment(service: String, identifierKey: String, identifierValue: String): User =
-      user.copy(
-        delegatedEnrolments = user.delegatedEnrolments :+ Enrolment(
-          service,
-          Some(Seq(Identifier(identifierKey, identifierValue)))))
+      withDelegatedEnrolment(Enrolment(service, Some(Seq(Identifier(identifierKey, identifierValue)))))
   }
 
   type Transformer = JsObject => JsObject

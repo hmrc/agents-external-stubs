@@ -81,20 +81,23 @@ class EnrolmentStoreProxyStubController @Inject()(val authenticationService: Aut
                              .findAdminByAgentCode(agentCode, session.planetId)
                              .map(_.getOrElse(throw new BadRequestException("INVALID_AGENT_FORMAT")))
                        }
-                     }).flatMap { admin =>
-                      (if (payload.`type` == "principal")
-                         usersService
-                           .updateUser(
-                             admin.userId,
-                             session.planetId,
-                             u => u.copy(principalEnrolments = u.principalEnrolments :+ Enrolment.from(enrolmentKey)))
-                       else
-                         usersService
-                           .updateUser(
-                             admin.userId,
-                             session.planetId,
-                             u => u.copy(delegatedEnrolments = u.delegatedEnrolments :+ Enrolment.from(enrolmentKey))))
-                        .map(_ => Created(""))
+                     }).flatMap {
+                      admin =>
+                        (if (payload.`type` == "principal")
+                           usersService
+                             .updateUser(
+                               admin.userId,
+                               session.planetId,
+                               u => u.copy(principalEnrolments = u.principalEnrolments :+ Enrolment.from(enrolmentKey)))
+                         else
+                           //TODO check first if principal enrolment exist before allocating
+                           usersService
+                             .updateUser(
+                               admin.userId,
+                               session.planetId,
+                               u =>
+                                 u.copy(delegatedEnrolments = u.delegatedEnrolments :+ Enrolment.from(enrolmentKey))))
+                          .map(_ => Created(""))
                     }
                   } else
                     badRequestF(
