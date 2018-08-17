@@ -205,10 +205,15 @@ trait EnrolmentStoreProxyHelper extends TestRequests with TestStubs with Matcher
     key: String,
     identifier: String,
     value: String,
-    agentCode: String)(implicit authContext: AuthContext): Unit =
+    agentCode: String)(implicit authContext: AuthContext): Unit = {
+    Users.create(
+      UserGenerator
+        .individual()
+        .withPrincipalEnrolment(key, identifier, value))
     Users.create(
       UserGenerator
         .agent(userId = userId, groupId = groupId, agentCode = agentCode))
+  }
 
   def givenEnrolmentDeallocationSucceeds(groupId: String, taxIdentifier: TaxIdentifier, agentCode: String)(
     implicit authContext: AuthContext): Unit = ()

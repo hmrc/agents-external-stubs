@@ -1,8 +1,10 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
 import javax.inject.{Inject, Singleton}
+import play.api.mvc.Result
 import uk.gov.hmrc.agentsexternalstubs.models.{User, _}
 import uk.gov.hmrc.agentsexternalstubs.repository.UsersRepository
+import uk.gov.hmrc.auth.core.UnsupportedCredentialRole
 import uk.gov.hmrc.http.{BadRequestException, NotFoundException}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -146,5 +148,83 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
             )
         }
     }
+
+  /* Group enrolment is assigned to the unique Admin user of the group */
+  def allocateEnrolmentToGroup(
+    userId: String,
+    groupId: String,
+    enrolmentKey: EnrolmentKey,
+    enrolmentType: String,
+    agentCodeOpt: Option[String],
+    planetId: String)(implicit ec: ExecutionContext): Future[User] =
+    findByUserId(userId, planetId)
+      .flatMap {
+        case Some(user) =>
+          if (user.groupId.contains(groupId)) {
+            (if (user.credentialRole.contains(User.CR.Admin)) Future.successful(user)
+             else if (user.credentialRole.contains(User.CR.Assistant))
+               Future.failed(UnsupportedCredentialRole("INVALID_CREDENTIAL_TYPE"))
+             else {
+               agentCodeOpt match {
+                 case None =>
+                   findAdminByGroupId(groupId, planetId)
+                     .map(_.getOrElse(throw new BadRequestException("INVALID_GROUP_ID")))
+                 case Some(agentCode) =>
+                   findAdminByAgentCode(agentCode, planetId)
+                     .map(_.getOrElse(throw new BadRequestException("INVALID_AGENT_FORMAT")))
+               }
+             }).flatMap { admin =>
+              if (enrolmentType == "principal")
+                updateUser(
+                  admin.userId,
+                  planetId,
+                  u => u.copy(principalEnrolments = u.principalEnrolments :+ Enrolment.from(enrolmentKey)))
+              else if (enrolmentType == "delegated" && admin.affinityGroup.contains(User.AG.Agent))
+                findByPrincipalEnrolmentKey(enrolmentKey, planetId).flatMap {
+                  case Some(owner) if !owner.affinityGroup.contains(User.AG.Agent) =>
+                    updateUser(
+                      admin.userId,
+                      planetId,
+                      u => u.copy(delegatedEnrolments = u.delegatedEnrolments :+ Enrolment.from(enrolmentKey)))
+                  case None =>
+                    Future.failed(throw new BadRequestException("INVALID_QUERY_PARAMETERS"))
+                } else Future.failed(throw new BadRequestException("INVALID_QUERY_PARAMETERS"))
+            }
+          } else Future.failed(throw new BadRequestException("INVALID_GROUP_ID"))
+        case None => Future.failed(throw new BadRequestException("INVALID_JSON_BODY"))
+      }
+
+  /* Group enrolment is de-assigned from the unique Admin user of the group */
+  def deallocateEnrolmentFromGroup(
+    groupId: String,
+    enrolmentKey: EnrolmentKey,
+    agentCodeOpt: Option[String],
+    keepAgentAllocations: Option[String],
+    planetId: String)(implicit ec: ExecutionContext): Future[User] =
+    agentCodeOpt match {
+      case None =>
+        findAdminByGroupId(groupId, planetId)
+          .flatMap {
+            case Some(admin) if admin.credentialRole.contains(User.CR.Admin) =>
+              updateUser(
+                admin.userId,
+                planetId,
+                u => u.copy(principalEnrolments = removeEnrolment(u.principalEnrolments, enrolmentKey)))
+            case _ => Future.failed(throw new BadRequestException("INVALID_GROUP_ID"))
+          }
+      case Some(agentCode) =>
+        findAdminByAgentCode(agentCode, planetId)
+          .flatMap {
+            case Some(admin) if admin.credentialRole.contains(User.CR.Admin) =>
+              updateUser(
+                admin.userId,
+                planetId,
+                u => u.copy(delegatedEnrolments = removeEnrolment(u.delegatedEnrolments, enrolmentKey)))
+            case _ => Future.failed(throw new BadRequestException("INVALID_AGENT_FORMAT"))
+          }
+    }
+
+  private def removeEnrolment(enrolments: Seq[Enrolment], key: EnrolmentKey): Seq[Enrolment] =
+    enrolments.filterNot(_.matches(key))
 
 }

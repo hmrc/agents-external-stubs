@@ -232,6 +232,7 @@ class EnrolmentStoreProxyStubControllerISpec
       "allocate delegated enrolment to the agent identified by userId and groupId" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("0000000021313132")
         Users.update(UserGenerator.agent(userId = "0000000021313132", groupId = "group1"))
+        Users.create(UserGenerator.individual().withPrincipalEnrolment("IR-SA", "UTR", "12345678"))
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
           "group1",
@@ -248,9 +249,29 @@ class EnrolmentStoreProxyStubControllerISpec
         user.delegatedEnrolments should contain.only(Enrolment("IR-SA", "UTR", "12345678"))
       }
 
+      "fail to allocate delegated enrolment to the agent if enrolment does not exist" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("0000000021313132")
+        Users.update(UserGenerator.agent(userId = "0000000021313132", groupId = "group1"))
+
+        val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
+          "group1",
+          "IR-SA~UTR~12345678",
+          Json.parse("""{
+                       |    "userId" : "0000000021313132",
+                       |    "type" :         "delegated"
+                       |}""".stripMargin)
+        )
+
+        result.status shouldBe 400
+
+        val user = await(userService.findByUserId(session.userId, session.planetId)).get
+        user.delegatedEnrolments.isEmpty shouldBe true
+      }
+
       "allocate delegated enrolment to the agent identified by legacy-agentCode" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("0000000021313132")
         Users.update(UserGenerator.agent(userId = "0000000021313132", groupId = "group1", agentCode = "ABC123"))
+        Users.create(UserGenerator.individual().withPrincipalEnrolment("IR-SA", "UTR", "12345678"))
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
           "group1",
@@ -266,6 +287,23 @@ class EnrolmentStoreProxyStubControllerISpec
 
         val user = await(userService.findByUserId(session.userId, session.planetId)).get
         user.delegatedEnrolments should contain.only(Enrolment("IR-SA", "UTR", "12345678"))
+      }
+
+      "fail to allocate delegated enrolment to the agent (identified by legacy-agentCode) if enrolment does not exist" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("0000000021313132")
+        Users.update(UserGenerator.agent(userId = "0000000021313132", groupId = "group1", agentCode = "ABC123"))
+
+        val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
+          "group1",
+          "IR-SA~UTR~12345678",
+          Json.parse("""{
+                       |    "userId" : "0000000021313132",
+                       |    "type" :         "delegated"
+                       |}""".stripMargin),
+          `legacy-agentCode` = Some("ABC123")
+        )
+
+        result.status shouldBe 400
       }
 
       "return 400 if groupId does not exist" in {

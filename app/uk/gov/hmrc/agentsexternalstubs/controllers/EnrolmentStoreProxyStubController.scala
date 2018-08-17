@@ -4,10 +4,8 @@ import javax.inject.{Inject, Singleton}
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.{AllocateGroupEnrolmentRequest, GetGroupIdsResponse, GetUserIdsResponse}
-import uk.gov.hmrc.agentsexternalstubs.models.{Enrolment, EnrolmentKey, User}
+import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, User}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
-import uk.gov.hmrc.auth.core.UnsupportedCredentialRole
-import uk.gov.hmrc.http.BadRequestException
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
@@ -52,7 +50,6 @@ class EnrolmentStoreProxyStubController @Inject()(val authenticationService: Aut
     }(SessionRecordNotFound)
   }
 
-  /* Group enrolment is assigned to the unique Admin user of the group */
   def allocateGroupEnrolment(
     groupId: String,
     enrolmentKey: EnrolmentKey,
@@ -63,48 +60,14 @@ class EnrolmentStoreProxyStubController @Inject()(val authenticationService: Aut
           error => badRequestF("INVALID_JSON_BODY", error),
           _ =>
             usersService
-              .findByUserId(payload.userId, session.planetId)
-              .flatMap {
-                case Some(user) =>
-                  if (user.groupId.contains(groupId)) {
-                    (if (user.credentialRole.contains(User.CR.Admin)) Future.successful(user)
-                     else if (user.credentialRole.contains(User.CR.Assistant))
-                       Future.failed(UnsupportedCredentialRole("INVALID_CREDENTIAL_TYPE"))
-                     else {
-                       `legacy-agentCode` match {
-                         case None =>
-                           usersService
-                             .findAdminByGroupId(groupId, session.planetId)
-                             .map(_.getOrElse(throw new BadRequestException("INVALID_GROUP_ID")))
-                         case Some(agentCode) =>
-                           usersService
-                             .findAdminByAgentCode(agentCode, session.planetId)
-                             .map(_.getOrElse(throw new BadRequestException("INVALID_AGENT_FORMAT")))
-                       }
-                     }).flatMap {
-                      admin =>
-                        (if (payload.`type` == "principal")
-                           usersService
-                             .updateUser(
-                               admin.userId,
-                               session.planetId,
-                               u => u.copy(principalEnrolments = u.principalEnrolments :+ Enrolment.from(enrolmentKey)))
-                         else
-                           //TODO check first if principal enrolment exist before allocating
-                           usersService
-                             .updateUser(
-                               admin.userId,
-                               session.planetId,
-                               u =>
-                                 u.copy(delegatedEnrolments = u.delegatedEnrolments :+ Enrolment.from(enrolmentKey))))
-                          .map(_ => Created(""))
-                    }
-                  } else
-                    badRequestF(
-                      "INVALID_GROUP_ID",
-                      s"User's groupId value ${user.groupId} does not match groupId path param $groupId")
-                case None => badRequestF("INVALID_JSON_BODY", s"Could not find user ${payload.userId}")
-            }
+              .allocateEnrolmentToGroup(
+                payload.userId,
+                groupId,
+                enrolmentKey,
+                payload.`type`,
+                `legacy-agentCode`,
+                session.planetId)
+              .map(_ => Created)
         )
       }
     }(SessionRecordNotFound)
@@ -114,48 +77,17 @@ class EnrolmentStoreProxyStubController @Inject()(val authenticationService: Aut
     if (payload.`type` == "principal" || payload.`type` == "delegated") Right(payload)
     else Left(s"Unsupported `type` param value ${payload.`type`}")
 
-  /* Group enrolment is de-assigned from the unique Admin user of the group */
   def deallocateGroupEnrolment(
     groupId: String,
     enrolmentKey: EnrolmentKey,
     `legacy-agentCode`: Option[String],
     keepAgentAllocations: Option[String]): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
-      `legacy-agentCode` match {
-        case None => {
-          usersService
-            .findAdminByGroupId(groupId, session.planetId)
-            .flatMap {
-              case Some(admin) if admin.credentialRole.contains(User.CR.Admin) => {
-                usersService
-                  .updateUser(
-                    admin.userId,
-                    session.planetId,
-                    u => u.copy(principalEnrolments = removeEnrolment(u.principalEnrolments, enrolmentKey)))
-                  .map(_ => NoContent)
-              }
-              case _ => badRequestF("INVALID_GROUP_ID")
-            }
-        }
-        case Some(agentCode) =>
-          usersService
-            .findAdminByAgentCode(agentCode, session.planetId)
-            .flatMap {
-              case Some(admin) if admin.credentialRole.contains(User.CR.Admin) =>
-                usersService
-                  .updateUser(
-                    admin.userId,
-                    session.planetId,
-                    u => u.copy(delegatedEnrolments = removeEnrolment(u.delegatedEnrolments, enrolmentKey)))
-                  .map(_ => NoContent)
-              case _ => badRequestF("INVALID_AGENT_FORMAT")
-            }
-      }
+      usersService
+        .deallocateEnrolmentFromGroup(groupId, enrolmentKey, `legacy-agentCode`, keepAgentAllocations, session.planetId)
+        .map(_ => NoContent)
     }(SessionRecordNotFound)
   }
-
-  private def removeEnrolment(enrolments: Seq[Enrolment], key: EnrolmentKey): Seq[Enrolment] =
-    enrolments.filterNot(_.matches(key))
 
 }
 
