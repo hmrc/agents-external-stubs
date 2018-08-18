@@ -26,7 +26,7 @@ import reactivemongo.api.{Cursor, CursorProducer, ReadPreference}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.core.errors.DatabaseException
 import reactivemongo.play.json.ImplicitBSONHandlers
-import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, User, UserIdWithAffinityGroup}
+import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, User, UserBrief}
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
@@ -100,11 +100,11 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
     }
 
   def findByPlanetId(planetId: String, affinityGroup: Option[String])(limit: Int)(
-    implicit ec: ExecutionContext): Future[Seq[UserIdWithAffinityGroup]] =
+    implicit ec: ExecutionContext): Future[Seq[UserBrief]] =
     cursor(
       Seq("planetId" -> Option(planetId), "affinityGroup" -> affinityGroup),
-      Seq("userId"   -> 1, "affinityGroup"                -> 1))(UserIdWithAffinityGroup.formats)
-      .collect[Seq](maxDocs = limit, err = Cursor.ContOnError[Seq[UserIdWithAffinityGroup]]())
+      Seq("userId"   -> 1, "groupId"                      -> 1, "affinityGroup" -> 1))(UserBrief.formats)
+      .collect[Seq](maxDocs = limit, err = Cursor.ContOnError[Seq[UserBrief]]())
 
   def findByGroupId(groupId: String, planetId: String)(limit: Int)(implicit ec: ExecutionContext): Future[Seq[User]] =
     cursor(

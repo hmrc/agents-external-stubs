@@ -20,7 +20,7 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
     usersRepository.findByNino(nino, planetId)
 
   def findByPlanetId(planetId: String, affinityGroup: Option[String])(limit: Int)(
-    implicit ec: ExecutionContext): Future[Seq[UserIdWithAffinityGroup]] = {
+    implicit ec: ExecutionContext): Future[Seq[UserBrief]] = {
     require(affinityGroup.isEmpty || affinityGroup.exists(User.AG.all))
     usersRepository.findByPlanetId(planetId, affinityGroup)(limit)
   }
