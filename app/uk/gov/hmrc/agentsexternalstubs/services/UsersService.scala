@@ -1,5 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
+import cats.data.Validated.{Invalid, Valid}
 import javax.inject.{Inject, Singleton}
 import play.api.mvc.Result
 import uk.gov.hmrc.agentsexternalstubs.models.{User, _}
@@ -106,19 +107,30 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
     } yield ()
 
   private def refineAndValidateUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] =
-    for {
-      sanitized <- Future(UserSanitizer.sanitize(user))
-      accepted  <- checkCanAcceptUser(sanitized, planetId)
-      validated <- User
-                    .validateAndFlagCompliance(accepted)
-                    .fold(e => Future.failed(new BadRequestException(e)), Future.successful)
-    } yield validated
+    if (user.isNonCompliant.contains(true)) {
+      User.validate(user) match {
+        case Right(u)     => Future.successful(u.copy(isNonCompliant = None, complianceIssues = None))
+        case Left(issues) => Future.successful(user.copy(isNonCompliant = Some(true), complianceIssues = Some(issues)))
+      }
+    } else
+      for {
+        sanitized <- Future(UserSanitizer.sanitize(user))
+        validated <- User
+                      .validate(sanitized)
+                      .fold(errors => Future.failed(new BadRequestException(errors.mkString(", "))), Future.successful)
+        accepted <- checkCanAcceptUser(validated, planetId).flatMap(
+                     _.fold(
+                       errors => Future.failed(new BadRequestException(errors.mkString(", "))),
+                       user => Future.successful(user)
+                     ))
+      } yield accepted
 
-  def checkCanAcceptUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] =
+  private def checkCanAcceptUser(user: User, planetId: String)(
+    implicit ec: ExecutionContext): Future[Either[List[String], User]] =
     user.groupId match {
-      case None => Future.successful(user)
+      case None => Future.successful(Right(user))
       case Some(groupId) =>
-        findByGroupId(groupId, planetId)(101) flatMap { users =>
+        findByGroupId(groupId, planetId)(101).map { users =>
           val maybeAdmin =
             if (!user.credentialRole.contains(User.CR.Assistant) && (!users.exists(_.isAdmin) || users
                   .find(_.isAdmin)
@@ -127,15 +139,14 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
               user.copy(credentialRole = Some(User.CR.Admin))
             else user
           GroupValidator
-            .validate(users.filterNot(_.userId == maybeAdmin.userId) :+ maybeAdmin)
-            .fold(
-              error => Future.failed(new BadRequestException(error)),
-              _ => Future.successful(maybeAdmin)
-            )
+            .validate(users.filterNot(_.userId == maybeAdmin.userId) :+ maybeAdmin) match {
+            case Valid(())       => Right(maybeAdmin)
+            case Invalid(errors) => Left(errors)
+          }
         }
     }
 
-  def checkCanRemoveUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+  private def checkCanRemoveUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     user.groupId match {
       case None => Future.successful(())
       case Some(groupId) =>
@@ -143,7 +154,7 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
           GroupValidator
             .validate(users.filterNot(_.userId == user.userId))
             .fold(
-              error => Future.failed(new BadRequestException(error)),
+              errors => Future.failed(new BadRequestException(errors.mkString(", "))),
               _ => Future.successful(())
             )
         }

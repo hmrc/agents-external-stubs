@@ -43,7 +43,7 @@ class SignInControllerISpec extends ServerBaseISpec with MongoDbPerSuite with Te
     "GET /agents-external-stubs/sign-out" should {
       "remove authentication" in {
         val authToken = SignIn.signInAndGetSession("foo", "boo", planetId = "D").authToken
-        val result = SignIn.signOut(AuthContext.withToken(authToken))
+        val result = SignIn.signOut(AuthContext.fromToken(authToken))
         result.status shouldBe 204
         result.header(HeaderNames.LOCATION) should be(empty)
       }

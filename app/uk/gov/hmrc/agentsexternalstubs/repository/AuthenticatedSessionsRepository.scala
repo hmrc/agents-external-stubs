@@ -43,6 +43,10 @@ class AuthenticatedSessionsRepository @Inject()(mongoComponent: ReactiveMongoCom
     find(Seq("authToken" -> Option(authToken)).map(option => option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*)
       .map(_.headOption)
 
+  def findBySessionId(sessionId: String)(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
+    find(Seq("sessionId" -> Option(sessionId)).map(option => option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*)
+      .map(_.headOption)
+
   def findByUserId(userId: String)(implicit ec: ExecutionContext): Future[List[AuthenticatedSession]] =
     find(Seq("userId" -> Option(userId)).map(option => option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*)
 
@@ -52,7 +56,8 @@ class AuthenticatedSessionsRepository @Inject()(mongoComponent: ReactiveMongoCom
       Some("AuthenticatedSessions"),
       unique = true,
       options = BSONDocument("expireAfterSeconds" -> 900)),
-    Index(Seq("userId" -> Ascending), Some("AuthenticatedUsers"))
+    Index(Seq("sessionId" -> Ascending), Some("SessionIds"), unique = true),
+    Index(Seq("userId"    -> Ascending), Some("AuthenticatedUsers"))
   )
 
   def create(userId: String, authToken: String, providerType: String, planetId: String)(

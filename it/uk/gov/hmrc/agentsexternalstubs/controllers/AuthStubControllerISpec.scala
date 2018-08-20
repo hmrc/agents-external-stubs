@@ -56,7 +56,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with 
       "return 400 BadRequest if authorise field missing" in {
         val authToken = givenAnAuthenticatedUser(User(randomId))
         val result =
-          AuthStub.authorise(s"""{"foo":[{"enrolment":"FOO"}],"retrieve":[]}""")(AuthContext.withToken(authToken))
+          AuthStub.authorise(s"""{"foo":[{"enrolment":"FOO"}],"retrieve":[]}""")(AuthContext.fromToken(authToken))
         result.status shouldBe 400
         result.body shouldBe """/authorise -> [error.path.missing]"""
       }
@@ -64,7 +64,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with 
       "return 400 BadRequest if predicate not supported" in {
         val authToken = givenAnAuthenticatedUser(User(randomId))
         val result =
-          AuthStub.authorise(s"""{"authorise":[{"foo":"FOO"}],"retrieve":[]}""")(AuthContext.withToken(authToken))
+          AuthStub.authorise(s"""{"authorise":[{"foo":"FOO"}],"retrieve":[]}""")(AuthContext.fromToken(authToken))
         result.status shouldBe 400
         result.body should include("""/authorise(0) -> [Unsupported predicate {"foo":"FOO"}, should be one of [""")
       }
@@ -72,7 +72,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with 
       "return 200 OK if predicate empty" in {
         val authToken = givenAnAuthenticatedUser(User(randomId))
         val result =
-          AuthStub.authorise(s"""{"authorise":[],"retrieve":[]}""")(AuthContext.withToken(authToken))
+          AuthStub.authorise(s"""{"authorise":[],"retrieve":[]}""")(AuthContext.fromToken(authToken))
         result.status shouldBe 200
       }
 

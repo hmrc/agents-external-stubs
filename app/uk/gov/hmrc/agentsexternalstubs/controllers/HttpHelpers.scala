@@ -35,3 +35,35 @@ trait HttpHelpers {
   val SessionRecordNotFound = unauthorizedF("SessionRecordNotFound")
 
 }
+
+trait DesHttpHelpers {
+
+  case class DesErrorResponse(code: String, reason: Option[String])
+
+  object DesErrorResponse {
+    implicit val writes: Writes[DesErrorResponse] = Json.writes[DesErrorResponse]
+  }
+
+  def unauthorizedF(reason: String): Future[Result] =
+    Future.successful(unauthorized(reason))
+
+  def unauthorized(reason: String): Result =
+    Results
+      .Unauthorized("")
+      .withHeaders("WWW-Authenticate" -> s"""MDTP detail="$reason"""")
+
+  def badRequestF(code: String, message: String = null): Future[Result] =
+    Future.successful(badRequest(code, message))
+
+  def badRequest(code: String, message: String = null): Result =
+    Results.BadRequest(Json.toJson(DesErrorResponse(code, Option(message))))
+
+  def notFoundF(code: String, message: String = null): Future[Result] =
+    Future.successful(notFound(code, message))
+
+  def notFound(code: String, message: String = null): Result =
+    Results.NotFound(Json.toJson(DesErrorResponse(code, Option(message))))
+
+  val SessionRecordNotFound = unauthorizedF("SessionRecordNotFound")
+
+}

@@ -35,3 +35,29 @@ trait CurrentSession extends HttpHelpers {
       }
     }(SessionRecordNotFound)
 }
+
+/*
+ When stubbing DES request we can't just rely on the `Authorization` header
+ because it is not the same token value issued by MDTP Auth,
+ instead we have to exploit fact that `HeaderCarrierConverter` copy over sessionId
+ from HTTP session as `X-Session-ID` header and lookup session by its ID.
+ */
+trait DesCurrentSession extends DesHttpHelpers {
+
+  def authenticationService: AuthenticationService
+
+  def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(
+    ifSessionNotFound: => Future[Result])(implicit request: Request[T], ec: ExecutionContext): Future[Result] =
+    request.headers.get(uk.gov.hmrc.http.HeaderNames.xSessionId) match {
+      case None => ifSessionNotFound
+      case Some(sessionId) =>
+        for {
+          maybeSession <- authenticationService.findBySessionId(sessionId)
+          result <- maybeSession match {
+                     case Some(session) => body(session)
+                     case _             => ifSessionNotFound
+                   }
+        } yield result
+    }
+
+}

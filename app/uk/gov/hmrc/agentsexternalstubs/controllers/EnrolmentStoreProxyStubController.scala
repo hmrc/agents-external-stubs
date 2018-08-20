@@ -1,10 +1,11 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
+import cats.data.Validated
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.{AllocateGroupEnrolmentRequest, GetGroupIdsResponse, GetUserIdsResponse}
-import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, User}
+import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, User, Validate}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
@@ -56,26 +57,24 @@ class EnrolmentStoreProxyStubController @Inject()(val authenticationService: Aut
     `legacy-agentCode`: Option[String]): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withCurrentSession { session =>
       withJsonBody[AllocateGroupEnrolmentRequest] { payload =>
-        validate(payload).fold(
-          error => badRequestF("INVALID_JSON_BODY", error),
-          _ =>
-            usersService
-              .allocateEnrolmentToGroup(
-                payload.userId,
-                groupId,
-                enrolmentKey,
-                payload.`type`,
-                `legacy-agentCode`,
-                session.planetId)
-              .map(_ => Created)
-        )
+        AllocateGroupEnrolmentRequest
+          .validate(payload)
+          .fold(
+            error => badRequestF("INVALID_JSON_BODY", error.mkString(", ")),
+            _ =>
+              usersService
+                .allocateEnrolmentToGroup(
+                  payload.userId,
+                  groupId,
+                  enrolmentKey,
+                  payload.`type`,
+                  `legacy-agentCode`,
+                  session.planetId)
+                .map(_ => Created)
+          )
       }
     }(SessionRecordNotFound)
   }
-
-  private def validate(payload: AllocateGroupEnrolmentRequest): Either[String, AllocateGroupEnrolmentRequest] =
-    if (payload.`type` == "principal" || payload.`type` == "delegated") Right(payload)
-    else Left(s"Unsupported `type` param value ${payload.`type`}")
 
   def deallocateGroupEnrolment(
     groupId: String,
@@ -129,6 +128,10 @@ object EnrolmentStoreProxyStubController {
 
   object AllocateGroupEnrolmentRequest {
     implicit val reads: Reads[AllocateGroupEnrolmentRequest] = Json.reads[AllocateGroupEnrolmentRequest]
+
+    val validate: AllocateGroupEnrolmentRequest => Validated[List[String], Unit] =
+      Validate.constraints[AllocateGroupEnrolmentRequest](
+        (_.`type`.matches("principal|delegated"), "Unsupported `type` param value"))
   }
 
 }

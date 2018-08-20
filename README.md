@@ -116,7 +116,7 @@ Optional params:
    
 Response | Description
 ---|---
-200| list of users as `{ "users": [{ "id": "123", "affinity": "Agent" }, ...] }`
+200| list of users as [User entity brief](userEntity.md#brief)
 204| empty list of users
     
 #### GET  /agents-external-stubs/users/:userId
@@ -124,7 +124,7 @@ Get current user details. (_requires valid bearer token_)
 
 Response | Description
 ---|---
-200| user entity details
+200| [User entity](userEntity.md)
 404| when userId not found
 
 #### PUT  /agents-external-stubs/users/:userId
@@ -134,35 +134,7 @@ Update an existing user. (_requires valid bearer token_)
 
 *Payload*
 
-User entity, e.g.,
-    
-    {   
-        "userId": "any", 
-        "principalEnrolments": [
-            { 
-                "key": "HMRC-AS-AGENT",
-                "identifiers": [
-                    {
-                        "key": "AgentReferenceNumber",
-                        "value": "TARN0000001"
-                    }
-                ]
-            },
-            ...
-        ], 
-        "delegatedEnrolments": [
-            { 
-                "key": "HMRC-MTD-ID",
-                "identifiers": [
-                    {
-                        "key": "MTDITID",
-                        "value": "ABC1234567"
-                    }
-                ]
-            },
-            ...
-        ]
-     }
+[User entity](userEntity.md)
      
 Response | Description
 ---|---
@@ -174,7 +146,9 @@ Response | Description
 #### POST /agents-external-stubs/users/
 Create a new user. (_requires valid bearer token_)
 
-*Payload same as above*
+*Payload*
+
+[User entity](userEntity.md)
 
 Response | Description
 ---|---

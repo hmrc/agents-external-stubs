@@ -54,14 +54,9 @@ object User {
     val all: String => Boolean = Set(Admin, User, Assistant).contains
   }
 
-  def validate(user: User): Validated[NonEmptyList[String], Unit] = UserValidator.validate(user)
-
-  def validateAndFlagCompliance(user: User): Validated[String, User] = validate(user) match {
-    case Valid(_) => Valid(user.copy(isNonCompliant = None, complianceIssues = None))
-    case Invalid(errors) =>
-      if (user.isNonCompliant.contains(true))
-        Valid(user.copy(isNonCompliant = Some(true), complianceIssues = Some(errors.toList)))
-      else Invalid(errors.toList.mkString(", "))
+  def validate(user: User): Either[List[String], User] = UserValidator.validate(user) match {
+    case Valid(())       => Right(user)
+    case Invalid(errors) => Left(errors)
   }
 
   implicit class UserBuilder(val user: User) extends AnyVal {

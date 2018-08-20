@@ -22,6 +22,9 @@ DELETE      /enrolment-store-proxy/enrolment-store/groups/:groupId/enrolments/:e
 POST        /tax-enrolments/groups/:groupId/enrolments/:enrolmentKey         @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.allocateGroupEnrolment(groupId: String, enrolmentKey: EnrolmentKey, `legacy-agentCode`: Option[String])
 DELETE      /tax-enrolments/groups/:groupId/enrolments/:enrolmentKey         @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.deallocateGroupEnrolment(groupId: String, enrolmentKey: EnrolmentKey, `legacy-agentCode`: Option[String], keepAgentAllocations: Option[String])
 
+# DES stubs
+POST        /registration/relationship                                       @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.authoriseOrDeAuthoriseRelationship
+
 # Authentication
 POST        /agents-external-stubs/sign-in                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.signIn
 GET         /agents-external-stubs/session                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.session(authToken: String)

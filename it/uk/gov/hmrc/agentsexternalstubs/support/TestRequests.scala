@@ -17,9 +17,16 @@ trait AuthContext {
 
 object AuthContext {
 
-  def withToken(authToken: String): AuthContext = new AuthContext {
+  def fromToken(authToken: String): AuthContext = new AuthContext {
     override def headers: Seq[(String, String)] = Seq(
       HeaderNames.AUTHORIZATION -> s"Bearer $authToken"
+    )
+  }
+
+  def fromTokenAndSessionId(authToken: String, sessionId: String): AuthContext = new AuthContext {
+    override def headers: Seq[(String, String)] = Seq(
+      HeaderNames.AUTHORIZATION               -> s"Bearer $authToken",
+      uk.gov.hmrc.http.HeaderNames.xSessionId -> sessionId
     )
   }
 
@@ -44,10 +51,10 @@ trait TestRequests extends ScalaFutures {
     HeaderCarrier(authorization = Some(Authorization(s"Bearer ${authSession.authToken}")))
 
   implicit def fromImplicitAuthenticatedSession(implicit authSession: AuthenticatedSession): AuthContext =
-    AuthContext.withToken(authSession.authToken)
+    AuthContext.fromTokenAndSessionId(authSession.authToken, authSession.sessionId)
 
   implicit def fromAuthenticatedSession(authSession: AuthenticatedSession): AuthContext =
-    AuthContext.withToken(authSession.authToken)
+    AuthContext.fromToken(authSession.authToken)
 
   object SignIn {
     def signIn(
@@ -236,6 +243,16 @@ trait TestRequests extends ScalaFutures {
           }: _*)
         .withHeaders(authContext.headers: _*)
         .delete()
+        .futureValue
+  }
+
+  object DesStub {
+
+    def authoriseOrDeAuthoriseRelationship[T: Writeable](payload: T)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/registration/relationship")
+        .withHeaders(authContext.headers: _*)
+        .post[T](payload)
         .futureValue
   }
 
