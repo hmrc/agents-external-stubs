@@ -21,7 +21,7 @@ class UsersController @Inject()(usersService: UsersService, val authenticationSe
         (if (agentCode.isDefined)
            usersService
              .findByAgentCode(agentCode.get, session.planetId)(limit.getOrElse(100))
-             .map(_.map(u => UserBrief(u.userId, u.groupId, u.affinityGroup)))
+             .map(_.map(u => UserBrief(u.userId, u.groupId, u.affinityGroup, u.credentialRole)))
          else usersService.findByPlanetId(session.planetId, affinityGroup)(limit.getOrElse(100))).map { users =>
           Ok(RestfulResponse(Users(users)))
         }

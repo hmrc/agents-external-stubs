@@ -240,24 +240,24 @@ class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPerT
 
   "findByPlanetId" should {
     "return id and affinity of users having provided planetId" in {
-      await(repo.create(User("boo", affinityGroup = Some("Individual")), "juniper"))
-      await(repo.create(User("foo", affinityGroup = Some("Agent")), "juniper"))
-      await(repo.create(User("foo", affinityGroup = Some("Individual")), "saturn"))
+      await(repo.create(User("boo", groupId= Some("g1"), affinityGroup = Some("Individual"), credentialRole = Some("User")), "juniper"))
+      await(repo.create(User("foo", groupId= Some("g2"), affinityGroup = Some("Agent"), credentialRole = Some("Admin")), "juniper"))
+      await(repo.create(User("foo", groupId= Some("g3"), affinityGroup = Some("Individual"), credentialRole = Some("Assistant")), "saturn"))
       await(repo.find()).size shouldBe 3
 
       val result1 = await(repo.findByPlanetId("juniper", None)(10))
       result1.size shouldBe 2
-      result1.map(_.userId) should contain("foo")
-      result1.map(_.userId) should contain("boo")
-      result1.flatMap(_.affinityGroup) should contain("Individual")
-      result1.flatMap(_.affinityGroup) should contain("Agent")
+      result1.map(_.userId) should contain.only("foo", "boo")
+      result1.flatMap(_.affinityGroup) should contain.only("Individual", "Agent")
+      result1.flatMap(_.groupId) should contain.only("g1", "g2")
+      result1.flatMap(_.credentialRole) should contain.only("Admin", "User")
 
       val result2 = await(repo.findByPlanetId("juniper", Some("Agent"))(10))
       result2.size shouldBe 1
-      result2.map(_.userId) should contain("foo")
-      result2.map(_.userId) should not contain "boo"
-      result2.flatMap(_.affinityGroup) should not contain "Individual"
-      result2.flatMap(_.affinityGroup) should contain("Agent")
+      result2.map(_.userId) should contain.only("foo")
+      result2.flatMap(_.affinityGroup) should contain.only("Agent")
+      result2.flatMap(_.groupId) should contain.only("g2")
+      result2.flatMap(_.credentialRole) should contain.only("Admin")
 
       val result3 = await(repo.findByPlanetId("juniper", Some("foo"))(10))
       result3.size shouldBe 0

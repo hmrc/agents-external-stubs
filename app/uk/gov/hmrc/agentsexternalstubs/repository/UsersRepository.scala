@@ -103,7 +103,7 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
     implicit ec: ExecutionContext): Future[Seq[UserBrief]] =
     cursor(
       Seq("planetId" -> Option(planetId), "affinityGroup" -> affinityGroup),
-      Seq("userId"   -> 1, "groupId"                      -> 1, "affinityGroup" -> 1))(UserBrief.formats)
+      Seq("userId"   -> 1, "groupId"                      -> 1, "affinityGroup" -> 1, "credentialRole" -> 1))(UserBrief.formats)
       .collect[Seq](maxDocs = limit, err = Cursor.ContOnError[Seq[UserBrief]]())
 
   def findByGroupId(groupId: String, planetId: String)(limit: Int)(implicit ec: ExecutionContext): Future[Seq[User]] =
