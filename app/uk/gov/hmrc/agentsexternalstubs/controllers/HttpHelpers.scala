@@ -64,6 +64,6 @@ trait DesHttpHelpers {
   def notFound(code: String, message: String = null): Result =
     Results.NotFound(Json.toJson(DesErrorResponse(code, Option(message))))
 
-  val SessionRecordNotFound = unauthorizedF("SessionRecordNotFound")
+  val SessionRecordNotFound = notFoundF("NOT_FOUND", "SessionRecordNotFound")
 
 }

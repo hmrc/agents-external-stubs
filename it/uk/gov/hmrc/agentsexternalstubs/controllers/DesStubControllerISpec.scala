@@ -40,5 +40,15 @@ class DesStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with T
         result.status shouldBe 202
       }
     }
+
+    "GET /registration/relationship" should {
+      "respond 200" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+
+        val result =
+          DesStub.getRelationship(regime = "ITSA", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
+        result.status shouldBe 200
+      }
+    }
   }
 }

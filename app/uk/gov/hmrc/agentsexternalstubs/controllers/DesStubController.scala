@@ -2,9 +2,12 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import cats.data.Validated
 import javax.inject.{Inject, Singleton}
+import play.api.data.Form
+import play.api.data.Forms._
+import play.api.data.validation.{Constraint, Constraints, Invalid, Valid}
 import play.api.libs.json._
-import play.api.mvc.Action
-import uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.AuthoriseRequest
+import play.api.mvc.{Action, AnyContent}
+import uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.{AuthoriseRequest, GetRelationshipQuery}
 import uk.gov.hmrc.agentsexternalstubs.models.Validate
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
@@ -26,6 +29,23 @@ class DesStubController @Inject()(val authenticationService: AuthenticationServi
             _ => Future.successful(Accepted)
           )
       }
+    }(SessionRecordNotFound)
+  }
+
+  def getRelationship(
+    idtype: Option[String],
+    `ref-no`: Option[String],
+    arn: Option[String],
+    agent: Boolean,
+    `active-only`: Boolean,
+    regime: String,
+    from: Option[String],
+    to: Option[String]): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      GetRelationshipQuery.form.bindFromRequest.fold(
+        hasErrors => badRequestF("INVALID_SUBMISSION", hasErrors.errors.map(_.message).mkString(", ")),
+        query => Future.successful(Ok("NOT_IMPLEMENTED"))
+      )
     }(SessionRecordNotFound)
   }
 
@@ -54,12 +74,56 @@ object DesStubController {
       Validate.constraints[AuthoriseRequest](
         (_.acknowledgmentReference.matches("^\\S{1,32}$"), "Invalid acknowledgmentReference"),
         (_.refNumber.matches("^[0-9A-Za-z]{1,15}$"), "Invalid refNumber"),
-        (_.idType.forall(_.matches("^[0-9A-Za-z]{1,6}$")), "Invalid idType"),
+        (_.idType.forall(_.matches("^[A-Z]{1,6}$")), "Invalid idType"),
         (_.agentReferenceNumber.matches("^[A-Z](ARN)[0-9]{7}$"), "Invalid agentReferenceNumber"),
         (_.relationshipType.forall(_.matches("ZA01|ZA02")), "Invalid relationshipType"),
         (_.authProfile.forall(_.matches("^\\S{1,32}$")), "Invalid authProfile"),
         (_.authorisation.action.matches("Authorise|De-Authorise"), "Invalid action")
       )
+
+  }
+
+  case class GetRelationshipQuery(
+    idtype: Option[String],
+    `ref-no`: Option[String],
+    arn: Option[String],
+    agent: Boolean,
+    `active-only`: Boolean,
+    regime: String,
+    from: Option[String],
+    to: Option[String])
+
+  object GetRelationshipQuery {
+    implicit val format: Format[GetRelationshipQuery] = Json.format[GetRelationshipQuery]
+
+    private val queryConstraint: Constraint[GetRelationshipQuery] = Constraint(
+      q =>
+        if (q.agent && q.arn.isEmpty) Invalid("Missing arn")
+        else if (!q.agent && q.`ref-no`.isEmpty) Invalid("Missing ref-no")
+        else if ((!q.`active-only` || q.to.isDefined) && q.from.isEmpty) Invalid("Missing from date")
+        else if (!q.`active-only` && q.to.isEmpty) Invalid("Missing to date")
+        else Valid)
+
+    val form: Form[GetRelationshipQuery] = Form[GetRelationshipQuery](
+      mapping(
+        "idtype" -> optional(nonEmptyText.verifying(Constraints.pattern("^[A-Z]{1,6}$".r, "idtype", "Invalid idtype"))),
+        "ref-no" -> optional(
+          nonEmptyText.verifying(Constraints.pattern("^[0-9A-Za-z]{1,15}$".r, "ref-no", "Invalid ref-no"))),
+        "arn"         -> optional(nonEmptyText.verifying(Constraints.pattern("^[A-Z]ARN[0-9]{7}$".r, "arn", "Invalid arn"))),
+        "agent"       -> boolean,
+        "active-only" -> boolean,
+        "regime"      -> nonEmptyText.verifying(Constraints.pattern("^[A-Z]{3,10}$".r, "regime", "Invalid regime")),
+        "from" -> optional(nonEmptyText.verifying(Constraints.pattern(
+          "^(((19|20)([2468][048]|[13579][26]|0[48])|2000)[-]02[-]29|((19|20)[0-9]{2}[-](0[469]|11)[-](0[1-9]|1[0-9]|2[0-9]|30)|(19|20)[0-9]{2}[-](0[13578]|1[02])[-](0[1-9]|[12][0-9]|3[01])|(19|20)[0-9]{2}[-]02[-](0[1-9]|1[0-9]|2[0-8])))$".r,
+          "from",
+          "Invalid from date"
+        ))),
+        "to" -> optional(nonEmptyText.verifying(Constraints.pattern(
+          "^(((19|20)([2468][048]|[13579][26]|0[48])|2000)[-]02[-\n]29|((19|20)[0-9]{2}[-](0[469]|11)[-](0[1-9]|1[0-9]|2[0-9]|30)|(19|20)[0-9]{2}[-](0[13578]|1[02])[-](0[1-9]|[12][0-9]|3[01])|(19|20)[0-9]{2}[-]02[-](0[1-9]|1[0-9]|2[0-8])))$".r,
+          "to",
+          "Invalid to date"
+        )))
+      )(GetRelationshipQuery.apply)(GetRelationshipQuery.unapply).verifying(queryConstraint))
 
   }
 

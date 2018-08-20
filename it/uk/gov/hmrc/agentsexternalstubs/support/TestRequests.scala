@@ -254,6 +254,34 @@ trait TestRequests extends ScalaFutures {
         .withHeaders(authContext.headers: _*)
         .post[T](payload)
         .futureValue
+
+    def getRelationship(
+      regime: String,
+      agent: Boolean,
+      `active-only`: Boolean,
+      idtype: Option[String] = None,
+      `ref-no`: Option[String] = None,
+      arn: Option[String] = None,
+      from: Option[String] = None,
+      to: Option[String] = None)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/registration/relationship")
+        .withQueryString(Seq(
+          "idtype"      -> `idtype`,
+          "ref-no"      -> `ref-no`,
+          "arn"         -> arn,
+          "agent"       -> Some(agent.toString),
+          "active-only" -> Some(`active-only`.toString),
+          "regime"      -> Some(regime),
+          "from"        -> from,
+          "to"          -> to
+        ).collect {
+          case (name, Some(value: String)) => (name, value)
+        }: _*)
+        .withHeaders(authContext.headers: _*)
+        .get()
+        .futureValue
+
   }
 
 }
