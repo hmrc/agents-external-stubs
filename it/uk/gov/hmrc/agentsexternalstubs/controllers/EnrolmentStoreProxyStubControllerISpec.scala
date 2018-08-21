@@ -1,22 +1,16 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import org.scalatest.Suite
-import org.scalatestplus.play.ServerProvider
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, Enrolment, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{MongoDbPerSuite, ServerBaseISpec, TestRequests}
 
-import scala.concurrent.duration._
-
 class EnrolmentStoreProxyStubControllerISpec
     extends ServerBaseISpec with MongoDbPerSuite with TestRequests with TestStubs {
 
   val url = s"http://localhost:$port"
   val wsClient = app.injector.instanceOf[WSClient]
-
-  override implicit val defaultTimeout = 60.seconds
 
   "EnrolmentStoreProxyStubController" when {
 

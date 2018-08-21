@@ -41,4 +41,43 @@ class RelationshipRecordsService @Inject()(recordsRepository: RecordsRepository)
 
   def findByKey(key: String, planetId: String)(implicit ec: ExecutionContext): Future[List[RelationshipRecord]] =
     recordsRepository.cursor(key, planetId).collect[List](MAX_DOCS)
+
+  def findByQuery(query: RelationshipRecordQuery, planetId: String)(
+    implicit ec: ExecutionContext): Future[List[RelationshipRecord]] = {
+
+    val maybeActiveOnly: RelationshipRecord => Boolean = r => if (query.activeOnly) r.active else true
+
+    val maybeFromDate: RelationshipRecord => Boolean = r =>
+      if (query.activeOnly) true
+      else query.from.forall(qf => r.startDate.forall(rf => !rf.isBefore(qf)))
+
+    val maybeToDate: RelationshipRecord => Boolean = r =>
+      if (query.activeOnly) true else query.to.forall(qt => r.startDate.forall(rt => !rt.isAfter(qt)))
+
+    val key =
+      if (query.agent)
+        RelationshipRecord.agentKey(query.regime, query.arn.getOrElse(throw new Exception("Missing arn parameter")))
+      else
+        RelationshipRecord.clientKey(
+          query.regime,
+          query.idType,
+          query.refNumber.getOrElse(throw new Exception("Missing refNumber parameter")))
+
+    findByKey(key, planetId)
+      .map(
+        _.filter(maybeActiveOnly)
+          .filter(maybeFromDate)
+          .filter(maybeToDate))
+  }
+
 }
+
+case class RelationshipRecordQuery(
+  regime: String,
+  arn: Option[String] = None,
+  idType: String,
+  refNumber: Option[String] = None,
+  activeOnly: Boolean = true,
+  agent: Boolean,
+  from: Option[LocalDate] = None,
+  to: Option[LocalDate] = None)

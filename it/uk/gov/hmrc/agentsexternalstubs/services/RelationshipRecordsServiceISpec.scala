@@ -1,5 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
+import org.joda.time.LocalDate
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -101,6 +102,102 @@ class RelationshipRecordsServiceISpec extends UnitSpec with OneAppPerSuite with 
 
       val allRecords = await(service.findByKey("A", "mercury"))
       allRecords.size shouldBe 0
+    }
+
+    "find relationships by query" in {
+      await(service.authorise(RelationshipRecord("R3", "A1", "D", "C3"), "pluto"))
+      await(service.authorise(RelationshipRecord("R1", "A1", "D", "C1"), "pluto"))
+      await(service.authorise(RelationshipRecord("R1", "A1", "D", "C2"), "pluto"))
+      await(service.authorise(RelationshipRecord("R1", "A1", "D", "C3"), "pluto"))
+      await(service.authorise(RelationshipRecord("R2", "A1", "D", "C1"), "pluto"))
+      await(service.authorise(RelationshipRecord("R1", "A2", "D", "C1"), "pluto")) //replaces #2
+
+      val allOfAgent = await(
+        service.findByQuery(
+          RelationshipRecordQuery(regime = "R1", agent = true, arn = Some("A1"), idType = "D", activeOnly = false),
+          "pluto"))
+      allOfAgent.size shouldBe 3
+
+      val activeOfAgent = await(
+        service.findByQuery(
+          RelationshipRecordQuery(regime = "R1", agent = true, arn = Some("A1"), idType = "D", activeOnly = true),
+          "pluto"))
+      activeOfAgent.size shouldBe 2
+      activeOfAgent.map(_.refNumber) should contain.only("C2", "C3")
+
+      val allOfClient = await(service.findByQuery(
+        RelationshipRecordQuery(regime = "R1", agent = false, refNumber = Some("C1"), idType = "D", activeOnly = false),
+        "pluto"))
+      allOfClient.size shouldBe 2
+      allOfClient.map(_.arn) should contain.only("A1", "A2")
+
+      val activeOfClient = await(service.findByQuery(
+        RelationshipRecordQuery(regime = "R1", agent = false, refNumber = Some("C1"), idType = "D", activeOnly = true),
+        "pluto"))
+      activeOfClient.size shouldBe 1
+      activeOfClient.map(_.arn) should contain.only("A2")
+    }
+
+    "find relationships by query with dates" in {
+      await(
+        repo.store(
+          RelationshipRecord("R1", "A1", "E", "C1", active = true, startDate = Some(LocalDate.parse("2002-01-01"))),
+          "uranus"))
+      await(
+        repo.store(
+          RelationshipRecord("R1", "A1", "E", "C2", active = true, startDate = Some(LocalDate.parse("2002-06-15"))),
+          "uranus"))
+      await(
+        repo.store(
+          RelationshipRecord("R1", "A1", "E", "C3", active = false, startDate = Some(LocalDate.parse("2001-05-15"))),
+          "uranus"))
+      await(
+        repo.store(
+          RelationshipRecord("R1", "A1", "E", "C4", active = true, startDate = Some(LocalDate.parse("2000-01-31"))),
+          "uranus"))
+
+      val recordsAfter = await(
+        service.findByQuery(
+          RelationshipRecordQuery(
+            regime = "R1",
+            agent = true,
+            arn = Some("A1"),
+            idType = "E",
+            activeOnly = false,
+            from = Some(LocalDate.parse("2002-01-02"))),
+          "uranus"))
+      recordsAfter.size shouldBe 1
+      recordsAfter.map(_.refNumber) should contain.only("C2")
+
+      val recordsBetween = await(
+        service.findByQuery(
+          RelationshipRecordQuery(
+            regime = "R1",
+            agent = true,
+            arn = Some("A1"),
+            idType = "E",
+            activeOnly = false,
+            from = Some(LocalDate.parse("2001-05-15")),
+            to = Some(LocalDate.parse("2002-01-01"))),
+          "uranus"
+        ))
+      recordsBetween.size shouldBe 2
+      recordsBetween.map(_.refNumber) should contain.only("C1", "C3")
+
+      val allActiveIgnoreDates = await(
+        service.findByQuery(
+          RelationshipRecordQuery(
+            regime = "R1",
+            agent = true,
+            arn = Some("A1"),
+            idType = "E",
+            activeOnly = true,
+            from = Some(LocalDate.parse("2001-05-15")),
+            to = Some(LocalDate.parse("2002-01-01"))),
+          "uranus"
+        ))
+      allActiveIgnoreDates.size shouldBe 3
+      allActiveIgnoreDates.map(_.refNumber) should contain.only("C1", "C2", "C4")
     }
   }
 }

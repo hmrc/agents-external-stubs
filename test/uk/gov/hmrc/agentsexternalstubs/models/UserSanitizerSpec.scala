@@ -15,8 +15,8 @@ class UserSanitizerSpec extends UnitSpec {
     }
 
     "add missing name to the Agent" in {
-      UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Agent))).name shouldBe Some("Avery Goulding")
-      UserSanitizer.sanitize(User("boo", affinityGroup = Some(User.AG.Agent))).name shouldBe Some("Isaac Pearson")
+      UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Agent))).name shouldBe Some("Kaylee Hastings")
+      UserSanitizer.sanitize(User("boo", affinityGroup = Some(User.AG.Agent))).name shouldBe Some("Nicholas Bates")
     }
 
     "add missing name to the Organisation" in {

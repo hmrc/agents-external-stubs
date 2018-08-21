@@ -8,9 +8,10 @@ object UserSanitizer {
     if (user.name.isEmpty)
       user.affinityGroup match {
         case Some(User.AG.Individual) => user.copy(name = Some(UserGenerator.nameForIndividual(user.userId)))
-        case Some(User.AG.Agent)      => user.copy(name = Some(UserGenerator.nameForAgent(user.userId)))
-        case Some(_)                  => user.copy(name = Some(UserGenerator.nameForOrganisation(user.userId)))
-        case None                     => user
+        case Some(User.AG.Agent) =>
+          user.copy(name = Some(UserGenerator.nameForAgent(user.userId, user.groupId.getOrElse(user.userId))))
+        case Some(_) => user.copy(name = Some(UserGenerator.nameForOrganisation(user.userId)))
+        case None    => user
       } else user
 
   private val ensureIndividualUserHaveDateOfBirth: User => User = user =>
@@ -84,13 +85,13 @@ object UserSanitizer {
 
   private val userSanitizers: Seq[User => User] =
     Seq(
+      ensureUserHaveGroupIdentifier,
       ensureUserHaveName,
       ensureIndividualUserHaveDateOfBirth,
       ensureOnlyIndividualUserHaveNINO,
       ensureOnlyIndividualUserHaveConfidenceLevel,
       ensureUserHaveCredentialRole,
       ensureOnlyIndividualUserHaveDateOfBirth,
-      ensureUserHaveGroupIdentifier,
       ensureAgentHaveAgentCode,
       ensureAgentHaveAgentId,
       ensureAgentHaveFriendlyName

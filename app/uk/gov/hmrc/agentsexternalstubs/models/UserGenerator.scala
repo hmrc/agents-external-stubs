@@ -21,11 +21,8 @@ object UserGenerator extends Names with Temporal with Companies {
       ln <- surname
     } yield s"$fn $ln").seeded(userId).get
 
-  def nameForAgent(userId: String): String =
-    (for {
-      fn <- forename()
-      ln <- surname
-    } yield s"$fn $ln").seeded(userId + "_agent").get
+  def nameForAgent(userId: String, groupId: String): String =
+    s"${forename().seeded(userId).getOrElse("Agent")} ${surname.seeded(groupId).getOrElse("Cooper")}"
 
   def nameForOrganisation(userId: String): String = company.seeded(userId).get
 
@@ -93,19 +90,20 @@ object UserGenerator extends Names with Temporal with Companies {
     agentFriendlyName: String = null,
     agentId: String = null,
     delegatedEnrolments: Seq[Enrolment] = Seq.empty,
-    groupId: String = null): User =
+    groupId: String = null): User = {
+    val gid = Option(groupId).getOrElse(UserGenerator.groupId(userId))
     User(
       userId = userId,
       affinityGroup = Some(User.AG.Agent),
       credentialRole = Option(credentialRole),
-      name = Option(name).orElse(Option(UserGenerator.nameForAgent(userId))),
-      agentCode = Option(agentCode).orElse(Option(UserGenerator.agentCode(Option(groupId).getOrElse(userId)))),
-      agentFriendlyName =
-        Option(agentFriendlyName).orElse(Option(UserGenerator.agentFriendlyName(Option(groupId).getOrElse(userId)))),
-      agentId = Option(agentId).orElse(Option(UserGenerator.agentId(Option(groupId).getOrElse(userId)))),
+      name = Option(name).orElse(Option(UserGenerator.nameForAgent(userId, gid))),
+      agentCode = Option(agentCode).orElse(Option(UserGenerator.agentCode(gid))),
+      agentFriendlyName = Option(agentFriendlyName).orElse(Option(UserGenerator.agentFriendlyName(gid))),
+      agentId = Option(agentId).orElse(Option(UserGenerator.agentId(gid))),
       delegatedEnrolments = delegatedEnrolments,
-      groupId = Option(groupId).orElse(Option(UserGenerator.groupId(userId)))
+      groupId = Option(gid)
     )
+  }
 
   def organisation(userId: String = UUID.randomUUID().toString, name: String = null, groupId: String = null): User =
     User(
