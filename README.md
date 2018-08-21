@@ -9,14 +9,20 @@ You will have to run [UI stubs](https://github.com/hmrc/agents-external-stubs-fr
 
 This app SHOULD NOT be run on QA nor Production environment.
 
-## How requests to the stubbed APIs are handled?
+## Table of contents
 
-To handle requests locally without requiring existing applications to reconfigure, we provide necessary TCP proxies:
+* [Stubbed APIs](#stubbed_api)
+* [Custom API](#custom_api)
+
+## How requests are handled?
+
+We handle local requests gracefully and do not require existing applications to reconfigure, i.e. we provide necessary TCP proxies:
 
 - listening on 8500 for auth requests
 - listening on 9337 for citizen-details requests
 - listening on 9984 for users-groups-search requests
 - listening on 7775 for enrolment-store-proxy requests
+- listening on 9904 for des requests
 
 You can switch this behaviour off by setting `proxies.start` config property to `false`.
 
@@ -28,7 +34,7 @@ Stubbed and custom UIs will consider only users and data assigned to the current
 User authentication expires after 15 minutes and so does the bearer token.
 All users and other data on each planet are removed after 12h unless marked as permanent.
 
-## Stubbed APIs
+## Stubbed APIs <a name="stubbed_api"></a>
 
 ### [Auth](https://github.com/hmrc/auth)
 
@@ -70,7 +76,14 @@ Endpoint | Description
 ---|---
 `POST /tax-enrolments/groups/:groupId/enrolments/:enrolmentKey` | allocate an enrolment to a group (agent)
 
-## Custom API
+### DES
+
+Endpoint | Description
+---|---
+`POST /registration/relationship` | Provides the ability for an agent to authorise or de-authorise the relationship with a taxpayer, or for a taxpayer to de-authorise the relationship with an agent.
+`GET  /registration/relationship` | Provides the ability for a taxpayer (individual or organisation) or their agent to display historical or current relationships.
+
+## Custom API <a name="custom_api"></a>
 
 ### Authentication
 

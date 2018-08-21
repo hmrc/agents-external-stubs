@@ -17,6 +17,7 @@ abstract class AppBaseISpec extends BaseISpec with WireMockSupport with OneAppPe
         "microservice.services.users-groups-search.port"   -> wireMockPort,
         "microservice.services.enrolment-store-proxy.port" -> wireMockPort,
         "microservice.services.tax-enrolments.port"        -> wireMockPort,
+        "microservice.services.des.port"                   -> wireMockPort,
         "metrics.enabled"                                  -> true,
         "auditing.enabled"                                 -> false,
         "mongodb.uri"                                      -> s"mongodb://127.0.0.1:27017/test-${this.getClass.getSimpleName}",

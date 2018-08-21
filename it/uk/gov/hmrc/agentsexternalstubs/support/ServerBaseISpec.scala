@@ -28,6 +28,7 @@ abstract class ServerBaseISpec extends BaseISpec with OneServerPerSuite with Sca
         "microservice.services.users-groups-search.port"   -> Port.randomAvailable,
         "microservice.services.enrolment-store-proxy.port" -> Port.randomAvailable,
         "microservice.services.tax-enrolments.port"        -> Port.randomAvailable,
+        "microservice.services.des.port"                   -> Port.randomAvailable,
         "metrics.enabled"                                  -> true,
         "auditing.enabled"                                 -> false,
         "mongodb.uri"                                      -> s"mongodb://127.0.0.1:27017/test-${this.getClass.getSimpleName}",

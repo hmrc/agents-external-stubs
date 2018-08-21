@@ -17,7 +17,8 @@ case class TcpProxiesConfig @Inject()(
   @Named("citizen-details.port") citizenDetailsPort: Int,
   @Named("users-groups-search.port") usersGroupsSearchPort: Int,
   @Named("enrolment-store-proxy.port") enrolmentStoreProxyPort: Int,
-  @Named("tax-enrolments.port") taxEnrolmentsPort: Int)
+  @Named("tax-enrolments.port") taxEnrolmentsPort: Int,
+  @Named("des.port") desPort: Int)
 
 @Singleton
 class TcpProxies @Inject()(tcpProxiesConfig: TcpProxiesConfig, @Named("http.port") httpPort: String)(
@@ -50,6 +51,7 @@ class TcpProxies @Inject()(tcpProxiesConfig: TcpProxiesConfig, @Named("http.port
     startProxy(tcpProxiesConfig.usersGroupsSearchPort, "users-groups-search")
     startProxy(tcpProxiesConfig.enrolmentStoreProxyPort, "enrolment-store-proxy")
     startProxy(tcpProxiesConfig.taxEnrolmentsPort, "tax-enrolments")
+    startProxy(tcpProxiesConfig.desPort, "des")
 
   } else {
     Logger(getClass).info("TCP proxying feature is switched off")

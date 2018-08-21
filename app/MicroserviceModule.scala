@@ -28,8 +28,11 @@ class MicroserviceModule(val environment: Environment, val configuration: Config
     MDC.put("appName", appName)
     loggerDateFormat.foreach(str => MDC.put("logger.json.dateformat", str))
 
-    bindProperty("appName")
+    bind(classOf[HttpGet]).to(classOf[HttpVerbs])
+    bind(classOf[HttpPost]).to(classOf[HttpVerbs])
+    bind(classOf[AuthConnector]).to(classOf[MicroserviceAuthConnector])
 
+    bindProperty("appName")
     bindProperty("http.port")
     bindProperty("proxies.start")
 
@@ -38,16 +41,14 @@ class MicroserviceModule(val environment: Environment, val configuration: Config
     bindServiceConfigProperty[Int]("users-groups-search.port")
     bindServiceConfigProperty[Int]("enrolment-store-proxy.port")
     bindServiceConfigProperty[Int]("tax-enrolments.port")
-
-    bind(classOf[HttpGet]).to(classOf[HttpVerbs])
-    bind(classOf[HttpPost]).to(classOf[HttpVerbs])
-    bind(classOf[AuthConnector]).to(classOf[MicroserviceAuthConnector])
+    bindServiceConfigProperty[Int]("des.port")
 
     bindBaseUrl("auth")
     bindBaseUrl("citizen-details")
     bindBaseUrl("users-groups-search")
     bindBaseUrl("enrolment-store-proxy")
     bindBaseUrl("tax-enrolments")
+    bindBaseUrl("des")
 
     bind(classOf[TcpProxies]).asEagerSingleton()
   }
