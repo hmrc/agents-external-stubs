@@ -1,8 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import org.joda.time.LocalDate
-import org.scalatest.Suite
-import org.scalatestplus.play.ServerProvider
 import play.api.libs.ws.WSClient
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models.{User, UserGenerator}

@@ -1,7 +1,5 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import org.scalatest.Suite
-import org.scalatestplus.play.ServerProvider
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, Enrolment, Identifier, User}
 import uk.gov.hmrc.agentsexternalstubs.support.{MongoDbPerSuite, NotAuthorized, ServerBaseISpec, TestRequests}
