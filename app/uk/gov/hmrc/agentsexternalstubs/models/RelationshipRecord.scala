@@ -17,7 +17,7 @@ case class RelationshipRecord(
 
   import RelationshipRecord._
 
-  override def keys =
+  override def keys: Seq[String] =
     Seq(
       fullKey(regime, arn, idType, refNumber),
       agentKey(regime, arn),
@@ -27,6 +27,8 @@ case class RelationshipRecord(
       arn,
       refNumber
     )
+
+  override def withId(id: Option[String]): RelationshipRecord = copy(id = id)
 }
 
 object RelationshipRecord {

@@ -10,8 +10,7 @@ import play.api.data.Forms._
 import play.api.data.validation.{Constraint, Constraints, Invalid, Valid}
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent}
-import uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.{AuthoriseRequest, GetRelationships}
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthoriseResponse, RelationshipRecord, UserGenerator, Validate}
+import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, RelationshipRecordQuery, RelationshipRecordsService, UsersService}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
@@ -21,6 +20,8 @@ class DesStubController @Inject()(
   val authenticationService: AuthenticationService,
   relationshipRecordsService: RelationshipRecordsService)(implicit usersService: UsersService)
     extends BaseController with DesCurrentSession {
+
+  import DesStubController._
 
   val authoriseOrDeAuthoriseRelationship: Action[JsValue] = Action.async(parse.json) { implicit request =>
     withCurrentSession { session =>
@@ -60,6 +61,42 @@ class DesStubController @Inject()(
             .findByQuery(query, session.planetId)
             .map(records => Ok(Json.toJson(GetRelationships.Response.from(records))))
       )
+    }(SessionRecordNotFound)
+  }
+
+  def getLegacyRelationshipByUtr(utr: String): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      validateUtr(utr).fold(
+        error => badRequestF("INVALID_UTR", error),
+        _ => ??? //TODO
+      )
+    }(SessionRecordNotFound)
+  }
+
+  def getLegacyRelationshipByNino(nino: String): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      validateNino(nino).fold(
+        error => badRequestF("INVALID_NINO", error),
+        _ => ??? //TODO
+      )
+    }(SessionRecordNotFound)
+  }
+
+  def getBusinessDetails(idType: String, idNumber: String): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      idType match {
+        case "nino" =>
+          validateNino(idNumber).fold(
+            error => badRequestF("INVALID_NINO", error),
+            _ => ??? //TODO
+          )
+        case "mtdbsa" =>
+          validateMtdbsa(idNumber).fold(
+            error => badRequestF("INVALID_MTDBSA", error),
+            _ => ??? //TODO
+          )
+        case _ => notFoundF("ID_TYPE_NOT_SUPPORTED")
+      }
     }(SessionRecordNotFound)
   }
 
@@ -127,7 +164,7 @@ object DesStubController {
     val form: Form[RelationshipRecordQuery] = Form[RelationshipRecordQuery](
       mapping(
         "regime" -> nonEmptyText.verifying(Constraints.pattern("^[A-Z]{3,10}$".r, "regime", "Invalid regime")),
-        "arn"    -> optional(nonEmptyText.verifying(Constraints.pattern("^[A-Z]ARN[0-9]{7}$".r, "arn", "Invalid arn"))),
+        "arn"    -> optional(nonEmptyText.verifying(Constraints.pattern(RegexPatterns.arn, "arn", "Invalid arn"))),
         "idtype" -> default(
           nonEmptyText.verifying(Constraints.pattern("^[A-Z]{1,6}$".r, "idtype", "Invalid idtype")),
           "none"),
@@ -135,16 +172,12 @@ object DesStubController {
           nonEmptyText.verifying(Constraints.pattern("^[0-9A-Za-z]{1,15}$".r, "ref-no", "Invalid ref-no"))),
         "active-only" -> boolean,
         "agent"       -> boolean,
-        "from" -> optional(nonEmptyText.verifying(Constraints.pattern(
-          "^(((19|20)([2468][048]|[13579][26]|0[48])|2000)[-]02[-]29|((19|20)[0-9]{2}[-](0[469]|11)[-](0[1-9]|1[0-9]|2[0-9]|30)|(19|20)[0-9]{2}[-](0[13578]|1[02])[-](0[1-9]|[12][0-9]|3[01])|(19|20)[0-9]{2}[-]02[-](0[1-9]|1[0-9]|2[0-8])))$".r,
-          "from",
-          "Invalid from date"
-        ))).transform[Option[LocalDate]](_.map(LocalDate.parse), Option(_).map(_.toString)),
-        "to" -> optional(nonEmptyText.verifying(Constraints.pattern(
-          "^(((19|20)([2468][048]|[13579][26]|0[48])|2000)[-]02[-\n]29|((19|20)[0-9]{2}[-](0[469]|11)[-](0[1-9]|1[0-9]|2[0-9]|30)|(19|20)[0-9]{2}[-](0[13578]|1[02])[-](0[1-9]|[12][0-9]|3[01])|(19|20)[0-9]{2}[-]02[-](0[1-9]|1[0-9]|2[0-8])))$".r,
-          "to",
-          "Invalid to date"
-        ))).transform[Option[LocalDate]](_.map(LocalDate.parse), Option(_).map(_.toString))
+        "from" -> optional(
+          nonEmptyText.verifying(Constraints.pattern(RegexPatterns.`date_yyyy-MM-dd`, "from", "Invalid from date")))
+          .transform[Option[LocalDate]](_.map(LocalDate.parse), Option(_).map(_.toString)),
+        "to" -> optional(
+          nonEmptyText.verifying(Constraints.pattern(RegexPatterns.`date_yyyy-MM-dd`, "to", "Invalid to date")))
+          .transform[Option[LocalDate]](_.map(LocalDate.parse), Option(_).map(_.toString))
       )(RelationshipRecordQuery.apply)(RelationshipRecordQuery.unapply).verifying(queryConstraint))
 
     case class Individual(firstName: String, lastName: String)
@@ -203,5 +236,12 @@ object DesStubController {
         Response(relationship = records.map(Relationship.from))
     }
   }
+
+  val validateNino: String => Either[String, String] =
+    RegexPatterns.validate(RegexPatterns.nino)
+  val validateUtr: String => Either[String, String] =
+    RegexPatterns.validate(RegexPatterns.utr)
+  val validateMtdbsa: String => Either[String, String] =
+    RegexPatterns.validate(RegexPatterns.mtdbsa)
 
 }

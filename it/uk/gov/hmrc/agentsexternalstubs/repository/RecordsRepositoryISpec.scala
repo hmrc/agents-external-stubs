@@ -19,6 +19,7 @@ import org.scalatestplus.play.OneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import reactivemongo.bson.BSONObjectID
+import uk.gov.hmrc.agentsexternalstubs.models.LegacyRelationshipRecord.LegacyAgent
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.support.MongoDbPerTest
 import uk.gov.hmrc.mongo.ReactiveRepository
@@ -49,19 +50,40 @@ class RecordsRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPe
       val registration2 = RelationshipRecord(regime = "A", arn = "B2", refNumber = "C2", idType = "D", active = false)
       await(repo.store(registration2, "saturn"))
 
-      val recordsBefore = underlyingRepo.findAll()
+      val recordsBefore = await(underlyingRepo.findAll())
       recordsBefore.size shouldBe 2
 
       val record1 = recordsBefore.find(_.asInstanceOf[RelationshipRecord].arn == "B1").get
       record1.id should not be empty
       await(repo.store(record1.asInstanceOf[RelationshipRecord].copy(arn = "B3"), "saturn"))
 
-      val recordsAfter = underlyingRepo.findAll()
+      val recordsAfter = await(underlyingRepo.findAll())
       recordsAfter.size shouldBe 2
       recordsAfter.find(_.asInstanceOf[RelationshipRecord].arn == "B3") should not be empty
       recordsAfter.find(_.asInstanceOf[RelationshipRecord].arn == "B2") should not be empty
       recordsAfter.find(_.asInstanceOf[RelationshipRecord].arn == "B1") shouldBe empty
+    }
 
+    "store a LegacyRelationshipRecord entities" in {
+      val registration1 = LegacyRelationshipRecord(
+        agents = Seq(LegacyAgent(id = "1", agentId = "A1", agentName = "Agent1", address1 = "a11", address2 = "a12")))
+      await(repo.store(registration1, "saturn"))
+
+      val registration2 = LegacyRelationshipRecord(
+        agents = Seq(LegacyAgent(id = "2", agentId = "A2", agentName = "Agent2", address1 = "a21", address2 = "a22")))
+      await(repo.store(registration2, "saturn"))
+
+      val records = await(underlyingRepo.findAll())
+      records.size shouldBe 2
+      records.flatMap(_.asInstanceOf[LegacyRelationshipRecord].agents.map(_.id)) should contain.only("1", "2")
+    }
+
+    "store a BusinessDetails entities" in {
+      val businessDetails1 = BusinessDetailsRecord()
+      await(repo.store(businessDetails1, "saturn"))
+
+      val records = await(underlyingRepo.findAll())
+      records.size shouldBe 1
     }
   }
 }

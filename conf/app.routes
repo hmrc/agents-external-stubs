@@ -25,6 +25,9 @@ DELETE      /tax-enrolments/groups/:groupId/enrolments/:enrolmentKey         @uk
 # DES stubs
 POST        /registration/relationship                                       @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.authoriseOrDeAuthoriseRelationship
 GET         /registration/relationship                                       @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getRelationship(idtype: Option[String] ?= None, `ref-no`: Option[String] ?= None, arn: Option[String] ?= None, agent: Boolean, `active-only`: Boolean, regime: String, from: Option[String] ?= None, to: Option[String] ?= None)
+GET         /registration/relationship/utr/:utr                              @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getLegacyRelationshipByUtr(utr: String)
+GET         /registration/relationship/nino/:nino                            @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getLegacyRelationshipByNino(nino: String)
+GET         /registration/business-details/:idType/:idNumber                 @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getBusinessDetails(idType: String, idNumber: String)
 
 # Authentication
 POST        /agents-external-stubs/sign-in                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.signIn
