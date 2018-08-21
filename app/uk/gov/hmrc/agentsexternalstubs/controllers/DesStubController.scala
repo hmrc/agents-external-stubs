@@ -1,22 +1,27 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
+import java.time.Instant
+
 import cats.data.Validated
 import javax.inject.{Inject, Singleton}
+import org.joda.time.LocalDateTime
 import play.api.data.Form
 import play.api.data.Forms._
 import play.api.data.validation.{Constraint, Constraints, Invalid, Valid}
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent}
 import uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.{AuthoriseRequest, GetRelationshipQuery}
-import uk.gov.hmrc.agentsexternalstubs.models.Validate
-import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthoriseResponse, RelationshipRecord, Validate}
+import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, RelationshipRecordsService, UsersService}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.Future
 
 @Singleton
-class DesStubController @Inject()(val authenticationService: AuthenticationService)(implicit usersService: UsersService)
+class DesStubController @Inject()(
+  val authenticationService: AuthenticationService,
+  relationshipRecordsService: RelationshipRecordsService)(implicit usersService: UsersService)
     extends BaseController with DesCurrentSession {
 
   val authoriseOrDeAuthoriseRelationship: Action[JsValue] = Action.async(parse.json) { implicit request =>
@@ -26,7 +31,15 @@ class DesStubController @Inject()(val authenticationService: AuthenticationServi
           .validate(payload)
           .fold(
             error => badRequestF("INVALID_SUBMISSION", error.mkString(", ")),
-            _ => Future.successful(Accepted)
+            _ =>
+              if (payload.authorisation.action == "Authorise")
+                relationshipRecordsService
+                  .authorise(AuthoriseRequest.toRelationshipRecord(payload), session.planetId)
+                  .map(_ => Ok(Json.toJson(AuthoriseResponse())))
+              else
+                relationshipRecordsService
+                  .deAuthorise(AuthoriseRequest.toRelationshipRecord(payload), session.planetId)
+                  .map(_ => Ok(Json.toJson(AuthoriseResponse())))
           )
       }
     }(SessionRecordNotFound)
@@ -81,6 +94,23 @@ object DesStubController {
         (_.authorisation.action.matches("Authorise|De-Authorise"), "Invalid action")
       )
 
+    def toRelationshipRecord(r: AuthoriseRequest): RelationshipRecord =
+      RelationshipRecord(
+        regime = r.regime,
+        arn = r.agentReferenceNumber,
+        idType = r.idType.getOrElse("none"),
+        refNumber = r.refNumber,
+        active = false,
+        relationshipType = r.relationshipType,
+        authProfile = r.authProfile
+      )
+
+  }
+
+  case class AuthoriseResponse(processingDate: Instant = Instant.now())
+
+  object AuthoriseResponse {
+    implicit val writes: Writes[AuthoriseResponse] = Json.writes[AuthoriseResponse]
   }
 
   case class GetRelationshipQuery(

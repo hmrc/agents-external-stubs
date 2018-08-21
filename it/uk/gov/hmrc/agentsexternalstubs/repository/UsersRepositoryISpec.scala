@@ -40,8 +40,8 @@ class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPerT
 
   def repo = app.injector.instanceOf[UsersRepository with Repository[User,BSONObjectID]]
 
-  "create" should {
-    "create a simple user" in {
+  "store" should {
+    "store a simple user" in {
       await(repo.create(User("foo"), "juniper"))
 
       val result = await(repo.find())
@@ -60,7 +60,7 @@ class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPerT
       await(repo.findByUserId("foo","saturn")) shouldBe None
     }
 
-    "create a user with simple principal enrolment" in {
+    "store a user with simple principal enrolment" in {
       await(repo.create(User("889foo", principalEnrolments = Seq(Enrolment("foobar"))), "juniper"))
 
       val result = await(repo.find())
@@ -89,7 +89,7 @@ class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPerT
       result.size shouldBe 3
     }
 
-    "create a user with single principal enrolment" in {
+    "store a user with single principal enrolment" in {
       await(repo.create(User("abcfoo", principalEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))), "juniper"))
 
       val result = await(repo.find())
@@ -99,7 +99,7 @@ class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPerT
       result.head.principalEnrolments shouldBe Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))
     }
 
-    "create a user with multiple principal enrolments" in {
+    "store a user with multiple principal enrolments" in {
       await(
         repo.create(
           User(
@@ -119,7 +119,7 @@ class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPerT
           Enrolment("barefoot", Some(Seq(Identifier("foo", "foo345")))))
     }
 
-    "create a user with single delegated enrolment" in {
+    "store a user with single delegated enrolment" in {
       await(repo.create(User("abcfoo", delegatedEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))), "juniper"))
 
       val result = await(repo.find())

@@ -36,7 +36,7 @@ class UsersController @Inject()(usersService: UsersService, val authenticationSe
             user,
             Link("update", routes.UsersController.updateUser(userId).url),
             Link("delete", routes.UsersController.deleteUser(userId).url),
-            Link("create", routes.UsersController.createUser().url),
+            Link("store", routes.UsersController.createUser().url),
             Link("list", routes.UsersController.getUsers(None, None).url)
           ))
         case None => notFound("USER_NOT_FOUND", s"Could not found user $userId")

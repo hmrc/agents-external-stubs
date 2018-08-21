@@ -23,7 +23,7 @@ import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.api.{Cursor, CursorProducer, ReadPreference}
-import reactivemongo.bson.BSONObjectID
+import reactivemongo.bson.{BSONDocument, BSONLong, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers
 import uk.gov.hmrc.agentsexternalstubs.models.{Record, RelationshipRecord}
 import uk.gov.hmrc.mongo.ReactiveRepository
@@ -35,8 +35,10 @@ import scala.reflect.ClassTag
 @ImplementedBy(classOf[RecordsRepositoryMongo])
 trait RecordsRepository {
 
-  def create(entity: Record, planetId: String)(implicit ec: ExecutionContext): Future[Either[Option[Int], Int]]
-  def cursor[T: Projection](key: String, planetId: String)(implicit reads: Reads[T], ec: ExecutionContext): Cursor[T]
+  def store(entity: Record, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
+  def cursor[T <: Record: RecordType](key: String, planetId: String)(
+    implicit reads: Reads[T],
+    ec: ExecutionContext): Cursor[T]
 }
 
 @Singleton
@@ -52,41 +54,62 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
   private final val PLANET_ID = "planetId"
 
   override def indexes =
-    Seq(Index(Seq(Record.KEYS -> Ascending, PLANET_ID -> Ascending), Some("Keys")))
+    Seq(
+      Index(Seq(Record.KEYS -> Ascending, Record.TYPE -> Ascending, PLANET_ID -> Ascending), Some("Keys")),
+      Index(
+        Seq(PLANET_ID -> Ascending),
+        Some("TTL"),
+        sparse = true,
+        options = BSONDocument("expireAfterSeconds" -> BSONLong(2592000)) // 30 days
+      )
+    )
 
-  override def cursor[T: Projection](key: String, planetId: String)(
+  override def store(entity: Record, planetId: String)(implicit ec: ExecutionContext): Future[Unit] = {
+    val json = Json.toJson[Record](entity).as[JsObject].+(PLANET_ID -> JsString(planetId))
+    (entity.id match {
+      case None     => collection.insert(json)
+      case Some(id) => collection.update(Json.obj("_id" -> Json.obj("$oid" -> JsString(id))), json, upsert = true)
+    }).flatMap(MongoHelper.interpretWriteResult)
+
+  }
+
+  override def cursor[T <: Record: RecordType](key: String, planetId: String)(
     implicit reads: Reads[T],
-    ec: ExecutionContext): Cursor[T] =
+    ec: ExecutionContext): Cursor[T] = {
+    val recordType = implicitly[RecordType[T]]
     collection
       .find(
-        JsObject(Seq(Record.KEYS -> JsString(key), PLANET_ID -> JsString(planetId))),
-        Json.obj(implicitly[Projection[T]].fieldNames.map(option => option -> toJsFieldJsValueWrapper(JsNumber(1))): _*)
+        JsObject(
+          Seq(
+            Record.KEYS -> JsString(key),
+            Record.TYPE -> JsString(recordType.typeName),
+            PLANET_ID   -> JsString(planetId))),
+        Json.obj(recordType.fieldNames.map(option => option -> toJsFieldJsValueWrapper(JsNumber(1))): _*)
       )
       .cursor[T](ReadPreference.primaryPreferred)(
-        implicitly[collection.pack.Reader[T]],
+        implicitly[collection.pack.Reader[Record]].map(_.asInstanceOf[T]),
         ec,
         implicitly[CursorProducer[T]])
-
-  override def create(entity: Record, planetId: String)(
-    implicit ec: ExecutionContext): Future[Either[Option[Int], Int]] = {
-    val json = Json.toJson[Record](entity).as[JsObject].+(PLANET_ID -> JsString(planetId))
-    collection
-      .insert(json)
-      .map(r => if (!r.ok || r.code.isDefined) Left(r.code) else Right(r.n))
   }
 }
 
-trait Projection[T] {
+trait RecordType[T] {
+
+  val typeName: String
   val fieldNames: Seq[String]
 }
 
-object Projection {
+object RecordType {
 
-  def apply[T](implicit classTag: ClassTag[T]): Projection[T] = {
-    val properties = classTag.runtimeClass.getDeclaredFields.map(_.getName)
-    new Projection[T] { override val fieldNames: Seq[String] = properties }
+  def apply[T](implicit classTag: ClassTag[T]): RecordType[T] = {
+    val properties =
+      classTag.runtimeClass.getDeclaredFields.map(_.getName).toSet.-("id").+(Record.ID).+(Record.TYPE).toSeq
+    new RecordType[T] {
+      override val typeName: String = classTag.runtimeClass.getSimpleName
+      override val fieldNames: Seq[String] = properties
+    }
   }
 
-  implicit val registration: Projection[RelationshipRecord] = Projection[RelationshipRecord]
+  implicit val registration: RecordType[RelationshipRecord] = RecordType[RelationshipRecord]
 
 }

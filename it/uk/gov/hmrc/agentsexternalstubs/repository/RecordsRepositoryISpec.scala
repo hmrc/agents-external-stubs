@@ -44,16 +44,24 @@ class RecordsRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPe
 
   "RecordsRepository" should {
     "store a RelationshipRecord entities" in {
-      val registration =
-        RelationshipRecord(
-          regime = "ITSA",
-          arn = "ZARN1234567",
-          refNumber = "012345678901234",
-          idType = "none",
-          active = true)
-      await(repo.create(registration, "saturn"))
+      val registration1 = RelationshipRecord(regime = "A", arn = "B1", refNumber = "C1", idType = "D", active = true)
+      await(repo.store(registration1, "saturn"))
+      val registration2 = RelationshipRecord(regime = "A", arn = "B2", refNumber = "C2", idType = "D", active = false)
+      await(repo.store(registration2, "saturn"))
 
-      underlyingRepo.findAll().size shouldBe 1
+      val recordsBefore = underlyingRepo.findAll()
+      recordsBefore.size shouldBe 2
+
+      val record1 = recordsBefore.find(_.asInstanceOf[RelationshipRecord].arn == "B1").get
+      record1.id should not be empty
+      await(repo.store(record1.asInstanceOf[RelationshipRecord].copy(arn = "B3"), "saturn"))
+
+      val recordsAfter = underlyingRepo.findAll()
+      recordsAfter.size shouldBe 2
+      recordsAfter.find(_.asInstanceOf[RelationshipRecord].arn == "B3") should not be empty
+      recordsAfter.find(_.asInstanceOf[RelationshipRecord].arn == "B2") should not be empty
+      recordsAfter.find(_.asInstanceOf[RelationshipRecord].arn == "B1") shouldBe empty
+
     }
   }
 }

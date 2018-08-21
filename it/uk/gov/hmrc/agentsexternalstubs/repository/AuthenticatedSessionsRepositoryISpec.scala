@@ -39,8 +39,8 @@ class AuthenticatedSessionsRepositoryISpec extends UnitSpec with OneAppPerSuite 
 
   def repo: AuthenticatedSessionsRepository = app.injector.instanceOf[AuthenticatedSessionsRepository]
 
-  "create" should {
-    "create a session" in {
+  "store" should {
+    "store a session" in {
       val authToken = UUID.randomUUID().toString
       await(repo.create("foobar", authToken, "bla", "juniper"))
 

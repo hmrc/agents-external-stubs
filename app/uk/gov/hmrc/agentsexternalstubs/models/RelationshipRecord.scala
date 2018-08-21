@@ -7,18 +7,40 @@ case class RelationshipRecord(
   arn: String,
   idType: String,
   refNumber: String,
-  active: Boolean,
+  active: Boolean = false,
   relationshipType: Option[String] = None,
   authProfile: Option[String] = None,
   startDate: Option[LocalDate] = None,
-  endDate: Option[LocalDate] = None)
+  endDate: Option[LocalDate] = None,
+  id: Option[String] = None)
     extends Record {
 
-  override def keys = Seq(RelationshipRecord.key(regime, arn, idType, refNumber), regime, arn, refNumber)
+  import RelationshipRecord._
+
+  override def keys =
+    Seq(
+      fullKey(regime, arn, idType, refNumber),
+      agentKey(regime, arn),
+      clientKey(regime, idType, refNumber),
+      agentClientKey(arn, idType, refNumber),
+      regime,
+      arn,
+      refNumber
+    )
 }
+
 object RelationshipRecord {
+
   implicit val formats: Format[RelationshipRecord] = Json.format[RelationshipRecord]
 
-  def key(regime: String, arn: String, idType: String, refNumber: String): String =
-    s"RelationshipRecord/$regime/$arn/$idType/$refNumber"
+  def fullKey(regime: String, arn: String, idType: String, refNumber: String): String =
+    s"FK/$regime/$arn/$idType/$refNumber"
+
+  def agentKey(regime: String, arn: String): String = s"AK/$regime/$arn"
+
+  def clientKey(regime: String, idType: String, refNumber: String): String =
+    s"CK/$regime/$idType/$refNumber"
+
+  def agentClientKey(arn: String, idType: String, refNumber: String): String =
+    s"ACK/$arn/$idType/$refNumber"
 }

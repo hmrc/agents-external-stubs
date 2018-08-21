@@ -46,14 +46,14 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDbPerSuite with Tes
     }
 
     "POST /agents-external-stubs/users/" should {
-      "create a new user" in {
+      "store a new user" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "D")
         val result = Users.create(User("yuwyquhh"))
         result.status shouldBe 201
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/yuwyquhh")
       }
 
-      "fail if trying to create user with duplicated userId on the same planet" in {
+      "fail if trying to store user with duplicated userId on the same planet" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "E")
         val result1 = Users.create(User("yuwyquhh"))
         result1.status shouldBe 201

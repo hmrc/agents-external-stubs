@@ -102,6 +102,7 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
       Some("AgentCodesWithCredentialRole"),
       sparse = true),
     Index(Seq("agentCode" -> Ascending, PLANET_ID -> Ascending), Some("AgentCodes"), sparse = true),
+    // TTL indexes
     Index(
       Seq(User.ttl_index_key -> Ascending),
       Some("TTL"),
