@@ -15,6 +15,7 @@
  */
 package uk.gov.hmrc.agentsexternalstubs.repository
 
+import com.google.inject.ImplementedBy
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json.toJsFieldJsValueWrapper
 import play.api.libs.json._
@@ -34,15 +35,41 @@ import scala.concurrent.{ExecutionContext, Future}
 
 case class DuplicateUserException(msg: String) extends IllegalStateException(msg)
 
+@ImplementedBy(classOf[UsersRepositoryMongo])
+trait UsersRepository {
+
+  def findByUserId(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]]
+  def findByNino(nino: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]]
+  def findByPlanetId(planetId: String, affinityGroup: Option[String])(limit: Int)(
+    implicit ec: ExecutionContext): Future[Seq[UserBrief]]
+  def findByGroupId(groupId: String, planetId: String)(limit: Int)(implicit ec: ExecutionContext): Future[Seq[User]]
+  def findAdminByGroupId(groupId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]]
+  def findByAgentCode(agentCode: String, planetId: String)(limit: Int)(implicit ec: ExecutionContext): Future[Seq[User]]
+  def findAdminByAgentCode(agentCode: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]]
+  def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
+    implicit ec: ExecutionContext): Future[Option[User]]
+  def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(
+    implicit ec: ExecutionContext): Future[Seq[User]]
+  def findUserIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(
+    implicit ec: ExecutionContext): Future[Seq[String]]
+  def findGroupIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(
+    implicit ec: ExecutionContext): Future[Seq[Option[String]]]
+  def create(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
+  def update(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
+  def delete(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[WriteResult]
+}
+
 @Singleton
-class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
+class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
     extends ReactiveRepository[User, BSONObjectID](
       "users",
       mongoComponent.mongoConnector.db,
       User.formats,
-      ReactiveMongoFormats.objectIdFormats) with StrictlyEnsureIndexes[User, BSONObjectID] {
+      ReactiveMongoFormats.objectIdFormats) with StrictlyEnsureIndexes[User, BSONObjectID] with UsersRepository {
 
   import ImplicitBSONHandlers._
+
+  private final val PLANET_ID = "planetId"
 
   private final val UsersIndexName = "Users"
   private final val NinosIndexName = "Ninos"
@@ -63,18 +90,18 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
       sparse = true),
     // Lookup indexes
     Index(Seq(User.delegated_enrolment_keys -> Ascending), Some("DelegatedEnrolmentKeys"), sparse = true),
-    Index(Seq("planetId"                    -> Ascending), Some("Planets")),
-    Index(Seq("planetId"                    -> Ascending, "affinityGroup" -> Ascending), Some("PlanetsWithAffinityGroup")),
-    Index(Seq("groupId"                     -> Ascending, "planetId" -> Ascending), Some("Groups"), sparse = true),
+    Index(Seq(PLANET_ID                     -> Ascending), Some("Planets")),
+    Index(Seq(PLANET_ID                     -> Ascending, "affinityGroup" -> Ascending), Some("PlanetsWithAffinityGroup")),
+    Index(Seq("groupId"                     -> Ascending, PLANET_ID -> Ascending), Some("Groups"), sparse = true),
     Index(
-      Seq("groupId" -> Ascending, "planetId" -> Ascending, "credentialRole" -> Ascending),
+      Seq("groupId" -> Ascending, PLANET_ID -> Ascending, "credentialRole" -> Ascending),
       Some("GroupsWithCredentialRole"),
       sparse = true),
     Index(
-      Seq("agentCode" -> Ascending, "planetId" -> Ascending, "credentialRole" -> Ascending),
+      Seq("agentCode" -> Ascending, PLANET_ID -> Ascending, "credentialRole" -> Ascending),
       Some("AgentCodesWithCredentialRole"),
       sparse = true),
-    Index(Seq("agentCode" -> Ascending, "planetId" -> Ascending), Some("AgentCodes"), sparse = true),
+    Index(Seq("agentCode" -> Ascending, PLANET_ID -> Ascending), Some("AgentCodes"), sparse = true),
     Index(
       Seq(User.ttl_index_key -> Ascending),
       Some("TTL"),
@@ -83,7 +110,7 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
     )
   )
 
-  def findByUserId(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
+  override def findByUserId(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
     find(Seq(User.user_index_key -> Option(User.userIndexKey(userId, planetId))).map(option =>
       option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*).map {
       case Nil      => None
@@ -91,7 +118,7 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
       case _ :: _   => throw DuplicateUserException(s"Duplicated userId $userId for $planetId")
     }
 
-  def findByNino(nino: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
+  override def findByNino(nino: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
     find(Seq(User.nino_index_key -> Option(User.ninoIndexKey(nino, planetId))).map(option =>
       option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*).map {
       case Nil      => None
@@ -99,41 +126,44 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
       case _ :: _   => throw DuplicateUserException(s"Duplicated nino $nino for $planetId")
     }
 
-  def findByPlanetId(planetId: String, affinityGroup: Option[String])(limit: Int)(
+  override def findByPlanetId(planetId: String, affinityGroup: Option[String])(limit: Int)(
     implicit ec: ExecutionContext): Future[Seq[UserBrief]] =
     cursor(
-      Seq("planetId" -> Option(planetId), "affinityGroup" -> affinityGroup),
-      Seq("userId"   -> 1, "groupId"                      -> 1, "affinityGroup" -> 1, "credentialRole" -> 1))(UserBrief.formats)
+      Seq(PLANET_ID -> Option(planetId), "affinityGroup" -> affinityGroup),
+      Seq("userId"  -> 1, "groupId"                      -> 1, "affinityGroup" -> 1, "credentialRole" -> 1))(UserBrief.formats)
       .collect[Seq](maxDocs = limit, err = Cursor.ContOnError[Seq[UserBrief]]())
 
-  def findByGroupId(groupId: String, planetId: String)(limit: Int)(implicit ec: ExecutionContext): Future[Seq[User]] =
-    cursor(
-      Seq("groupId" -> Option(groupId), "planetId" -> Option(planetId))
-    )(User.formats)
-      .collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[User]]())
-
-  def findAdminByGroupId(groupId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
-    cursor(
-      Seq("groupId" -> Option(groupId), "credentialRole" -> Option(User.CR.Admin), "planetId" -> Option(planetId))
-    )(User.formats)
-      .collect[Seq](maxDocs = 1, err = Cursor.FailOnError[Seq[User]]())
-      .map(_.headOption)
-
-  def findByAgentCode(agentCode: String, planetId: String)(limit: Int)(
+  override def findByGroupId(groupId: String, planetId: String)(limit: Int)(
     implicit ec: ExecutionContext): Future[Seq[User]] =
     cursor(
-      Seq("agentCode" -> Option(agentCode), "planetId" -> Option(planetId))
+      Seq("groupId" -> Option(groupId), PLANET_ID -> Option(planetId))
     )(User.formats)
       .collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[User]]())
 
-  def findAdminByAgentCode(agentCode: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
+  override def findAdminByGroupId(groupId: String, planetId: String)(
+    implicit ec: ExecutionContext): Future[Option[User]] =
     cursor(
-      Seq("agentCode" -> Option(agentCode), "credentialRole" -> Option(User.CR.Admin), "planetId" -> Option(planetId))
+      Seq("groupId" -> Option(groupId), "credentialRole" -> Option(User.CR.Admin), PLANET_ID -> Option(planetId))
     )(User.formats)
       .collect[Seq](maxDocs = 1, err = Cursor.FailOnError[Seq[User]]())
       .map(_.headOption)
 
-  def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
+  override def findByAgentCode(agentCode: String, planetId: String)(limit: Int)(
+    implicit ec: ExecutionContext): Future[Seq[User]] =
+    cursor(
+      Seq("agentCode" -> Option(agentCode), PLANET_ID -> Option(planetId))
+    )(User.formats)
+      .collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[User]]())
+
+  override def findAdminByAgentCode(agentCode: String, planetId: String)(
+    implicit ec: ExecutionContext): Future[Option[User]] =
+    cursor(
+      Seq("agentCode" -> Option(agentCode), "credentialRole" -> Option(User.CR.Admin), PLANET_ID -> Option(planetId))
+    )(User.formats)
+      .collect[Seq](maxDocs = 1, err = Cursor.FailOnError[Seq[User]]())
+      .map(_.headOption)
+
+  override def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[User]] =
     find(
       Seq(User.principal_enrolment_keys -> Option(User.enrolmentIndexKey(enrolmentKey.toString, planetId)))
@@ -143,7 +173,7 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
       case _ :: _   => throw DuplicateUserException(s"Duplicated enrolment key $enrolmentKey for $planetId")
     }
 
-  def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(
+  override def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(
     implicit ec: ExecutionContext): Future[Seq[User]] =
     cursor(
       Seq(User.delegated_enrolment_keys -> Option(User.enrolmentIndexKey(enrolmentKey.toString, planetId)))
@@ -154,7 +184,7 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
     override def reads(json: JsValue): JsResult[String] = JsSuccess((json \ "userId").as[String])
   }
 
-  def findUserIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(
+  override def findUserIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(
     implicit ec: ExecutionContext): Future[Seq[String]] =
     cursor(
       Seq(User.delegated_enrolment_keys -> Option(User.enrolmentIndexKey(enrolmentKey.toString, planetId))),
@@ -165,7 +195,7 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
     override def reads(json: JsValue): JsResult[Option[String]] = JsSuccess((json \ "groupId").asOpt[String])
   }
 
-  def findGroupIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(
+  override def findGroupIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(
     implicit ec: ExecutionContext): Future[Seq[Option[String]]] =
     cursor(
       Seq(User.delegated_enrolment_keys -> Option(User.enrolmentIndexKey(enrolmentKey.toString, planetId))),
@@ -186,13 +216,13 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
       )
       .cursor[T](ReadPreference.primaryPreferred)(reader, ec, implicitly[CursorProducer[T]])
 
-  def create(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+  override def create(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     insert(user.copy(planetId = Some(planetId), isPermanent = explicitFlag(user.isPermanent))).map(_ => ()).recover {
       case e: DatabaseException if e.code.contains(11000) =>
         throw DuplicateUserException(transformMessage(e.getMessage(), user, planetId))
     }
 
-  def update(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+  override def update(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     (User.formats.writes(user.copy(planetId = Some(planetId), isPermanent = explicitFlag(user.isPermanent))) match {
       case u @ JsObject(_) =>
         collection.update(Json.obj(User.user_index_key -> User.userIndexKey(user.userId, planetId)), u, upsert = true)
@@ -203,7 +233,7 @@ class UsersRepository @Inject()(mongoComponent: ReactiveMongoComponent)
         throw DuplicateUserException(transformMessage(e.getMessage(), user, planetId))
     }
 
-  def delete(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[WriteResult] =
+  override def delete(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[WriteResult] =
     remove(User.user_index_key -> Option(User.userIndexKey(userId, planetId)))
 
   private val indexNameRegex = """\sindex\:\s(\w*?)\s""".r

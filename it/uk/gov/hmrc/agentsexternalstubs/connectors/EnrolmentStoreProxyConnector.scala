@@ -34,7 +34,7 @@ import scala.concurrent.{ExecutionContext, Future}
 /*
 
   This connector has been copy-pasted from agent-client-relationship
-  to support EnrolmentStoreProxyConnectorSpec.
+  to support EnrolmentStoreProxyConnectorISpec.
 
  */
 

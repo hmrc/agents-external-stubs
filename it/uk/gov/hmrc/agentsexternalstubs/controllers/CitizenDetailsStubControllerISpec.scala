@@ -8,7 +8,6 @@ import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{MongoDbPerSuite, NotAuthorized, ServerBaseISpec, TestRequests}
 
 class CitizenDetailsStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with TestRequests with TestStubs {
-  this: Suite with ServerProvider =>
 
   val url = s"http://localhost:$port"
   val wsClient = app.injector.instanceOf[WSClient]

@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.support
 
 import org.scalatest.{BeforeAndAfterAll, TestSuite}
 import play.api.Application
-import uk.gov.hmrc.agentsexternalstubs.repository.{AuthenticatedSessionsRepository, UsersRepository}
+import uk.gov.hmrc.agentsexternalstubs.repository.{AuthenticatedSessionsRepository, UsersRepositoryMongo}
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -37,6 +37,6 @@ trait MongoDbPerSuite extends MongoSpecSupport with BeforeAndAfterAll {
     super.beforeAll()
     await(mongo().drop())
     await(app.injector.instanceOf[AuthenticatedSessionsRepository].ensureIndexes)
-    await(app.injector.instanceOf[UsersRepository].ensureIndexes)
+    await(app.injector.instanceOf[UsersRepositoryMongo].ensureIndexes)
   }
 }

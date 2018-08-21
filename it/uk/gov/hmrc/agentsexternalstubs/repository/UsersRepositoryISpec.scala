@@ -18,9 +18,11 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.support.MongoDbPerTest
 import uk.gov.hmrc.domain.Nino
+import uk.gov.hmrc.mongo.Repository
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -36,7 +38,7 @@ class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPerT
 
   override implicit lazy val app: Application = appBuilder.build()
 
-  def repo: UsersRepository = app.injector.instanceOf[UsersRepository]
+  def repo = app.injector.instanceOf[UsersRepository with Repository[User,BSONObjectID]]
 
   "create" should {
     "create a simple user" in {

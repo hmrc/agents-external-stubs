@@ -15,7 +15,6 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.logging.Authorization
 
 class AuthStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with TestRequests with TestStubs {
-  this: Suite with ServerProvider =>
 
   val url = s"http://localhost:$port"
   val wsClient = app.injector.instanceOf[WSClient]

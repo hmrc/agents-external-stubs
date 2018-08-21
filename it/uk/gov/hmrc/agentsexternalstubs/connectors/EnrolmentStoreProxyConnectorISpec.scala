@@ -19,7 +19,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
  */
 
-class EnrolmentStoreProxyConnectorSpec
+class EnrolmentStoreProxyConnectorISpec
     extends ServerBaseISpec with MongoDbPerSuite with EnrolmentStoreProxyHelper with MockitoSugar {
 
   val url = s"http://localhost:$port"

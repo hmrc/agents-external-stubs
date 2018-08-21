@@ -7,7 +7,6 @@ import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.support.{AuthContext, MongoDbPerSuite, ServerBaseISpec, TestRequests}
 
 class SignInControllerISpec extends ServerBaseISpec with MongoDbPerSuite with TestRequests {
-  this: Suite with ServerProvider =>
 
   val url = s"http://localhost:$port"
   val wsClient = app.injector.instanceOf[WSClient]

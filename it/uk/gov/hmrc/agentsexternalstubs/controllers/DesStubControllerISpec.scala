@@ -11,7 +11,6 @@ import uk.gov.hmrc.agentsexternalstubs.support.{MongoDbPerSuite, ServerBaseISpec
 import scala.concurrent.duration._
 
 class DesStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with TestRequests with TestStubs {
-  this: Suite with ServerProvider =>
 
   val url = s"http://localhost:$port"
   val wsClient = app.injector.instanceOf[WSClient]

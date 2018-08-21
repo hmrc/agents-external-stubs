@@ -18,12 +18,12 @@ package uk.gov.hmrc.agentsexternalstubs.support
 
 import org.scalatest.{BeforeAndAfterEach, TestSuite}
 import play.api.Application
-import uk.gov.hmrc.agentsexternalstubs.repository.{AuthenticatedSessionsRepository, UsersRepository}
+import uk.gov.hmrc.agentsexternalstubs.repository.{AuthenticatedSessionsRepository, UsersRepositoryMongo}
 import uk.gov.hmrc.mongo.{MongoSpecSupport, Awaiting => MongoAwaiting}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.concurrent.duration.{Duration, _}
-import scala.concurrent.{ExecutionContext, Future}
 
 trait MongoDbPerTest extends MongoSpecSupport with BeforeAndAfterEach {
   me: TestSuite =>
@@ -37,7 +37,7 @@ trait MongoDbPerTest extends MongoSpecSupport with BeforeAndAfterEach {
     super.beforeEach()
     await(mongo().drop())
     await(app.injector.instanceOf[AuthenticatedSessionsRepository].ensureIndexes)
-    await(app.injector.instanceOf[UsersRepository].ensureIndexes)
+    await(app.injector.instanceOf[UsersRepositoryMongo].ensureIndexes)
   }
 }
 
