@@ -35,10 +35,12 @@ class DesStubController @Inject()(
                 relationshipRecordsService
                   .authorise(AuthoriseRequest.toRelationshipRecord(payload), session.planetId)
                   .map(_ => Ok(Json.toJson(AuthoriseResponse())))
+              //TODO error reporting in a custom format
               else
                 relationshipRecordsService
                   .deAuthorise(AuthoriseRequest.toRelationshipRecord(payload), session.planetId)
                   .map(_ => Ok(Json.toJson(AuthoriseResponse())))
+            //TODO error reporting in a custom format
           )
       }
     }(SessionRecordNotFound)
@@ -60,6 +62,7 @@ class DesStubController @Inject()(
           relationshipRecordsService
             .findByQuery(query, session.planetId)
             .map(records => Ok(Json.toJson(GetRelationships.Response.from(records))))
+        //TODO error reporting in a custom format
       )
     }(SessionRecordNotFound)
   }
