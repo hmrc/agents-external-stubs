@@ -20,7 +20,9 @@ case class LegacyAgentRecord(
   id: Option[String] = None)
     extends Record {
 
-  override def keys: Seq[String] = Seq(LegacyAgentRecord.agentIdKey(agentId))
+  override def uniqueKey: Option[String] = Some(agentId)
+  override def lookupKeys: Seq[String] = Seq(LegacyAgentRecord.agentIdKey(agentId))
+
   override def withId(id: Option[String]): LegacyAgentRecord = copy(id = id)
 }
 

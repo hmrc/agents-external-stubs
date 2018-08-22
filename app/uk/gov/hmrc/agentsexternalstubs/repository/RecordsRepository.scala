@@ -57,6 +57,11 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
     Seq(
       Index(Seq(Record.KEYS -> Ascending, Record.TYPE -> Ascending, PLANET_ID -> Ascending), Some("Keys")),
       Index(
+        Seq(Record.UNIQUE_KEY -> Ascending, Record.TYPE -> Ascending, PLANET_ID -> Ascending),
+        Some("UniqueKey"),
+        unique = true,
+        sparse = true),
+      Index(
         Seq(PLANET_ID -> Ascending),
         Some("TTL"),
         sparse = true,

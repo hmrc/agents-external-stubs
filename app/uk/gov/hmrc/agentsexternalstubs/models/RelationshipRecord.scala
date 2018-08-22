@@ -17,7 +17,7 @@ case class RelationshipRecord(
 
   import RelationshipRecord._
 
-  override def keys: Seq[String] =
+  override def lookupKeys: Seq[String] =
     Seq(
       fullKey(regime, arn, idType, refNumber),
       agentKey(regime, arn),

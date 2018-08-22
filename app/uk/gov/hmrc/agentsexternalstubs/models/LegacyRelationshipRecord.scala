@@ -9,7 +9,7 @@ case class LegacyRelationshipRecord(
   id: Option[String] = None)
     extends Record {
 
-  override def keys: Seq[String] =
+  override def lookupKeys: Seq[String] =
     Seq(
       nino.map(LegacyRelationshipRecord.ninoKey),
       utr.map(LegacyRelationshipRecord.utrKey),

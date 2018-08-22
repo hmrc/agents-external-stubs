@@ -1,16 +1,21 @@
 package uk.gov.hmrc.agentsexternalstubs.models
+
 import play.api.libs.json._
+import uk.gov.hmrc.agentsexternalstubs.syntax.|>
 
 trait Record {
-  def id: Option[String]
-  def keys: Seq[String]
 
+  val id: Option[String]
   def withId(id: Option[String]): Record
+
+  def lookupKeys: Seq[String]
+  def uniqueKey: Option[String] = None
 }
 
 object Record {
 
   val ID = "_id"
+  val UNIQUE_KEY = "_uniqueKey"
   val KEYS = "_keys"
   val TYPE = "_type"
 
@@ -31,6 +36,7 @@ object Record {
   }
 
   val writes: Writes[Record] = new Writes[Record] {
+
     override def writes(record: Record): JsValue =
       (record match {
         case r: RelationshipRecord       => RelationshipRecord.formats.writes(r)
@@ -40,13 +46,20 @@ object Record {
         case _                           => throw new UnsupportedOperationException(s"Cannot serialize $record")
       }) match {
         case obj: JsObject =>
-          (obj \ "id")
-            .asOpt[String]
-            .map(id => obj.+(ID -> Json.obj("$oid" -> JsString(id))))
-            .getOrElse(obj)
-            .+(KEYS -> JsArray(record.keys.map(JsString)))
-            .+(TYPE -> JsString(record.getClass.getSimpleName))
+          obj
             .-("id")
+            .+(TYPE -> JsString(record.getClass.getSimpleName))
+            .+(KEYS -> JsArray(record.lookupKeys.map(JsString)))
+            .|> { obj =>
+              record.uniqueKey
+                .map(uniqueKey => obj.+(UNIQUE_KEY -> JsString(uniqueKey)))
+                .getOrElse(obj)
+            }
+            .|> { obj =>
+              record.id
+                .map(id => obj.+(ID -> Json.obj("$oid" -> JsString(id))))
+                .getOrElse(obj)
+            }
         case o => throw new IllegalStateException(s"Record must be serialized to JsObject, got $o instead")
       }
   }

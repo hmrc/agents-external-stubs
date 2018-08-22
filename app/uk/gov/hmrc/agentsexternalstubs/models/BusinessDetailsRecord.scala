@@ -13,7 +13,7 @@ case class BusinessDetailsRecord(
   id: Option[String] = None)
     extends Record {
 
-  override def keys: Seq[String] = Seq()
+  override def lookupKeys: Seq[String] = Seq()
   override def withId(id: Option[String]): BusinessDetailsRecord = copy(id = id)
 }
 
