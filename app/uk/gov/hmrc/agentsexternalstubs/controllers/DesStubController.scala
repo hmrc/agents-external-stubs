@@ -11,14 +11,16 @@ import play.api.data.validation.{Constraint, Constraints, Invalid, Valid}
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent}
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, RelationshipRecordQuery, RelationshipRecordsService, UsersService}
+import uk.gov.hmrc.agentsexternalstubs.services._
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 @Singleton
 class DesStubController @Inject()(
   val authenticationService: AuthenticationService,
-  relationshipRecordsService: RelationshipRecordsService)(implicit usersService: UsersService)
+  relationshipRecordsService: RelationshipRecordsService,
+  legacyRelationshipRecordsService: LegacyRelationshipRecordsService
+)(implicit usersService: UsersService)
     extends BaseController with DesCurrentSession {
 
   import DesStubController._
@@ -35,12 +37,10 @@ class DesStubController @Inject()(
                 relationshipRecordsService
                   .authorise(AuthoriseRequest.toRelationshipRecord(payload), session.planetId)
                   .map(_ => Ok(Json.toJson(AuthoriseResponse())))
-              //TODO error reporting in a custom format
               else
                 relationshipRecordsService
                   .deAuthorise(AuthoriseRequest.toRelationshipRecord(payload), session.planetId)
                   .map(_ => Ok(Json.toJson(AuthoriseResponse())))
-            //TODO error reporting in a custom format
           )
       }
     }(SessionRecordNotFound)
@@ -62,25 +62,30 @@ class DesStubController @Inject()(
           relationshipRecordsService
             .findByQuery(query, session.planetId)
             .map(records => Ok(Json.toJson(GetRelationships.Response.from(records))))
-        //TODO error reporting in a custom format
       )
     }(SessionRecordNotFound)
   }
 
-  def getLegacyRelationshipByUtr(utr: String): Action[AnyContent] = Action.async { implicit request =>
+  def getLegacyRelationshipsByUtr(utr: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       validateUtr(utr).fold(
         error => badRequestF("INVALID_UTR", error),
-        _ => ??? //TODO
+        _ =>
+          legacyRelationshipRecordsService
+            .getLegacyRelationshipsByUtr(utr, session.planetId)
+            .map(ninoWithAgentList => Ok(Json.toJson(GetLegacyRelationships.Response.from(ninoWithAgentList))))
       )
     }(SessionRecordNotFound)
   }
 
-  def getLegacyRelationshipByNino(nino: String): Action[AnyContent] = Action.async { implicit request =>
+  def getLegacyRelationshipsByNino(nino: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       validateNino(nino).fold(
         error => badRequestF("INVALID_NINO", error),
-        _ => ??? //TODO
+        _ =>
+          legacyRelationshipRecordsService
+            .getLegacyRelationshipsByNino(nino, session.planetId)
+            .map(ninoWithAgentList => Ok(Json.toJson(GetLegacyRelationships.Response.from(ninoWithAgentList))))
       )
     }(SessionRecordNotFound)
   }
@@ -246,5 +251,59 @@ object DesStubController {
     RegexPatterns.validate(RegexPatterns.utr)
   val validateMtdbsa: String => Either[String, String] =
     RegexPatterns.validate(RegexPatterns.mtdbsa)
+
+  object GetLegacyRelationships {
+
+    case class Response(agents: Seq[Response.LegacyAgent])
+
+    object Response {
+      def from(ninoWithAgentList: List[(String, LegacyAgentRecord)]): Response =
+        Response(agents = ninoWithAgentList.map { case (nino, agent) => LegacyAgent.from(nino, agent) })
+
+      case class LegacyAgent(
+        id: String,
+        nino: String,
+        agentId: String,
+        agentOwnRef: Option[String] = None,
+        hasAgent: Option[Boolean] = None,
+        isRegisteredAgent: Option[Boolean] = None,
+        govAgentId: Option[String] = None,
+        agentName: String,
+        agentPhoneNo: Option[String] = None,
+        address1: String,
+        address2: String,
+        address3: Option[String] = None,
+        address4: Option[String] = None,
+        postcode: Option[String] = None,
+        isAgentAbroad: Boolean = false,
+        agentCeasedDate: Option[String] = None
+      )
+
+      object LegacyAgent {
+
+        def from(nino: String, a: LegacyAgentRecord): LegacyAgent = LegacyAgent(
+          id = "",
+          nino = nino,
+          agentId = a.agentId,
+          agentOwnRef = a.agentOwnRef,
+          hasAgent = a.hasAgent,
+          isRegisteredAgent = a.isRegisteredAgent,
+          govAgentId = a.govAgentId,
+          agentName = a.agentName,
+          agentPhoneNo = a.agentPhoneNo,
+          address1 = a.address1,
+          address2 = a.address2,
+          address3 = a.address3,
+          address4 = a.address4,
+          postcode = a.postcode,
+          isAgentAbroad = a.isAgentAbroad,
+          agentCeasedDate = a.agentCeasedDate
+        )
+      }
+
+      implicit val formats1: Format[LegacyAgent] = Json.format[LegacyAgent]
+      implicit val formats: Format[Response] = Json.format[Response]
+    }
+  }
 
 }

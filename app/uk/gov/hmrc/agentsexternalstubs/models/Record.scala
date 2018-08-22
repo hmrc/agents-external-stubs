@@ -19,6 +19,7 @@ object Record {
       case obj: JsObject =>
         ((obj \ TYPE).asOpt[String] match {
           case Some("RelationshipRecord")       => RelationshipRecord.formats.reads(obj)
+          case Some("LegacyAgentRecord")        => LegacyAgentRecord.formats.reads(obj)
           case Some("LegacyRelationshipRecord") => LegacyRelationshipRecord.formats.reads(obj)
           case Some("BusinessDetailsRecord")    => BusinessDetailsRecord.formats.reads(obj)
           case Some(r)                          => JsError(s"Record type $r not supported")
@@ -33,6 +34,7 @@ object Record {
     override def writes(record: Record): JsValue =
       (record match {
         case r: RelationshipRecord       => RelationshipRecord.formats.writes(r)
+        case r: LegacyAgentRecord        => LegacyAgentRecord.formats.writes(r)
         case r: LegacyRelationshipRecord => LegacyRelationshipRecord.formats.writes(r)
         case r: BusinessDetailsRecord    => BusinessDetailsRecord.formats.writes(r)
         case _                           => throw new UnsupportedOperationException(s"Cannot serialize $record")

@@ -4,10 +4,12 @@ import java.util.UUID
 import org.joda.time.LocalDate
 import org.joda.time.format.ISODateTimeFormat
 import org.scalacheck.Gen
+import org.scalacheck.Gen.{choose, frequency}
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.smartstub.{Companies, Names, Temporal}
+import uk.gov.hmrc.smartstub.Addresses.{postcodeRegions, postcodeSuffix, streetNames}
+import uk.gov.hmrc.smartstub.{Addresses, Companies, Names, Temporal}
 
-object UserGenerator extends Names with Temporal with Companies {
+object UserGenerator extends Names with Temporal with Companies with Addresses {
 
   import uk.gov.hmrc.smartstub._
 
@@ -20,6 +22,8 @@ object UserGenerator extends Names with Temporal with Companies {
       fn <- forename()
       ln <- surname
     } yield s"$fn $ln").seeded(userId).get
+
+  def nameForAgent(seed: String): String = nameForAgent(seed, seed)
 
   def nameForAgent(userId: String, groupId: String): String =
     s"${forename().seeded(userId).getOrElse("Agent")} ${surname.seeded(groupId).getOrElse("Cooper")}"
@@ -60,6 +64,13 @@ object UserGenerator extends Names with Temporal with Companies {
                  " & " + ln
                )
     } yield s"$ln$suffix").seeded(userId + "_agent").get
+
+  case class GeneratedAddress(street: String, town: String, postcode: String)
+  def address(userId: String): GeneratedAddress =
+    ukAddress
+      .map { case street :: town :: postcode :: Nil => GeneratedAddress(street, town, postcode) }
+      .seeded(userId)
+      .get
 
   def individual(
     userId: String = UUID.randomUUID().toString,

@@ -25,7 +25,7 @@ import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.api.{Cursor, CursorProducer, ReadPreference}
 import reactivemongo.bson.{BSONDocument, BSONLong, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers
-import uk.gov.hmrc.agentsexternalstubs.models.{Record, RelationshipRecord}
+import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
@@ -36,9 +36,9 @@ import scala.reflect.ClassTag
 trait RecordsRepository {
 
   def store(entity: Record, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
-  def cursor[T <: Record: RecordType](key: String, planetId: String)(
-    implicit reads: Reads[T],
-    ec: ExecutionContext): Cursor[T]
+  def cursor[T <: Record](
+    key: String,
+    planetId: String)(implicit reads: Reads[T], ec: ExecutionContext, recordType: RecordType[T]): Cursor[T]
 }
 
 @Singleton
@@ -73,10 +73,9 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
 
   }
 
-  override def cursor[T <: Record: RecordType](key: String, planetId: String)(
-    implicit reads: Reads[T],
-    ec: ExecutionContext): Cursor[T] = {
-    val recordType = implicitly[RecordType[T]]
+  override def cursor[T <: Record](
+    key: String,
+    planetId: String)(implicit reads: Reads[T], ec: ExecutionContext, recordType: RecordType[T]): Cursor[T] =
     collection
       .find(
         JsObject(
@@ -90,7 +89,6 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
         implicitly[collection.pack.Reader[Record]].map(_.asInstanceOf[T]),
         ec,
         implicitly[CursorProducer[T]])
-  }
 }
 
 trait RecordType[T] {
@@ -102,14 +100,19 @@ trait RecordType[T] {
 object RecordType {
 
   def apply[T](implicit classTag: ClassTag[T]): RecordType[T] = {
+
     val properties =
       classTag.runtimeClass.getDeclaredFields.map(_.getName).toSet.-("id").+(Record.ID).+(Record.TYPE).toSeq
+
     new RecordType[T] {
       override val typeName: String = classTag.runtimeClass.getSimpleName
       override val fieldNames: Seq[String] = properties
     }
   }
 
-  implicit val registration: RecordType[RelationshipRecord] = RecordType[RelationshipRecord]
+  implicit val relationshipRecord: RecordType[RelationshipRecord] = RecordType[RelationshipRecord]
+  implicit val legacyAgentRecord: RecordType[LegacyAgentRecord] = RecordType[LegacyAgentRecord]
+  implicit val legacyRelationshipRecord: RecordType[LegacyRelationshipRecord] = RecordType[LegacyRelationshipRecord]
+  implicit val businessDetailsRecord: RecordType[BusinessDetailsRecord] = RecordType[BusinessDetailsRecord]
 
 }

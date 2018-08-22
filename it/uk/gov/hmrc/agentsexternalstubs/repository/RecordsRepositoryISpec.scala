@@ -15,11 +15,12 @@
  */
 package uk.gov.hmrc.agentsexternalstubs.repository
 
+import org.joda.time.LocalDate
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import reactivemongo.bson.BSONObjectID
-import uk.gov.hmrc.agentsexternalstubs.models.LegacyRelationshipRecord.LegacyAgent
+import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.{BusinessAddress, BusinessContactDetails, BusinessData}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.support.MongoDbPerTest
 import uk.gov.hmrc.mongo.ReactiveRepository
@@ -64,22 +65,47 @@ class RecordsRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPe
       recordsAfter.find(_.asInstanceOf[RelationshipRecord].arn == "B1") shouldBe empty
     }
 
-    "store a LegacyRelationshipRecord entities" in {
-      val registration1 = LegacyRelationshipRecord(
-        agents = Seq(LegacyAgent(id = "1", agentId = "A1", agentName = "Agent1", address1 = "a11", address2 = "a12")))
+    "store a LegacyAgentRecord entities" in {
+      val registration1 = LegacyAgentRecord(agentId = "A1", agentName = "Agent1", address1 = "a11", address2 = "a12")
       await(repo.store(registration1, "saturn"))
 
-      val registration2 = LegacyRelationshipRecord(
-        agents = Seq(LegacyAgent(id = "2", agentId = "A2", agentName = "Agent2", address1 = "a21", address2 = "a22")))
+      val registration2 = LegacyAgentRecord(agentId = "A2", agentName = "Agent2", address1 = "a21", address2 = "a22")
       await(repo.store(registration2, "saturn"))
 
       val records = await(underlyingRepo.findAll())
       records.size shouldBe 2
-      records.flatMap(_.asInstanceOf[LegacyRelationshipRecord].agents.map(_.id)) should contain.only("1", "2")
+      records.map(_.asInstanceOf[LegacyAgentRecord].agentId) should contain.only("A1", "A2")
+    }
+
+    "store a LegacyRelationshipRecord entities" in {
+      val registration1 = LegacyRelationshipRecord(nino = Some("A"), utr = Some("U1"), agentId = "1")
+      await(repo.store(registration1, "saturn"))
+
+      val registration2 = LegacyRelationshipRecord(nino = Some("B"), utr = Some("U2"), agentId = "2")
+      await(repo.store(registration2, "saturn"))
+
+      val records = await(underlyingRepo.findAll())
+      records.size shouldBe 2
+      records.map(_.asInstanceOf[LegacyRelationshipRecord].agentId) should contain.only("1", "2")
+      records.map(_.asInstanceOf[LegacyRelationshipRecord].nino.get) should contain.only("A", "B")
+      records.map(_.asInstanceOf[LegacyRelationshipRecord].utr.get) should contain.only("U1", "U2")
     }
 
     "store a BusinessDetails entities" in {
-      val businessDetails1 = BusinessDetailsRecord()
+      val businessDetails1 = BusinessDetailsRecord(
+        safeId = "A",
+        nino = "B",
+        mtdbsa = "C",
+        businessData = Some(
+          Seq(BusinessData(
+            incomeSourceId = "1",
+            accountingPeriodStartDate = LocalDate.now,
+            accountingPeriodEndDate = LocalDate.now,
+            businessAddressDetails =
+              Some(BusinessAddress(addressLine1 = "X", postalCode = Some("XXXX XX"), countryCode = "GB")),
+            businessContactDetails = Some(BusinessContactDetails(phoneNumber = Some("1234556")))
+          )))
+      )
       await(repo.store(businessDetails1, "saturn"))
 
       val records = await(underlyingRepo.findAll())

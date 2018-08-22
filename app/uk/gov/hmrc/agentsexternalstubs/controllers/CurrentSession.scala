@@ -5,6 +5,7 @@ import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, User}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 trait CurrentSession extends HttpHelpers {
 
@@ -37,10 +38,10 @@ trait CurrentSession extends HttpHelpers {
 }
 
 /*
- When stubbing DES request we can't just rely on the `Authorization` header
- because it is not the same token value issued by MDTP Auth,
- instead we have to exploit fact that `HeaderCarrierConverter` copy over sessionId
- from HTTP session as `X-Session-ID` header and lookup session by its ID.
+     When stubbing DES request we can't just rely on the `Authorization` header
+     because it is not the same token value issued by MTDP Auth,
+     instead we have to exploit fact that `HeaderCarrierConverter` copy over sessionId
+     from HTTP session as `X-Session-ID` header and lookup session by its ID.
  */
 trait DesCurrentSession extends DesHttpHelpers {
 
@@ -54,8 +55,11 @@ trait DesCurrentSession extends DesHttpHelpers {
         for {
           maybeSession <- authenticationService.findBySessionId(sessionId)
           result <- maybeSession match {
-                     case Some(session) => body(session)
-                     case _             => ifSessionNotFound
+                     case Some(session) =>
+                       body(session).recover {
+                         case NonFatal(e) => internalServerError("SERVER_ERROR", e.getMessage)
+                       }
+                     case _ => ifSessionNotFound
                    }
         } yield result
     }
