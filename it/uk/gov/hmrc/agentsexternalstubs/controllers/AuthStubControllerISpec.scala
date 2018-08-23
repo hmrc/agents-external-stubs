@@ -54,7 +54,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with 
         val authToken = givenAnAuthenticatedUser(User(randomId))
         val result =
           AuthStub.authorise(s"""{"foo":[{"enrolment":"FOO"}],"retrieve":[]}""")(AuthContext.fromToken(authToken))
-        result.status shouldBe 400
+        result should haveStatus(400)
         result.body shouldBe """/authorise -> [error.path.missing]"""
       }
 
@@ -62,7 +62,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with 
         val authToken = givenAnAuthenticatedUser(User(randomId))
         val result =
           AuthStub.authorise(s"""{"authorise":[{"foo":"FOO"}],"retrieve":[]}""")(AuthContext.fromToken(authToken))
-        result.status shouldBe 400
+        result should haveStatus(400)
         result.body should include("""/authorise(0) -> [Unsupported predicate {"foo":"FOO"}, should be one of [""")
       }
 
@@ -70,7 +70,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with 
         val authToken = givenAnAuthenticatedUser(User(randomId))
         val result =
           AuthStub.authorise(s"""{"authorise":[],"retrieve":[]}""")(AuthContext.fromToken(authToken))
-        result.status shouldBe 200
+        result should haveStatus(200)
       }
 
       "retrieve credentials" in {

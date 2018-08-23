@@ -17,7 +17,7 @@ class SignInController @Inject()(val authenticationService: AuthenticationServic
     extends BaseController with CurrentSession {
 
   def signIn(): Action[JsValue] = Action.async(parse.json) { implicit request =>
-    withJsonBody[SignInRequest] { signInRequest =>
+    withPayload[SignInRequest] { signInRequest =>
       withCurrentSession { session =>
         if (session.userId == signInRequest.userId)
           Future.successful(

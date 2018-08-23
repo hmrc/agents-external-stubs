@@ -247,7 +247,6 @@ trait TestRequests extends ScalaFutures {
   }
 
   object DesStub {
-
     def authoriseOrDeAuthoriseRelationship[T: Writeable](payload: T)(implicit authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/registration/relationship")
@@ -282,6 +281,49 @@ trait TestRequests extends ScalaFutures {
         .get()
         .futureValue
 
+    def getLegacyRelationshipsByNino(nino: String)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/registration/relationship/nino/$nino")
+        .withHeaders(authContext.headers: _*)
+        .get()
+        .futureValue
+
+    def getLegacyRelationshipsByUtr(utr: String)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/registration/relationship/utr/$utr")
+        .withHeaders(authContext.headers: _*)
+        .get()
+        .futureValue
+
+    def getBusinessDetails(idType: String, idNumber: String)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/registration/business-details/$idType/$idNumber")
+        .withHeaders(authContext.headers: _*)
+        .get()
+        .futureValue
+  }
+
+  object Records {
+    def createBusinessDetails[T: Writeable](payload: T)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/records/business-details")
+        .withHeaders(authContext.headers: _*)
+        .post[T](payload)
+        .futureValue
+
+    def createLegacyAgent[T: Writeable](payload: T)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/records/legacy-agent")
+        .withHeaders(authContext.headers: _*)
+        .post[T](payload)
+        .futureValue
+
+    def createLegacyRelationship[T: Writeable](payload: T)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/records/legacy-relationship")
+        .withHeaders(authContext.headers: _*)
+        .post[T](payload)
+        .futureValue
   }
 
 }

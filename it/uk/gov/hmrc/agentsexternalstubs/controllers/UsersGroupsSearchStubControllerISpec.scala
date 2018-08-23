@@ -22,7 +22,7 @@ class UsersGroupsSearchStubControllerISpec
 
         val result = UsersGroupSearchStub.getUser("foo1")
 
-        result.status shouldBe 203
+        result should haveStatus(203)
         val json = result.json
         (json \ "userId").as[String] shouldBe "foo1"
         (json \ "name").as[String] shouldBe "Alan Brian Foo-Foe"
@@ -50,7 +50,7 @@ class UsersGroupsSearchStubControllerISpec
 
         val result = UsersGroupSearchStub.getUser("foo2")
 
-        result.status shouldBe 203
+        result should haveStatus(203)
         val json = result.json
         (json \ "userId").as[String] shouldBe "foo2"
         (json \ "name").as[String] shouldBe "Alan Brian Foo-Foe"
@@ -69,7 +69,7 @@ class UsersGroupsSearchStubControllerISpec
 
         val result = UsersGroupSearchStub.getUser("foo2-1")
 
-        result.status shouldBe 404
+        result should haveStatus(404)
       }
     }
 
@@ -82,7 +82,7 @@ class UsersGroupsSearchStubControllerISpec
 
         val result = UsersGroupSearchStub.getGroup("foo-group-3")
 
-        result.status shouldBe 203
+        result should haveStatus(203)
         val json = result.json
         (json \ "groupId").as[String] shouldBe "foo-group-3"
         (json \ "agentCode").asOpt[String] shouldBe None
@@ -106,7 +106,7 @@ class UsersGroupsSearchStubControllerISpec
 
         val result = UsersGroupSearchStub.getGroup("foo-group-4")
 
-        result.status shouldBe 203
+        result should haveStatus(203)
         val json = result.json
         (json \ "groupId").as[String] shouldBe "foo-group-4"
         (json \ "agentCode").as[String] shouldBe "AAABBBCCCDDD"
@@ -121,7 +121,7 @@ class UsersGroupsSearchStubControllerISpec
 
         val result = UsersGroupSearchStub.getGroup("foo-group-4-1")
 
-        result.status shouldBe 404
+        result should haveStatus(404)
       }
     }
 
@@ -140,7 +140,7 @@ class UsersGroupsSearchStubControllerISpec
 
         val result = UsersGroupSearchStub.getGroupByAgentCode("ABC123", "any")
 
-        result.status shouldBe 203
+        result should haveStatus(203)
         val json = result.json
         (json \ "groupId").as[String] shouldBe "foo-group-5"
         (json \ "agentCode").as[String] shouldBe "ABC123"
@@ -155,7 +155,7 @@ class UsersGroupsSearchStubControllerISpec
 
         val result = UsersGroupSearchStub.getGroupByAgentCode("dumb", "any")
 
-        result.status shouldBe 404
+        result should haveStatus(404)
       }
     }
   }
@@ -177,7 +177,7 @@ class UsersGroupsSearchStubControllerISpec
 
       val result = UsersGroupSearchStub.getGroupUsers("foo-group-6")
 
-      result.status shouldBe 203
+      result should haveStatus(203)
       val users = result.json.as[Seq[User]]
       users.map(_.userId) should contain.only("foo6-1", "foo6-2")
     }
@@ -193,7 +193,7 @@ class UsersGroupsSearchStubControllerISpec
 
       val result = UsersGroupSearchStub.getGroupUsers("foo-group-7-x")
 
-      result.status shouldBe 404
+      result should haveStatus(404)
     }
   }
 }

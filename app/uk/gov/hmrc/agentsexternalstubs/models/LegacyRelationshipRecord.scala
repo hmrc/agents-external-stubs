@@ -25,5 +25,14 @@ object LegacyRelationshipRecord {
   def ninoKey(nino: String): String = s"nino:$nino"
   def utrKey(utr: String): String = s"utr:$utr"
 
+  import Validator._
+
+  val validate: Validator[LegacyRelationshipRecord] = Validator(
+    check(_.agentId.sizeMinMaxInclusive(1, 6), "Invalid agentId"),
+    check(_.nino.isRight(RegexPatterns.validNino), "Invalid nino"),
+    check(_.utr.isRight(RegexPatterns.validUtr), "Invalid utr"),
+    check(r => r.nino.isDefined || r.utr.isDefined, "Missing client identifier: nino or utr")
+  )
+
   implicit val formats: Format[LegacyRelationshipRecord] = Json.format[LegacyRelationshipRecord]
 }

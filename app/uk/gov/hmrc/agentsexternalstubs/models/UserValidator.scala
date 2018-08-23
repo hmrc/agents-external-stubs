@@ -94,6 +94,6 @@ object UserValidator {
     validateAgentCode
   )
 
-  val validate: User => Validated[List[String], Unit] = Validate(constraints)
+  val validate: User => Validated[List[String], Unit] = Validator.validate(constraints: _*)
 
 }

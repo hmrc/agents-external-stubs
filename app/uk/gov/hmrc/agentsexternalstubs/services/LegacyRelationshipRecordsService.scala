@@ -3,11 +3,28 @@ package uk.gov.hmrc.agentsexternalstubs.services
 import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.agentsexternalstubs.models.{LegacyAgentRecord, LegacyRelationshipRecord, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
+import uk.gov.hmrc.http.BadRequestException
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class LegacyRelationshipRecordsService @Inject()(recordsRepository: RecordsRepository) {
+
+  def store(record: LegacyRelationshipRecord, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+    LegacyRelationshipRecord
+      .validate(record)
+      .fold(
+        errors => Future.failed(new BadRequestException(errors.mkString(", "))),
+        _ => recordsRepository.store(record, planetId)
+      )
+
+  def store(record: LegacyAgentRecord, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+    LegacyAgentRecord
+      .validate(record)
+      .fold(
+        errors => Future.failed(new BadRequestException(errors.mkString(", "))),
+        _ => recordsRepository.store(record, planetId)
+      )
 
   def getLegacyRelationshipsByNino(nino: String, planetId: String)(
     implicit ec: ExecutionContext): Future[List[(String, LegacyAgentRecord)]] =
@@ -48,10 +65,11 @@ class LegacyRelationshipRecordsService @Inject()(recordsRepository: RecordsRepos
                   }
                 ))))
 
-  def findAgentByKey(key: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[LegacyAgentRecord]] =
+  private def findAgentByKey(key: String, planetId: String)(
+    implicit ec: ExecutionContext): Future[Option[LegacyAgentRecord]] =
     recordsRepository.cursor[LegacyAgentRecord](key, planetId).headOption
 
-  def findRelationshipsByKey(key: String, planetId: String)(
+  private def findRelationshipsByKey(key: String, planetId: String)(
     implicit ec: ExecutionContext): Future[List[LegacyRelationshipRecord]] =
     recordsRepository.cursor[LegacyRelationshipRecord](key, planetId).collect[List](1000)
 

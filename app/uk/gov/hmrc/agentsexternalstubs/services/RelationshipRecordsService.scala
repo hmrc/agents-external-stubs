@@ -18,7 +18,8 @@ class RelationshipRecordsService @Inject()(recordsRepository: RecordsRepository)
                    RelationshipRecord.clientKey(relationship.regime, relationship.idType, relationship.refNumber),
                    planetId)
       _ <- deActivate(existing, planetId)
-      _ <- recordsRepository.store(relationship.copy(active = true, startDate = Some(LocalDate.now())), planetId)
+      _ <- recordsRepository
+            .store[RelationshipRecord](relationship.copy(active = true, startDate = Some(LocalDate.now())), planetId)
     } yield ()
 
   def deAuthorise(relationship: RelationshipRecord, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
@@ -37,7 +38,7 @@ class RelationshipRecordsService @Inject()(recordsRepository: RecordsRepository)
       relationships
         .filter(_.active)
         .map(r => r.copy(active = false, endDate = Some(LocalDate.now)))
-        .map(r => recordsRepository.store(r, planetId)))
+        .map(r => recordsRepository.store[RelationshipRecord](r, planetId)))
 
   def findByKey(key: String, planetId: String)(implicit ec: ExecutionContext): Future[List[RelationshipRecord]] =
     recordsRepository.cursor[RelationshipRecord](key, planetId).collect[List](MAX_DOCS)

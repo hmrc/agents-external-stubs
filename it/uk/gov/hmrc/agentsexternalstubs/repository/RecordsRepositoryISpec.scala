@@ -20,7 +20,7 @@ import org.scalatestplus.play.OneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import reactivemongo.bson.BSONObjectID
-import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.{BusinessAddress, BusinessContactDetails, BusinessData}
+import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.{BusinessAddress, BusinessContact, BusinessData}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.support.MongoDbPerTest
 import uk.gov.hmrc.mongo.ReactiveRepository
@@ -103,7 +103,7 @@ class RecordsRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPe
             accountingPeriodEndDate = LocalDate.now,
             businessAddressDetails =
               Some(BusinessAddress(addressLine1 = "X", postalCode = Some("XXXX XX"), countryCode = "GB")),
-            businessContactDetails = Some(BusinessContactDetails(phoneNumber = Some("1234556")))
+            businessContactDetails = Some(BusinessContact(phoneNumber = Some("1234556")))
           )))
       )
       await(repo.store(businessDetails1, "saturn"))

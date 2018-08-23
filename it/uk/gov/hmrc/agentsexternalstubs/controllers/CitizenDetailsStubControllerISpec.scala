@@ -20,7 +20,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with MongoDbPerS
 
         val result = CitizenDetailsStub.getCitizen("nino", "HW827856C")
 
-        result.status shouldBe 200
+        result should haveStatus(200)
         val json = result.json
         (json \ "ids" \ "nino").as[String] shouldBe "HW 82 78 56 C"
         (json \ "dateOfBirth").as[String] shouldBe "18121975"
@@ -35,7 +35,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with MongoDbPerS
 
         val result = CitizenDetailsStub.getCitizen("nino", "HW827856C")
 
-        result.status shouldBe 404
+        result should haveStatus(404)
       }
 
       "respond 400 if nino not valid" in {
@@ -43,7 +43,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with MongoDbPerS
 
         val result = CitizenDetailsStub.getCitizen("nino", "W82785C")
 
-        result.status shouldBe 400
+        result should haveStatus(400)
       }
 
       "respond 400 if tax identifier type not supported" in {
@@ -51,13 +51,13 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with MongoDbPerS
 
         val result = CitizenDetailsStub.getCitizen("foo", "HW827856C")
 
-        result.status shouldBe 400
+        result should haveStatus(400)
       }
 
       "respond 401 if not authenticated" in {
         val result = CitizenDetailsStub.getCitizen("foo", "HW827856C")(NotAuthorized)
 
-        result.status shouldBe 401
+        result should haveStatus(401)
       }
     }
   }

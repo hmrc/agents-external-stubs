@@ -28,7 +28,7 @@ class EnrolmentStoreProxyStubControllerISpec
 
         val result = EnrolmentStoreProxyStub.getUserIds("IR-SA~UTR~12345678", "principal")
 
-        result.status shouldBe 200
+        result should haveStatus(200)
         val json = result.json
         (json \ "principalUserIds").as[Seq[String]] shouldBe Seq("foo1")
         (json \ "delegatedUserIds").asOpt[Seq[String]] shouldBe None
@@ -51,7 +51,7 @@ class EnrolmentStoreProxyStubControllerISpec
 
         val result = EnrolmentStoreProxyStub.getUserIds("IR-SA~UTR~12345678", "delegated")
 
-        result.status shouldBe 200
+        result should haveStatus(200)
         val json = result.json
         (json \ "principalUserIds").asOpt[Seq[String]] shouldBe None
         (json \ "delegatedUserIds").as[Seq[String]] should contain.only("foo2", "foo3")
@@ -74,7 +74,7 @@ class EnrolmentStoreProxyStubControllerISpec
 
         val result = EnrolmentStoreProxyStub.getUserIds("IR-SA~UTR~12345678", "all")
 
-        result.status shouldBe 200
+        result should haveStatus(200)
         val json = result.json
         (json \ "principalUserIds").as[Seq[String]] shouldBe Seq("foo1")
         (json \ "delegatedUserIds").as[Seq[String]] should contain.only("foo2", "foo3")
@@ -97,7 +97,7 @@ class EnrolmentStoreProxyStubControllerISpec
 
         val result = EnrolmentStoreProxyStub.getUserIds("IR-SA~UTR~87654321", "all")
 
-        result.status shouldBe 204
+        result should haveStatus(204)
       }
 
       "respond 400 if enrolment key is invalid" in {
@@ -105,7 +105,7 @@ class EnrolmentStoreProxyStubControllerISpec
 
         val result = EnrolmentStoreProxyStub.getUserIds("IR-SA~~87654321", "all")
 
-        result.status shouldBe 400
+        result should haveStatus(400)
       }
     }
 
@@ -123,7 +123,7 @@ class EnrolmentStoreProxyStubControllerISpec
 
         val result = EnrolmentStoreProxyStub.getGroupIds("IR-SA~UTR~12345678", "principal")
 
-        result.status shouldBe 200
+        result should haveStatus(200)
         val json = result.json
         (json \ "principalGroupIds").as[Seq[String]] should contain.only("group1")
         (json \ "delegatedGroupIds").asOpt[Seq[String]] shouldBe None
@@ -142,7 +142,7 @@ class EnrolmentStoreProxyStubControllerISpec
 
         val result = EnrolmentStoreProxyStub.getGroupIds("IR-SA~UTR~12345678", "delegated")
 
-        result.status shouldBe 200
+        result should haveStatus(200)
         val json = result.json
         (json \ "principalGroupIds").asOpt[Seq[String]] shouldBe None
         (json \ "delegatedGroupIds").as[Seq[String]] should contain.only("group2")
@@ -175,7 +175,7 @@ class EnrolmentStoreProxyStubControllerISpec
 
         val result = EnrolmentStoreProxyStub.getGroupIds("IR-SA~UTR~12345678", "all")
 
-        result.status shouldBe 200
+        result should haveStatus(200)
         val json = result.json
         (json \ "principalGroupIds").as[Seq[String]] should contain.only("group1")
         (json \ "delegatedGroupIds").as[Seq[String]] should contain.only("group2")
@@ -186,7 +186,7 @@ class EnrolmentStoreProxyStubControllerISpec
 
         val result = EnrolmentStoreProxyStub.getGroupIds("~UTR~87654321", "all")
 
-        result.status shouldBe 400
+        result should haveStatus(400)
       }
 
     }
@@ -216,7 +216,7 @@ class EnrolmentStoreProxyStubControllerISpec
                        |}""".stripMargin)
         )
 
-        result.status shouldBe 201
+        result should haveStatus(201)
 
         val user = await(userService.findByUserId(session.userId, session.planetId)).get
         user.principalEnrolments should contain.only(Enrolment("IR-SA", "UTR", "12345678"))
@@ -236,7 +236,7 @@ class EnrolmentStoreProxyStubControllerISpec
                        |}""".stripMargin)
         )
 
-        result.status shouldBe 201
+        result should haveStatus(201)
 
         val user = await(userService.findByUserId(session.userId, session.planetId)).get
         user.delegatedEnrolments should contain.only(Enrolment("IR-SA", "UTR", "12345678"))
@@ -255,7 +255,7 @@ class EnrolmentStoreProxyStubControllerISpec
                        |}""".stripMargin)
         )
 
-        result.status shouldBe 400
+        result should haveStatus(400)
 
         val user = await(userService.findByUserId(session.userId, session.planetId)).get
         user.delegatedEnrolments.isEmpty shouldBe true
@@ -276,7 +276,7 @@ class EnrolmentStoreProxyStubControllerISpec
           `legacy-agentCode` = Some("ABC123")
         )
 
-        result.status shouldBe 201
+        result should haveStatus(201)
 
         val user = await(userService.findByUserId(session.userId, session.planetId)).get
         user.delegatedEnrolments should contain.only(Enrolment("IR-SA", "UTR", "12345678"))
@@ -296,7 +296,7 @@ class EnrolmentStoreProxyStubControllerISpec
           `legacy-agentCode` = Some("ABC123")
         )
 
-        result.status shouldBe 400
+        result should haveStatus(400)
       }
 
       "return 400 if groupId does not exist" in {
@@ -312,7 +312,7 @@ class EnrolmentStoreProxyStubControllerISpec
                        |}""".stripMargin)
         )
 
-        result.status shouldBe 400
+        result should haveStatus(400)
       }
 
       "return 400 if userId does not exist" in {
@@ -328,7 +328,7 @@ class EnrolmentStoreProxyStubControllerISpec
                        |}""".stripMargin)
         )
 
-        result.status shouldBe 400
+        result should haveStatus(400)
       }
 
       "return 400 if enrolment key is invalid" in {
@@ -344,7 +344,7 @@ class EnrolmentStoreProxyStubControllerISpec
                        |}""".stripMargin)
         )
 
-        result.status shouldBe 400
+        result should haveStatus(400)
       }
     }
 
@@ -358,7 +358,7 @@ class EnrolmentStoreProxyStubControllerISpec
 
         val result = EnrolmentStoreProxyStub.deallocateEnrolmentFromGroup("group1", "IR-SA~UTR~12345678")
 
-        result.status shouldBe 204
+        result should haveStatus(204)
 
         val user = await(userService.findByUserId(session.userId, session.planetId)).get
         user.principalEnrolments.isEmpty shouldBe true
@@ -373,7 +373,7 @@ class EnrolmentStoreProxyStubControllerISpec
 
         val result = EnrolmentStoreProxyStub.deallocateEnrolmentFromGroup("group1", "IR-SA~UTR~12345678")
 
-        result.status shouldBe 204
+        result should haveStatus(204)
 
         val user = await(userService.findByUserId(session.userId, session.planetId)).get
         user.principalEnrolments.isEmpty shouldBe true

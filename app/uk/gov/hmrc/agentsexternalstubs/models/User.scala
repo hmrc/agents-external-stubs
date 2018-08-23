@@ -75,13 +75,13 @@ object User {
 
   type Transformer = JsObject => JsObject
 
-  val user_index_key = "user_index_key"
-  val nino_index_key = "nino_index_key"
-  val ttl_index_key = "ttl_index_key"
-  val principal_enrolment_keys = "principal_enrolment_keys"
-  val delegated_enrolment_keys = "delegated_enrolment_keys"
-  val group_id_index_key = "group_id_index_key"
-  val agent_code_index_key = "agent_code_index_key"
+  val user_index_key = "_user_index_key"
+  val nino_index_key = "_nino_index_key"
+  val ttl_index_key = "_ttl_index_key"
+  val principal_enrolment_keys = "_principal_enrolment_keys"
+  val delegated_enrolment_keys = "_delegated_enrolment_keys"
+  val group_id_index_key = "_group_id_index_key"
+  val agent_code_index_key = "_agent_code_index_key"
 
   def userIndexKey(userId: String, planetId: String): String = s"$userId@$planetId"
   def ninoIndexKey(nino: String, planetId: String): String = s"${nino.replace(" ", "")}@$planetId"

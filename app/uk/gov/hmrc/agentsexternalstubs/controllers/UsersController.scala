@@ -46,7 +46,7 @@ class UsersController @Inject()(usersService: UsersService, val authenticationSe
 
   def updateUser(userId: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withCurrentSession { session =>
-      withJsonBody[User](
+      withPayload[User](
         updatedUser =>
           usersService
             .updateUser(userId, session.planetId, _ => updatedUser)
@@ -62,7 +62,7 @@ class UsersController @Inject()(usersService: UsersService, val authenticationSe
 
   def createUser(): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withCurrentSession { session =>
-      withJsonBody[User](
+      withPayload[User](
         newUser =>
           usersService
             .createUser(newUser, session.planetId)

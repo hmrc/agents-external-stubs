@@ -1,8 +1,10 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
-import play.api.libs.json.{JsValue, Json, Writes}
-import play.api.mvc.{Result, Results}
+import play.api.libs.json._
+import play.api.mvc.{Request, Result, Results}
+import uk.gov.hmrc.http.BadRequestException
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 case class ErrorResponse(code: String, message: Option[String])
 
@@ -29,6 +31,12 @@ trait HttpHelpers {
   def badRequest(code: String, message: String = null): Result =
     Results.BadRequest(errorMessage(code, Option(message)))
 
+  def forbiddenF(code: String, message: String = null): Future[Result] =
+    Future.successful(forbidden(code, message))
+
+  def forbidden(code: String, message: String = null): Result =
+    Results.Forbidden(errorMessage(code, Option(message)))
+
   def notFoundF(code: String, message: String = null): Future[Result] =
     Future.successful(notFound(code, message))
 
@@ -42,6 +50,20 @@ trait HttpHelpers {
     Results.InternalServerError(errorMessage(code, Option(message)))
 
   val SessionRecordNotFound: Future[Result] = unauthorizedF("SessionRecordNotFound")
+
+  def withPayload[T](
+    f: T => Future[Result])(implicit request: Request[JsValue], reads: Reads[T], ec: ExecutionContext): Future[Result] =
+    Try(request.body.validate[T]) match {
+      case Success(JsSuccess(payload, _)) => f(payload)
+      case Success(JsError(errs)) =>
+        Future.failed(new BadRequestException(s"Invalid payload: Parser failed ${errs
+          .map {
+            case (path, errors) =>
+              s"at path $path with ${errors.map(e => e.messages.mkString(", ")).mkString(", ")}"
+          }
+          .mkString(", and ")}"))
+      case Failure(e) => Future.failed(new BadRequestException(s"Could not parse body due to ${e.getMessage}"))
+    }
 
 }
 

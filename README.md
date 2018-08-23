@@ -12,7 +12,16 @@ This app SHOULD NOT be run on QA nor Production environment.
 ## Table of contents
 
 * [Stubbed APIs](#stubbed_api)
+    * [Auth](#stubbed_api_auth)
+    * [Citizen Details](#stubbed_api_citizen_details)
+    * [User Groups Search](#stubbed_api_users_groups_search)
+    * [Enrolment Store Proxy](#stubbed_api_enrolment_store_proxy)
+    * [Tax Enrolments](#stubbed_api_tax_enrolments)
+    * [DES](#stubbed_api_des)
 * [Custom API](#custom_api)
+    * [Authentication](#custom_api_authentication)
+    * [Users Management](#custom_api_users)
+    * [Master Records (DES)](#custom_api_records)
 
 ## How requests are handled?
 
@@ -36,7 +45,7 @@ All users and other data on each planet are removed after 12h unless marked as p
 
 ## Stubbed APIs <a name="stubbed_api"></a>
 
-### [Auth](https://github.com/hmrc/auth)
+### [Auth](https://github.com/hmrc/auth) <a name="stubbed_api_auth"></a>
 
 Endpoint | Description
 ---|---
@@ -47,13 +56,13 @@ Feature | What's implemented
 predicates | `enrolment`, `authProviders`, `affinityGroup`, `confidenceLevel`, `credentialStrength`, `nino`, `credentialRole`
 retrievals | `authProviderId`, `credentials`, `authorisedEnrolments`, `allEnrolments`,`affinityGroup`,`confidenceLevel`,`credentialStrength`, `credentialRole`, `nino`, `groupIdentifier`, `name`, `dateOfBirth`, `agentCode`, `agentInformation`
 
-### [Citizen Details](https://github.com/hmrc/citizen-details)
+### [Citizen Details](https://github.com/hmrc/citizen-details) <a name="stubbed_api_citizen_details"></a>
 
 Endpoint | Description
 ---|---
 [`GET /citizen-details/:idName/:taxId`](https://github.com/hmrc/citizen-details#get-citizen-detailsidnametaxid) | citizen information
 
-### [User Groups Search](https://github.com/hmrc/users-groups-search)
+### [User Groups Search](https://github.com/hmrc/users-groups-search) <a name="stubbed_api_users_groups_search"></a>
 
 Endpoint | Description
 ---|---
@@ -62,7 +71,7 @@ Endpoint | Description
 `GET /users-groups-search/groups/:groupId/users` | users in the group
 `GET /users-groups-search/groups?agentCode=:agentCode&agentId=:agentId` | group having the given agentCode, agentId is ignored
 
-### [Enrolment Store Proxy](https://github.com/hmrc/enrolment-store-proxy)
+### [Enrolment Store Proxy](https://github.com/hmrc/enrolment-store-proxy) <a name="stubbed_api_enrolment_store_proxy"></a>
 
 Endpoint | Description
 ---|---
@@ -70,22 +79,25 @@ Endpoint | Description
 `GET /enrolment-store/enrolments/:enrolmentKey/groups` | get group ids for the enrolment
 `POST /enrolment-store/groups/:groupId/enrolments/:enrolmentKey` | allocate an enrolment to a group (agent)
 
-### [Tax Enrolments](https://github.com/hmrc/tax-enrolments)
+### [Tax Enrolments](https://github.com/hmrc/tax-enrolments) <a name="stubbed_api_tax_enrolments"></a>
 
 Endpoint | Description
 ---|---
 `POST /tax-enrolments/groups/:groupId/enrolments/:enrolmentKey` | allocate an enrolment to a group (agent)
 
-### DES
+### DES <a name="stubbed_api_des"></a>
 
 Endpoint | Description
 ---|---
 `POST /registration/relationship` | Provides the ability for an agent to authorise or de-authorise the relationship with a taxpayer, or for a taxpayer to de-authorise the relationship with an agent.
 `GET  /registration/relationship` | Provides the ability for a taxpayer (individual or organisation) or their agent to display historical or current relationships.
+`GET  /registration/relationship/utr/:utr` | Provides the ability for a taxpayer (individual or organisation) to display current relationship with their agents.
+`GET  /registration/relationship/nino/:nino` | ^^ as above
+`GET  /registration/business-details/:idType/:idNumber` | Provides the ability for a taxpayer to get the Business Details (Business Partner and Contract Object records) associated with the taxpayer.
 
 ## Custom API <a name="custom_api"></a>
 
-### Authentication
+### Authentication <a name="custom_api_authentication"></a>
 
 #### POST /agents-external-stubs/sign-in 
 Authenticate an user. 
@@ -117,7 +129,7 @@ Response | Description
 ---|---
 204| when success
 
-### Test Users Management
+### Test Users Management <a name="custom_api_users"></a>
 
 #### GET  /agents-external-stubs/users?affinityGroup=X&limit=Y
 Get all users available at the current planet (_requires valid bearer token_)
@@ -177,6 +189,14 @@ Response | Description
 ---|---
 204| user has been removed
 404| when userId not found
+
+### Test Master Records Management <a name="custom_api_records"></a>
+
+#### POST /agents-external-stubs/records/business-details
+
+#### POST /agents-external-stubs/records/legacy-agent
+
+#### POST /agents-external-stubs/records/legacy-relationship
 
 ## Running the tests
 

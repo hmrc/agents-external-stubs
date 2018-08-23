@@ -6,7 +6,8 @@ import scala.reflect.ClassTag
 
 trait JsonMatchers {
 
-  def haveProperty[T: Reads](name: String, matcher: Matcher[T] = null)(implicit classTag: ClassTag[T]) =
+  def haveProperty[T: Reads](name: String, matcher: Matcher[T] = null)(
+    implicit classTag: ClassTag[T]): Matcher[JsObject] =
     new Matcher[JsObject] {
       override def apply(obj: JsObject): MatchResult =
         (obj \ name).asOpt[T] match {

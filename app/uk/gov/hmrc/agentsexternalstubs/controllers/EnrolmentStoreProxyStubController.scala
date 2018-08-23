@@ -5,7 +5,7 @@ import javax.inject.{Inject, Singleton}
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.{AllocateGroupEnrolmentRequest, GetGroupIdsResponse, GetUserIdsResponse}
-import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, User, Validate}
+import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, User, Validator}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
@@ -56,7 +56,7 @@ class EnrolmentStoreProxyStubController @Inject()(val authenticationService: Aut
     enrolmentKey: EnrolmentKey,
     `legacy-agentCode`: Option[String]): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withCurrentSession { session =>
-      withJsonBody[AllocateGroupEnrolmentRequest] { payload =>
+      withPayload[AllocateGroupEnrolmentRequest] { payload =>
         AllocateGroupEnrolmentRequest
           .validate(payload)
           .fold(
@@ -130,8 +130,8 @@ object EnrolmentStoreProxyStubController {
     implicit val reads: Reads[AllocateGroupEnrolmentRequest] = Json.reads[AllocateGroupEnrolmentRequest]
 
     val validate: AllocateGroupEnrolmentRequest => Validated[List[String], Unit] =
-      Validate.constraints[AllocateGroupEnrolmentRequest](
-        (_.`type`.matches("principal|delegated"), "Unsupported `type` param value"))
+      Validator[AllocateGroupEnrolmentRequest](
+        Validator.check(_.`type`.matches("principal|delegated"), "Unsupported `type` param value"))
   }
 
 }

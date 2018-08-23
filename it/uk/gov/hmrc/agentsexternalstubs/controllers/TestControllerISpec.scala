@@ -14,13 +14,13 @@ class TestControllerISpec extends ServerBaseISpec with MongoDbPerSuite with Test
     "GET /agents-external-stubs/test/auth/agent-mtd" should {
       "return 401 Unauthorized if user not authenticated" in {
         val result = TestMe.testAuthAgentMtd(NotAuthorized)
-        result.status shouldBe 401
+        result should haveStatus(401)
       }
 
       "return 401 Unauthorized if user authenticated but has no enrolments" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         val result = TestMe.testAuthAgentMtd
-        result.status shouldBe 401
+        result should haveStatus(401)
       }
 
       "respond with some data if user exists and has expected enrolment" in {
@@ -33,7 +33,7 @@ class TestControllerISpec extends ServerBaseISpec with MongoDbPerSuite with Test
 
         val result = TestMe.testAuthAgentMtd
 
-        result.status shouldBe 200
+        result should haveStatus(200)
         result.json.as[String] shouldBe "TARN0000001"
       }
     }
@@ -41,13 +41,13 @@ class TestControllerISpec extends ServerBaseISpec with MongoDbPerSuite with Test
     "GET /agents-external-stubs/test/auth/client-mtd-it" should {
       "return 401 Unauthorized if user not authenticated" in {
         val result = TestMe.testAuthAgentMtd(NotAuthorized)
-        result.status shouldBe 401
+        result should haveStatus(401)
       }
 
       "return 401 Unauthorized if user authenticated but has no enrolments" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         val result = TestMe.testAuthClientMtdIt
-        result.status shouldBe 401
+        result should haveStatus(401)
       }
 
       "respond with some data if user exists and has expected enrolment" in {
@@ -59,7 +59,7 @@ class TestControllerISpec extends ServerBaseISpec with MongoDbPerSuite with Test
 
         val result = TestMe.testAuthClientMtdIt
 
-        result.status shouldBe 200
+        result should haveStatus(200)
         result.json.as[String] shouldBe "ABC1234567"
       }
     }

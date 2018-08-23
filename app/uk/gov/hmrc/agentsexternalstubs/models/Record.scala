@@ -15,9 +15,7 @@ trait Record {
 object Record {
 
   val ID = "_id"
-  val UNIQUE_KEY = "_uniqueKey"
-  val KEYS = "_keys"
-  val TYPE = "_type"
+  val TYPE = "_record_type"
 
   val reads: Reads[Record] = new Reads[Record] {
     override def reads(json: JsValue): JsResult[Record] = json match {
@@ -48,13 +46,6 @@ object Record {
         case obj: JsObject =>
           obj
             .-("id")
-            .+(TYPE -> JsString(record.getClass.getSimpleName))
-            .+(KEYS -> JsArray(record.lookupKeys.map(JsString)))
-            .|> { obj =>
-              record.uniqueKey
-                .map(uniqueKey => obj.+(UNIQUE_KEY -> JsString(uniqueKey)))
-                .getOrElse(obj)
-            }
             .|> { obj =>
               record.id
                 .map(id => obj.+(ID -> Json.obj("$oid" -> JsString(id))))

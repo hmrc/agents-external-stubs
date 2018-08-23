@@ -9,7 +9,8 @@ import uk.gov.hmrc.play.it.Port
 
 import scala.concurrent.ExecutionContext
 
-abstract class ServerBaseISpec extends BaseISpec with OneServerPerSuite with ScalaFutures {
+abstract class ServerBaseISpec
+    extends BaseISpec with OneServerPerSuite with ScalaFutures with JsonMatchers with WSResponseMatchers {
 
   override lazy val port: Int = Port.randomAvailable
 

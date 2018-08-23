@@ -25,17 +25,22 @@ import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.api.{Cursor, CursorProducer, ReadPreference}
 import reactivemongo.bson.{BSONDocument, BSONLong, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers
+import uk.gov.hmrc.agentsexternalstubs.models.Record.TYPE
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
+import uk.gov.hmrc.agentsexternalstubs.syntax.|>
 
 @ImplementedBy(classOf[RecordsRepositoryMongo])
 trait RecordsRepository {
 
-  def store(entity: Record, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
+  def store[T <: Record](entity: T, planetId: String)(
+    implicit ec: ExecutionContext,
+    recordType: RecordType[T]): Future[Unit]
+
   def cursor[T <: Record](
     key: String,
     planetId: String)(implicit reads: Reads[T], ec: ExecutionContext, recordType: RecordType[T]): Cursor[T]
@@ -51,16 +56,14 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
 
   import ImplicitBSONHandlers._
 
-  private final val PLANET_ID = "planetId"
+  private final val PLANET_ID = "_planetId"
+  private final val UNIQUE_KEY = "_uniqueKey"
+  private final val KEYS = "_keys"
 
   override def indexes =
     Seq(
-      Index(Seq(Record.KEYS -> Ascending, Record.TYPE -> Ascending, PLANET_ID -> Ascending), Some("Keys")),
-      Index(
-        Seq(Record.UNIQUE_KEY -> Ascending, Record.TYPE -> Ascending, PLANET_ID -> Ascending),
-        Some("UniqueKey"),
-        unique = true,
-        sparse = true),
+      Index(Seq(KEYS       -> Ascending), Some("Keys")),
+      Index(Seq(UNIQUE_KEY -> Ascending), Some("UniqueKey"), unique = true, sparse = true),
       Index(
         Seq(PLANET_ID -> Ascending),
         Some("TTL"),
@@ -69,8 +72,21 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
       )
     )
 
-  override def store(entity: Record, planetId: String)(implicit ec: ExecutionContext): Future[Unit] = {
-    val json = Json.toJson[Record](entity).as[JsObject].+(PLANET_ID -> JsString(planetId))
+  override def store[T <: Record](entity: T, planetId: String)(
+    implicit ec: ExecutionContext,
+    recordType: RecordType[T]): Future[Unit] = {
+    val json = Json
+      .toJson[Record](entity)
+      .as[JsObject]
+      .+(PLANET_ID -> JsString(planetId))
+      .+(TYPE -> JsString(recordType.typeName))
+      .+(KEYS -> JsArray(entity.lookupKeys.map(key => JsString(keyOf(key, planetId, recordType)))))
+      .|> { obj =>
+        entity.uniqueKey
+          .map(uniqueKey => obj.+(UNIQUE_KEY -> JsString(keyOf(uniqueKey, planetId, recordType))))
+          .getOrElse(obj)
+      }
+
     (entity.id match {
       case None     => collection.insert(json)
       case Some(id) => collection.update(Json.obj("_id" -> Json.obj("$oid" -> JsString(id))), json, upsert = true)
@@ -83,17 +99,16 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
     planetId: String)(implicit reads: Reads[T], ec: ExecutionContext, recordType: RecordType[T]): Cursor[T] =
     collection
       .find(
-        JsObject(
-          Seq(
-            Record.KEYS -> JsString(key),
-            Record.TYPE -> JsString(recordType.typeName),
-            PLANET_ID   -> JsString(planetId))),
+        JsObject(Seq(KEYS -> JsString(keyOf(key, planetId, recordType)))),
         Json.obj(recordType.fieldNames.map(option => option -> toJsFieldJsValueWrapper(JsNumber(1))): _*)
       )
       .cursor[T](ReadPreference.primaryPreferred)(
         implicitly[collection.pack.Reader[Record]].map(_.asInstanceOf[T]),
         ec,
         implicitly[CursorProducer[T]])
+
+  private def keyOf[T](key: String, planetId: String, recordType: RecordType[T]): String =
+    s"${recordType.typeName}:$key@$planetId"
 }
 
 trait RecordType[T] {
