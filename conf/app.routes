@@ -42,9 +42,9 @@ POST        /agents-external-stubs/users/                                    @uk
 DELETE      /agents-external-stubs/users/:userId                             @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.deleteUser(userId: String)
 
 # Records management
-POST        /agents-external-stubs/records/business-details                  @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.createBusinessDetails
-POST        /agents-external-stubs/records/legacy-agent                      @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.createLegacyAgent
-POST        /agents-external-stubs/records/legacy-relationship               @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.createLegacyRelationship
+POST        /agents-external-stubs/records/business-details                  @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.createBusinessDetails(autoFill: Boolean ?= true)
+POST        /agents-external-stubs/records/legacy-agent                      @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.createLegacyAgent(autoFill: Boolean ?= true)
+POST        /agents-external-stubs/records/legacy-relationship               @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.createLegacyRelationship(autoFill: Boolean ?= true)
 
 # Internal test
 GET         /agents-external-stubs/test/auth/agent-mtd                       @uk.gov.hmrc.agentsexternalstubs.controllers.TestController.testAuthAgentMtd

@@ -4,18 +4,11 @@ import java.util.UUID
 import org.joda.time.LocalDate
 import org.joda.time.format.ISODateTimeFormat
 import org.scalacheck.Gen
-import org.scalacheck.Gen.{choose, frequency}
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.smartstub.Addresses.{postcodeRegions, postcodeSuffix, streetNames}
-import uk.gov.hmrc.smartstub.{Addresses, Companies, Names, Temporal}
 
-object UserGenerator extends Names with Temporal with Companies with Addresses {
+object UserGenerator extends Generator {
 
   import uk.gov.hmrc.smartstub._
-
-  private implicit val tls: ToLong[String] = new ToLong[String] {
-    def asLong(s: String): Long = s.hashCode.toLong
-  }
 
   def nameForIndividual(userId: String): String =
     (for {
@@ -36,9 +29,12 @@ object UserGenerator extends Names with Temporal with Companies with Addresses {
   def dateOfBirth(userId: String): LocalDate =
     date(dateOfBirthLow, dateOfBirthHigh).seeded(userId).map(d => LocalDate.parse(d.toString)).get
 
-  private final val ninoGen = Enumerable.instances.ninoEnum.gen
-  def nino(userId: String): Nino =
-    ninoGen.seeded(userId).map(n => if (Nino.isValid(n)) Nino.apply(n) else nino("_" + userId)).get
+  case class GeneratedAddress(street: String, town: String, postcode: String)
+  def address(userId: String): GeneratedAddress =
+    ukAddress
+      .map { case street :: town :: postcode :: Nil => GeneratedAddress(street, town, postcode) }
+      .seeded(userId)
+      .get
 
   private final val groupIdGen = pattern"9Z9Z-Z9Z9-9Z9Z-Z9Z9".gen
   def groupId(userId: String): String = groupIdGen.seeded(userId).get
@@ -65,13 +61,6 @@ object UserGenerator extends Names with Temporal with Companies with Addresses {
                )
     } yield s"$ln$suffix").seeded(userId + "_agent").get
 
-  case class GeneratedAddress(street: String, town: String, postcode: String)
-  def address(userId: String): GeneratedAddress =
-    ukAddress
-      .map { case street :: town :: postcode :: Nil => GeneratedAddress(street, town, postcode) }
-      .seeded(userId)
-      .get
-
   def individual(
     userId: String = UUID.randomUUID().toString,
     confidenceLevel: Int = 50,
@@ -85,7 +74,7 @@ object UserGenerator extends Names with Temporal with Companies with Addresses {
       affinityGroup = Some(User.AG.Individual),
       confidenceLevel = Option(confidenceLevel),
       credentialRole = Option(credentialRole),
-      nino = Option(nino).map(Nino.apply).orElse(Option(UserGenerator.nino(userId))),
+      nino = Option(nino).map(Nino.apply).orElse(Option(UserGenerator.ninoWithSpaces(userId))),
       name = Option(name).orElse(Option(UserGenerator.nameForIndividual(userId))),
       dateOfBirth = Option(dateOfBirth)
         .map(LocalDate.parse(_, ISODateTimeFormat.date()))

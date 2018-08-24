@@ -5,8 +5,10 @@ object RegexPatterns {
 
   type Matcher = String => Either[String, String]
 
-  val validNino: Matcher = validate(
+  val validNinoNoSpaces: Matcher = validate(
     "^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$".r)
+  val validNinoWithSpaces: Matcher = validate(
+    "^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})\\s?\\d{2}\\s?\\d{2}\\s?\\d{2}\\s?[A-D]?$".r)
   val validArn: Matcher = validate("^[A-Z]ARN[0-9]{7}$".r)
   val validUtr: Matcher = validate("^[0-9]{10}$".r)
   val validMtdbsa: Matcher = validate("^[A-Z0-9]{1,16}$".r)

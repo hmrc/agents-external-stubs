@@ -1,10 +1,10 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
-object UserSanitizer {
+object UserSanitizer extends Sanitizer[User] {
 
-  def sanitize(user: User): User = userSanitizers.foldLeft(user)((u, fx) => fx(u))
+  override def seed(s: String): User = User(userId = s.hashCode.toHexString)
 
-  private val ensureUserHaveName: User => User = user =>
+  private val ensureUserHaveName: Update = user =>
     if (user.name.isEmpty)
       user.affinityGroup match {
         case Some(User.AG.Individual) => user.copy(name = Some(UserGenerator.nameForIndividual(user.userId)))
@@ -14,19 +14,19 @@ object UserSanitizer {
         case None    => user
       } else user
 
-  private val ensureIndividualUserHaveDateOfBirth: User => User = user =>
+  private val ensureIndividualUserHaveDateOfBirth: Update = user =>
     if (user.affinityGroup.contains(User.AG.Individual) && user.dateOfBirth.isEmpty)
       user.copy(dateOfBirth = Some(UserGenerator.dateOfBirth(user.userId)))
     else user
 
-  private val ensureOnlyIndividualUserHaveNINO: User => User = user =>
+  private val ensureOnlyIndividualUserHaveNINO: Update = user =>
     user.affinityGroup match {
       case Some(User.AG.Individual) =>
-        if (user.nino.isEmpty) user.copy(nino = Some(UserGenerator.nino(user.userId))) else user
+        if (user.nino.isEmpty) user.copy(nino = Some(UserGenerator.ninoWithSpaces(user.userId))) else user
       case _ => user.copy(nino = None)
   }
 
-  private val ensureOnlyIndividualUserHaveConfidenceLevel: User => User = user =>
+  private val ensureOnlyIndividualUserHaveConfidenceLevel: Update = user =>
     user.affinityGroup match {
       case Some(User.AG.Individual) =>
         if (user.confidenceLevel.isEmpty)
@@ -35,7 +35,7 @@ object UserSanitizer {
       case _ => user.copy(confidenceLevel = None)
   }
 
-  private val ensureUserHaveCredentialRole: User => User = user =>
+  private val ensureUserHaveCredentialRole: Update = user =>
     user.affinityGroup match {
       case Some(User.AG.Individual | User.AG.Agent) =>
         if (user.credentialRole.isEmpty) user.copy(credentialRole = Some(User.CR.User)) else user
@@ -44,7 +44,7 @@ object UserSanitizer {
       case _ => user.copy(credentialRole = None)
   }
 
-  private val ensureOnlyIndividualUserHaveDateOfBirth: User => User = user =>
+  private val ensureOnlyIndividualUserHaveDateOfBirth: Update = user =>
     user.affinityGroup match {
       case Some(User.AG.Individual) =>
         if (user.dateOfBirth.isEmpty)
@@ -53,10 +53,10 @@ object UserSanitizer {
       case _ => user.copy(dateOfBirth = None)
   }
 
-  private val ensureUserHaveGroupIdentifier: User => User = user =>
+  private val ensureUserHaveGroupIdentifier: Update = user =>
     if (user.groupId.isEmpty) user.copy(groupId = Some(UserGenerator.groupId(user.userId))) else user
 
-  private val ensureAgentHaveAgentCode: User => User = user =>
+  private val ensureAgentHaveAgentCode: Update = user =>
     user.affinityGroup match {
       case Some(User.AG.Agent) =>
         if (user.agentCode.isEmpty)
@@ -65,7 +65,7 @@ object UserSanitizer {
       case _ => user.copy(agentCode = None)
   }
 
-  private val ensureAgentHaveAgentId: User => User = user =>
+  private val ensureAgentHaveAgentId: Update = user =>
     user.affinityGroup match {
       case Some(User.AG.Agent) =>
         if (user.agentId.isEmpty)
@@ -74,7 +74,7 @@ object UserSanitizer {
       case _ => user.copy(agentId = None)
   }
 
-  private val ensureAgentHaveFriendlyName: User => User = user =>
+  private val ensureAgentHaveFriendlyName: Update = user =>
     user.affinityGroup match {
       case Some(User.AG.Agent) =>
         if (user.agentFriendlyName.isEmpty)
@@ -83,7 +83,7 @@ object UserSanitizer {
       case _ => user.copy(agentFriendlyName = None)
   }
 
-  private val userSanitizers: Seq[User => User] =
+  override val sanitizers: Seq[Update] =
     Seq(
       ensureUserHaveGroupIdentifier,
       ensureUserHaveName,

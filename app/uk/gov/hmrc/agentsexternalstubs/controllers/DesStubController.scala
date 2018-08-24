@@ -85,7 +85,7 @@ class DesStubController @Inject()(
   def getLegacyRelationshipsByNino(nino: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       RegexPatterns
-        .validNino(nino)
+        .validNinoNoSpaces(nino)
         .fold(
           error => badRequestF("INVALID_NINO", error),
           _ =>
@@ -101,7 +101,7 @@ class DesStubController @Inject()(
       idType match {
         case "nino" =>
           RegexPatterns
-            .validNino(idNumber)
+            .validNinoNoSpaces(idNumber)
             .fold(
               error => badRequestF("INVALID_NINO", error),
               _ =>

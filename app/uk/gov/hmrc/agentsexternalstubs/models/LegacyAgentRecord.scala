@@ -1,6 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import play.api.libs.json.{Format, Json}
+import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.{BusinessAddress, BusinessContact}
 
 case class LegacyAgentRecord(
   agentId: String,
@@ -26,7 +27,7 @@ case class LegacyAgentRecord(
   override def withId(id: Option[String]): LegacyAgentRecord = copy(id = id)
 }
 
-object LegacyAgentRecord {
+object LegacyAgentRecord extends Sanitizer[LegacyAgentRecord] {
 
   def agentIdKey(agentId: String): String = s"agentId:$agentId"
 
@@ -47,4 +48,21 @@ object LegacyAgentRecord {
 
   implicit val formats: Format[LegacyAgentRecord] = Json.format[LegacyAgentRecord]
 
+  val agentIdGen = Generator.get(Generator.pattern("999999"))
+
+  override def seed(s: String): LegacyAgentRecord =
+    LegacyAgentRecord(
+      agentId = agentIdGen(s),
+      agentName = UserGenerator.nameForAgent(s),
+      address1 = BusinessAddress.addressLine1Gen(s),
+      address2 = BusinessAddress.addressLine2Gen(s)
+    )
+
+  val agentPhoneNoSanitizer: Update = e =>
+    e.copy(agentPhoneNo = e.agentPhoneNo.orElse(Some(BusinessContact.phoneNumberGen(e.agentId))))
+
+  val postcodeSanitizer: Update = e =>
+    e.copy(postcode = e.postcode.orElse(Some(BusinessAddress.postalCodeGen(e.agentId))))
+
+  override val sanitizers: Seq[Update] = Seq(agentPhoneNoSanitizer, postcodeSanitizer)
 }

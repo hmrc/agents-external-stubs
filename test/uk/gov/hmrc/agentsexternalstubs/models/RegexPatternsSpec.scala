@@ -6,12 +6,12 @@ class RegexPatternsSpec extends UnitSpec {
 
   "RegexPatterns" should {
     "validate nino" in {
-      RegexPatterns.validNino("HW827856C").isRight shouldBe true
-      RegexPatterns.validNino("").isLeft shouldBe true
-      RegexPatterns.validNino("HW827856Z").isLeft shouldBe true
-      RegexPatterns.validNino("HWW27856D").isLeft shouldBe true
-      RegexPatterns.validNino("HW827856C1").isLeft shouldBe true
-      RegexPatterns.validNino("HW8278561C").isLeft shouldBe true
+      RegexPatterns.validNinoNoSpaces("HW827856C").isRight shouldBe true
+      RegexPatterns.validNinoNoSpaces("").isLeft shouldBe true
+      RegexPatterns.validNinoNoSpaces("HW827856Z").isLeft shouldBe true
+      RegexPatterns.validNinoNoSpaces("HWW27856D").isLeft shouldBe true
+      RegexPatterns.validNinoNoSpaces("HW827856C1").isLeft shouldBe true
+      RegexPatterns.validNinoNoSpaces("HW8278561C").isLeft shouldBe true
     }
 
     "validate utr" in {

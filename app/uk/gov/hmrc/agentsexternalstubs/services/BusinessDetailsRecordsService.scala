@@ -12,12 +12,16 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class BusinessDetailsRecordsService @Inject()(recordsRepository: RecordsRepository) {
 
-  def store(record: BusinessDetailsRecord, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+  def store(record: BusinessDetailsRecord, autoFill: Boolean, planetId: String)(
+    implicit ec: ExecutionContext): Future[Unit] =
     BusinessDetailsRecord
       .validate(record)
       .fold(
         errors => Future.failed(new BadRequestException(errors.mkString(", "))),
-        _ => recordsRepository.store(record, planetId)
+        _ => {
+          val entity = if (autoFill) BusinessDetailsRecord.sanitize(record) else record
+          recordsRepository.store(entity, planetId)
+        }
       )
 
   def getBusinessDetails(nino: Nino, planetId: String)(

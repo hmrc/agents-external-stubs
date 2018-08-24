@@ -16,34 +16,34 @@ class RecordsController @Inject()(
   val authenticationService: AuthenticationService)
     extends BaseController with CurrentSession {
 
-  def createBusinessDetails(): Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def createBusinessDetails(autoFill: Boolean): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withCurrentSession { session =>
       withPayload[BusinessDetailsRecord](
         record =>
           businessDetailsRecordsService
-            .store(record, session.planetId)
+            .store(record, autoFill, session.planetId)
             .map(_ =>
               Created.withHeaders(
                 HeaderNames.LOCATION -> routes.DesStubController.getBusinessDetails("mtdbsa", record.mtdbsa).url)))
     }(SessionRecordNotFound)
   }
 
-  def createLegacyAgent(): Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def createLegacyAgent(autoFill: Boolean): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withCurrentSession { session =>
       withPayload[LegacyAgentRecord](
         record =>
           legacyRelationshipRecordsService
-            .store(record, session.planetId)
+            .store(record, autoFill, session.planetId)
             .map(_ => Created /*.withHeaders(HeaderNames.LOCATION -> ???)*/ ))
     }(SessionRecordNotFound)
   }
 
-  def createLegacyRelationship(): Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def createLegacyRelationship(autoFill: Boolean): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withCurrentSession { session =>
       withPayload[LegacyRelationshipRecord](
         record =>
           legacyRelationshipRecordsService
-            .store(record, session.planetId)
+            .store(record, autoFill, session.planetId)
             .map(
               _ =>
                 Created.withHeaders(

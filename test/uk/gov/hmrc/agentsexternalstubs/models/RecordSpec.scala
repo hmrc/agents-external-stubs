@@ -1,9 +1,12 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import play.api.libs.json.{JsObject, Json}
+import org.joda.time.LocalDate
+import org.scalatest.prop.PropertyChecks
+import play.api.libs.json.Json
+import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.{BusinessContact, BusinessData}
 import uk.gov.hmrc.play.test.UnitSpec
 
-class RecordSpec extends UnitSpec {
+class RecordSpec extends UnitSpec with PropertyChecks {
 
   val registrationEntity =
     RelationshipRecord(
@@ -27,6 +30,61 @@ class RecordSpec extends UnitSpec {
 
     "have json reads for RelationshipRecord" in {
       Json.parse(registrationJson).as[Record] shouldBe registrationEntity
+    }
+  }
+
+  "BusinessDetailsRecord" should {
+    "generate valid entity from seed" in {
+      forAll { seed: String =>
+        val entity = BusinessDetailsRecord.generate(seed)
+        BusinessDetailsRecord.validate(entity).isValid shouldBe true
+        entity.businessData shouldBe defined
+        entity.businessData.get.head.tradingName shouldBe defined
+        entity.businessData.get.head.businessAddressDetails shouldBe defined
+      }
+    }
+    "sanitize provided entity" in {
+      val entity = BusinessDetailsRecord(
+        safeId = "9090909",
+        nino = "HW827856C",
+        mtdbsa = "1234567890987654",
+        businessData = Some(
+          Seq(BusinessData(
+            incomeSourceId = "123456789012345",
+            accountingPeriodEndDate = LocalDate.now,
+            accountingPeriodStartDate = LocalDate.now,
+            businessContactDetails = Some(BusinessContact(emailAddress = Some("a@a.com")))
+          )))
+      )
+      BusinessDetailsRecord.validate(entity).isValid shouldBe true
+
+      val sanitized = BusinessDetailsRecord.sanitize(entity)
+      BusinessDetailsRecord.validate(sanitized).isValid shouldBe true
+      sanitized.safeId === "9090909"
+      sanitized.mtdbsa === "1234567890987654"
+      sanitized.nino === "HW827856C"
+      sanitized.businessData.get.head.incomeSourceId === "123456789012345"
+      sanitized.businessData.get.head.businessContactDetails.get.emailAddress === "a@a.com"
+      sanitized.businessData.get.head.tradingName shouldBe defined
+      sanitized.businessData.get.head.businessAddressDetails shouldBe defined
+    }
+  }
+
+  "LegacyAgentRecord" should {
+    "generate valid entity from seed" in {
+      forAll { seed: String =>
+        val entity = LegacyAgentRecord.generate(seed)
+        LegacyAgentRecord.validate(entity).isValid shouldBe true
+      }
+    }
+  }
+
+  "LegacyRelationshipRecord" should {
+    "generate valid entity from seed" in {
+      forAll { seed: String =>
+        val entity = LegacyRelationshipRecord.generate(seed)
+        LegacyRelationshipRecord.validate(entity).isValid shouldBe true
+      }
     }
   }
 

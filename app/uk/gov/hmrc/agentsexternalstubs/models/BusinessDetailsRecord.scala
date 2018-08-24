@@ -19,10 +19,10 @@ case class BusinessDetailsRecord(
   override def withId(id: Option[String]): BusinessDetailsRecord = copy(id = id)
 }
 
-object BusinessDetailsRecord {
+object BusinessDetailsRecord extends Sanitizer[BusinessDetailsRecord] {
 
-  def ninoKey(nino: String): String = s"nino:$nino"
-  def mtdbsaKey(mtdbsa: String): String = s"mtdbsa:$mtdbsa"
+  def ninoKey(nino: String): String = s"nino:${nino.replace(" ", "")}"
+  def mtdbsaKey(mtdbsa: String): String = s"mtdbsa:${mtdbsa.replace(" ", "")}"
 
   case class BusinessAddress(
     addressLine1: String,
@@ -82,14 +82,103 @@ object BusinessDetailsRecord {
 
   val validate: Validator[BusinessDetailsRecord] = Validator(
     check(_.safeId.sizeMinMaxInclusive(1, 16), "Invalid safeId"),
-    check(_.nino.isRight(RegexPatterns.validNino), "Invalid nino"),
+    check(_.nino.isRight(RegexPatterns.validNinoNoSpaces), "Invalid nino"),
     check(_.mtdbsa.isRight(RegexPatterns.validMtdbsa), "Invalid mtdbsa"),
     checkEachIfSome(_.businessData, validateBusinessData)
   )
+
+  val safeIdGen = Generator.get(Generator.pattern("999999999999999"))
+
+  override def seed(s: String): BusinessDetailsRecord = BusinessDetailsRecord(
+    safeId = safeIdGen(s),
+    nino = Generator.ninoNoSpaces(s).value,
+    mtdbsa = Generator.mtdbsa(s).value
+  )
+
+  val businessDataSanitizer: Update = record =>
+    record.copy(businessData = Some(record.businessData match {
+      case Some(businessData) => businessData.map(BusinessData.sanitize)
+      case None               => Seq(BusinessData.generate(record.mtdbsa))
+    }))
+
+  override val sanitizers: Seq[Update] = Seq(businessDataSanitizer)
+
+  object BusinessData extends Sanitizer[BusinessData] {
+
+    val incomeSourceIdGen = Generator.get(Generator.pattern("999999999999999"))
+    val tradingNameGen = Generator.get(Generator.company)
+    val tradingStartDateGen = Generator.get(Generator.date(1970, 2018).map(Generator.toJodaDate))
+
+    override def seed(s: String): BusinessData = BusinessData(
+      incomeSourceId = incomeSourceIdGen(s),
+      accountingPeriodStartDate = LocalDate.parse("2001-01-01"),
+      accountingPeriodEndDate = LocalDate.parse("2001-01-01")
+    )
+
+    val tradingNameSanitizer: Update = e =>
+      e.copy(tradingName = e.tradingName.orElse(Option(tradingNameGen(e.incomeSourceId))))
+
+    val tradingStartDateSanitizer: Update = e =>
+      e.copy(tradingStartDate = e.tradingStartDate.orElse(Option(tradingStartDateGen(e.incomeSourceId))))
+
+    val businessAddressDetailsSanitizer: Update = record =>
+      record.copy(businessAddressDetails = Some(record.businessAddressDetails match {
+        case Some(address) => BusinessAddress.sanitize(address)
+        case None          => BusinessAddress.generate(record.incomeSourceId)
+      }))
+
+    val businessContactDetailsSanitizer: Update = record =>
+      record.copy(businessContactDetails = Some(record.businessContactDetails match {
+        case Some(contact) => BusinessContact.sanitize(contact)
+        case None          => BusinessContact.generate(record.incomeSourceId)
+      }))
+
+    override val sanitizers: Seq[Update] =
+      Seq(
+        tradingNameSanitizer,
+        tradingStartDateSanitizer,
+        businessAddressDetailsSanitizer,
+        businessContactDetailsSanitizer)
+  }
+
+  object BusinessAddress extends Sanitizer[BusinessAddress] {
+
+    val addressLine1Gen = Generator.get(Generator.ukAddress.map(_.head))
+    val addressLine2Gen = Generator.get(Generator.ukAddress.map(_(1)))
+    val postalCodeGen = Generator.get(Generator.ukAddress.map(_(2)))
+
+    override def seed(s: String): BusinessAddress = BusinessAddress(
+      addressLine1 = addressLine1Gen(s),
+      countryCode = "GB"
+    )
+
+    val addressLine2Sanitizer: Update = e =>
+      e.copy(addressLine2 = e.addressLine2.orElse(Option(addressLine2Gen(e.addressLine1))))
+
+    val postalCodeSanitizer: Update = e =>
+      e.copy(postalCode = e.postalCode.orElse(Option(postalCodeGen(e.addressLine1))))
+
+    override val sanitizers: Seq[Update] = Seq(addressLine2Sanitizer, postalCodeSanitizer)
+  }
+
+  object BusinessContact extends Sanitizer[BusinessContact] {
+
+    val phoneNumberGen = Generator.get(Generator.ukPhoneNumber)
+
+    override def seed(s: String): BusinessContact = BusinessContact(
+      phoneNumber = Option(phoneNumberGen(s))
+    )
+
+    val phoneNumberSanitizer: Update = e => e.copy(phoneNumber = e.phoneNumber.orElse(Some("01332752856")))
+    val emailAddressSanitizer: Update = e =>
+      e.copy(
+        emailAddress = e.emailAddress.orElse(Option(Generator.get(Generator.emailGen)(e.phoneNumber.getOrElse("0")))))
+
+    override val sanitizers: Seq[Update] = Seq(phoneNumberSanitizer, emailAddressSanitizer)
+  }
 
   implicit val formats1: Format[BusinessAddress] = Json.format[BusinessAddress]
   implicit val formats2: Format[BusinessContact] = Json.format[BusinessContact]
   implicit val formats3: Format[BusinessData] = Json.format[BusinessData]
   implicit val formats: Format[BusinessDetailsRecord] = Json.format[BusinessDetailsRecord]
-
 }

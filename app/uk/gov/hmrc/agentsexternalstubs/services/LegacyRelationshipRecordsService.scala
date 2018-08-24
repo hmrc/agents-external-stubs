@@ -10,20 +10,28 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class LegacyRelationshipRecordsService @Inject()(recordsRepository: RecordsRepository) {
 
-  def store(record: LegacyRelationshipRecord, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+  def store(record: LegacyRelationshipRecord, autoFill: Boolean, planetId: String)(
+    implicit ec: ExecutionContext): Future[Unit] =
     LegacyRelationshipRecord
       .validate(record)
       .fold(
         errors => Future.failed(new BadRequestException(errors.mkString(", "))),
-        _ => recordsRepository.store(record, planetId)
+        _ => {
+          val entity = if (autoFill) LegacyRelationshipRecord.sanitize(record) else record
+          recordsRepository.store(entity, planetId)
+        }
       )
 
-  def store(record: LegacyAgentRecord, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+  def store(record: LegacyAgentRecord, autoFill: Boolean, planetId: String)(
+    implicit ec: ExecutionContext): Future[Unit] =
     LegacyAgentRecord
       .validate(record)
       .fold(
         errors => Future.failed(new BadRequestException(errors.mkString(", "))),
-        _ => recordsRepository.store(record, planetId)
+        _ => {
+          val entity = if (autoFill) LegacyAgentRecord.sanitize(record) else record
+          recordsRepository.store(entity, planetId)
+        }
       )
 
   def getLegacyRelationshipsByNino(nino: String, planetId: String)(
@@ -52,16 +60,16 @@ class LegacyRelationshipRecordsService @Inject()(recordsRepository: RecordsRepos
           relationships.map(
             r =>
               (
-                r.nino.getOrElse(UserGenerator.nino(r.agentId).value),
+                r.nino.getOrElse(UserGenerator.ninoNoSpaces(r.agentId).value),
                 agentsMap.getOrElse(
                   r.agentId, {
                     val address = UserGenerator.address(r.agentId)
-                    LegacyAgentRecord(
+                    val agent = LegacyAgentRecord(
                       agentId = r.agentId,
                       agentName = UserGenerator.nameForAgent(r.agentId),
                       address1 = address.street,
-                      address2 = address.town,
-                      postcode = Some(address.postcode))
+                      address2 = address.town)
+                    LegacyAgentRecord.sanitize(agent)
                   }
                 ))))
 
