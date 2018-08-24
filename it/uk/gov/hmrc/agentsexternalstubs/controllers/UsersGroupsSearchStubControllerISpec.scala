@@ -9,7 +9,7 @@ class UsersGroupsSearchStubControllerISpec
     extends ServerBaseISpec with MongoDbPerSuite with TestRequests with TestStubs {
 
   val url = s"http://localhost:$port"
-  val wsClient = app.injector.instanceOf[WSClient]
+  lazy val wsClient = app.injector.instanceOf[WSClient]
 
   "UsersGroupsSearchStubController" when {
 

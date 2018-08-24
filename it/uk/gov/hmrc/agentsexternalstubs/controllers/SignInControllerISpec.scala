@@ -7,23 +7,23 @@ import uk.gov.hmrc.agentsexternalstubs.support.{AuthContext, MongoDbPerSuite, Se
 class SignInControllerISpec extends ServerBaseISpec with MongoDbPerSuite with TestRequests {
 
   val url = s"http://localhost:$port"
-  val wsClient = app.injector.instanceOf[WSClient]
+  lazy val wsClient = app.injector.instanceOf[WSClient]
 
   "SignInController" when {
 
     "GET /agents-external-stubs/sign-in" should {
       "authenticate user and return session data" in {
-        val result = SignIn.signIn("foo", "boo", planetId = "A")
+        val result = SignIn.signIn("foo", "boo")
+        result should haveStatus(201)
         result should haveStatus(201)
         result.header(HeaderNames.LOCATION) should not be empty
       }
 
       "authenticate same user again and return new session data" in {
-        val result1 = SignIn.signIn("foo", "boo", planetId = "B")
-        val result2 = SignIn.signIn("foo", "boo", planetId = "B")
-        result1 should haveStatus(201)
+        val session1 = SignIn.signInAndGetSession("foo", "boo")
+        val result2 = SignIn.signIn("foo", "boo", planetId = session1.planetId)
         result2 should haveStatus(202)
-        result1.header(HeaderNames.LOCATION) should not be result2.header(HeaderNames.LOCATION)
+        result2.header(HeaderNames.LOCATION) should not be empty
       }
     }
 

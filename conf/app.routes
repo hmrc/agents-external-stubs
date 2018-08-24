@@ -46,6 +46,10 @@ POST        /agents-external-stubs/records/business-details                  @uk
 POST        /agents-external-stubs/records/legacy-agent                      @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.createLegacyAgent(autoFill: Boolean ?= true)
 POST        /agents-external-stubs/records/legacy-relationship               @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.createLegacyRelationship(autoFill: Boolean ?= true)
 
+# Config management
+GET         /agents-external-stubs/config/services                           @uk.gov.hmrc.agentsexternalstubs.controllers.ConfigController.getServices
+
+
 # Internal test
 GET         /agents-external-stubs/test/auth/agent-mtd                       @uk.gov.hmrc.agentsexternalstubs.controllers.TestController.testAuthAgentMtd
 GET         /agents-external-stubs/test/auth/client-mtd-it                   @uk.gov.hmrc.agentsexternalstubs.controllers.TestController.testAuthClientMtdIt

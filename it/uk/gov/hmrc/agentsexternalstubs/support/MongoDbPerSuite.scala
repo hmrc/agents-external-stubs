@@ -16,27 +16,50 @@
 
 package uk.gov.hmrc.agentsexternalstubs.support
 
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.locks.{Lock, ReentrantLock}
+
 import org.scalatest.{BeforeAndAfterAll, TestSuite}
 import play.api.Application
-import uk.gov.hmrc.agentsexternalstubs.repository.{AuthenticatedSessionsRepository, UsersRepositoryMongo}
-import uk.gov.hmrc.mongo.MongoSpecSupport
+import uk.gov.hmrc.agentsexternalstubs.repository.{AuthenticatedSessionsRepository, RecordsRepositoryMongo, UsersRepositoryMongo}
+import uk.gov.hmrc.mongo.{Awaiting, MongoSpecSupport}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 import scala.concurrent.duration.{Duration, _}
 
-trait MongoDbPerSuite extends MongoSpecSupport with BeforeAndAfterAll {
+trait MongoDbPerSuite extends BeforeAndAfterAll {
   me: TestSuite =>
 
-  private implicit val timeout: Duration = 5 seconds
+  private implicit val timeout: Duration = 5.seconds
 
   def app: Application
-  def await[A](future: Future[A])(implicit timeout: Duration): A
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-    await(mongo().drop())
-    await(app.injector.instanceOf[AuthenticatedSessionsRepository].ensureIndexes)
-    await(app.injector.instanceOf[UsersRepositoryMongo].ensureIndexes)
+    Mongo.initializeMongo(app)
   }
+}
+
+object Mongo extends MongoSpecSupport with Awaiting {
+
+  private val lock: Lock = new ReentrantLock()
+  private val initialized: AtomicBoolean = new AtomicBoolean(false)
+
+  override protected val databaseName: String = "agents-external-stubs-tests"
+
+  val uri: String = mongoUri
+
+  def initializeMongo(app: Application): Unit =
+    if (lock.tryLock()) try {
+      if (!initialized.get()) {
+        println("Initializing MongoDB ...")
+        await(mongo().drop())
+        await(app.injector.instanceOf[AuthenticatedSessionsRepository].ensureIndexes)
+        await(app.injector.instanceOf[UsersRepositoryMongo].ensureIndexes)
+        await(app.injector.instanceOf[RecordsRepositoryMongo].ensureIndexes)
+        initialized.set(true)
+        println("Initialized.")
+        mongoUri
+      }
+    } finally { lock.unlock() }
+
 }

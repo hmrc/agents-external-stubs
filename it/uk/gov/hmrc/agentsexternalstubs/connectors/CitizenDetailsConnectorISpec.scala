@@ -10,8 +10,8 @@ import uk.gov.hmrc.domain.Nino
 class CitizenDetailsConnectorISpec extends ServerBaseISpec with MongoDbPerSuite with TestRequests with TestStubs {
 
   val url = s"http://localhost:$port"
-  val wsClient = app.injector.instanceOf[WSClient]
-  val connector = app.injector.instanceOf[CitizenDetailsConnector]
+  lazy val wsClient = app.injector.instanceOf[WSClient]
+  lazy val connector = app.injector.instanceOf[CitizenDetailsConnector]
 
   "CitizenDetailsConnector" when {
 

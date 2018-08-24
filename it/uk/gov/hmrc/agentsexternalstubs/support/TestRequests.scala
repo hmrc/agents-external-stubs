@@ -61,7 +61,7 @@ trait TestRequests extends ScalaFutures {
       userId: String,
       password: String = "p@ssw0rd",
       providerType: String = "GovernmentGateway",
-      planetId: String): WSResponse =
+      planetId: String = UUID.randomUUID().toString): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/sign-in")
         .post(SignInRequest(userId, password, providerType, planetId))
@@ -323,6 +323,15 @@ trait TestRequests extends ScalaFutures {
         .url(s"$url/agents-external-stubs/records/legacy-relationship")
         .withHeaders(authContext.headers: _*)
         .post[T](payload)
+        .futureValue
+  }
+
+  object Config {
+    def getServices()(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/config/services")
+        .withHeaders(authContext.headers: _*)
+        .get()
         .futureValue
   }
 

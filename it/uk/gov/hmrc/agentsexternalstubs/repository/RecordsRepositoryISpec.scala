@@ -39,9 +39,9 @@ class RecordsRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPe
 
   override implicit lazy val app: Application = appBuilder.build()
 
-  val repo: RecordsRepository = app.injector.instanceOf[RecordsRepository]
+  lazy val repo: RecordsRepository = app.injector.instanceOf[RecordsRepository]
 
-  val underlyingRepo: ReactiveRepository[Record, BSONObjectID] =
+  lazy val underlyingRepo: ReactiveRepository[Record, BSONObjectID] =
     repo.asInstanceOf[ReactiveRepository[Record, BSONObjectID]]
 
   "RecordsRepository" should {

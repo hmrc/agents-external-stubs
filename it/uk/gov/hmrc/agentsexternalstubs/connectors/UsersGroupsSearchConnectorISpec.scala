@@ -8,8 +8,8 @@ import uk.gov.hmrc.agentsexternalstubs.support.{MongoDbPerSuite, ServerBaseISpec
 class UsersGroupsSearchConnectorISpec extends ServerBaseISpec with MongoDbPerSuite with TestRequests with TestStubs {
 
   val url = s"http://localhost:$port"
-  val wsClient = app.injector.instanceOf[WSClient]
-  val connector = app.injector.instanceOf[UsersGroupsSearchConnector]
+  lazy val wsClient = app.injector.instanceOf[WSClient]
+  lazy val connector = app.injector.instanceOf[UsersGroupsSearchConnector]
 
   "UsersGroupsSearchConnector" when {
 

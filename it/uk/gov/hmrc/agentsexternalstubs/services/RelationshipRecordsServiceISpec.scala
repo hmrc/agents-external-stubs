@@ -16,14 +16,14 @@ class RelationshipRecordsServiceISpec extends UnitSpec with OneAppPerSuite with 
   protected def appBuilder: GuiceApplicationBuilder =
     new GuiceApplicationBuilder()
       .configure(
-        "mongodb.uri"   -> mongoUri,
+        "mongodb.uri"   -> Mongo.uri,
         "proxies.start" -> "false"
       )
 
   override implicit lazy val app: Application = appBuilder.build()
 
-  val repo = app.injector.instanceOf[RecordsRepository]
-  val service = app.injector.instanceOf[RelationshipRecordsService]
+  lazy val repo = app.injector.instanceOf[RecordsRepository]
+  lazy val service = app.injector.instanceOf[RelationshipRecordsService]
 
   "RelationshipRecordsService" should {
     "find relationships by key" in {

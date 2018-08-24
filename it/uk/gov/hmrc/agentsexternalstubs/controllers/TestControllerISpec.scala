@@ -7,7 +7,7 @@ import uk.gov.hmrc.agentsexternalstubs.support.{MongoDbPerSuite, NotAuthorized, 
 class TestControllerISpec extends ServerBaseISpec with MongoDbPerSuite with TestRequests {
 
   val url = s"http://localhost:$port"
-  val wsClient = app.injector.instanceOf[WSClient]
+  lazy val wsClient = app.injector.instanceOf[WSClient]
 
   "TestController" when {
 

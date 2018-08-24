@@ -23,8 +23,8 @@ class EnrolmentStoreProxyConnectorISpec
     extends ServerBaseISpec with MongoDbPerSuite with EnrolmentStoreProxyHelper with MockitoSugar {
 
   val url = s"http://localhost:$port"
-  val wsClient = app.injector.instanceOf[WSClient]
-  val connector = app.injector.instanceOf[EnrolmentStoreProxyConnector]
+  lazy val wsClient = app.injector.instanceOf[WSClient]
+  lazy val connector = app.injector.instanceOf[EnrolmentStoreProxyConnector]
 
   "EnrolmentStoreProxy" should {
 

@@ -37,7 +37,7 @@ class AuthenticatedSessionsRepositoryISpec extends UnitSpec with OneAppPerSuite 
 
   override implicit lazy val app: Application = appBuilder.build()
 
-  def repo: AuthenticatedSessionsRepository = app.injector.instanceOf[AuthenticatedSessionsRepository]
+  lazy val repo: AuthenticatedSessionsRepository = app.injector.instanceOf[AuthenticatedSessionsRepository]
 
   "store" should {
     "store a session" in {

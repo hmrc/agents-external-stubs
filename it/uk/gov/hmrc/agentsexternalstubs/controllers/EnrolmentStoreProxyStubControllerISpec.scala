@@ -10,7 +10,7 @@ class EnrolmentStoreProxyStubControllerISpec
     extends ServerBaseISpec with MongoDbPerSuite with TestRequests with TestStubs {
 
   val url = s"http://localhost:$port"
-  val wsClient = app.injector.instanceOf[WSClient]
+  lazy val wsClient = app.injector.instanceOf[WSClient]
 
   "EnrolmentStoreProxyStubController" when {
 
@@ -167,7 +167,7 @@ class EnrolmentStoreProxyStubControllerISpec
             .agent(userId = "foo4", groupId = "group2")
             .withDelegatedEnrolment("IR-SA", "UTR", "87654321"))
 
-        val otherSession: AuthenticatedSession = SignIn.signInAndGetSession("foo5", planetId = "saturn")
+        val otherSession: AuthenticatedSession = SignIn.signInAndGetSession("foo5")
         Users.update(
           UserGenerator
             .individual(userId = "foo3", groupId = "group1")

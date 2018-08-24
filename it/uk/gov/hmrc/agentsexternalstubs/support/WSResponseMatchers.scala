@@ -1,7 +1,10 @@
 package uk.gov.hmrc.agentsexternalstubs.support
 import org.scalatest.matchers.{MatchResult, Matcher}
 import play.api.http.HeaderNames
+import play.api.libs.json.JsObject
 import play.api.libs.ws.WSResponse
+
+import scala.util.{Failure, Success, Try}
 
 trait WSResponseMatchers {
 
@@ -28,6 +31,14 @@ trait WSResponseMatchers {
         s"${response.header(HeaderNames.LOCATION).map(l => s"Location: $l").getOrElse("")}"
       else if (status >= 400 && status < 500) s"${response.body}"
       else ""
+    }
+  }
+
+  def haveValidJsonBody(matchers: Matcher[JsObject]*): Matcher[WSResponse] = new Matcher[WSResponse] {
+    override def apply(left: WSResponse): MatchResult = Try(left.json) match {
+      case Success(o: JsObject) => matchers.foldLeft(MatchResult(true, "", ""))((a, b) => if (a.matches) b(o) else a)
+      case Success(_)           => MatchResult(true, "", "Have valid JSON body")
+      case Failure(e)           => MatchResult(false, s"Could not parse JSON body because of $e", "")
     }
   }
 

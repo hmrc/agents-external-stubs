@@ -32,7 +32,7 @@ abstract class ServerBaseISpec
         "microservice.services.des.port"                   -> Port.randomAvailable,
         "metrics.enabled"                                  -> true,
         "auditing.enabled"                                 -> false,
-        "mongodb.uri"                                      -> s"mongodb://127.0.0.1:27017/test-${this.getClass.getSimpleName}",
+        "mongodb.uri"                                      -> Mongo.uri,
         "http.port"                                        -> this.port
       )
 

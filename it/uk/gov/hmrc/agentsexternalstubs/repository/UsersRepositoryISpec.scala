@@ -38,7 +38,7 @@ class UsersRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPerT
 
   override implicit lazy val app: Application = appBuilder.build()
 
-  def repo = app.injector.instanceOf[UsersRepository with Repository[User,BSONObjectID]]
+  lazy val repo = app.injector.instanceOf[UsersRepository with Repository[User,BSONObjectID]]
 
   "store" should {
     "store a simple user" in {
