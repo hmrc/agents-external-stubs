@@ -121,7 +121,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with 
         an[InsufficientEnrolments] shouldBe thrownBy {
           await(
             authConnector
-              .authorise(Enrolment("serviceA"), EmptyRetrieval)(
+              .authorise(Enrolment("HMRC-MTD-IT"), EmptyRetrieval)(
                 HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
                 concurrent.ExecutionContext.Implicits.global))
         }
@@ -133,13 +133,13 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with 
         givenUserEnrolledFor(
           id,
           planetId = id,
-          service = "serviceA",
-          identifierKey = "idOfA",
-          identifierValue = "2362168736781263")
+          service = "HMRC-MTD-IT",
+          identifierKey = "MTDITID",
+          identifierValue = "236216873678126")
         an[InsufficientEnrolments] shouldBe thrownBy {
           await(
             authConnector
-              .authorise(Enrolment("serviceA").withIdentifier("foo", "123"), EmptyRetrieval)(
+              .authorise(Enrolment("HMRC-MTD-IT").withIdentifier("MTDITID", "123"), EmptyRetrieval)(
                 HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
                 concurrent.ExecutionContext.Implicits.global))
         }
@@ -148,11 +148,11 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with 
       "throw InsufficientEnrolments if user not enrolled with expected identifier value" in {
         val id = randomId
         val authToken = givenAnAuthenticatedUser(User(id), planetId = id)
-        givenUserEnrolledFor(id, planetId = id, "serviceA", "idOfA", "2362168736781263")
+        givenUserEnrolledFor(id, planetId = id, "HMRC-MTD-IT", "MTDITID", "236216873678126")
         an[InsufficientEnrolments] shouldBe thrownBy {
           await(
             authConnector
-              .authorise(Enrolment("serviceA").withIdentifier("idOfA", "2362168736"), EmptyRetrieval)(
+              .authorise(Enrolment("HMRC-MTD-IT").withIdentifier("MTDITID", "2362168736"), EmptyRetrieval)(
                 HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
                 concurrent.ExecutionContext.Implicits.global))
         }
@@ -161,24 +161,24 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with 
       "retrieve authorisedEnrolments" in {
         val id = randomId
         val authToken = givenAnAuthenticatedUser(User(id), planetId = id)
-        givenUserEnrolledFor(id, planetId = id, "serviceA", "idOfA", "2362168736781263")
-        givenUserEnrolledFor(id, planetId = id, "serviceB", "idOfB", "4783748738748778")
+        givenUserEnrolledFor(id, planetId = id, "HMRC-MTD-IT", "MTDITID", "236216873678126")
+        givenUserEnrolledFor(id, planetId = id, "IR-SA", "UTR", "1234567890")
 
         val enrolments = await(
           authConnector
-            .authorise[Enrolments](Enrolment("serviceA"), Retrievals.authorisedEnrolments)(
+            .authorise[Enrolments](Enrolment("HMRC-MTD-IT"), Retrievals.authorisedEnrolments)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global))
-        enrolments.getEnrolment("serviceA") shouldBe Some(
-          Enrolment("serviceA", Seq(EnrolmentIdentifier("idOfA", "2362168736781263")), "Activated"))
-        enrolments.getEnrolment("serviceB") shouldBe None
+        enrolments.getEnrolment("HMRC-MTD-IT") shouldBe Some(
+          Enrolment("HMRC-MTD-IT", Seq(EnrolmentIdentifier("MTDITID", "236216873678126")), "Activated"))
+        enrolments.getEnrolment("IR-SA") shouldBe None
       }
 
       "retrieve allEnrolments" in {
         val id = randomId
         val authToken = givenAnAuthenticatedUser(User(id), planetId = id)
-        givenUserEnrolledFor(id, planetId = id, "serviceA", "idOfA", "2362168736781263")
-        givenUserEnrolledFor(id, planetId = id, "serviceB", "idOfB", "4783748738748778")
+        givenUserEnrolledFor(id, planetId = id, "HMRC-MTD-IT", "MTDITID", "236216873678126")
+        givenUserEnrolledFor(id, planetId = id, "IR-SA", "UTR", "1234567890")
 
         val enrolments = await(
           authConnector
@@ -186,10 +186,10 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with 
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global))
         enrolments.getEnrolment("foo") shouldBe None
-        enrolments.getEnrolment("serviceA") shouldBe Some(
-          Enrolment("serviceA", Seq(EnrolmentIdentifier("idOfA", "2362168736781263")), "Activated"))
-        enrolments.getEnrolment("serviceB") shouldBe Some(
-          Enrolment("serviceB", Seq(EnrolmentIdentifier("idOfB", "4783748738748778")), "Activated"))
+        enrolments.getEnrolment("HMRC-MTD-IT") shouldBe Some(
+          Enrolment("HMRC-MTD-IT", Seq(EnrolmentIdentifier("MTDITID", "236216873678126")), "Activated"))
+        enrolments.getEnrolment("IR-SA") shouldBe Some(
+          Enrolment("IR-SA", Seq(EnrolmentIdentifier("UTR", "1234567890")), "Activated"))
       }
 
       "authorize if confidenceLevel matches" in {

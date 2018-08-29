@@ -26,6 +26,7 @@ lazy val compileDeps = Seq(
   "uk.gov.hmrc" %% "play-reactivemongo" % "6.2.0",
   "org.typelevel" %% "cats-core" % "1.2.0",
   "uk.gov.hmrc" %% "stub-data-generator" % "0.5.3",
+  "wolfendale" %% "scalacheck-gen-regexp" % "0.1.1",
   ws
 )
 
@@ -48,7 +49,8 @@ lazy val root = (project in file("."))
       Resolver.bintrayRepo("hmrc", "releases"),
       Resolver.bintrayRepo("hmrc", "release-candidates"),
       Resolver.typesafeRepo("releases"),
-      Resolver.jcenterRepo
+      Resolver.jcenterRepo,
+      Resolver.bintrayRepo("wolfendale", "maven")
     ),
     libraryDependencies ++= compileDeps ++ testDeps("test") ++ testDeps("it"),
     publishingSettings,

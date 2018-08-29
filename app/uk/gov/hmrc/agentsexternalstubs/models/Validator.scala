@@ -5,8 +5,7 @@ import cats.data.Validated.{Invalid, Valid}
 
 object Validator {
 
-  private implicit val nelS: Semigroup[List[String]] = Semigroup.instance((a, b) => a ++ b)
-  private implicit val unitS: Semigroup[Unit] = Semigroup.instance((_, _) => ())
+  import Implicits._
 
   type Validator[T] = T => Validated[List[String], Unit]
 
@@ -62,5 +61,12 @@ object Validator {
     def isRight(test: String => Either[String, _]): Boolean = value.forall(test(_).isRight)
     def isTrue(test: String => Boolean): Boolean = value.forall(test(_))
     def matches(regex: String): Boolean = value.forall(_.matches(regex))
+  }
+
+  object Implicits {
+
+    implicit val listSemigroup: Semigroup[List[String]] = Semigroup.instance(_ ++ _)
+    implicit val unitSemigroup: Semigroup[Unit] = Semigroup.instance((_, _) => ())
+    implicit val stringSemigroup: Semigroup[String] = Semigroup.instance(_ + _)
   }
 }

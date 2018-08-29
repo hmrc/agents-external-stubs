@@ -47,7 +47,7 @@ class RecordSpec extends UnitSpec with PropertyChecks {
       val entity = BusinessDetailsRecord(
         safeId = "9090909",
         nino = "HW827856C",
-        mtdbsa = "1234567890987654",
+        mtdbsa = "123456789098765",
         businessData = Some(
           Seq(BusinessData(
             incomeSourceId = "123456789012345",
@@ -61,7 +61,7 @@ class RecordSpec extends UnitSpec with PropertyChecks {
       val sanitized = BusinessDetailsRecord.sanitize(entity)
       BusinessDetailsRecord.validate(sanitized).isValid shouldBe true
       sanitized.safeId === "9090909"
-      sanitized.mtdbsa === "1234567890987654"
+      sanitized.mtdbsa === "123456789098765"
       sanitized.nino === "HW827856C"
       sanitized.businessData.get.head.incomeSourceId === "123456789012345"
       sanitized.businessData.get.head.businessContactDetails.get.emailAddress === "a@a.com"

@@ -1,7 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.models
+import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
-import cats.data.{NonEmptyList, Validated}
-import cats.{Semigroup, SemigroupK}
 
 object UserValidator {
 
@@ -60,13 +59,6 @@ object UserValidator {
       case _ => Valid(())
   }
 
-  val validateDelegatedEnrolments: UserConstraint = user =>
-    user.delegatedEnrolments match {
-      case s if s.isEmpty                                  => Valid(())
-      case _ if user.affinityGroup.contains(User.AG.Agent) => Valid(())
-      case _                                               => Invalid("Only Agents can have delegated enrolments")
-  }
-
   val validateDateOfBirth: UserConstraint = user =>
     user.dateOfBirth match {
       case Some(_) if user.affinityGroup.contains(User.AG.Individual) => Valid(())
@@ -82,6 +74,48 @@ object UserValidator {
       case _ => Valid(())
   }
 
+  val validatePrincipalEnrolments: UserConstraint = user =>
+    if (user.principalEnrolments.isEmpty) Valid(())
+    else {
+      import Validator.Implicits._
+      user.principalEnrolments
+        .map(
+          e =>
+            Validated
+              .cond(
+                user.affinityGroup
+                  .forall(ag =>
+                    Services(e.key)
+                      .map(_.affinityGroups)
+                      .forall(_.contains(ag))),
+                (),
+                s"Service ${e.key} is not available for this user's affinity group"
+              )
+              .andThen(_ => Enrolment.validate(e)))
+        .reduce(_ combine _)
+  }
+
+  val validateDelegatedEnrolments: UserConstraint = user =>
+    user.delegatedEnrolments match {
+      case s if s.isEmpty => Valid(())
+      case _ if user.affinityGroup.contains(User.AG.Agent) =>
+        import Validator.Implicits._
+        user.delegatedEnrolments
+          .map(
+            e =>
+              Validated
+                .cond(
+                  Services(e.key)
+                    .map(_.affinityGroups)
+                    .forall(ag => ag.contains(User.AG.Individual) || ag.contains(User.AG.Organisation)),
+                  (),
+                  s"Enrolment for ${e.key} may not be delegated to an Agent."
+                )
+                .andThen(_ => Enrolment.validate(e)))
+          .reduce(_ combine _)
+      case _ => Invalid("Only Agents can have delegated enrolments")
+  }
+
   private val constraints: Seq[UserConstraint] = Seq(
     validateAffinityGroup,
     validateConfidenceLevel,
@@ -89,9 +123,10 @@ object UserValidator {
     validateCredentialRole,
     validateNino,
     validateConfidenceLevelAndNino,
-    validateDelegatedEnrolments,
     validateDateOfBirth,
-    validateAgentCode
+    validateAgentCode,
+    validatePrincipalEnrolments,
+    validateDelegatedEnrolments
   )
 
   val validate: User => Validated[List[String], Unit] = Validator.validate(constraints: _*)

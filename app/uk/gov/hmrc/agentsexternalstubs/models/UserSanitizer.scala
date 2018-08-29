@@ -83,6 +83,46 @@ object UserSanitizer extends Sanitizer[User] {
       case _ => user.copy(agentFriendlyName = None)
   }
 
+  private val ensurePrincipalEnrolmentsHaveIdentifiers: Update = user => {
+    val modifiedPrincipalEnrolments = user.principalEnrolments.map(
+      e =>
+        if (e.identifiers.isEmpty) Services(e.key).map(s => Generator.get(s.generator)(user.userId)).getOrElse(e)
+        else
+          e.copy(identifiers = e.identifiers.map(_.map(i => {
+            val key: String =
+              if (i.key.isEmpty) Services(e.key).flatMap(s => s.identifiers.headOption.map(_.name)).getOrElse("")
+              else i.key
+            val value: String =
+              if (i.value.isEmpty)
+                Services(e.key)
+                  .flatMap(s => s.getIdentifier(key).map(i => Generator.get(i.valueGenerator)(user.userId)))
+                  .getOrElse("")
+              else i.value
+            Identifier(key, value)
+          }))))
+    user.copy(principalEnrolments = modifiedPrincipalEnrolments)
+  }
+
+  private val ensureDelegatedEnrolmentsHaveIdentifiers: Update = user => {
+    val modifiedDelegatedEnrolments = user.delegatedEnrolments.map(
+      e =>
+        if (e.identifiers.isEmpty) Services(e.key).map(s => Generator.get(s.generator)(user.userId)).getOrElse(e)
+        else
+          e.copy(identifiers = e.identifiers.map(_.map(i => {
+            val key: String =
+              if (i.key.isEmpty) Services(e.key).flatMap(s => s.identifiers.headOption.map(_.name)).getOrElse("")
+              else i.key
+            val value: String =
+              if (i.value.isEmpty)
+                Services(e.key)
+                  .flatMap(s => s.getIdentifier(key).map(i => Generator.get(i.valueGenerator)(user.userId)))
+                  .getOrElse("")
+              else i.value
+            Identifier(key, value)
+          }))))
+    user.copy(delegatedEnrolments = modifiedDelegatedEnrolments)
+  }
+
   override val sanitizers: Seq[Update] =
     Seq(
       ensureUserHaveGroupIdentifier,
@@ -94,7 +134,9 @@ object UserSanitizer extends Sanitizer[User] {
       ensureOnlyIndividualUserHaveDateOfBirth,
       ensureAgentHaveAgentCode,
       ensureAgentHaveAgentId,
-      ensureAgentHaveFriendlyName
+      ensureAgentHaveFriendlyName,
+      ensurePrincipalEnrolmentsHaveIdentifiers,
+      ensureDelegatedEnrolmentsHaveIdentifiers
     )
 
 }

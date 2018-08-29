@@ -21,9 +21,9 @@ class RegexPatternsSpec extends UnitSpec {
     }
 
     "validate mtdbsa" in {
-      RegexPatterns.validMtdbsa("9999999999999999").isRight shouldBe true
+      RegexPatterns.validMtdbsa("999999999999999").isRight shouldBe true
       RegexPatterns.validMtdbsa("").isLeft shouldBe true
-      RegexPatterns.validMtdbsa("99999999999999999").isLeft shouldBe true
+      RegexPatterns.validMtdbsa("9999999999999999").isLeft shouldBe true
     }
 
     "validate arn" in {

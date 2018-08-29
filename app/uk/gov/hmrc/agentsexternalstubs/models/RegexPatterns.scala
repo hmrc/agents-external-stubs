@@ -1,4 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.models
+import java.util.regex.Pattern
+
 import scala.util.matching.Regex
 
 object RegexPatterns {
@@ -11,7 +13,7 @@ object RegexPatterns {
     "^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})\\s?\\d{2}\\s?\\d{2}\\s?\\d{2}\\s?[A-D]?$".r)
   val validArn: Matcher = validate("^[A-Z]ARN[0-9]{7}$".r)
   val validUtr: Matcher = validate("^[0-9]{10}$".r)
-  val validMtdbsa: Matcher = validate("^[A-Z0-9]{1,16}$".r)
+  val validMtdbsa: Matcher = validate("^[A-Z0-9]{1,15}$".r)
 
   val validDate: Matcher =
     validate(
@@ -23,5 +25,12 @@ object RegexPatterns {
     value =>
       if (regex.pattern.matcher(value).matches()) Right(value)
       else Left(s"Supplied value $value does not match pattern ${regex.pattern.toString}")
+
+  def validate(pattern: String): Matcher =
+    value => {
+      val regex = Pattern.compile(pattern)
+      if (regex.matcher(value).matches()) Right(value)
+      else Left(s"Supplied value $value does not match pattern ${regex.pattern}")
+    }
 
 }

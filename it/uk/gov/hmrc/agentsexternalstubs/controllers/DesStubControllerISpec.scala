@@ -189,7 +189,7 @@ class DesStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with T
 
       "return 404 response if record not found" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
-        val result = DesStub.getBusinessDetails("mtdbsa", "9999999999999999")
+        val result = DesStub.getBusinessDetails("mtdbsa", "999999999999999")
         result should haveStatus(404)
       }
     }

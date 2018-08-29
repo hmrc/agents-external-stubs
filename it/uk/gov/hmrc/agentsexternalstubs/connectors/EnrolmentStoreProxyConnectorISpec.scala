@@ -7,7 +7,7 @@ import play.api.libs.ws.WSClient
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Vrn}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
-import uk.gov.hmrc.agentsexternalstubs.support.{AuthContext, MongoDbPerSuite, ServerBaseISpec, TestRequests}
+import uk.gov.hmrc.agentsexternalstubs.support._
 import uk.gov.hmrc.domain.{AgentCode, Nino, TaxIdentifier}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -52,27 +52,16 @@ class EnrolmentStoreProxyConnectorISpec
       await(connector.getDelegatedGroupIdsFor(MtdItId("foo"))) should be(empty)
     }
 
-    "return some agents's groupIds for given NINO" in {
-      implicit val session = givenAuthenticatedSession()
-      givenDelegatedGroupIdsExistFor(Nino("AB123456C"), Set("bar", "car", "dar"))
-      await(connector.getDelegatedGroupIdsFor(Nino("AB123456C"))) should contain("bar")
-    }
-
-    "return Empty when NINO not found" in {
-      implicit val session = givenAuthenticatedSession()
-      await(connector.getDelegatedGroupIdsFor(Nino("AB123456C"))) should be(empty)
-    }
-
     "return some agents's groupIds for given VRN" in {
       implicit val session = givenAuthenticatedSession()
-      givenDelegatedGroupIdsExistFor(Vrn("foo"), Set("bar", "car", "dar"))
-      await(connector.getDelegatedGroupIdsFor(Vrn("foo"))) should contain("bar")
+      givenDelegatedGroupIdsExistFor(Vrn("123456789"), Set("bar", "car", "dar"))
+      await(connector.getDelegatedGroupIdsFor(Vrn("123456789"))) should contain("bar")
     }
 
     "return some agents's groupIds for given VATRegNo" in {
       implicit val session = givenAuthenticatedSession()
-      givenDelegatedGroupIdsExistForKey("HMCE-VATDEC-ORG~VATRegNo~oldfoo", Set("bar", "car", "dar"))
-      await(connector.getDelegatedGroupIdsForHMCEVATDECORG(Vrn("oldfoo"))) should contain("bar")
+      givenDelegatedGroupIdsExistForKey("HMCE-VATDEC-ORG~VATREGNO~123", Set("bar", "car", "dar"))
+      await(connector.getDelegatedGroupIdsForHMCEVATDECORG(Vrn("123"))) should contain("bar")
     }
 
     "return Empty when VRN not found" in {
@@ -93,29 +82,16 @@ class EnrolmentStoreProxyConnectorISpec
       }
     }
 
-    "return some clients userId for given NINO" in {
-      implicit val session = givenAuthenticatedSession()
-      givenPrincipalUserIdExistFor(Nino("AB123456C"), "bar")
-      await(connector.getPrincipalUserIdFor(Nino("AB123456C"))) shouldBe "bar"
-    }
-
-    "return RelationshipNotFound Exception when NINO not found" in {
-      implicit val session = givenAuthenticatedSession()
-      an[Exception] shouldBe thrownBy {
-        await(connector.getPrincipalUserIdFor(Nino("AB123456C")))
-      }
-    }
-
     "return some clients userId for given VRN" in {
       implicit val session = givenAuthenticatedSession()
-      givenPrincipalUserIdExistFor(Vrn("foo"), "bar")
-      await(connector.getPrincipalUserIdFor(Vrn("foo"))) shouldBe "bar"
+      givenPrincipalUserIdExistFor(Vrn("123456789"), "bar")
+      await(connector.getPrincipalUserIdFor(Vrn("123456789"))) shouldBe "bar"
     }
 
     "return RelationshipNotFound Exception when VRN not found" in {
       implicit val session = givenAuthenticatedSession()
       an[Exception] shouldBe thrownBy {
-        await(connector.getPrincipalUserIdFor(Vrn("foo")))
+        await(connector.getPrincipalUserIdFor(Vrn("123456789")))
       }
     }
   }
@@ -138,7 +114,7 @@ class EnrolmentStoreProxyConnectorISpec
   }
 }
 
-trait EnrolmentStoreProxyHelper extends TestRequests with TestStubs with Matchers {
+trait EnrolmentStoreProxyHelper extends TestRequests with TestStubs with Matchers with WSResponseMatchers {
   this: Suite with ServerProvider =>
 
   def givenAuthenticatedSession(): AuthenticatedSession =
@@ -148,7 +124,6 @@ trait EnrolmentStoreProxyHelper extends TestRequests with TestStubs with Matcher
     case _: Arn     => Enrolment("HMRC-AS-AGENT", Some(Seq(Identifier("AgentReferenceNumber", identifier.value))))
     case _: MtdItId => Enrolment("HMRC-MTD-IT", Some(Seq(Identifier("MTDITID", identifier.value))))
     case _: Vrn     => Enrolment("HMRC-MTD-VAT", Some(Seq(Identifier("VRN", identifier.value))))
-    case _: Nino    => Enrolment("HMRC-MTD-IT", Some(Seq(Identifier("NINO", identifier.value))))
     case _          => throw new IllegalArgumentException(s"Tax identifier not supported $identifier")
   }
 
@@ -168,35 +143,39 @@ trait EnrolmentStoreProxyHelper extends TestRequests with TestStubs with Matcher
 
   def givenDelegatedGroupIdsExistFor(taxIdentifier: TaxIdentifier, groupIds: Set[String])(
     implicit authContext: AuthContext): Unit = for (groupId <- groupIds) {
-    Users.create(
+    val result = Users.create(
       UserGenerator
         .agent(groupId = groupId)
         .withDelegatedEnrolment(asEnrolment(taxIdentifier)))
+    result should haveStatus(201)
   }
 
   def givenDelegatedGroupIdsExistForKey(enrolmentKey: String, groupIds: Set[String])(
     implicit authContext: AuthContext): Unit = {
     val enrolment = Enrolment.from(EnrolmentKey.parse(enrolmentKey).right.get)
     for (groupId <- groupIds) {
-      Users.create(
+      val result = Users.create(
         UserGenerator
           .agent(groupId = groupId)
           .withDelegatedEnrolment(enrolment))
+      result should haveStatus(201)
     }
   }
 
   def givenPrincipalUserIdExistFor(taxIdentifier: TaxIdentifier, userId: String)(
     implicit authContext: AuthContext): Unit = taxIdentifier match {
     case _: Arn =>
-      Users.create(
+      val result = Users.create(
         UserGenerator
           .agent(userId = userId)
           .withPrincipalEnrolment(asEnrolment(taxIdentifier)))
+      result should haveStatus(201)
     case _ =>
-      Users.create(
+      val result = Users.create(
         UserGenerator
           .individual(userId = userId)
           .withPrincipalEnrolment(asEnrolment(taxIdentifier)))
+      result should haveStatus(201)
   }
 
   def givenEnrolmentAllocationSucceeds(
@@ -206,13 +185,15 @@ trait EnrolmentStoreProxyHelper extends TestRequests with TestStubs with Matcher
     identifier: String,
     value: String,
     agentCode: String)(implicit authContext: AuthContext): Unit = {
-    Users.create(
+    val result1 = Users.create(
       UserGenerator
         .individual()
         .withPrincipalEnrolment(key, identifier, value))
-    Users.create(
+    result1 should haveStatus(201)
+    val result2 = Users.create(
       UserGenerator
         .agent(userId = userId, groupId = groupId, agentCode = agentCode))
+    result2 should haveStatus(201)
   }
 
   def givenEnrolmentDeallocationSucceeds(groupId: String, taxIdentifier: TaxIdentifier, agentCode: String)(

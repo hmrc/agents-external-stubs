@@ -3,6 +3,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import org.joda.time.LocalDate
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.test.UnitSpec
+import org.scalatest.Inspectors._
 
 class UserValidatorSpec extends UnitSpec {
 
@@ -178,6 +179,89 @@ class UserValidatorSpec extends UnitSpec {
       UserValidator
         .validate(User("foo", delegatedEnrolments = Seq(Enrolment("A")), affinityGroup = Some(User.AG.Organisation)))
         .isValid shouldBe false
+    }
+
+    "validate only when principal enrolments are valid" in {
+      UserValidator.validate(User("foo", principalEnrolments = Seq(Enrolment("A")))).isValid shouldBe true
+      UserValidator.validate(User("foo", principalEnrolments = Seq(Enrolment("A", "A", null)))).isInvalid shouldBe true
+      UserValidator.validate(User("foo", principalEnrolments = Seq(Enrolment("A", "A", "A")))).isInvalid shouldBe true
+
+      forAll(Services.services) { service =>
+        val enrolment = Generator.get(service.generator)("foo")
+        UserValidator
+          .validate(User("foo", principalEnrolments = Seq(enrolment)))
+          .isValid shouldBe true
+      }
+    }
+
+    "validate only when principal enrolments are valid for an individual" in {
+      val user = UserGenerator.individual("foo")
+      forAll(Services.individualServices) { service =>
+        val enrolment = Generator.get(service.generator)("foo")
+        UserValidator
+          .validate(user.withPrincipalEnrolment(enrolment))
+          .isValid shouldBe true
+      }
+      forAll(Services.services.filter(!_.affinityGroups.contains(User.AG.Individual))) { service =>
+        val enrolment = Generator.get(service.generator)("foo")
+        UserValidator
+          .validate(user.withPrincipalEnrolment(enrolment))
+          .isValid shouldBe false
+      }
+    }
+
+    "validate only when principal enrolments are valid for an organisation" in {
+      val user = UserGenerator.organisation("foo")
+      forAll(Services.organisationServices) { service =>
+        val enrolment = Generator.get(service.generator)("foo")
+        UserValidator
+          .validate(user.withPrincipalEnrolment(enrolment))
+          .isValid shouldBe true
+      }
+      forAll(Services.services.filter(!_.affinityGroups.contains(User.AG.Organisation))) { service =>
+        val enrolment = Generator.get(service.generator)("foo")
+        UserValidator
+          .validate(user.withPrincipalEnrolment(enrolment))
+          .isValid shouldBe false
+      }
+    }
+
+    "validate only when principal enrolments are valid for an agent" in {
+      val user = UserGenerator.agent("foo")
+      forAll(Services.agentServices) { service =>
+        val enrolment = Generator.get(service.generator)("foo")
+        UserValidator
+          .validate(user.withPrincipalEnrolment(enrolment))
+          .isValid shouldBe true
+      }
+      forAll(Services.services.filter(!_.affinityGroups.contains(User.AG.Agent))) { service =>
+        val enrolment = Generator.get(service.generator)("foo")
+        UserValidator
+          .validate(user.withPrincipalEnrolment(enrolment))
+          .isValid shouldBe false
+      }
+    }
+
+    "validate only when delegated enrolment is of Individual or Organisation affinity" in {
+      val user = UserGenerator.agent("foo")
+      forAll(Services.individualServices) { service =>
+        val enrolment = Generator.get(service.generator)("foo")
+        UserValidator
+          .validate(user.withDelegatedEnrolment(enrolment))
+          .isValid shouldBe true
+      }
+      forAll(Services.organisationServices) { service =>
+        val enrolment = Generator.get(service.generator)("foo")
+        UserValidator
+          .validate(user.withDelegatedEnrolment(enrolment))
+          .isValid shouldBe true
+      }
+      forAll(Services.agentServices) { service =>
+        val enrolment = Generator.get(service.generator)("foo")
+        UserValidator
+          .validate(user.withDelegatedEnrolment(enrolment))
+          .isValid shouldBe false
+      }
     }
   }
 

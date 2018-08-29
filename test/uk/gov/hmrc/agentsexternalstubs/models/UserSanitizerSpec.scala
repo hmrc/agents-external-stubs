@@ -115,6 +115,78 @@ class UserSanitizerSpec extends UnitSpec {
     "add missing friendly name to Agent" in {
       UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Agent))).agentFriendlyName.isDefined shouldBe true
     }
+
+    "add missing identifiers to principal enrolments" in {
+      UserSanitizer
+        .sanitize(
+          User("foo", affinityGroup = Some(User.AG.Individual), principalEnrolments = Seq(Enrolment("HMRC-MTD-IT"))))
+        .principalEnrolments
+        .flatMap(_.identifiers.get.map(_.key)) should contain.only("MTDITID")
+      UserSanitizer
+        .sanitize(
+          User("foo", affinityGroup = Some(User.AG.Agent), principalEnrolments = Seq(Enrolment("HMRC-AS-AGENT"))))
+        .principalEnrolments
+        .flatMap(_.identifiers.get.map(_.key)) should contain.only("AgentReferenceNumber")
+    }
+
+    "add missing identifier names to principal enrolments" in {
+      UserSanitizer
+        .sanitize(
+          User(
+            "foo",
+            affinityGroup = Some(User.AG.Individual),
+            principalEnrolments = Seq(Enrolment("HMRC-MTD-IT", "", "123456789"))))
+        .principalEnrolments
+        .flatMap(_.identifiers.get.map(_.key))
+        .filter(_.nonEmpty) should contain.only("MTDITID")
+    }
+
+    "add missing identifier values to principal enrolments" in {
+      UserSanitizer
+        .sanitize(
+          User(
+            "foo",
+            affinityGroup = Some(User.AG.Individual),
+            principalEnrolments = Seq(Enrolment("HMRC-MTD-IT", "MTDITID", ""))))
+        .principalEnrolments
+        .flatMap(_.identifiers.get.map(_.value))
+        .filter(_.nonEmpty) should not be empty
+    }
+
+    "add missing identifiers to delegated enrolments" in {
+      UserSanitizer
+        .sanitize(User("foo", affinityGroup = Some(User.AG.Agent), delegatedEnrolments = Seq(Enrolment("HMRC-MTD-IT"))))
+        .delegatedEnrolments
+        .flatMap(_.identifiers.get.map(_.key)) should contain.only("MTDITID")
+      UserSanitizer
+        .sanitize(User("foo", affinityGroup = Some(User.AG.Agent), delegatedEnrolments = Seq(Enrolment("IR-SA"))))
+        .delegatedEnrolments
+        .flatMap(_.identifiers.get.map(_.key)) should contain.only("UTR")
+    }
+
+    "add missing identifier names to delegated enrolments" in {
+      UserSanitizer
+        .sanitize(
+          User(
+            "foo",
+            affinityGroup = Some(User.AG.Agent),
+            delegatedEnrolments = Seq(Enrolment("HMRC-MTD-IT", "", "123456789"))))
+        .delegatedEnrolments
+        .flatMap(_.identifiers.get.map(_.key))
+        .filter(_.nonEmpty) should contain.only("MTDITID")
+    }
+
+    "add missing identifier values to delegated enrolments" in {
+      UserSanitizer
+        .sanitize(
+          User(
+            "foo",
+            affinityGroup = Some(User.AG.Agent),
+            delegatedEnrolments = Seq(Enrolment("HMRC-MTD-IT", "MTDITID", ""))))
+        .delegatedEnrolments
+        .flatMap(_.identifiers.get.map(_.value))
+        .filter(_.nonEmpty) should not be empty
+    }
   }
 
 }
