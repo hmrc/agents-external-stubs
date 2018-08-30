@@ -228,7 +228,7 @@ object JsonSchema {
     isMandatory: Boolean): Definition = {
 
     val items = (property \ "items").as[JsObject]
-    val itemDefinition = readProperty("item", path, items, schema, required = Seq.empty)
+    val itemDefinition = readProperty("item", path, items, schema, required = Seq("item"))
     ArrayDefinition(name, path, itemDefinition, isRef = isRef, description = description, isMandatory = isMandatory)
   }
 }
@@ -376,8 +376,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer {
   private def generateFieldGenerators(definition: ObjectDefinition): String =
     definition.properties
       .take(22)
-      .map(prop =>
-        s"""${prop.variableName} <- ${valueGenerator(prop, definition.required.contains(prop.name))}""".stripMargin)
+      .map(prop => s"""${prop.variableName} <- ${valueGenerator(prop)}""".stripMargin)
       .mkString("\n  ")
 
   private def generateGenFieldsInitialization(definition: ObjectDefinition): String =
@@ -386,7 +385,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer {
       .map(prop => s"""${prop.name} = ${prop.variableName}""".stripMargin)
       .mkString(",\n  ")
 
-  private def valueGenerator(property: Definition, mandatory: Boolean): String = {
+  private def valueGenerator(property: Definition): String = {
     val gen = property match {
       case s: StringDefinition =>
         if (s.enum.isDefined) {
@@ -401,25 +400,25 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer {
         }
       case n: NumberDefinition  => "Gen.const(1)"
       case b: BooleanDefinition => "Generator.biasedBooleanGen"
-      case a: ArrayDefinition   => s"Generator.nonEmptyListOfMaxN(3,${valueGenerator(a.item, true)})"
+      case a: ArrayDefinition   => s"Generator.nonEmptyListOfMaxN(3,${valueGenerator(a.item)})"
       case o: ObjectDefinition  => s"${o.typeName}.gen"
       case o: OneOfDefinition =>
         o.properties.head match {
           case _: ObjectDefinition => s"${o.typeName}.gen"
-          case x                   => valueGenerator(x, mandatory)
+          case x                   => valueGenerator(x)
         }
     }
-    if (mandatory) gen else s"""Generator.biasedOptionGen($gen)"""
+    if (property.isMandatory) gen else s"""Generator.biasedOptionGen($gen)"""
   }
 
   private def generateFieldValidators(definition: ObjectDefinition): String =
     definition.properties
       .take(22)
-      .map(prop => valueValidator(prop, definition.required.contains(prop.name)))
+      .map(prop => valueValidator(prop))
       .collect { case Some(validator) => s"""$validator""".stripMargin }
       .mkString(",\n  ")
 
-  private def valueValidator(property: Definition, mandatory: Boolean): Option[String] =
+  private def valueValidator(property: Definition): Option[String] =
     property match {
       case s: StringDefinition =>
         if (s.enum.isDefined) Some(s"""  check(_.${property.name}.isOneOf(Seq(${s.enum.get
@@ -442,13 +441,13 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer {
       case a: ArrayDefinition =>
         (a.item match {
           case o: ObjectDefinition => Some(s"""${o.typeName}.validate""")
-          case x                   => valueValidator(x, false)
+          case x                   => valueValidator(x)
         }).map(vv =>
-          if (mandatory) s""" checkEach(_.${property.name}, $vv)"""
+          if (property.isMandatory) s""" checkEach(_.${property.name}, $vv)"""
           else s""" checkEachIfSome(_.${property.name}, $vv)""")
 
       case o: ObjectDefinition =>
-        if (mandatory) Some(s""" checkObject(_.${property.name}, ${property.typeName}.validate)""")
+        if (property.isMandatory) Some(s""" checkObject(_.${property.name}, ${property.typeName}.validate)""")
         else Some(s""" checkObjectIfSome(_.${property.name}, ${property.typeName}.validate)""")
       case o: OneOfDefinition => None
     }
