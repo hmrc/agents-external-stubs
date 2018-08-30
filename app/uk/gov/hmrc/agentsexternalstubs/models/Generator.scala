@@ -5,6 +5,7 @@ import org.scalacheck.Gen
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId}
 import uk.gov.hmrc.domain.{Nino, Vrn}
 import uk.gov.hmrc.smartstub.{Addresses, Companies, Names, Temporal, ToLong}
+import wolfendale.scalacheck.regexp.RegexpGen
 
 trait Generator extends Names with Temporal with Companies with Addresses {
 
@@ -14,12 +15,25 @@ trait Generator extends Names with Temporal with Companies with Addresses {
 
   import uk.gov.hmrc.smartstub._
 
-  def get[T](gen: Gen[T]): String => T = (seed: String) => gen.seeded(seed).get
+  def get[T](gen: Gen[T]): String => Option[T] =
+    (seed: String) => gen.seeded(seed)
 
   def pattern(pattern: String): Gen[String] =
     knownPatterns.getOrElse(pattern, PatternContext(StringContext(pattern)).pattern())
 
+  def regex(regex: String): Gen[String] =
+    knownPatterns.getOrElse(regex, RegexpGen.from(regex).retryUntil(s => s.matches(regex)))
+
   def toJodaDate(date: java.time.LocalDate): org.joda.time.LocalDate = org.joda.time.LocalDate.parse(date.toString)
+
+  val biasedBooleanGen: Gen[Boolean] = Gen.frequency(90                  -> Gen.const(true), 10 -> Gen.const(false))
+  def biasedOptionGen[T](gen: Gen[T]): Gen[Option[T]] = Gen.frequency(90 -> Gen.some(gen), 10   -> Gen.const(None))
+
+  def nonEmptyListOfMaxN[T](max: Int, gen: Gen[T]): Gen[List[T]] =
+    for {
+      size <- Gen.chooseNum(1, max)
+      list <- Gen.listOfN(size, gen)
+    } yield list
 
   val ninoWithSpacesGen: Gen[String] =
     Enumerable.instances.ninoEnum.gen.map(n => if (Nino.isValid(n)) n else "AB" + n.drop(2))

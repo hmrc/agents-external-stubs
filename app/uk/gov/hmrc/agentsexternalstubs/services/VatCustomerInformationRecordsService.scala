@@ -24,5 +24,5 @@ class VatCustomerInformationRecordsService @Inject()(val recordsRepository: Reco
 
   def getCustomerInformation(vrn: String, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[VatCustomerInformationRecord]] =
-    findByKey[VatCustomerInformationRecord](VatCustomerInformationRecord.vrnKey(vrn), planetId).map(_.headOption)
+    findByKey[VatCustomerInformationRecord](VatCustomerInformationRecord.uniqueKey(vrn), planetId).map(_.headOption)
 }

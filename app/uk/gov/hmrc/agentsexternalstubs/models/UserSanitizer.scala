@@ -89,7 +89,7 @@ object UserSanitizer extends RecordUtils[User] {
   private val ensurePrincipalEnrolmentsHaveIdentifiers: Update = user => {
     val modifiedPrincipalEnrolments = user.principalEnrolments.map(
       e =>
-        if (e.identifiers.isEmpty) Services(e.key).map(s => Generator.get(s.generator)(user.userId)).getOrElse(e)
+        if (e.identifiers.isEmpty) Services(e.key).flatMap(s => Generator.get(s.generator)(user.userId)).getOrElse(e)
         else
           e.copy(identifiers = e.identifiers.map(_.map(i => {
             val key: String =
@@ -98,7 +98,7 @@ object UserSanitizer extends RecordUtils[User] {
             val value: String =
               if (i.value.isEmpty)
                 Services(e.key)
-                  .flatMap(s => s.getIdentifier(key).map(i => Generator.get(i.valueGenerator)(user.userId)))
+                  .flatMap(s => s.getIdentifier(key).flatMap(i => Generator.get(i.valueGenerator)(user.userId)))
                   .getOrElse("")
               else i.value
             Identifier(key, value)
@@ -109,7 +109,7 @@ object UserSanitizer extends RecordUtils[User] {
   private val ensureDelegatedEnrolmentsHaveIdentifiers: Update = user => {
     val modifiedDelegatedEnrolments = user.delegatedEnrolments.map(
       e =>
-        if (e.identifiers.isEmpty) Services(e.key).map(s => Generator.get(s.generator)(user.userId)).getOrElse(e)
+        if (e.identifiers.isEmpty) Services(e.key).flatMap(s => Generator.get(s.generator)(user.userId)).getOrElse(e)
         else
           e.copy(identifiers = e.identifiers.map(_.map(i => {
             val key: String =
@@ -118,7 +118,7 @@ object UserSanitizer extends RecordUtils[User] {
             val value: String =
               if (i.value.isEmpty)
                 Services(e.key)
-                  .flatMap(s => s.getIdentifier(key).map(i => Generator.get(i.valueGenerator)(user.userId)))
+                  .flatMap(s => s.getIdentifier(key).flatMap(i => Generator.get(i.valueGenerator)(user.userId)))
                   .getOrElse("")
               else i.value
             Identifier(key, value)

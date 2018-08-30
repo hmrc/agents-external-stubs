@@ -4,7 +4,6 @@ import org.scalacheck.{Arbitrary, Gen}
 import org.joda.time.LocalDate
 import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord._
-import wolfendale.scalacheck.regexp.RegexpGen
 
 /**
   * ----------------------------------------------------------------------------
@@ -20,26 +19,23 @@ case class VatCustomerInformationRecord(
   id: Option[String] = None
 ) extends Record {
 
-  override def uniqueKey: Option[String] = Some(vrnKey(vrn))
-  override def lookupKeys: Seq[String] = Seq(vrnKey(vrn))
+  override def uniqueKey: Option[String] = Some(vrn).map(VatCustomerInformationRecord.uniqueKey)
+  override def lookupKeys: Seq[String] = Seq()
   override def withId(id: Option[String]): Record = copy(id = id)
 }
 
 object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRecord] {
 
-  def vrnKey(vrn: String): String = s"vrn:$vrn"
-
   implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
   implicit val recordType: RecordMetaData[VatCustomerInformationRecord] =
     RecordMetaData[VatCustomerInformationRecord](this)
-  val booleanGen = Gen.oneOf(true, false)
-
+  def uniqueKey(key: String): String = s"""vrn:${key.toUpperCase}"""
   import Validator._
 
   override val gen: Gen[VatCustomerInformationRecord] = for {
-    vrn                 <- RegexpGen.from("""^[0-9A-Za-z]{1,6}$""")
-    approvedInformation <- Gen.option(ApprovedInformation.gen)
-    inFlightInformation <- Gen.option(InFlightInformation.gen)
+    vrn                 <- Generator.regex("""^[0-9A-Za-z]{1,6}$""")
+    approvedInformation <- Generator.biasedOptionGen(ApprovedInformation.gen)
+    inFlightInformation <- Generator.biasedOptionGen(InFlightInformation.gen)
   } yield
     VatCustomerInformationRecord(
       vrn = vrn,
@@ -63,13 +59,13 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     override val gen: Gen[ApprovedInformation] = for {
       customerDetails              <- CustomerDetails.gen
       ppob                         <- PPOB.gen
-      correspondenceContactDetails <- Gen.option(CorrespondenceContactDetails.gen)
-      bankDetails                  <- Gen.option(BankDetails.gen)
-      businessActivities           <- Gen.option(BusinessActivities.gen)
-      flatRateScheme               <- Gen.option(FlatRateScheme.gen)
-      deregistration               <- Gen.option(Deregistration.gen)
-      returnPeriod                 <- Gen.option(Period.gen)
-      groupOrPartnerMbrs           <- Gen.option(Gen.nonEmptyListOf(GroupOrPartner.gen))
+      correspondenceContactDetails <- Generator.biasedOptionGen(CorrespondenceContactDetails.gen)
+      bankDetails                  <- Generator.biasedOptionGen(BankDetails.gen)
+      businessActivities           <- Generator.biasedOptionGen(BusinessActivities.gen)
+      flatRateScheme               <- Generator.biasedOptionGen(FlatRateScheme.gen)
+      deregistration               <- Generator.biasedOptionGen(Deregistration.gen)
+      returnPeriod                 <- Generator.biasedOptionGen(Period.gen)
+      groupOrPartnerMbrs           <- Generator.biasedOptionGen(Generator.nonEmptyListOfMaxN(3, GroupOrPartner.gen))
     } yield
       ApprovedInformation(
         customerDetails = customerDetails,
@@ -91,7 +87,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       checkObjectIfSome(_.businessActivities, BusinessActivities.validate),
       checkObjectIfSome(_.flatRateScheme, FlatRateScheme.validate),
       checkObjectIfSome(_.deregistration, Deregistration.validate),
-      checkObjectIfSome(_.returnPeriod, Period.validate)
+      checkObjectIfSome(_.returnPeriod, Period.validate),
+      checkEachIfSome(_.groupOrPartnerMbrs, GroupOrPartner.validate)
     )
 
     override val sanitizers: Seq[Update] = Seq()
@@ -112,13 +109,13 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
   object BankDetails extends RecordUtils[BankDetails] {
 
     override val gen: Gen[BankDetails] = for {
-      iban                  <- Gen.option(Generator.stringMinMaxN(1, 34))
-      bic                   <- Gen.option(Generator.stringMinMaxN(1, 11))
-      accountHolderName     <- Gen.option(Generator.stringMinMaxN(1, 60))
-      bankAccountNumber     <- Gen.option(RegexpGen.from("""^[0-9]{8}$"""))
-      sortCode              <- Gen.option(RegexpGen.from("""^[0-9]{6}$"""))
-      buildingSocietyNumber <- Gen.option(Generator.stringMinMaxN(1, 20))
-      bankBuildSocietyName  <- Gen.option(Generator.stringMinMaxN(1, 40))
+      iban                  <- Generator.biasedOptionGen(Generator.stringMinMaxN(1, 34))
+      bic                   <- Generator.biasedOptionGen(Generator.stringMinMaxN(1, 11))
+      accountHolderName     <- Generator.biasedOptionGen(Generator.stringMinMaxN(1, 60))
+      bankAccountNumber     <- Generator.biasedOptionGen(Generator.regex("""^[0-9]{8}$"""))
+      sortCode              <- Generator.biasedOptionGen(Generator.regex("""^[0-9]{6}$"""))
+      buildingSocietyNumber <- Generator.biasedOptionGen(Generator.stringMinMaxN(1, 20))
+      bankBuildSocietyName  <- Generator.biasedOptionGen(Generator.stringMinMaxN(1, 40))
     } yield
       BankDetails(
         IBAN = iban,
@@ -163,10 +160,10 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
   object BusinessActivities extends RecordUtils[BusinessActivities] {
 
     override val gen: Gen[BusinessActivities] = for {
-      primaryMainCode <- RegexpGen.from("""^[0-9]{5}$""")
-      mainCode2       <- Gen.option(RegexpGen.from("""^[0-9]{5}$"""))
-      mainCode3       <- Gen.option(RegexpGen.from("""^[0-9]{5}$"""))
-      mainCode4       <- Gen.option(RegexpGen.from("""^[0-9]{5}$"""))
+      primaryMainCode <- Generator.regex("""^[0-9]{5}$""")
+      mainCode2       <- Generator.biasedOptionGen(Generator.regex("""^[0-9]{5}$"""))
+      mainCode3       <- Generator.biasedOptionGen(Generator.regex("""^[0-9]{5}$"""))
+      mainCode4       <- Generator.biasedOptionGen(Generator.regex("""^[0-9]{5}$"""))
     } yield
       BusinessActivities(
         primaryMainCode = primaryMainCode,
@@ -203,15 +200,15 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
   object ChangeIndicators extends RecordUtils[ChangeIndicators] {
 
     override val gen: Gen[ChangeIndicators] = for {
-      customerDetails       <- booleanGen
-      ppobdetails           <- booleanGen
-      correspContactDetails <- booleanGen
-      bankDetails           <- booleanGen
-      businessActivities    <- booleanGen
-      flatRateScheme        <- booleanGen
-      deRegistrationInfo    <- booleanGen
-      returnPeriods         <- booleanGen
-      groupOrPartners       <- booleanGen
+      customerDetails       <- Generator.biasedBooleanGen
+      ppobdetails           <- Generator.biasedBooleanGen
+      correspContactDetails <- Generator.biasedBooleanGen
+      bankDetails           <- Generator.biasedBooleanGen
+      businessActivities    <- Generator.biasedBooleanGen
+      flatRateScheme        <- Generator.biasedBooleanGen
+      deRegistrationInfo    <- Generator.biasedBooleanGen
+      returnPeriods         <- Generator.biasedBooleanGen
+      groupOrPartners       <- Generator.biasedBooleanGen
     } yield
       ChangeIndicators(
         customerDetails = customerDetails,
@@ -243,10 +240,10 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
   object ContactDetails extends RecordUtils[ContactDetails] {
 
     override val gen: Gen[ContactDetails] = for {
-      primaryPhoneNumber <- Gen.option(RegexpGen.from("""^[A-Z0-9 )/(*#-]+$"""))
-      mobileNumber       <- Gen.option(RegexpGen.from("""^[A-Z0-9 )/(*#-]+$"""))
-      faxNumber          <- Gen.option(RegexpGen.from("""^[A-Z0-9 )/(*#-]+$"""))
-      emailAddress       <- Gen.option(Generator.stringMinMaxN(3, 132))
+      primaryPhoneNumber <- Generator.biasedOptionGen(Generator.regex("""^[A-Z0-9 )/(*#-]+$"""))
+      mobileNumber       <- Generator.biasedOptionGen(Generator.regex("""^[A-Z0-9 )/(*#-]+$"""))
+      faxNumber          <- Generator.biasedOptionGen(Generator.regex("""^[A-Z0-9 )/(*#-]+$"""))
+      emailAddress       <- Generator.biasedOptionGen(Generator.stringMinMaxN(3, 132))
     } yield
       ContactDetails(
         primaryPhoneNumber = primaryPhoneNumber,
@@ -283,9 +280,10 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
   object CorrespondenceContactDetails extends RecordUtils[CorrespondenceContactDetails] {
 
     override val gen: Gen[CorrespondenceContactDetails] = for {
-      address        <- Address.gen
-      rls            <- Gen.option(Gen.oneOf(Seq("0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009")))
-      contactDetails <- Gen.option(ContactDetails.gen)
+      address <- Address.gen
+      rls <- Generator.biasedOptionGen(
+              Gen.oneOf(Seq("0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009")))
+      contactDetails <- Generator.biasedOptionGen(ContactDetails.gen)
     } yield CorrespondenceContactDetails(address = address, RLS = rls, contactDetails = contactDetails)
 
     override val validate: Validator[CorrespondenceContactDetails] = Validator(
@@ -314,12 +312,12 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
   object CustomerDetails extends RecordUtils[CustomerDetails] {
 
     override val gen: Gen[CustomerDetails] = for {
-      organisationName <- Gen.option(Generator.stringMinMaxN(1, 105))
-      individual       <- Gen.option(IndividualName.gen)
-      dateOfBirth      <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      tradingName      <- Gen.option(Generator.stringMinMaxN(1, 160))
+      organisationName <- Generator.biasedOptionGen(Generator.stringMinMaxN(1, 105))
+      individual       <- Generator.biasedOptionGen(IndividualName.gen)
+      dateOfBirth      <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      tradingName      <- Generator.biasedOptionGen(Generator.stringMinMaxN(1, 160))
       mandationStatus  <- Gen.oneOf(Seq("1", "2", "3", "4"))
-      registrationReason <- Gen.option(
+      registrationReason <- Generator.biasedOptionGen(
                              Gen.oneOf(
                                Seq(
                                  "0001",
@@ -336,8 +334,10 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
                                  "0012",
                                  "0013",
                                  "0014")))
-      effectiveRegistrationDate <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      businessStartDate         <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      effectiveRegistrationDate <- Generator.biasedOptionGen(
+                                    Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      businessStartDate <- Generator.biasedOptionGen(
+                            Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
     } yield
       CustomerDetails(
         organisationName = organisationName,
@@ -408,7 +408,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
   object Deregistration extends RecordUtils[Deregistration] {
 
     override val gen: Gen[Deregistration] = for {
-      deregistrationReason <- Gen.option(
+      deregistrationReason <- Generator.biasedOptionGen(
                                Gen.oneOf(
                                  Seq(
                                    "0001",
@@ -422,8 +422,10 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
                                    "0009",
                                    "0010",
                                    "0011")))
-      effectDateOfCancellation <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      lastReturnDueDate        <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      effectDateOfCancellation <- Generator.biasedOptionGen(
+                                   Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      lastReturnDueDate <- Generator.biasedOptionGen(
+                            Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
     } yield
       Deregistration(
         deregistrationReason = deregistrationReason,
@@ -461,7 +463,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
   object FlatRateScheme extends RecordUtils[FlatRateScheme] {
 
     override val gen: Gen[FlatRateScheme] = for {
-      frscategory <- Gen.option(
+      frscategory <- Generator.biasedOptionGen(
                       Gen.oneOf(Seq(
                         "001",
                         "002",
@@ -518,9 +520,9 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
                         "053",
                         "054"
                       )))
-      frspercentage     <- Gen.option(Gen.const(1))
-      startDate         <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      limitedCostTrader <- Gen.option(booleanGen)
+      frspercentage     <- Generator.biasedOptionGen(Gen.const(1))
+      startDate         <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      limitedCostTrader <- Generator.biasedOptionGen(Generator.biasedBooleanGen)
     } yield
       FlatRateScheme(
         FRSCategory = frscategory,
@@ -606,8 +608,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
   object FormInformation extends RecordUtils[FormInformation] {
 
     override val gen: Gen[FormInformation] = for {
-      formBundle   <- RegexpGen.from("""^[0-9]{12}$""")
-      dateReceived <- RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$""")
+      formBundle   <- Generator.regex("""^[0-9]{12}$""")
+      dateReceived <- Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$""")
     } yield FormInformation(formBundle = formBundle, dateReceived = dateReceived)
 
     override val validate: Validator[FormInformation] = Validator(
@@ -634,9 +636,9 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     override val gen: Gen[GroupOrPartner] = for {
       typeOfRelationship <- Gen.oneOf(Seq("01", "02", "03", "04"))
-      organisationName   <- Gen.option(Generator.stringMinMaxN(1, 105))
-      individual         <- Gen.option(IndividualName.gen)
-      sap_number         <- RegexpGen.from("""^[0-9]{42}$""")
+      organisationName   <- Generator.biasedOptionGen(Generator.stringMinMaxN(1, 105))
+      individual         <- Generator.biasedOptionGen(IndividualName.gen)
+      sap_number         <- Generator.regex("""^[0-9]{42}$""")
     } yield
       GroupOrPartner(
         typeOfRelationship = typeOfRelationship,
@@ -675,13 +677,13 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     override val gen: Gen[InFlightBankDetails] = for {
       formInformation       <- FormInformation.gen
-      iban                  <- Gen.option(Generator.stringMinMaxN(1, 34))
-      bic                   <- Gen.option(Generator.stringMinMaxN(1, 11))
-      accountHolderName     <- Gen.option(Generator.stringMinMaxN(1, 60))
-      bankAccountNumber     <- Gen.option(RegexpGen.from("""^[0-9]{8}$"""))
-      sortCode              <- Gen.option(RegexpGen.from("""^[0-9]{6}$"""))
-      buildingSocietyNumber <- Gen.option(Generator.stringMinMaxN(1, 20))
-      bankBuildSocietyName  <- Gen.option(Generator.stringMinMaxN(1, 40))
+      iban                  <- Generator.biasedOptionGen(Generator.stringMinMaxN(1, 34))
+      bic                   <- Generator.biasedOptionGen(Generator.stringMinMaxN(1, 11))
+      accountHolderName     <- Generator.biasedOptionGen(Generator.stringMinMaxN(1, 60))
+      bankAccountNumber     <- Generator.biasedOptionGen(Generator.regex("""^[0-9]{8}$"""))
+      sortCode              <- Generator.biasedOptionGen(Generator.regex("""^[0-9]{6}$"""))
+      buildingSocietyNumber <- Generator.biasedOptionGen(Generator.stringMinMaxN(1, 20))
+      bankBuildSocietyName  <- Generator.biasedOptionGen(Generator.stringMinMaxN(1, 40))
     } yield
       InFlightBankDetails(
         formInformation = formInformation,
@@ -730,10 +732,10 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     override val gen: Gen[InFlightBusinessActivities] = for {
       formInformation <- FormInformation.gen
-      primaryMainCode <- RegexpGen.from("""^[0-9]{5}$""")
-      mainCode2       <- Gen.option(RegexpGen.from("""^[0-9]{5}$"""))
-      mainCode3       <- Gen.option(RegexpGen.from("""^[0-9]{5}$"""))
-      mainCode4       <- Gen.option(RegexpGen.from("""^[0-9]{5}$"""))
+      primaryMainCode <- Generator.regex("""^[0-9]{5}$""")
+      mainCode2       <- Generator.biasedOptionGen(Generator.regex("""^[0-9]{5}$"""))
+      mainCode3       <- Generator.biasedOptionGen(Generator.regex("""^[0-9]{5}$"""))
+      mainCode4       <- Generator.biasedOptionGen(Generator.regex("""^[0-9]{5}$"""))
     } yield
       InFlightBusinessActivities(
         formInformation = formInformation,
@@ -767,8 +769,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     override val gen: Gen[InFlightCorrespondenceContactDetails] = for {
       formInformation <- FormInformation.gen
-      address         <- Gen.option(Address.gen)
-      contactDetails  <- Gen.option(ContactDetails.gen)
+      address         <- Generator.biasedOptionGen(Address.gen)
+      contactDetails  <- Generator.biasedOptionGen(ContactDetails.gen)
     } yield
       InFlightCorrespondenceContactDetails(
         formInformation = formInformation,
@@ -801,12 +803,12 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     override val gen: Gen[InFlightCustomerDetails] = for {
       formInformation  <- FormInformation.gen
-      organisationName <- Gen.option(Generator.stringMinMaxN(1, 105))
-      individual       <- Gen.option(IndividualName.gen)
-      dateOfBirth      <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      tradingName      <- Gen.option(Generator.stringMinMaxN(1, 160))
+      organisationName <- Generator.biasedOptionGen(Generator.stringMinMaxN(1, 105))
+      individual       <- Generator.biasedOptionGen(IndividualName.gen)
+      dateOfBirth      <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      tradingName      <- Generator.biasedOptionGen(Generator.stringMinMaxN(1, 160))
       mandationStatus  <- Gen.oneOf(Seq("1", "2", "3", "4"))
-      registrationReason <- Gen.option(
+      registrationReason <- Generator.biasedOptionGen(
                              Gen.oneOf(
                                Seq(
                                  "0001",
@@ -823,7 +825,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
                                  "0012",
                                  "0013",
                                  "0014")))
-      effectiveRegistrationDate <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      effectiveRegistrationDate <- Generator.biasedOptionGen(
+                                    Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
     } yield
       InFlightCustomerDetails(
         formInformation = formInformation,
@@ -906,8 +909,9 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
                                  "0009",
                                  "0010",
                                  "0011"))
-      deregDate         <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      deregDateInFuture <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      deregDate <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      deregDateInFuture <- Generator.biasedOptionGen(
+                            Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
     } yield
       InFlightDeregistration(
         formInformation = formInformation,
@@ -949,7 +953,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     override val gen: Gen[InFlightFlatRateScheme] = for {
       formInformation <- FormInformation.gen
-      frscategory <- Gen.option(
+      frscategory <- Generator.biasedOptionGen(
                       Gen.oneOf(Seq(
                         "001",
                         "002",
@@ -1006,9 +1010,9 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
                         "053",
                         "054"
                       )))
-      frspercentage     <- Gen.option(Gen.const(1))
-      startDate         <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      limitedCostTrader <- Gen.option(booleanGen)
+      frspercentage     <- Generator.biasedOptionGen(Gen.const(1))
+      startDate         <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      limitedCostTrader <- Generator.biasedOptionGen(Generator.biasedBooleanGen)
     } yield
       InFlightFlatRateScheme(
         formInformation = formInformation,
@@ -1109,15 +1113,15 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     override val gen: Gen[InFlightGroupOrPartner] = for {
       formInformation     <- FormInformation.gen
       action              <- Gen.oneOf(Seq("1", "2", "3", "4"))
-      sap_number          <- Gen.option(RegexpGen.from("""^[0-9]{42}$"""))
-      typeOfRelationship  <- Gen.option(Gen.oneOf(Seq("01", "02", "03", "04")))
-      makeGrpMember       <- Gen.option(booleanGen)
-      makeControllingBody <- Gen.option(booleanGen)
-      isControllingBody   <- Gen.option(booleanGen)
-      organisationName    <- Gen.option(Generator.stringMinMaxN(1, 160))
-      tradingName         <- Gen.option(Generator.stringMinMaxN(1, 160))
-      individual          <- Gen.option(IndividualName.gen)
-      ppob                <- Gen.option(PPOB.gen)
+      sap_number          <- Generator.biasedOptionGen(Generator.regex("""^[0-9]{42}$"""))
+      typeOfRelationship  <- Generator.biasedOptionGen(Gen.oneOf(Seq("01", "02", "03", "04")))
+      makeGrpMember       <- Generator.biasedOptionGen(Generator.biasedBooleanGen)
+      makeControllingBody <- Generator.biasedOptionGen(Generator.biasedBooleanGen)
+      isControllingBody   <- Generator.biasedOptionGen(Generator.biasedBooleanGen)
+      organisationName    <- Generator.biasedOptionGen(Generator.stringMinMaxN(1, 160))
+      tradingName         <- Generator.biasedOptionGen(Generator.stringMinMaxN(1, 160))
+      individual          <- Generator.biasedOptionGen(IndividualName.gen)
+      ppob                <- Generator.biasedOptionGen(PPOB.gen)
     } yield
       InFlightGroupOrPartner(
         formInformation = formInformation,
@@ -1186,9 +1190,9 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     override val gen: Gen[InFlightPPOBDetails] = for {
       formInformation <- FormInformation.gen
-      address         <- Gen.option(Address.gen)
-      contactDetails  <- Gen.option(ContactDetails.gen)
-      websiteAddress  <- Gen.option(Generator.stringMinMaxN(1, 132))
+      address         <- Generator.biasedOptionGen(Address.gen)
+      contactDetails  <- Generator.biasedOptionGen(ContactDetails.gen)
+      websiteAddress  <- Generator.biasedOptionGen(Generator.stringMinMaxN(1, 132))
     } yield
       InFlightPPOBDetails(
         formInformation = formInformation,
@@ -1222,11 +1226,11 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     override val gen: Gen[InFlightReturnPeriod] = for {
       formInformation           <- FormInformation.gen
-      changeReturnPeriod        <- Gen.option(booleanGen)
-      nonStdTaxPeriodsRequested <- Gen.option(booleanGen)
-      ceaseNonStdTaxPeriods     <- Gen.option(booleanGen)
-      stdReturnPeriod           <- Gen.option(Gen.oneOf(Seq("MA", "MB", "MC", "MM")))
-      nonStdTaxPeriods          <- Gen.option(NonStdTaxPeriods.gen)
+      changeReturnPeriod        <- Generator.biasedOptionGen(Generator.biasedBooleanGen)
+      nonStdTaxPeriodsRequested <- Generator.biasedOptionGen(Generator.biasedBooleanGen)
+      ceaseNonStdTaxPeriods     <- Generator.biasedOptionGen(Generator.biasedBooleanGen)
+      stdReturnPeriod           <- Generator.biasedOptionGen(Gen.oneOf(Seq("MA", "MB", "MC", "MM")))
+      nonStdTaxPeriods          <- Generator.biasedOptionGen(NonStdTaxPeriods.gen)
     } yield
       InFlightReturnPeriod(
         formInformation = formInformation,
@@ -1260,12 +1264,12 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
   object IndividualName extends RecordUtils[IndividualName] {
 
     override val gen: Gen[IndividualName] = for {
-      title <- Gen.option(
+      title <- Generator.biasedOptionGen(
                 Gen.oneOf(
                   Seq("0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009", "0010", "0011", "0012")))
-      firstName  <- Gen.option(Generator.stringMinMaxN(1, 35))
-      middleName <- Gen.option(Generator.stringMinMaxN(1, 35))
-      lastName   <- Gen.option(Generator.stringMinMaxN(1, 35))
+      firstName  <- Generator.biasedOptionGen(Generator.stringMinMaxN(1, 35))
+      middleName <- Generator.biasedOptionGen(Generator.stringMinMaxN(1, 35))
+      lastName   <- Generator.biasedOptionGen(Generator.stringMinMaxN(1, 35))
     } yield IndividualName(title = title, firstName = firstName, middleName = middleName, lastName = lastName)
 
     override val validate: Validator[IndividualName] = Validator(
@@ -1303,15 +1307,15 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
   object InflightChanges extends RecordUtils[InflightChanges] {
 
     override val gen: Gen[InflightChanges] = for {
-      customerDetails              <- Gen.option(InFlightCustomerDetails.gen)
-      ppobdetails                  <- Gen.option(InFlightPPOBDetails.gen)
-      correspondenceContactDetails <- Gen.option(InFlightCorrespondenceContactDetails.gen)
-      bankDetails                  <- Gen.option(InFlightBankDetails.gen)
-      businessActivities           <- Gen.option(InFlightBusinessActivities.gen)
-      flatRateScheme               <- Gen.option(InFlightFlatRateScheme.gen)
-      deregister                   <- Gen.option(InFlightDeregistration.gen)
-      returnPeriod                 <- Gen.option(InFlightReturnPeriod.gen)
-      groupOrPartner               <- Gen.option(Gen.nonEmptyListOf(InFlightGroupOrPartner.gen))
+      customerDetails              <- Generator.biasedOptionGen(InFlightCustomerDetails.gen)
+      ppobdetails                  <- Generator.biasedOptionGen(InFlightPPOBDetails.gen)
+      correspondenceContactDetails <- Generator.biasedOptionGen(InFlightCorrespondenceContactDetails.gen)
+      bankDetails                  <- Generator.biasedOptionGen(InFlightBankDetails.gen)
+      businessActivities           <- Generator.biasedOptionGen(InFlightBusinessActivities.gen)
+      flatRateScheme               <- Generator.biasedOptionGen(InFlightFlatRateScheme.gen)
+      deregister                   <- Generator.biasedOptionGen(InFlightDeregistration.gen)
+      returnPeriod                 <- Generator.biasedOptionGen(InFlightReturnPeriod.gen)
+      groupOrPartner               <- Generator.biasedOptionGen(Generator.nonEmptyListOfMaxN(3, InFlightGroupOrPartner.gen))
     } yield
       InflightChanges(
         customerDetails = customerDetails,
@@ -1333,7 +1337,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       checkObjectIfSome(_.businessActivities, InFlightBusinessActivities.validate),
       checkObjectIfSome(_.flatRateScheme, InFlightFlatRateScheme.validate),
       checkObjectIfSome(_.deregister, InFlightDeregistration.validate),
-      checkObjectIfSome(_.returnPeriod, InFlightReturnPeriod.validate)
+      checkObjectIfSome(_.returnPeriod, InFlightReturnPeriod.validate),
+      checkEachIfSome(_.groupOrPartner, InFlightGroupOrPartner.validate)
     )
 
     override val sanitizers: Seq[Update] = Seq()
@@ -1369,28 +1374,28 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
   object NonStdTaxPeriods extends RecordUtils[NonStdTaxPeriods] {
 
     override val gen: Gen[NonStdTaxPeriods] = for {
-      period01 <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      period02 <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      period03 <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      period04 <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      period05 <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      period06 <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      period07 <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      period08 <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      period09 <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      period10 <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      period11 <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      period12 <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      period13 <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      period14 <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      period15 <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      period16 <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      period17 <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      period18 <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      period19 <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      period20 <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      period21 <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
-      period22 <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      period01 <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      period02 <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      period03 <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      period04 <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      period05 <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      period06 <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      period07 <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      period08 <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      period09 <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      period10 <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      period11 <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      period12 <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      period13 <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      period14 <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      period15 <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      period16 <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      period17 <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      period18 <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      period19 <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      period20 <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      period21 <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
+      period22 <- Generator.biasedOptionGen(Generator.regex("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
     } yield
       NonStdTaxPeriods(
         period01 = period01,
@@ -1523,10 +1528,11 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
   object PPOB extends RecordUtils[PPOB] {
 
     override val gen: Gen[PPOB] = for {
-      address        <- Address.gen
-      rls            <- Gen.option(Gen.oneOf(Seq("0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009")))
-      contactDetails <- Gen.option(ContactDetails.gen)
-      websiteAddress <- Gen.option(Generator.stringMinMaxN(1, 132))
+      address <- Address.gen
+      rls <- Generator.biasedOptionGen(
+              Gen.oneOf(Seq("0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009")))
+      contactDetails <- Generator.biasedOptionGen(ContactDetails.gen)
+      websiteAddress <- Generator.biasedOptionGen(Generator.stringMinMaxN(1, 132))
     } yield PPOB(address = address, RLS = rls, contactDetails = contactDetails, websiteAddress = websiteAddress)
 
     override val validate: Validator[PPOB] = Validator(
@@ -1550,8 +1556,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
   object Period extends RecordUtils[Period] {
 
     override val gen: Gen[Period] = for {
-      stdReturnPeriod  <- Gen.option(Gen.oneOf(Seq("MA", "MB", "MC", "MM")))
-      nonStdTaxPeriods <- Gen.option(NonStdTaxPeriods.gen)
+      stdReturnPeriod  <- Generator.biasedOptionGen(Gen.oneOf(Seq("MA", "MB", "MC", "MM")))
+      nonStdTaxPeriods <- Generator.biasedOptionGen(NonStdTaxPeriods.gen)
     } yield Period(stdReturnPeriod = stdReturnPeriod, nonStdTaxPeriods = nonStdTaxPeriods)
 
     override val validate: Validator[Period] = Validator(
@@ -1578,11 +1584,11 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
   object Address extends RecordUtils[Address] {
 
     override val gen: Gen[Address] = for {
-      line1       <- RegexpGen.from("""^[A-Za-z0-9 \-,.&'\/()!]{1,35}$""")
-      line2       <- RegexpGen.from("""^[A-Za-z0-9 \-,.&'\/()!]{1,35}$""")
-      line3       <- Gen.option(RegexpGen.from("""^[A-Za-z0-9 \-,.&'\/()!]{1,35}$"""))
-      line4       <- Gen.option(RegexpGen.from("""^[A-Za-z0-9 \-,.&'\/()!]{1,35}$"""))
-      postCode    <- RegexpGen.from("""^[A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2}|BFPO\s?[0-9]{1,10}$""")
+      line1       <- Generator.regex("""^[A-Za-z0-9 \-,.&'\/()!]{1,35}$""")
+      line2       <- Generator.regex("""^[A-Za-z0-9 \-,.&'\/()!]{1,35}$""")
+      line3       <- Generator.biasedOptionGen(Generator.regex("""^[A-Za-z0-9 \-,.&'\/()!]{1,35}$"""))
+      line4       <- Generator.biasedOptionGen(Generator.regex("""^[A-Za-z0-9 \-,.&'\/()!]{1,35}$"""))
+      postCode    <- Generator.regex("""^[A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2}|BFPO\s?[0-9]{1,10}$""")
       countryCode <- Gen.const("GB")
     } yield
       Address(

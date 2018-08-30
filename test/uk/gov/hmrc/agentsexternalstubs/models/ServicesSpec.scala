@@ -20,7 +20,7 @@ class ServicesSpec extends UnitSpec {
     "have Enrolment generator and validator" in {
       forAll(Seq("foo", "bar", "baz", "zoo", "zig", "zag", "doc", "dot", "abc", "xyz")) { seed: String =>
         Services.services.foreach { s =>
-          val enrolment = Generator.get(s.generator)(seed)
+          val enrolment = Generator.get(s.generator)(seed).get
           Enrolment.validate(enrolment).isValid shouldBe true
         }
       }
@@ -30,7 +30,7 @@ class ServicesSpec extends UnitSpec {
       forAll(Seq("foo", "bar", "baz", "zoo", "zig", "zag", "doc", "dot", "abc", "xyz")) { seed: String =>
         Services.services.foreach { s =>
           s.knownFacts.foreach(kf => {
-            val value = Generator.get(kf.valueGenerator)(seed)
+            val value = Generator.get(kf.valueGenerator)(seed).get
             kf.validate(value).isRight shouldBe true
           })
         }

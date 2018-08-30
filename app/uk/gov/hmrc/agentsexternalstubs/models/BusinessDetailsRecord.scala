@@ -106,10 +106,10 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     )
 
     val tradingNameSanitizer: Update = e =>
-      e.copy(tradingName = e.tradingName.orElse(Option(Generator.get(tradingNameGen)(e.incomeSourceId))))
+      e.copy(tradingName = e.tradingName.orElse(Generator.get(tradingNameGen)(e.incomeSourceId)))
 
     val tradingStartDateSanitizer: Update = e =>
-      e.copy(tradingStartDate = e.tradingStartDate.orElse(Option(Generator.get(tradingStartDateGen)(e.incomeSourceId))))
+      e.copy(tradingStartDate = e.tradingStartDate.orElse(Generator.get(tradingStartDateGen)(e.incomeSourceId)))
 
     val businessAddressDetailsSanitizer: Update = record =>
       record.copy(businessAddressDetails = Some(record.businessAddressDetails match {
@@ -153,10 +153,10 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     )
 
     val addressLine2Sanitizer: Update = e =>
-      e.copy(addressLine2 = e.addressLine2.orElse(Option(Generator.get(addressLine2Gen)(e.addressLine1))))
+      e.copy(addressLine2 = e.addressLine2.orElse(Generator.get(addressLine2Gen)(e.addressLine1)))
 
     val postalCodeSanitizer: Update = e =>
-      e.copy(postalCode = e.postalCode.orElse(Option(Generator.get(postalCodeGen)(e.addressLine1))))
+      e.copy(postalCode = e.postalCode.orElse(Generator.get(postalCodeGen)(e.addressLine1)))
 
     override val sanitizers: Seq[Update] = Seq(addressLine2Sanitizer, postalCodeSanitizer)
   }
@@ -183,8 +183,7 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
 
     val phoneNumberSanitizer: Update = e => e.copy(phoneNumber = e.phoneNumber.orElse(Some("01332752856")))
     val emailAddressSanitizer: Update = e =>
-      e.copy(
-        emailAddress = e.emailAddress.orElse(Option(Generator.get(Generator.emailGen)(e.phoneNumber.getOrElse("0")))))
+      e.copy(emailAddress = e.emailAddress.orElse(Generator.get(Generator.emailGen)(e.phoneNumber.getOrElse("0"))))
 
     override val sanitizers: Seq[Update] = Seq(phoneNumberSanitizer, emailAddressSanitizer)
   }

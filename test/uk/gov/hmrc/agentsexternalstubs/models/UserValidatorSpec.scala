@@ -187,7 +187,7 @@ class UserValidatorSpec extends UnitSpec {
       UserValidator.validate(User("foo", principalEnrolments = Seq(Enrolment("A", "A", "A")))).isInvalid shouldBe true
 
       forAll(Services.services) { service =>
-        val enrolment = Generator.get(service.generator)("foo")
+        val enrolment = Generator.get(service.generator)("foo").get
         UserValidator
           .validate(User("foo", principalEnrolments = Seq(enrolment)))
           .isValid shouldBe true
@@ -197,13 +197,13 @@ class UserValidatorSpec extends UnitSpec {
     "validate only when principal enrolments are valid for an individual" in {
       val user = UserGenerator.individual("foo")
       forAll(Services.individualServices) { service =>
-        val enrolment = Generator.get(service.generator)("foo")
+        val enrolment = Generator.get(service.generator)("foo").get
         UserValidator
           .validate(user.withPrincipalEnrolment(enrolment))
           .isValid shouldBe true
       }
       forAll(Services.services.filter(!_.affinityGroups.contains(User.AG.Individual))) { service =>
-        val enrolment = Generator.get(service.generator)("foo")
+        val enrolment = Generator.get(service.generator)("foo").get
         UserValidator
           .validate(user.withPrincipalEnrolment(enrolment))
           .isValid shouldBe false
@@ -213,13 +213,13 @@ class UserValidatorSpec extends UnitSpec {
     "validate only when principal enrolments are valid for an organisation" in {
       val user = UserGenerator.organisation("foo")
       forAll(Services.organisationServices) { service =>
-        val enrolment = Generator.get(service.generator)("foo")
+        val enrolment = Generator.get(service.generator)("foo").get
         UserValidator
           .validate(user.withPrincipalEnrolment(enrolment))
           .isValid shouldBe true
       }
       forAll(Services.services.filter(!_.affinityGroups.contains(User.AG.Organisation))) { service =>
-        val enrolment = Generator.get(service.generator)("foo")
+        val enrolment = Generator.get(service.generator)("foo").get
         UserValidator
           .validate(user.withPrincipalEnrolment(enrolment))
           .isValid shouldBe false
@@ -229,13 +229,13 @@ class UserValidatorSpec extends UnitSpec {
     "validate only when principal enrolments are valid for an agent" in {
       val user = UserGenerator.agent("foo")
       forAll(Services.agentServices) { service =>
-        val enrolment = Generator.get(service.generator)("foo")
+        val enrolment = Generator.get(service.generator)("foo").get
         UserValidator
           .validate(user.withPrincipalEnrolment(enrolment))
           .isValid shouldBe true
       }
       forAll(Services.services.filter(!_.affinityGroups.contains(User.AG.Agent))) { service =>
-        val enrolment = Generator.get(service.generator)("foo")
+        val enrolment = Generator.get(service.generator)("foo").get
         UserValidator
           .validate(user.withPrincipalEnrolment(enrolment))
           .isValid shouldBe false
@@ -245,19 +245,19 @@ class UserValidatorSpec extends UnitSpec {
     "validate only when delegated enrolment is of Individual or Organisation affinity" in {
       val user = UserGenerator.agent("foo")
       forAll(Services.individualServices) { service =>
-        val enrolment = Generator.get(service.generator)("foo")
+        val enrolment = Generator.get(service.generator)("foo").get
         UserValidator
           .validate(user.withDelegatedEnrolment(enrolment))
           .isValid shouldBe true
       }
       forAll(Services.organisationServices) { service =>
-        val enrolment = Generator.get(service.generator)("foo")
+        val enrolment = Generator.get(service.generator)("foo").get
         UserValidator
           .validate(user.withDelegatedEnrolment(enrolment))
           .isValid shouldBe true
       }
       forAll(Services.agentServices) { service =>
-        val enrolment = Generator.get(service.generator)("foo")
+        val enrolment = Generator.get(service.generator)("foo").get
         UserValidator
           .validate(user.withDelegatedEnrolment(enrolment))
           .isValid shouldBe false

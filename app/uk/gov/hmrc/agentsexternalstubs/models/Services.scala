@@ -6,7 +6,6 @@ import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.agentsexternalstubs.models.RegexPatterns.Matcher
 
 import scala.io.Source
-import wolfendale.scalacheck.regexp.RegexpGen
 
 case class Service(
   name: String,
@@ -56,7 +55,7 @@ object Service {
     val pattern: Option[String]
 
     lazy val validate: Matcher = RegexPatterns.validate(regex)
-    lazy val valueGenerator: Gen[String] = pattern.map(Generator.pattern).getOrElse(RegexpGen.from(regex))
+    lazy val valueGenerator: Gen[String] = pattern.map(Generator.pattern).getOrElse(Generator.regex(regex))
   }
 }
 
