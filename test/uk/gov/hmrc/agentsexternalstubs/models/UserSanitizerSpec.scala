@@ -35,7 +35,7 @@ class UserSanitizerSpec extends UnitSpec {
       UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Individual))).nino shouldBe Some(
         Nino("XC 93 60 45 D"))
       UserSanitizer.sanitize(User("boo", affinityGroup = Some(User.AG.Individual))).nino shouldBe Some(
-        Nino("ZX 20 94 80 C"))
+        Nino("AB 61 73 12 C"))
     }
 
     "remove NINO if not Individual" in {

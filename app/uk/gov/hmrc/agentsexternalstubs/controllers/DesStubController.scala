@@ -130,6 +130,14 @@ class DesStubController @Inject()(
     }(SessionRecordNotFound)
   }
 
+  def getVatCustomerInformation(vrn: String): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      RegexPatterns
+        .validVrn(vrn)
+        .fold(error => badRequestF("INVALID_VRN", error), _ => ???)
+    }(SessionRecordNotFound)
+  }
+
 }
 
 object DesStubController {

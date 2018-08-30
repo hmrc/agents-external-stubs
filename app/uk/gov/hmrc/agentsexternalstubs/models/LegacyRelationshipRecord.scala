@@ -1,5 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
+import org.scalacheck.Gen
 import play.api.libs.json.{Format, Json}
 
 case class LegacyRelationshipRecord(
@@ -19,7 +20,7 @@ case class LegacyRelationshipRecord(
   override def withId(id: Option[String]): LegacyRelationshipRecord = copy(id = id)
 }
 
-object LegacyRelationshipRecord extends Sanitizer[LegacyRelationshipRecord] {
+object LegacyRelationshipRecord extends RecordHelper[LegacyRelationshipRecord] {
 
   def agentIdKey(agentId: String): String = s"agentId:$agentId"
   def ninoKey(nino: String): String = s"nino:${nino.replace(" ", "")}"
@@ -28,7 +29,7 @@ object LegacyRelationshipRecord extends Sanitizer[LegacyRelationshipRecord] {
   import Validator._
 
   val validate: Validator[LegacyRelationshipRecord] = Validator(
-    check(_.agentId.sizeMinMaxInclusive(1, 6), "Invalid agentId"),
+    check(_.agentId.lengthMinMaxInclusive(1, 6), "Invalid agentId"),
     check(_.nino.isRight(RegexPatterns.validNinoNoSpaces), "Invalid nino"),
     check(_.utr.isRight(RegexPatterns.validUtr), "Invalid utr"),
     check(r => r.nino.isDefined || r.utr.isDefined, "Missing client identifier: nino or utr")
@@ -36,11 +37,15 @@ object LegacyRelationshipRecord extends Sanitizer[LegacyRelationshipRecord] {
 
   implicit val formats: Format[LegacyRelationshipRecord] = Json.format[LegacyRelationshipRecord]
 
-  val agentIdGen = Generator.get(Generator.pattern("999999"))
+  val agentIdGen = Generator.pattern("999999")
 
-  override def seed(s: String): LegacyRelationshipRecord = LegacyRelationshipRecord(
-    agentId = agentIdGen(s)
-  )
+  override val gen: Gen[LegacyRelationshipRecord] =
+    for {
+      agentId <- agentIdGen
+    } yield
+      LegacyRelationshipRecord(
+        agentId = agentId
+      )
 
   val ninoSanitizer: Update = e => e.copy(nino = e.nino.orElse(Some(Generator.ninoNoSpaces(e.agentId).value)))
   val utrSanitizer: Update = e => e.copy(utr = e.utr.orElse(Some(Generator.utr(e.agentId).value)))

@@ -1,12 +1,15 @@
 package uk.gov.hmrc.agentsexternalstubs.models
+import org.scalacheck.Gen
 
-trait Sanitizer[T] {
+trait RecordHelper[T] {
 
   type Update = T => T
 
+  val gen: Gen[T]
+
   val sanitizers: Seq[Update]
 
-  def seed(s: String): T
+  final def seed(s: String): T = Generator.get(gen)(s)
 
   final def sanitize(entity: T): T = sanitizers.foldLeft(entity)((u, fx) => fx(u))
 

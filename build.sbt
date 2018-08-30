@@ -36,7 +36,8 @@ def testDeps(scope: String) = Seq(
   "org.mockito" % "mockito-core" % "2.19.0" % scope,
   "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.1" % scope,
   "uk.gov.hmrc" %% "reactivemongo-test" % "3.1.0" % scope,
-  "com.github.tomakehurst" % "wiremock" % "2.18.0" % scope
+  "com.github.tomakehurst" % "wiremock" % "2.18.0" % scope,
+  "com.github.pathikrit" %% "better-files" % "3.6.0" % scope
 )
 
 lazy val root = (project in file("."))

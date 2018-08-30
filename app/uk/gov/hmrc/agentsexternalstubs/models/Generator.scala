@@ -21,11 +21,13 @@ trait Generator extends Names with Temporal with Companies with Addresses {
 
   def toJodaDate(date: java.time.LocalDate): org.joda.time.LocalDate = org.joda.time.LocalDate.parse(date.toString)
 
-  val ninoWithSpacesGen: Gen[String] = Enumerable.instances.ninoEnum.gen
+  val ninoWithSpacesGen: Gen[String] =
+    Enumerable.instances.ninoEnum.gen.map(n => if (Nino.isValid(n)) n else "AB" + n.drop(2))
   def ninoWithSpaces(seed: String): Nino =
     ninoWithSpacesGen.seeded(seed).map(n => if (Nino.isValid(n)) Nino.apply(n) else ninoWithSpaces("_" + seed)).get
 
-  val ninoNoSpacesGen: Gen[String] = Enumerable.instances.ninoEnumNoSpaces.gen
+  val ninoNoSpacesGen: Gen[String] =
+    Enumerable.instances.ninoEnumNoSpaces.gen.map(n => if (Nino.isValid(n)) n else "AB" + n.drop(2))
   def ninoNoSpaces(seed: String): Nino =
     ninoNoSpacesGen
       .seeded(seed)
@@ -38,12 +40,27 @@ trait Generator extends Names with Temporal with Companies with Addresses {
   val utrGen: Gen[String] = pattern"9999999999".gen
   def utr(seed: String): String = utrGen.seeded(seed).get
 
+  def stringN(size: Int, charGen: Gen[Char] = Gen.alphaNumChar): Gen[String] =
+    Gen.listOfN(size, charGen).map(l => String.valueOf(l.toArray))
+
+  def stringMaxN(max: Int, charGen: Gen[Char] = Gen.alphaNumChar): Gen[String] =
+    for {
+      size   <- Gen.chooseNum(1, max)
+      string <- stringN(size, charGen)
+    } yield string
+
+  def stringMinMaxN(min: Int, max: Int, charGen: Gen[Char] = Gen.alphaNumChar): Gen[String] =
+    for {
+      size   <- Gen.chooseNum(min, max)
+      string <- stringN(size, charGen)
+    } yield string
+
   val emailGen: Gen[String] = for {
     domain       <- Gen.oneOf(".com", ".co.uk", ".uk", ".eu", ".me")
     size         <- Gen.chooseNum[Int](10, 132 - domain.length)
     usernameSize <- Gen.chooseNum[Int](1, size - 3)
-    username     <- Gen.listOfN(usernameSize, Gen.alphaNumChar).map(l => String.valueOf(l.toArray))
-    host         <- Gen.listOfN(size - usernameSize - 1, Gen.alphaNumChar).map(l => String.valueOf(l.toArray))
+    username     <- stringMaxN(usernameSize)
+    host         <- stringMaxN(size - usernameSize - 1)
   } yield username + "@" + host + domain
 
   val `date_dd/mm/yy` = DateTimeFormatter.ofPattern("dd/MM/yy")

@@ -50,17 +50,25 @@ object Validator {
         .getOrElse(if (isValidIfNone) Valid(()) else Invalid(List("Some sequence expected but got None")))
 
   implicit class StringMatchers(val value: String) extends AnyVal {
-    def sizeMinMaxInclusive(min: Int, max: Int): Boolean = value != null && value.length >= min && value.length <= max
+    def lengthMinMaxInclusive(min: Int, max: Int): Boolean = value != null && value.length >= min && value.length <= max
+    def lengthMin(min: Int): Boolean = value != null && value.length >= min
+    def lengthMax(max: Int): Boolean = value != null && value.length <= max
     def isRight(test: String => Either[String, _]): Boolean = test(value).isRight
     def isTrue(test: String => Boolean): Boolean = test(value)
+    def isOneOf(seq: Seq[String]): Boolean = seq.contains(value)
   }
 
   implicit class OptionalStringMatchers(val value: Option[String]) extends AnyVal {
-    def sizeMinMaxInclusive(min: Int, max: Int): Boolean =
+    def lengthMinMaxInclusive(min: Int, max: Int): Boolean =
       value.forall(v => v != null && v.length >= min && v.length <= max)
+    def lengthMin(min: Int): Boolean =
+      value.forall(v => v != null && v.length >= min)
+    def lengthMax(max: Int): Boolean =
+      value.forall(v => v != null && v.length <= max)
     def isRight(test: String => Either[String, _]): Boolean = value.forall(test(_).isRight)
     def isTrue(test: String => Boolean): Boolean = value.forall(test(_))
     def matches(regex: String): Boolean = value.forall(_.matches(regex))
+    def isOneOf(seq: Seq[String]): Boolean = value.forall(seq.contains)
   }
 
   object Implicits {

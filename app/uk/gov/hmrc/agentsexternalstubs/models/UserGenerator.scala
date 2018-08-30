@@ -18,6 +18,7 @@ object UserGenerator extends Generator {
 
   def nameForAgent(seed: String): String = nameForAgent(seed, seed)
 
+  val nameForAgentGen: Gen[String] = for { f <- forename(); s <- surname } yield s"$f $s"
   def nameForAgent(userId: String, groupId: String): String =
     s"${forename().seeded(userId).getOrElse("Agent")} ${surname.seeded(groupId).getOrElse("Cooper")}"
 

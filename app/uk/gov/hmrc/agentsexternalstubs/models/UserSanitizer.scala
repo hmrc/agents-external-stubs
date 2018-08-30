@@ -1,8 +1,10 @@
 package uk.gov.hmrc.agentsexternalstubs.models
+import org.scalacheck.Gen
 
-object UserSanitizer extends Sanitizer[User] {
+object UserSanitizer extends RecordHelper[User] {
 
-  override def seed(s: String): User = User(userId = s.hashCode.toHexString)
+  override val gen: Gen[User] =
+    for (userId <- Gen.uuid.map(_.toString)) yield User(userId = userId)
 
   private val ensureUserHaveName: Update = user =>
     if (user.name.isEmpty)

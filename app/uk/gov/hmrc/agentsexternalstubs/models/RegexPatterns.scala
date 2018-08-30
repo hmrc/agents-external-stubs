@@ -14,6 +14,7 @@ object RegexPatterns {
   val validArn: Matcher = validate("^[A-Z]ARN[0-9]{7}$".r)
   val validUtr: Matcher = validate("^[0-9]{10}$".r)
   val validMtdbsa: Matcher = validate("^[A-Z0-9]{1,15}$".r)
+  val validVrn: Matcher = validate("^[0-9]{1,9}$".r)
 
   val validDate: Matcher =
     validate(

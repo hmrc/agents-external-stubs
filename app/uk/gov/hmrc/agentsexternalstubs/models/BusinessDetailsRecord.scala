@@ -1,6 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.joda.time.LocalDate
+import org.scalacheck.Gen
 import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.BusinessData
 
@@ -19,7 +20,7 @@ case class BusinessDetailsRecord(
   override def withId(id: Option[String]): BusinessDetailsRecord = copy(id = id)
 }
 
-object BusinessDetailsRecord extends Sanitizer[BusinessDetailsRecord] {
+object BusinessDetailsRecord extends RecordHelper[BusinessDetailsRecord] {
 
   def ninoKey(nino: String): String = s"nino:${nino.replace(" ", "")}"
   def mtdbsaKey(mtdbsa: String): String = s"mtdbsa:${mtdbsa.replace(" ", "")}"
@@ -56,44 +57,45 @@ object BusinessDetailsRecord extends Sanitizer[BusinessDetailsRecord] {
   import Validator._
 
   val validateBusinessAddress: Validator[BusinessAddress] = Validator(
-    check(_.addressLine1.sizeMinMaxInclusive(1, 35), "Invalid addressLine1"),
-    check(_.addressLine2.sizeMinMaxInclusive(1, 35), "Invalid addressLine2"),
-    check(_.addressLine3.sizeMinMaxInclusive(1, 35), "Invalid addressLine3"),
-    check(_.addressLine4.sizeMinMaxInclusive(1, 35), "Invalid addressLine4"),
-    check(_.postalCode.sizeMinMaxInclusive(1, 10), "Invalid postalCode"),
+    check(_.addressLine1.lengthMinMaxInclusive(1, 35), "Invalid addressLine1"),
+    check(_.addressLine2.lengthMinMaxInclusive(1, 35), "Invalid addressLine2"),
+    check(_.addressLine3.lengthMinMaxInclusive(1, 35), "Invalid addressLine3"),
+    check(_.addressLine4.lengthMinMaxInclusive(1, 35), "Invalid addressLine4"),
+    check(_.postalCode.lengthMinMaxInclusive(1, 10), "Invalid postalCode"),
     check(_.countryCode.matches("^[A-Z]{2}$"), "Invalid countryCode")
   )
 
   val validateBusinessContact: Validator[BusinessContact] = Validator(
-    check(_.phoneNumber.sizeMinMaxInclusive(1, 24), "Invalid phoneNumber"),
+    check(_.phoneNumber.lengthMinMaxInclusive(1, 24), "Invalid phoneNumber"),
     check(_.phoneNumber.matches("^[A-Z0-9 )/(*#-]+$"), "Invalid phoneNumber"),
     check(_.mobileNumber.matches("^[A-Z0-9 )/(*#-]+$"), "Invalid mobileNumber"),
     check(_.faxNumber.matches("^[A-Z0-9 )/(*#-]+$"), "Invalid faxNumber"),
-    check(_.emailAddress.sizeMinMaxInclusive(3, 132), "Invalid emailAddress")
+    check(_.emailAddress.lengthMinMaxInclusive(3, 132), "Invalid emailAddress")
   )
 
   val validateBusinessData: Validator[BusinessData] = Validator(
-    check(_.incomeSourceId.sizeMinMaxInclusive(15, 16), "Invalid incomeSourceId"),
-    check(_.tradingName.sizeMinMaxInclusive(1, 105), "Invalid tradingName"),
+    check(_.incomeSourceId.lengthMinMaxInclusive(15, 16), "Invalid incomeSourceId"),
+    check(_.tradingName.lengthMinMaxInclusive(1, 105), "Invalid tradingName"),
     checkObjectIfSome(_.businessAddressDetails, validateBusinessAddress),
     checkObjectIfSome(_.businessContactDetails, validateBusinessContact),
     check(_.cashOrAccruals.isTrue(v => v == "cash" || v == "accruals"), "Invalid cashOrAccruals")
   )
 
   val validate: Validator[BusinessDetailsRecord] = Validator(
-    check(_.safeId.sizeMinMaxInclusive(1, 16), "Invalid safeId"),
+    check(_.safeId.lengthMinMaxInclusive(1, 16), "Invalid safeId"),
     check(_.nino.isRight(RegexPatterns.validNinoNoSpaces), "Invalid nino"),
     check(_.mtdbsa.isRight(RegexPatterns.validMtdbsa), "Invalid mtdbsa"),
     checkEachIfSome(_.businessData, validateBusinessData)
   )
 
-  val safeIdGen = Generator.get(Generator.pattern("999999999999999"))
+  val safeIdGen = Generator.pattern("999999999999999")
 
-  override def seed(s: String): BusinessDetailsRecord = BusinessDetailsRecord(
-    safeId = safeIdGen(s),
-    nino = Generator.ninoNoSpaces(s).value,
-    mtdbsa = Generator.mtdbsa(s).value
-  )
+  override val gen: Gen[BusinessDetailsRecord] =
+    for {
+      safeId <- safeIdGen
+      nino   <- Generator.ninoNoSpacesGen
+      mtdbsa <- Generator.mtdbsaGen
+    } yield BusinessDetailsRecord(safeId, nino, mtdbsa)
 
   val businessDataSanitizer: Update = record =>
     record.copy(businessData = Some(record.businessData match {
@@ -103,23 +105,28 @@ object BusinessDetailsRecord extends Sanitizer[BusinessDetailsRecord] {
 
   override val sanitizers: Seq[Update] = Seq(businessDataSanitizer)
 
-  object BusinessData extends Sanitizer[BusinessData] {
+  object BusinessData extends RecordHelper[BusinessData] {
 
-    val incomeSourceIdGen = Generator.get(Generator.pattern("999999999999999"))
-    val tradingNameGen = Generator.get(Generator.company)
-    val tradingStartDateGen = Generator.get(Generator.date(1970, 2018).map(Generator.toJodaDate))
+    val incomeSourceIdGen = Generator.pattern("999999999999999")
+    val tradingNameGen = Generator.company
+    val tradingStartDateGen = Generator.date(1970, 2018).map(Generator.toJodaDate)
 
-    override def seed(s: String): BusinessData = BusinessData(
-      incomeSourceId = incomeSourceIdGen(s),
-      accountingPeriodStartDate = LocalDate.parse("2001-01-01"),
-      accountingPeriodEndDate = LocalDate.parse("2001-01-01")
-    )
+    override val gen: Gen[BusinessData] =
+      for {
+        incomeSourceId            <- incomeSourceIdGen
+        accountingPeriodStartDate <- Gen.const(LocalDate.parse("2001-01-01"))
+        accountingPeriodEndDate   <- Gen.const(LocalDate.parse("2001-01-01"))
+      } yield
+        BusinessData(
+          incomeSourceId = incomeSourceId,
+          accountingPeriodStartDate = accountingPeriodStartDate,
+          accountingPeriodEndDate = accountingPeriodEndDate)
 
     val tradingNameSanitizer: Update = e =>
-      e.copy(tradingName = e.tradingName.orElse(Option(tradingNameGen(e.incomeSourceId))))
+      e.copy(tradingName = e.tradingName.orElse(Option(Generator.get(tradingNameGen)(e.incomeSourceId))))
 
     val tradingStartDateSanitizer: Update = e =>
-      e.copy(tradingStartDate = e.tradingStartDate.orElse(Option(tradingStartDateGen(e.incomeSourceId))))
+      e.copy(tradingStartDate = e.tradingStartDate.orElse(Option(Generator.get(tradingStartDateGen)(e.incomeSourceId))))
 
     val businessAddressDetailsSanitizer: Update = record =>
       record.copy(businessAddressDetails = Some(record.businessAddressDetails match {
@@ -141,33 +148,38 @@ object BusinessDetailsRecord extends Sanitizer[BusinessDetailsRecord] {
         businessContactDetailsSanitizer)
   }
 
-  object BusinessAddress extends Sanitizer[BusinessAddress] {
+  object BusinessAddress extends RecordHelper[BusinessAddress] {
 
-    val addressLine1Gen = Generator.get(Generator.ukAddress.map(_.head))
-    val addressLine2Gen = Generator.get(Generator.ukAddress.map(_(1)))
-    val postalCodeGen = Generator.get(Generator.ukAddress.map(_(2)))
+    val addressLine1Gen = Generator.ukAddress.map(_.head)
+    val addressLine2Gen = Generator.ukAddress.map(_(1))
+    val postalCodeGen = Generator.ukAddress.map(_(2))
 
-    override def seed(s: String): BusinessAddress = BusinessAddress(
-      addressLine1 = addressLine1Gen(s),
-      countryCode = "GB"
-    )
+    override val gen: Gen[BusinessAddress] =
+      for {
+        addressLine1 <- addressLine1Gen
+        countryCode  <- Gen.const("GB")
+      } yield BusinessAddress(addressLine1 = addressLine1, countryCode = countryCode)
 
     val addressLine2Sanitizer: Update = e =>
-      e.copy(addressLine2 = e.addressLine2.orElse(Option(addressLine2Gen(e.addressLine1))))
+      e.copy(addressLine2 = e.addressLine2.orElse(Option(Generator.get(addressLine2Gen)(e.addressLine1))))
 
     val postalCodeSanitizer: Update = e =>
-      e.copy(postalCode = e.postalCode.orElse(Option(postalCodeGen(e.addressLine1))))
+      e.copy(postalCode = e.postalCode.orElse(Option(Generator.get(postalCodeGen)(e.addressLine1))))
 
     override val sanitizers: Seq[Update] = Seq(addressLine2Sanitizer, postalCodeSanitizer)
   }
 
-  object BusinessContact extends Sanitizer[BusinessContact] {
+  object BusinessContact extends RecordHelper[BusinessContact] {
 
-    val phoneNumberGen = Generator.get(Generator.ukPhoneNumber)
+    val phoneNumberGen = Generator.ukPhoneNumber
 
-    override def seed(s: String): BusinessContact = BusinessContact(
-      phoneNumber = Option(phoneNumberGen(s))
-    )
+    override val gen: Gen[BusinessContact] =
+      for {
+        phoneNumber <- Gen.option(phoneNumberGen)
+      } yield
+        BusinessContact(
+          phoneNumber = phoneNumber
+        )
 
     val phoneNumberSanitizer: Update = e => e.copy(phoneNumber = e.phoneNumber.orElse(Some("01332752856")))
     val emailAddressSanitizer: Update = e =>

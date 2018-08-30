@@ -1,6 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.joda.time.LocalDate
+import org.scalacheck.Gen
 import org.scalatest.prop.PropertyChecks
 import play.api.libs.json.Json
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.{BusinessContact, BusinessData}
@@ -35,7 +36,7 @@ class RecordSpec extends UnitSpec with PropertyChecks {
 
   "BusinessDetailsRecord" should {
     "generate valid entity from seed" in {
-      forAll { seed: String =>
+      forAll(Gen.alphaNumStr.suchThat(_.nonEmpty)) { seed: String =>
         val entity = BusinessDetailsRecord.generate(seed)
         BusinessDetailsRecord.validate(entity).isValid shouldBe true
         entity.businessData shouldBe defined
@@ -72,7 +73,7 @@ class RecordSpec extends UnitSpec with PropertyChecks {
 
   "LegacyAgentRecord" should {
     "generate valid entity from seed" in {
-      forAll { seed: String =>
+      forAll(Gen.alphaNumStr.suchThat(_.nonEmpty)) { seed: String =>
         val entity = LegacyAgentRecord.generate(seed)
         LegacyAgentRecord.validate(entity).isValid shouldBe true
       }
@@ -81,9 +82,18 @@ class RecordSpec extends UnitSpec with PropertyChecks {
 
   "LegacyRelationshipRecord" should {
     "generate valid entity from seed" in {
-      forAll { seed: String =>
+      forAll(Gen.alphaNumStr.suchThat(_.nonEmpty)) { seed: String =>
         val entity = LegacyRelationshipRecord.generate(seed)
         LegacyRelationshipRecord.validate(entity).isValid shouldBe true
+      }
+    }
+  }
+
+  "VatCustomerInformationRecord" should {
+    "generate valid entity from seed" in {
+      forAll(Gen.alphaNumStr.suchThat(_.nonEmpty)) { seed: String =>
+        val entity = VatCustomerInformationRecord.generate(seed)
+        VatCustomerInformationRecord.validate(entity).isValid shouldBe true
       }
     }
   }
