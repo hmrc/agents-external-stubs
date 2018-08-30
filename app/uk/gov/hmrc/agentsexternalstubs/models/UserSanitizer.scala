@@ -1,7 +1,8 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 import org.scalacheck.Gen
+import uk.gov.hmrc.agentsexternalstubs.models.Validator.Validator
 
-object UserSanitizer extends RecordHelper[User] {
+object UserSanitizer extends RecordUtils[User] {
 
   override val gen: Gen[User] =
     for (userId <- Gen.uuid.map(_.toString)) yield User(userId = userId)
@@ -140,5 +141,7 @@ object UserSanitizer extends RecordHelper[User] {
       ensurePrincipalEnrolmentsHaveIdentifiers,
       ensureDelegatedEnrolmentsHaveIdentifiers
     )
+
+  override val validate: Validator[User] = UserValidator.validate
 
 }

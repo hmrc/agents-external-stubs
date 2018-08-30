@@ -11,9 +11,9 @@ object RecordClassGeneratorFromJsonSchema extends App {
   val source = args(0)
   val sink = args(1)
   val className = args(2)
-  require(source != null && source.isEmpty && File(source).exists)
-  require(sink != null && sink.isEmpty)
-  require(className != null && className.isEmpty)
+  require(source != null && !source.isEmpty)
+  require(sink != null && !sink.isEmpty)
+  require(className != null && !className.isEmpty)
 
   val schema = Json.parse(Source.fromFile(source, "utf-8").mkString).as[JsObject]
   val definition = JsonSchema.read(schema)
@@ -275,13 +275,14 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer {
            |""".stripMargin
        else ")"}
        |
-       |object ${typeDef.name} extends RecordHelper[${typeDef.name}] {
+       |object ${typeDef.name} extends RecordUtils[${typeDef.name}] {
        |  ${if (isTopLevel)
-         """
-           |  implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
-           |  val booleanGen = Gen.oneOf(true,false)
-           |
-           |  import Validator._
+         s"""
+            |  implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
+            |  implicit val recordType: RecordMetaData[${typeDef.name}] = RecordMetaData[${typeDef.name}](this)
+            |  val booleanGen = Gen.oneOf(true,false)
+            |
+            |  import Validator._
          """.stripMargin
        else ""}
        |  override val gen: Gen[${typeDef.name}] = for {
@@ -291,7 +292,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer {
          .filter(!_.definition.isRef || isTopLevel)
          .map(t => generateTypeDefinition(t, isTopLevel = false))
          .mkString("\n")}
-       |  val validate: Validator[${typeDef.name}] = Validator(
+       |  override val validate: Validator[${typeDef.name}] = Validator(
        |  ${generateFieldValidators(typeDef.definition)}
        |  )
        |
@@ -363,11 +364,11 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer {
   private def generateFieldValidators(definition: ObjectDefinition): String =
     definition.properties
       .take(22)
-      .map(valueValidator)
+      .map(prop => valueValidator(prop, definition.required.contains(prop.name)))
       .collect { case Some(validator) => s"""$validator""".stripMargin }
       .mkString(",\n  ")
 
-  private def valueValidator(property: Definition): Option[String] =
+  private def valueValidator(property: Definition, mandatory: Boolean): Option[String] =
     property match {
       case s: StringDefinition =>
         if (s.enum.isDefined) Some(s"""  check(_.${property.name}.isOneOf(Seq(${s.enum.get
@@ -388,8 +389,10 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer {
       case n: NumberDefinition  => None
       case b: BooleanDefinition => None
       case a: ArrayDefinition   => None
-      case o: ObjectDefinition  => None
-      case o: OneOfDefinition   => None
+      case o: ObjectDefinition =>
+        if (mandatory) Some(s""" checkObject(_.${property.name}, ${property.typeName}.validate)""")
+        else Some(s""" checkObjectIfSome(_.${property.name}, ${property.typeName}.validate)""")
+      case o: OneOfDefinition => None
     }
 
 }

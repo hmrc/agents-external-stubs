@@ -14,28 +14,37 @@ import wolfendale.scalacheck.regexp.RegexpGen
   */
 // schema path: #
 case class VatCustomerInformationRecord(
+  vrn: String,
   approvedInformation: Option[ApprovedInformation] = None,
   inFlightInformation: Option[InFlightInformation] = None,
   id: Option[String] = None
 ) extends Record {
 
-  override def uniqueKey: Option[String] = None
-  override def lookupKeys: Seq[String] = Seq()
+  override def uniqueKey: Option[String] = Some(vrnKey(vrn))
+  override def lookupKeys: Seq[String] = Seq(vrnKey(vrn))
   override def withId(id: Option[String]): Record = copy(id = id)
 }
 
-object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationRecord] {
+object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRecord] {
+
+  def vrnKey(vrn: String): String = s"vrn:$vrn"
 
   implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
+  implicit val recordType: RecordMetaData[VatCustomerInformationRecord] =
+    RecordMetaData[VatCustomerInformationRecord](this)
   val booleanGen = Gen.oneOf(true, false)
 
   import Validator._
 
   override val gen: Gen[VatCustomerInformationRecord] = for {
+    vrn                 <- RegexpGen.from("""^[0-9A-Za-z]{1,6}$""")
     approvedInformation <- Gen.option(ApprovedInformation.gen)
     inFlightInformation <- Gen.option(InFlightInformation.gen)
   } yield
-    VatCustomerInformationRecord(approvedInformation = approvedInformation, inFlightInformation = inFlightInformation)
+    VatCustomerInformationRecord(
+      vrn = vrn,
+      approvedInformation = approvedInformation,
+      inFlightInformation = inFlightInformation)
 
 // schema path: #/definitions/approvedInformationType
   case class ApprovedInformation(
@@ -49,7 +58,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
     returnPeriod: Option[Period] = None,
     groupOrPartnerMbrs: Option[Seq[GroupOrPartner]] = None)
 
-  object ApprovedInformation extends RecordHelper[ApprovedInformation] {
+  object ApprovedInformation extends RecordUtils[ApprovedInformation] {
 
     override val gen: Gen[ApprovedInformation] = for {
       customerDetails              <- CustomerDetails.gen
@@ -74,8 +83,16 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
         groupOrPartnerMbrs = groupOrPartnerMbrs
       )
 
-    val validate: Validator[ApprovedInformation] = Validator(
-      )
+    override val validate: Validator[ApprovedInformation] = Validator(
+      checkObject(_.customerDetails, CustomerDetails.validate),
+      checkObject(_.PPOB, PPOB.validate),
+      checkObjectIfSome(_.correspondenceContactDetails, CorrespondenceContactDetails.validate),
+      checkObjectIfSome(_.bankDetails, BankDetails.validate),
+      checkObjectIfSome(_.businessActivities, BusinessActivities.validate),
+      checkObjectIfSome(_.flatRateScheme, FlatRateScheme.validate),
+      checkObjectIfSome(_.deregistration, Deregistration.validate),
+      checkObjectIfSome(_.returnPeriod, Period.validate)
+    )
 
     override val sanitizers: Seq[Update] = Seq()
 
@@ -92,7 +109,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
     buildingSocietyNumber: Option[String] = None,
     bankBuildSocietyName: Option[String] = None)
 
-  object BankDetails extends RecordHelper[BankDetails] {
+  object BankDetails extends RecordUtils[BankDetails] {
 
     override val gen: Gen[BankDetails] = for {
       iban                  <- Gen.option(Generator.stringMinMaxN(1, 34))
@@ -113,7 +130,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
         bankBuildSocietyName = bankBuildSocietyName
       )
 
-    val validate: Validator[BankDetails] = Validator(
+    override val validate: Validator[BankDetails] = Validator(
       check(_.IBAN.lengthMinMaxInclusive(1, 34), "Invalid length of IBAN, should be between 1 and 34 inclusive"),
       check(_.BIC.lengthMinMaxInclusive(1, 11), "Invalid length of BIC, should be between 1 and 11 inclusive"),
       check(
@@ -143,7 +160,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
     mainCode3: Option[String] = None,
     mainCode4: Option[String] = None)
 
-  object BusinessActivities extends RecordHelper[BusinessActivities] {
+  object BusinessActivities extends RecordUtils[BusinessActivities] {
 
     override val gen: Gen[BusinessActivities] = for {
       primaryMainCode <- RegexpGen.from("""^[0-9]{5}$""")
@@ -157,7 +174,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
         mainCode3 = mainCode3,
         mainCode4 = mainCode4)
 
-    val validate: Validator[BusinessActivities] = Validator(
+    override val validate: Validator[BusinessActivities] = Validator(
       check(
         _.primaryMainCode.matches("""^[0-9]{5}$"""),
         """Invalid primaryMainCode, does not matches regex ^[0-9]{5}$"""),
@@ -183,7 +200,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
     returnPeriods: Boolean,
     groupOrPartners: Boolean)
 
-  object ChangeIndicators extends RecordHelper[ChangeIndicators] {
+  object ChangeIndicators extends RecordUtils[ChangeIndicators] {
 
     override val gen: Gen[ChangeIndicators] = for {
       customerDetails       <- booleanGen
@@ -208,7 +225,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
         groupOrPartners = groupOrPartners
       )
 
-    val validate: Validator[ChangeIndicators] = Validator(
+    override val validate: Validator[ChangeIndicators] = Validator(
       )
 
     override val sanitizers: Seq[Update] = Seq()
@@ -223,7 +240,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
     faxNumber: Option[String] = None,
     emailAddress: Option[String] = None)
 
-  object ContactDetails extends RecordHelper[ContactDetails] {
+  object ContactDetails extends RecordUtils[ContactDetails] {
 
     override val gen: Gen[ContactDetails] = for {
       primaryPhoneNumber <- Gen.option(RegexpGen.from("""^[A-Z0-9 )/(*#-]+$"""))
@@ -237,7 +254,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
         faxNumber = faxNumber,
         emailAddress = emailAddress)
 
-    val validate: Validator[ContactDetails] = Validator(
+    override val validate: Validator[ContactDetails] = Validator(
       check(
         _.primaryPhoneNumber.matches("""^[A-Z0-9 )/(*#-]+$"""),
         """Invalid primaryPhoneNumber, does not matches regex ^[A-Z0-9 )/(*#-]+$"""),
@@ -263,7 +280,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
     RLS: Option[String] = None,
     contactDetails: Option[ContactDetails] = None)
 
-  object CorrespondenceContactDetails extends RecordHelper[CorrespondenceContactDetails] {
+  object CorrespondenceContactDetails extends RecordUtils[CorrespondenceContactDetails] {
 
     override val gen: Gen[CorrespondenceContactDetails] = for {
       address        <- Address.gen
@@ -271,10 +288,11 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
       contactDetails <- Gen.option(ContactDetails.gen)
     } yield CorrespondenceContactDetails(address = address, RLS = rls, contactDetails = contactDetails)
 
-    val validate: Validator[CorrespondenceContactDetails] = Validator(
+    override val validate: Validator[CorrespondenceContactDetails] = Validator(
       check(
         _.RLS.isOneOf(Seq("0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009")),
-        "Invalid RLS, does not match allowed values")
+        "Invalid RLS, does not match allowed values"),
+      checkObjectIfSome(_.contactDetails, ContactDetails.validate)
     )
 
     override val sanitizers: Seq[Update] = Seq()
@@ -293,7 +311,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
     effectiveRegistrationDate: Option[String] = None,
     businessStartDate: Option[String] = None)
 
-  object CustomerDetails extends RecordHelper[CustomerDetails] {
+  object CustomerDetails extends RecordUtils[CustomerDetails] {
 
     override val gen: Gen[CustomerDetails] = for {
       organisationName <- Gen.option(Generator.stringMinMaxN(1, 105))
@@ -332,10 +350,11 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
         businessStartDate = businessStartDate
       )
 
-    val validate: Validator[CustomerDetails] = Validator(
+    override val validate: Validator[CustomerDetails] = Validator(
       check(
         _.organisationName.lengthMinMaxInclusive(1, 105),
         "Invalid length of organisationName, should be between 1 and 105 inclusive"),
+      checkObjectIfSome(_.individual, IndividualName.validate),
       check(
         _.dateOfBirth.matches("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""),
         """Invalid dateOfBirth, does not matches regex ^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""
@@ -386,7 +405,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
     effectDateOfCancellation: Option[String] = None,
     lastReturnDueDate: Option[String] = None)
 
-  object Deregistration extends RecordHelper[Deregistration] {
+  object Deregistration extends RecordUtils[Deregistration] {
 
     override val gen: Gen[Deregistration] = for {
       deregistrationReason <- Gen.option(
@@ -411,7 +430,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
         effectDateOfCancellation = effectDateOfCancellation,
         lastReturnDueDate = lastReturnDueDate)
 
-    val validate: Validator[Deregistration] = Validator(
+    override val validate: Validator[Deregistration] = Validator(
       check(
         _.deregistrationReason.isOneOf(
           Seq("0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009", "0010", "0011")),
@@ -439,7 +458,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
     startDate: Option[String] = None,
     limitedCostTrader: Option[Boolean] = None)
 
-  object FlatRateScheme extends RecordHelper[FlatRateScheme] {
+  object FlatRateScheme extends RecordUtils[FlatRateScheme] {
 
     override val gen: Gen[FlatRateScheme] = for {
       frscategory <- Gen.option(
@@ -509,7 +528,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
         startDate = startDate,
         limitedCostTrader = limitedCostTrader)
 
-    val validate: Validator[FlatRateScheme] = Validator(
+    override val validate: Validator[FlatRateScheme] = Validator(
       check(
         _.FRSCategory.isOneOf(
           Seq(
@@ -584,14 +603,14 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
 // schema path: #/definitions/formInformationType
   case class FormInformation(formBundle: String, dateReceived: String)
 
-  object FormInformation extends RecordHelper[FormInformation] {
+  object FormInformation extends RecordUtils[FormInformation] {
 
     override val gen: Gen[FormInformation] = for {
       formBundle   <- RegexpGen.from("""^[0-9]{12}$""")
       dateReceived <- RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$""")
     } yield FormInformation(formBundle = formBundle, dateReceived = dateReceived)
 
-    val validate: Validator[FormInformation] = Validator(
+    override val validate: Validator[FormInformation] = Validator(
       check(_.formBundle.matches("""^[0-9]{12}$"""), """Invalid formBundle, does not matches regex ^[0-9]{12}$"""),
       check(
         _.dateReceived.matches("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""),
@@ -611,7 +630,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
     individual: Option[IndividualName] = None,
     SAP_Number: String)
 
-  object GroupOrPartner extends RecordHelper[GroupOrPartner] {
+  object GroupOrPartner extends RecordUtils[GroupOrPartner] {
 
     override val gen: Gen[GroupOrPartner] = for {
       typeOfRelationship <- Gen.oneOf(Seq("01", "02", "03", "04"))
@@ -625,13 +644,14 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
         individual = individual,
         SAP_Number = sap_number)
 
-    val validate: Validator[GroupOrPartner] = Validator(
+    override val validate: Validator[GroupOrPartner] = Validator(
       check(
         _.typeOfRelationship.isOneOf(Seq("01", "02", "03", "04")),
         "Invalid typeOfRelationship, does not match allowed values"),
       check(
         _.organisationName.lengthMinMaxInclusive(1, 105),
         "Invalid length of organisationName, should be between 1 and 105 inclusive"),
+      checkObjectIfSome(_.individual, IndividualName.validate),
       check(_.SAP_Number.matches("""^[0-9]{42}$"""), """Invalid SAP_Number, does not matches regex ^[0-9]{42}$""")
     )
 
@@ -651,7 +671,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
     buildingSocietyNumber: Option[String] = None,
     bankBuildSocietyName: Option[String] = None)
 
-  object InFlightBankDetails extends RecordHelper[InFlightBankDetails] {
+  object InFlightBankDetails extends RecordUtils[InFlightBankDetails] {
 
     override val gen: Gen[InFlightBankDetails] = for {
       formInformation       <- FormInformation.gen
@@ -674,7 +694,8 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
         bankBuildSocietyName = bankBuildSocietyName
       )
 
-    val validate: Validator[InFlightBankDetails] = Validator(
+    override val validate: Validator[InFlightBankDetails] = Validator(
+      checkObject(_.formInformation, FormInformation.validate),
       check(_.IBAN.lengthMinMaxInclusive(1, 34), "Invalid length of IBAN, should be between 1 and 34 inclusive"),
       check(_.BIC.lengthMinMaxInclusive(1, 11), "Invalid length of BIC, should be between 1 and 11 inclusive"),
       check(
@@ -705,7 +726,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
     mainCode3: Option[String] = None,
     mainCode4: Option[String] = None)
 
-  object InFlightBusinessActivities extends RecordHelper[InFlightBusinessActivities] {
+  object InFlightBusinessActivities extends RecordUtils[InFlightBusinessActivities] {
 
     override val gen: Gen[InFlightBusinessActivities] = for {
       formInformation <- FormInformation.gen
@@ -721,7 +742,8 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
         mainCode3 = mainCode3,
         mainCode4 = mainCode4)
 
-    val validate: Validator[InFlightBusinessActivities] = Validator(
+    override val validate: Validator[InFlightBusinessActivities] = Validator(
+      checkObject(_.formInformation, FormInformation.validate),
       check(
         _.primaryMainCode.matches("""^[0-9]{5}$"""),
         """Invalid primaryMainCode, does not matches regex ^[0-9]{5}$"""),
@@ -741,7 +763,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
     address: Option[Address] = None,
     contactDetails: Option[ContactDetails] = None)
 
-  object InFlightCorrespondenceContactDetails extends RecordHelper[InFlightCorrespondenceContactDetails] {
+  object InFlightCorrespondenceContactDetails extends RecordUtils[InFlightCorrespondenceContactDetails] {
 
     override val gen: Gen[InFlightCorrespondenceContactDetails] = for {
       formInformation <- FormInformation.gen
@@ -753,8 +775,10 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
         address = address,
         contactDetails = contactDetails)
 
-    val validate: Validator[InFlightCorrespondenceContactDetails] = Validator(
-      )
+    override val validate: Validator[InFlightCorrespondenceContactDetails] = Validator(
+      checkObject(_.formInformation, FormInformation.validate),
+      checkObjectIfSome(_.contactDetails, ContactDetails.validate)
+    )
 
     override val sanitizers: Seq[Update] = Seq()
 
@@ -773,7 +797,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
     registrationReason: Option[String] = None,
     effectiveRegistrationDate: Option[String] = None)
 
-  object InFlightCustomerDetails extends RecordHelper[InFlightCustomerDetails] {
+  object InFlightCustomerDetails extends RecordUtils[InFlightCustomerDetails] {
 
     override val gen: Gen[InFlightCustomerDetails] = for {
       formInformation  <- FormInformation.gen
@@ -812,10 +836,12 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
         effectiveRegistrationDate = effectiveRegistrationDate
       )
 
-    val validate: Validator[InFlightCustomerDetails] = Validator(
+    override val validate: Validator[InFlightCustomerDetails] = Validator(
+      checkObject(_.formInformation, FormInformation.validate),
       check(
         _.organisationName.lengthMinMaxInclusive(1, 105),
         "Invalid length of organisationName, should be between 1 and 105 inclusive"),
+      checkObjectIfSome(_.individual, IndividualName.validate),
       check(
         _.dateOfBirth.matches("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""),
         """Invalid dateOfBirth, does not matches regex ^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""
@@ -863,7 +889,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
     deregDate: Option[String] = None,
     deregDateInFuture: Option[String] = None)
 
-  object InFlightDeregistration extends RecordHelper[InFlightDeregistration] {
+  object InFlightDeregistration extends RecordUtils[InFlightDeregistration] {
 
     override val gen: Gen[InFlightDeregistration] = for {
       formInformation <- FormInformation.gen
@@ -889,7 +915,8 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
         deregDate = deregDate,
         deregDateInFuture = deregDateInFuture)
 
-    val validate: Validator[InFlightDeregistration] = Validator(
+    override val validate: Validator[InFlightDeregistration] = Validator(
+      checkObject(_.formInformation, FormInformation.validate),
       check(
         _.deregistrationReason.isOneOf(
           Seq("0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009", "0010", "0011")),
@@ -918,7 +945,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
     startDate: Option[String] = None,
     limitedCostTrader: Option[Boolean] = None)
 
-  object InFlightFlatRateScheme extends RecordHelper[InFlightFlatRateScheme] {
+  object InFlightFlatRateScheme extends RecordUtils[InFlightFlatRateScheme] {
 
     override val gen: Gen[InFlightFlatRateScheme] = for {
       formInformation <- FormInformation.gen
@@ -990,7 +1017,8 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
         startDate = startDate,
         limitedCostTrader = limitedCostTrader)
 
-    val validate: Validator[InFlightFlatRateScheme] = Validator(
+    override val validate: Validator[InFlightFlatRateScheme] = Validator(
+      checkObject(_.formInformation, FormInformation.validate),
       check(
         _.FRSCategory.isOneOf(
           Seq(
@@ -1076,7 +1104,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
     individual: Option[IndividualName] = None,
     PPOB: Option[PPOB] = None)
 
-  object InFlightGroupOrPartner extends RecordHelper[InFlightGroupOrPartner] {
+  object InFlightGroupOrPartner extends RecordUtils[InFlightGroupOrPartner] {
 
     override val gen: Gen[InFlightGroupOrPartner] = for {
       formInformation     <- FormInformation.gen
@@ -1105,7 +1133,8 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
         PPOB = ppob
       )
 
-    val validate: Validator[InFlightGroupOrPartner] = Validator(
+    override val validate: Validator[InFlightGroupOrPartner] = Validator(
+      checkObject(_.formInformation, FormInformation.validate),
       check(_.action.isOneOf(Seq("1", "2", "3", "4")), "Invalid action, does not match allowed values"),
       check(_.SAP_Number.matches("""^[0-9]{42}$"""), """Invalid SAP_Number, does not matches regex ^[0-9]{42}$"""),
       check(
@@ -1116,7 +1145,9 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
         "Invalid length of organisationName, should be between 1 and 160 inclusive"),
       check(
         _.tradingName.lengthMinMaxInclusive(1, 160),
-        "Invalid length of tradingName, should be between 1 and 160 inclusive")
+        "Invalid length of tradingName, should be between 1 and 160 inclusive"),
+      checkObjectIfSome(_.individual, IndividualName.validate),
+      checkObjectIfSome(_.PPOB, PPOB.validate)
     )
 
     override val sanitizers: Seq[Update] = Seq()
@@ -1127,15 +1158,17 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
 // schema path: #/definitions/inFlightInformationType
   case class InFlightInformation(changeIndicators: ChangeIndicators, inflightChanges: InflightChanges)
 
-  object InFlightInformation extends RecordHelper[InFlightInformation] {
+  object InFlightInformation extends RecordUtils[InFlightInformation] {
 
     override val gen: Gen[InFlightInformation] = for {
       changeIndicators <- ChangeIndicators.gen
       inflightChanges  <- InflightChanges.gen
     } yield InFlightInformation(changeIndicators = changeIndicators, inflightChanges = inflightChanges)
 
-    val validate: Validator[InFlightInformation] = Validator(
-      )
+    override val validate: Validator[InFlightInformation] = Validator(
+      checkObject(_.changeIndicators, ChangeIndicators.validate),
+      checkObject(_.inflightChanges, InflightChanges.validate)
+    )
 
     override val sanitizers: Seq[Update] = Seq()
 
@@ -1149,7 +1182,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
     contactDetails: Option[ContactDetails] = None,
     websiteAddress: Option[String] = None)
 
-  object InFlightPPOBDetails extends RecordHelper[InFlightPPOBDetails] {
+  object InFlightPPOBDetails extends RecordUtils[InFlightPPOBDetails] {
 
     override val gen: Gen[InFlightPPOBDetails] = for {
       formInformation <- FormInformation.gen
@@ -1163,7 +1196,9 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
         contactDetails = contactDetails,
         websiteAddress = websiteAddress)
 
-    val validate: Validator[InFlightPPOBDetails] = Validator(
+    override val validate: Validator[InFlightPPOBDetails] = Validator(
+      checkObject(_.formInformation, FormInformation.validate),
+      checkObjectIfSome(_.contactDetails, ContactDetails.validate),
       check(
         _.websiteAddress.lengthMinMaxInclusive(1, 132),
         "Invalid length of websiteAddress, should be between 1 and 132 inclusive")
@@ -1183,7 +1218,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
     stdReturnPeriod: Option[String] = None,
     nonStdTaxPeriods: Option[NonStdTaxPeriods] = None)
 
-  object InFlightReturnPeriod extends RecordHelper[InFlightReturnPeriod] {
+  object InFlightReturnPeriod extends RecordUtils[InFlightReturnPeriod] {
 
     override val gen: Gen[InFlightReturnPeriod] = for {
       formInformation           <- FormInformation.gen
@@ -1202,10 +1237,12 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
         nonStdTaxPeriods = nonStdTaxPeriods
       )
 
-    val validate: Validator[InFlightReturnPeriod] = Validator(
+    override val validate: Validator[InFlightReturnPeriod] = Validator(
+      checkObject(_.formInformation, FormInformation.validate),
       check(
         _.stdReturnPeriod.isOneOf(Seq("MA", "MB", "MC", "MM")),
-        "Invalid stdReturnPeriod, does not match allowed values")
+        "Invalid stdReturnPeriod, does not match allowed values"),
+      checkObjectIfSome(_.nonStdTaxPeriods, NonStdTaxPeriods.validate)
     )
 
     override val sanitizers: Seq[Update] = Seq()
@@ -1220,7 +1257,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
     middleName: Option[String] = None,
     lastName: Option[String] = None)
 
-  object IndividualName extends RecordHelper[IndividualName] {
+  object IndividualName extends RecordUtils[IndividualName] {
 
     override val gen: Gen[IndividualName] = for {
       title <- Gen.option(
@@ -1231,7 +1268,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
       lastName   <- Gen.option(Generator.stringMinMaxN(1, 35))
     } yield IndividualName(title = title, firstName = firstName, middleName = middleName, lastName = lastName)
 
-    val validate: Validator[IndividualName] = Validator(
+    override val validate: Validator[IndividualName] = Validator(
       check(
         _.title.isOneOf(
           Seq("0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009", "0010", "0011", "0012")),
@@ -1263,7 +1300,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
     returnPeriod: Option[InFlightReturnPeriod] = None,
     groupOrPartner: Option[Seq[InFlightGroupOrPartner]] = None)
 
-  object InflightChanges extends RecordHelper[InflightChanges] {
+  object InflightChanges extends RecordUtils[InflightChanges] {
 
     override val gen: Gen[InflightChanges] = for {
       customerDetails              <- Gen.option(InFlightCustomerDetails.gen)
@@ -1288,8 +1325,16 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
         groupOrPartner = groupOrPartner
       )
 
-    val validate: Validator[InflightChanges] = Validator(
-      )
+    override val validate: Validator[InflightChanges] = Validator(
+      checkObjectIfSome(_.customerDetails, InFlightCustomerDetails.validate),
+      checkObjectIfSome(_.PPOBDetails, InFlightPPOBDetails.validate),
+      checkObjectIfSome(_.correspondenceContactDetails, InFlightCorrespondenceContactDetails.validate),
+      checkObjectIfSome(_.bankDetails, InFlightBankDetails.validate),
+      checkObjectIfSome(_.businessActivities, InFlightBusinessActivities.validate),
+      checkObjectIfSome(_.flatRateScheme, InFlightFlatRateScheme.validate),
+      checkObjectIfSome(_.deregister, InFlightDeregistration.validate),
+      checkObjectIfSome(_.returnPeriod, InFlightReturnPeriod.validate)
+    )
 
     override val sanitizers: Seq[Update] = Seq()
 
@@ -1321,7 +1366,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
     period21: Option[String] = None,
     period22: Option[String] = None)
 
-  object NonStdTaxPeriods extends RecordHelper[NonStdTaxPeriods] {
+  object NonStdTaxPeriods extends RecordUtils[NonStdTaxPeriods] {
 
     override val gen: Gen[NonStdTaxPeriods] = for {
       period01 <- Gen.option(RegexpGen.from("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""))
@@ -1372,7 +1417,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
         period22 = period22
       )
 
-    val validate: Validator[NonStdTaxPeriods] = Validator(
+    override val validate: Validator[NonStdTaxPeriods] = Validator(
       check(
         _.period01.matches("""^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""),
         """Invalid period01, does not matches regex ^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""
@@ -1475,7 +1520,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
     contactDetails: Option[ContactDetails] = None,
     websiteAddress: Option[String] = None)
 
-  object PPOB extends RecordHelper[PPOB] {
+  object PPOB extends RecordUtils[PPOB] {
 
     override val gen: Gen[PPOB] = for {
       address        <- Address.gen
@@ -1484,10 +1529,11 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
       websiteAddress <- Gen.option(Generator.stringMinMaxN(1, 132))
     } yield PPOB(address = address, RLS = rls, contactDetails = contactDetails, websiteAddress = websiteAddress)
 
-    val validate: Validator[PPOB] = Validator(
+    override val validate: Validator[PPOB] = Validator(
       check(
         _.RLS.isOneOf(Seq("0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009")),
         "Invalid RLS, does not match allowed values"),
+      checkObjectIfSome(_.contactDetails, ContactDetails.validate),
       check(
         _.websiteAddress.lengthMinMaxInclusive(1, 132),
         "Invalid length of websiteAddress, should be between 1 and 132 inclusive")
@@ -1501,17 +1547,18 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
 // schema path: #/definitions/periodType
   case class Period(stdReturnPeriod: Option[String] = None, nonStdTaxPeriods: Option[NonStdTaxPeriods] = None)
 
-  object Period extends RecordHelper[Period] {
+  object Period extends RecordUtils[Period] {
 
     override val gen: Gen[Period] = for {
       stdReturnPeriod  <- Gen.option(Gen.oneOf(Seq("MA", "MB", "MC", "MM")))
       nonStdTaxPeriods <- Gen.option(NonStdTaxPeriods.gen)
     } yield Period(stdReturnPeriod = stdReturnPeriod, nonStdTaxPeriods = nonStdTaxPeriods)
 
-    val validate: Validator[Period] = Validator(
+    override val validate: Validator[Period] = Validator(
       check(
         _.stdReturnPeriod.isOneOf(Seq("MA", "MB", "MC", "MM")),
-        "Invalid stdReturnPeriod, does not match allowed values")
+        "Invalid stdReturnPeriod, does not match allowed values"),
+      checkObjectIfSome(_.nonStdTaxPeriods, NonStdTaxPeriods.validate)
     )
 
     override val sanitizers: Seq[Update] = Seq()
@@ -1528,7 +1575,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
     postCode: String,
     countryCode: String)
 
-  object Address extends RecordHelper[Address] {
+  object Address extends RecordUtils[Address] {
 
     override val gen: Gen[Address] = for {
       line1       <- RegexpGen.from("""^[A-Za-z0-9 \-,.&'\/()!]{1,35}$""")
@@ -1546,7 +1593,7 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
         postCode = postCode,
         countryCode = countryCode)
 
-    val validate: Validator[Address] = Validator(
+    override val validate: Validator[Address] = Validator(
       check(
         _.line1.matches("""^[A-Za-z0-9 \-,.&'\/()!]{1,35}$"""),
         """Invalid line1, does not matches regex ^[A-Za-z0-9 \-,.&'\/()!]{1,35}$"""),
@@ -1571,8 +1618,11 @@ object VatCustomerInformationRecord extends RecordHelper[VatCustomerInformationR
     implicit val formats: Format[Address] = Json.format[Address]
   }
 
-  val validate: Validator[VatCustomerInformationRecord] = Validator(
-    )
+  override val validate: Validator[VatCustomerInformationRecord] = Validator(
+    check(_.vrn.matches("""^[0-9A-Za-z]{1,6}$"""), """Invalid vrn, does not matches regex ^[0-9A-Za-z]{1,6}$"""),
+    checkObjectIfSome(_.approvedInformation, ApprovedInformation.validate),
+    checkObjectIfSome(_.inFlightInformation, InFlightInformation.validate)
+  )
 
   override val sanitizers: Seq[Update] = Seq()
 

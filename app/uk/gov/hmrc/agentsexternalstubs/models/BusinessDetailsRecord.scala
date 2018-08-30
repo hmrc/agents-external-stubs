@@ -20,7 +20,7 @@ case class BusinessDetailsRecord(
   override def withId(id: Option[String]): BusinessDetailsRecord = copy(id = id)
 }
 
-object BusinessDetailsRecord extends RecordHelper[BusinessDetailsRecord] {
+object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
 
   def ninoKey(nino: String): String = s"nino:${nino.replace(" ", "")}"
   def mtdbsaKey(mtdbsa: String): String = s"mtdbsa:${mtdbsa.replace(" ", "")}"
@@ -56,36 +56,11 @@ object BusinessDetailsRecord extends RecordHelper[BusinessDetailsRecord] {
 
   import Validator._
 
-  val validateBusinessAddress: Validator[BusinessAddress] = Validator(
-    check(_.addressLine1.lengthMinMaxInclusive(1, 35), "Invalid addressLine1"),
-    check(_.addressLine2.lengthMinMaxInclusive(1, 35), "Invalid addressLine2"),
-    check(_.addressLine3.lengthMinMaxInclusive(1, 35), "Invalid addressLine3"),
-    check(_.addressLine4.lengthMinMaxInclusive(1, 35), "Invalid addressLine4"),
-    check(_.postalCode.lengthMinMaxInclusive(1, 10), "Invalid postalCode"),
-    check(_.countryCode.matches("^[A-Z]{2}$"), "Invalid countryCode")
-  )
-
-  val validateBusinessContact: Validator[BusinessContact] = Validator(
-    check(_.phoneNumber.lengthMinMaxInclusive(1, 24), "Invalid phoneNumber"),
-    check(_.phoneNumber.matches("^[A-Z0-9 )/(*#-]+$"), "Invalid phoneNumber"),
-    check(_.mobileNumber.matches("^[A-Z0-9 )/(*#-]+$"), "Invalid mobileNumber"),
-    check(_.faxNumber.matches("^[A-Z0-9 )/(*#-]+$"), "Invalid faxNumber"),
-    check(_.emailAddress.lengthMinMaxInclusive(3, 132), "Invalid emailAddress")
-  )
-
-  val validateBusinessData: Validator[BusinessData] = Validator(
-    check(_.incomeSourceId.lengthMinMaxInclusive(15, 16), "Invalid incomeSourceId"),
-    check(_.tradingName.lengthMinMaxInclusive(1, 105), "Invalid tradingName"),
-    checkObjectIfSome(_.businessAddressDetails, validateBusinessAddress),
-    checkObjectIfSome(_.businessContactDetails, validateBusinessContact),
-    check(_.cashOrAccruals.isTrue(v => v == "cash" || v == "accruals"), "Invalid cashOrAccruals")
-  )
-
-  val validate: Validator[BusinessDetailsRecord] = Validator(
+  override val validate: Validator[BusinessDetailsRecord] = Validator(
     check(_.safeId.lengthMinMaxInclusive(1, 16), "Invalid safeId"),
     check(_.nino.isRight(RegexPatterns.validNinoNoSpaces), "Invalid nino"),
     check(_.mtdbsa.isRight(RegexPatterns.validMtdbsa), "Invalid mtdbsa"),
-    checkEachIfSome(_.businessData, validateBusinessData)
+    checkEachIfSome(_.businessData, BusinessData.validate)
   )
 
   val safeIdGen = Generator.pattern("999999999999999")
@@ -105,7 +80,7 @@ object BusinessDetailsRecord extends RecordHelper[BusinessDetailsRecord] {
 
   override val sanitizers: Seq[Update] = Seq(businessDataSanitizer)
 
-  object BusinessData extends RecordHelper[BusinessData] {
+  object BusinessData extends RecordUtils[BusinessData] {
 
     val incomeSourceIdGen = Generator.pattern("999999999999999")
     val tradingNameGen = Generator.company
@@ -121,6 +96,14 @@ object BusinessDetailsRecord extends RecordHelper[BusinessDetailsRecord] {
           incomeSourceId = incomeSourceId,
           accountingPeriodStartDate = accountingPeriodStartDate,
           accountingPeriodEndDate = accountingPeriodEndDate)
+
+    override val validate: Validator[BusinessData] = Validator(
+      check(_.incomeSourceId.lengthMinMaxInclusive(15, 16), "Invalid incomeSourceId"),
+      check(_.tradingName.lengthMinMaxInclusive(1, 105), "Invalid tradingName"),
+      checkObjectIfSome(_.businessAddressDetails, BusinessAddress.validate),
+      checkObjectIfSome(_.businessContactDetails, BusinessContact.validate),
+      check(_.cashOrAccruals.isTrue(v => v == "cash" || v == "accruals"), "Invalid cashOrAccruals")
+    )
 
     val tradingNameSanitizer: Update = e =>
       e.copy(tradingName = e.tradingName.orElse(Option(Generator.get(tradingNameGen)(e.incomeSourceId))))
@@ -148,7 +131,7 @@ object BusinessDetailsRecord extends RecordHelper[BusinessDetailsRecord] {
         businessContactDetailsSanitizer)
   }
 
-  object BusinessAddress extends RecordHelper[BusinessAddress] {
+  object BusinessAddress extends RecordUtils[BusinessAddress] {
 
     val addressLine1Gen = Generator.ukAddress.map(_.head)
     val addressLine2Gen = Generator.ukAddress.map(_(1))
@@ -160,6 +143,15 @@ object BusinessDetailsRecord extends RecordHelper[BusinessDetailsRecord] {
         countryCode  <- Gen.const("GB")
       } yield BusinessAddress(addressLine1 = addressLine1, countryCode = countryCode)
 
+    override val validate: Validator[BusinessAddress] = Validator(
+      check(_.addressLine1.lengthMinMaxInclusive(1, 35), "Invalid addressLine1"),
+      check(_.addressLine2.lengthMinMaxInclusive(1, 35), "Invalid addressLine2"),
+      check(_.addressLine3.lengthMinMaxInclusive(1, 35), "Invalid addressLine3"),
+      check(_.addressLine4.lengthMinMaxInclusive(1, 35), "Invalid addressLine4"),
+      check(_.postalCode.lengthMinMaxInclusive(1, 10), "Invalid postalCode"),
+      check(_.countryCode.matches("^[A-Z]{2}$"), "Invalid countryCode")
+    )
+
     val addressLine2Sanitizer: Update = e =>
       e.copy(addressLine2 = e.addressLine2.orElse(Option(Generator.get(addressLine2Gen)(e.addressLine1))))
 
@@ -169,7 +161,7 @@ object BusinessDetailsRecord extends RecordHelper[BusinessDetailsRecord] {
     override val sanitizers: Seq[Update] = Seq(addressLine2Sanitizer, postalCodeSanitizer)
   }
 
-  object BusinessContact extends RecordHelper[BusinessContact] {
+  object BusinessContact extends RecordUtils[BusinessContact] {
 
     val phoneNumberGen = Generator.ukPhoneNumber
 
@@ -180,6 +172,14 @@ object BusinessDetailsRecord extends RecordHelper[BusinessDetailsRecord] {
         BusinessContact(
           phoneNumber = phoneNumber
         )
+
+    override val validate: Validator[BusinessContact] = Validator(
+      check(_.phoneNumber.lengthMinMaxInclusive(1, 24), "Invalid phoneNumber"),
+      check(_.phoneNumber.matches("^[A-Z0-9 )/(*#-]+$"), "Invalid phoneNumber"),
+      check(_.mobileNumber.matches("^[A-Z0-9 )/(*#-]+$"), "Invalid mobileNumber"),
+      check(_.faxNumber.matches("^[A-Z0-9 )/(*#-]+$"), "Invalid faxNumber"),
+      check(_.emailAddress.lengthMinMaxInclusive(3, 132), "Invalid emailAddress")
+    )
 
     val phoneNumberSanitizer: Update = e => e.copy(phoneNumber = e.phoneNumber.orElse(Some("01332752856")))
     val emailAddressSanitizer: Update = e =>
@@ -193,4 +193,6 @@ object BusinessDetailsRecord extends RecordHelper[BusinessDetailsRecord] {
   implicit val formats2: Format[BusinessContact] = Json.format[BusinessContact]
   implicit val formats3: Format[BusinessData] = Json.format[BusinessData]
   implicit val formats: Format[BusinessDetailsRecord] = Json.format[BusinessDetailsRecord]
+  implicit val recordType: RecordMetaData[BusinessDetailsRecord] =
+    RecordMetaData[BusinessDetailsRecord](this)
 }

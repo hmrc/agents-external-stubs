@@ -39,11 +39,11 @@ trait RecordsRepository {
 
   def store[T <: Record](entity: T, planetId: String)(
     implicit ec: ExecutionContext,
-    recordType: RecordType[T]): Future[Unit]
+    recordType: RecordMetaData[T]): Future[Unit]
 
   def cursor[T <: Record](
     key: String,
-    planetId: String)(implicit reads: Reads[T], ec: ExecutionContext, recordType: RecordType[T]): Cursor[T]
+    planetId: String)(implicit reads: Reads[T], ec: ExecutionContext, recordType: RecordMetaData[T]): Cursor[T]
 }
 
 @Singleton
@@ -74,7 +74,7 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
 
   override def store[T <: Record](entity: T, planetId: String)(
     implicit ec: ExecutionContext,
-    recordType: RecordType[T]): Future[Unit] = {
+    recordType: RecordMetaData[T]): Future[Unit] = {
     val json = Json
       .toJson[Record](entity)
       .as[JsObject]
@@ -96,7 +96,7 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
 
   override def cursor[T <: Record](
     key: String,
-    planetId: String)(implicit reads: Reads[T], ec: ExecutionContext, recordType: RecordType[T]): Cursor[T] =
+    planetId: String)(implicit reads: Reads[T], ec: ExecutionContext, recordType: RecordMetaData[T]): Cursor[T] =
     collection
       .find(
         JsObject(Seq(KEYS -> JsString(keyOf(key, planetId, recordType)))),
@@ -107,32 +107,6 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
         ec,
         implicitly[CursorProducer[T]])
 
-  private def keyOf[T](key: String, planetId: String, recordType: RecordType[T]): String =
+  private def keyOf[T <: Record](key: String, planetId: String, recordType: RecordMetaData[T]): String =
     s"${recordType.typeName}:$key@$planetId"
-}
-
-trait RecordType[T] {
-
-  val typeName: String
-  val fieldNames: Seq[String]
-}
-
-object RecordType {
-
-  def apply[T](implicit classTag: ClassTag[T]): RecordType[T] = {
-
-    val properties =
-      classTag.runtimeClass.getDeclaredFields.map(_.getName).toSet.-("id").+(Record.ID).+(Record.TYPE).toSeq
-
-    new RecordType[T] {
-      override val typeName: String = classTag.runtimeClass.getSimpleName
-      override val fieldNames: Seq[String] = properties
-    }
-  }
-
-  implicit val relationshipRecord: RecordType[RelationshipRecord] = RecordType[RelationshipRecord]
-  implicit val legacyAgentRecord: RecordType[LegacyAgentRecord] = RecordType[LegacyAgentRecord]
-  implicit val legacyRelationshipRecord: RecordType[LegacyRelationshipRecord] = RecordType[LegacyRelationshipRecord]
-  implicit val businessDetailsRecord: RecordType[BusinessDetailsRecord] = RecordType[BusinessDetailsRecord]
-
 }

@@ -21,7 +21,8 @@ class DesStubController @Inject()(
   val authenticationService: AuthenticationService,
   relationshipRecordsService: RelationshipRecordsService,
   legacyRelationshipRecordsService: LegacyRelationshipRecordsService,
-  businessDetailsRecordsService: BusinessDetailsRecordsService
+  businessDetailsRecordsService: BusinessDetailsRecordsService,
+  vatCustomerInformationRecordsService: VatCustomerInformationRecordsService
 )(implicit usersService: UsersService)
     extends BaseController with DesCurrentSession {
 
@@ -134,7 +135,14 @@ class DesStubController @Inject()(
     withCurrentSession { session =>
       RegexPatterns
         .validVrn(vrn)
-        .fold(error => badRequestF("INVALID_VRN", error), _ => ???)
+        .fold(
+          error => badRequestF("INVALID_VRN", error),
+          _ =>
+            vatCustomerInformationRecordsService.getCustomerInformation(vrn, session.planetId).map {
+              case Some(record) => Ok(Json.toJson(record))
+              case None         => notFound("NOT_FOUND_VRN")
+          }
+        )
     }(SessionRecordNotFound)
   }
 

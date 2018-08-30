@@ -2,8 +2,8 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import java.time.format.DateTimeFormatter
 
 import org.scalacheck.Gen
-import uk.gov.hmrc.agentmtdidentifiers.model.MtdItId
-import uk.gov.hmrc.domain.Nino
+import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId}
+import uk.gov.hmrc.domain.{Nino, Vrn}
 import uk.gov.hmrc.smartstub.{Addresses, Companies, Names, Temporal, ToLong}
 
 trait Generator extends Names with Temporal with Companies with Addresses {
@@ -39,6 +39,15 @@ trait Generator extends Names with Temporal with Companies with Addresses {
 
   val utrGen: Gen[String] = pattern"9999999999".gen
   def utr(seed: String): String = utrGen.seeded(seed).get
+
+  val vrnGen: Gen[String] = pattern"ZZZZ99999999999".gen
+  def vrn(seed: String): Vrn = vrnGen.map(Vrn.apply).seeded(seed).get
+
+  val arnGen: Gen[String] = for {
+    a <- pattern"Z".gen
+    b <- pattern"9999999".gen
+  } yield a + "ARN" + b
+  def arn(seed: String): Arn = arnGen.map(Arn.apply).seeded(seed).get
 
   def stringN(size: Int, charGen: Gen[Char] = Gen.alphaNumChar): Gen[String] =
     Gen.listOfN(size, charGen).map(l => String.valueOf(l.toArray))

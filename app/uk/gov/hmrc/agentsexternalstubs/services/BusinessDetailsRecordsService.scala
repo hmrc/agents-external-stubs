@@ -10,7 +10,7 @@ import uk.gov.hmrc.http.BadRequestException
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class BusinessDetailsRecordsService @Inject()(recordsRepository: RecordsRepository) {
+class BusinessDetailsRecordsService @Inject()(val recordsRepository: RecordsRepository) extends RecordsService {
 
   def store(record: BusinessDetailsRecord, autoFill: Boolean, planetId: String)(
     implicit ec: ExecutionContext): Future[Unit] =
@@ -26,14 +26,10 @@ class BusinessDetailsRecordsService @Inject()(recordsRepository: RecordsReposito
 
   def getBusinessDetails(nino: Nino, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[BusinessDetailsRecord]] =
-    findByKey(BusinessDetailsRecord.ninoKey(nino.value), planetId).map(_.headOption)
+    findByKey[BusinessDetailsRecord](BusinessDetailsRecord.ninoKey(nino.value), planetId).map(_.headOption)
 
   def getBusinessDetails(mtdbsa: MtdItId, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[BusinessDetailsRecord]] =
-    findByKey(BusinessDetailsRecord.mtdbsaKey(mtdbsa.value), planetId).map(_.headOption)
-
-  private def findByKey(key: String, planetId: String)(
-    implicit ec: ExecutionContext): Future[List[BusinessDetailsRecord]] =
-    recordsRepository.cursor[BusinessDetailsRecord](key, planetId).collect[List](1000)
+    findByKey[BusinessDetailsRecord](BusinessDetailsRecord.mtdbsaKey(mtdbsa.value), planetId).map(_.headOption)
 
 }

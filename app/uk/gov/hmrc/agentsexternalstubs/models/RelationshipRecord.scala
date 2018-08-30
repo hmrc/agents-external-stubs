@@ -1,6 +1,8 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 import org.joda.time.LocalDate
+import org.scalacheck.Gen
 import play.api.libs.json.{Format, Json}
+import uk.gov.hmrc.agentsexternalstubs.models.Validator.Validator
 
 case class RelationshipRecord(
   regime: String,
@@ -31,9 +33,10 @@ case class RelationshipRecord(
   override def withId(id: Option[String]): RelationshipRecord = copy(id = id)
 }
 
-object RelationshipRecord {
+object RelationshipRecord extends RecordUtils[RelationshipRecord] {
 
   implicit val formats: Format[RelationshipRecord] = Json.format[RelationshipRecord]
+  implicit val recordType: RecordMetaData[RelationshipRecord] = RecordMetaData[RelationshipRecord](RelationshipRecord)
 
   def fullKey(regime: String, arn: String, idType: String, refNumber: String): String =
     s"FK/$regime/$arn/$idType/$refNumber"
@@ -45,4 +48,20 @@ object RelationshipRecord {
 
   def agentClientKey(arn: String, idType: String, refNumber: String): String =
     s"ACK/$arn/$idType/$refNumber"
+
+  override val gen: Gen[RelationshipRecord] = for {
+    regime <- Gen.oneOf("ITSA", "VATC")
+    arn    <- Generator.arnGen
+    idType <- regime match {
+               case "VATC" => Gen.const("vrn")
+               case _      => Gen.const("mtdbsa")
+             }
+    refNumber <- regime match {
+                  case "VATC" => Generator.vrnGen
+                  case _      => Generator.mtdbsaGen
+                }
+  } yield RelationshipRecord(regime, arn, idType, refNumber)
+
+  override val sanitizers: Seq[Update] = Seq()
+  override val validate: Validator[RelationshipRecord] = Validator()
 }

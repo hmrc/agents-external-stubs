@@ -1,11 +1,14 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 import org.scalacheck.Gen
+import uk.gov.hmrc.agentsexternalstubs.models.Validator.Validator
 
-trait RecordHelper[T] {
+trait RecordUtils[T] {
 
   type Update = T => T
 
   val gen: Gen[T]
+
+  val validate: Validator[T]
 
   val sanitizers: Seq[Update]
 

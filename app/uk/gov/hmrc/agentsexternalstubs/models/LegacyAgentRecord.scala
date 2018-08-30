@@ -3,7 +3,6 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import org.scalacheck.Gen
 import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.{BusinessAddress, BusinessContact}
-
 case class LegacyAgentRecord(
   agentId: String,
   agentOwnRef: Option[String] = None,
@@ -28,7 +27,7 @@ case class LegacyAgentRecord(
   override def withId(id: Option[String]): LegacyAgentRecord = copy(id = id)
 }
 
-object LegacyAgentRecord extends RecordHelper[LegacyAgentRecord] {
+object LegacyAgentRecord extends RecordUtils[LegacyAgentRecord] {
 
   def agentIdKey(agentId: String): String = s"agentId:$agentId"
 
@@ -48,6 +47,7 @@ object LegacyAgentRecord extends RecordHelper[LegacyAgentRecord] {
   )
 
   implicit val formats: Format[LegacyAgentRecord] = Json.format[LegacyAgentRecord]
+  implicit val recordType: RecordMetaData[LegacyAgentRecord] = RecordMetaData[LegacyAgentRecord](LegacyAgentRecord)
 
   val agentIdGen = Generator.pattern("999999")
 

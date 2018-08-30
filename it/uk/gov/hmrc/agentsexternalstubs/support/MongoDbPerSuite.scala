@@ -58,7 +58,6 @@ object Mongo extends MongoSpecSupport with Awaiting {
         await(app.injector.instanceOf[RecordsRepositoryMongo].ensureIndexes)
         initialized.set(true)
         println("Initialized.")
-        mongoUri
       }
     } finally { lock.unlock() }
 
