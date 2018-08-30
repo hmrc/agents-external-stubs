@@ -40,7 +40,7 @@ trait Generator extends Names with Temporal with Companies with Addresses {
   val utrGen: Gen[String] = pattern"9999999999".gen
   def utr(seed: String): String = utrGen.seeded(seed).get
 
-  val vrnGen: Gen[String] = pattern"ZZZZ99999999999".gen
+  val vrnGen: Gen[String] = pattern"999999999".gen
   def vrn(seed: String): Vrn = vrnGen.map(Vrn.apply).seeded(seed).get
 
   val arnGen: Gen[String] = for {
@@ -76,6 +76,10 @@ trait Generator extends Names with Temporal with Companies with Addresses {
   val `date_MMM` = DateTimeFormatter.ofPattern("MMM")
 
   val knownPatterns: Map[String, Gen[String]] = Map(
+    "arn"            -> arnGen,
+    "utr"            -> utrGen,
+    "mtditid"        -> mtdbsaGen,
+    "vrn"            -> vrnGen,
     "nino"           -> ninoNoSpacesGen,
     "ninoWithSpaces" -> ninoWithSpacesGen,
     "email"          -> emailGen,
