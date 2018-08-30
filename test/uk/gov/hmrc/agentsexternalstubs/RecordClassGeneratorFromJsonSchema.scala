@@ -9,7 +9,7 @@ import scala.io.Source
   * You might want to add some custom properties to the json schema in order to enable
   * custom record features, i.e. index keys and custom generators.
   *
-  * "x_uniqueKey": true - will mark string property as a unique key
+  * "x_uniqueKey": true - this will mark string property as a unique key
   */
 object RecordClassGeneratorFromJsonSchema extends App {
 
