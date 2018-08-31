@@ -1,13 +1,14 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import org.joda.time.LocalDate
-import org.scalacheck.Gen
+import org.scalatest.Inspectors
 import org.scalatest.prop.PropertyChecks
 import play.api.libs.json.Json
-import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.{BusinessContact, BusinessData}
+import uk.gov.hmrc.agentsexternalstubs.support.ValidatedMatchers
 import uk.gov.hmrc.play.test.UnitSpec
 
-class RecordSpec extends UnitSpec with PropertyChecks {
+class RecordSpec extends UnitSpec with PropertyChecks with ValidatedMatchers {
+
+  val seeds = "fooba".permutations.toSeq
 
   val registrationEntity =
     RelationshipRecord(
@@ -36,64 +37,51 @@ class RecordSpec extends UnitSpec with PropertyChecks {
 
   "BusinessDetailsRecord" should {
     "generate valid entity from seed" in {
-      forAll(Gen.alphaNumStr.suchThat(_.nonEmpty)) { seed: String =>
+      Inspectors.forAll(seeds) { seed: String =>
         val entity = BusinessDetailsRecord.generate(seed)
-        BusinessDetailsRecord.validate(entity).isValid shouldBe true
-        entity.businessData shouldBe defined
-        entity.businessData.get.head.tradingName shouldBe defined
-        entity.businessData.get.head.businessAddressDetails shouldBe defined
+        BusinessDetailsRecord.validate(entity) should beValid
       }
     }
     "sanitize provided entity" in {
       val entity = BusinessDetailsRecord(
         safeId = "9090909",
         nino = "HW827856C",
-        mtdbsa = "123456789098765",
-        businessData = Some(
-          Seq(BusinessData(
-            incomeSourceId = "123456789012345",
-            accountingPeriodEndDate = LocalDate.now,
-            accountingPeriodStartDate = LocalDate.now,
-            businessContactDetails = Some(BusinessContact(emailAddress = Some("a@a.com")))
-          )))
+        mtdbsa = "123456789098765"
       )
-      BusinessDetailsRecord.validate(entity).isValid shouldBe true
+      BusinessDetailsRecord.validate(entity) should beValid
 
       val sanitized = BusinessDetailsRecord.sanitize(entity.safeId)(entity)
-      BusinessDetailsRecord.validate(sanitized).isValid shouldBe true
+
+      BusinessDetailsRecord.validate(sanitized) should beValid
       sanitized.safeId === "9090909"
       sanitized.mtdbsa === "123456789098765"
       sanitized.nino === "HW827856C"
-      sanitized.businessData.get.head.incomeSourceId === "123456789012345"
-      sanitized.businessData.get.head.businessContactDetails.get.emailAddress === "a@a.com"
-      sanitized.businessData.get.head.tradingName shouldBe defined
-      sanitized.businessData.get.head.businessAddressDetails shouldBe defined
     }
   }
 
   "LegacyAgentRecord" should {
     "generate valid entity from seed" in {
-      forAll(Gen.alphaNumStr.suchThat(_.nonEmpty)) { seed: String =>
+      Inspectors.forAll(seeds) { seed: String =>
         val entity = LegacyAgentRecord.generate(seed)
-        LegacyAgentRecord.validate(entity).isValid shouldBe true
+        LegacyAgentRecord.validate(entity) should beValid
       }
     }
   }
 
   "LegacyRelationshipRecord" should {
     "generate valid entity from seed" in {
-      forAll(Gen.alphaNumStr.suchThat(_.nonEmpty)) { seed: String =>
+      Inspectors.forAll(seeds) { seed: String =>
         val entity = LegacyRelationshipRecord.generate(seed)
-        LegacyRelationshipRecord.validate(entity).isValid shouldBe true
+        LegacyRelationshipRecord.validate(entity) should beValid
       }
     }
   }
 
   "VatCustomerInformationRecord" should {
     "generate valid entity from seed" in {
-      forAll(Gen.alphaNumStr.suchThat(_.nonEmpty)) { seed: String =>
+      Inspectors.forAll(seeds) { seed: String =>
         val entity = VatCustomerInformationRecord.generate(seed)
-        VatCustomerInformationRecord.validate(entity).isValid shouldBe true
+        VatCustomerInformationRecord.validate(entity) should beValid
       }
     }
   }

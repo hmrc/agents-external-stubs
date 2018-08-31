@@ -2,7 +2,6 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalacheck.Gen
 import play.api.libs.json.{Format, Json}
-import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.{BusinessAddress, BusinessContact}
 case class LegacyAgentRecord(
   agentId: String,
   agentOwnRef: Option[String] = None,
@@ -55,8 +54,8 @@ object LegacyAgentRecord extends RecordUtils[LegacyAgentRecord] {
     for {
       agentId   <- agentIdGen
       agentName <- UserGenerator.nameForAgentGen
-      address1  <- BusinessAddress.addressLine1Gen
-      address2  <- BusinessAddress.addressLine2Gen
+      address1  <- Generator.address4Lines35Gen.map(_.line1)
+      address2  <- Generator.address4Lines35Gen.map(_.line3)
     } yield
       LegacyAgentRecord(
         agentId = agentId,
@@ -66,10 +65,10 @@ object LegacyAgentRecord extends RecordUtils[LegacyAgentRecord] {
       )
 
   val agentPhoneNoSanitizer: Update = seed =>
-    e => e.copy(agentPhoneNo = e.agentPhoneNo.orElse(Generator.get(BusinessContact.phoneNumberGen)(seed)))
+    e => e.copy(agentPhoneNo = e.agentPhoneNo.orElse(Generator.get(Generator.ukPhoneNumber)(seed)))
 
   val postcodeSanitizer: Update = seed =>
-    e => e.copy(postcode = e.postcode.orElse(Generator.get(BusinessAddress.postalCodeGen)(seed)))
+    e => e.copy(postcode = e.postcode.orElse(Generator.get(Generator.postcode)(seed)))
 
   override val sanitizers: Seq[Update] = Seq(agentPhoneNoSanitizer, postcodeSanitizer)
 }

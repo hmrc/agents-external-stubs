@@ -15,12 +15,10 @@
  */
 package uk.gov.hmrc.agentsexternalstubs.repository
 
-import org.joda.time.LocalDate
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import reactivemongo.bson.BSONObjectID
-import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.{BusinessAddress, BusinessContact, BusinessData}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.support.MongoDbPerTest
 import uk.gov.hmrc.mongo.ReactiveRepository
@@ -92,20 +90,7 @@ class RecordsRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPe
     }
 
     "store a BusinessDetails entities" in {
-      val businessDetails1 = BusinessDetailsRecord(
-        safeId = "A",
-        nino = "B",
-        mtdbsa = "C",
-        businessData = Some(
-          Seq(BusinessData(
-            incomeSourceId = "1",
-            accountingPeriodStartDate = LocalDate.now,
-            accountingPeriodEndDate = LocalDate.now,
-            businessAddressDetails =
-              Some(BusinessAddress(addressLine1 = "X", postalCode = Some("XXXX XX"), countryCode = "GB")),
-            businessContactDetails = Some(BusinessContact(phoneNumber = Some("1234556")))
-          )))
-      )
+      val businessDetails1 = BusinessDetailsRecord.generate("foo")
       await(repo.store(businessDetails1, "saturn"))
 
       val records = await(underlyingRepo.findAll())

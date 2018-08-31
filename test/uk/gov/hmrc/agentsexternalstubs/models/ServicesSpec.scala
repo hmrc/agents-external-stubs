@@ -1,9 +1,10 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import play.api.libs.json.{JsArray, Json}
+import uk.gov.hmrc.agentsexternalstubs.support.ValidatedMatchers
 import uk.gov.hmrc.play.test.UnitSpec
 
-class ServicesSpec extends UnitSpec {
+class ServicesSpec extends UnitSpec with ValidatedMatchers {
 
   "Services" should {
     "read services definitions at bootstrap" in {
@@ -21,7 +22,7 @@ class ServicesSpec extends UnitSpec {
       forAll(Seq("foo", "bar", "baz", "zoo", "zig", "zag", "doc", "dot", "abc", "xyz")) { seed: String =>
         Services.services.foreach { s =>
           val enrolment = Generator.get(s.generator)(seed).get
-          Enrolment.validate(enrolment).isValid shouldBe true
+          Enrolment.validate(enrolment) should be_Valid
         }
       }
     }

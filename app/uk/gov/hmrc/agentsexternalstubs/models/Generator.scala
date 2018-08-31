@@ -26,8 +26,8 @@ trait Generator extends Names with Temporal with Companies with Addresses {
 
   def toJodaDate(date: java.time.LocalDate): org.joda.time.LocalDate = org.joda.time.LocalDate.parse(date.toString)
 
-  val biasedBooleanGen: Gen[Boolean] = Gen.frequency(90                  -> Gen.const(true), 10 -> Gen.const(false))
-  def biasedOptionGen[T](gen: Gen[T]): Gen[Option[T]] = Gen.frequency(90 -> Gen.some(gen), 10   -> Gen.const(None))
+  lazy val biasedBooleanGen: Gen[Boolean] = Gen.frequency(80             -> Gen.const(true), 20 -> Gen.const(false))
+  def biasedOptionGen[T](gen: Gen[T]): Gen[Option[T]] = Gen.frequency(95 -> gen.map(Some(_)), 5 -> Gen.const(None))
 
   def nonEmptyListOfMaxN[T](max: Int, gen: Gen[T]): Gen[List[T]] =
     for {
@@ -35,12 +35,12 @@ trait Generator extends Names with Temporal with Companies with Addresses {
       list <- Gen.listOfN(size, gen)
     } yield list
 
-  val ninoWithSpacesGen: Gen[String] =
+  lazy val ninoWithSpacesGen: Gen[String] =
     Enumerable.instances.ninoEnum.gen.map(n => if (Nino.isValid(n)) n else "AB" + n.drop(2))
   def ninoWithSpaces(seed: String): Nino =
     ninoWithSpacesGen.seeded(seed).map(n => if (Nino.isValid(n)) Nino.apply(n) else ninoWithSpaces("_" + seed)).get
 
-  val ninoNoSpacesGen: Gen[String] =
+  lazy val ninoNoSpacesGen: Gen[String] =
     Enumerable.instances.ninoEnumNoSpaces.gen.map(n => if (Nino.isValid(n)) n else "AB" + n.drop(2))
   def ninoNoSpaces(seed: String): Nino =
     ninoNoSpacesGen
@@ -48,20 +48,29 @@ trait Generator extends Names with Temporal with Companies with Addresses {
       .map(n => if (RegexPatterns.validNinoNoSpaces(n).isRight) Nino.apply(n) else ninoNoSpaces("_" + seed))
       .get
 
-  val mtdbsaGen: Gen[String] = pattern"ZZZZ99999999999".gen
+  lazy val mtdbsaGen: Gen[String] = pattern"ZZZZ99999999999".gen
   def mtdbsa(seed: String): MtdItId = mtdbsaGen.map(MtdItId.apply).seeded(seed).get
 
-  val utrGen: Gen[String] = pattern"9999999999".gen
+  lazy val utrGen: Gen[String] = pattern"9999999999".gen
   def utr(seed: String): String = utrGen.seeded(seed).get
 
-  val vrnGen: Gen[String] = pattern"999999999".gen
+  lazy val vrnGen: Gen[String] = pattern"999999999".gen
   def vrn(seed: String): Vrn = vrnGen.map(Vrn.apply).seeded(seed).get
 
-  val arnGen: Gen[String] = for {
+  def chooseBigDecimal(min: Double, max: Double, multipleOf: Option[Double]): Gen[BigDecimal] =
+    Gen
+      .chooseNum[Double](min.toDouble, max.toDouble)
+      .map(BigDecimal.decimal)
+      .map(bd =>
+        bd.quot(multipleOf.map(BigDecimal.decimal).getOrElse(1)) * multipleOf.map(BigDecimal.decimal).getOrElse(1))
+
+  lazy val arnGen: Gen[String] = for {
     a <- pattern"Z".gen
     b <- pattern"9999999".gen
   } yield a + "ARN" + b
   def arn(seed: String): Arn = arnGen.map(Arn.apply).seeded(seed).get
+
+  lazy val safeIdGen: Gen[String] = pattern"ZZZZ99999999999Z".gen
 
   def stringN(size: Int, charGen: Gen[Char] = Gen.alphaNumChar): Gen[String] =
     Gen.listOfN(size, charGen).map(l => String.valueOf(l.toArray))
@@ -78,7 +87,7 @@ trait Generator extends Names with Temporal with Companies with Addresses {
       string <- stringN(size, charGen)
     } yield string
 
-  val emailGen: Gen[String] = for {
+  lazy val emailGen: Gen[String] = for {
     domain       <- Gen.oneOf(".com", ".co.uk", ".uk", ".eu", ".me")
     size         <- Gen.chooseNum[Int](10, 132 - domain.length)
     usernameSize <- Gen.chooseNum[Int](1, size - 3)
@@ -86,21 +95,41 @@ trait Generator extends Names with Temporal with Companies with Addresses {
     host         <- stringMaxN(size - usernameSize - 1)
   } yield username + "@" + host + domain
 
-  val `date_dd/mm/yy` = DateTimeFormatter.ofPattern("dd/MM/yy")
-  val `date_MMM` = DateTimeFormatter.ofPattern("MMM")
+  case class Address(street: String, town: String, postcode: String)
+  lazy val addressGen: Gen[Address] = ukAddress
+    .map { case street :: town :: postcode :: Nil => Address(street, town, postcode) }
+  def address(userId: String): Address = addressGen.seeded(userId).get
 
-  val knownPatterns: Map[String, Gen[String]] = Map(
-    "arn"            -> arnGen,
-    "utr"            -> utrGen,
-    "mtditid"        -> mtdbsaGen,
-    "vrn"            -> vrnGen,
-    "nino"           -> ninoNoSpacesGen,
-    "ninoWithSpaces" -> ninoWithSpacesGen,
-    "email"          -> emailGen,
-    "postcode"       -> postcode,
-    "phoneNumber"    -> ukPhoneNumber,
-    "date:dd/MM/yy"  -> date(1970, 2017).map(_.format(`date_dd/mm/yy`)),
-    "date:MMM"       -> date(1970, 2017).map(_.format(`date_MMM`).toUpperCase)
+  case class Address4Lines35(line1: String, line2: String, line3: String, line4: String)
+  lazy val address4Lines35Gen: Gen[Address4Lines35] = ukAddress
+    .map {
+      case street :: town :: postcode :: Nil =>
+        Address4Lines35(street.take(35), "The House", town.take(35), postcode)
+    }
+
+  lazy val tradingNameGen: Gen[String] = company.map(_.split(" ").drop(1).mkString(" "))
+
+  lazy val `date_dd/MM/yy` = DateTimeFormatter.ofPattern("dd/MM/yy")
+  lazy val `date_yyyy-MM-dd` = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+  lazy val `date_MMM` = DateTimeFormatter.ofPattern("MMM")
+
+  lazy val dateDDMMYYGen: Gen[String] = date(1970, 2017).map(_.format(`date_dd/MM/yy`))
+  lazy val dateYYYYMMDDGen: Gen[String] = date(1970, 2017).map(_.format(`date_yyyy-MM-dd`))
+  lazy val shortMonthNameGen: Gen[String] = date(1970, 2017).map(_.format(`date_MMM`).toUpperCase)
+
+  lazy val knownPatterns: Map[String, Gen[String]] = Map(
+    "arn"             -> arnGen,
+    "utr"             -> utrGen,
+    "mtditid"         -> mtdbsaGen,
+    "vrn"             -> vrnGen,
+    "nino"            -> ninoNoSpacesGen,
+    "ninoWithSpaces"  -> ninoWithSpacesGen,
+    "email"           -> emailGen,
+    "postcode"        -> postcode,
+    "phoneNumber"     -> ukPhoneNumber,
+    "date:dd/MM/yy"   -> dateDDMMYYGen,
+    "date:yyyy-MM-dd" -> dateYYYYMMDDGen,
+    "date:MMM"        -> shortMonthNameGen
   )
 
 }

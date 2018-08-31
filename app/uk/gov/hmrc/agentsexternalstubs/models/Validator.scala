@@ -14,6 +14,11 @@ object Validator {
       constraints
         .foldLeft[Validated[List[String], Unit]](Valid(()))((v, fx) => v.combine(fx(entity)))
 
+  def alternatively[T](constraints: Validator[T]*): Validator[T] =
+    (entity: T) =>
+      constraints
+        .foldLeft[Validated[List[String], Unit]](Valid(()))((v, fx) => v.orElse(fx(entity)))
+
   private type SimpleValidator[T] = T => Validated[String, Unit]
   def validate[T](constraints: SimpleValidator[T]*): Validator[T] =
     (entity: T) =>
@@ -69,6 +74,24 @@ object Validator {
     def isTrue(test: String => Boolean): Boolean = value.forall(test(_))
     def matches(regex: String): Boolean = value.forall(_.matches(regex))
     def isOneOf(seq: Seq[String]): Boolean = value.forall(seq.contains)
+  }
+
+  implicit class BigDecimalMatchers(val value: BigDecimal) extends AnyVal {
+    def inRange(min: BigDecimal, max: BigDecimal, multipleOf: Option[BigDecimal] = None): Boolean =
+      value != null && value <= max && value >= min && multipleOf.forall(a => (value % a).abs < 0.0001)
+    def lteq(max: BigDecimal, multipleOf: Option[BigDecimal] = None): Boolean =
+      value != null && value <= max && multipleOf.forall(a => (value % a).abs < 0.0001)
+    def gteq(min: BigDecimal, multipleOf: Option[BigDecimal] = None): Boolean =
+      value != null && value >= min && multipleOf.forall(a => (value % a).abs < 0.0001)
+  }
+
+  implicit class OptionalBigDecimalMatchers(val value: Option[BigDecimal]) extends AnyVal {
+    def inRange(min: BigDecimal, max: BigDecimal, multipleOf: Option[BigDecimal] = None): Boolean =
+      value.forall(v => v != null && v <= max && v >= min && multipleOf.forall(a => (v % a).abs < 0.0001))
+    def lteq(max: BigDecimal, multipleOf: Option[BigDecimal] = None): Boolean =
+      value.forall(v => v != null && v <= max && multipleOf.forall(a => (v % a).abs < 0.0001))
+    def gteq(min: BigDecimal, multipleOf: Option[BigDecimal] = None): Boolean =
+      value.forall(v => v != null && v >= min && multipleOf.forall(a => (v % a).abs < 0.0001))
   }
 
   object Implicits {

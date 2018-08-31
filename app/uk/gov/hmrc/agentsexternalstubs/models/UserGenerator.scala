@@ -30,13 +30,6 @@ object UserGenerator extends Generator {
   def dateOfBirth(userId: String): LocalDate =
     date(dateOfBirthLow, dateOfBirthHigh).seeded(userId).map(d => LocalDate.parse(d.toString)).get
 
-  case class GeneratedAddress(street: String, town: String, postcode: String)
-  def address(userId: String): GeneratedAddress =
-    ukAddress
-      .map { case street :: town :: postcode :: Nil => GeneratedAddress(street, town, postcode) }
-      .seeded(userId)
-      .get
-
   private final val groupIdGen = pattern"9Z9Z-Z9Z9-9Z9Z-Z9Z9".gen
   def groupId(userId: String): String = groupIdGen.seeded(userId).get
 
