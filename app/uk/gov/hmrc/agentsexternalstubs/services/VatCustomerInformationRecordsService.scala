@@ -17,7 +17,7 @@ class VatCustomerInformationRecordsService @Inject()(val recordsRepository: Reco
       .fold(
         errors => Future.failed(new BadRequestException(errors.mkString(", "))),
         _ => {
-          val entity = if (autoFill) VatCustomerInformationRecord.sanitize(record) else record
+          val entity = if (autoFill) VatCustomerInformationRecord.sanitize(record.vrn)(record) else record
           recordsRepository.store(entity, planetId)
         }
       )

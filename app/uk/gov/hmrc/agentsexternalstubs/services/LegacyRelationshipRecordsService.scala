@@ -17,7 +17,7 @@ class LegacyRelationshipRecordsService @Inject()(recordsRepository: RecordsRepos
       .fold(
         errors => Future.failed(new BadRequestException(errors.mkString(", "))),
         _ => {
-          val entity = if (autoFill) LegacyRelationshipRecord.sanitize(record) else record
+          val entity = if (autoFill) LegacyRelationshipRecord.sanitize(record.agentId)(record) else record
           recordsRepository.store(entity, planetId)
         }
       )
@@ -29,7 +29,7 @@ class LegacyRelationshipRecordsService @Inject()(recordsRepository: RecordsRepos
       .fold(
         errors => Future.failed(new BadRequestException(errors.mkString(", "))),
         _ => {
-          val entity = if (autoFill) LegacyAgentRecord.sanitize(record) else record
+          val entity = if (autoFill) LegacyAgentRecord.sanitize(record.agentId)(record) else record
           recordsRepository.store(entity, planetId)
         }
       )
@@ -69,7 +69,7 @@ class LegacyRelationshipRecordsService @Inject()(recordsRepository: RecordsRepos
                       agentName = UserGenerator.nameForAgent(r.agentId),
                       address1 = address.street,
                       address2 = address.town)
-                    LegacyAgentRecord.sanitize(agent)
+                    LegacyAgentRecord.sanitize(agent.agentId)(agent)
                   }
                 ))))
 

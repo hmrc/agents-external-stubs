@@ -59,7 +59,7 @@ class RecordSpec extends UnitSpec with PropertyChecks {
       )
       BusinessDetailsRecord.validate(entity).isValid shouldBe true
 
-      val sanitized = BusinessDetailsRecord.sanitize(entity)
+      val sanitized = BusinessDetailsRecord.sanitize(entity.safeId)(entity)
       BusinessDetailsRecord.validate(sanitized).isValid shouldBe true
       sanitized.safeId === "9090909"
       sanitized.mtdbsa === "123456789098765"

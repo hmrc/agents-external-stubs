@@ -307,6 +307,11 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer {
 
   private def generateTypeDefinition(typeDef: TypeDefinition, isTopLevel: Boolean): String = {
     val uniqueKey: Option[(String, String)] = generateUniqueKeyOption(typeDef.definition)
+    val fieldValidators = generateFieldValidators(typeDef.definition)
+    val fieldGenerators = generateFieldGenerators(typeDef.definition)
+    val fieldsInitialization = generateGenFieldsInitialization(typeDef.definition)
+    val sanitizers = generateSanitizers(typeDef.definition)
+    val sanitizerList = generateSanitizerList(typeDef.definition)
     s"""
        |// schema path: ${typeDef.definition.path}
        |case class ${typeDef.name}(
@@ -335,20 +340,20 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer {
             |  import Validator._
          """.stripMargin
        else ""}
-       |  override val gen: Gen[${typeDef.name}] = for {
-       |    ${generateFieldGenerators(typeDef.definition)}
-       |  } yield ${typeDef.name}(${generateGenFieldsInitialization(typeDef.definition)})
+       |  override val gen: Gen[${typeDef.name}] = ${if (fieldGenerators.isEmpty) "Gen const"
+       else
+         s"""for {
+            |    $fieldGenerators
+            |  } yield""".stripMargin} ${typeDef.name}($fieldsInitialization)
        |  ${typeDef.subtypes
          .filter(!_.definition.isRef || isTopLevel)
          .map(t => generateTypeDefinition(t, isTopLevel = false))
          .mkString("\n")}
-       |  override val validate: Validator[${typeDef.name}] = Validator(
-       |  ${generateFieldValidators(typeDef.definition)}
-       |  )
+       |  override val validate: Validator[${typeDef.name}] = Validator($fieldValidators)
+       |  $sanitizers
+       |  override val sanitizers: Seq[Update] = Seq($sanitizerList)
        |
-       |override val sanitizers: Seq[Update] = Seq()
-       |
-       |implicit val formats: Format[${typeDef.name}] = Json.format[${typeDef.name}]
+       |  implicit val formats: Format[${typeDef.name}] = Json.format[${typeDef.name}]
        |}
        |
      """.stripMargin
@@ -375,15 +380,17 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer {
 
   private def generateFieldGenerators(definition: ObjectDefinition): String =
     definition.properties
+      .filter(_.isMandatory)
       .take(22)
       .map(prop => s"""${prop.variableName} <- ${valueGenerator(prop)}""".stripMargin)
-      .mkString("\n  ")
+      .mkString("\n    ")
 
   private def generateGenFieldsInitialization(definition: ObjectDefinition): String =
     definition.properties
+      .filter(_.isMandatory)
       .take(22)
       .map(prop => s"""${prop.name} = ${prop.variableName}""".stripMargin)
-      .mkString(",\n  ")
+      .mkString("\n    ", ",\n    ", "\n  ")
 
   private def valueGenerator(property: Definition): String = {
     val gen = property match {
@@ -451,6 +458,22 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer {
         else Some(s""" checkObjectIfSome(_.${property.name}, ${property.typeName}.validate)""")
       case o: OneOfDefinition => None
     }
+
+  private def generateSanitizerList(definition: ObjectDefinition): String =
+    definition.properties
+      .filter(!_.isMandatory)
+      .take(22)
+      .map(prop => s"${prop.name}Sanitizer")
+      .mkString("\n    ", ",\n    ", "\n  ")
+
+  private def generateSanitizers(definition: ObjectDefinition): String =
+    definition.properties
+      .filter(!_.isMandatory)
+      .take(22)
+      .map(prop => s"""  val ${prop.name}Sanitizer: Update = seed => entity =>
+                      |    entity.copy(${prop.name} = entity.${prop.name}.orElse(Generator.get(${valueGenerator(definition)})(seed)))
+         """.stripMargin)
+      .mkString("\n")
 
   private def generateUniqueKeyOption(definition: Definition, path: List[Definition] = Nil): Option[(String, String)] =
     definition match {

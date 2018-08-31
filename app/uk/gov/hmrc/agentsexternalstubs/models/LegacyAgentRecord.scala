@@ -65,11 +65,11 @@ object LegacyAgentRecord extends RecordUtils[LegacyAgentRecord] {
         address2 = address2
       )
 
-  val agentPhoneNoSanitizer: Update = e =>
-    e.copy(agentPhoneNo = e.agentPhoneNo.orElse(Generator.get(BusinessContact.phoneNumberGen)(e.agentId)))
+  val agentPhoneNoSanitizer: Update = seed =>
+    e => e.copy(agentPhoneNo = e.agentPhoneNo.orElse(Generator.get(BusinessContact.phoneNumberGen)(seed)))
 
-  val postcodeSanitizer: Update = e =>
-    e.copy(postcode = e.postcode.orElse(Generator.get(BusinessAddress.postalCodeGen)(e.agentId)))
+  val postcodeSanitizer: Update = seed =>
+    e => e.copy(postcode = e.postcode.orElse(Generator.get(BusinessAddress.postalCodeGen)(seed)))
 
   override val sanitizers: Seq[Update] = Seq(agentPhoneNoSanitizer, postcodeSanitizer)
 }

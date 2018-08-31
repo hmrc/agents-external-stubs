@@ -19,7 +19,7 @@ class BusinessDetailsRecordsService @Inject()(val recordsRepository: RecordsRepo
       .fold(
         errors => Future.failed(new BadRequestException(errors.mkString(", "))),
         _ => {
-          val entity = if (autoFill) BusinessDetailsRecord.sanitize(record) else record
+          val entity = if (autoFill) BusinessDetailsRecord.sanitize(record.safeId)(record) else record
           recordsRepository.store(entity, planetId)
         }
       )

@@ -114,7 +114,7 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
       }
     } else
       for {
-        sanitized <- Future(UserSanitizer.sanitize(user))
+        sanitized <- Future(UserSanitizer.sanitize(user.userId)(user))
         validated <- User
                       .validate(sanitized)
                       .fold(errors => Future.failed(new BadRequestException(errors.mkString(", "))), Future.successful)

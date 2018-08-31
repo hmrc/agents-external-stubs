@@ -4,7 +4,7 @@ import uk.gov.hmrc.agentsexternalstubs.models.Validator.Validator
 
 trait RecordUtils[T] {
 
-  type Update = T => T
+  type Update = String => T => T
 
   val gen: Gen[T]
 
@@ -14,7 +14,7 @@ trait RecordUtils[T] {
 
   final def seed(s: String): T = Generator.get(gen)(s).getOrElse(throw new Exception(s"Could not seed record with $s"))
 
-  final def sanitize(entity: T): T = sanitizers.foldLeft(entity)((u, fx) => fx(u))
+  final def sanitize(s: String)(entity: T): T = sanitizers.foldLeft(entity)((u, fx) => fx(s)(u))
 
-  final def generate(s: String): T = sanitize(seed(s))
+  final def generate(s: String): T = sanitize(s)(seed(s))
 }

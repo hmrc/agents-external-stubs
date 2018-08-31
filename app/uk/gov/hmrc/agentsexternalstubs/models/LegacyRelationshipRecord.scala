@@ -48,8 +48,8 @@ object LegacyRelationshipRecord extends RecordUtils[LegacyRelationshipRecord] {
         agentId = agentId
       )
 
-  val ninoSanitizer: Update = e => e.copy(nino = e.nino.orElse(Some(Generator.ninoNoSpaces(e.agentId).value)))
-  val utrSanitizer: Update = e => e.copy(utr = e.utr.orElse(Some(Generator.utr(e.agentId).value)))
+  val ninoSanitizer: Update = seed => e => e.copy(nino = e.nino.orElse(Some(Generator.ninoNoSpaces(e.agentId).value)))
+  val utrSanitizer: Update = seed => e => e.copy(utr = e.utr.orElse(Some(Generator.utr(e.agentId).value)))
 
   override val sanitizers: Seq[Update] = Seq(ninoSanitizer, utrSanitizer)
 }
