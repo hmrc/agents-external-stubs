@@ -30,8 +30,8 @@ class DesStubController @Inject()(
 
   val authoriseOrDeAuthoriseRelationship: Action[JsValue] = Action.async(parse.json) { implicit request =>
     withCurrentSession { session =>
-      withPayload[AuthoriseRequest] { payload =>
-        AuthoriseRequest
+      withPayload[CreateUpdateAgentRelationshipPayload] { payload =>
+        CreateUpdateAgentRelationshipPayload
           .validate(payload)
           .fold(
             error => badRequestF("INVALID_SUBMISSION", error.mkString(", ")),
@@ -150,36 +150,9 @@ class DesStubController @Inject()(
 
 object DesStubController {
 
-  case class Authorisation(action: String, isExclusiveAgent: Option[Boolean])
-
-  case class AuthoriseRequest(
-    acknowledgmentReference: String,
-    refNumber: String,
-    idType: Option[String],
-    agentReferenceNumber: String,
-    regime: String,
-    authorisation: Authorisation,
-    relationshipType: Option[String],
-    authProfile: Option[String]
-  )
-
   object AuthoriseRequest {
-    implicit val reads1: Reads[Authorisation] = Json.reads[Authorisation]
-    implicit val reads2: Reads[AuthoriseRequest] = Json.reads[AuthoriseRequest]
 
-    import Validator._
-
-    val validate: Validator[AuthoriseRequest] = Validator(
-      check(_.acknowledgmentReference.matches("^\\S{1,32}$"), "Invalid acknowledgmentReference"),
-      check(_.refNumber.matches("^[0-9A-Za-z]{1,15}$"), "Invalid refNumber"),
-      check(_.idType.forall(_.matches("^[A-Z]{1,6}$")), "Invalid idType"),
-      check(_.agentReferenceNumber.isRight(RegexPatterns.validArn), "Invalid agentReferenceNumber"),
-      check(_.relationshipType.forall(_.matches("ZA01|ZA02")), "Invalid relationshipType"),
-      check(_.authProfile.forall(_.matches("^\\S{1,32}$")), "Invalid authProfile"),
-      check(_.authorisation.action.matches("Authorise|De-Authorise"), "Invalid action")
-    )
-
-    def toRelationshipRecord(r: AuthoriseRequest): RelationshipRecord =
+    def toRelationshipRecord(r: CreateUpdateAgentRelationshipPayload): RelationshipRecord =
       RelationshipRecord(
         regime = r.regime,
         arn = r.agentReferenceNumber,
