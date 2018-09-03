@@ -39,21 +39,22 @@ object UserGenerator extends Generator {
   private final val agentIdGen = pattern"999999".gen
   def agentId(userId: String): String = agentIdGen.seeded(userId).get
 
+  val agencyNameGen: Gen[String] = for {
+    ln <- surname
+    suffix <- Gen.oneOf(
+               " Accountants",
+               " and Company",
+               " & Co",
+               " Professional Services",
+               " Accountancy",
+               " Chartered Accountants & Business Advisers",
+               " Group of Accountants",
+               " Professional",
+               " & " + ln
+             )
+  } yield s"$ln$suffix"
   def agentFriendlyName(userId: String): String =
-    (for {
-      ln <- surname
-      suffix <- Gen.oneOf(
-                 " Accountants",
-                 " and Company",
-                 " & Co",
-                 " Professional Services",
-                 " Accountancy",
-                 " Chartered Accountants & Business Advisers",
-                 " Group of Accountants",
-                 " Professional",
-                 " & " + ln
-               )
-    } yield s"$ln$suffix").seeded(userId + "_agent").get
+    agencyNameGen.seeded(userId + "_agent").get
 
   def individual(
     userId: String = UUID.randomUUID().toString,

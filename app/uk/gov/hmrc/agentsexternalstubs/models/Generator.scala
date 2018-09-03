@@ -70,7 +70,7 @@ trait Generator extends Names with Temporal with Companies with Addresses {
   } yield a + "ARN" + b
   def arn(seed: String): Arn = arnGen.map(Arn.apply).seeded(seed).get
 
-  lazy val safeIdGen: Gen[String] = pattern"ZZZZ99999999999Z".gen
+  lazy val safeIdGen: Gen[String] = pattern"Z0009999999999".gen.map("X" + _)
 
   def stringN(size: Int, charGen: Gen[Char] = Gen.alphaNumChar): Gen[String] =
     Gen.listOfN(size, charGen).map(l => String.valueOf(l.toArray))
@@ -134,4 +134,12 @@ trait Generator extends Names with Temporal with Companies with Addresses {
 
 }
 
-object Generator extends Generator
+object Generator extends Generator {
+
+  object GenOps {
+    implicit class GenOps[T](val gen: Gen[T]) extends AnyVal {
+      def variant(v: String): Gen[T] = gen.withPerturb(s => s.reseed(s.long._1 + v.hashCode.toLong))
+    }
+  }
+
+}

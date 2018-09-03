@@ -24,16 +24,18 @@ object JsonSchema {
     def isMandatory: Boolean
     def isPrimitive: Boolean = true
 
-    def typeName: String = {
+    final def typeName: String = {
       val n = if (isRef) pathToName(path) else name
       if (n.isEmpty) name else n.substring(0, 1).toUpperCase + n.substring(1)
     }
 
-    def variableName: String =
+    final def variableName: String =
       if (name.charAt(0).isUpper) name.toLowerCase else name
 
+    final def pathLastPart: String = path.split("/").last
+
     private final def pathToName(path: String): String = {
-      val name = path.split("/").last
+      val name = pathLastPart
       if (name.endsWith("Type")) name.dropRight(4) else name
     }
   }
@@ -45,7 +47,8 @@ object JsonSchema {
     required: Seq[String],
     isRef: Boolean = false,
     description: Option[String] = None,
-    isMandatory: Boolean)
+    isMandatory: Boolean,
+    alternatives: Seq[String] = Seq.empty)
       extends Definition { override def isPrimitive: Boolean = false }
 
   case class OneOfDefinition(
@@ -54,7 +57,8 @@ object JsonSchema {
     variants: Seq[Definition],
     isRef: Boolean = false,
     description: Option[String] = None,
-    isMandatory: Boolean)
+    isMandatory: Boolean,
+    alternatives: Seq[String] = Seq.empty)
       extends Definition
 
   case class StringDefinition(
@@ -108,10 +112,10 @@ object JsonSchema {
     schema: JsObject,
     isRef: Boolean = false,
     description: Option[String] = None,
-    required: Seq[String]): Definition =
+    required: Seq[String]): Definition = {
+    val desc = description.orElse((property \ "description").asOpt[String])
     (property \ "type").asOpt[String] match {
       case Some(valueType) =>
-        val desc = description.orElse((property \ "description").asOpt[String])
         val isMandatory = required.contains(name)
         valueType match {
           case "object"  => readObject(name, path, property, schema, isRef, desc, isMandatory)
@@ -124,9 +128,8 @@ object JsonSchema {
         (property \ "$ref").asOpt[String] match {
           case Some(ref) =>
             if (ref.startsWith("#/")) {
-              val desc = description.orElse((property \ "description").asOpt[String])
               val jsonLookup = ref.substring(2).split("/").foldLeft[JsLookup](schema)((s, p) => s \ p)
-              readProperty(
+              val r = readProperty(
                 name,
                 ref,
                 jsonLookup.result.as[JsObject],
@@ -134,11 +137,13 @@ object JsonSchema {
                 isRef = true,
                 description = desc,
                 required)
+              r
             } else throw new IllegalStateException(s"Reference format not supported, must start with #/: $ref")
           case None =>
-            readOneOf(name, path, property, schema, isRef, description, required.contains(name), required)
+            readOneOf(name, path, property, schema, isRef, description, required.contains(name), required, Seq.empty)
         }
     }
+  }
 
   private def readString(
     name: String,
@@ -209,7 +214,7 @@ object JsonSchema {
     description: Option[String] = None,
     isMandatory: Boolean): Definition = {
 
-    val required: Seq[String] = (property \ "required").asOpt[Seq[String]].getOrElse(Seq.empty)
+    val (required, alternatives) = readRequiredProperty(property)
     (property \ "properties").asOpt[JsObject] match {
       case Some(properties) =>
         val props = properties.fields
@@ -224,11 +229,28 @@ object JsonSchema {
           required,
           isRef = isRef,
           description = description,
-          isMandatory)
+          isMandatory,
+          alternatives = alternatives)
       case None =>
-        readOneOf(name, path, property, schema, isRef, description, isMandatory, required)
+        readOneOf(name, path, property, schema, isRef, description, isMandatory, required, alternatives)
     }
   }
+
+  private def readRequiredProperty(property: JsObject): (Seq[String], Seq[String]) =
+    (property \ "required")
+      .asOpt[Seq[String]]
+      .map(s => (s, Seq.empty))
+      .orElse(
+        (property \ "oneOf")
+          .asOpt[Seq[JsObject]]
+          .map(s => {
+            val names = s.map(o => (o \ "required").asOpt[Set[String]].getOrElse(Set.empty))
+            val intersection = names.reduce(_ intersect _)
+            val sum = names.reduce(_ ++ _)
+            (intersection.toSeq, (sum -- intersection).toSeq)
+          })
+      )
+      .getOrElse((Seq.empty, Seq.empty))
 
   private def readOneOf(
     name: String,
@@ -238,10 +260,11 @@ object JsonSchema {
     isRef: Boolean,
     description: Option[String] = None,
     isMandatory: Boolean,
-    required: Seq[String]): Definition = (property \ "oneOf").asOpt[JsArray] match {
+    required: Seq[String],
+    alternatives: Seq[String]): Definition = (property \ "oneOf").asOpt[JsArray] match {
     case Some(array) =>
       val props = array.value.map(p => readProperty(name, path, p.as[JsObject], schema, required = required))
-      OneOfDefinition(name, path, variants = props, isRef = isRef, description = description, isMandatory)
+      OneOfDefinition(name, path, variants = props, isRef = isRef, description = description, isMandatory, alternatives)
     case None =>
       throw new IllegalStateException(s"Unsupported object definition, `properties` or `oneOf` expected in $property.")
   }

@@ -1,10 +1,18 @@
 package uk.gov.hmrc.agentsexternalstubs
 import better.files.File
 import play.api.libs.json.{JsObject, Json}
-import uk.gov.hmrc.agentsexternalstubs.JsonSchema.ObjectDefinition
+import uk.gov.hmrc.agentsexternalstubs.JsonSchema._
 
 import scala.io.Source
+import scala.util.matching.Regex
 
+/**
+  * This app generates a ready-to-use implementation of a Record
+  * based on the provided json schema.
+  *
+  * Usage:
+  * <pre>sbt "runMain uk.gov.hmrc.agentsexternalstubs.RecordClassGeneratorFromJsonSchema {sourceSchemaPath} {targetClassPath} {recordName} output:[record|payload]"</pre>
+  */
 object RecordClassGeneratorFromJsonSchema extends App {
 
   require(args.length >= 3, "Expected args: source sink className")
@@ -15,25 +23,72 @@ object RecordClassGeneratorFromJsonSchema extends App {
   require(sink != null && !sink.isEmpty)
   require(className != null && !className.isEmpty)
 
+  val options = args.drop(3)
+
   val schema = Json.parse(Source.fromFile(source, "utf-8").mkString).as[JsObject]
   val definition = JsonSchema.read(schema)
-  val code = RecordCodeRenderer.render(className, definition.asInstanceOf[ObjectDefinition])
+  val code = RecordCodeRenderer.render(className, definition, options)
   File(sink).write(code)
 }
 
 trait JsonSchemaRenderer {
-  def render(className: String, definition: JsonSchema.ObjectDefinition): String
+  def render(className: String, definition: Definition, options: Seq[String]): String
 
   protected def quoted(s: String): String = "\"\"\"" + s + "\"\"\""
 }
 
 trait JsonSchemaCodeRenderer extends JsonSchemaRenderer {
 
-  def render(className: String, typeDef: TypeDefinition): String
+  def render(className: String, typeDef: TypeDefinition, options: Seq[String]): String
 
-  import JsonSchema._
+  final def render(className: String, definition: Definition, options: Seq[String]): String =
+    findObjectDefinition(definition).fold(
+      throw new IllegalArgumentException("Provided json schema does not represent valid object definition")
+    ) { definition =>
+      val typeDef = moveRefTypesToTheTop(typeDefinition(className, definition))
+      render(className, typeDef, options)
+    }
 
-  case class TypeDefinition(name: String, definition: ObjectDefinition, subtypes: Seq[TypeDefinition], prefix: String)
+  private def findObjectDefinition(definition: Definition): Option[ObjectDefinition] = definition match {
+    case o: ObjectDefinition => Some(o)
+    case o: OneOfDefinition  => o.variants.map(findObjectDefinition).collectFirst { case Some(x) => x }
+    case _                   => None
+  }
+
+  private def moveRefTypesToTheTop(typeDef: TypeDefinition): TypeDefinition = {
+    val refTypesMap: Map[String, TypeDefinition] = collectRefTypes(typeDef)
+      .map(t => t.copy(prefix = ""))
+      .groupBy(_.definition.path)
+      .mapValues(_.reduce((a, b) => a.copy(interfaces = a.interfaces ++ b.interfaces)))
+
+    val commonRefTypes = refTypesMap.values.toSeq.filterNot(_.definition == typeDef.definition)
+
+    val typeDef1: TypeDefinition = removeNestedRefTypes(typeDef)
+    typeDef.copy(nestedTypes = (commonRefTypes ++ typeDef1.nestedTypes).sortBy(_.definition.typeName))
+  }
+
+  private def collectRefTypes(typeDef: TypeDefinition): Seq[TypeDefinition] =
+    (if (typeDef.definition.isRef) Seq(typeDef) else Seq.empty) ++ typeDef.nestedTypes.flatMap(collectRefTypes)
+
+  private def removeNestedRefTypes(typeDef: TypeDefinition): TypeDefinition =
+    if (typeDef.isInterface) typeDef
+    else
+      typeDef.copy(
+        nestedTypes = typeDef.nestedTypes.filter(!_.definition.isRef).map(removeNestedRefTypes)
+      )
+
+  case class TypeDefinition(
+    name: String,
+    definition: ObjectDefinition,
+    nestedTypes: Seq[TypeDefinition] = Seq.empty,
+    prefix: String,
+    isInterface: Boolean = false,
+    interfaces: Seq[TypeDefinition] = Seq.empty,
+    subtypes: Seq[TypeDefinition] = Seq.empty,
+    interfaceMethods: Set[(String, String)] = Set.empty) {
+
+    def hasInterfaces: Boolean = interfaces.nonEmpty
+  }
 
   private def typeDefinition(typeName: String, definition: ObjectDefinition, prefix: String = ""): TypeDefinition =
     TypeDefinition(
@@ -42,55 +97,79 @@ trait JsonSchemaCodeRenderer extends JsonSchemaRenderer {
       definition.properties.collect {
         case od: ObjectDefinition => Seq(typeDefinition(od.typeName, od, s"${od.typeName}."))
         case oneOf: OneOfDefinition if oneOf.variants.collect { case _: ObjectDefinition => }.nonEmpty =>
-          oneOf.variants
+          val subtypes = oneOf.variants
             .collect { case o: ObjectDefinition => o }
             .map(od2 => typeDefinition(od2.typeName, od2, s"${od2.typeName}."))
+          if (subtypes.size <= 1) subtypes
+          else {
+            // New artificial interface type to span over multiple oneOf variants
+            //val isRef = oneOf.isRef || subtypes.exists(_.definition.isRef)
+            val superType = TypeDefinition(
+              oneOf.typeName,
+              ObjectDefinition(
+                oneOf.name,
+                oneOf.path,
+                Seq.empty,
+                Seq.empty,
+                oneOf.isRef,
+                oneOf.description,
+                oneOf.isMandatory),
+              prefix = if (oneOf.isRef) "" else prefix,
+              isInterface = true,
+              interfaceMethods = findInterfaceMethods(subtypes)
+            )
+            val subtypes2 = subtypes.map(s => s.copy(interfaces = s.interfaces :+ superType))
+            Seq(superType.copy(subtypes = subtypes2, nestedTypes = subtypes2))
+          }
         case a: ArrayDefinition if a.item.isInstanceOf[ObjectDefinition] =>
           Seq(typeDefinition(a.item.typeName, a.item.asInstanceOf[ObjectDefinition], s"${a.item.typeName}."))
       }.flatten,
       prefix
     )
 
-  private def findAndAppendRefTypes(typeDef: TypeDefinition): TypeDefinition = {
-    val refTypesMap: Map[String, TypeDefinition] = findRefTypes(typeDef)
-      .map(t => t.copy(prefix = ""))
-      .map(t => t.definition.path -> t)
-      .toMap
+  private def findInterfaceMethods(subtypes: Seq[TypeDefinition]): Set[(String, String)] =
+    subtypes
+      .map(_.definition)
+      .map {
+        case o: ObjectDefinition => o.properties.map(d => (d.name, typeOf(d, ""))).toSet
+        case _                   => Set.empty[(String, String)]
+      }
+      .reduce[Set[(String, String)]]((a, b) => a.intersect(b))
 
-    val commonRefTypes = refTypesMap.values.toSeq.filterNot(_.definition == typeDef.definition)
-
-    val typeDef1: TypeDefinition = removeRefSubTypes(typeDef)
-    typeDef.copy(subtypes = (commonRefTypes ++ typeDef1.subtypes).sortBy(_.definition.typeName))
-  }
-
-  private def findRefTypes(typeDef: TypeDefinition): Seq[TypeDefinition] =
-    (if (typeDef.definition.isRef) Seq(typeDef) else Seq.empty) ++ typeDef.subtypes.flatMap(findRefTypes)
-
-  private def removeRefSubTypes(typeDef: TypeDefinition): TypeDefinition =
-    typeDef.copy(
-      subtypes = typeDef.subtypes.filter(!_.definition.isRef).map(removeRefSubTypes)
-    )
-
-  final def render(className: String, definition: JsonSchema.ObjectDefinition): String = {
-    val typeDef = findAndAppendRefTypes(typeDefinition(className, definition))
-    render(className, typeDef)
+  protected def typeOf(definition: Definition, prefix: String, wrapOption: Boolean = true): String = {
+    val typeName = definition match {
+      case _: StringDefinition  => "String"
+      case _: NumberDefinition  => "BigDecimal"
+      case _: BooleanDefinition => "Boolean"
+      case a: ArrayDefinition   => s"Seq[${a.item.typeName}]"
+      case o: ObjectDefinition  => s"${if (o.isRef) "" else prefix}${o.typeName}"
+      case o: OneOfDefinition =>
+        if (o.variants.isEmpty) "Nothing"
+        else if (o.variants.size == 1) typeOf(o.variants.head, prefix, wrapOption = false)
+        else
+          s"${if (o.isRef) "" else prefix}${o.typeName}"
+    }
+    if (!definition.isMandatory && wrapOption) s"Option[$typeName] = None" else typeName
   }
 }
 
-object RecordCodeRenderer extends JsonSchemaCodeRenderer {
-
-  import JsonSchema._
+object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerators {
 
   case class Context(
+    outputType: String,
     uniqueKey: Option[(String, String)],
     keys: Seq[(String, String)],
     commonVals: Map[String, String]) {
-    def reference(s: String): String = commonVals.get(s).map(n => s"Common.$n").getOrElse(s)
+
+    val isRecordOutputType = outputType == "record"
+    val isPayloadOutputType = outputType == "payload"
+
+    def commonReference(s: String): String = commonVals.get(s).map(n => s"Common.$n").getOrElse(s)
   }
 
   object Context {
 
-    def apply(definition: Definition): Context = {
+    def apply(definition: Definition, outputType: String): Context = {
 
       val uniqueKey = findUniqueKey(definition)
       val keys = findKeys(definition)
@@ -103,7 +182,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer {
         .mapValues(m => if (m.size <= 1) m else m.toSeq.zipWithIndex.map { case ((k, v), i) => (k, v + i) }.toMap)
         .foldLeft[Map[String, String]](Map())((a, v) => a ++ v._2)
 
-      Context(uniqueKey, keys, externalizedStrings)
+      Context(outputType, uniqueKey, keys, externalizedStrings)
     }
 
     private def findUniqueKey(definition: Definition, path: List[Definition] = Nil): Option[(String, String)] =
@@ -170,13 +249,14 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer {
       }
   }
 
-  def render(className: String, typeDef: TypeDefinition): String = {
-    val context = Context(typeDef.definition)
-    s"""
-       |package uk.gov.hmrc.agentsexternalstubs.models
+  def render(className: String, typeDef: TypeDefinition, options: Seq[String]): String = {
+    val outputType = options.find(_.startsWith("output:")).map(_.drop(7)).getOrElse("record")
+    require(Set("record", "payload").contains(outputType), s"output:[record|payload] but was output:$outputType")
+    val context = Context(typeDef.definition, outputType)
+    s"""package uk.gov.hmrc.agentsexternalstubs.models
        |
-       |import org.scalacheck.{Arbitrary, Gen}
-       |import play.api.libs.json.{Format, Json}
+       |${if (context.isRecordOutputType) "import org.scalacheck.{Arbitrary, Gen}" else "\r"}
+       |import play.api.libs.json._
        |import uk.gov.hmrc.agentsexternalstubs.models.$className._
        |
        |/**
@@ -198,87 +278,139 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer {
     val fieldsInitialization = generateGenFieldsInitialization(typeDef.definition)
     val sanitizers = generateSanitizers(typeDef.definition, context)
     val sanitizerList = generateSanitizerList(typeDef.definition)
-    val subtypesDefinitions: String = typeDef.subtypes
+    val nestedTypesDefinitions: String = typeDef.nestedTypes
       .filter(!_.definition.isRef || isTopLevel)
       .map(t => generateTypeDefinition(t, isTopLevel = false, context))
       .mkString("")
 
-    s"""case class ${typeDef.name}(
-       |  $classFields${if (isTopLevel)
-         s""",
-            |  id: Option[String] = None
-            |) extends Record {
-            |
-            |  override def uniqueKey: Option[String] = ${context.uniqueKey
-              .map(key => s"${key._1}.map(${typeDef.name}.uniqueKey)")
-              .getOrElse("None")}
-            |  override def lookupKeys: Seq[String] = Seq(${context.keys
-              .map(key => s"${key._1}.map(${typeDef.name}.${key._2}Key)")
-              .mkString(", ")})${if (context.keys.nonEmpty) ".collect{case Some(x) => x}" else ""}
-            |  override def withId(id: Option[String]): Record = copy(id = id)
-            |}
-            |""".stripMargin
-       else ")"}
+    s"""${if (typeDef.isInterface)
+         s"""sealed trait ${typeDef.name} {${generateInterfaceMethods(typeDef)}}""".stripMargin
+       else
+         s"""case class ${typeDef.name}(
+         |  $classFields${if (isTopLevel && context.isRecordOutputType)
+           s""",
+              |  id: Option[String] = None
+              |) extends Record${if (typeDef.hasInterfaces) " with " else ""}${generateClassInterfaces(typeDef)} {
+              |
+              |  override def uniqueKey: Option[String] = ${context.uniqueKey
+                .map(key => s"${key._1}.map(${typeDef.name}.uniqueKey)")
+                .getOrElse("None")}
+              |  override def lookupKeys: Seq[String] = Seq(${context.keys
+                .map(key => s"${key._1}.map(${typeDef.name}.${key._2}Key)")
+                .mkString(", ")})${if (context.keys.nonEmpty) ".collect{case Some(x) => x}" else ""}
+              |  override def withId(id: Option[String]): Record = copy(id = id)
+              |}
+              |""".stripMargin
+         else s")${if (typeDef.hasInterfaces) " extends " else ""}${generateClassInterfaces(typeDef)}"}"""}
        |
-       |object ${typeDef.name} extends RecordUtils[${typeDef.name}] {
-       |  ${if (isTopLevel)
-         s"""
-            |  implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
-            |  implicit val recordType: RecordMetaData[${typeDef.name}] = RecordMetaData[${typeDef.name}](this)
-            |  ${if (context.uniqueKey.isDefined)
-              s"\n  def uniqueKey(key: String): String = s${quoted(s"${context.uniqueKey.get._2}:$${key.toUpperCase}")}"
-            else ""}${if (context.keys.nonEmpty)
-              "\n  " + context.keys
-                .map(key => s"""def ${key._2}Key(key: String): String = s${quoted(s"${key._2}:$${key.toUpperCase}")}""")
-                .mkString("\n  ")
-            else ""}
-            |  
-            |  import Validator._
+       |object ${typeDef.name}${if (context.isRecordOutputType) s" extends RecordUtils[${typeDef.name}]" else ""} {
+       |  ${if (isTopLevel) {
+         if (context.isRecordOutputType)
+           s"""
+              |  implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
+              |  implicit val recordType: RecordMetaData[${typeDef.name}] = RecordMetaData[${typeDef.name}](this)
+              |  ${if (context.uniqueKey.isDefined)
+                s"\n  def uniqueKey(key: String): String = s${quoted(s"${context.uniqueKey.get._2}:$${key.toUpperCase}")}"
+              else ""}${if (context.keys.nonEmpty)
+                "\n  " + context.keys
+                  .map(key =>
+                    s"""def ${key._2}Key(key: String): String = s${quoted(s"${key._2}:$${key.toUpperCase}")}""")
+                  .mkString("\n  ")
+              else ""}
+              |
+              |  import Validator._
+              |  import Generator.GenOps._
          """.stripMargin
-       else ""}
-       |  override val gen: Gen[${typeDef.name}] = ${if (fieldGenerators.isEmpty) "Gen const"
+         else
+           """
+             |   import Validator._
+           """.stripMargin
+       } else ""}
+       |  ${if (context.isRecordOutputType) s"""override val gen: Gen[${typeDef.name}] = ${if (typeDef.isInterface)
+         s"Gen.oneOf[${typeDef.name}](${typeDef.subtypes.map(st => s"${st.name}.gen.map(_.asInstanceOf[${typeDef.name}])").mkString(",\n  ")})"
+       else if (fieldGenerators.isEmpty)
+         s"Gen const ${typeDef.name}($fieldsInitialization)"
        else
          s"""for {
             |    $fieldGenerators
-            |  } yield""".stripMargin} ${typeDef.name}($fieldsInitialization)
+            |  } yield ${typeDef.name}($fieldsInitialization)""".stripMargin}"""
+       else ""}
        |
-       |  $subtypesDefinitions
+       |  $nestedTypesDefinitions
        |
-       |  override val validate: Validator[${typeDef.name}] = Validator($fieldValidators)
+       |  ${if (context.isRecordOutputType) "override " else ""}val validate: Validator[${typeDef.name}] = ${if (typeDef.isInterface)
+         s"{${typeDef.subtypes
+           .map(subTypeDef => s"""case x: ${subTypeDef.name}   => ${subTypeDef.name}.validate(x)""")
+           .mkString("\n    ")}}"
+       else s"Validator($fieldValidators)"}
        |
-       |  $sanitizers
-       |  override val sanitizers: Seq[Update] = Seq($sanitizerList)
+       |  ${if (context.isRecordOutputType) s"""$sanitizers
+       |  override val sanitizers: Seq[Update] = Seq($sanitizerList)""" else ""}
        |
-       |  implicit val formats: Format[${typeDef.name}] = Json.format[${typeDef.name}]
-       |    ${if (isTopLevel) generateExternalizedVals(context) else ""}
+       |  ${if (typeDef.isInterface)
+         s"""
+            |  implicit val reads: Reads[${typeDef.name}] = new Reads[${typeDef.name}] {
+            |      override def reads(json: JsValue): JsResult[${typeDef.name}] = {
+            |      ${typeDef.subtypes.zipWithIndex
+              .map {
+                case (subTypeDef, i) =>
+                  s"""  val r$i = ${if (i > 0) s"r${i - 1}.orElse(" else ""}${subTypeDef.name}.formats.reads(json).flatMap(e => ${subTypeDef.name}.validate(e).fold(_ => JsError(), _ => JsSuccess(e)))${if (i > 0)
+                    ")"
+                  else ""}"""
+              }
+              .mkString("\n  ")}
+            |        r${typeDef.subtypes.size - 1}.orElse(aggregateErrors(JsError("Could not match json object to any variant of ${typeDef.name}, i.e. ${typeDef.subtypes
+              .map(_.name)
+              .mkString(", ")}"),${(for (i <- typeDef.subtypes.indices)
+              yield s"r$i").mkString(",")}))
+            |      }
+            |      
+            |      private def aggregateErrors[T](errors: JsResult[T]*): JsError =
+            |        errors.foldLeft(JsError())((a, r) =>
+            |          r match {
+            |            case e: JsError => JsError(a.errors ++ e.errors)
+            |            case _          => a
+            |        })
+            |  }
+            |    
+            |  implicit val writes: Writes[${typeDef.name}] = new Writes[${typeDef.name}] {
+            |    override def writes(o: ${typeDef.name}): JsValue = o match {
+            |      ${typeDef.subtypes
+              .map(subTypeDef => s"""case x: ${subTypeDef.name}   => ${subTypeDef.name}.formats.writes(x)""")
+              .mkString("\n    ")}
+            |    }
+            |  }
+          """.stripMargin
+       else s"""implicit val formats: Format[${typeDef.name}] = Json.format[${typeDef.name}]"""}
+       |  ${if (isTopLevel) generateExternalizedVals(context) else ""}
        |}
        |
      """.stripMargin
   }
 
+  private def generateClassInterfaces(typeDef: TypeDefinition): String =
+    if (typeDef.interfaces.isEmpty) ""
+    else typeDef.interfaces.map(it => s"${it.prefix}${it.name}").distinct.mkString(" with ")
+
   private def generateClassFields(typeDef: TypeDefinition): String =
     typeDef.definition.properties
       .take(22)
-      .map(prop => s"""${prop.name}: ${typeOf(prop, typeDef.prefix)}""".stripMargin)
+      .map(prop =>
+        s"""${if (typeDef.interfaces.exists(_.interfaceMethods.exists(_._1 == prop.name))) "override val " else ""}${prop.name}: ${typeOf(
+             prop,
+             typeDef.prefix)}""".stripMargin)
       .mkString(",\n  ")
 
-  private def typeOf(definition: Definition, prefix: String, wrapOption: Boolean = true): String = {
-    val typeName = definition match {
-      case _: StringDefinition  => "String"
-      case _: NumberDefinition  => "BigDecimal"
-      case _: BooleanDefinition => "Boolean"
-      case a: ArrayDefinition   => s"Seq[${a.item.typeName}]"
-      case o: ObjectDefinition  => s"${if (o.isRef) "" else prefix}${o.typeName}"
-      case o: OneOfDefinition   => typeOf(o.variants.head, prefix, wrapOption = false)
-    }
-    if (!definition.isMandatory && wrapOption) s"Option[$typeName] = None" else typeName
-  }
+  def generateInterfaceMethods(typeDef: TypeDefinition): String =
+    if (!typeDef.isInterface) ""
+    else
+      typeDef.interfaceMethods.map { case (name, typeOf) => s"def $name: $typeOf" }.mkString("\n ")
 
   private def generateFieldGenerators(definition: ObjectDefinition, context: Context): String =
     definition.properties
       .filter(_.isMandatory)
       .take(22)
-      .map(prop => s"""${prop.variableName} <- ${valueGenerator(prop, context)}""".stripMargin)
+      .map(prop => s"""${prop.variableName} <- ${generateValueGenerator(prop, context)}""".stripMargin)
       .mkString("\n    ")
 
   private def generateGenFieldsInitialization(definition: ObjectDefinition): String =
@@ -288,56 +420,67 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer {
       .map(prop => s"""${prop.name} = ${prop.variableName}""".stripMargin)
       .mkString("\n    ", ",\n    ", "\n  ")
 
-  private def valueGenerator(property: Definition, context: Context, wrapOption: Boolean = true): String = {
-    val gen = property match {
-      case s: StringDefinition =>
-        s.customGenerator.getOrElse(
-          if (s.enum.isDefined) {
+  private def generateValueGenerator(property: Definition, context: Context, wrapOption: Boolean = true): String = {
+    val gen = knownFieldGenerators(property.name)
+      .orElse(knownFieldGenerators(property.pathLastPart))
+      .getOrElse(property match {
+        case s: StringDefinition =>
+          s.customGenerator.getOrElse(if (s.enum.isDefined) {
             if (s.enum.get.size == 1) s"""Gen.const("${s.enum.get.head}")"""
-            else s"""Gen.oneOf(${context.reference(s"Seq(${s.enum.get.mkString("\"", "\",\"", "\"")})")})"""
+            else s"""Gen.oneOf(${context.commonReference(s"Seq(${s.enum.get.mkString("\"", "\",\"", "\"")})")})"""
           } else if (s.pattern.isDefined)
-            s"""Generator.regex(${context.reference(quoted(s.pattern.get))})"""
+            s"""Generator.regex(${context.commonReference(quoted(s.pattern.get))})"""
           else if (s.minLength.isDefined || s.maxLength.isDefined)
             s"""Generator.stringMinMaxN(${s.minLength.getOrElse(1)},${s.maxLength.getOrElse(256)})"""
           else "Generator.stringMaxN(256)")
 
-      case n: NumberDefinition =>
-        n.customGenerator.getOrElse((n.minimum, n.maximum, n.multipleOf) match {
-          case (Some(min), Some(max), mlt) => s"Generator.chooseBigDecimal($min,$max,$mlt)"
-          case (Some(min), None, mlt)      => s"Generator.chooseBigDecimal($min,100000000,$mlt)"
-          case (None, Some(max), mlt)      => s"Generator.chooseBigDecimal(0,$max,$mlt)"
-          case _                           => "Gen.const(BigDecimal(0))"
-        })
+        case n: NumberDefinition =>
+          n.customGenerator.getOrElse((n.minimum, n.maximum, n.multipleOf) match {
+            case (Some(min), Some(max), mlt) => s"Generator.chooseBigDecimal($min,$max,$mlt)"
+            case (Some(min), None, mlt)      => s"Generator.chooseBigDecimal($min,100000000,$mlt)"
+            case (None, Some(max), mlt)      => s"Generator.chooseBigDecimal(0,$max,$mlt)"
+            case _                           => "Gen.const(BigDecimal(0))"
+          })
 
-      case b: BooleanDefinition => "Generator.biasedBooleanGen"
-      case a: ArrayDefinition   => s"Generator.nonEmptyListOfMaxN(3,${valueGenerator(a.item, context)})"
-      case o: ObjectDefinition  => s"${o.typeName}.gen"
+        case b: BooleanDefinition => "Generator.biasedBooleanGen"
+        case a: ArrayDefinition   => s"Generator.nonEmptyListOfMaxN(3,${generateValueGenerator(a.item, context)})"
+        case o: ObjectDefinition  => s"${o.typeName}.gen"
 
-      case o: OneOfDefinition =>
-        o.variants.head match {
-          case i: ObjectDefinition => s"${i.typeName}.gen"
-          case x                   => valueGenerator(x, context)
-        }
-    }
+        case o: OneOfDefinition =>
+          o.variants.head match {
+            case i: ObjectDefinition => s"${i.typeName}.gen"
+            case x                   => generateValueGenerator(x, context)
+          }
+      })
     if (!property.isMandatory && wrapOption) s"""Generator.biasedOptionGen($gen)""" else gen
   }
 
-  private def generateFieldValidators(definition: ObjectDefinition, context: Context): String =
-    definition.properties
+  private def generateFieldValidators(definition: ObjectDefinition, context: Context): String = {
+    val fieldValidators = definition.properties
       .take(22)
-      .map(prop => valueValidator(prop, context))
+      .map(prop => generateValueValidator(prop, context))
       .collect { case Some(validator) => s"""$validator""".stripMargin }
-      .mkString(",\n  ")
+    val validators =
+      if (definition.alternatives.isEmpty) fieldValidators
+      else
+        fieldValidators :+ s"""  checkIfAtLeastOneIsDefined(${definition.alternatives
+          .map(a => s"_.$a")
+          .mkString("Seq(", ",", ")")})"""
+    validators.mkString(",\n  ")
+  }
 
-  private def valueValidator(property: Definition, context: Context, isMandatory: Boolean = false): Option[String] =
+  private def generateValueValidator(
+    property: Definition,
+    context: Context,
+    isMandatory: Boolean = false): Option[String] =
     property match {
       case s: StringDefinition =>
-        if (s.enum.isDefined) Some(s"""  check(_.${property.name}.isOneOf(${context.reference(s"Seq(${s.enum.get
+        if (s.enum.isDefined) Some(s"""  check(_.${property.name}.isOneOf(${context.commonReference(s"Seq(${s.enum.get
           .mkString("\"", "\",\"", "\"")})")}), "Invalid ${property.name}, does not match allowed values")""")
         else if (s.pattern.isDefined)
           Some(s"""  check(_.${property.name}.matches(${context
-            .reference(context.reference(quoted(s.pattern.get)))}), s${quoted(
-            s"Invalid ${property.name}, does not matches regex $${${context.reference(quoted(s.pattern.get))}}")})""")
+            .commonReference(context.commonReference(quoted(s.pattern.get)))}), s${quoted(
+            s"Invalid ${property.name}, does not matches regex $${${context.commonReference(quoted(s.pattern.get))}}")})""")
         else if (s.minLength.isDefined && s.maxLength.isDefined)
           Some(
             s"""  check(_.${property.name}.lengthMinMaxInclusive(${s.minLength.get},${s.maxLength.get}), "Invalid length of ${property.name}, should be between ${s.minLength.get} and ${s.maxLength.get} inclusive")""")
@@ -366,7 +509,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer {
       case a: ArrayDefinition =>
         (a.item match {
           case o: ObjectDefinition => Some(s"""${o.typeName}.validate""")
-          case x                   => valueValidator(x, context)
+          case x                   => generateValueValidator(x, context)
         }).map(vv =>
           if (property.isMandatory || isMandatory) s""" checkEach(_.${property.name}, $vv)"""
           else s"""  checkEachIfSome(_.${property.name}, $vv)""")
@@ -378,30 +521,62 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer {
 
       case o: OneOfDefinition =>
         if (o.variants.isEmpty) None
-        else valueValidator(o.variants.head, context, o.isMandatory)
+        else if (o.variants.size == 1) generateValueValidator(o.variants.head, context, o.isMandatory)
+        else
+          o.variants.head match {
+            case _: ObjectDefinition =>
+              if (property.isMandatory || isMandatory)
+                Some(s""" checkObject(_.${property.name}, ${property.typeName}.validate)""")
+              else Some(s"""  checkObjectIfSome(_.${property.name}, ${property.typeName}.validate)""")
+            case _ =>
+              generateValueValidator(o.variants.head, context, o.isMandatory)
+          }
 
       case _: BooleanDefinition => None
     }
 
-  private def generateSanitizerList(definition: ObjectDefinition): String =
-    definition.properties
-      .filter(!_.isMandatory)
+  private def generateSanitizerList(definition: ObjectDefinition): String = {
+    val simpleSanitizerList = definition.properties
+      .filter(p => !p.isMandatory && !definition.alternatives.contains(p.name))
       .take(22)
       .map(prop => s"${prop.name}Sanitizer")
-      .mkString("\n    ", ",\n    ", "\n  ")
+    val sanitizerList =
+      if (definition.alternatives.isEmpty) simpleSanitizerList
+      else simpleSanitizerList :+ s"${generateComposedFieldName(definition.alternatives, "Or")}Sanitizer"
+    sanitizerList.mkString(",\n  ")
+  }
 
-  private def generateSanitizers(definition: ObjectDefinition, context: Context): String =
-    definition.properties
-      .filter(!_.isMandatory)
+  private def generateComposedFieldName(parts: Seq[String], sep: String): String =
+    (parts.head +: parts.tail.map(p => p.take(1).toUpperCase + p.drop(1))).mkString(sep)
+
+  private def generateSanitizers(definition: ObjectDefinition, context: Context): String = {
+    val simpleSanitizers = definition.properties
+      .filter(p => !p.isMandatory)
       .take(22)
-      .map(prop =>
+      .map(prop => {
         s"""  val ${prop.name}Sanitizer: Update = seed => entity =>
-           |    entity.copy(${prop.name} = entity.${prop.name}.orElse(Generator.get(${valueGenerator(
+           |    entity.copy(${prop.name} = entity.${prop.name}.orElse(Generator.get(${generateValueGenerator(
              prop,
              context,
              wrapOption = false)})(seed)))
-         """.stripMargin)
-      .mkString("\n  ")
+         """.stripMargin
+      })
+    val sanitizers =
+      if (definition.alternatives.isEmpty) simpleSanitizers
+      else
+        simpleSanitizers :+ s"""  val ${generateComposedFieldName(definition.alternatives, "Or")}Sanitizer: Update = seed => entity => {
+                               |    Generator.get(Gen.chooseNum(0,${definition.alternatives.size - 1}))(seed) match {
+                               |      ${definition.alternatives.zipWithIndex
+                                 .map {
+                                   case (a, i) =>
+                                     s"case ${if (i == definition.alternatives.size - 1) "_" else s"Some($i)"} => ${a}Sanitizer(seed)(entity)"
+                                 }
+                                 .mkString("\n      ")}
+                               |    }
+                               |  }
+                               |""".stripMargin
+    sanitizers.mkString("\n")
+  }
 
   private def generateExternalizedVals(context: Context): String =
     context.commonVals
@@ -410,4 +585,55 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer {
       }
       .mkString("object Common {\n  ", "\n  ", "\n}")
 
+}
+
+object RegexContext {
+  implicit class RegexContext(val sc: StringContext) extends AnyVal {
+    def regex(i: Any*): Regex = ???
+  }
+}
+
+trait KnownFieldGenerators {
+
+  val phoneNumber = "^(.*?)(?:tele)?phonenumber(.*)$".r
+  val mobileNumber = "^(.*?)mobilenumber(.*)$".r
+  val faxNumber = "^(.*?)faxnumber(.*)$".r
+  val emailAddress = "^(.*?)email(?:address)?(.*)$".r
+  val addressLine = "^(.*?)(?:address)?line(1|2|3|4)(.*)$".r
+  val postalCode = "^(.*?)post(?:al)?code(.*)$".r
+  val organisationName = "^(.*?)(?:organisation|company)name(.*)$".r
+  val lastName = "^(.*?)(?:lastname|surname)(.*)$".r
+  val firstName = "^(.*?)firstname(.*)$".r
+  val agencyName = "^(.*?)agen(?:t|cy)name(.*)$".r
+  val date = "^(.*?)date(?:string)?(.*)$".r
+
+  val knownFieldGenerators: String => Option[String] = s =>
+    Option(s.toLowerCase match {
+      case "safeid"               => "Generator.safeIdGen"
+      case "agentreferencenumber" => "Generator.arnGen"
+      case "nino"                 => "Generator.ninoNoSpacesGen"
+      case "mtdbsa"               => "Generator.mtdbsaGen"
+      case "vrn"                  => "Generator.vrnGen"
+      case date(a, b)             => s"Generator.dateYYYYMMDDGen${withPerturb(a, b)}"
+      case phoneNumber(a, b) =>
+        s"Generator.ukPhoneNumber${withPerturb(a, b)}"
+      case mobileNumber(a, b) =>
+        s"Generator.ukPhoneNumber${withPerturb(a, b)}"
+      case faxNumber(a, b) =>
+        s"Generator.ukPhoneNumber${withPerturb(a, b)}"
+      case emailAddress(a, b) =>
+        s"Generator.emailGen${withPerturb(a, b)}"
+      case addressLine(a, n, b)   => s"Generator.address4Lines35Gen.map(_.line$n)${withPerturb(a, b)}"
+      case postalCode(a, b)       => s"Generator.postcode${withPerturb(a, b)}"
+      case "tradingname"          => "Generator.tradingNameGen"
+      case organisationName(a, b) => s"Generator.company${withPerturb(a, b)}"
+      case lastName(a, b)         => s"Generator.surname${withPerturb(a, b)}"
+      case firstName(a, b)        => s"Generator.forename()${withPerturb(a, b)}"
+      case "middlename"           => s"Generator.forename()${withPerturb("middle")}"
+      case agencyName(a, b)       => s"UserGenerator.agencyNameGen${withPerturb(a, b)}.map(_.take(40))"
+      case _                      => null
+    })
+
+  def withPerturb(p: String*): String =
+    if (p.forall(_.isEmpty)) "" else s""".variant("${p.filterNot(_.isEmpty).mkString("-")}")"""
 }

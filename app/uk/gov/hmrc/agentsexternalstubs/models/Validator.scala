@@ -54,6 +54,11 @@ object Validator {
             .foldLeft[Validated[List[String], Unit]](Valid(()))((a, b) => a.combine(b)))
         .getOrElse(if (isValidIfNone) Valid(()) else Invalid(List("Some sequence expected but got None")))
 
+  def checkIfAtLeastOneIsDefined[T](alternatives: Seq[T => Option[Any]]): Validator[T] =
+    (entity: T) =>
+      if (alternatives.exists(f => f(entity).isDefined)) Valid(())
+      else Invalid(List(s"One of alternative values must be defined"))
+
   implicit class StringMatchers(val value: String) extends AnyVal {
     def lengthMinMaxInclusive(min: Int, max: Int): Boolean = value != null && value.length >= min && value.length <= max
     def lengthMin(min: Int): Boolean = value != null && value.length >= min
