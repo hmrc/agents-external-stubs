@@ -6,10 +6,10 @@ import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.services.UsersService
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
-import uk.gov.hmrc.agentsexternalstubs.support.{MongoDbPerSuite, ServerBaseISpec, TestRequests}
+import uk.gov.hmrc.agentsexternalstubs.support.{MongoDB, ServerBaseISpec, TestRequests}
 import uk.gov.hmrc.domain.Nino
 
-class UsersControllerISpec extends ServerBaseISpec with MongoDbPerSuite with TestRequests with TestStubs {
+class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequests with TestStubs {
 
   val url = s"http://localhost:$port"
 

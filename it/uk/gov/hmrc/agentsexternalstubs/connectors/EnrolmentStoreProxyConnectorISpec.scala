@@ -20,7 +20,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
  */
 
 class EnrolmentStoreProxyConnectorISpec
-    extends ServerBaseISpec with MongoDbPerSuite with EnrolmentStoreProxyHelper with MockitoSugar {
+    extends ServerBaseISpec with MongoDB with EnrolmentStoreProxyHelper with MockitoSugar {
 
   val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
@@ -115,7 +115,7 @@ class EnrolmentStoreProxyConnectorISpec
 }
 
 trait EnrolmentStoreProxyHelper extends TestRequests with TestStubs with Matchers with WSResponseMatchers {
-  this: Suite with ServerProvider =>
+  this: Suite =>
 
   def givenAuthenticatedSession(): AuthenticatedSession =
     SignIn.signInAndGetSession("foo")

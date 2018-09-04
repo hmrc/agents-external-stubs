@@ -50,8 +50,3 @@ POST        /agents-external-stubs/records/vat-customer-information          @uk
 
 # Config management
 GET         /agents-external-stubs/config/services                           @uk.gov.hmrc.agentsexternalstubs.controllers.ConfigController.getServices
-
-
-# Internal test
-GET         /agents-external-stubs/test/auth/agent-mtd                       @uk.gov.hmrc.agentsexternalstubs.controllers.TestController.testAuthAgentMtd
-GET         /agents-external-stubs/test/auth/client-mtd-it                   @uk.gov.hmrc.agentsexternalstubs.controllers.TestController.testAuthClientMtdIt

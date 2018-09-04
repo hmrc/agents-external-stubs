@@ -12,7 +12,7 @@ import uk.gov.hmrc.auth.core.{Nino => NinoPredicate, _}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.logging.Authorization
 
-class AuthStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with TestRequests with TestStubs {
+class AuthStubControllerISpec extends ServerBaseISpec with MongoDB with TestRequests with TestStubs {
 
   val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]

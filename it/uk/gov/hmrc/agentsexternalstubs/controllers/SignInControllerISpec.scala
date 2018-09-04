@@ -2,9 +2,9 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.ws.WSClient
 import play.mvc.Http.HeaderNames
-import uk.gov.hmrc.agentsexternalstubs.support.{AuthContext, MongoDbPerSuite, ServerBaseISpec, TestRequests}
+import uk.gov.hmrc.agentsexternalstubs.support.{AuthContext, MongoDB, ServerBaseISpec, TestRequests}
 
-class SignInControllerISpec extends ServerBaseISpec with MongoDbPerSuite with TestRequests {
+class SignInControllerISpec extends ServerBaseISpec with MongoDB with TestRequests {
 
   val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]

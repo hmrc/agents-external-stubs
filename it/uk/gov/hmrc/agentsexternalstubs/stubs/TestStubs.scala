@@ -12,7 +12,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.Duration
 
 trait TestStubs {
-  this: Suite with ServerProvider =>
+  this: Suite =>
 
   def app: Application
   def await[A](future: Future[A])(implicit timeout: Duration): A

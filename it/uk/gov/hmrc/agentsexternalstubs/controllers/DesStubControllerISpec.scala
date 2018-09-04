@@ -9,7 +9,7 @@ import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
 
 class DesStubControllerISpec
-    extends ServerBaseISpec with MongoDbPerSuite with TestRequests with TestStubs with ExampleDesPayloads {
+    extends ServerBaseISpec with MongoDB with TestRequests with TestStubs with ExampleDesPayloads {
 
   val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]

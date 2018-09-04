@@ -17,34 +17,23 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 
 import java.util.UUID
 
-import org.scalatestplus.play.OneAppPerSuite
-import play.api.Application
-import play.api.inject.guice.GuiceApplicationBuilder
 import reactivemongo.core.errors.DatabaseException
-import uk.gov.hmrc.agentsexternalstubs.support.{MongoDbPerSuite, MongoDbPerTest}
-import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class AuthenticatedSessionsRepositoryISpec extends UnitSpec with OneAppPerSuite with MongoDbPerTest {
-
-  protected def appBuilder: GuiceApplicationBuilder =
-    new GuiceApplicationBuilder()
-      .configure(
-        "mongodb.uri"   -> mongoUri,
-        "proxies.start" -> "false"
-      )
-
-  override implicit lazy val app: Application = appBuilder.build()
+class AuthenticatedSessionsRepositoryISpec extends AppBaseISpec with MongoDB {
 
   lazy val repo: AuthenticatedSessionsRepository = app.injector.instanceOf[AuthenticatedSessionsRepository]
 
   "store" should {
     "store a session" in {
+      val planetId = UUID.randomUUID().toString
       val authToken = UUID.randomUUID().toString
-      await(repo.create("foobar", authToken, "bla", "juniper"))
 
-      val result = await(repo.find())
+      await(repo.create("foobar", authToken, "bla", planetId))
+
+      val result = await(repo.find("planetId" -> planetId))
 
       result.size shouldBe 1
       result.head.authToken shouldBe authToken
@@ -53,10 +42,11 @@ class AuthenticatedSessionsRepositoryISpec extends UnitSpec with OneAppPerSuite 
     }
 
     "not allow duplicate sessions to be created for the same authToken" in {
-      await(repo.create("foo", "bar", "bla", "juniper"))
+      val planetId = UUID.randomUUID().toString
+      await(repo.create("foo", "bar", "bla", planetId))
 
       val e = intercept[DatabaseException] {
-        await(repo.create("foo", "bar", "ala", "juniper"))
+        await(repo.create("foo", "bar", "ala", planetId))
       }
 
       e.getMessage() should include("E11000")

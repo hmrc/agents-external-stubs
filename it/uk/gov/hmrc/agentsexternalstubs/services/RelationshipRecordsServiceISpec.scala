@@ -11,16 +11,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class RelationshipRecordsServiceISpec extends UnitSpec with OneAppPerSuite with MongoDbPerSuite {
-
-  protected def appBuilder: GuiceApplicationBuilder =
-    new GuiceApplicationBuilder()
-      .configure(
-        "mongodb.uri"   -> Mongo.uri,
-        "proxies.start" -> "false"
-      )
-
-  override implicit lazy val app: Application = appBuilder.build()
+class RelationshipRecordsServiceISpec extends AppBaseISpec with MongoDB {
 
   lazy val repo = app.injector.instanceOf[RecordsRepository]
   lazy val service = app.injector.instanceOf[RelationshipRecordsService]

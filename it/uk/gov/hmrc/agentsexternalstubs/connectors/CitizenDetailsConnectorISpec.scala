@@ -4,10 +4,10 @@ import org.joda.time.LocalDate
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
-import uk.gov.hmrc.agentsexternalstubs.support.{MongoDbPerSuite, ServerBaseISpec, TestRequests}
+import uk.gov.hmrc.agentsexternalstubs.support.{MongoDB, ServerBaseISpec, TestRequests}
 import uk.gov.hmrc.domain.Nino
 
-class CitizenDetailsConnectorISpec extends ServerBaseISpec with MongoDbPerSuite with TestRequests with TestStubs {
+class CitizenDetailsConnectorISpec extends ServerBaseISpec with MongoDB with TestRequests with TestStubs {
 
   val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]

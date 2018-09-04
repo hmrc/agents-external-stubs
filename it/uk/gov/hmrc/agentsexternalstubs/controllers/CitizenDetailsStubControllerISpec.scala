@@ -3,9 +3,9 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
-import uk.gov.hmrc.agentsexternalstubs.support.{MongoDbPerSuite, NotAuthorized, ServerBaseISpec, TestRequests}
+import uk.gov.hmrc.agentsexternalstubs.support.{MongoDB, NotAuthorized, ServerBaseISpec, TestRequests}
 
-class CitizenDetailsStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with TestRequests with TestStubs {
+class CitizenDetailsStubControllerISpec extends ServerBaseISpec with MongoDB with TestRequests with TestStubs {
 
   val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]

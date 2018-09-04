@@ -1,30 +1,19 @@
 package uk.gov.hmrc.agentsexternalstubs.support
 
-import org.scalatestplus.play.OneAppPerSuite
+import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.time.{Seconds, Span}
 import play.api.Application
-import play.api.inject.guice.GuiceApplicationBuilder
-import uk.gov.hmrc.agentsexternalstubs.stubs.DataStreamStubs
 
-abstract class AppBaseISpec extends BaseISpec with WireMockSupport with OneAppPerSuite with DataStreamStubs {
+import scala.concurrent.ExecutionContext
 
-  override implicit lazy val app: Application = appBuilder.build()
+abstract class AppBaseISpec extends BaseISpec with ScalaFutures with JsonMatchers with WSResponseMatchers {
 
-  protected def appBuilder: GuiceApplicationBuilder =
-    new GuiceApplicationBuilder()
-      .configure(
-        "microservice.services.auth.port"                  -> wireMockPort,
-        "microservice.services.citizen-details.port"       -> wireMockPort,
-        "microservice.services.users-groups-search.port"   -> wireMockPort,
-        "microservice.services.enrolment-store-proxy.port" -> wireMockPort,
-        "microservice.services.tax-enrolments.port"        -> wireMockPort,
-        "microservice.services.des.port"                   -> wireMockPort,
-        "metrics.enabled"                                  -> true,
-        "auditing.enabled"                                 -> false,
-        "mongodb.uri"                                      -> s"mongodb://127.0.0.1:27017/test-${this.getClass.getSimpleName}",
-        "proxies.start"                                    -> "false"
-      )
+  override val app: Application = PlayServer.app
+  val port: Int = PlayServer.port
 
-  override def commonStubs(): Unit =
-    givenAuditConnector()
+  implicit val ec: ExecutionContext = app.actorSystem.dispatcher
+
+  implicit override val patienceConfig: PatienceConfig =
+    PatienceConfig(timeout = Span(4, Seconds), interval = Span(1, Seconds))
 
 }
