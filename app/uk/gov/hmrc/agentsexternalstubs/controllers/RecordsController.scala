@@ -17,7 +17,7 @@ class RecordsController @Inject()(
   val authenticationService: AuthenticationService)
     extends BaseController with CurrentSession {
 
-  def createBusinessDetails(autoFill: Boolean): Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def storeBusinessDetails(autoFill: Boolean): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withCurrentSession { session =>
       withPayload[BusinessDetailsRecord](
         record =>
@@ -29,17 +29,17 @@ class RecordsController @Inject()(
     }(SessionRecordNotFound)
   }
 
-  def createLegacyAgent(autoFill: Boolean): Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def storeLegacyAgent(autoFill: Boolean): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withCurrentSession { session =>
       withPayload[LegacyAgentRecord](
         record =>
           legacyRelationshipRecordsService
             .store(record, autoFill, session.planetId)
-            .map(_ => Created /*.withHeaders(HeaderNames.LOCATION -> ???)*/ ))
+            .map(_ => Created))
     }(SessionRecordNotFound)
   }
 
-  def createLegacyRelationship(autoFill: Boolean): Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def storeLegacyRelationship(autoFill: Boolean): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withCurrentSession { session =>
       withPayload[LegacyRelationshipRecord](
         record =>
@@ -55,7 +55,7 @@ class RecordsController @Inject()(
     }(SessionRecordNotFound)
   }
 
-  def createVatCustomerInformation(autoFill: Boolean): Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def storeVatCustomerInformation(autoFill: Boolean): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withCurrentSession { session =>
       withPayload[VatCustomerInformationRecord](
         record =>
