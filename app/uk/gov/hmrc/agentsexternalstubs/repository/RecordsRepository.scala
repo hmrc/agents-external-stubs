@@ -80,7 +80,12 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
       .as[JsObject]
       .+(PLANET_ID -> JsString(planetId))
       .+(TYPE -> JsString(recordType.typeName))
-      .+(KEYS -> JsArray(entity.lookupKeys.map(key => JsString(keyOf(key, planetId, recordType)))))
+      .+(
+        KEYS -> JsArray(
+          entity.uniqueKey
+            .map(key => entity.lookupKeys :+ key)
+            .getOrElse(entity.lookupKeys)
+            .map(key => JsString(keyOf(key, planetId, recordType)))))
       .|> { obj =>
         entity.uniqueKey
           .map(uniqueKey => obj.+(UNIQUE_KEY -> JsString(keyOf(uniqueKey, planetId, recordType))))

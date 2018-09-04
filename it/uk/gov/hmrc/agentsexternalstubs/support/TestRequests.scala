@@ -301,6 +301,13 @@ trait TestRequests extends ScalaFutures {
         .withHeaders(authContext.headers: _*)
         .get()
         .futureValue
+
+    def getVatCustomerInformation(vrn: String)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/vat/customer/vrn/$vrn/information")
+        .withHeaders(authContext.headers: _*)
+        .get()
+        .futureValue
   }
 
   object Records {
@@ -321,6 +328,13 @@ trait TestRequests extends ScalaFutures {
     def createLegacyRelationship[T: Writeable](payload: T)(implicit authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/legacy-relationship")
+        .withHeaders(authContext.headers: _*)
+        .post[T](payload)
+        .futureValue
+
+    def createVatCustomerInformation[T: Writeable](payload: T)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/records/vat-customer-information")
         .withHeaders(authContext.headers: _*)
         .post[T](payload)
         .futureValue

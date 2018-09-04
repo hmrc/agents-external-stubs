@@ -140,7 +140,7 @@ class DesStubController @Inject()(
           _ =>
             vatCustomerInformationRecordsService.getCustomerInformation(vrn, session.planetId).map {
               case Some(record) => Ok(Json.toJson(record))
-              case None         => notFound("NOT_FOUND_VRN")
+              case None         => Ok(Json.obj())
           }
         )
     }(SessionRecordNotFound)

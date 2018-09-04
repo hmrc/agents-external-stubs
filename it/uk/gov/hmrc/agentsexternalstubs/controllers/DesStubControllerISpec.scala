@@ -8,7 +8,8 @@ import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
 
-class DesStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with TestRequests with TestStubs {
+class DesStubControllerISpec
+    extends ServerBaseISpec with MongoDbPerSuite with TestRequests with TestStubs with ExampleDesPayloads {
 
   val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
@@ -194,73 +195,23 @@ class DesStubControllerISpec extends ServerBaseISpec with MongoDbPerSuite with T
       }
     }
 
+    "GET /vat/customer/vrn/:vrn/information" should {
+      "return 200 response if record found" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        val createResult = Records.createVatCustomerInformation(Json.parse(validVatCustomerInformationPayload))
+        createResult should haveStatus(201)
+
+        val result = DesStub.getVatCustomerInformation("123456789")
+        result should haveStatus(200)
+        val json = result.json
+        json.as[JsObject] should haveProperty[String]("vrn")
+      }
+
+      "return 404 response if record not found" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        val result = DesStub.getVatCustomerInformation("999999999")
+        result should haveStatus(200)
+      }
+    }
   }
-
-  val validLegacyAgentPayload =
-    """
-      |{
-      |    "agentId": "SA6012",
-      |    "agentOwnRef": "abcdefghij",
-      |    "hasAgent": false,
-      |    "isRegisteredAgent": false,
-      |    "govAgentId": "6WKC9BTJUTPH",
-      |    "agentName": "Mr SA AGT_022",
-      |    "agentPhoneNo": "03002003319",
-      |    "address1": "Plaza 2",
-      |    "address2": "Ironmasters Way",
-      |    "address3": "Telford",
-      |    "address4": "Shropshire",
-      |    "postcode": "TF3 4NT",
-      |    "isAgentAbroad": false,
-      |    "agentCeasedDate": "2001-01-01"
-      |}
-    """.stripMargin
-
-  val validLegacyRelationshipPayload =
-    """
-      |{
-      |    "agentId": "SA6012",
-      |    "nino": "AA123456A",
-      |    "utr": "1234567890"
-      |}
-    """.stripMargin
-
-  val validBusinessDetailsPayload = """
-                                      |{
-                                      |    "safeId": "XE00001234567890",
-                                      |    "nino": "AA123456A",
-                                      |    "mtdbsa": "123456789012345",
-                                      |    "propertyIncome": false,
-                                      |    "businessData": [
-                                      |        {
-                                      |            "incomeSourceId": "123456789012345",
-                                      |            "accountingPeriodStartDate": "2001-01-01",
-                                      |            "accountingPeriodEndDate": "2001-01-01",
-                                      |            "tradingName": "RCDTS",
-                                      |            "businessAddressDetails":
-                                      |            {
-                                      |                "addressLine1": "100 SuttonStreet",
-                                      |                "addressLine2": "Wokingham",
-                                      |                "addressLine3": "Surrey",
-                                      |                "addressLine4": "London",
-                                      |                "postalCode": "DH14EJ",
-                                      |                "countryCode": "GB"
-                                      |            },
-                                      |            "businessContactDetails":
-                                      |            {
-                                      |                "phoneNumber": "01332752856",
-                                      |                "mobileNumber": "07782565326",
-                                      |                "faxNumber": "01332754256",
-                                      |                "emailAddress": "stephen@manncorpone.co.uk"
-                                      |            },
-                                      |            "tradingStartDate": "2001-01-01",
-                                      |            "cashOrAccruals": "cash",
-                                      |            "seasonal": true,
-                                      |            "cessationDate": "2001-01-01",
-                                      |            "cessationReason": "002",
-                                      |            "paperLess": true
-                                      |        }
-                                      |    ]
-                                      |}
-                                    """.stripMargin
 }
