@@ -10,9 +10,6 @@ import scala.concurrent.ExecutionContext
 abstract class ServerBaseISpec
     extends BaseISpec with BeforeAndAfterAll with ScalaFutures with JsonMatchers with WSResponseMatchers {
 
-  import scala.concurrent.duration._
-  override implicit val defaultTimeout = 500 millis
-
   override def beforeAll(): Unit = {
     super.beforeAll()
     PlayServer.run(app)
