@@ -42,13 +42,13 @@ object AgentRecord extends RecordUtils[AgentRecord] {
   import Generator.GenOps._
 
   override val gen: Gen[AgentRecord] = for {
-    businessPartnerExists <- Generator.biasedBooleanGen
+    businessPartnerExists <- Generator.booleanGen
     safeId                <- Generator.safeIdGen
-    isAnAgent             <- Generator.biasedBooleanGen
-    isAnASAgent           <- Generator.biasedBooleanGen
-    isAnIndividual        <- Generator.biasedBooleanGen
-    isAnOrganisation      <- Generator.biasedBooleanGen
-    addressDetails        <- UkAddress.gen
+    isAnAgent             <- Generator.booleanGen
+    isAnASAgent           <- Generator.booleanGen
+    isAnIndividual        <- Generator.booleanGen
+    isAnOrganisation      <- Generator.booleanGen
+    addressDetails        <- AddressDetails.gen
   } yield
     AgentRecord(
       businessPartnerExists = businessPartnerExists,
@@ -79,7 +79,11 @@ object AgentRecord extends RecordUtils[AgentRecord] {
       case x: ForeignAddress => ForeignAddress.validate(x)
     }
 
-    override val sanitizers: Seq[Update] = Seq()
+    val sanitizer: Update = seed => {
+      case x: UkAddress      => UkAddress.sanitize(seed)(x)
+      case x: ForeignAddress => ForeignAddress.sanitize(seed)(x)
+    }
+    override val sanitizers: Seq[Update] = Seq(sanitizer)
 
     implicit val reads: Reads[AddressDetails] = new Reads[AddressDetails] {
       override def reads(json: JsValue): JsResult[AddressDetails] = {
@@ -142,7 +146,11 @@ object AgentRecord extends RecordUtils[AgentRecord] {
         case x: UkAddress      => UkAddress.validate(x)
       }
 
-      override val sanitizers: Seq[Update] = Seq()
+      val sanitizer: Update = seed => {
+        case x: ForeignAddress => ForeignAddress.sanitize(seed)(x)
+        case x: UkAddress      => UkAddress.sanitize(seed)(x)
+      }
+      override val sanitizers: Seq[Update] = Seq(sanitizer)
 
       implicit val reads: Reads[AgencyAddress] = new Reads[AgencyAddress] {
         override def reads(json: JsValue): JsResult[AgencyAddress] = {
@@ -191,7 +199,10 @@ object AgentRecord extends RecordUtils[AgentRecord] {
           agencyName = entity.agencyName.orElse(Generator.get(UserGenerator.agencyNameGen.map(_.take(40)))(seed)))
 
     val agencyAddressSanitizer: Update = seed =>
-      entity => entity.copy(agencyAddress = entity.agencyAddress.orElse(Generator.get(ForeignAddress.gen)(seed)))
+      entity =>
+        entity.copy(
+          agencyAddress =
+            entity.agencyAddress.orElse(Generator.get(AgencyAddress.gen)(seed)).map(AgencyAddress.sanitize(seed)))
 
     val agencyEmailSanitizer: Update = seed =>
       entity =>
@@ -358,7 +369,7 @@ object AgentRecord extends RecordUtils[AgentRecord] {
 
     override val gen: Gen[Organisation] = for {
       organisationName <- Generator.company
-      isAGroup         <- Generator.biasedBooleanGen
+      isAGroup         <- Generator.booleanGen
       organisationType <- Generator.regex(Common.organisationTypePattern)
     } yield
       Organisation(
@@ -465,16 +476,27 @@ object AgentRecord extends RecordUtils[AgentRecord] {
       entity.copy(agentReferenceNumber = entity.agentReferenceNumber.orElse(Generator.get(Generator.arnGen)(seed)))
 
   val individualSanitizer: Update = seed =>
-    entity => entity.copy(individual = entity.individual.orElse(Generator.get(Individual.gen)(seed)))
+    entity =>
+      entity.copy(
+        individual = entity.individual.orElse(Generator.get(Individual.gen)(seed)).map(Individual.sanitize(seed)))
 
   val organisationSanitizer: Update = seed =>
-    entity => entity.copy(organisation = entity.organisation.orElse(Generator.get(Organisation.gen)(seed)))
+    entity =>
+      entity.copy(
+        organisation =
+          entity.organisation.orElse(Generator.get(Organisation.gen)(seed)).map(Organisation.sanitize(seed)))
 
   val contactDetailsSanitizer: Update = seed =>
-    entity => entity.copy(contactDetails = entity.contactDetails.orElse(Generator.get(ContactDetails.gen)(seed)))
+    entity =>
+      entity.copy(
+        contactDetails =
+          entity.contactDetails.orElse(Generator.get(ContactDetails.gen)(seed)).map(ContactDetails.sanitize(seed)))
 
   val agencyDetailsSanitizer: Update = seed =>
-    entity => entity.copy(agencyDetails = entity.agencyDetails.orElse(Generator.get(AgencyDetails.gen)(seed)))
+    entity =>
+      entity.copy(
+        agencyDetails =
+          entity.agencyDetails.orElse(Generator.get(AgencyDetails.gen)(seed)).map(AgencyDetails.sanitize(seed)))
 
   val organisationOrIndividualSanitizer: Update = seed =>
     entity => {

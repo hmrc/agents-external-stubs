@@ -44,9 +44,13 @@ DELETE      /agents-external-stubs/users/:userId                             @uk
 
 # Records management
 POST        /agents-external-stubs/records/business-details                  @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.storeBusinessDetails(autoFill: Boolean ?= true)
+GET         /agents-external-stubs/records/business-details/generate         @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generateBusinessDetails(seed: Option[String] ?= None, minimal: Boolean ?= false)
 POST        /agents-external-stubs/records/legacy-agent                      @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.storeLegacyAgent(autoFill: Boolean ?= true)
+GET         /agents-external-stubs/records/legacy-agent/generate             @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generateLegacyAgent(seed: Option[String] ?= None, minimal: Boolean ?= false)
 POST        /agents-external-stubs/records/legacy-relationship               @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.storeLegacyRelationship(autoFill: Boolean ?= true)
+GET         /agents-external-stubs/records/legacy-relationship/generate      @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generateLegacyRelationship(seed: Option[String] ?= None, minimal: Boolean ?= false)
 POST        /agents-external-stubs/records/vat-customer-information          @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.storeVatCustomerInformation(autoFill: Boolean ?= true)
+GET         /agents-external-stubs/records/vat-customer-information/generate @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generateVatCustomerInformation(seed: Option[String] ?= None, minimal: Boolean ?= false)
 
 # Config management
 GET         /agents-external-stubs/config/services                           @uk.gov.hmrc.agentsexternalstubs.controllers.ConfigController.getServices

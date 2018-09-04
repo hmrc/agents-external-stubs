@@ -26,8 +26,17 @@ trait Generator extends Names with Temporal with Companies with Addresses {
 
   def toJodaDate(date: java.time.LocalDate): org.joda.time.LocalDate = org.joda.time.LocalDate.parse(date.toString)
 
-  lazy val biasedBooleanGen: Gen[Boolean] = Gen.frequency(80             -> Gen.const(true), 20 -> Gen.const(false))
-  def biasedOptionGen[T](gen: Gen[T]): Gen[Option[T]] = Gen.frequency(95 -> gen.map(Some(_)), 5 -> Gen.const(None))
+  lazy val booleanGen: Gen[Boolean] = Gen.frequency(80 -> Gen.const(true), 20 -> Gen.const(false))
+
+  case class OptionGenStrategy(someFrequency: Int)
+  val AlwaysSome = OptionGenStrategy(100)
+  val AlwaysNone = OptionGenStrategy(0)
+  val MostlySome = OptionGenStrategy(95)
+
+  def optionGen[T](gen: Gen[T])(implicit os: OptionGenStrategy = MostlySome): Gen[Option[T]] =
+    Gen.frequency(os.someFrequency -> gen.map(Some(_)), (100 - os.someFrequency) -> Gen.const(None))
+
+  def biasedOptionGen[T](gen: Gen[T]): Gen[Option[T]] = optionGen(gen)(MostlySome)
 
   def nonEmptyListOfMaxN[T](max: Int, gen: Gen[T]): Gen[List[T]] =
     for {
@@ -104,10 +113,10 @@ trait Generator extends Names with Temporal with Companies with Addresses {
   lazy val address4Lines35Gen: Gen[Address4Lines35] = ukAddress
     .map {
       case street :: town :: postcode :: Nil =>
-        Address4Lines35(street.take(35), "The House", town.take(35), postcode)
+        Address4Lines35(street.take(35).replace(";", " "), "The House", town.take(35), postcode)
     }
 
-  lazy val tradingNameGen: Gen[String] = company.map(_.split(" ").drop(1).mkString(" "))
+  lazy val tradingNameGen: Gen[String] = company.map(_.split(" ").mkString(" "))
 
   lazy val `date_dd/MM/yy` = DateTimeFormatter.ofPattern("dd/MM/yy")
   lazy val `date_yyyy-MM-dd` = DateTimeFormatter.ofPattern("yyyy-MM-dd")

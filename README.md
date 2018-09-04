@@ -196,12 +196,16 @@ Response | Description
 ### Test Master Records Management <a name="custom_api_records"></a>
 
 #### POST /agents-external-stubs/records/business-details
+#### GET /agents-external-stubs/records/business-details/generate
 
 #### POST /agents-external-stubs/records/legacy-agent
+#### GET /agents-external-stubs/records/legacy-agent/generate
 
 #### POST /agents-external-stubs/records/legacy-relationship
+#### GET /agents-external-stubs/records/legacy-relationship/generate
 
 #### POST /agents-external-stubs/records/vat-customer-information
+#### GET /agents-external-stubs/records/vat-customer-information/generate
 
 ## Running the tests
 

@@ -2,7 +2,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.JsValue
-import play.api.mvc.Action
+import play.api.mvc.{Action, AnyContent}
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, BusinessDetailsRecordsService, LegacyRelationshipRecordsService, VatCustomerInformationRecordsService}
@@ -29,6 +29,17 @@ class RecordsController @Inject()(
     }(SessionRecordNotFound)
   }
 
+  def generateBusinessDetails(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] = Action.async {
+    implicit request =>
+      withCurrentSession { session =>
+        val seed = seedOpt.getOrElse(session.sessionId)
+        implicit val optionGenStrategy: Generator.OptionGenStrategy = Generator.AlwaysSome
+        val record = BusinessDetailsRecord.seed(seed)
+        val result = if (minimal) record else BusinessDetailsRecord.sanitize(seed)(record)
+        ok(result, Link("create", routes.RecordsController.storeBusinessDetails(minimal).url))
+      }(SessionRecordNotFound)
+  }
+
   def storeLegacyAgent(autoFill: Boolean): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withCurrentSession { session =>
       withPayload[LegacyAgentRecord](
@@ -37,6 +48,17 @@ class RecordsController @Inject()(
             .store(record, autoFill, session.planetId)
             .map(_ => Created))
     }(SessionRecordNotFound)
+  }
+
+  def generateLegacyAgent(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] = Action.async {
+    implicit request =>
+      withCurrentSession { session =>
+        val seed = seedOpt.getOrElse(session.sessionId)
+        implicit val optionGenStrategy: Generator.OptionGenStrategy = Generator.AlwaysSome
+        val record = LegacyAgentRecord.seed(seed)
+        val result = if (minimal) record else LegacyAgentRecord.sanitize(seed)(record)
+        ok(result, Link("create", routes.RecordsController.storeLegacyAgent(minimal).url))
+      }(SessionRecordNotFound)
   }
 
   def storeLegacyRelationship(autoFill: Boolean): Action[JsValue] = Action.async(parse.json) { implicit request =>
@@ -55,6 +77,17 @@ class RecordsController @Inject()(
     }(SessionRecordNotFound)
   }
 
+  def generateLegacyRelationship(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] = Action.async {
+    implicit request =>
+      withCurrentSession { session =>
+        val seed = seedOpt.getOrElse(session.sessionId)
+        implicit val optionGenStrategy: Generator.OptionGenStrategy = Generator.AlwaysSome
+        val record = LegacyRelationshipRecord.seed(seed)
+        val result = if (minimal) record else LegacyRelationshipRecord.sanitize(seed)(record)
+        ok(result, Link("create", routes.RecordsController.storeLegacyRelationship(minimal).url))
+      }(SessionRecordNotFound)
+  }
+
   def storeVatCustomerInformation(autoFill: Boolean): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withCurrentSession { session =>
       withPayload[VatCustomerInformationRecord](
@@ -65,6 +98,17 @@ class RecordsController @Inject()(
               Created.withHeaders(
                 HeaderNames.LOCATION -> routes.DesStubController.getVatCustomerInformation(record.vrn).url)))
     }(SessionRecordNotFound)
+  }
+
+  def generateVatCustomerInformation(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] = Action.async {
+    implicit request =>
+      withCurrentSession { session =>
+        val seed = seedOpt.getOrElse(session.sessionId)
+        implicit val optionGenStrategy: Generator.OptionGenStrategy = Generator.AlwaysSome
+        val record = VatCustomerInformationRecord.seed(seed)
+        val result = if (minimal) record else VatCustomerInformationRecord.sanitize(seed)(record)
+        ok(result, Link("create", routes.RecordsController.storeVatCustomerInformation(minimal).url))
+      }(SessionRecordNotFound)
   }
 
 }

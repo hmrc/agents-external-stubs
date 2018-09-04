@@ -19,6 +19,8 @@ class RecordSpec extends UnitSpec with PropertyChecks with ValidatedMatchers {
       active = true,
       id = Some("abc"))
 
+  implicit val optionGenStrategy: Generator.OptionGenStrategy = Generator.AlwaysSome
+
   val registrationJson =
     """{"regime":"ITSA","arn":"ZARN1234567","idType":"none","refNumber":"012345678901234","active":true,"_record_type":"RelationshipRecord","_id":{"$oid":"abc"}}"""
 

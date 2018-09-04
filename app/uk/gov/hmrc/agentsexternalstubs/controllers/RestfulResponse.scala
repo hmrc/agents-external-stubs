@@ -4,7 +4,7 @@ import play.api.libs.json._
 case class Link(rel: String, link: String)
 
 object Link {
-  implicit val linkWrites: Writes[Link] = Json.writes[Link]
+  implicit val writes: Writes[Link] = Json.writes[Link]
 }
 
 object RestfulResponse {

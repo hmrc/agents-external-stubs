@@ -58,7 +58,11 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       case x: ForeignAddress => ForeignAddress.validate(x)
     }
 
-    override val sanitizers: Seq[Update] = Seq()
+    val sanitizer: Update = seed => {
+      case x: UkAddress      => UkAddress.sanitize(seed)(x)
+      case x: ForeignAddress => ForeignAddress.sanitize(seed)(x)
+    }
+    override val sanitizers: Seq[Update] = Seq(sanitizer)
 
     implicit val reads: Reads[Address] = new Reads[Address] {
       override def reads(json: JsValue): JsResult[Address] = {
@@ -129,30 +133,45 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     val correspondenceContactDetailsSanitizer: Update = seed =>
       entity =>
         entity.copy(
-          correspondenceContactDetails =
-            entity.correspondenceContactDetails.orElse(Generator.get(CorrespondenceContactDetails.gen)(seed)))
+          correspondenceContactDetails = entity.correspondenceContactDetails
+            .orElse(Generator.get(CorrespondenceContactDetails.gen)(seed))
+            .map(CorrespondenceContactDetails.sanitize(seed)))
 
     val bankDetailsSanitizer: Update = seed =>
-      entity => entity.copy(bankDetails = entity.bankDetails.orElse(Generator.get(BankDetails.gen)(seed)))
+      entity =>
+        entity.copy(
+          bankDetails = entity.bankDetails.orElse(Generator.get(BankDetails.gen)(seed)).map(BankDetails.sanitize(seed)))
 
     val businessActivitiesSanitizer: Update = seed =>
       entity =>
-        entity.copy(businessActivities = entity.businessActivities.orElse(Generator.get(BusinessActivities.gen)(seed)))
+        entity.copy(
+          businessActivities = entity.businessActivities
+            .orElse(Generator.get(BusinessActivities.gen)(seed))
+            .map(BusinessActivities.sanitize(seed)))
 
     val flatRateSchemeSanitizer: Update = seed =>
-      entity => entity.copy(flatRateScheme = entity.flatRateScheme.orElse(Generator.get(FlatRateScheme.gen)(seed)))
+      entity =>
+        entity.copy(
+          flatRateScheme =
+            entity.flatRateScheme.orElse(Generator.get(FlatRateScheme.gen)(seed)).map(FlatRateScheme.sanitize(seed)))
 
     val deregistrationSanitizer: Update = seed =>
-      entity => entity.copy(deregistration = entity.deregistration.orElse(Generator.get(Deregistration.gen)(seed)))
+      entity =>
+        entity.copy(
+          deregistration =
+            entity.deregistration.orElse(Generator.get(Deregistration.gen)(seed)).map(Deregistration.sanitize(seed)))
 
     val returnPeriodSanitizer: Update = seed =>
-      entity => entity.copy(returnPeriod = entity.returnPeriod.orElse(Generator.get(Period.gen)(seed)))
+      entity =>
+        entity.copy(
+          returnPeriod = entity.returnPeriod.orElse(Generator.get(Period.gen)(seed)).map(Period.sanitize(seed)))
 
     val groupOrPartnerMbrsSanitizer: Update = seed =>
       entity =>
         entity.copy(
-          groupOrPartnerMbrs =
-            entity.groupOrPartnerMbrs.orElse(Generator.get(Generator.nonEmptyListOfMaxN(3, GroupOrPartner.gen))(seed)))
+          groupOrPartnerMbrs = entity.groupOrPartnerMbrs
+            .orElse(Generator.get(Generator.nonEmptyListOfMaxN(2, GroupOrPartner.gen))(seed))
+            .map(_.map(GroupOrPartner.sanitize(seed))))
 
     override val sanitizers: Seq[Update] = Seq(
       correspondenceContactDetailsSanitizer,
@@ -314,15 +333,15 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
   object ChangeIndicators extends RecordUtils[ChangeIndicators] {
 
     override val gen: Gen[ChangeIndicators] = for {
-      customerDetails       <- Generator.biasedBooleanGen
-      ppobdetails           <- Generator.biasedBooleanGen
-      correspContactDetails <- Generator.biasedBooleanGen
-      bankDetails           <- Generator.biasedBooleanGen
-      businessActivities    <- Generator.biasedBooleanGen
-      flatRateScheme        <- Generator.biasedBooleanGen
-      deRegistrationInfo    <- Generator.biasedBooleanGen
-      returnPeriods         <- Generator.biasedBooleanGen
-      groupOrPartners       <- Generator.biasedBooleanGen
+      customerDetails       <- Generator.booleanGen
+      ppobdetails           <- Generator.booleanGen
+      correspContactDetails <- Generator.booleanGen
+      bankDetails           <- Generator.booleanGen
+      businessActivities    <- Generator.booleanGen
+      flatRateScheme        <- Generator.booleanGen
+      deRegistrationInfo    <- Generator.booleanGen
+      returnPeriods         <- Generator.booleanGen
+      groupOrPartners       <- Generator.booleanGen
     } yield
       ChangeIndicators(
         customerDetails = customerDetails,
@@ -401,7 +420,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
   object CorrespondenceContactDetails extends RecordUtils[CorrespondenceContactDetails] {
 
     override val gen: Gen[CorrespondenceContactDetails] = for {
-      address <- UkAddress.gen
+      address <- Address.gen
     } yield
       CorrespondenceContactDetails(
         address = address
@@ -417,7 +436,10 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       entity => entity.copy(RLS = entity.RLS.orElse(Generator.get(Gen.oneOf(Common.RLSEnum))(seed)))
 
     val contactDetailsSanitizer: Update = seed =>
-      entity => entity.copy(contactDetails = entity.contactDetails.orElse(Generator.get(ContactDetails.gen)(seed)))
+      entity =>
+        entity.copy(
+          contactDetails =
+            entity.contactDetails.orElse(Generator.get(ContactDetails.gen)(seed)).map(ContactDetails.sanitize(seed)))
 
     override val sanitizers: Seq[Update] = Seq(RLSSanitizer, contactDetailsSanitizer)
 
@@ -472,7 +494,10 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       entity => entity.copy(organisationName = entity.organisationName.orElse(Generator.get(Generator.company)(seed)))
 
     val individualSanitizer: Update = seed =>
-      entity => entity.copy(individual = entity.individual.orElse(Generator.get(IndividualName.gen)(seed)))
+      entity =>
+        entity.copy(
+          individual =
+            entity.individual.orElse(Generator.get(IndividualName.gen)(seed)).map(IndividualName.sanitize(seed)))
 
     val dateOfBirthSanitizer: Update = seed =>
       entity =>
@@ -600,8 +625,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     val limitedCostTraderSanitizer: Update = seed =>
       entity =>
-        entity.copy(
-          limitedCostTrader = entity.limitedCostTrader.orElse(Generator.get(Generator.biasedBooleanGen)(seed)))
+        entity.copy(limitedCostTrader = entity.limitedCostTrader.orElse(Generator.get(Generator.booleanGen)(seed)))
 
     override val sanitizers: Seq[Update] =
       Seq(FRSCategorySanitizer, FRSPercentageSanitizer, startDateSanitizer, limitedCostTraderSanitizer)
@@ -720,7 +744,10 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       entity => entity.copy(organisationName = entity.organisationName.orElse(Generator.get(Generator.company)(seed)))
 
     val individualSanitizer: Update = seed =>
-      entity => entity.copy(individual = entity.individual.orElse(Generator.get(IndividualName.gen)(seed)))
+      entity =>
+        entity.copy(
+          individual =
+            entity.individual.orElse(Generator.get(IndividualName.gen)(seed)).map(IndividualName.sanitize(seed)))
 
     override val sanitizers: Seq[Update] = Seq(organisationNameSanitizer, individualSanitizer)
 
@@ -891,10 +918,14 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     )
 
     val addressSanitizer: Update = seed =>
-      entity => entity.copy(address = entity.address.orElse(Generator.get(UkAddress.gen)(seed)))
+      entity =>
+        entity.copy(address = entity.address.orElse(Generator.get(Address.gen)(seed)).map(Address.sanitize(seed)))
 
     val contactDetailsSanitizer: Update = seed =>
-      entity => entity.copy(contactDetails = entity.contactDetails.orElse(Generator.get(ContactDetails.gen)(seed)))
+      entity =>
+        entity.copy(
+          contactDetails =
+            entity.contactDetails.orElse(Generator.get(ContactDetails.gen)(seed)).map(ContactDetails.sanitize(seed)))
 
     override val sanitizers: Seq[Update] = Seq(addressSanitizer, contactDetailsSanitizer)
 
@@ -950,7 +981,10 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       entity => entity.copy(organisationName = entity.organisationName.orElse(Generator.get(Generator.company)(seed)))
 
     val individualSanitizer: Update = seed =>
-      entity => entity.copy(individual = entity.individual.orElse(Generator.get(IndividualName.gen)(seed)))
+      entity =>
+        entity.copy(
+          individual =
+            entity.individual.orElse(Generator.get(IndividualName.gen)(seed)).map(IndividualName.sanitize(seed)))
 
     val dateOfBirthSanitizer: Update = seed =>
       entity =>
@@ -1076,8 +1110,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     val limitedCostTraderSanitizer: Update = seed =>
       entity =>
-        entity.copy(
-          limitedCostTrader = entity.limitedCostTrader.orElse(Generator.get(Generator.biasedBooleanGen)(seed)))
+        entity.copy(limitedCostTrader = entity.limitedCostTrader.orElse(Generator.get(Generator.booleanGen)(seed)))
 
     override val sanitizers: Seq[Update] =
       Seq(FRSCategorySanitizer, FRSPercentageSanitizer, startDateSanitizer, limitedCostTraderSanitizer)
@@ -1141,18 +1174,15 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
             entity.typeOfRelationship.orElse(Generator.get(Gen.oneOf(Common.typeOfRelationshipEnum))(seed)))
 
     val makeGrpMemberSanitizer: Update = seed =>
-      entity =>
-        entity.copy(makeGrpMember = entity.makeGrpMember.orElse(Generator.get(Generator.biasedBooleanGen)(seed)))
+      entity => entity.copy(makeGrpMember = entity.makeGrpMember.orElse(Generator.get(Generator.booleanGen)(seed)))
 
     val makeControllingBodySanitizer: Update = seed =>
       entity =>
-        entity.copy(
-          makeControllingBody = entity.makeControllingBody.orElse(Generator.get(Generator.biasedBooleanGen)(seed)))
+        entity.copy(makeControllingBody = entity.makeControllingBody.orElse(Generator.get(Generator.booleanGen)(seed)))
 
     val isControllingBodySanitizer: Update = seed =>
       entity =>
-        entity.copy(
-          isControllingBody = entity.isControllingBody.orElse(Generator.get(Generator.biasedBooleanGen)(seed)))
+        entity.copy(isControllingBody = entity.isControllingBody.orElse(Generator.get(Generator.booleanGen)(seed)))
 
     val organisationNameSanitizer: Update = seed =>
       entity => entity.copy(organisationName = entity.organisationName.orElse(Generator.get(Generator.company)(seed)))
@@ -1161,9 +1191,13 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       entity => entity.copy(tradingName = entity.tradingName.orElse(Generator.get(Generator.tradingNameGen)(seed)))
 
     val individualSanitizer: Update = seed =>
-      entity => entity.copy(individual = entity.individual.orElse(Generator.get(IndividualName.gen)(seed)))
+      entity =>
+        entity.copy(
+          individual =
+            entity.individual.orElse(Generator.get(IndividualName.gen)(seed)).map(IndividualName.sanitize(seed)))
 
-    val PPOBSanitizer: Update = seed => entity => entity.copy(PPOB = entity.PPOB.orElse(Generator.get(PPOB.gen)(seed)))
+    val PPOBSanitizer: Update = seed =>
+      entity => entity.copy(PPOB = entity.PPOB.orElse(Generator.get(PPOB.gen)(seed)).map(PPOB.sanitize(seed)))
 
     override val sanitizers: Seq[Update] = Seq(
       SAP_NumberSanitizer,
@@ -1229,10 +1263,14 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     )
 
     val addressSanitizer: Update = seed =>
-      entity => entity.copy(address = entity.address.orElse(Generator.get(UkAddress.gen)(seed)))
+      entity =>
+        entity.copy(address = entity.address.orElse(Generator.get(Address.gen)(seed)).map(Address.sanitize(seed)))
 
     val contactDetailsSanitizer: Update = seed =>
-      entity => entity.copy(contactDetails = entity.contactDetails.orElse(Generator.get(ContactDetails.gen)(seed)))
+      entity =>
+        entity.copy(
+          contactDetails =
+            entity.contactDetails.orElse(Generator.get(ContactDetails.gen)(seed)).map(ContactDetails.sanitize(seed)))
 
     val websiteAddressSanitizer: Update = seed =>
       entity =>
@@ -1271,19 +1309,17 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     val changeReturnPeriodSanitizer: Update = seed =>
       entity =>
-        entity.copy(
-          changeReturnPeriod = entity.changeReturnPeriod.orElse(Generator.get(Generator.biasedBooleanGen)(seed)))
+        entity.copy(changeReturnPeriod = entity.changeReturnPeriod.orElse(Generator.get(Generator.booleanGen)(seed)))
 
     val nonStdTaxPeriodsRequestedSanitizer: Update = seed =>
       entity =>
-        entity.copy(
-          nonStdTaxPeriodsRequested =
-            entity.nonStdTaxPeriodsRequested.orElse(Generator.get(Generator.biasedBooleanGen)(seed)))
+        entity.copy(nonStdTaxPeriodsRequested =
+          entity.nonStdTaxPeriodsRequested.orElse(Generator.get(Generator.booleanGen)(seed)))
 
     val ceaseNonStdTaxPeriodsSanitizer: Update = seed =>
       entity =>
         entity.copy(
-          ceaseNonStdTaxPeriods = entity.ceaseNonStdTaxPeriods.orElse(Generator.get(Generator.biasedBooleanGen)(seed)))
+          ceaseNonStdTaxPeriods = entity.ceaseNonStdTaxPeriods.orElse(Generator.get(Generator.booleanGen)(seed)))
 
     val stdReturnPeriodSanitizer: Update = seed =>
       entity =>
@@ -1292,7 +1328,10 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     val nonStdTaxPeriodsSanitizer: Update = seed =>
       entity =>
-        entity.copy(nonStdTaxPeriods = entity.nonStdTaxPeriods.orElse(Generator.get(NonStdTaxPeriods.gen)(seed)))
+        entity.copy(
+          nonStdTaxPeriods = entity.nonStdTaxPeriods
+            .orElse(Generator.get(NonStdTaxPeriods.gen)(seed))
+            .map(NonStdTaxPeriods.sanitize(seed)))
 
     override val sanitizers: Seq[Update] = Seq(
       changeReturnPeriodSanitizer,
@@ -1377,40 +1416,66 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     val customerDetailsSanitizer: Update = seed =>
       entity =>
-        entity.copy(customerDetails = entity.customerDetails.orElse(Generator.get(InFlightCustomerDetails.gen)(seed)))
+        entity.copy(
+          customerDetails = entity.customerDetails
+            .orElse(Generator.get(InFlightCustomerDetails.gen)(seed))
+            .map(InFlightCustomerDetails.sanitize(seed)))
 
     val PPOBDetailsSanitizer: Update = seed =>
-      entity => entity.copy(PPOBDetails = entity.PPOBDetails.orElse(Generator.get(InFlightPPOBDetails.gen)(seed)))
+      entity =>
+        entity.copy(
+          PPOBDetails = entity.PPOBDetails
+            .orElse(Generator.get(InFlightPPOBDetails.gen)(seed))
+            .map(InFlightPPOBDetails.sanitize(seed)))
 
     val correspondenceContactDetailsSanitizer: Update = seed =>
       entity =>
         entity.copy(
-          correspondenceContactDetails =
-            entity.correspondenceContactDetails.orElse(Generator.get(InFlightCorrespondenceContactDetails.gen)(seed)))
+          correspondenceContactDetails = entity.correspondenceContactDetails
+            .orElse(Generator.get(InFlightCorrespondenceContactDetails.gen)(seed))
+            .map(InFlightCorrespondenceContactDetails.sanitize(seed)))
 
     val bankDetailsSanitizer: Update = seed =>
-      entity => entity.copy(bankDetails = entity.bankDetails.orElse(Generator.get(InFlightBankDetails.gen)(seed)))
+      entity =>
+        entity.copy(
+          bankDetails = entity.bankDetails
+            .orElse(Generator.get(InFlightBankDetails.gen)(seed))
+            .map(InFlightBankDetails.sanitize(seed)))
 
     val businessActivitiesSanitizer: Update = seed =>
       entity =>
         entity.copy(
-          businessActivities = entity.businessActivities.orElse(Generator.get(InFlightBusinessActivities.gen)(seed)))
+          businessActivities = entity.businessActivities
+            .orElse(Generator.get(InFlightBusinessActivities.gen)(seed))
+            .map(InFlightBusinessActivities.sanitize(seed)))
 
     val flatRateSchemeSanitizer: Update = seed =>
       entity =>
-        entity.copy(flatRateScheme = entity.flatRateScheme.orElse(Generator.get(InFlightFlatRateScheme.gen)(seed)))
+        entity.copy(
+          flatRateScheme = entity.flatRateScheme
+            .orElse(Generator.get(InFlightFlatRateScheme.gen)(seed))
+            .map(InFlightFlatRateScheme.sanitize(seed)))
 
     val deregisterSanitizer: Update = seed =>
-      entity => entity.copy(deregister = entity.deregister.orElse(Generator.get(InFlightDeregistration.gen)(seed)))
+      entity =>
+        entity.copy(
+          deregister = entity.deregister
+            .orElse(Generator.get(InFlightDeregistration.gen)(seed))
+            .map(InFlightDeregistration.sanitize(seed)))
 
     val returnPeriodSanitizer: Update = seed =>
-      entity => entity.copy(returnPeriod = entity.returnPeriod.orElse(Generator.get(InFlightReturnPeriod.gen)(seed)))
+      entity =>
+        entity.copy(
+          returnPeriod = entity.returnPeriod
+            .orElse(Generator.get(InFlightReturnPeriod.gen)(seed))
+            .map(InFlightReturnPeriod.sanitize(seed)))
 
     val groupOrPartnerSanitizer: Update = seed =>
       entity =>
         entity.copy(
-          groupOrPartner = entity.groupOrPartner.orElse(
-            Generator.get(Generator.nonEmptyListOfMaxN(3, InFlightGroupOrPartner.gen))(seed)))
+          groupOrPartner = entity.groupOrPartner
+            .orElse(Generator.get(Generator.nonEmptyListOfMaxN(2, InFlightGroupOrPartner.gen))(seed))
+            .map(_.map(InFlightGroupOrPartner.sanitize(seed))))
 
     override val sanitizers: Seq[Update] = Seq(
       customerDetailsSanitizer,
@@ -1630,7 +1695,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
   object PPOB extends RecordUtils[PPOB] {
 
     override val gen: Gen[PPOB] = for {
-      address <- UkAddress.gen
+      address <- Address.gen
     } yield
       PPOB(
         address = address
@@ -1649,7 +1714,10 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       entity => entity.copy(RLS = entity.RLS.orElse(Generator.get(Gen.oneOf(Common.RLSEnum))(seed)))
 
     val contactDetailsSanitizer: Update = seed =>
-      entity => entity.copy(contactDetails = entity.contactDetails.orElse(Generator.get(ContactDetails.gen)(seed)))
+      entity =>
+        entity.copy(
+          contactDetails =
+            entity.contactDetails.orElse(Generator.get(ContactDetails.gen)(seed)).map(ContactDetails.sanitize(seed)))
 
     val websiteAddressSanitizer: Update = seed =>
       entity =>
@@ -1682,7 +1750,10 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     val nonStdTaxPeriodsSanitizer: Update = seed =>
       entity =>
-        entity.copy(nonStdTaxPeriods = entity.nonStdTaxPeriods.orElse(Generator.get(NonStdTaxPeriods.gen)(seed)))
+        entity.copy(
+          nonStdTaxPeriods = entity.nonStdTaxPeriods
+            .orElse(Generator.get(NonStdTaxPeriods.gen)(seed))
+            .map(NonStdTaxPeriods.sanitize(seed)))
 
     override val sanitizers: Seq[Update] = Seq(stdReturnPeriodSanitizer, nonStdTaxPeriodsSanitizer)
 
@@ -1745,11 +1816,17 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
   val approvedInformationSanitizer: Update = seed =>
     entity =>
-      entity.copy(approvedInformation = entity.approvedInformation.orElse(Generator.get(ApprovedInformation.gen)(seed)))
+      entity.copy(
+        approvedInformation = entity.approvedInformation
+          .orElse(Generator.get(ApprovedInformation.gen)(seed))
+          .map(ApprovedInformation.sanitize(seed)))
 
   val inFlightInformationSanitizer: Update = seed =>
     entity =>
-      entity.copy(inFlightInformation = entity.inFlightInformation.orElse(Generator.get(InFlightInformation.gen)(seed)))
+      entity.copy(
+        inFlightInformation = entity.inFlightInformation
+          .orElse(Generator.get(InFlightInformation.gen)(seed))
+          .map(InFlightInformation.sanitize(seed)))
 
   override val sanitizers: Seq[Update] = Seq(approvedInformationSanitizer, inFlightInformationSanitizer)
 

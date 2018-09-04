@@ -187,7 +187,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
 
     private def findUniqueKey(definition: Definition, path: List[Definition] = Nil): Option[(String, String)] =
       definition match {
-        case s: StringDefinition => if (s.isUniqueKey) Some(accessorFor(s :: path), s.name) else None
+        case s: StringDefinition => if (s.isUniqueKey) Some((accessorFor(s :: path), s.name)) else None
         case o: ObjectDefinition =>
           o.properties.foldLeft[Option[(String, String)]](None)((a, p) => a.orElse(findUniqueKey(p, o :: path)))
         case _ => None
@@ -202,8 +202,6 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
       }
 
     private def accessorFor(path: List[Definition], nested: String = "", option: Boolean = false): String = path match {
-      case (s: StringDefinition) :: xs =>
-        accessorFor(xs, s.name, !s.isMandatory)
       case (o: ObjectDefinition) :: xs =>
         val prefix =
           if (o.name.isEmpty) ""
@@ -211,6 +209,8 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
           else s"${o.name}.${if (option) "flatMap" else "map"}(_."
         val suffix = if (o.name.isEmpty) "" else if (!o.isMandatory) ")" else ""
         accessorFor(xs, prefix + nested + suffix, !o.isMandatory || option)
+      case (s: Definition) :: xs =>
+        accessorFor(xs, s.name, !s.isMandatory)
       case Nil => if (option) nested else s"Option($nested)"
     }
 
@@ -338,14 +338,21 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
        |
        |  $nestedTypesDefinitions
        |
-       |  ${if (context.isRecordOutputType) "override " else ""}val validate: Validator[${typeDef.name}] = ${if (typeDef.isInterface)
+       |  ${if (context.isRecordOutputType) "override " else ""}val validate: Validator[${typeDef.name}] = ${if (typeDef.isInterface && typeDef.subtypes.nonEmpty)
          s"{${typeDef.subtypes
            .map(subTypeDef => s"""case x: ${subTypeDef.name}   => ${subTypeDef.name}.validate(x)""")
            .mkString("\n    ")}}"
        else s"Validator($fieldValidators)"}
        |
-       |  ${if (context.isRecordOutputType) s"""$sanitizers
-       |  override val sanitizers: Seq[Update] = Seq($sanitizerList)""" else ""}
+       |  ${if (context.isRecordOutputType) {
+         if (typeDef.isInterface && typeDef.subtypes.nonEmpty)
+           s"""val sanitizer: Update = seed => {${typeDef.subtypes
+                .map(subTypeDef => s"""  case x: ${subTypeDef.name}   => ${subTypeDef.name}.sanitize(seed)(x)""")
+                .mkString("\n    ")}}
+              |  override val sanitizers: Seq[Update] = Seq(sanitizer)""".stripMargin
+         else s"""$sanitizers
+         |  override val sanitizers: Seq[Update] = Seq($sanitizerList)"""
+       } else ""}
        |
        |  ${if (typeDef.isInterface)
          s"""
@@ -442,17 +449,23 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
             case _                           => "Gen.const(BigDecimal(0))"
           })
 
-        case b: BooleanDefinition => "Generator.biasedBooleanGen"
-        case a: ArrayDefinition   => s"Generator.nonEmptyListOfMaxN(3,${generateValueGenerator(a.item, context)})"
+        case b: BooleanDefinition => "Generator.booleanGen"
+        case a: ArrayDefinition   => s"Generator.nonEmptyListOfMaxN(2,${generateValueGenerator(a.item, context)})"
         case o: ObjectDefinition  => s"${o.typeName}.gen"
 
         case o: OneOfDefinition =>
-          o.variants.head match {
-            case i: ObjectDefinition => s"${i.typeName}.gen"
-            case x                   => generateValueGenerator(x, context)
-          }
+          if (o.variants.isEmpty) "???"
+          else if (o.variants.size == 1) generateValueGenerator(o.variants.head, context)
+          else
+            o.variants.head match {
+              case _: ObjectDefinition => s"${o.typeName}.gen"
+              case _ =>
+                s"Gen.oneOf[${o.typeName}](${o.variants
+                  .map(v => s"${generateValueGenerator(v, context)}.map(_.asInstanceOf[${typeOf(v, "")}])")
+                  .mkString(",\n  ")})"
+            }
       })
-    if (!property.isMandatory && wrapOption) s"""Generator.biasedOptionGen($gen)""" else gen
+    if (!property.isMandatory && wrapOption) s"""Generator.optionGen($gen)""" else gen
   }
 
   private def generateFieldValidators(definition: ObjectDefinition, context: Context): String = {
@@ -558,7 +571,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
            |    entity.copy(${prop.name} = entity.${prop.name}.orElse(Generator.get(${generateValueGenerator(
              prop,
              context,
-             wrapOption = false)})(seed)))
+             wrapOption = false)})(seed))${generateSanitizerSuffix(prop)})
          """.stripMargin
       })
     val sanitizers =
@@ -576,6 +589,17 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
                                |  }
                                |""".stripMargin
     sanitizers.mkString("\n")
+  }
+
+  private def generateSanitizerSuffix(definition: Definition): String = definition match {
+    case a: ArrayDefinition  => s".map(_.map(${a.item.typeName}.sanitize(seed)))"
+    case o: ObjectDefinition => s".map(${o.typeName}.sanitize(seed))"
+    case o: OneOfDefinition =>
+      if (o.variants.isEmpty) ""
+      else if (o.variants.size == 1) generateSanitizerSuffix(o.variants.head)
+      else
+        s""".map(${o.typeName}.sanitize(seed))"""
+    case _ => ""
   }
 
   private def generateExternalizedVals(context: Context): String =

@@ -12,7 +12,8 @@ object Validator {
   def apply[T](constraints: Validator[T]*): Validator[T] =
     (entity: T) =>
       constraints
-        .foldLeft[Validated[List[String], Unit]](Valid(()))((v, fx) => v.combine(fx(entity)))
+        .foldLeft[Validated[List[String], Unit]](Valid(()))((v, fx) =>
+          v.combine(fx(entity).leftMap(le => le.map(e => if (e.contains(" in ")) e else s"$e in $entity"))))
 
   def alternatively[T](constraints: Validator[T]*): Validator[T] =
     (entity: T) =>

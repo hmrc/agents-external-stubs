@@ -318,11 +318,27 @@ trait TestRequests extends ScalaFutures {
         .post[T](payload)
         .futureValue
 
+    def generateBusinessDetails(seed: String, minimal: Boolean)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/records/business-details/generate")
+        .withQueryString("seed" -> seed, "minimal" -> minimal.toString)
+        .withHeaders(authContext.headers: _*)
+        .get
+        .futureValue
+
     def createLegacyAgent[T: Writeable](payload: T)(implicit authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/legacy-agent")
         .withHeaders(authContext.headers: _*)
         .post[T](payload)
+        .futureValue
+
+    def generateLegacyAgent(seed: String, minimal: Boolean)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/records/legacy-agent/generate")
+        .withQueryString("seed" -> seed, "minimal" -> minimal.toString)
+        .withHeaders(authContext.headers: _*)
+        .get
         .futureValue
 
     def createLegacyRelationship[T: Writeable](payload: T)(implicit authContext: AuthContext): WSResponse =
@@ -332,11 +348,27 @@ trait TestRequests extends ScalaFutures {
         .post[T](payload)
         .futureValue
 
+    def generateLegacyRelationship(seed: String, minimal: Boolean)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/records/legacy-relationship/generate")
+        .withQueryString("seed" -> seed, "minimal" -> minimal.toString)
+        .withHeaders(authContext.headers: _*)
+        .get
+        .futureValue
+
     def createVatCustomerInformation[T: Writeable](payload: T)(implicit authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/vat-customer-information")
         .withHeaders(authContext.headers: _*)
         .post[T](payload)
+        .futureValue
+
+    def generateVatCustomerInformation(seed: String, minimal: Boolean)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/records/vat-customer-information/generate")
+        .withQueryString("seed" -> seed, "minimal" -> minimal.toString)
+        .withHeaders(authContext.headers: _*)
+        .get
         .futureValue
   }
 
