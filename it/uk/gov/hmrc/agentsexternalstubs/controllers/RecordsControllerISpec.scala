@@ -1,6 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import play.api.libs.json.{JsArray, JsObject}
+import play.api.libs.json.{JsArray, JsObject, Json}
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.agentsexternalstubs.models.AuthenticatedSession
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
@@ -13,6 +13,30 @@ class RecordsControllerISpec
   lazy val wsClient = app.injector.instanceOf[WSClient]
 
   "RecordsController" when {
+
+    "GET /agents-external-stubs/records" should {
+      "respond 200 with a list of records" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+
+        val createResult1 = Records.createBusinessDetails(Json.parse(validBusinessDetailsPayload))
+        createResult1 should haveStatus(201)
+        val createResult2 = Records.createVatCustomerInformation(Json.parse(validVatCustomerInformationPayload))
+        createResult2 should haveStatus(201)
+        val createResult3 = Records.createLegacyAgent(Json.parse(validLegacyAgentPayload))
+        createResult3 should haveStatus(201)
+        val createResult4 = Records.createLegacyRelationship(Json.parse(validLegacyRelationshipPayload))
+        createResult4 should haveStatus(201)
+
+        val result = Records.getRecords()
+        result should haveStatus(200)
+        result should haveValidJsonBody(
+          haveProperty[JsArray]("VatCustomerInformationRecord") and
+            haveProperty[JsArray]("BusinessDetailsRecord") and
+            haveProperty[JsArray]("LegacyRelationshipRecord") and
+            haveProperty[JsArray]("LegacyAgentRecord")
+        )
+      }
+    }
 
     "GET /agents-external-stubs/records/business-details/generate" should {
       "respond 200 with a minimal auto-generated entity" in {

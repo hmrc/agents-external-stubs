@@ -144,7 +144,7 @@ Optional params:
    
 Response | Description
 ---|---
-200| list of users as [User entity brief](userEntity.md#brief)
+200| list of users as [User entity brief](docs/userEntity.md#brief)
 204| empty list of users
     
 #### GET  /agents-external-stubs/users/:userId
@@ -152,7 +152,7 @@ Get current user details. (_requires valid bearer token_)
 
 Response | Description
 ---|---
-200| [User entity](userEntity.md)
+200| [User entity](docs/userEntity.md)
 404| when userId not found
 
 #### PUT  /agents-external-stubs/users/:userId
@@ -162,7 +162,7 @@ Update an existing user. (_requires valid bearer token_)
 
 *Payload*
 
-[User entity](userEntity.md)
+[User entity](docs/userEntity.md)
      
 Response | Description
 ---|---
@@ -176,7 +176,7 @@ Create a new user. (_requires valid bearer token_)
 
 *Payload*
 
-[User entity](userEntity.md)
+[User entity](docs/userEntity.md)
 
 Response | Description
 ---|---
@@ -194,6 +194,10 @@ Response | Description
 404| when userId not found
 
 ### Test Master Records Management <a name="custom_api_records"></a>
+
+#### GET /agents-external-stubs/records
+Returns all records on the planet grouped by the type, 
+e.g. [records response](docs/records.md).
 
 #### POST /agents-external-stubs/records/business-details
 #### GET /agents-external-stubs/records/business-details/generate

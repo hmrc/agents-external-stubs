@@ -44,6 +44,8 @@ trait RecordsRepository {
   def cursor[T <: Record](
     key: String,
     planetId: String)(implicit reads: Reads[T], ec: ExecutionContext, recordType: RecordMetaData[T]): Cursor[T]
+
+  def findAll(planetId: String)(implicit ec: ExecutionContext): Cursor[Record]
 }
 
 @Singleton
@@ -111,6 +113,16 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
         implicitly[collection.pack.Reader[Record]].map(_.asInstanceOf[T]),
         ec,
         implicitly[CursorProducer[T]])
+
+  override def findAll(planetId: String)(implicit ec: ExecutionContext): Cursor[Record] =
+    collection
+      .find(
+        JsObject(Seq(PLANET_ID -> JsString(planetId)))
+      )
+      .cursor[Record](ReadPreference.primaryPreferred)(
+        implicitly[collection.pack.Reader[Record]],
+        ec,
+        implicitly[CursorProducer[Record]])
 
   private def keyOf[T <: Record](key: String, planetId: String, recordType: RecordMetaData[T]): String =
     s"${recordType.typeName}:$key@$planetId"

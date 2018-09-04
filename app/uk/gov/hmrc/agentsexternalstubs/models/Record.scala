@@ -1,6 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import play.api.libs.json._
+import shapeless.record
 import uk.gov.hmrc.agentsexternalstubs.syntax.|>
 
 trait Record {
@@ -37,14 +38,7 @@ object Record {
   val writes: Writes[Record] = new Writes[Record] {
 
     override def writes(record: Record): JsValue =
-      (record match {
-        case r: RelationshipRecord           => RelationshipRecord.formats.writes(r)
-        case r: LegacyAgentRecord            => LegacyAgentRecord.formats.writes(r)
-        case r: LegacyRelationshipRecord     => LegacyRelationshipRecord.formats.writes(r)
-        case r: BusinessDetailsRecord        => BusinessDetailsRecord.formats.writes(r)
-        case r: VatCustomerInformationRecord => VatCustomerInformationRecord.formats.writes(r)
-        case _                               => throw new UnsupportedOperationException(s"Cannot serialize $record")
-      }) match {
+      toJson(record) match {
         case obj: JsObject =>
           obj
             .-("id")
@@ -55,6 +49,15 @@ object Record {
             }
         case o => throw new IllegalStateException(s"Record must be serialized to JsObject, got $o instead")
       }
+  }
+
+  def toJson(r: Record): JsValue = r match {
+    case r: RelationshipRecord           => RelationshipRecord.formats.writes(r)
+    case r: LegacyAgentRecord            => LegacyAgentRecord.formats.writes(r)
+    case r: LegacyRelationshipRecord     => LegacyRelationshipRecord.formats.writes(r)
+    case r: BusinessDetailsRecord        => BusinessDetailsRecord.formats.writes(r)
+    case r: VatCustomerInformationRecord => VatCustomerInformationRecord.formats.writes(r)
+    case _                               => throw new UnsupportedOperationException(s"Cannot serialize $record")
   }
 
   implicit val formats: Format[Record] = Format[Record](reads, writes)

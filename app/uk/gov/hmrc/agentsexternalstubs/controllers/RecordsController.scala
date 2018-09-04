@@ -1,10 +1,11 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import javax.inject.{Inject, Singleton}
-import play.api.libs.json.JsValue
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent}
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, BusinessDetailsRecordsService, LegacyRelationshipRecordsService, VatCustomerInformationRecordsService}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
@@ -14,8 +15,18 @@ class RecordsController @Inject()(
   businessDetailsRecordsService: BusinessDetailsRecordsService,
   legacyRelationshipRecordsService: LegacyRelationshipRecordsService,
   vatCustomerInformationRecordsService: VatCustomerInformationRecordsService,
+  recordsRepository: RecordsRepository,
   val authenticationService: AuthenticationService)
     extends BaseController with CurrentSession {
+
+  val getRecords: Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      recordsRepository
+        .findAll(session.planetId)
+        .collect[List](1000)
+        .flatMap(list => ok(list.groupBy(_.getClass.getSimpleName).mapValues(_.map(Record.toJson))))
+    }(SessionRecordNotFound)
+  }
 
   def storeBusinessDetails(autoFill: Boolean): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withCurrentSession { session =>

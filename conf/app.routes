@@ -43,6 +43,7 @@ POST        /agents-external-stubs/users/                                    @uk
 DELETE      /agents-external-stubs/users/:userId                             @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.deleteUser(userId: String)
 
 # Records management
+GET         /agents-external-stubs/records                                   @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.getRecords
 POST        /agents-external-stubs/records/business-details                  @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.storeBusinessDetails(autoFill: Boolean ?= true)
 GET         /agents-external-stubs/records/business-details/generate         @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generateBusinessDetails(seed: Option[String] ?= None, minimal: Boolean ?= false)
 POST        /agents-external-stubs/records/legacy-agent                      @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.storeLegacyAgent(autoFill: Boolean ?= true)

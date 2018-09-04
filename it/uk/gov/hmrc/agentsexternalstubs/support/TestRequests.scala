@@ -311,6 +311,13 @@ trait TestRequests extends ScalaFutures {
   }
 
   object Records {
+    def getRecords()(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/records")
+        .withHeaders(authContext.headers: _*)
+        .get
+        .futureValue
+
     def createBusinessDetails[T: Writeable](payload: T)(implicit authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/business-details")

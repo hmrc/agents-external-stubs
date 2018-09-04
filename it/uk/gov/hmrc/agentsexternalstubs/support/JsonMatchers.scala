@@ -16,7 +16,9 @@ trait JsonMatchers {
           case _ =>
             MatchResult(
               false,
-              s"JSON should have property $name of type ${classTag.runtimeClass.getSimpleName}, but had only ${obj.fields.map(_._1).mkString(", ")}",
+              s"JSON should have property $name of type ${classTag.runtimeClass.getSimpleName}, but had only ${obj.fields
+                .map(f => s"${f._1}:${f._2.getClass.getSimpleName}")
+                .mkString(", ")}",
               ""
             )
         }
