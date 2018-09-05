@@ -9,7 +9,7 @@ import play.api.data.Forms._
 import play.api.data.validation.{Constraint, Constraints, Invalid, Valid}
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent}
-import uk.gov.hmrc.agentmtdidentifiers.model.MtdItId
+import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Utr}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.services._
 import uk.gov.hmrc.domain.Nino
@@ -22,7 +22,8 @@ class DesStubController @Inject()(
   relationshipRecordsService: RelationshipRecordsService,
   legacyRelationshipRecordsService: LegacyRelationshipRecordsService,
   businessDetailsRecordsService: BusinessDetailsRecordsService,
-  vatCustomerInformationRecordsService: VatCustomerInformationRecordsService
+  vatCustomerInformationRecordsService: VatCustomerInformationRecordsService,
+  agentRecordsService: AgentRecordsService
 )(implicit usersService: UsersService)
     extends BaseController with DesCurrentSession {
 
@@ -126,7 +127,41 @@ class DesStubController @Inject()(
                     case None         => notFound("NOT_FOUND_MTDBSA")
                 }
             )
-        case _ => notFoundF("ID_TYPE_NOT_SUPPORTED")
+        case _ => badRequestF("INVALID_IDTYPE")
+      }
+    }(SessionRecordNotFound)
+  }
+
+  def getAgentRecord(idType: String, idNumber: String): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      idType match {
+        case "arn" =>
+          RegexPatterns
+            .validArn(idNumber)
+            .fold(
+              error => badRequestF("INVALID_ARN", error),
+              _ =>
+                agentRecordsService
+                  .getAgentRecord(Arn(idNumber), session.planetId)
+                  .map {
+                    case Some(record) => Ok(Json.toJson(record))
+                    case None         => notFound("NOT_FOUND")
+                }
+            )
+        case "utr" =>
+          RegexPatterns
+            .validUtr(idNumber)
+            .fold(
+              error => badRequestF("INVALID_UTR", error),
+              _ =>
+                agentRecordsService
+                  .getAgentRecord(Utr(idNumber), session.planetId)
+                  .map {
+                    case Some(record) => Ok(Json.toJson(record))
+                    case None         => notFound("NOT_FOUND")
+                }
+            )
+        case _ => badRequestF("INVALID_IDTYPE")
       }
     }(SessionRecordNotFound)
   }

@@ -29,6 +29,7 @@ GET         /registration/relationship/utr/:utr                              @uk
 GET         /registration/relationship/nino/:nino                            @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getLegacyRelationshipsByNino(nino: String)
 GET         /registration/business-details/:idType/:idNumber                 @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getBusinessDetails(idType: String, idNumber: String)
 GET         /vat/customer/vrn/:vrn/information                               @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getVatCustomerInformation(vrn: String)
+GET         /registration/personal-details/:idType/:idNumber                 @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getAgentRecord(idType: String, idNumber: String)
 
 # Authentication
 POST        /agents-external-stubs/sign-in                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.signIn
@@ -52,6 +53,8 @@ POST        /agents-external-stubs/records/legacy-relationship               @uk
 GET         /agents-external-stubs/records/legacy-relationship/generate      @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generateLegacyRelationship(seed: Option[String] ?= None, minimal: Boolean ?= false)
 POST        /agents-external-stubs/records/vat-customer-information          @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.storeVatCustomerInformation(autoFill: Boolean ?= true)
 GET         /agents-external-stubs/records/vat-customer-information/generate @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generateVatCustomerInformation(seed: Option[String] ?= None, minimal: Boolean ?= false)
+POST        /agents-external-stubs/records/agent-record                      @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.storeAgentRecord(autoFill: Boolean ?= true)
+GET         /agents-external-stubs/records/agent-record/generate             @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generateAgentRecord(seed: Option[String] ?= None, minimal: Boolean ?= false)
 
 # Config management
 GET         /agents-external-stubs/config/services                           @uk.gov.hmrc.agentsexternalstubs.controllers.ConfigController.getServices

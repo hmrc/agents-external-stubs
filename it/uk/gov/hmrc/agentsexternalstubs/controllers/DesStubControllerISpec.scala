@@ -213,5 +213,18 @@ class DesStubControllerISpec
         result should haveStatus(200)
       }
     }
+
+    "GET /registration/personal-details/arn/:arn" should {
+      "return 200 response if record found" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        val createResult = Records.createVatCustomerInformation(Json.parse(validVatCustomerInformationPayload))
+        createResult should haveStatus(201)
+
+        val result = DesStub.getVatCustomerInformation("123456789")
+        result should haveStatus(200)
+        val json = result.json
+        json.as[JsObject] should haveProperty[String]("vrn")
+      }
+    }
   }
 }

@@ -24,6 +24,7 @@ case class AgentRecord(
   businessPartnerExists: Boolean,
   safeId: String,
   agentReferenceNumber: Option[String] = None,
+  utr: Option[String] = None,
   isAnAgent: Boolean,
   isAnASAgent: Boolean,
   isAnIndividual: Boolean,
@@ -37,7 +38,7 @@ case class AgentRecord(
 ) extends Record {
 
   override def uniqueKey: Option[String] = agentReferenceNumber.map(AgentRecord.uniqueKey)
-  override def lookupKeys: Seq[String] = Seq()
+  override def lookupKeys: Seq[String] = Seq(utr.map(AgentRecord.utrKey)).collect { case Some(x) => x }
   override def withId(id: Option[String]): Record = copy(id = id)
 
   def withBusinessPartnerExists(businessPartnerExists: Boolean): AgentRecord =
@@ -45,6 +46,7 @@ case class AgentRecord(
   def withSafeId(safeId: String): AgentRecord = copy(safeId = safeId)
   def withAgentReferenceNumber(agentReferenceNumber: Option[String]): AgentRecord =
     copy(agentReferenceNumber = agentReferenceNumber)
+  def withUtr(utr: Option[String]): AgentRecord = copy(utr = utr)
   def withIsAnAgent(isAnAgent: Boolean): AgentRecord = copy(isAnAgent = isAnAgent)
   def withIsAnASAgent(isAnASAgent: Boolean): AgentRecord = copy(isAnASAgent = isAnASAgent)
   def withIsAnIndividual(isAnIndividual: Boolean): AgentRecord = copy(isAnIndividual = isAnIndividual)
@@ -62,6 +64,7 @@ object AgentRecord extends RecordUtils[AgentRecord] {
   implicit val recordType: RecordMetaData[AgentRecord] = RecordMetaData[AgentRecord](this)
 
   def uniqueKey(key: String): String = s"""agentReferenceNumber:${key.toUpperCase}"""
+  def utrKey(key: String): String = s"""utr:${key.toUpperCase}"""
 
   import Validator._
   import Generator.GenOps._
@@ -74,6 +77,7 @@ object AgentRecord extends RecordUtils[AgentRecord] {
       _.agentReferenceNumber.matches(Common.agentReferenceNumberPattern),
       s"""Invalid agentReferenceNumber, does not matches regex ${Common.agentReferenceNumberPattern}"""
     ),
+    check(_.utr.matches(Common.utrPattern), s"""Invalid utr, does not matches regex ${Common.utrPattern}"""),
     checkObjectIfSome(_.individual, Individual.validate),
     checkObjectIfSome(_.organisation, Organisation.validate),
     checkObject(_.addressDetails, AddressDetails.validate),
@@ -104,6 +108,9 @@ object AgentRecord extends RecordUtils[AgentRecord] {
   val agentReferenceNumberSanitizer: Update = seed =>
     entity =>
       entity.copy(agentReferenceNumber = entity.agentReferenceNumber.orElse(Generator.get(Generator.arnGen)(seed)))
+
+  val utrSanitizer: Update = seed =>
+    entity => entity.copy(utr = entity.utr.orElse(Generator.get(Generator.utrGen)(seed)))
 
   val individualSanitizer: Update = seed =>
     entity =>
@@ -142,6 +149,7 @@ object AgentRecord extends RecordUtils[AgentRecord] {
 
   override val sanitizers: Seq[Update] = Seq(
     agentReferenceNumberSanitizer,
+    utrSanitizer,
     contactDetailsSanitizer,
     agencyDetailsSanitizer,
     organisationOrIndividualSanitizer)
@@ -844,6 +852,7 @@ object AgentRecord extends RecordUtils[AgentRecord] {
     val organisationTypePattern = """^[A-Z a-z 0-9]{1,4}$"""
     val countryCodeEnum1 = Seq("GB")
     val safeIdPattern = """^X[A-Z]000[0-9]{10}$"""
+    val utrPattern = """^[0-9]{1,10}$"""
     val agentReferenceNumberPattern = """^[A-Z](ARN)[0-9]{7}$"""
   }
 }

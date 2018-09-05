@@ -6,7 +6,7 @@ import play.api.mvc.{Action, AnyContent}
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
-import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, BusinessDetailsRecordsService, LegacyRelationshipRecordsService, VatCustomerInformationRecordsService}
+import uk.gov.hmrc.agentsexternalstubs.services._
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
@@ -15,6 +15,7 @@ class RecordsController @Inject()(
   businessDetailsRecordsService: BusinessDetailsRecordsService,
   legacyRelationshipRecordsService: LegacyRelationshipRecordsService,
   vatCustomerInformationRecordsService: VatCustomerInformationRecordsService,
+  agentRecordsService: AgentRecordsService,
   recordsRepository: RecordsRepository,
   val authenticationService: AuthenticationService)
     extends BaseController with CurrentSession {
@@ -119,6 +120,30 @@ class RecordsController @Inject()(
         val record = VatCustomerInformationRecord.seed(seed)
         val result = if (minimal) record else VatCustomerInformationRecord.sanitize(seed)(record)
         ok(result, Link("create", routes.RecordsController.storeVatCustomerInformation(minimal).url))
+      }(SessionRecordNotFound)
+  }
+
+  def storeAgentRecord(autoFill: Boolean): Action[JsValue] = Action.async(parse.json) { implicit request =>
+    withCurrentSession { session =>
+      withPayload[AgentRecord](
+        record =>
+          agentRecordsService
+            .store(record, autoFill, session.planetId)
+            .map(_ =>
+              Created.withHeaders(HeaderNames.LOCATION -> routes.DesStubController
+                .getAgentRecord("arn", record.agentReferenceNumber.get)
+                .url)))
+    }(SessionRecordNotFound)
+  }
+
+  def generateAgentRecord(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] = Action.async {
+    implicit request =>
+      withCurrentSession { session =>
+        val seed = seedOpt.getOrElse(session.sessionId)
+        implicit val optionGenStrategy: Generator.OptionGenStrategy = Generator.AlwaysSome
+        val record = AgentRecord.seed(seed)
+        val result = if (minimal) record else AgentRecord.sanitize(seed)(record)
+        ok(result, Link("create", routes.RecordsController.storeAgentRecord(minimal).url))
       }(SessionRecordNotFound)
   }
 

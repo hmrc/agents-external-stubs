@@ -377,6 +377,21 @@ trait TestRequests extends ScalaFutures {
         .withHeaders(authContext.headers: _*)
         .get
         .futureValue
+
+    def createAgentRecord[T: Writeable](payload: T)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/records/agent-record")
+        .withHeaders(authContext.headers: _*)
+        .post[T](payload)
+        .futureValue
+
+    def generateAgentRecord(seed: String, minimal: Boolean)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/records/agent-record/generate")
+        .withQueryString("seed" -> seed, "minimal" -> minimal.toString)
+        .withHeaders(authContext.headers: _*)
+        .get
+        .futureValue
   }
 
   object Config {

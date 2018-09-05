@@ -95,8 +95,10 @@ Endpoint | Description
 `GET  /registration/relationship` | Provides the ability for a taxpayer (individual or organisation) or their agent to display historical or current relationships.
 `GET  /registration/relationship/utr/:utr` | Provides the ability for a taxpayer (individual or organisation) to display current relationship with their agents.
 `GET  /registration/relationship/nino/:nino` | ^^ as above
-`GET  /registration/business-details/:idType/:idNumber` | Provides the ability for a taxpayer to get the Business Details (Business Partner and Contract Object records) associated with the taxpayer.
-`GET  /vat/customer/vrn/:vrn/information` | Provides the ability for a taxpayer (Business or Individual) to retrieve a   customer data record from the ETMP-SAFE system for the VAT tax regime.
+`GET  /registration/business-details/:idType/:idNumber` | Provides the ability for a taxpayer to get the business details associated with the taxpayer.
+`GET  /vat/customer/vrn/:vrn/information` | Provides the ability for a taxpayer (Business or Individual) to retrieve a customer data record from the master system for the VAT tax regime.
+`GET  /registration/personal-details/arn/:arn` | Provides the ability to request the Agent Record Details (business partner record) associated with the Register Once Number or Agent Register Once Number
+`GET  /registration/personal-details/utr/:utr` | ^^ as above
 
 ## Custom API <a name="custom_api"></a>
 

@@ -27,6 +27,7 @@ object Record {
           case Some("LegacyRelationshipRecord")     => LegacyRelationshipRecord.formats.reads(obj)
           case Some("BusinessDetailsRecord")        => BusinessDetailsRecord.formats.reads(obj)
           case Some("VatCustomerInformationRecord") => VatCustomerInformationRecord.formats.reads(obj)
+          case Some("AgentRecord")                  => AgentRecord.formats.reads(obj)
           case Some(r)                              => JsError(s"Record type $r not supported")
           case None                                 => JsError("Missing record type field")
         }).map(_.withId((obj \ ID \ "$oid").asOpt[String]))
@@ -57,6 +58,7 @@ object Record {
     case r: LegacyRelationshipRecord     => LegacyRelationshipRecord.formats.writes(r)
     case r: BusinessDetailsRecord        => BusinessDetailsRecord.formats.writes(r)
     case r: VatCustomerInformationRecord => VatCustomerInformationRecord.formats.writes(r)
+    case r: AgentRecord                  => AgentRecord.formats.writes(r)
     case _                               => throw new UnsupportedOperationException(s"Cannot serialize $record")
   }
 

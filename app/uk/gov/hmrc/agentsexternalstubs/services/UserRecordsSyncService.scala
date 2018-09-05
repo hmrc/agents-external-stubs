@@ -52,7 +52,7 @@ class UserRecordsSyncService @Inject()(
                       .withLastName(user.name.map(_.split(" ").last))))
                     .withDateOfBirth(user.dateOfBirth.map(_.toString("yyyy-MM-dd")))
                 ))),
-        autoFill = false,
+        autoFill = true,
         user.planetId.get
       )
   }
