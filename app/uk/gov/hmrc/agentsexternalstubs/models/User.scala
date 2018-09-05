@@ -34,6 +34,12 @@ case class User(
   def isAdmin: Boolean = credentialRole.contains(User.CR.Admin)
   def isUser: Boolean = credentialRole.contains(User.CR.User)
   def isAssistant: Boolean = credentialRole.contains(User.CR.Assistant)
+
+  def findIdentifierValue(serviceName: String, identifierName: String): Option[String] =
+    principalEnrolments
+      .find(_.key == serviceName)
+      .flatMap(_.identifiers.flatMap(_.find(_.key == identifierName)))
+      .map(_.value)
 }
 
 object User {

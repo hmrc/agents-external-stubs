@@ -63,6 +63,7 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     checkEachIfSome(_.businessData, BusinessData.validate),
     checkObjectIfSome(_.propertyData, PropertyData.validate)
   )
+
   override val gen: Gen[BusinessDetailsRecord] = for {
     safeId <- Generator.safeIdGen
     nino   <- Generator.ninoNoSpacesGen
@@ -73,6 +74,7 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
       nino = nino,
       mtdbsa = mtdbsa
     )
+
   val propertyIncomeSanitizer: Update = seed =>
     entity => entity.copy(propertyIncome = entity.propertyIncome.orElse(Generator.get(Generator.booleanGen)(seed)))
 
@@ -121,8 +123,10 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
         _.emailAddress.lengthMinMaxInclusive(3, 132),
         "Invalid length of emailAddress, should be between 3 and 132 inclusive")
     )
+
     override val gen: Gen[BusinessContactDetails] = Gen const BusinessContactDetails(
       )
+
     val phoneNumberSanitizer: Update = seed =>
       entity => entity.copy(phoneNumber = entity.phoneNumber.orElse(Generator.get(Generator.ukPhoneNumber)(seed)))
 
@@ -208,6 +212,7 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
         _.cessationReason.isOneOf(Common.cessationReasonEnum),
         "Invalid cessationReason, does not match allowed values")
     )
+
     override val gen: Gen[BusinessData] = for {
       incomeSourceId            <- Generator.stringMinMaxN(15, 16)
       accountingPeriodStartDate <- Generator.dateYYYYMMDDGen.variant("accountingperiodstart")
@@ -218,6 +223,7 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
         accountingPeriodStartDate = accountingPeriodStartDate,
         accountingPeriodEndDate = accountingPeriodEndDate
       )
+
     val tradingNameSanitizer: Update = seed =>
       entity => entity.copy(tradingName = entity.tradingName.orElse(Generator.get(Generator.tradingNameGen)(seed)))
 
@@ -291,9 +297,11 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
         case x: UkAddress      => UkAddress.validate(x)
         case x: ForeignAddress => ForeignAddress.validate(x)
       }
+
       override val gen: Gen[BusinessAddressDetails] = Gen.oneOf[BusinessAddressDetails](
         UkAddress.gen.map(_.asInstanceOf[BusinessAddressDetails]),
         ForeignAddress.gen.map(_.asInstanceOf[BusinessAddressDetails]))
+
       val sanitizer: Update = seed => {
         case x: UkAddress      => UkAddress.sanitize(seed)(x)
         case x: ForeignAddress => ForeignAddress.sanitize(seed)(x)
@@ -372,6 +380,7 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
         "Invalid length of postalCode, should be between 1 and 10 inclusive"),
       check(_.countryCode.isOneOf(Common.countryCodeEnum0), "Invalid countryCode, does not match allowed values")
     )
+
     override val gen: Gen[ForeignAddress] = for {
       addressLine1 <- Generator.address4Lines35Gen.map(_.line1)
       countryCode  <- Gen.oneOf(Common.countryCodeEnum0)
@@ -380,6 +389,7 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
         addressLine1 = addressLine1,
         countryCode = countryCode
       )
+
     val addressLine2Sanitizer: Update = seed =>
       entity =>
         entity.copy(
@@ -471,6 +481,7 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
         _.cessationReason.isOneOf(Common.cessationReasonEnum),
         "Invalid cessationReason, does not match allowed values")
     )
+
     override val gen: Gen[PropertyData] = for {
       incomeSourceId            <- Generator.stringMinMaxN(15, 16)
       accountingPeriodStartDate <- Generator.dateYYYYMMDDGen.variant("accountingperiodstart")
@@ -481,6 +492,7 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
         accountingPeriodStartDate = accountingPeriodStartDate,
         accountingPeriodEndDate = accountingPeriodEndDate
       )
+
     val numPropRentedSanitizer: Update = seed =>
       entity =>
         entity.copy(numPropRented =
@@ -573,6 +585,7 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
         "Invalid length of postalCode, should be between 1 and 10 inclusive"),
       check(_.countryCode.isOneOf(Common.countryCodeEnum1), "Invalid countryCode, does not match allowed values")
     )
+
     override val gen: Gen[UkAddress] = for {
       addressLine1 <- Generator.address4Lines35Gen.map(_.line1)
       postalCode   <- Generator.postcode
@@ -583,6 +596,7 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
         postalCode = postalCode,
         countryCode = countryCode
       )
+
     val addressLine2Sanitizer: Update = seed =>
       entity =>
         entity.copy(

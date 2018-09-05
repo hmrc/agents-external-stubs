@@ -322,16 +322,21 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
         """.stripMargin
     } else ""
 
-    lazy val generatorsCode
-      : String = if (context.isRecordOutputType) s"""override val gen: Gen[${typeDef.name}] = ${if (typeDef.isInterface)
-      s"Gen.oneOf[${typeDef.name}](${typeDef.subtypes.map(st => s"${st.name}.gen.map(_.asInstanceOf[${typeDef.name}])").mkString(",\n  ")})"
-    else if (fieldGenerators.isEmpty)
-      s"Gen const ${typeDef.name}($fieldsInitialization)"
-    else
-      s"""for {
-         |    $fieldGenerators
-         |  } yield ${typeDef.name}($fieldsInitialization)""".stripMargin}"""
-    else ""
+    lazy val generatorsCode: String =
+      if (context.isRecordOutputType)
+        s"""
+           |  override val gen: Gen[${typeDef.name}] = ${if (typeDef.isInterface)
+             s"Gen.oneOf[${typeDef.name}](${typeDef.subtypes
+               .map(st => s"${st.name}.gen.map(_.asInstanceOf[${typeDef.name}])")
+               .mkString(",\n  ")})"
+           else if (fieldGenerators.isEmpty)
+             s"Gen const ${typeDef.name}($fieldsInitialization)"
+           else
+             s"""for {
+                |    $fieldGenerators
+                |  } yield ${typeDef.name}($fieldsInitialization)""".stripMargin}
+           |  """.stripMargin
+      else ""
 
     lazy val validatorsCode: String =
       s"""  ${if (context.isRecordOutputType) "override " else ""}val validate: Validator[${typeDef.name}] = ${if (typeDef.isInterface && typeDef.subtypes.nonEmpty)
@@ -594,7 +599,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
 
   private def generateSanitizerList(definition: ObjectDefinition): String = {
     val simpleSanitizerList = definition.properties
-      .filter(p => !p.isMandatory && !definition.alternatives.contains(p.name))
+      .filter(p => !(p.isMandatory && p.isPrimitive) && !definition.alternatives.contains(p.name))
       .take(22)
       .map(prop => s"${prop.name}Sanitizer")
     val sanitizerList =
@@ -608,20 +613,42 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
 
   private def generateSanitizers(definition: ObjectDefinition, context: Context): String = {
     val simpleSanitizers = definition.properties
-      .filter(p => !p.isMandatory)
       .take(22)
-      .map(prop => {
-        s"""  val ${prop.name}Sanitizer: Update = seed => entity =>
-           |    entity.copy(${prop.name} = entity.${prop.name}.orElse(Generator.get(${generateValueGenerator(
-             prop,
-             context,
-             wrapOption = false)})(seed))${generateSanitizerSuffix(prop)})
+      .map(prop =>
+        if (prop.isMandatory) {
+          if (prop.isPrimitive) ""
+          else
+            s"""  val ${prop.name}Sanitizer: Update = seed => entity =>
+               |    entity.copy(${prop.name} = ${prop match {
+                 case o: ObjectDefinition => s"${o.typeName}.sanitize(seed)(entity.${prop.name})"
+                 case a: ArrayDefinition if !a.item.isPrimitive =>
+                   s"entity.${prop.name}.map(item => ${a.item.typeName}.sanitize(seed)(item))"
+                 case o: OneOfDefinition if o.variants.nonEmpty && !o.variants.head.isPrimitive =>
+                   if (o.variants.size == 1) s"${o.variants.head.typeName}.sanitize(seed)(entity.${prop.name})"
+                   else
+                     o.variants
+                       .map(v => s"case x:${v.typeName} => ${v.typeName}.sanitize(seed)(x)")
+                       .mkString(s"entity.${prop.name} match {\n  ", "\n  ", "\n}")
+                 case _ => s"entity.${prop.name}"
+               }})
+         """.stripMargin
+        } else {
+          s"""  val ${prop.name}Sanitizer: Update = seed => entity =>
+             |    entity.copy(${prop.name} = entity.${prop.name}.orElse(Generator.get(${generateValueGenerator(
+               prop,
+               context,
+               wrapOption = false)})(seed))${generateSanitizerSuffix(prop)})
          """.stripMargin
       })
     val sanitizers =
       if (definition.alternatives.isEmpty) simpleSanitizers
       else
-        simpleSanitizers :+ s"""  val ${generateComposedFieldName(definition.alternatives, "Or")}Sanitizer: Update = seed => entity => {
+        simpleSanitizers :+ s"""  val ${generateComposedFieldName(definition.alternatives, "Or")}Sanitizer: Update = seed => entity => entity.${definition.alternatives.head}
+                               |          ${definition.alternatives.tail
+                                 .map(a => s".orElse(entity.$a)")
+                                 .mkString("\n          ")}
+                               |          .map(_ => entity)
+                               |          .getOrElse(
                                |    Generator.get(Gen.chooseNum(0,${definition.alternatives.size - 1}))(seed) match {
                                |      ${definition.alternatives.zipWithIndex
                                  .map {
@@ -630,7 +657,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
                                  }
                                  .mkString("\n      ")}
                                |    }
-                               |  }
+                               |  )
                                |""".stripMargin
     sanitizers.mkString("\n")
   }

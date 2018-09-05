@@ -12,7 +12,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 @Singleton
-class UsersService @Inject()(usersRepository: UsersRepository, userRecordsService: UserRecordsService) {
+class UsersService @Inject()(usersRepository: UsersRepository, userRecordsService: UserRecordsSyncService) {
 
   def findByUserId(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
     usersRepository.findByUserId(userId, planetId)

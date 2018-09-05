@@ -81,6 +81,7 @@ object AgentRecord extends RecordUtils[AgentRecord] {
     checkObjectIfSome(_.agencyDetails, AgencyDetails.validate),
     checkIfAtLeastOneIsDefined(Seq(_.organisation, _.individual))
   )
+
   override val gen: Gen[AgentRecord] = for {
     businessPartnerExists <- Generator.booleanGen
     safeId                <- Generator.safeIdGen
@@ -99,6 +100,7 @@ object AgentRecord extends RecordUtils[AgentRecord] {
       isAnOrganisation = isAnOrganisation,
       addressDetails = addressDetails
     )
+
   val agentReferenceNumberSanitizer: Update = seed =>
     entity =>
       entity.copy(agentReferenceNumber = entity.agentReferenceNumber.orElse(Generator.get(Generator.arnGen)(seed)))
@@ -127,12 +129,16 @@ object AgentRecord extends RecordUtils[AgentRecord] {
           entity.agencyDetails.orElse(Generator.get(AgencyDetails.gen)(seed)).map(AgencyDetails.sanitize(seed)))
 
   val organisationOrIndividualSanitizer: Update = seed =>
-    entity => {
-      Generator.get(Gen.chooseNum(0, 1))(seed) match {
-        case Some(0) => organisationSanitizer(seed)(entity)
-        case _       => individualSanitizer(seed)(entity)
-      }
-  }
+    entity =>
+      entity.organisation
+        .orElse(entity.individual)
+        .map(_ => entity)
+        .getOrElse(
+          Generator.get(Gen.chooseNum(0, 1))(seed) match {
+            case Some(0) => organisationSanitizer(seed)(entity)
+            case _       => individualSanitizer(seed)(entity)
+          }
+    )
 
   override val sanitizers: Seq[Update] = Seq(
     agentReferenceNumberSanitizer,
@@ -156,9 +162,11 @@ object AgentRecord extends RecordUtils[AgentRecord] {
       case x: UkAddress      => UkAddress.validate(x)
       case x: ForeignAddress => ForeignAddress.validate(x)
     }
+
     override val gen: Gen[AddressDetails] = Gen.oneOf[AddressDetails](
       UkAddress.gen.map(_.asInstanceOf[AddressDetails]),
       ForeignAddress.gen.map(_.asInstanceOf[AddressDetails]))
+
     val sanitizer: Update = seed => {
       case x: UkAddress      => UkAddress.sanitize(seed)(x)
       case x: ForeignAddress => ForeignAddress.sanitize(seed)(x)
@@ -219,8 +227,10 @@ object AgentRecord extends RecordUtils[AgentRecord] {
         _.agencyEmail.lengthMinMaxInclusive(1, 132),
         "Invalid length of agencyEmail, should be between 1 and 132 inclusive")
     )
+
     override val gen: Gen[AgencyDetails] = Gen const AgencyDetails(
       )
+
     val agencyNameSanitizer: Update = seed =>
       entity =>
         entity.copy(
@@ -254,9 +264,11 @@ object AgentRecord extends RecordUtils[AgentRecord] {
         case x: ForeignAddress => ForeignAddress.validate(x)
         case x: UkAddress      => UkAddress.validate(x)
       }
+
       override val gen: Gen[AgencyAddress] = Gen.oneOf[AgencyAddress](
         ForeignAddress.gen.map(_.asInstanceOf[AgencyAddress]),
         UkAddress.gen.map(_.asInstanceOf[AgencyAddress]))
+
       val sanitizer: Update = seed => {
         case x: ForeignAddress => ForeignAddress.sanitize(seed)(x)
         case x: UkAddress      => UkAddress.sanitize(seed)(x)
@@ -324,8 +336,10 @@ object AgentRecord extends RecordUtils[AgentRecord] {
         _.emailAddress.lengthMinMaxInclusive(1, 132),
         "Invalid length of emailAddress, should be between 1 and 132 inclusive")
     )
+
     override val gen: Gen[ContactDetails] = Gen const ContactDetails(
       )
+
     val phoneNumberSanitizer: Update = seed =>
       entity => entity.copy(phoneNumber = entity.phoneNumber.orElse(Generator.get(Generator.ukPhoneNumber)(seed)))
 
@@ -382,6 +396,7 @@ object AgentRecord extends RecordUtils[AgentRecord] {
         "Invalid length of postalCode, should be between 1 and 10 inclusive"),
       check(_.countryCode.isOneOf(Common.countryCodeEnum0), "Invalid countryCode, does not match allowed values")
     )
+
     override val gen: Gen[ForeignAddress] = for {
       addressLine1 <- Generator.address4Lines35Gen.map(_.line1)
       countryCode  <- Gen.oneOf(Common.countryCodeEnum0)
@@ -390,6 +405,7 @@ object AgentRecord extends RecordUtils[AgentRecord] {
         addressLine1 = addressLine1,
         countryCode = countryCode
       )
+
     val addressLine2Sanitizer: Update = seed =>
       entity =>
         entity.copy(
@@ -439,6 +455,7 @@ object AgentRecord extends RecordUtils[AgentRecord] {
         _.dateOfBirth.matches(Common.dateOfBirthPattern),
         s"""Invalid dateOfBirth, does not matches regex ${Common.dateOfBirthPattern}""")
     )
+
     override val gen: Gen[Individual] = for {
       firstName   <- Generator.forename()
       lastName    <- Generator.surname
@@ -449,6 +466,7 @@ object AgentRecord extends RecordUtils[AgentRecord] {
         lastName = lastName,
         dateOfBirth = dateOfBirth
       )
+
     val middleNameSanitizer: Update = seed =>
       entity =>
         entity.copy(middleName = entity.middleName.orElse(Generator.get(Generator.forename().variant("middle"))(seed)))
@@ -476,6 +494,7 @@ object AgentRecord extends RecordUtils[AgentRecord] {
         _.organisationType.matches(Common.organisationTypePattern),
         s"""Invalid organisationType, does not matches regex ${Common.organisationTypePattern}""")
     )
+
     override val gen: Gen[Organisation] = for {
       organisationName <- Generator.company
       isAGroup         <- Generator.booleanGen
@@ -530,6 +549,7 @@ object AgentRecord extends RecordUtils[AgentRecord] {
         "Invalid length of postalCode, should be between 1 and 10 inclusive"),
       check(_.countryCode.isOneOf(Common.countryCodeEnum1), "Invalid countryCode, does not match allowed values")
     )
+
     override val gen: Gen[UkAddress] = for {
       addressLine1 <- Generator.address4Lines35Gen.map(_.line1)
       postalCode   <- Generator.postcode
@@ -540,6 +560,7 @@ object AgentRecord extends RecordUtils[AgentRecord] {
         postalCode = postalCode,
         countryCode = countryCode
       )
+
     val addressLine2Sanitizer: Update = seed =>
       entity =>
         entity.copy(
