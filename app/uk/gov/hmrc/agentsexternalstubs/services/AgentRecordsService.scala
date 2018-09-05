@@ -11,7 +11,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class AgentRecordsService @Inject()(val recordsRepository: RecordsRepository) extends RecordsService {
 
-  def store(record: AgentRecord, autoFill: Boolean, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+  def store(record: AgentRecord, autoFill: Boolean, planetId: String)(implicit ec: ExecutionContext): Future[String] =
     AgentRecord
       .validate(record)
       .fold(

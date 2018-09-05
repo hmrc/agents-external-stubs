@@ -13,7 +13,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class BusinessDetailsRecordsService @Inject()(val recordsRepository: RecordsRepository) extends RecordsService {
 
   def store(record: BusinessDetailsRecord, autoFill: Boolean, planetId: String)(
-    implicit ec: ExecutionContext): Future[Unit] =
+    implicit ec: ExecutionContext): Future[String] =
     BusinessDetailsRecord
       .validate(record)
       .fold(

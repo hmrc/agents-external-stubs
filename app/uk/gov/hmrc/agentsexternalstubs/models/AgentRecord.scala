@@ -40,7 +40,7 @@ case class AgentRecord(
 
   override def uniqueKey: Option[String] = agentReferenceNumber.map(AgentRecord.uniqueKey)
   override def lookupKeys: Seq[String] = Seq(utr.map(AgentRecord.utrKey)).collect { case Some(x) => x }
-  override def withId(id: Option[String]): Record = copy(id = id)
+  override def withId(id: Option[String]): AgentRecord = copy(id = id)
 
   def withBusinessPartnerExists(businessPartnerExists: Boolean): AgentRecord =
     copy(businessPartnerExists = businessPartnerExists)

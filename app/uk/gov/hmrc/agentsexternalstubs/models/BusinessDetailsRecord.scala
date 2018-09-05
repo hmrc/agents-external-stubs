@@ -34,7 +34,7 @@ case class BusinessDetailsRecord(
     Seq(Option(nino).map(BusinessDetailsRecord.ninoKey), Option(mtdbsa).map(BusinessDetailsRecord.mtdbsaKey)).collect {
       case Some(x) => x
     }
-  override def withId(id: Option[String]): Record = copy(id = id)
+  override def withId(id: Option[String]): BusinessDetailsRecord = copy(id = id)
 
   def withSafeId(safeId: String): BusinessDetailsRecord = copy(safeId = safeId)
   def withNino(nino: String): BusinessDetailsRecord = copy(nino = nino)

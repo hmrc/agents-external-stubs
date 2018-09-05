@@ -424,7 +424,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
               |  override def lookupKeys: Seq[String] = Seq(${context.keys
                 .map(key => s"${key._1}.map(${typeDef.name}.${key._2}Key)")
                 .mkString(", ")})${if (context.keys.nonEmpty) ".collect{case Some(x) => x}" else ""}
-              |  override def withId(id: Option[String]): Record = copy(id = id)
+              |  override def withId(id: Option[String]): ${typeDef.name} = copy(id = id)
               |""".stripMargin
          else
            s")${if (typeDef.hasInterfaces) " extends " else ""}${generateClassInterfaces(typeDef)} {"}

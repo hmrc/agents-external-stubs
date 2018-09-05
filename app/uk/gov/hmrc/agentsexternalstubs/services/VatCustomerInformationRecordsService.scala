@@ -11,7 +11,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class VatCustomerInformationRecordsService @Inject()(val recordsRepository: RecordsRepository) extends RecordsService {
 
   def store(record: VatCustomerInformationRecord, autoFill: Boolean, planetId: String)(
-    implicit ec: ExecutionContext): Future[Unit] =
+    implicit ec: ExecutionContext): Future[String] =
     VatCustomerInformationRecord
       .validate(record)
       .fold(

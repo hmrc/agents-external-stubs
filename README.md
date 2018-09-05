@@ -201,6 +201,9 @@ Response | Description
 Returns all records on the planet grouped by the type, 
 e.g. [records response](docs/records.md).
 
+#### GET /agents-external-stubs/records/:recordId
+Returns a record by its ID
+
 #### POST /agents-external-stubs/records/business-details
 #### GET /agents-external-stubs/records/business-details/generate
 

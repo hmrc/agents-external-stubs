@@ -11,7 +11,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class LegacyRelationshipRecordsService @Inject()(recordsRepository: RecordsRepository) {
 
   def store(record: LegacyRelationshipRecord, autoFill: Boolean, planetId: String)(
-    implicit ec: ExecutionContext): Future[Unit] =
+    implicit ec: ExecutionContext): Future[String] =
     LegacyRelationshipRecord
       .validate(record)
       .fold(
@@ -23,7 +23,7 @@ class LegacyRelationshipRecordsService @Inject()(recordsRepository: RecordsRepos
       )
 
   def store(record: LegacyAgentRecord, autoFill: Boolean, planetId: String)(
-    implicit ec: ExecutionContext): Future[Unit] =
+    implicit ec: ExecutionContext): Future[String] =
     LegacyAgentRecord
       .validate(record)
       .fold(
@@ -43,6 +43,13 @@ class LegacyRelationshipRecordsService @Inject()(recordsRepository: RecordsRepos
     implicit ec: ExecutionContext): Future[List[(String, LegacyAgentRecord)]] =
     findRelationshipsByKey(LegacyRelationshipRecord.utrKey(nino), planetId)
       .flatMap(rr => getNinosWithAgents(rr.distinct, planetId))
+
+  def getLegacyRelationship(id: String, planetId: String)(
+    implicit ec: ExecutionContext): Future[Option[LegacyRelationshipRecord]] =
+    recordsRepository.findById[LegacyRelationshipRecord](id, planetId)
+
+  def getLegacyAgent(id: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[LegacyAgentRecord]] =
+    recordsRepository.findById[LegacyAgentRecord](id, planetId)
 
   private def getNinosWithAgents(relationships: List[LegacyRelationshipRecord], planetId: String)(
     implicit ec: ExecutionContext): Future[List[(String, LegacyAgentRecord)]] =

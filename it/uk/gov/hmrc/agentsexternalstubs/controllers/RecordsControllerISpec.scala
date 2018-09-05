@@ -38,6 +38,22 @@ class RecordsControllerISpec
       }
     }
 
+    "GET /agents-external-stubs/records/:recordId" should {
+      "respond 200 with a record" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+
+        val createResult1 = Records.createBusinessDetails(Json.parse(validBusinessDetailsPayload))
+        createResult1 should haveStatus(201)
+        val createResult2 = Records.createVatCustomerInformation(Json.parse(validVatCustomerInformationPayload))
+        createResult2 should haveStatus(201)
+        val createResult3 = Records.createLegacyAgent(Json.parse(validLegacyAgentPayload))
+        createResult3 should haveStatus(201)
+        val createResult4 = Records.createLegacyRelationship(Json.parse(validLegacyRelationshipPayload))
+        createResult4 should haveStatus(201)
+
+      }
+    }
+
     "GET /agents-external-stubs/records/business-details/generate" should {
       "respond 200 with a minimal auto-generated entity" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")

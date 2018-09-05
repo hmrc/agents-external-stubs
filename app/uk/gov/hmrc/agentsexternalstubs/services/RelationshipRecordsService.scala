@@ -33,7 +33,7 @@ class RelationshipRecordsService @Inject()(recordsRepository: RecordsRepository)
     } yield ()
 
   private def deActivate(relationships: Seq[RelationshipRecord], planetId: String)(
-    implicit ec: ExecutionContext): Future[Seq[Unit]] =
+    implicit ec: ExecutionContext): Future[Seq[String]] =
     Future.sequence(
       relationships
         .filter(_.active)

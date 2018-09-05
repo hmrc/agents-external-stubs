@@ -15,4 +15,7 @@ object RestfulResponse {
       case arr: JsArray  => arr
       case _             => throw new IllegalStateException("Json object expected")
     }
+
+  def apply(links: Link*): JsValue =
+    Json.obj("_links" -> links)
 }

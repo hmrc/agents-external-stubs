@@ -39,11 +39,13 @@ trait RecordsRepository {
 
   def store[T <: Record](entity: T, planetId: String)(
     implicit ec: ExecutionContext,
-    recordType: RecordMetaData[T]): Future[Unit]
+    recordType: RecordMetaData[T]): Future[String]
 
   def cursor[T <: Record](
     key: String,
     planetId: String)(implicit reads: Reads[T], ec: ExecutionContext, recordType: RecordMetaData[T]): Cursor[T]
+
+  def findById[T <: Record](id: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[T]]
 
   def findAll(planetId: String)(implicit ec: ExecutionContext): Cursor[Record]
 }
@@ -76,7 +78,8 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
 
   override def store[T <: Record](entity: T, planetId: String)(
     implicit ec: ExecutionContext,
-    recordType: RecordMetaData[T]): Future[Unit] = {
+    recordType: RecordMetaData[T]): Future[String] = {
+
     val json = Json
       .toJson[Record](entity)
       .as[JsObject]
@@ -95,8 +98,11 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
       }
 
     (entity.id match {
-      case None     => collection.insert(json)
-      case Some(id) => collection.update(Json.obj("_id" -> Json.obj("$oid" -> JsString(id))), json, upsert = true)
+      case None =>
+        val newId = BSONObjectID.generate().stringify
+        collection.insert(json + (Record.ID -> Json.obj("$oid" -> JsString(newId)))).map((_, newId))
+      case Some(id) =>
+        collection.update(Json.obj(Record.ID -> Json.obj("$oid" -> JsString(id))), json, upsert = true).map((_, id))
     }).flatMap(MongoHelper.interpretWriteResult)
 
   }
@@ -113,6 +119,17 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
         implicitly[collection.pack.Reader[Record]].map(_.asInstanceOf[T]),
         ec,
         implicitly[CursorProducer[T]])
+
+  override def findById[T <: Record](id: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[T]] =
+    collection
+      .find(
+        Json.obj(Record.ID -> Json.obj("$oid" -> JsString(id)), PLANET_ID -> JsString(planetId))
+      )
+      .cursor[T](ReadPreference.primaryPreferred)(
+        implicitly[collection.pack.Reader[Record]].map(_.asInstanceOf[T]),
+        ec,
+        implicitly[CursorProducer[T]])
+      .headOption
 
   override def findAll(planetId: String)(implicit ec: ExecutionContext): Cursor[Record] =
     collection

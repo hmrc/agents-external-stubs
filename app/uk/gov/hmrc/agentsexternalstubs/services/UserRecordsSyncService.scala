@@ -1,11 +1,13 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 import javax.inject.{Inject, Singleton}
-import uk.gov.hmrc.agentsexternalstubs.models.AgentRecord.{AgencyDetails, Individual, Organisation}
+import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Utr}
+import uk.gov.hmrc.agentsexternalstubs.models.AgentRecord.{AgencyDetails, Individual}
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, IndividualName}
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.domain.Nino
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 @Singleton
 class UserRecordsSyncService @Inject()(
@@ -16,103 +18,148 @@ class UserRecordsSyncService @Inject()(
   type UserRecordsSync = PartialFunction[User, Future[Unit]]
 
   val businessDetailsForMtdItIndividual: UserRecordsSync = {
-    case User.Individual(user) if user.principalEnrolments.exists(_.key == "HMRC-MTD-IT") =>
-      businessDetailsRecordsService.store(
-        BusinessDetailsRecord
-          .seed(user.userId)
-          .withNino(
-            user.nino
-              .map(_.value.replace(" ", ""))
-              .getOrElse(throw new IllegalStateException("Expected individual having NINO.")))
-          .withMtdbsa(
-            user
-              .findIdentifierValue("HMRC-MTD-IT", "MTDITID")
-              .getOrElse(throw new IllegalStateException("Expected individual having MTDITID identifier."))),
-        autoFill = true,
-        user.planetId.get
-      )
+    case User.Individual(user) if user.principalEnrolments.exists(_.key == "HMRC-MTD-IT") => {
+      val nino = user.nino.map(_.value.replace(" ", "")).getOrElse(Generator.ninoNoSpaces(user.userId).value)
+      val mtdbsa = user
+        .findIdentifierValue("HMRC-MTD-IT", "MTDITID")
+        .getOrElse(Generator.mtdbsa(user.userId).value)
+      val record = BusinessDetailsRecord
+        .seed(user.userId)
+        .withNino(nino)
+        .withMtdbsa(mtdbsa)
+      val maybeRecord1 = businessDetailsRecordsService.getBusinessDetails(Nino(nino), user.planetId.get)
+      val maybeRecord2 = businessDetailsRecordsService.getBusinessDetails(MtdItId(mtdbsa), user.planetId.get)
+      Future
+        .sequence(Seq(maybeRecord1, maybeRecord2))
+        .map(_.collect { case Some(x) => x })
+        .map(_.toList match {
+          case r1 :: r2 :: Nil if r1.id == r2.id => record.withId(r2.id)
+          case r :: Nil                          => record.withId(r.id)
+          case Nil                               => record
+        })
+        .flatMap(
+          entity =>
+            businessDetailsRecordsService
+              .store(entity, autoFill = true, user.planetId.get)
+              .map(_ => ()))
+    }
   }
 
   val vatCustomerInformationForMtdVatIndividual: UserRecordsSync = {
-    case User.Individual(user) if user.principalEnrolments.exists(_.key == "HMRC-MTD-VAT") =>
-      vatCustomerInformationRecordsService.store(
-        VatCustomerInformationRecord
-          .seed(user.userId)
-          .withVrn(
-            user
-              .findIdentifierValue("HMRC-MTD-VAT", "VRN")
-              .getOrElse(throw new IllegalStateException("Expected individual having VRN identifier.")))
-          .withApprovedInformation(
-            Some(
-              ApprovedInformation
-                .seed(user.userId)
-                .withCustomerDetails(
-                  CustomerDetails
-                    .seed(user.userId)
-                    .withIndividual(Some(IndividualName()
-                      .withFirstName(user.firstName)
-                      .withLastName(user.lastName)))
-                    .withDateOfBirth(user.dateOfBirth.map(_.toString("yyyy-MM-dd")))
-                ))),
-        autoFill = true,
-        user.planetId.get
-      )
+    case User.Individual(user) if user.principalEnrolments.exists(_.key == "HMRC-MTD-VAT") => {
+      val vrn = user
+        .findIdentifierValue("HMRC-MTD-VAT", "VRN")
+        .getOrElse(throw new IllegalStateException("Expected individual having VRN identifier."))
+      val record = VatCustomerInformationRecord
+        .seed(user.userId)
+        .withVrn(vrn)
+        .withApprovedInformation(
+          Some(
+            ApprovedInformation
+              .seed(user.userId)
+              .withCustomerDetails(
+                CustomerDetails
+                  .seed(user.userId)
+                  .withIndividual(Some(IndividualName()
+                    .withFirstName(user.firstName)
+                    .withLastName(user.lastName)))
+                  .withDateOfBirth(user.dateOfBirth.map(_.toString("yyyy-MM-dd")))
+              )))
+      vatCustomerInformationRecordsService
+        .getCustomerInformation(vrn, user.planetId.get)
+        .map {
+          case Some(existing) => record.withId(existing.id)
+          case None           => record
+        }
+        .flatMap(entity =>
+          vatCustomerInformationRecordsService.store(entity, autoFill = true, user.planetId.get).map(_ => ()))
+    }
   }
 
   val vatCustomerInformationForMtdVatOrganisation: UserRecordsSync = {
-    case User.Organisation(user) if user.principalEnrolments.exists(_.key == "HMRC-MTD-VAT") =>
-      vatCustomerInformationRecordsService.store(
-        VatCustomerInformationRecord
-          .seed(user.userId)
-          .withVrn(
-            user
-              .findIdentifierValue("HMRC-MTD-VAT", "VRN")
-              .getOrElse(throw new IllegalStateException("Expected organisation having VRN identifier.")))
-          .withApprovedInformation(
-            Some(
-              ApprovedInformation
-                .seed(user.userId)
-                .withCustomerDetails(
-                  CustomerDetails
-                    .seed(user.userId)
-                    .withOrganisationName(user.name)
-                ))),
-        autoFill = true,
-        user.planetId.get
-      )
+    case User.Organisation(user) if user.principalEnrolments.exists(_.key == "HMRC-MTD-VAT") => {
+      val vrn = user
+        .findIdentifierValue("HMRC-MTD-VAT", "VRN")
+        .getOrElse(throw new IllegalStateException("Expected individual having VRN identifier."))
+      val record = VatCustomerInformationRecord
+        .seed(user.userId)
+        .withVrn(vrn)
+        .withApprovedInformation(
+          Some(
+            ApprovedInformation
+              .seed(user.userId)
+              .withCustomerDetails(
+                CustomerDetails
+                  .seed(user.userId)
+                  .withOrganisationName(user.name)
+              )))
+      vatCustomerInformationRecordsService
+        .getCustomerInformation(vrn, user.planetId.get)
+        .map {
+          case Some(existing) => record.withId(existing.id)
+          case None           => record
+        }
+        .flatMap(entity =>
+          vatCustomerInformationRecordsService.store(entity, autoFill = true, user.planetId.get).map(_ => ()))
+    }
   }
 
-  val agentRecordForHmrcAsAgent: UserRecordsSync = {
-    case User.Agent(user) if user.principalEnrolments.exists(_.key == "HMRC-AS-AGENT") =>
-      agentRecordsService.store(
-        AgentRecord
-          .seed(user.userId)
-          .withAgentReferenceNumber(
-            user
-              .findIdentifierValue("HMRC-AS-AGENT", "AgentReferenceNumber")
-              .orElse(throw new IllegalStateException("Expected agent having ARN identifier.")))
-          .withIndividual(
-            Some(
-              Individual
-                .seed(user.userId)
-                .withFirstName(user.firstName.getOrElse("John"))
-                .withLastName(user.lastName.getOrElse("Smith"))
-            ))
-          .withAgencyDetails(
-            Some(
-              AgencyDetails
-                .seed(user.userId)
-                .withAgencyName(user.agentFriendlyName))),
-        autoFill = true,
-        user.planetId.get
-      )
+  val recordForAnAgent: UserRecordsSync = {
+    case User.Agent(user) => {
+      val agentRecord = AgentRecord
+        .seed(user.userId)
+        .withBusinessPartnerExists(true)
+        .withIndividual(
+          Some(
+            Individual
+              .seed(user.userId)
+              .withFirstName(user.firstName.getOrElse("John"))
+              .withLastName(user.lastName.getOrElse("Smith"))
+          ))
+        .withAgencyDetails(
+          Some(
+            AgencyDetails
+              .seed(user.userId)
+              .withAgencyName(user.agentFriendlyName.map(_.take(40)))))
+
+      val utr = Generator.utr(user.userId)
+      user
+        .findIdentifierValue("HMRC-AS-AGENT", "AgentReferenceNumber") match {
+        case Some(arn) =>
+          val ar = agentRecord
+            .withAgentReferenceNumber(Option(arn))
+            .withIsAnAgent(true)
+            .withIsAnASAgent(true)
+          agentRecordsService
+            .getAgentRecord(Arn(arn), user.planetId.get)
+            .map {
+              case Some(existingRecord) => ar.withId(existingRecord.id)
+              case None                 => ar
+            }
+            .flatMap(entity => agentRecordsService.store(entity, autoFill = true, user.planetId.get).map(_ => ()))
+        case None if user.principalEnrolments.isEmpty =>
+          val ar = agentRecord
+            .withUtr(Option(utr))
+            .withIsAnAgent(false)
+            .withIsAnASAgent(false)
+          agentRecordsService
+            .getAgentRecord(Utr(utr), user.planetId.get)
+            .map {
+              case Some(existingRecord) => ar.withId(existingRecord.id)
+              case None                 => ar
+            }
+            .flatMap(entity => agentRecordsService.store(entity, autoFill = true, user.planetId.get).map(_ => ()))
+        case _ =>
+          Future.successful(())
+      }
+    }
   }
 
   val userRecordsSyncOperations: Seq[UserRecordsSync] = Seq(
     businessDetailsForMtdItIndividual,
     vatCustomerInformationForMtdVatIndividual,
     vatCustomerInformationForMtdVatOrganisation,
-    agentRecordForHmrcAsAgent
+    recordForAnAgent
   )
 
   final val syncUserToRecords: Option[User] => Future[Unit] = {

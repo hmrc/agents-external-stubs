@@ -51,7 +51,7 @@ case class VatCustomerInformationRecord(
 
   override def uniqueKey: Option[String] = Option(vrn).map(VatCustomerInformationRecord.uniqueKey)
   override def lookupKeys: Seq[String] = Seq()
-  override def withId(id: Option[String]): Record = copy(id = id)
+  override def withId(id: Option[String]): VatCustomerInformationRecord = copy(id = id)
 
   def withVrn(vrn: String): VatCustomerInformationRecord = copy(vrn = vrn)
   def withApprovedInformation(approvedInformation: Option[ApprovedInformation]): VatCustomerInformationRecord =
