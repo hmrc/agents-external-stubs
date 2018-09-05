@@ -12,7 +12,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 @Singleton
-class UsersService @Inject()(usersRepository: UsersRepository) {
+class UsersService @Inject()(usersRepository: UsersRepository, userRecordsService: UserRecordsService) {
 
   def findByUserId(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
     usersRepository.findByUserId(userId, planetId)
@@ -60,6 +60,7 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
       refined   <- refineAndValidateUser(user, planetId)
       _         <- usersRepository.create(refined, planetId)
       maybeUser <- findByUserId(refined.userId, planetId)
+      _         <- userRecordsService.syncUserToRecords(maybeUser)
       newUser = maybeUser.getOrElse(throw new Exception(s"User $user creation failed."))
     } yield newUser
 
@@ -73,6 +74,7 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
                      refined <- refineAndValidateUser(user, planetId)
                      _       <- usersRepository.create(refined, planetId)
                      newUser <- findByUserId(refined.userId, planetId)
+                     _       <- userRecordsService.syncUserToRecords(newUser)
                    } yield newUser.map(Success.apply).getOrElse(Failure(new Exception(s"User $user creation failed")))
                }
     } yield result
@@ -86,7 +88,8 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
                         if (modified != existingUser) for {
                           refined   <- refineAndValidateUser(modified, planetId)
                           _         <- usersRepository.update(refined, planetId)
-                          maybeUser <- usersRepository.findByUserId(userId, planetId)
+                          maybeUser <- findByUserId(userId, planetId)
+                          _         <- userRecordsService.syncUserToRecords(maybeUser)
                         } yield maybeUser.getOrElse(throw new Exception)
                         else Future.successful(existingUser)
                       case None => Future.failed(new NotFoundException(s"User $userId not found"))
@@ -101,6 +104,7 @@ class UsersService @Inject()(usersRepository: UsersRepository) {
               for {
                 _ <- checkCanRemoveUser(user, planetId)
                 _ <- usersRepository.delete(user.userId, planetId)
+                _ <- userRecordsService.syncAfterUserRemoved(user)
               } yield ()
             case None => Future.successful(())
           }

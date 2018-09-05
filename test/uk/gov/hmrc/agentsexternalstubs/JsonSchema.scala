@@ -29,6 +29,9 @@ object JsonSchema {
       if (n.isEmpty) name else n.substring(0, 1).toUpperCase + n.substring(1)
     }
 
+    final def nameWithFirstCharUpper: String =
+      if (name.isEmpty) name else name.substring(0, 1).toUpperCase + name.substring(1)
+
     final def variableName: String =
       if (name.charAt(0).isUpper) name.toLowerCase else name
 

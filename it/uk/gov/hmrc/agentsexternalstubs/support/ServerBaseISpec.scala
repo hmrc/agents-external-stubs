@@ -12,10 +12,10 @@ abstract class ServerBaseISpec
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-    PlayServer.run(app)
+    PlayServer.run()
   }
 
-  override val app: Application = PlayServer.app
+  override lazy val app: Application = PlayServer.app
   val port: Int = PlayServer.port
 
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global

@@ -11,7 +11,7 @@ trait RecordMetaData[T <: Record] {
 
 object RecordMetaData {
 
-  def apply[T <: Record](utils: RecordUtils[T])(implicit classTag: ClassTag[T]): RecordMetaData[T] = {
+  def apply[T <: Record](utilities: RecordUtils[T])(implicit classTag: ClassTag[T]): RecordMetaData[T] = {
 
     val properties =
       classTag.runtimeClass.getDeclaredFields.map(_.getName).toSet.-("id").+(Record.ID).+(Record.TYPE).toSeq
@@ -19,7 +19,7 @@ object RecordMetaData {
     new RecordMetaData[T] {
       override val typeName: String = classTag.runtimeClass.getSimpleName
       override val fieldNames: Seq[String] = properties
-      override val utils: RecordUtils[T] = utils
+      override val utils: RecordUtils[T] = utilities
     }
   }
 }

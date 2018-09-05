@@ -8,17 +8,49 @@ import uk.gov.hmrc.agentsexternalstubs.models.SubscribeAgentServicesPayload._
   * This SubscribeAgentServicesPayload code has been generated from json schema
   * by {@see uk.gov.hmrc.agentsexternalstubs.RecordCodeRenderer}
   * ----------------------------------------------------------------------------
+  *
+  *  SubscribeAgentServicesPayload
+  *  -  AgencyAddress
+  *  -  ForeignAddress
+  *  -  UkAddress
   */
 case class SubscribeAgentServicesPayload(
   safeId: Option[String] = None,
   agencyName: String,
   agencyAddress: AgencyAddress,
   telephoneNumber: Option[String] = None,
-  agencyEmail: Option[String] = None)
+  agencyEmail: Option[String] = None) {
+
+  def withSafeId(safeId: Option[String]): SubscribeAgentServicesPayload = copy(safeId = safeId)
+  def withAgencyName(agencyName: String): SubscribeAgentServicesPayload = copy(agencyName = agencyName)
+  def withAgencyAddress(agencyAddress: AgencyAddress): SubscribeAgentServicesPayload =
+    copy(agencyAddress = agencyAddress)
+  def withTelephoneNumber(telephoneNumber: Option[String]): SubscribeAgentServicesPayload =
+    copy(telephoneNumber = telephoneNumber)
+  def withAgencyEmail(agencyEmail: Option[String]): SubscribeAgentServicesPayload = copy(agencyEmail = agencyEmail)
+}
 
 object SubscribeAgentServicesPayload {
 
   import Validator._
+
+  val validate: Validator[SubscribeAgentServicesPayload] = Validator(
+    check(
+      _.safeId.matches(Common.safeIdPattern),
+      s"""Invalid safeId, does not matches regex ${Common.safeIdPattern}"""),
+    check(
+      _.agencyName.matches(Common.agencyNamePattern),
+      s"""Invalid agencyName, does not matches regex ${Common.agencyNamePattern}"""),
+    checkObject(_.agencyAddress, AgencyAddress.validate),
+    check(
+      _.telephoneNumber.matches(Common.telephoneNumberPattern),
+      s"""Invalid telephoneNumber, does not matches regex ${Common.telephoneNumberPattern}"""),
+    check(
+      _.agencyEmail.lengthMinMaxInclusive(1, 132),
+      "Invalid length of agencyEmail, should be between 1 and 132 inclusive")
+  )
+
+  implicit val formats: Format[SubscribeAgentServicesPayload] = Json.format[SubscribeAgentServicesPayload]
 
   sealed trait AgencyAddress {
     def addressLine2: Option[String] = None
@@ -74,7 +106,15 @@ object SubscribeAgentServicesPayload {
     override val addressLine4: Option[String] = None,
     postalCode: Option[String] = None,
     override val countryCode: String)
-      extends AgencyAddress
+      extends AgencyAddress {
+
+    def withAddressLine1(addressLine1: String): ForeignAddress = copy(addressLine1 = addressLine1)
+    def withAddressLine2(addressLine2: Option[String]): ForeignAddress = copy(addressLine2 = addressLine2)
+    def withAddressLine3(addressLine3: Option[String]): ForeignAddress = copy(addressLine3 = addressLine3)
+    def withAddressLine4(addressLine4: Option[String]): ForeignAddress = copy(addressLine4 = addressLine4)
+    def withPostalCode(postalCode: Option[String]): ForeignAddress = copy(postalCode = postalCode)
+    def withCountryCode(countryCode: String): ForeignAddress = copy(countryCode = countryCode)
+  }
 
   object ForeignAddress {
 
@@ -108,7 +148,15 @@ object SubscribeAgentServicesPayload {
     override val addressLine4: Option[String] = None,
     postalCode: String,
     override val countryCode: String)
-      extends AgencyAddress
+      extends AgencyAddress {
+
+    def withAddressLine1(addressLine1: String): UkAddress = copy(addressLine1 = addressLine1)
+    def withAddressLine2(addressLine2: Option[String]): UkAddress = copy(addressLine2 = addressLine2)
+    def withAddressLine3(addressLine3: Option[String]): UkAddress = copy(addressLine3 = addressLine3)
+    def withAddressLine4(addressLine4: Option[String]): UkAddress = copy(addressLine4 = addressLine4)
+    def withPostalCode(postalCode: String): UkAddress = copy(postalCode = postalCode)
+    def withCountryCode(countryCode: String): UkAddress = copy(countryCode = countryCode)
+  }
 
   object UkAddress {
 
@@ -135,23 +183,6 @@ object SubscribeAgentServicesPayload {
 
   }
 
-  val validate: Validator[SubscribeAgentServicesPayload] = Validator(
-    check(
-      _.safeId.matches(Common.safeIdPattern),
-      s"""Invalid safeId, does not matches regex ${Common.safeIdPattern}"""),
-    check(
-      _.agencyName.matches(Common.agencyNamePattern),
-      s"""Invalid agencyName, does not matches regex ${Common.agencyNamePattern}"""),
-    checkObject(_.agencyAddress, AgencyAddress.validate),
-    check(
-      _.telephoneNumber.matches(Common.telephoneNumberPattern),
-      s"""Invalid telephoneNumber, does not matches regex ${Common.telephoneNumberPattern}"""),
-    check(
-      _.agencyEmail.lengthMinMaxInclusive(1, 132),
-      "Invalid length of agencyEmail, should be between 1 and 132 inclusive")
-  )
-
-  implicit val formats: Format[SubscribeAgentServicesPayload] = Json.format[SubscribeAgentServicesPayload]
   object Common {
     val telephoneNumberPattern = """^[0-9-+()#x ]{1,24}$"""
     val addressLinePattern = """^[A-Za-z0-9 \-,.&'\/]{1,35}$"""

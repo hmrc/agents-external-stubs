@@ -54,6 +54,21 @@ object User {
     val all: String => Boolean = Set(Admin, User, Assistant).contains
   }
 
+  object Individual {
+    def unapply(user: User): Option[User] =
+      user.affinityGroup.flatMap(ag => if (ag == AG.Individual) Some(user) else None)
+  }
+
+  object Organisation {
+    def unapply(user: User): Option[User] =
+      user.affinityGroup.flatMap(ag => if (ag == AG.Organisation) Some(user) else None)
+  }
+
+  object Agent {
+    def unapply(user: User): Option[User] =
+      user.affinityGroup.flatMap(ag => if (ag == AG.Agent) Some(user) else None)
+  }
+
   def validate(user: User): Either[List[String], User] = UserValidator.validate(user) match {
     case Valid(())       => Right(user)
     case Invalid(errors) => Left(errors)

@@ -1,13 +1,9 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
 import org.joda.time.LocalDate
-import org.scalatestplus.play.OneAppPerSuite
-import play.api.Application
-import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.agentsexternalstubs.models.RelationshipRecord
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.support._
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
 

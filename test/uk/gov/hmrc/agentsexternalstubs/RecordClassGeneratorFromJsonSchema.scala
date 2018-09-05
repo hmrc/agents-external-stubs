@@ -136,7 +136,11 @@ trait JsonSchemaCodeRenderer extends JsonSchemaRenderer {
       }
       .reduce[Set[(String, String)]]((a, b) => a.intersect(b))
 
-  protected def typeOf(definition: Definition, prefix: String, wrapOption: Boolean = true): String = {
+  protected def typeOf(
+    definition: Definition,
+    prefix: String,
+    wrapOption: Boolean = true,
+    defaultNone: Boolean = true): String = {
     val typeName = definition match {
       case _: StringDefinition  => "String"
       case _: NumberDefinition  => "BigDecimal"
@@ -149,7 +153,7 @@ trait JsonSchemaCodeRenderer extends JsonSchemaRenderer {
         else
           s"${if (o.isRef) "" else prefix}${o.typeName}"
     }
-    if (!definition.isMandatory && wrapOption) s"Option[$typeName] = None" else typeName
+    if (!definition.isMandatory && wrapOption) s"Option[$typeName]${if (defaultNone) " = None" else ""}" else typeName
   }
 }
 
@@ -253,6 +257,10 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
     val outputType = options.find(_.startsWith("output:")).map(_.drop(7)).getOrElse("record")
     require(Set("record", "payload").contains(outputType), s"output:[record|payload] but was output:$outputType")
     val context = Context(typeDef.definition, outputType)
+
+    // -----------------------------------------
+    //    FILE HEADER
+    // -----------------------------------------
     s"""package uk.gov.hmrc.agentsexternalstubs.models
        |
        |${if (context.isRecordOutputType) "import org.scalacheck.{Arbitrary, Gen}" else "\r"}
@@ -264,6 +272,8 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
        |  * This $className code has been generated from json schema
        |  * by {@see uk.gov.hmrc.agentsexternalstubs.RecordCodeRenderer}
        |  * ----------------------------------------------------------------------------
+       |  *
+       |  *  ${generateTypesMap(typeDef)}
        |  */
        |
        |${generateTypeDefinition(typeDef, isTopLevel = true, context)}
@@ -271,18 +281,118 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
      """.stripMargin
   }
 
+  private def generateTypesMap(typeDef: TypeDefinition, level: Int = 1): String =
+    s"${typeDef.name}${typeDef.nestedTypes
+      .filter(!_.definition.isRef || level == 1)
+      .map(t => "\n  *  " + ("-  " * level) + generateTypesMap(t, level + 1))
+      .mkString("")}"
+
   private def generateTypeDefinition(typeDef: TypeDefinition, isTopLevel: Boolean, context: Context): String = {
-    val classFields = generateClassFields(typeDef)
-    val fieldValidators = generateFieldValidators(typeDef.definition, context)
-    val fieldGenerators = generateFieldGenerators(typeDef.definition, context)
-    val fieldsInitialization = generateGenFieldsInitialization(typeDef.definition)
-    val sanitizers = generateSanitizers(typeDef.definition, context)
-    val sanitizerList = generateSanitizerList(typeDef.definition)
-    val nestedTypesDefinitions: String = typeDef.nestedTypes
+
+    lazy val classFields = generateClassFields(typeDef)
+    lazy val fieldValidators = generateFieldValidators(typeDef.definition, context)
+    lazy val fieldGenerators = generateFieldGenerators(typeDef.definition, context)
+    lazy val fieldsInitialization = generateGenFieldsInitialization(typeDef.definition)
+    lazy val sanitizers = generateSanitizers(typeDef.definition, context)
+    lazy val sanitizerList = generateSanitizerList(typeDef.definition)
+    lazy val nestedTypesDefinitions: String = typeDef.nestedTypes
       .filter(!_.definition.isRef || isTopLevel)
       .map(t => generateTypeDefinition(t, isTopLevel = false, context))
       .mkString("")
 
+    lazy val recordObjectMembersCode: String = if (isTopLevel) {
+      if (context.isRecordOutputType)
+        s"""
+           |  implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
+           |  implicit val recordType: RecordMetaData[${typeDef.name}] = RecordMetaData[${typeDef.name}](this)
+           |  ${if (context.uniqueKey.isDefined)
+             s"\n  def uniqueKey(key: String): String = s${quoted(s"${context.uniqueKey.get._2}:$${key.toUpperCase}")}"
+           else ""}${if (context.keys.nonEmpty)
+             "\n  " + context.keys
+               .map(key => s"""def ${key._2}Key(key: String): String = s${quoted(s"${key._2}:$${key.toUpperCase}")}""")
+               .mkString("\n  ")
+           else ""}
+           |
+           |  import Validator._
+           |  import Generator.GenOps._
+         """.stripMargin
+      else
+        """
+          |   import Validator._
+        """.stripMargin
+    } else ""
+
+    lazy val generatorsCode
+      : String = if (context.isRecordOutputType) s"""override val gen: Gen[${typeDef.name}] = ${if (typeDef.isInterface)
+      s"Gen.oneOf[${typeDef.name}](${typeDef.subtypes.map(st => s"${st.name}.gen.map(_.asInstanceOf[${typeDef.name}])").mkString(",\n  ")})"
+    else if (fieldGenerators.isEmpty)
+      s"Gen const ${typeDef.name}($fieldsInitialization)"
+    else
+      s"""for {
+         |    $fieldGenerators
+         |  } yield ${typeDef.name}($fieldsInitialization)""".stripMargin}"""
+    else ""
+
+    lazy val validatorsCode: String =
+      s"""  ${if (context.isRecordOutputType) "override " else ""}val validate: Validator[${typeDef.name}] = ${if (typeDef.isInterface && typeDef.subtypes.nonEmpty)
+        s"{${typeDef.subtypes
+          .map(subTypeDef => s"""case x: ${subTypeDef.name}   => ${subTypeDef.name}.validate(x)""")
+          .mkString("\n    ")}}"
+      else s"Validator($fieldValidators)"}"""
+
+    lazy val sanitizersCode: String = if (context.isRecordOutputType) {
+      if (typeDef.isInterface && typeDef.subtypes.nonEmpty)
+        s"""val sanitizer: Update = seed => {${typeDef.subtypes
+             .map(subTypeDef => s"""  case x: ${subTypeDef.name}   => ${subTypeDef.name}.sanitize(seed)(x)""")
+             .mkString("\n    ")}}
+           |  override val sanitizers: Seq[Update] = Seq(sanitizer)""".stripMargin
+      else s"""$sanitizers
+      |  override val sanitizers: Seq[Update] = Seq($sanitizerList)"""
+    } else ""
+
+    lazy val formatsCode: String =
+      if (typeDef.isInterface)
+        s"""
+           |  implicit val reads: Reads[${typeDef.name}] = new Reads[${typeDef.name}] {
+           |      override def reads(json: JsValue): JsResult[${typeDef.name}] = {
+           |      ${typeDef.subtypes.zipWithIndex
+             .map {
+               case (subTypeDef, i) =>
+                 s"""  val r$i = ${if (i > 0) s"r${i - 1}.orElse(" else ""}${subTypeDef.name}.formats.reads(json).flatMap(e => ${subTypeDef.name}.validate(e).fold(_ => JsError(), _ => JsSuccess(e)))${if (i > 0)
+                   ")"
+                 else ""}"""
+             }
+             .mkString("\n  ")}
+           |        r${typeDef.subtypes.size - 1}.orElse(aggregateErrors(JsError("Could not match json object to any variant of ${typeDef.name}, i.e. ${typeDef.subtypes
+             .map(_.name)
+             .mkString(", ")}"),${(for (i <- typeDef.subtypes.indices)
+             yield s"r$i").mkString(",")}))
+           |      }
+           |      
+           |      private def aggregateErrors[T](errors: JsResult[T]*): JsError =
+           |        errors.foldLeft(JsError())((a, r) =>
+           |          r match {
+           |            case e: JsError => JsError(a.errors ++ e.errors)
+           |            case _          => a
+           |        })
+           |  }
+           |    
+           |  implicit val writes: Writes[${typeDef.name}] = new Writes[${typeDef.name}] {
+           |    override def writes(o: ${typeDef.name}): JsValue = o match {
+           |      ${typeDef.subtypes
+             .map(subTypeDef => s"""case x: ${subTypeDef.name}   => ${subTypeDef.name}.formats.writes(x)""")
+             .mkString("\n    ")}
+           |    }
+           |  }
+          """.stripMargin
+      else
+        s"""
+           |implicit val formats: Format[${typeDef.name}] = Json.format[${typeDef.name}]
+           |""".stripMargin
+
+    // -----------------------------------------
+    //    CASE CLASS AND OBJECT TEMPLATE
+    // -----------------------------------------
     s"""${if (typeDef.isInterface)
          s"""sealed trait ${typeDef.name} {${generateInterfaceMethods(typeDef)}}""".stripMargin
        else
@@ -299,97 +409,21 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
                 .map(key => s"${key._1}.map(${typeDef.name}.${key._2}Key)")
                 .mkString(", ")})${if (context.keys.nonEmpty) ".collect{case Some(x) => x}" else ""}
               |  override def withId(id: Option[String]): Record = copy(id = id)
-              |}
               |""".stripMargin
-         else s")${if (typeDef.hasInterfaces) " extends " else ""}${generateClassInterfaces(typeDef)}"}"""}
+         else
+           s")${if (typeDef.hasInterfaces) " extends " else ""}${generateClassInterfaces(typeDef)} {"}
+         |
+         |  ${generateBuilderMethods(typeDef)}
+         |}"""}
        |
        |object ${typeDef.name}${if (context.isRecordOutputType) s" extends RecordUtils[${typeDef.name}]" else ""} {
-       |  ${if (isTopLevel) {
-         if (context.isRecordOutputType)
-           s"""
-              |  implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
-              |  implicit val recordType: RecordMetaData[${typeDef.name}] = RecordMetaData[${typeDef.name}](this)
-              |  ${if (context.uniqueKey.isDefined)
-                s"\n  def uniqueKey(key: String): String = s${quoted(s"${context.uniqueKey.get._2}:$${key.toUpperCase}")}"
-              else ""}${if (context.keys.nonEmpty)
-                "\n  " + context.keys
-                  .map(key =>
-                    s"""def ${key._2}Key(key: String): String = s${quoted(s"${key._2}:$${key.toUpperCase}")}""")
-                  .mkString("\n  ")
-              else ""}
-              |
-              |  import Validator._
-              |  import Generator.GenOps._
-         """.stripMargin
-         else
-           """
-             |   import Validator._
-           """.stripMargin
-       } else ""}
-       |  ${if (context.isRecordOutputType) s"""override val gen: Gen[${typeDef.name}] = ${if (typeDef.isInterface)
-         s"Gen.oneOf[${typeDef.name}](${typeDef.subtypes.map(st => s"${st.name}.gen.map(_.asInstanceOf[${typeDef.name}])").mkString(",\n  ")})"
-       else if (fieldGenerators.isEmpty)
-         s"Gen const ${typeDef.name}($fieldsInitialization)"
-       else
-         s"""for {
-            |    $fieldGenerators
-            |  } yield ${typeDef.name}($fieldsInitialization)""".stripMargin}"""
-       else ""}
-       |
+       |  $recordObjectMembersCode
+       |  $validatorsCode
+       |  $generatorsCode
+       |  $sanitizersCode
+       |  $formatsCode
        |  $nestedTypesDefinitions
-       |
-       |  ${if (context.isRecordOutputType) "override " else ""}val validate: Validator[${typeDef.name}] = ${if (typeDef.isInterface && typeDef.subtypes.nonEmpty)
-         s"{${typeDef.subtypes
-           .map(subTypeDef => s"""case x: ${subTypeDef.name}   => ${subTypeDef.name}.validate(x)""")
-           .mkString("\n    ")}}"
-       else s"Validator($fieldValidators)"}
-       |
-       |  ${if (context.isRecordOutputType) {
-         if (typeDef.isInterface && typeDef.subtypes.nonEmpty)
-           s"""val sanitizer: Update = seed => {${typeDef.subtypes
-                .map(subTypeDef => s"""  case x: ${subTypeDef.name}   => ${subTypeDef.name}.sanitize(seed)(x)""")
-                .mkString("\n    ")}}
-              |  override val sanitizers: Seq[Update] = Seq(sanitizer)""".stripMargin
-         else s"""$sanitizers
-         |  override val sanitizers: Seq[Update] = Seq($sanitizerList)"""
-       } else ""}
-       |
-       |  ${if (typeDef.isInterface)
-         s"""
-            |  implicit val reads: Reads[${typeDef.name}] = new Reads[${typeDef.name}] {
-            |      override def reads(json: JsValue): JsResult[${typeDef.name}] = {
-            |      ${typeDef.subtypes.zipWithIndex
-              .map {
-                case (subTypeDef, i) =>
-                  s"""  val r$i = ${if (i > 0) s"r${i - 1}.orElse(" else ""}${subTypeDef.name}.formats.reads(json).flatMap(e => ${subTypeDef.name}.validate(e).fold(_ => JsError(), _ => JsSuccess(e)))${if (i > 0)
-                    ")"
-                  else ""}"""
-              }
-              .mkString("\n  ")}
-            |        r${typeDef.subtypes.size - 1}.orElse(aggregateErrors(JsError("Could not match json object to any variant of ${typeDef.name}, i.e. ${typeDef.subtypes
-              .map(_.name)
-              .mkString(", ")}"),${(for (i <- typeDef.subtypes.indices)
-              yield s"r$i").mkString(",")}))
-            |      }
-            |      
-            |      private def aggregateErrors[T](errors: JsResult[T]*): JsError =
-            |        errors.foldLeft(JsError())((a, r) =>
-            |          r match {
-            |            case e: JsError => JsError(a.errors ++ e.errors)
-            |            case _          => a
-            |        })
-            |  }
-            |    
-            |  implicit val writes: Writes[${typeDef.name}] = new Writes[${typeDef.name}] {
-            |    override def writes(o: ${typeDef.name}): JsValue = o match {
-            |      ${typeDef.subtypes
-              .map(subTypeDef => s"""case x: ${subTypeDef.name}   => ${subTypeDef.name}.formats.writes(x)""")
-              .mkString("\n    ")}
-            |    }
-            |  }
-          """.stripMargin
-       else s"""implicit val formats: Format[${typeDef.name}] = Json.format[${typeDef.name}]"""}
-       |  ${if (isTopLevel) generateExternalizedVals(context) else ""}
+       |  ${if (isTopLevel) generateCustomObjectDeclaration(context) else ""}
        |}
        |
      """.stripMargin
@@ -426,6 +460,16 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
       .take(22)
       .map(prop => s"""${prop.name} = ${prop.variableName}""".stripMargin)
       .mkString("\n    ", ",\n    ", "\n  ")
+
+  private def generateBuilderMethods(typeDef: TypeDefinition): String =
+    s"""${typeDef.definition.properties
+         .take(22)
+         .map(prop =>
+           s"""  def with${prop.nameWithFirstCharUpper}(${prop.name}: ${typeOf(
+             prop,
+             typeDef.prefix,
+             defaultNone = false)}): ${typeDef.name} = copy(${prop.name} = ${prop.name})""")
+         .mkString("\n  ")}""".stripMargin
 
   private def generateValueGenerator(property: Definition, context: Context, wrapOption: Boolean = true): String = {
     val gen = knownFieldGenerators(property.name)
@@ -602,7 +646,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
     case _ => ""
   }
 
-  private def generateExternalizedVals(context: Context): String =
+  private def generateCustomObjectDeclaration(context: Context): String =
     context.commonVals
       .map {
         case (value, name) => s"  val $name = $value"

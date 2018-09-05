@@ -8,6 +8,11 @@ import uk.gov.hmrc.agentsexternalstubs.models.CreateUpdateAgentRelationshipPaylo
   * This CreateUpdateAgentRelationshipPayload code has been generated from json schema
   * by {@see uk.gov.hmrc.agentsexternalstubs.RecordCodeRenderer}
   * ----------------------------------------------------------------------------
+  *
+  *  CreateUpdateAgentRelationshipPayload
+  *  -  Authorisation
+  *  -  Authorise
+  *  -  Deauthorise
   */
 case class CreateUpdateAgentRelationshipPayload(
   acknowledgmentReference: String,
@@ -17,11 +22,53 @@ case class CreateUpdateAgentRelationshipPayload(
   regime: String,
   authorisation: Authorisation,
   relationshipType: Option[String] = None,
-  authProfile: Option[String] = None)
+  authProfile: Option[String] = None) {
+
+  def withAcknowledgmentReference(acknowledgmentReference: String): CreateUpdateAgentRelationshipPayload =
+    copy(acknowledgmentReference = acknowledgmentReference)
+  def withRefNumber(refNumber: String): CreateUpdateAgentRelationshipPayload = copy(refNumber = refNumber)
+  def withIdType(idType: Option[String]): CreateUpdateAgentRelationshipPayload = copy(idType = idType)
+  def withAgentReferenceNumber(agentReferenceNumber: String): CreateUpdateAgentRelationshipPayload =
+    copy(agentReferenceNumber = agentReferenceNumber)
+  def withRegime(regime: String): CreateUpdateAgentRelationshipPayload = copy(regime = regime)
+  def withAuthorisation(authorisation: Authorisation): CreateUpdateAgentRelationshipPayload =
+    copy(authorisation = authorisation)
+  def withRelationshipType(relationshipType: Option[String]): CreateUpdateAgentRelationshipPayload =
+    copy(relationshipType = relationshipType)
+  def withAuthProfile(authProfile: Option[String]): CreateUpdateAgentRelationshipPayload =
+    copy(authProfile = authProfile)
+}
 
 object CreateUpdateAgentRelationshipPayload {
 
   import Validator._
+
+  val validate: Validator[CreateUpdateAgentRelationshipPayload] = Validator(
+    check(
+      _.acknowledgmentReference.matches(Common.acknowledgmentReferencePattern),
+      s"""Invalid acknowledgmentReference, does not matches regex ${Common.acknowledgmentReferencePattern}"""
+    ),
+    check(
+      _.refNumber.matches(Common.refNumberPattern),
+      s"""Invalid refNumber, does not matches regex ${Common.refNumberPattern}"""),
+    check(
+      _.idType.matches(Common.idTypePattern),
+      s"""Invalid idType, does not matches regex ${Common.idTypePattern}"""),
+    check(
+      _.agentReferenceNumber.matches(Common.agentReferenceNumberPattern),
+      s"""Invalid agentReferenceNumber, does not matches regex ${Common.agentReferenceNumberPattern}"""
+    ),
+    check(
+      _.regime.matches(Common.regimePattern),
+      s"""Invalid regime, does not matches regex ${Common.regimePattern}"""),
+    checkObject(_.authorisation, Authorisation.validate),
+    check(
+      _.relationshipType.isOneOf(Common.relationshipTypeEnum),
+      "Invalid relationshipType, does not match allowed values"),
+    check(_.authProfile.isOneOf(Common.authProfileEnum), "Invalid authProfile, does not match allowed values")
+  )
+
+  implicit val formats: Format[CreateUpdateAgentRelationshipPayload] = Json.format[CreateUpdateAgentRelationshipPayload]
 
   sealed trait Authorisation { def action: String }
 
@@ -62,7 +109,11 @@ object CreateUpdateAgentRelationshipPayload {
 
   }
 
-  case class Authorise(override val action: String, isExclusiveAgent: Boolean) extends Authorisation
+  case class Authorise(override val action: String, isExclusiveAgent: Boolean) extends Authorisation {
+
+    def withAction(action: String): Authorise = copy(action = action)
+    def withIsExclusiveAgent(isExclusiveAgent: Boolean): Authorise = copy(isExclusiveAgent = isExclusiveAgent)
+  }
 
   object Authorise {
 
@@ -73,7 +124,10 @@ object CreateUpdateAgentRelationshipPayload {
 
   }
 
-  case class Deauthorise(override val action: String) extends Authorisation
+  case class Deauthorise(override val action: String) extends Authorisation {
+
+    def withAction(action: String): Deauthorise = copy(action = action)
+  }
 
   object Deauthorise {
 
@@ -84,32 +138,6 @@ object CreateUpdateAgentRelationshipPayload {
 
   }
 
-  val validate: Validator[CreateUpdateAgentRelationshipPayload] = Validator(
-    check(
-      _.acknowledgmentReference.matches(Common.acknowledgmentReferencePattern),
-      s"""Invalid acknowledgmentReference, does not matches regex ${Common.acknowledgmentReferencePattern}"""
-    ),
-    check(
-      _.refNumber.matches(Common.refNumberPattern),
-      s"""Invalid refNumber, does not matches regex ${Common.refNumberPattern}"""),
-    check(
-      _.idType.matches(Common.idTypePattern),
-      s"""Invalid idType, does not matches regex ${Common.idTypePattern}"""),
-    check(
-      _.agentReferenceNumber.matches(Common.agentReferenceNumberPattern),
-      s"""Invalid agentReferenceNumber, does not matches regex ${Common.agentReferenceNumberPattern}"""
-    ),
-    check(
-      _.regime.matches(Common.regimePattern),
-      s"""Invalid regime, does not matches regex ${Common.regimePattern}"""),
-    checkObject(_.authorisation, Authorisation.validate),
-    check(
-      _.relationshipType.isOneOf(Common.relationshipTypeEnum),
-      "Invalid relationshipType, does not match allowed values"),
-    check(_.authProfile.isOneOf(Common.authProfileEnum), "Invalid authProfile, does not match allowed values")
-  )
-
-  implicit val formats: Format[CreateUpdateAgentRelationshipPayload] = Json.format[CreateUpdateAgentRelationshipPayload]
   object Common {
     val relationshipTypeEnum = Seq("ZA01", "ZA02")
     val actionEnum0 = Seq("De-Authorise")

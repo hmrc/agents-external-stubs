@@ -71,14 +71,14 @@ class EnrolmentStoreProxyConnectorISpec
 
     "return some clients userId for given MTDITID" in {
       implicit val session = givenAuthenticatedSession()
-      givenPrincipalUserIdExistFor(MtdItId("foo"), "bar")
-      await(connector.getPrincipalUserIdFor(MtdItId("foo"))) shouldBe "bar"
+      givenPrincipalUserIdExistFor(MtdItId("123456789098765"), "bar")
+      await(connector.getPrincipalUserIdFor(MtdItId("123456789098765"))) shouldBe "bar"
     }
 
     "return RelationshipNotFound Exception when MTDITID not found" in {
       implicit val session = givenAuthenticatedSession()
       an[Exception] shouldBe thrownBy {
-        await(connector.getPrincipalUserIdFor(MtdItId("foo")))
+        await(connector.getPrincipalUserIdFor(MtdItId("123456789098765")))
       }
     }
 
@@ -100,16 +100,16 @@ class EnrolmentStoreProxyConnectorISpec
 
     "allocate an enrolment to an agent" in {
       implicit val session = givenAuthenticatedSession()
-      givenEnrolmentAllocationSucceeds("group1", "user1", "HMRC-MTD-IT", "MTDITID", "ABC1233", "bar")
-      await(connector.allocateEnrolmentToAgent("group1", "user1", MtdItId("ABC1233"), AgentCode("bar")))
-      verifyEnrolmentAllocationAttempt("group1", "user1", "HMRC-MTD-IT~MTDITID~ABC1233", "bar")
+      givenEnrolmentAllocationSucceeds("group1", "user1", "HMRC-MTD-IT", "MTDITID", "123456789098765", "bar")
+      await(connector.allocateEnrolmentToAgent("group1", "user1", MtdItId("123456789098765"), AgentCode("bar")))
+      verifyEnrolmentAllocationAttempt("group1", "user1", "HMRC-MTD-IT~MTDITID~123456789098765", "bar")
     }
 
     "de-allocate an enrolment from an agent" in {
       implicit val session = givenAuthenticatedSession()
-      givenEnrolmentDeallocationSucceeds("group1", "HMRC-MTD-IT", "MTDITID", "ABC1233", "bar")
-      await(connector.deallocateEnrolmentFromAgent("group1", MtdItId("ABC1233"), AgentCode("bar")))
-      verifyEnrolmentDeallocationAttempt("group1", "HMRC-MTD-IT~MTDITID~ABC1233", "bar")
+      givenEnrolmentDeallocationSucceeds("group1", "HMRC-MTD-IT", "MTDITID", "123456789098765", "bar")
+      await(connector.deallocateEnrolmentFromAgent("group1", MtdItId("123456789098765"), AgentCode("bar")))
+      verifyEnrolmentDeallocationAttempt("group1", "HMRC-MTD-IT~MTDITID~123456789098765", "bar")
     }
   }
 }

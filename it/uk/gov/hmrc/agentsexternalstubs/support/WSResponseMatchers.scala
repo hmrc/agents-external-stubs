@@ -37,7 +37,6 @@ trait WSResponseMatchers {
   def haveValidJsonBody(matchers: Matcher[JsObject]*): Matcher[WSResponse] = new Matcher[WSResponse] {
     override def apply(left: WSResponse): MatchResult = Try(left.json) match {
       case Success(o: JsObject) =>
-        println(o.toString())
         matchers.foldLeft(MatchResult(true, "", ""))((a, b) => if (a.matches) b(o) else a)
       case Success(_) => MatchResult(true, "", "Have valid JSON body")
       case Failure(e) => MatchResult(false, s"Could not parse JSON body because of $e", "")
@@ -47,7 +46,6 @@ trait WSResponseMatchers {
   def haveValidJsonArrayBody(matchers: Matcher[JsArray]*): Matcher[WSResponse] = new Matcher[WSResponse] {
     override def apply(left: WSResponse): MatchResult = Try(left.json) match {
       case Success(o: JsArray) =>
-        println(o.toString())
         matchers.foldLeft(MatchResult(true, "", ""))((a, b) => if (a.matches) b(o) else a)
       case Success(x) => MatchResult(false, s"JSON value should be an array but was $x", "")
       case Failure(e) => MatchResult(false, s"Could not parse JSON body because of $e", "")

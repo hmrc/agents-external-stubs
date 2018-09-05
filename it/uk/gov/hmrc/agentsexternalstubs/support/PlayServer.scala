@@ -9,7 +9,6 @@ import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.ws.WSClient
 import play.api.test.TestServer
-import uk.gov.hmrc.mongo.Awaiting
 import uk.gov.hmrc.play.bootstrap.graphite.GraphiteMetricsModule
 import uk.gov.hmrc.play.it.Port
 
@@ -42,7 +41,7 @@ object PlayServer {
       .overrides(bind[MetricsFilter].to[DisabledMetricsFilter])
       .overrides(bind[Metrics].to[TestMetrics])
 
-  def run(app: Application): Unit =
+  def run(): Unit =
     if (lock.tryLock()) try {
       if (testServer.get() == null) {
         print(s"Initializing Play Server at $port ... ")

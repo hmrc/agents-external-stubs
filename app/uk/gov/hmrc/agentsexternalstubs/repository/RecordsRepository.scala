@@ -125,5 +125,5 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
         implicitly[CursorProducer[Record]])
 
   private def keyOf[T <: Record](key: String, planetId: String, recordType: RecordMetaData[T]): String =
-    s"${recordType.typeName}:$key@$planetId"
+    s"${recordType.typeName}:${key.replace(" ", "").toLowerCase}@$planetId"
 }
