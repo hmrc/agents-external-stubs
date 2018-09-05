@@ -1,7 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import javax.inject.{Inject, Singleton}
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.JsValue
 import play.api.mvc.{Action, AnyContent}
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models._

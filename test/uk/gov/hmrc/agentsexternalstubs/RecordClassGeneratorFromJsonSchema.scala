@@ -11,7 +11,11 @@ import scala.util.matching.Regex
   * based on the provided json schema.
   *
   * Usage:
-  * <pre>sbt "runMain uk.gov.hmrc.agentsexternalstubs.RecordClassGeneratorFromJsonSchema {sourceSchemaPath} {targetClassPath} {recordName} output:[record|payload]"</pre>
+  * <pre>sbt "test:runMain uk.gov.hmrc.agentsexternalstubs.RecordClassGeneratorFromJsonSchema {sourceSchemaPath} {targetClassPath} {recordName} output:[record|payload]"</pre>
+  *
+  * output options:
+  *  - record  : full option
+  *  - payload : validators only, no generators nor sanitizers
   */
 object RecordClassGeneratorFromJsonSchema extends App {
 
@@ -27,26 +31,32 @@ object RecordClassGeneratorFromJsonSchema extends App {
 
   val schema = Json.parse(Source.fromFile(source, "utf-8").mkString).as[JsObject]
   val definition = JsonSchema.read(schema)
-  val code = RecordCodeRenderer.render(className, definition, options)
+  val code = RecordCodeRenderer.render(
+    className,
+    definition,
+    options,
+    s"""sbt "test:runMain ${this.getClass.getName.dropRight(1)} $source $sink $className ${options
+      .mkString(" ")}""""
+  )
   File(sink).write(code)
 }
 
 trait JsonSchemaRenderer {
-  def render(className: String, definition: Definition, options: Seq[String]): String
+  def render(className: String, definition: Definition, options: Seq[String], description: String): String
 
   protected def quoted(s: String): String = "\"\"\"" + s + "\"\"\""
 }
 
 trait JsonSchemaCodeRenderer extends JsonSchemaRenderer {
 
-  def render(className: String, typeDef: TypeDefinition, options: Seq[String]): String
+  def render(className: String, typeDef: TypeDefinition, options: Seq[String], description: String): String
 
-  final def render(className: String, definition: Definition, options: Seq[String]): String =
+  final def render(className: String, definition: Definition, options: Seq[String], description: String): String =
     findObjectDefinition(definition).fold(
       throw new IllegalArgumentException("Provided json schema does not represent valid object definition")
     ) { definition =>
       val typeDef = moveRefTypesToTheTop(typeDefinition(className, definition))
-      render(className, typeDef, options)
+      render(className, typeDef, options, description)
     }
 
   private def findObjectDefinition(definition: Definition): Option[ObjectDefinition] = definition match {
@@ -253,7 +263,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
       }
   }
 
-  def render(className: String, typeDef: TypeDefinition, options: Seq[String]): String = {
+  def render(className: String, typeDef: TypeDefinition, options: Seq[String], description: String): String = {
     val outputType = options.find(_.startsWith("output:")).map(_.drop(7)).getOrElse("record")
     require(Set("record", "payload").contains(outputType), s"output:[record|payload] but was output:$outputType")
     val context = Context(typeDef.definition, outputType)
@@ -269,8 +279,9 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
        |
        |/**
        |  * ----------------------------------------------------------------------------
-       |  * This $className code has been generated from json schema
-       |  * by {@see uk.gov.hmrc.agentsexternalstubs.RecordCodeRenderer}
+       |  * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
+       |  * How to regenerate? Run this command in the project root directory:
+       |  * $description
        |  * ----------------------------------------------------------------------------
        |  *
        |  *  ${generateTypesMap(typeDef)}

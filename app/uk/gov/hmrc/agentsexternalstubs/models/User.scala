@@ -40,6 +40,9 @@ case class User(
       .find(_.key == serviceName)
       .flatMap(_.identifiers.flatMap(_.find(_.key == identifierName)))
       .map(_.value)
+
+  def firstName: Option[String] = name.map(_.split(" ").dropRight(1).mkString(" "))
+  def lastName: Option[String] = name.map(_.split(" ").last)
 }
 
 object User {

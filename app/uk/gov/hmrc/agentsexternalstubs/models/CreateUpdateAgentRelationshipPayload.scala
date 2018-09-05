@@ -5,8 +5,9 @@ import uk.gov.hmrc.agentsexternalstubs.models.CreateUpdateAgentRelationshipPaylo
 
 /**
   * ----------------------------------------------------------------------------
-  * This CreateUpdateAgentRelationshipPayload code has been generated from json schema
-  * by {@see uk.gov.hmrc.agentsexternalstubs.RecordCodeRenderer}
+  * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
+  * How to regenerate? Run this command in the project root directory:
+  * sbt "test:runMain uk.gov.hmrc.agentsexternalstubs.RecordClassGeneratorFromJsonSchema docs/schemas/DES1167.json app/uk/gov/hmrc/agentsexternalstubs/models/CreateUpdateAgentRelationshipPayload.scala CreateUpdateAgentRelationshipPayload output:payload"
   * ----------------------------------------------------------------------------
   *
   *  CreateUpdateAgentRelationshipPayload
