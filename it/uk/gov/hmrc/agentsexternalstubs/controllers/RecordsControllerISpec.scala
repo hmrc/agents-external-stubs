@@ -145,6 +145,19 @@ class RecordsControllerISpec
             Boolean]("isAnOrganisation") and haveProperty[JsObject]("addressDetails")
         )
       }
+
+      "respond 200 with a complete auto-generated entity" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+
+        val result = Records.generateAgentRecord("foo", minimal = false)
+        result should haveStatus(200)
+        result should haveValidJsonBody(
+          haveProperty[String]("safeId") and haveProperty[Boolean]("businessPartnerExists") and haveProperty[Boolean](
+            "isAnAgent") and haveProperty[Boolean]("isAnASAgent") and haveProperty[Boolean]("isAnIndividual") and haveProperty[
+            Boolean]("isAnOrganisation") and haveProperty[JsObject]("addressDetails") and haveProperty[String](
+            "agentReferenceNumber") and haveProperty[String]("utr")
+        )
+      }
     }
   }
 }

@@ -346,4 +346,49 @@ trait ExampleDesPayloads {
       |  }
       |}""".stripMargin
 
+  val validAgentRecordPayload =
+    """
+      |{
+      |  "businessPartnerExists": true,
+      |  "safeId": "XE0001234567890",
+      |  "agentReferenceNumber": "AARN1234567",
+      |  "utr": "0123456789",
+      |  "isAnAgent": true,
+      |  "isAnASAgent": true,
+      |  "isAnIndividual": true,
+      |  "individual": {
+      |    "firstName": "Stephen",
+      |    "lastName": "Wood",
+      |    "dateOfBirth": "1990-04-03"
+      |  },
+      |  "isAnOrganisation": false,
+      |  "addressDetails": {
+      |    "addressLine1": "100 SuttonStreet",
+      |    "addressLine2": "Wokingham",
+      |    "addressLine3": "Surrey",
+      |    "addressLine4": "London",
+      |    "postalCode": "DH14EJ",
+      |    "countryCode": "GB"
+      |  },
+      |  "contactDetails": {
+      |    "phoneNumber": "01332752856",
+      |    "mobileNumber": "07782565326",
+      |    "faxNumber": "01332754256",
+      |    "emailAddress": "stephen@manncorpone.co.uk"
+      |  },
+      |  "agencyDetails": {
+      |    "agencyName": "HMRC",
+      |    "agencyAddress": {
+      |      "addressLine1": "Plaza 2",
+      |      "addressLine2": "Ironmasters Way",
+      |      "addressLine3": "Telford",
+      |      "addressLine4": "Shropshire",
+      |      "postalCode": "TF3 4NT",
+      |      "countryCode": "GB"
+      |    },
+      |    "agencyEmail": "hmrc@hmrc.gsi.gov.uk"
+      |  }
+      |}
+    """.stripMargin
+
 }

@@ -308,6 +308,13 @@ trait TestRequests extends ScalaFutures {
         .withHeaders(authContext.headers: _*)
         .get()
         .futureValue
+
+    def getAgentRecord(idType: String, idNumber: String)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/registration/personal-details/$idType/$idNumber")
+        .withHeaders(authContext.headers: _*)
+        .get()
+        .futureValue
   }
 
   object Records {

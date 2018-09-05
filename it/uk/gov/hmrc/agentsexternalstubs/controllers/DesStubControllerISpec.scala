@@ -217,13 +217,38 @@ class DesStubControllerISpec
     "GET /registration/personal-details/arn/:arn" should {
       "return 200 response if record found" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
-        val createResult = Records.createVatCustomerInformation(Json.parse(validVatCustomerInformationPayload))
+        val createResult = Records.createAgentRecord(Json.parse(validAgentRecordPayload))
         createResult should haveStatus(201)
 
-        val result = DesStub.getVatCustomerInformation("123456789")
+        val result = DesStub.getAgentRecord("arn", "AARN1234567")
         result should haveStatus(200)
         val json = result.json
-        json.as[JsObject] should haveProperty[String]("vrn")
+        json.as[JsObject] should haveProperty[String]("agentReferenceNumber")
+      }
+
+      "return 404 response if record not found" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        val result = DesStub.getAgentRecord("arn", "BARN1234567")
+        result should haveStatus(404)
+      }
+    }
+
+    "GET /registration/personal-details/utr/:utr" should {
+      "return 200 response if record found" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        val createResult = Records.createAgentRecord(Json.parse(validAgentRecordPayload))
+        createResult should haveStatus(201)
+
+        val result = DesStub.getAgentRecord("utr", "0123456789")
+        result should haveStatus(200)
+        val json = result.json
+        json.as[JsObject] should haveProperty[String]("agentReferenceNumber")
+      }
+
+      "return 404 response if record not found" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        val result = DesStub.getAgentRecord("utr", "0123456789")
+        result should haveStatus(404)
       }
     }
   }
