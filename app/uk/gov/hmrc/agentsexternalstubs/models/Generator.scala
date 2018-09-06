@@ -3,7 +3,7 @@ import java.time.format.DateTimeFormatter
 
 import org.scalacheck.Gen
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, UtrCheck}
-import uk.gov.hmrc.domain.{Modulus11Check, Nino, Vrn}
+import uk.gov.hmrc.domain.{Modulus11Check, Modulus23Check, Nino, Vrn}
 import uk.gov.hmrc.smartstub.{Addresses, Companies, Names, Temporal, ToLong}
 import wolfendale.scalacheck.regexp.RegexpGen
 
@@ -77,10 +77,13 @@ trait Generator extends Names with Temporal with Companies with Addresses {
       .map(bd =>
         bd.quot(multipleOf.map(BigDecimal.decimal).getOrElse(1)) * multipleOf.map(BigDecimal.decimal).getOrElse(1))
 
-  lazy val arnGen: Gen[String] = for {
-    a <- pattern"Z".gen
+  object Modulus32 extends Modulus23Check {
+    def apply(s: String) = calculateCheckCharacter(s) + s
+  }
+
+  lazy val arnGen: Gen[String] = (for {
     b <- pattern"9999999".gen
-  } yield a + "ARN" + b
+  } yield Modulus32("ARN" + b)).retryUntil(Arn.isValid)
   def arn(seed: String): Arn = arnGen.map(Arn.apply).seeded(seed).get
 
   lazy val safeIdGen: Gen[String] = pattern"Z0009999999999".gen.map("X" + _)

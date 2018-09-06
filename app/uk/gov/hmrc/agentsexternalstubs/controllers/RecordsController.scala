@@ -51,7 +51,7 @@ class RecordsController @Inject()(
             Record
               .fromJson(Record.typeOf(record), request.body) |> whenSuccess { payload =>
               recordsRepository
-                .store(payload, session.planetId)
+                .store(payload.withId(Some(recordId)), session.planetId)
                 .map(_ => ok(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))))
             }
         }

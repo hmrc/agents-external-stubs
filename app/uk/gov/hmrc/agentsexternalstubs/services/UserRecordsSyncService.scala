@@ -24,7 +24,7 @@ class UserRecordsSyncService @Inject()(
         .findIdentifierValue("HMRC-MTD-IT", "MTDITID")
         .getOrElse(Generator.mtdbsa(user.userId).value)
       val record = BusinessDetailsRecord
-        .seed(user.userId)
+        .generate(user.userId)
         .withNino(nino)
         .withMtdbsa(mtdbsa)
       val maybeRecord1 = businessDetailsRecordsService.getBusinessDetails(Nino(nino), user.planetId.get)
@@ -40,7 +40,7 @@ class UserRecordsSyncService @Inject()(
         .flatMap(
           entity =>
             businessDetailsRecordsService
-              .store(entity, autoFill = true, user.planetId.get)
+              .store(entity, autoFill = false, user.planetId.get)
               .map(_ => ()))
     }
   }
@@ -51,15 +51,15 @@ class UserRecordsSyncService @Inject()(
         .findIdentifierValue("HMRC-MTD-VAT", "VRN")
         .getOrElse(throw new IllegalStateException("Expected individual having VRN identifier."))
       val record = VatCustomerInformationRecord
-        .seed(user.userId)
+        .generate(user.userId)
         .withVrn(vrn)
         .withApprovedInformation(
           Some(
             ApprovedInformation
-              .seed(user.userId)
+              .generate(user.userId)
               .withCustomerDetails(
                 CustomerDetails
-                  .seed(user.userId)
+                  .generate(user.userId)
                   .withIndividual(Some(IndividualName()
                     .withFirstName(user.firstName)
                     .withLastName(user.lastName)))
@@ -72,7 +72,7 @@ class UserRecordsSyncService @Inject()(
           case None           => record
         }
         .flatMap(entity =>
-          vatCustomerInformationRecordsService.store(entity, autoFill = true, user.planetId.get).map(_ => ()))
+          vatCustomerInformationRecordsService.store(entity, autoFill = false, user.planetId.get).map(_ => ()))
     }
   }
 
@@ -82,15 +82,15 @@ class UserRecordsSyncService @Inject()(
         .findIdentifierValue("HMRC-MTD-VAT", "VRN")
         .getOrElse(throw new IllegalStateException("Expected individual having VRN identifier."))
       val record = VatCustomerInformationRecord
-        .seed(user.userId)
+        .generate(user.userId)
         .withVrn(vrn)
         .withApprovedInformation(
           Some(
             ApprovedInformation
-              .seed(user.userId)
+              .generate(user.userId)
               .withCustomerDetails(
                 CustomerDetails
-                  .seed(user.userId)
+                  .generate(user.userId)
                   .withOrganisationName(user.name)
               )))
       vatCustomerInformationRecordsService
@@ -100,26 +100,26 @@ class UserRecordsSyncService @Inject()(
           case None           => record
         }
         .flatMap(entity =>
-          vatCustomerInformationRecordsService.store(entity, autoFill = true, user.planetId.get).map(_ => ()))
+          vatCustomerInformationRecordsService.store(entity, autoFill = false, user.planetId.get).map(_ => ()))
     }
   }
 
   val recordForAnAgent: UserRecordsSync = {
     case User.Agent(user) => {
       val agentRecord = AgentRecord
-        .seed(user.userId)
+        .generate(user.userId)
         .withBusinessPartnerExists(true)
         .withIndividual(
           Some(
             Individual
-              .seed(user.userId)
+              .generate(user.userId)
               .withFirstName(user.firstName.getOrElse("John"))
               .withLastName(user.lastName.getOrElse("Smith"))
           ))
         .withAgencyDetails(
           Some(
             AgencyDetails
-              .seed(user.userId)
+              .generate(user.userId)
               .withAgencyName(user.agentFriendlyName.map(_.take(40)))))
 
       val utr = Generator.utr(user.userId)
@@ -136,7 +136,7 @@ class UserRecordsSyncService @Inject()(
               case Some(existingRecord) => ar.withId(existingRecord.id)
               case None                 => ar
             }
-            .flatMap(entity => agentRecordsService.store(entity, autoFill = true, user.planetId.get).map(_ => ()))
+            .flatMap(entity => agentRecordsService.store(entity, autoFill = false, user.planetId.get).map(_ => ()))
         case None if user.principalEnrolments.isEmpty =>
           val ar = agentRecord
             .withUtr(Option(utr))
@@ -148,7 +148,7 @@ class UserRecordsSyncService @Inject()(
               case Some(existingRecord) => ar.withId(existingRecord.id)
               case None                 => ar
             }
-            .flatMap(entity => agentRecordsService.store(entity, autoFill = true, user.planetId.get).map(_ => ()))
+            .flatMap(entity => agentRecordsService.store(entity, autoFill = false, user.planetId.get).map(_ => ()))
         case _ =>
           Future.successful(())
       }

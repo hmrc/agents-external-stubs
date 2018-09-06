@@ -90,22 +90,6 @@ trait TestRequests extends ScalaFutures {
         .futureValue
   }
 
-  object TestMe {
-    def testAuthAgentMtd(implicit authContext: AuthContext): WSResponse =
-      wsClient
-        .url(s"$url/agents-external-stubs/test/auth/agent-mtd")
-        .withHeaders(authContext.headers: _*)
-        .get()
-        .futureValue
-
-    def testAuthClientMtdIt(implicit authContext: AuthContext): WSResponse =
-      wsClient
-        .url(s"$url/agents-external-stubs/test/auth/client-mtd-it")
-        .withHeaders(authContext.headers: _*)
-        .get()
-        .futureValue
-  }
-
   object AuthStub {
     def authorise(body: String)(implicit authContext: AuthContext): WSResponse =
       wsClient
@@ -323,6 +307,27 @@ trait TestRequests extends ScalaFutures {
         .url(s"$url/agents-external-stubs/records")
         .withHeaders(authContext.headers: _*)
         .get
+        .futureValue
+
+    def getRecord(recordId: String)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/record/$recordId")
+        .withHeaders(authContext.headers: _*)
+        .get
+        .futureValue
+
+    def updateRecord[T: Writeable](recordId: String, payload: T)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/record/$recordId")
+        .withHeaders(authContext.headers: _*)
+        .put[T](payload)
+        .futureValue
+
+    def deleteRecord(recordId: String)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/record/$recordId")
+        .withHeaders(authContext.headers: _*)
+        .delete
         .futureValue
 
     def createBusinessDetails[T: Writeable](payload: T)(implicit authContext: AuthContext): WSResponse =

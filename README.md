@@ -204,6 +204,12 @@ e.g. [records response](docs/records.md).
 #### GET /agents-external-stubs/records/:recordId
 Returns a record by its ID
 
+#### PUT /agents-external-stubs/records/:recordId
+Updates the record
+
+#### DELETE /agents-external-stubs/records/:recordId
+Removes the record
+
 #### POST /agents-external-stubs/records/business-details
 #### GET /agents-external-stubs/records/business-details/generate
 
