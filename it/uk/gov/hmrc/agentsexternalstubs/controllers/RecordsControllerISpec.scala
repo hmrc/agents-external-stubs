@@ -27,14 +27,18 @@ class RecordsControllerISpec
         createResult3 should haveStatus(201)
         val createResult4 = Records.createLegacyRelationship(Json.parse(validLegacyRelationshipPayload))
         createResult4 should haveStatus(201)
+        val createResult5 = Records.createBusinessPartnerRecord(Json.parse(validBusinessPartnerRecordPayload))
+        createResult5 should haveStatus(201)
 
         val result = Records.getRecords()
+        println(result.body)
         result should haveStatus(200)
         result should haveValidJsonBody(
           haveProperty[JsArray]("VatCustomerInformationRecord") and
             haveProperty[JsArray]("BusinessDetailsRecord") and
             haveProperty[JsArray]("LegacyRelationshipRecord") and
-            haveProperty[JsArray]("LegacyAgentRecord")
+            haveProperty[JsArray]("LegacyAgentRecord") and
+            haveProperty[JsArray]("BusinessPartnerRecord")
         )
       }
     }

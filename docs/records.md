@@ -3,83 +3,6 @@
 Returns all records on the planet grouped by the type.
 
     {
-      "LegacyRelationshipRecord": [
-        {
-          "agentId": "SA6012",
-          "nino": "AA123456A",
-          "utr": "1234567890",
-          "id": "5b8ee601c4631edbf3833223"
-        }
-      ],
-      "BusinessDetailsRecord": [
-        {
-          "safeId": "XE00001234567890",
-          "nino": "AA123456A",
-          "mtdbsa": "123456789012345",
-          "propertyIncome": false,
-          "businessData": [
-            {
-              "incomeSourceId": "123456789012345",
-              "accountingPeriodStartDate": "2001-01-01",
-              "accountingPeriodEndDate": "2001-01-01",
-              "tradingName": "RCDTS",
-              "businessAddressDetails": {
-                "addressLine1": "100 SuttonStreet",
-                "addressLine2": "Wokingham",
-                "addressLine3": "Surrey",
-                "addressLine4": "London",
-                "postalCode": "DH14EJ",
-                "countryCode": "GB"
-              },
-              "businessContactDetails": {
-                "phoneNumber": "01332752856",
-                "mobileNumber": "07782565326",
-                "faxNumber": "01332754256",
-                "emailAddress": "stephen@manncorpone.co.uk"
-              },
-              "tradingStartDate": "2001-01-01",
-              "cashOrAccruals": "cash",
-              "seasonal": true,
-              "cessationDate": "2001-01-01",
-              "cessationReason": "002",
-              "paperLess": true
-            }
-          ],
-          "propertyData": {
-            "incomeSourceId": "idr58ssnzmUV6cp",
-            "accountingPeriodStartDate": "1992-06-15",
-            "accountingPeriodEndDate": "2011-06-07",
-            "numPropRented": "61",
-            "numPropRentedUK": "61",
-            "numPropRentedEEA": "61",
-            "numPropRentedNONEEA": "61",
-            "emailAddress": "u@P8ssnzmUV6cp0hwvvosrorNdlvtjuaurBynV1vrtpxybTavvuagweziqopptkqvJmzXywjiuy4ct5sul9f4snjz4n.eu",
-            "cessationDate": "2015-12-02",
-            "cessationReason": "003",
-            "paperLess": true
-          },
-          "id": "5b8ee601c4631edbf383321d"
-        }
-      ],
-      "LegacyAgentRecord": [
-        {
-          "agentId": "SA6012",
-          "agentOwnRef": "abcdefghij",
-          "hasAgent": false,
-          "isRegisteredAgent": false,
-          "govAgentId": "6WKC9BTJUTPH",
-          "agentName": "Mr SA AGT_022",
-          "agentPhoneNo": "03002003319",
-          "address1": "Plaza 2",
-          "address2": "Ironmasters Way",
-          "address3": "Telford",
-          "address4": "Shropshire",
-          "postcode": "TF3 4NT",
-          "isAgentAbroad": false,
-          "agentCeasedDate": "2001-01-01",
-          "id": "5b8ee601c4631edbf3833221"
-        }
-      ],
       "VatCustomerInformationRecord": [
         {
           "vrn": "123456789",
@@ -92,6 +15,7 @@ Returns all records on the planet grouped by the type.
                 "middleName": "M",
                 "lastName": "Flintstone"
               },
+              "dateOfBirth": "2006-08-16",
               "tradingName": "a",
               "mandationStatus": "1",
               "registrationReason": "0001",
@@ -113,7 +37,8 @@ Returns all records on the planet grouped by the type.
                 "mobileNumber": "07128126712 ",
                 "faxNumber": "01268712671 ",
                 "emailAddress": "antiques@email.com"
-              }
+              },
+              "websiteAddress": "4ljihgtcjmLuPuhPKadbopv1ok6qrt5yhhcfssqttujzhtasbcxVaub"
             },
             "correspondenceContactDetails": {
               "address": {
@@ -224,6 +149,7 @@ Returns all records on the planet grouped by the type.
                   "middleName": "M",
                   "lastName": "Flintstone"
                 },
+                "dateOfBirth": "2006-08-16",
                 "tradingName": "a",
                 "mandationStatus": "1",
                 "registrationReason": "0001",
@@ -282,6 +208,26 @@ Returns all records on the planet grouped by the type.
                 "sortCode": "010103",
                 "buildingSocietyNumber": "12312345",
                 "bankBuildSocietyName": "a"
+              },
+              "businessActivities": {
+                "formInformation": {
+                  "formBundle": "040438784565",
+                  "dateReceived": "1995-07-21"
+                },
+                "primaryMainCode": "47359",
+                "mainCode2": "04043",
+                "mainCode3": "04043",
+                "mainCode4": "04043"
+              },
+              "flatRateScheme": {
+                "formInformation": {
+                  "formBundle": "040438784565",
+                  "dateReceived": "1995-07-21"
+                },
+                "FRSCategory": "029",
+                "FRSPercentage": 805.49,
+                "startDate": "1970-06-25",
+                "limitedCostTrader": true
               },
               "deregister": {
                 "formInformation": {
@@ -345,12 +291,149 @@ Returns all records on the planet grouped by the type.
                     "firstName": "abcdefghijk",
                     "middleName": "abcdefghijklmno",
                     "lastName": "abcdefg"
+                  },
+                  "PPOB": {
+                    "address": {
+                      "line1": "75 Braemar Road",
+                      "line2": "The Garthwaite House",
+                      "postCode": "NE62 7MU",
+                      "countryCode": "GB"
+                    },
+                    "RLS": "0002",
+                    "contactDetails": {
+                      "primaryPhoneNumber": "01322 530550",
+                      "mobileNumber": "00404 387845",
+                      "faxNumber": "00404 387845",
+                      "emailAddress": "c@z.com"
+                    },
+                    "websiteAddress": "4ljihgtcjmLuPuhPKadbopv1ok6qrt5yhhcfssqttujzhtasbcxVaub"
                   }
                 }
               ]
             }
           },
-          "id": "5b8ee601c4631edbf383321f"
+          "id": "5b91a5481300000f00a0f738"
+        }
+      ],
+      "LegacyAgentRecord": [
+        {
+          "agentId": "SA6012",
+          "agentOwnRef": "abcdefghij",
+          "hasAgent": false,
+          "isRegisteredAgent": false,
+          "govAgentId": "6WKC9BTJUTPH",
+          "agentName": "Mr SA AGT_022",
+          "agentPhoneNo": "03002003319",
+          "address1": "Plaza 2",
+          "address2": "Ironmasters Way",
+          "address3": "Telford",
+          "address4": "Shropshire",
+          "postcode": "TF3 4NT",
+          "isAgentAbroad": false,
+          "agentCeasedDate": "2001-01-01",
+          "id": "5b91a5481300001000a0f739"
+        }
+      ],
+      "BusinessPartnerRecord": [
+        {
+          "businessPartnerExists": true,
+          "safeId": "XE0001234567890",
+          "agentReferenceNumber": "AARN1234567",
+          "utr": "0123456789",
+          "isAnAgent": true,
+          "isAnASAgent": true,
+          "isAnIndividual": true,
+          "individual": {
+            "firstName": "Stephen",
+            "lastName": "Wood",
+            "dateOfBirth": "1990-04-03"
+          },
+          "isAnOrganisation": false,
+          "addressDetails": {
+            "addressLine1": "100 SuttonStreet",
+            "addressLine2": "Wokingham",
+            "addressLine3": "Surrey",
+            "addressLine4": "London",
+            "postalCode": "DH14EJ",
+            "countryCode": "GB"
+          },
+          "contactDetails": {
+            "phoneNumber": "01332752856",
+            "mobileNumber": "07782565326",
+            "faxNumber": "01332754256",
+            "emailAddress": "stephen@manncorpone.co.uk"
+          },
+          "agencyDetails": {
+            "agencyName": "HMRC",
+            "agencyAddress": {
+              "addressLine1": "Plaza 2",
+              "addressLine2": "Ironmasters Way",
+              "addressLine3": "Telford",
+              "addressLine4": "Shropshire",
+              "postalCode": "TF3 4NT",
+              "countryCode": "GB"
+            },
+            "agencyEmail": "hmrc@hmrc.gsi.gov.uk"
+          },
+          "id": "5b91a5481300000e00a0f73b"
+        }
+      ],
+      "LegacyRelationshipRecord": [
+        {
+          "agentId": "SA6012",
+          "nino": "AA123456A",
+          "utr": "1234567890",
+          "id": "5b91a5481300000f00a0f73a"
+        }
+      ],
+      "BusinessDetailsRecord": [
+        {
+          "safeId": "XE00001234567890",
+          "nino": "AA123456A",
+          "mtdbsa": "123456789012345",
+          "propertyIncome": false,
+          "businessData": [
+            {
+              "incomeSourceId": "123456789012345",
+              "accountingPeriodStartDate": "2001-01-01",
+              "accountingPeriodEndDate": "2001-01-01",
+              "tradingName": "RCDTS",
+              "businessAddressDetails": {
+                "addressLine1": "100 SuttonStreet",
+                "addressLine2": "Wokingham",
+                "addressLine3": "Surrey",
+                "addressLine4": "London",
+                "postalCode": "DH14EJ",
+                "countryCode": "GB"
+              },
+              "businessContactDetails": {
+                "phoneNumber": "01332752856",
+                "mobileNumber": "07782565326",
+                "faxNumber": "01332754256",
+                "emailAddress": "stephen@manncorpone.co.uk"
+              },
+              "tradingStartDate": "2001-01-01",
+              "cashOrAccruals": "cash",
+              "seasonal": true,
+              "cessationDate": "2001-01-01",
+              "cessationReason": "002",
+              "paperLess": true
+            }
+          ],
+          "propertyData": {
+            "incomeSourceId": "idr58ssnzmUV6cp",
+            "accountingPeriodStartDate": "1992-06-15",
+            "accountingPeriodEndDate": "2011-06-07",
+            "numPropRented": "61",
+            "numPropRentedUK": "61",
+            "numPropRentedEEA": "61",
+            "numPropRentedNONEEA": "61",
+            "emailAddress": "u@P8ssnzmUV6cp0hwvvosrorNdlvtjuaurBynV1vrtpxybTavvuagweziqopptkqvJmzXywjiuy4ct5sul9f4snjz4n.eu",
+            "cessationDate": "2015-12-02",
+            "cessationReason": "003",
+            "paperLess": true
+          },
+          "id": "5b91a5471300000f00a0f737"
         }
       ],
       "_links": []

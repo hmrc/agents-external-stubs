@@ -211,6 +211,9 @@ Updates the record
 #### DELETE /agents-external-stubs/records/:recordId
 Removes the record
 
+#### POST /agents-external-stubs/records/business-partner-record
+#### GET /agents-external-stubs/records/business-partner-record/generate
+
 #### POST /agents-external-stubs/records/business-details
 #### GET /agents-external-stubs/records/business-details/generate
 
