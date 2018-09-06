@@ -95,12 +95,20 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
           .getOrElse(obj)
       }
 
-    (entity.id match {
-      case None =>
+    ((entity.id, entity.uniqueKey) match {
+      case (None, None) =>
         val newId = BSONObjectID.generate().stringify
         collection.insert(json + (Record.ID -> Json.obj("$oid" -> JsString(newId)))).map((_, newId))
-      case Some(id) =>
+      case (Some(id), _) =>
         collection.update(Json.obj(Record.ID -> Json.obj("$oid" -> JsString(id))), json, upsert = true).map((_, id))
+      case (None, Some(uniqueKey)) =>
+        val newId = BSONObjectID.generate().stringify
+        collection
+          .update(
+            Json.obj(UNIQUE_KEY -> JsString(keyOf(uniqueKey, planetId, typeName))),
+            json + (Record.ID -> Json.obj("$oid" -> JsString(newId))),
+            upsert = true)
+          .map((_, newId))
     }).flatMap(MongoHelper.interpretWriteResult)
 
   }
