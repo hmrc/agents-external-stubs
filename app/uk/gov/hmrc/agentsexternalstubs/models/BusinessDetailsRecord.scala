@@ -37,12 +37,25 @@ case class BusinessDetailsRecord(
   override def withId(id: Option[String]): BusinessDetailsRecord = copy(id = id)
 
   def withSafeId(safeId: String): BusinessDetailsRecord = copy(safeId = safeId)
+  def modifySafeId(pf: PartialFunction[String, String]): BusinessDetailsRecord =
+    if (pf.isDefinedAt(safeId)) copy(safeId = pf(safeId)) else this
   def withNino(nino: String): BusinessDetailsRecord = copy(nino = nino)
+  def modifyNino(pf: PartialFunction[String, String]): BusinessDetailsRecord =
+    if (pf.isDefinedAt(nino)) copy(nino = pf(nino)) else this
   def withMtdbsa(mtdbsa: String): BusinessDetailsRecord = copy(mtdbsa = mtdbsa)
+  def modifyMtdbsa(pf: PartialFunction[String, String]): BusinessDetailsRecord =
+    if (pf.isDefinedAt(mtdbsa)) copy(mtdbsa = pf(mtdbsa)) else this
   def withPropertyIncome(propertyIncome: Option[Boolean]): BusinessDetailsRecord = copy(propertyIncome = propertyIncome)
+  def modifyPropertyIncome(pf: PartialFunction[Option[Boolean], Option[Boolean]]): BusinessDetailsRecord =
+    if (pf.isDefinedAt(propertyIncome)) copy(propertyIncome = pf(propertyIncome)) else this
   def withBusinessData(businessData: Option[Seq[BusinessData]]): BusinessDetailsRecord =
     copy(businessData = businessData)
+  def modifyBusinessData(
+    pf: PartialFunction[Option[Seq[BusinessData]], Option[Seq[BusinessData]]]): BusinessDetailsRecord =
+    if (pf.isDefinedAt(businessData)) copy(businessData = pf(businessData)) else this
   def withPropertyData(propertyData: Option[PropertyData]): BusinessDetailsRecord = copy(propertyData = propertyData)
+  def modifyPropertyData(pf: PartialFunction[Option[PropertyData], Option[PropertyData]]): BusinessDetailsRecord =
+    if (pf.isDefinedAt(propertyData)) copy(propertyData = pf(propertyData)) else this
 }
 
 object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
@@ -103,9 +116,17 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     emailAddress: Option[String] = None) {
 
     def withPhoneNumber(phoneNumber: Option[String]): BusinessContactDetails = copy(phoneNumber = phoneNumber)
+    def modifyPhoneNumber(pf: PartialFunction[Option[String], Option[String]]): BusinessContactDetails =
+      if (pf.isDefinedAt(phoneNumber)) copy(phoneNumber = pf(phoneNumber)) else this
     def withMobileNumber(mobileNumber: Option[String]): BusinessContactDetails = copy(mobileNumber = mobileNumber)
+    def modifyMobileNumber(pf: PartialFunction[Option[String], Option[String]]): BusinessContactDetails =
+      if (pf.isDefinedAt(mobileNumber)) copy(mobileNumber = pf(mobileNumber)) else this
     def withFaxNumber(faxNumber: Option[String]): BusinessContactDetails = copy(faxNumber = faxNumber)
+    def modifyFaxNumber(pf: PartialFunction[Option[String], Option[String]]): BusinessContactDetails =
+      if (pf.isDefinedAt(faxNumber)) copy(faxNumber = pf(faxNumber)) else this
     def withEmailAddress(emailAddress: Option[String]): BusinessContactDetails = copy(emailAddress = emailAddress)
+    def modifyEmailAddress(pf: PartialFunction[Option[String], Option[String]]): BusinessContactDetails =
+      if (pf.isDefinedAt(emailAddress)) copy(emailAddress = pf(emailAddress)) else this
   }
 
   object BusinessContactDetails extends RecordUtils[BusinessContactDetails] {
@@ -162,21 +183,49 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     paperLess: Option[Boolean] = None) {
 
     def withIncomeSourceId(incomeSourceId: String): BusinessData = copy(incomeSourceId = incomeSourceId)
+    def modifyIncomeSourceId(pf: PartialFunction[String, String]): BusinessData =
+      if (pf.isDefinedAt(incomeSourceId)) copy(incomeSourceId = pf(incomeSourceId)) else this
     def withAccountingPeriodStartDate(accountingPeriodStartDate: String): BusinessData =
       copy(accountingPeriodStartDate = accountingPeriodStartDate)
+    def modifyAccountingPeriodStartDate(pf: PartialFunction[String, String]): BusinessData =
+      if (pf.isDefinedAt(accountingPeriodStartDate)) copy(accountingPeriodStartDate = pf(accountingPeriodStartDate))
+      else this
     def withAccountingPeriodEndDate(accountingPeriodEndDate: String): BusinessData =
       copy(accountingPeriodEndDate = accountingPeriodEndDate)
+    def modifyAccountingPeriodEndDate(pf: PartialFunction[String, String]): BusinessData =
+      if (pf.isDefinedAt(accountingPeriodEndDate)) copy(accountingPeriodEndDate = pf(accountingPeriodEndDate)) else this
     def withTradingName(tradingName: Option[String]): BusinessData = copy(tradingName = tradingName)
+    def modifyTradingName(pf: PartialFunction[Option[String], Option[String]]): BusinessData =
+      if (pf.isDefinedAt(tradingName)) copy(tradingName = pf(tradingName)) else this
     def withBusinessAddressDetails(businessAddressDetails: Option[BusinessData.BusinessAddressDetails]): BusinessData =
       copy(businessAddressDetails = businessAddressDetails)
+    def modifyBusinessAddressDetails(
+      pf: PartialFunction[Option[BusinessData.BusinessAddressDetails], Option[BusinessData.BusinessAddressDetails]])
+      : BusinessData =
+      if (pf.isDefinedAt(businessAddressDetails)) copy(businessAddressDetails = pf(businessAddressDetails)) else this
     def withBusinessContactDetails(businessContactDetails: Option[BusinessContactDetails]): BusinessData =
       copy(businessContactDetails = businessContactDetails)
+    def modifyBusinessContactDetails(
+      pf: PartialFunction[Option[BusinessContactDetails], Option[BusinessContactDetails]]): BusinessData =
+      if (pf.isDefinedAt(businessContactDetails)) copy(businessContactDetails = pf(businessContactDetails)) else this
     def withTradingStartDate(tradingStartDate: Option[String]): BusinessData = copy(tradingStartDate = tradingStartDate)
+    def modifyTradingStartDate(pf: PartialFunction[Option[String], Option[String]]): BusinessData =
+      if (pf.isDefinedAt(tradingStartDate)) copy(tradingStartDate = pf(tradingStartDate)) else this
     def withCashOrAccruals(cashOrAccruals: Option[String]): BusinessData = copy(cashOrAccruals = cashOrAccruals)
+    def modifyCashOrAccruals(pf: PartialFunction[Option[String], Option[String]]): BusinessData =
+      if (pf.isDefinedAt(cashOrAccruals)) copy(cashOrAccruals = pf(cashOrAccruals)) else this
     def withSeasonal(seasonal: Option[Boolean]): BusinessData = copy(seasonal = seasonal)
+    def modifySeasonal(pf: PartialFunction[Option[Boolean], Option[Boolean]]): BusinessData =
+      if (pf.isDefinedAt(seasonal)) copy(seasonal = pf(seasonal)) else this
     def withCessationDate(cessationDate: Option[String]): BusinessData = copy(cessationDate = cessationDate)
+    def modifyCessationDate(pf: PartialFunction[Option[String], Option[String]]): BusinessData =
+      if (pf.isDefinedAt(cessationDate)) copy(cessationDate = pf(cessationDate)) else this
     def withCessationReason(cessationReason: Option[String]): BusinessData = copy(cessationReason = cessationReason)
+    def modifyCessationReason(pf: PartialFunction[Option[String], Option[String]]): BusinessData =
+      if (pf.isDefinedAt(cessationReason)) copy(cessationReason = pf(cessationReason)) else this
     def withPaperLess(paperLess: Option[Boolean]): BusinessData = copy(paperLess = paperLess)
+    def modifyPaperLess(pf: PartialFunction[Option[Boolean], Option[Boolean]]): BusinessData =
+      if (pf.isDefinedAt(paperLess)) copy(paperLess = pf(paperLess)) else this
   }
 
   object BusinessData extends RecordUtils[BusinessData] {
@@ -354,11 +403,23 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
       extends BusinessData.BusinessAddressDetails {
 
     def withAddressLine1(addressLine1: String): ForeignAddress = copy(addressLine1 = addressLine1)
+    def modifyAddressLine1(pf: PartialFunction[String, String]): ForeignAddress =
+      if (pf.isDefinedAt(addressLine1)) copy(addressLine1 = pf(addressLine1)) else this
     def withAddressLine2(addressLine2: Option[String]): ForeignAddress = copy(addressLine2 = addressLine2)
+    def modifyAddressLine2(pf: PartialFunction[Option[String], Option[String]]): ForeignAddress =
+      if (pf.isDefinedAt(addressLine2)) copy(addressLine2 = pf(addressLine2)) else this
     def withAddressLine3(addressLine3: Option[String]): ForeignAddress = copy(addressLine3 = addressLine3)
+    def modifyAddressLine3(pf: PartialFunction[Option[String], Option[String]]): ForeignAddress =
+      if (pf.isDefinedAt(addressLine3)) copy(addressLine3 = pf(addressLine3)) else this
     def withAddressLine4(addressLine4: Option[String]): ForeignAddress = copy(addressLine4 = addressLine4)
+    def modifyAddressLine4(pf: PartialFunction[Option[String], Option[String]]): ForeignAddress =
+      if (pf.isDefinedAt(addressLine4)) copy(addressLine4 = pf(addressLine4)) else this
     def withPostalCode(postalCode: Option[String]): ForeignAddress = copy(postalCode = postalCode)
+    def modifyPostalCode(pf: PartialFunction[Option[String], Option[String]]): ForeignAddress =
+      if (pf.isDefinedAt(postalCode)) copy(postalCode = pf(postalCode)) else this
     def withCountryCode(countryCode: String): ForeignAddress = copy(countryCode = countryCode)
+    def modifyCountryCode(pf: PartialFunction[String, String]): ForeignAddress =
+      if (pf.isDefinedAt(countryCode)) copy(countryCode = pf(countryCode)) else this
   }
 
   object ForeignAddress extends RecordUtils[ForeignAddress] {
@@ -430,19 +491,42 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     paperLess: Option[Boolean] = None) {
 
     def withIncomeSourceId(incomeSourceId: String): PropertyData = copy(incomeSourceId = incomeSourceId)
+    def modifyIncomeSourceId(pf: PartialFunction[String, String]): PropertyData =
+      if (pf.isDefinedAt(incomeSourceId)) copy(incomeSourceId = pf(incomeSourceId)) else this
     def withAccountingPeriodStartDate(accountingPeriodStartDate: String): PropertyData =
       copy(accountingPeriodStartDate = accountingPeriodStartDate)
+    def modifyAccountingPeriodStartDate(pf: PartialFunction[String, String]): PropertyData =
+      if (pf.isDefinedAt(accountingPeriodStartDate)) copy(accountingPeriodStartDate = pf(accountingPeriodStartDate))
+      else this
     def withAccountingPeriodEndDate(accountingPeriodEndDate: String): PropertyData =
       copy(accountingPeriodEndDate = accountingPeriodEndDate)
+    def modifyAccountingPeriodEndDate(pf: PartialFunction[String, String]): PropertyData =
+      if (pf.isDefinedAt(accountingPeriodEndDate)) copy(accountingPeriodEndDate = pf(accountingPeriodEndDate)) else this
     def withNumPropRented(numPropRented: Option[String]): PropertyData = copy(numPropRented = numPropRented)
+    def modifyNumPropRented(pf: PartialFunction[Option[String], Option[String]]): PropertyData =
+      if (pf.isDefinedAt(numPropRented)) copy(numPropRented = pf(numPropRented)) else this
     def withNumPropRentedUK(numPropRentedUK: Option[String]): PropertyData = copy(numPropRentedUK = numPropRentedUK)
+    def modifyNumPropRentedUK(pf: PartialFunction[Option[String], Option[String]]): PropertyData =
+      if (pf.isDefinedAt(numPropRentedUK)) copy(numPropRentedUK = pf(numPropRentedUK)) else this
     def withNumPropRentedEEA(numPropRentedEEA: Option[String]): PropertyData = copy(numPropRentedEEA = numPropRentedEEA)
+    def modifyNumPropRentedEEA(pf: PartialFunction[Option[String], Option[String]]): PropertyData =
+      if (pf.isDefinedAt(numPropRentedEEA)) copy(numPropRentedEEA = pf(numPropRentedEEA)) else this
     def withNumPropRentedNONEEA(numPropRentedNONEEA: Option[String]): PropertyData =
       copy(numPropRentedNONEEA = numPropRentedNONEEA)
+    def modifyNumPropRentedNONEEA(pf: PartialFunction[Option[String], Option[String]]): PropertyData =
+      if (pf.isDefinedAt(numPropRentedNONEEA)) copy(numPropRentedNONEEA = pf(numPropRentedNONEEA)) else this
     def withEmailAddress(emailAddress: Option[String]): PropertyData = copy(emailAddress = emailAddress)
+    def modifyEmailAddress(pf: PartialFunction[Option[String], Option[String]]): PropertyData =
+      if (pf.isDefinedAt(emailAddress)) copy(emailAddress = pf(emailAddress)) else this
     def withCessationDate(cessationDate: Option[String]): PropertyData = copy(cessationDate = cessationDate)
+    def modifyCessationDate(pf: PartialFunction[Option[String], Option[String]]): PropertyData =
+      if (pf.isDefinedAt(cessationDate)) copy(cessationDate = pf(cessationDate)) else this
     def withCessationReason(cessationReason: Option[String]): PropertyData = copy(cessationReason = cessationReason)
+    def modifyCessationReason(pf: PartialFunction[Option[String], Option[String]]): PropertyData =
+      if (pf.isDefinedAt(cessationReason)) copy(cessationReason = pf(cessationReason)) else this
     def withPaperLess(paperLess: Option[Boolean]): PropertyData = copy(paperLess = paperLess)
+    def modifyPaperLess(pf: PartialFunction[Option[Boolean], Option[Boolean]]): PropertyData =
+      if (pf.isDefinedAt(paperLess)) copy(paperLess = pf(paperLess)) else this
   }
 
   object PropertyData extends RecordUtils[PropertyData] {
@@ -559,11 +643,23 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
       extends BusinessData.BusinessAddressDetails {
 
     def withAddressLine1(addressLine1: String): UkAddress = copy(addressLine1 = addressLine1)
+    def modifyAddressLine1(pf: PartialFunction[String, String]): UkAddress =
+      if (pf.isDefinedAt(addressLine1)) copy(addressLine1 = pf(addressLine1)) else this
     def withAddressLine2(addressLine2: Option[String]): UkAddress = copy(addressLine2 = addressLine2)
+    def modifyAddressLine2(pf: PartialFunction[Option[String], Option[String]]): UkAddress =
+      if (pf.isDefinedAt(addressLine2)) copy(addressLine2 = pf(addressLine2)) else this
     def withAddressLine3(addressLine3: Option[String]): UkAddress = copy(addressLine3 = addressLine3)
+    def modifyAddressLine3(pf: PartialFunction[Option[String], Option[String]]): UkAddress =
+      if (pf.isDefinedAt(addressLine3)) copy(addressLine3 = pf(addressLine3)) else this
     def withAddressLine4(addressLine4: Option[String]): UkAddress = copy(addressLine4 = addressLine4)
+    def modifyAddressLine4(pf: PartialFunction[Option[String], Option[String]]): UkAddress =
+      if (pf.isDefinedAt(addressLine4)) copy(addressLine4 = pf(addressLine4)) else this
     def withPostalCode(postalCode: String): UkAddress = copy(postalCode = postalCode)
+    def modifyPostalCode(pf: PartialFunction[String, String]): UkAddress =
+      if (pf.isDefinedAt(postalCode)) copy(postalCode = pf(postalCode)) else this
     def withCountryCode(countryCode: String): UkAddress = copy(countryCode = countryCode)
+    def modifyCountryCode(pf: PartialFunction[String, String]): UkAddress =
+      if (pf.isDefinedAt(countryCode)) copy(countryCode = pf(countryCode)) else this
   }
 
   object UkAddress extends RecordUtils[UkAddress] {

@@ -38,7 +38,7 @@ class RecordsControllerISpec
       }
     }
 
-    "GET /agents-external-stubs/records/:recordId" should {
+    "GET /agenqts-external-stubs/records/:recordId" should {
       "respond 200 with a record" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
 
@@ -50,6 +50,9 @@ class RecordsControllerISpec
         createResult3 should haveStatus(201)
         val createResult4 = Records.createLegacyRelationship(Json.parse(validLegacyRelationshipPayload))
         createResult4 should haveStatus(201)
+
+        println(createResult1.json.toString())
+        //val result = Records.getRecord()
 
       }
     }

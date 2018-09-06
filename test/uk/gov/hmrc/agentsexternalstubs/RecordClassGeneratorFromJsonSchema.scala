@@ -480,11 +480,12 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
   private def generateBuilderMethods(typeDef: TypeDefinition): String =
     s"""${typeDef.definition.properties
          .take(22)
-         .map(prop =>
-           s"""  def with${prop.nameWithFirstCharUpper}(${prop.name}: ${typeOf(
-             prop,
-             typeDef.prefix,
-             defaultNone = false)}): ${typeDef.name} = copy(${prop.name} = ${prop.name})""")
+         .map(prop => {
+           val propType = typeOf(prop, typeDef.prefix, defaultNone = false)
+           s"""  def with${prop.nameWithFirstCharUpper}(${prop.name}: $propType): ${typeDef.name} = copy(${prop.name} = ${prop.name})
+           |  def modify${prop.nameWithFirstCharUpper}(pf: PartialFunction[$propType, $propType]): ${typeDef.name} =
+           |    if (pf.isDefinedAt(${prop.name})) copy(${prop.name} = pf(${prop.name})) else this"""
+         })
          .mkString("\n  ")}""".stripMargin
 
   private def generateValueGenerator(property: Definition, context: Context, wrapOption: Boolean = true): String = {

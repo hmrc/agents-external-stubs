@@ -22,11 +22,21 @@ case class RegistrationPayload(
   organisation: Option[Organisation] = None) {
 
   def withRegime(regime: String): RegistrationPayload = copy(regime = regime)
+  def modifyRegime(pf: PartialFunction[String, String]): RegistrationPayload =
+    if (pf.isDefinedAt(regime)) copy(regime = pf(regime)) else this
   def withRequiresNameMatch(requiresNameMatch: Boolean): RegistrationPayload =
     copy(requiresNameMatch = requiresNameMatch)
+  def modifyRequiresNameMatch(pf: PartialFunction[Boolean, Boolean]): RegistrationPayload =
+    if (pf.isDefinedAt(requiresNameMatch)) copy(requiresNameMatch = pf(requiresNameMatch)) else this
   def withIsAnAgent(isAnAgent: Boolean): RegistrationPayload = copy(isAnAgent = isAnAgent)
+  def modifyIsAnAgent(pf: PartialFunction[Boolean, Boolean]): RegistrationPayload =
+    if (pf.isDefinedAt(isAnAgent)) copy(isAnAgent = pf(isAnAgent)) else this
   def withIndividual(individual: Option[Individual]): RegistrationPayload = copy(individual = individual)
+  def modifyIndividual(pf: PartialFunction[Option[Individual], Option[Individual]]): RegistrationPayload =
+    if (pf.isDefinedAt(individual)) copy(individual = pf(individual)) else this
   def withOrganisation(organisation: Option[Organisation]): RegistrationPayload = copy(organisation = organisation)
+  def modifyOrganisation(pf: PartialFunction[Option[Organisation], Option[Organisation]]): RegistrationPayload =
+    if (pf.isDefinedAt(organisation)) copy(organisation = pf(organisation)) else this
 }
 
 object RegistrationPayload {
@@ -47,8 +57,14 @@ object RegistrationPayload {
   case class Individual(firstName: String, lastName: String, dateOfBirth: Option[String] = None) {
 
     def withFirstName(firstName: String): Individual = copy(firstName = firstName)
+    def modifyFirstName(pf: PartialFunction[String, String]): Individual =
+      if (pf.isDefinedAt(firstName)) copy(firstName = pf(firstName)) else this
     def withLastName(lastName: String): Individual = copy(lastName = lastName)
+    def modifyLastName(pf: PartialFunction[String, String]): Individual =
+      if (pf.isDefinedAt(lastName)) copy(lastName = pf(lastName)) else this
     def withDateOfBirth(dateOfBirth: Option[String]): Individual = copy(dateOfBirth = dateOfBirth)
+    def modifyDateOfBirth(pf: PartialFunction[Option[String], Option[String]]): Individual =
+      if (pf.isDefinedAt(dateOfBirth)) copy(dateOfBirth = pf(dateOfBirth)) else this
   }
 
   object Individual {
@@ -72,7 +88,11 @@ object RegistrationPayload {
   case class Organisation(organisationName: String, organisationType: String) {
 
     def withOrganisationName(organisationName: String): Organisation = copy(organisationName = organisationName)
+    def modifyOrganisationName(pf: PartialFunction[String, String]): Organisation =
+      if (pf.isDefinedAt(organisationName)) copy(organisationName = pf(organisationName)) else this
     def withOrganisationType(organisationType: String): Organisation = copy(organisationType = organisationType)
+    def modifyOrganisationType(pf: PartialFunction[String, String]): Organisation =
+      if (pf.isDefinedAt(organisationType)) copy(organisationType = pf(organisationType)) else this
   }
 
   object Organisation {

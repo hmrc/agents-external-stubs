@@ -23,12 +23,22 @@ case class SubscribeAgentServicesPayload(
   agencyEmail: Option[String] = None) {
 
   def withSafeId(safeId: Option[String]): SubscribeAgentServicesPayload = copy(safeId = safeId)
+  def modifySafeId(pf: PartialFunction[Option[String], Option[String]]): SubscribeAgentServicesPayload =
+    if (pf.isDefinedAt(safeId)) copy(safeId = pf(safeId)) else this
   def withAgencyName(agencyName: String): SubscribeAgentServicesPayload = copy(agencyName = agencyName)
+  def modifyAgencyName(pf: PartialFunction[String, String]): SubscribeAgentServicesPayload =
+    if (pf.isDefinedAt(agencyName)) copy(agencyName = pf(agencyName)) else this
   def withAgencyAddress(agencyAddress: AgencyAddress): SubscribeAgentServicesPayload =
     copy(agencyAddress = agencyAddress)
+  def modifyAgencyAddress(pf: PartialFunction[AgencyAddress, AgencyAddress]): SubscribeAgentServicesPayload =
+    if (pf.isDefinedAt(agencyAddress)) copy(agencyAddress = pf(agencyAddress)) else this
   def withTelephoneNumber(telephoneNumber: Option[String]): SubscribeAgentServicesPayload =
     copy(telephoneNumber = telephoneNumber)
+  def modifyTelephoneNumber(pf: PartialFunction[Option[String], Option[String]]): SubscribeAgentServicesPayload =
+    if (pf.isDefinedAt(telephoneNumber)) copy(telephoneNumber = pf(telephoneNumber)) else this
   def withAgencyEmail(agencyEmail: Option[String]): SubscribeAgentServicesPayload = copy(agencyEmail = agencyEmail)
+  def modifyAgencyEmail(pf: PartialFunction[Option[String], Option[String]]): SubscribeAgentServicesPayload =
+    if (pf.isDefinedAt(agencyEmail)) copy(agencyEmail = pf(agencyEmail)) else this
 }
 
 object SubscribeAgentServicesPayload {
@@ -110,11 +120,23 @@ object SubscribeAgentServicesPayload {
       extends AgencyAddress {
 
     def withAddressLine1(addressLine1: String): ForeignAddress = copy(addressLine1 = addressLine1)
+    def modifyAddressLine1(pf: PartialFunction[String, String]): ForeignAddress =
+      if (pf.isDefinedAt(addressLine1)) copy(addressLine1 = pf(addressLine1)) else this
     def withAddressLine2(addressLine2: Option[String]): ForeignAddress = copy(addressLine2 = addressLine2)
+    def modifyAddressLine2(pf: PartialFunction[Option[String], Option[String]]): ForeignAddress =
+      if (pf.isDefinedAt(addressLine2)) copy(addressLine2 = pf(addressLine2)) else this
     def withAddressLine3(addressLine3: Option[String]): ForeignAddress = copy(addressLine3 = addressLine3)
+    def modifyAddressLine3(pf: PartialFunction[Option[String], Option[String]]): ForeignAddress =
+      if (pf.isDefinedAt(addressLine3)) copy(addressLine3 = pf(addressLine3)) else this
     def withAddressLine4(addressLine4: Option[String]): ForeignAddress = copy(addressLine4 = addressLine4)
+    def modifyAddressLine4(pf: PartialFunction[Option[String], Option[String]]): ForeignAddress =
+      if (pf.isDefinedAt(addressLine4)) copy(addressLine4 = pf(addressLine4)) else this
     def withPostalCode(postalCode: Option[String]): ForeignAddress = copy(postalCode = postalCode)
+    def modifyPostalCode(pf: PartialFunction[Option[String], Option[String]]): ForeignAddress =
+      if (pf.isDefinedAt(postalCode)) copy(postalCode = pf(postalCode)) else this
     def withCountryCode(countryCode: String): ForeignAddress = copy(countryCode = countryCode)
+    def modifyCountryCode(pf: PartialFunction[String, String]): ForeignAddress =
+      if (pf.isDefinedAt(countryCode)) copy(countryCode = pf(countryCode)) else this
   }
 
   object ForeignAddress {
@@ -152,11 +174,23 @@ object SubscribeAgentServicesPayload {
       extends AgencyAddress {
 
     def withAddressLine1(addressLine1: String): UkAddress = copy(addressLine1 = addressLine1)
+    def modifyAddressLine1(pf: PartialFunction[String, String]): UkAddress =
+      if (pf.isDefinedAt(addressLine1)) copy(addressLine1 = pf(addressLine1)) else this
     def withAddressLine2(addressLine2: Option[String]): UkAddress = copy(addressLine2 = addressLine2)
+    def modifyAddressLine2(pf: PartialFunction[Option[String], Option[String]]): UkAddress =
+      if (pf.isDefinedAt(addressLine2)) copy(addressLine2 = pf(addressLine2)) else this
     def withAddressLine3(addressLine3: Option[String]): UkAddress = copy(addressLine3 = addressLine3)
+    def modifyAddressLine3(pf: PartialFunction[Option[String], Option[String]]): UkAddress =
+      if (pf.isDefinedAt(addressLine3)) copy(addressLine3 = pf(addressLine3)) else this
     def withAddressLine4(addressLine4: Option[String]): UkAddress = copy(addressLine4 = addressLine4)
+    def modifyAddressLine4(pf: PartialFunction[Option[String], Option[String]]): UkAddress =
+      if (pf.isDefinedAt(addressLine4)) copy(addressLine4 = pf(addressLine4)) else this
     def withPostalCode(postalCode: String): UkAddress = copy(postalCode = postalCode)
+    def modifyPostalCode(pf: PartialFunction[String, String]): UkAddress =
+      if (pf.isDefinedAt(postalCode)) copy(postalCode = pf(postalCode)) else this
     def withCountryCode(countryCode: String): UkAddress = copy(countryCode = countryCode)
+    def modifyCountryCode(pf: PartialFunction[String, String]): UkAddress =
+      if (pf.isDefinedAt(countryCode)) copy(countryCode = pf(countryCode)) else this
   }
 
   object UkAddress {

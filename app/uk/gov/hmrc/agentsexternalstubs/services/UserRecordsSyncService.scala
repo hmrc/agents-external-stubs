@@ -1,7 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Utr}
-import uk.gov.hmrc.agentsexternalstubs.models.AgentRecord.{AgencyDetails, Individual}
+import uk.gov.hmrc.agentsexternalstubs.models.AgentRecord.{AddressDetails, AgencyDetails, Individual, UkAddress}
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, IndividualName}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.domain.Nino
@@ -17,6 +17,8 @@ class UserRecordsSyncService @Inject()(
 
   type UserRecordsSync = PartialFunction[User, Future[Unit]]
 
+  implicit val optionGenStrategy: Generator.OptionGenStrategy = Generator.AlwaysSome
+
   val businessDetailsForMtdItIndividual: UserRecordsSync = {
     case User.Individual(user) if user.principalEnrolments.exists(_.key == "HMRC-MTD-IT") => {
       val nino = user.nino.map(_.value.replace(" ", "")).getOrElse(Generator.ninoNoSpaces(user.userId).value)
@@ -27,6 +29,9 @@ class UserRecordsSyncService @Inject()(
         .generate(user.userId)
         .withNino(nino)
         .withMtdbsa(mtdbsa)
+        .modifyBusinessData {
+          case Some(businessData :: _) => Some(Seq(businessData.withCessationDate(None).withCessationReason(None)))
+        }
       val maybeRecord1 = businessDetailsRecordsService.getBusinessDetails(Nino(nino), user.planetId.get)
       val maybeRecord2 = businessDetailsRecordsService.getBusinessDetails(MtdItId(mtdbsa), user.planetId.get)
       Future
@@ -64,7 +69,9 @@ class UserRecordsSyncService @Inject()(
                     .withFirstName(user.firstName)
                     .withLastName(user.lastName)))
                   .withDateOfBirth(user.dateOfBirth.map(_.toString("yyyy-MM-dd")))
-              )))
+              )
+              .withDeregistration(None)
+          ))
       vatCustomerInformationRecordsService
         .getCustomerInformation(vrn, user.planetId.get)
         .map {
@@ -92,7 +99,9 @@ class UserRecordsSyncService @Inject()(
                 CustomerDetails
                   .generate(user.userId)
                   .withOrganisationName(user.name)
-              )))
+              )
+              .withDeregistration(None)
+          ))
       vatCustomerInformationRecordsService
         .getCustomerInformation(vrn, user.planetId.get)
         .map {
@@ -123,6 +132,7 @@ class UserRecordsSyncService @Inject()(
               .withAgencyName(user.agentFriendlyName.map(_.take(40)))))
 
       val utr = Generator.utr(user.userId)
+      val address = UkAddress.generate(user.userId)
       user
         .findIdentifierValue("HMRC-AS-AGENT", "AgentReferenceNumber") match {
         case Some(arn) =>
@@ -130,6 +140,13 @@ class UserRecordsSyncService @Inject()(
             .withAgentReferenceNumber(Option(arn))
             .withIsAnAgent(true)
             .withIsAnASAgent(true)
+            .withAgencyDetails(
+              Some(
+                AgencyDetails
+                  .generate(user.userId)
+                  .withAgencyAddress(Some(address))
+                  .withAgencyName(user.agentFriendlyName)))
+            .withAddressDetails(address)
           agentRecordsService
             .getAgentRecord(Arn(arn), user.planetId.get)
             .map {

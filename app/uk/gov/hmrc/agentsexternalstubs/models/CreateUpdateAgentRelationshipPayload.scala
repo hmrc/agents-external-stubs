@@ -27,17 +27,34 @@ case class CreateUpdateAgentRelationshipPayload(
 
   def withAcknowledgmentReference(acknowledgmentReference: String): CreateUpdateAgentRelationshipPayload =
     copy(acknowledgmentReference = acknowledgmentReference)
+  def modifyAcknowledgmentReference(pf: PartialFunction[String, String]): CreateUpdateAgentRelationshipPayload =
+    if (pf.isDefinedAt(acknowledgmentReference)) copy(acknowledgmentReference = pf(acknowledgmentReference)) else this
   def withRefNumber(refNumber: String): CreateUpdateAgentRelationshipPayload = copy(refNumber = refNumber)
+  def modifyRefNumber(pf: PartialFunction[String, String]): CreateUpdateAgentRelationshipPayload =
+    if (pf.isDefinedAt(refNumber)) copy(refNumber = pf(refNumber)) else this
   def withIdType(idType: Option[String]): CreateUpdateAgentRelationshipPayload = copy(idType = idType)
+  def modifyIdType(pf: PartialFunction[Option[String], Option[String]]): CreateUpdateAgentRelationshipPayload =
+    if (pf.isDefinedAt(idType)) copy(idType = pf(idType)) else this
   def withAgentReferenceNumber(agentReferenceNumber: String): CreateUpdateAgentRelationshipPayload =
     copy(agentReferenceNumber = agentReferenceNumber)
+  def modifyAgentReferenceNumber(pf: PartialFunction[String, String]): CreateUpdateAgentRelationshipPayload =
+    if (pf.isDefinedAt(agentReferenceNumber)) copy(agentReferenceNumber = pf(agentReferenceNumber)) else this
   def withRegime(regime: String): CreateUpdateAgentRelationshipPayload = copy(regime = regime)
+  def modifyRegime(pf: PartialFunction[String, String]): CreateUpdateAgentRelationshipPayload =
+    if (pf.isDefinedAt(regime)) copy(regime = pf(regime)) else this
   def withAuthorisation(authorisation: Authorisation): CreateUpdateAgentRelationshipPayload =
     copy(authorisation = authorisation)
+  def modifyAuthorisation(pf: PartialFunction[Authorisation, Authorisation]): CreateUpdateAgentRelationshipPayload =
+    if (pf.isDefinedAt(authorisation)) copy(authorisation = pf(authorisation)) else this
   def withRelationshipType(relationshipType: Option[String]): CreateUpdateAgentRelationshipPayload =
     copy(relationshipType = relationshipType)
+  def modifyRelationshipType(
+    pf: PartialFunction[Option[String], Option[String]]): CreateUpdateAgentRelationshipPayload =
+    if (pf.isDefinedAt(relationshipType)) copy(relationshipType = pf(relationshipType)) else this
   def withAuthProfile(authProfile: Option[String]): CreateUpdateAgentRelationshipPayload =
     copy(authProfile = authProfile)
+  def modifyAuthProfile(pf: PartialFunction[Option[String], Option[String]]): CreateUpdateAgentRelationshipPayload =
+    if (pf.isDefinedAt(authProfile)) copy(authProfile = pf(authProfile)) else this
 }
 
 object CreateUpdateAgentRelationshipPayload {
@@ -113,7 +130,11 @@ object CreateUpdateAgentRelationshipPayload {
   case class Authorise(override val action: String, isExclusiveAgent: Boolean) extends Authorisation {
 
     def withAction(action: String): Authorise = copy(action = action)
+    def modifyAction(pf: PartialFunction[String, String]): Authorise =
+      if (pf.isDefinedAt(action)) copy(action = pf(action)) else this
     def withIsExclusiveAgent(isExclusiveAgent: Boolean): Authorise = copy(isExclusiveAgent = isExclusiveAgent)
+    def modifyIsExclusiveAgent(pf: PartialFunction[Boolean, Boolean]): Authorise =
+      if (pf.isDefinedAt(isExclusiveAgent)) copy(isExclusiveAgent = pf(isExclusiveAgent)) else this
   }
 
   object Authorise {
@@ -128,6 +149,8 @@ object CreateUpdateAgentRelationshipPayload {
   case class Deauthorise(override val action: String) extends Authorisation {
 
     def withAction(action: String): Deauthorise = copy(action = action)
+    def modifyAction(pf: PartialFunction[String, String]): Deauthorise =
+      if (pf.isDefinedAt(action)) copy(action = pf(action)) else this
   }
 
   object Deauthorise {

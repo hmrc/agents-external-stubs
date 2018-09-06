@@ -54,10 +54,18 @@ case class VatCustomerInformationRecord(
   override def withId(id: Option[String]): VatCustomerInformationRecord = copy(id = id)
 
   def withVrn(vrn: String): VatCustomerInformationRecord = copy(vrn = vrn)
+  def modifyVrn(pf: PartialFunction[String, String]): VatCustomerInformationRecord =
+    if (pf.isDefinedAt(vrn)) copy(vrn = pf(vrn)) else this
   def withApprovedInformation(approvedInformation: Option[ApprovedInformation]): VatCustomerInformationRecord =
     copy(approvedInformation = approvedInformation)
+  def modifyApprovedInformation(
+    pf: PartialFunction[Option[ApprovedInformation], Option[ApprovedInformation]]): VatCustomerInformationRecord =
+    if (pf.isDefinedAt(approvedInformation)) copy(approvedInformation = pf(approvedInformation)) else this
   def withInFlightInformation(inFlightInformation: Option[InFlightInformation]): VatCustomerInformationRecord =
     copy(inFlightInformation = inFlightInformation)
+  def modifyInFlightInformation(
+    pf: PartialFunction[Option[InFlightInformation], Option[InFlightInformation]]): VatCustomerInformationRecord =
+    if (pf.isDefinedAt(inFlightInformation)) copy(inFlightInformation = pf(inFlightInformation)) else this
 }
 
 object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRecord] {
@@ -171,20 +179,44 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     def withCustomerDetails(customerDetails: CustomerDetails): ApprovedInformation =
       copy(customerDetails = customerDetails)
+    def modifyCustomerDetails(pf: PartialFunction[CustomerDetails, CustomerDetails]): ApprovedInformation =
+      if (pf.isDefinedAt(customerDetails)) copy(customerDetails = pf(customerDetails)) else this
     def withPPOB(PPOB: PPOB): ApprovedInformation = copy(PPOB = PPOB)
+    def modifyPPOB(pf: PartialFunction[PPOB, PPOB]): ApprovedInformation =
+      if (pf.isDefinedAt(PPOB)) copy(PPOB = pf(PPOB)) else this
     def withCorrespondenceContactDetails(
       correspondenceContactDetails: Option[CorrespondenceContactDetails]): ApprovedInformation =
       copy(correspondenceContactDetails = correspondenceContactDetails)
+    def modifyCorrespondenceContactDetails(
+      pf: PartialFunction[Option[CorrespondenceContactDetails], Option[CorrespondenceContactDetails]])
+      : ApprovedInformation =
+      if (pf.isDefinedAt(correspondenceContactDetails))
+        copy(correspondenceContactDetails = pf(correspondenceContactDetails))
+      else this
     def withBankDetails(bankDetails: Option[BankDetails]): ApprovedInformation = copy(bankDetails = bankDetails)
+    def modifyBankDetails(pf: PartialFunction[Option[BankDetails], Option[BankDetails]]): ApprovedInformation =
+      if (pf.isDefinedAt(bankDetails)) copy(bankDetails = pf(bankDetails)) else this
     def withBusinessActivities(businessActivities: Option[BusinessActivities]): ApprovedInformation =
       copy(businessActivities = businessActivities)
+    def modifyBusinessActivities(
+      pf: PartialFunction[Option[BusinessActivities], Option[BusinessActivities]]): ApprovedInformation =
+      if (pf.isDefinedAt(businessActivities)) copy(businessActivities = pf(businessActivities)) else this
     def withFlatRateScheme(flatRateScheme: Option[FlatRateScheme]): ApprovedInformation =
       copy(flatRateScheme = flatRateScheme)
+    def modifyFlatRateScheme(pf: PartialFunction[Option[FlatRateScheme], Option[FlatRateScheme]]): ApprovedInformation =
+      if (pf.isDefinedAt(flatRateScheme)) copy(flatRateScheme = pf(flatRateScheme)) else this
     def withDeregistration(deregistration: Option[Deregistration]): ApprovedInformation =
       copy(deregistration = deregistration)
+    def modifyDeregistration(pf: PartialFunction[Option[Deregistration], Option[Deregistration]]): ApprovedInformation =
+      if (pf.isDefinedAt(deregistration)) copy(deregistration = pf(deregistration)) else this
     def withReturnPeriod(returnPeriod: Option[Period]): ApprovedInformation = copy(returnPeriod = returnPeriod)
+    def modifyReturnPeriod(pf: PartialFunction[Option[Period], Option[Period]]): ApprovedInformation =
+      if (pf.isDefinedAt(returnPeriod)) copy(returnPeriod = pf(returnPeriod)) else this
     def withGroupOrPartnerMbrs(groupOrPartnerMbrs: Option[Seq[GroupOrPartner]]): ApprovedInformation =
       copy(groupOrPartnerMbrs = groupOrPartnerMbrs)
+    def modifyGroupOrPartnerMbrs(
+      pf: PartialFunction[Option[Seq[GroupOrPartner]], Option[Seq[GroupOrPartner]]]): ApprovedInformation =
+      if (pf.isDefinedAt(groupOrPartnerMbrs)) copy(groupOrPartnerMbrs = pf(groupOrPartnerMbrs)) else this
   }
 
   object ApprovedInformation extends RecordUtils[ApprovedInformation] {
@@ -284,16 +316,30 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     bankBuildSocietyName: Option[String] = None) {
 
     def withIBAN(IBAN: Option[String]): BankDetails = copy(IBAN = IBAN)
+    def modifyIBAN(pf: PartialFunction[Option[String], Option[String]]): BankDetails =
+      if (pf.isDefinedAt(IBAN)) copy(IBAN = pf(IBAN)) else this
     def withBIC(BIC: Option[String]): BankDetails = copy(BIC = BIC)
+    def modifyBIC(pf: PartialFunction[Option[String], Option[String]]): BankDetails =
+      if (pf.isDefinedAt(BIC)) copy(BIC = pf(BIC)) else this
     def withAccountHolderName(accountHolderName: Option[String]): BankDetails =
       copy(accountHolderName = accountHolderName)
+    def modifyAccountHolderName(pf: PartialFunction[Option[String], Option[String]]): BankDetails =
+      if (pf.isDefinedAt(accountHolderName)) copy(accountHolderName = pf(accountHolderName)) else this
     def withBankAccountNumber(bankAccountNumber: Option[String]): BankDetails =
       copy(bankAccountNumber = bankAccountNumber)
+    def modifyBankAccountNumber(pf: PartialFunction[Option[String], Option[String]]): BankDetails =
+      if (pf.isDefinedAt(bankAccountNumber)) copy(bankAccountNumber = pf(bankAccountNumber)) else this
     def withSortCode(sortCode: Option[String]): BankDetails = copy(sortCode = sortCode)
+    def modifySortCode(pf: PartialFunction[Option[String], Option[String]]): BankDetails =
+      if (pf.isDefinedAt(sortCode)) copy(sortCode = pf(sortCode)) else this
     def withBuildingSocietyNumber(buildingSocietyNumber: Option[String]): BankDetails =
       copy(buildingSocietyNumber = buildingSocietyNumber)
+    def modifyBuildingSocietyNumber(pf: PartialFunction[Option[String], Option[String]]): BankDetails =
+      if (pf.isDefinedAt(buildingSocietyNumber)) copy(buildingSocietyNumber = pf(buildingSocietyNumber)) else this
     def withBankBuildSocietyName(bankBuildSocietyName: Option[String]): BankDetails =
       copy(bankBuildSocietyName = bankBuildSocietyName)
+    def modifyBankBuildSocietyName(pf: PartialFunction[Option[String], Option[String]]): BankDetails =
+      if (pf.isDefinedAt(bankBuildSocietyName)) copy(bankBuildSocietyName = pf(bankBuildSocietyName)) else this
   }
 
   object BankDetails extends RecordUtils[BankDetails] {
@@ -375,9 +421,17 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     mainCode4: Option[String] = None) {
 
     def withPrimaryMainCode(primaryMainCode: String): BusinessActivities = copy(primaryMainCode = primaryMainCode)
+    def modifyPrimaryMainCode(pf: PartialFunction[String, String]): BusinessActivities =
+      if (pf.isDefinedAt(primaryMainCode)) copy(primaryMainCode = pf(primaryMainCode)) else this
     def withMainCode2(mainCode2: Option[String]): BusinessActivities = copy(mainCode2 = mainCode2)
+    def modifyMainCode2(pf: PartialFunction[Option[String], Option[String]]): BusinessActivities =
+      if (pf.isDefinedAt(mainCode2)) copy(mainCode2 = pf(mainCode2)) else this
     def withMainCode3(mainCode3: Option[String]): BusinessActivities = copy(mainCode3 = mainCode3)
+    def modifyMainCode3(pf: PartialFunction[Option[String], Option[String]]): BusinessActivities =
+      if (pf.isDefinedAt(mainCode3)) copy(mainCode3 = pf(mainCode3)) else this
     def withMainCode4(mainCode4: Option[String]): BusinessActivities = copy(mainCode4 = mainCode4)
+    def modifyMainCode4(pf: PartialFunction[Option[String], Option[String]]): BusinessActivities =
+      if (pf.isDefinedAt(mainCode4)) copy(mainCode4 = pf(mainCode4)) else this
   }
 
   object BusinessActivities extends RecordUtils[BusinessActivities] {
@@ -437,17 +491,35 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     groupOrPartners: Boolean) {
 
     def withCustomerDetails(customerDetails: Boolean): ChangeIndicators = copy(customerDetails = customerDetails)
+    def modifyCustomerDetails(pf: PartialFunction[Boolean, Boolean]): ChangeIndicators =
+      if (pf.isDefinedAt(customerDetails)) copy(customerDetails = pf(customerDetails)) else this
     def withPPOBDetails(PPOBDetails: Boolean): ChangeIndicators = copy(PPOBDetails = PPOBDetails)
+    def modifyPPOBDetails(pf: PartialFunction[Boolean, Boolean]): ChangeIndicators =
+      if (pf.isDefinedAt(PPOBDetails)) copy(PPOBDetails = pf(PPOBDetails)) else this
     def withCorrespContactDetails(correspContactDetails: Boolean): ChangeIndicators =
       copy(correspContactDetails = correspContactDetails)
+    def modifyCorrespContactDetails(pf: PartialFunction[Boolean, Boolean]): ChangeIndicators =
+      if (pf.isDefinedAt(correspContactDetails)) copy(correspContactDetails = pf(correspContactDetails)) else this
     def withBankDetails(bankDetails: Boolean): ChangeIndicators = copy(bankDetails = bankDetails)
+    def modifyBankDetails(pf: PartialFunction[Boolean, Boolean]): ChangeIndicators =
+      if (pf.isDefinedAt(bankDetails)) copy(bankDetails = pf(bankDetails)) else this
     def withBusinessActivities(businessActivities: Boolean): ChangeIndicators =
       copy(businessActivities = businessActivities)
+    def modifyBusinessActivities(pf: PartialFunction[Boolean, Boolean]): ChangeIndicators =
+      if (pf.isDefinedAt(businessActivities)) copy(businessActivities = pf(businessActivities)) else this
     def withFlatRateScheme(flatRateScheme: Boolean): ChangeIndicators = copy(flatRateScheme = flatRateScheme)
+    def modifyFlatRateScheme(pf: PartialFunction[Boolean, Boolean]): ChangeIndicators =
+      if (pf.isDefinedAt(flatRateScheme)) copy(flatRateScheme = pf(flatRateScheme)) else this
     def withDeRegistrationInfo(deRegistrationInfo: Boolean): ChangeIndicators =
       copy(deRegistrationInfo = deRegistrationInfo)
+    def modifyDeRegistrationInfo(pf: PartialFunction[Boolean, Boolean]): ChangeIndicators =
+      if (pf.isDefinedAt(deRegistrationInfo)) copy(deRegistrationInfo = pf(deRegistrationInfo)) else this
     def withReturnPeriods(returnPeriods: Boolean): ChangeIndicators = copy(returnPeriods = returnPeriods)
+    def modifyReturnPeriods(pf: PartialFunction[Boolean, Boolean]): ChangeIndicators =
+      if (pf.isDefinedAt(returnPeriods)) copy(returnPeriods = pf(returnPeriods)) else this
     def withGroupOrPartners(groupOrPartners: Boolean): ChangeIndicators = copy(groupOrPartners = groupOrPartners)
+    def modifyGroupOrPartners(pf: PartialFunction[Boolean, Boolean]): ChangeIndicators =
+      if (pf.isDefinedAt(groupOrPartners)) copy(groupOrPartners = pf(groupOrPartners)) else this
   }
 
   object ChangeIndicators extends RecordUtils[ChangeIndicators] {
@@ -491,9 +563,17 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     def withPrimaryPhoneNumber(primaryPhoneNumber: Option[String]): ContactDetails =
       copy(primaryPhoneNumber = primaryPhoneNumber)
+    def modifyPrimaryPhoneNumber(pf: PartialFunction[Option[String], Option[String]]): ContactDetails =
+      if (pf.isDefinedAt(primaryPhoneNumber)) copy(primaryPhoneNumber = pf(primaryPhoneNumber)) else this
     def withMobileNumber(mobileNumber: Option[String]): ContactDetails = copy(mobileNumber = mobileNumber)
+    def modifyMobileNumber(pf: PartialFunction[Option[String], Option[String]]): ContactDetails =
+      if (pf.isDefinedAt(mobileNumber)) copy(mobileNumber = pf(mobileNumber)) else this
     def withFaxNumber(faxNumber: Option[String]): ContactDetails = copy(faxNumber = faxNumber)
+    def modifyFaxNumber(pf: PartialFunction[Option[String], Option[String]]): ContactDetails =
+      if (pf.isDefinedAt(faxNumber)) copy(faxNumber = pf(faxNumber)) else this
     def withEmailAddress(emailAddress: Option[String]): ContactDetails = copy(emailAddress = emailAddress)
+    def modifyEmailAddress(pf: PartialFunction[Option[String], Option[String]]): ContactDetails =
+      if (pf.isDefinedAt(emailAddress)) copy(emailAddress = pf(emailAddress)) else this
   }
 
   object ContactDetails extends RecordUtils[ContactDetails] {
@@ -545,9 +625,16 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     contactDetails: Option[ContactDetails] = None) {
 
     def withAddress(address: Address): CorrespondenceContactDetails = copy(address = address)
+    def modifyAddress(pf: PartialFunction[Address, Address]): CorrespondenceContactDetails =
+      if (pf.isDefinedAt(address)) copy(address = pf(address)) else this
     def withRLS(RLS: Option[String]): CorrespondenceContactDetails = copy(RLS = RLS)
+    def modifyRLS(pf: PartialFunction[Option[String], Option[String]]): CorrespondenceContactDetails =
+      if (pf.isDefinedAt(RLS)) copy(RLS = pf(RLS)) else this
     def withContactDetails(contactDetails: Option[ContactDetails]): CorrespondenceContactDetails =
       copy(contactDetails = contactDetails)
+    def modifyContactDetails(
+      pf: PartialFunction[Option[ContactDetails], Option[ContactDetails]]): CorrespondenceContactDetails =
+      if (pf.isDefinedAt(contactDetails)) copy(contactDetails = pf(contactDetails)) else this
   }
 
   object CorrespondenceContactDetails extends RecordUtils[CorrespondenceContactDetails] {
@@ -592,16 +679,33 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     def withOrganisationName(organisationName: Option[String]): CustomerDetails =
       copy(organisationName = organisationName)
+    def modifyOrganisationName(pf: PartialFunction[Option[String], Option[String]]): CustomerDetails =
+      if (pf.isDefinedAt(organisationName)) copy(organisationName = pf(organisationName)) else this
     def withIndividual(individual: Option[IndividualName]): CustomerDetails = copy(individual = individual)
+    def modifyIndividual(pf: PartialFunction[Option[IndividualName], Option[IndividualName]]): CustomerDetails =
+      if (pf.isDefinedAt(individual)) copy(individual = pf(individual)) else this
     def withDateOfBirth(dateOfBirth: Option[String]): CustomerDetails = copy(dateOfBirth = dateOfBirth)
+    def modifyDateOfBirth(pf: PartialFunction[Option[String], Option[String]]): CustomerDetails =
+      if (pf.isDefinedAt(dateOfBirth)) copy(dateOfBirth = pf(dateOfBirth)) else this
     def withTradingName(tradingName: Option[String]): CustomerDetails = copy(tradingName = tradingName)
+    def modifyTradingName(pf: PartialFunction[Option[String], Option[String]]): CustomerDetails =
+      if (pf.isDefinedAt(tradingName)) copy(tradingName = pf(tradingName)) else this
     def withMandationStatus(mandationStatus: String): CustomerDetails = copy(mandationStatus = mandationStatus)
+    def modifyMandationStatus(pf: PartialFunction[String, String]): CustomerDetails =
+      if (pf.isDefinedAt(mandationStatus)) copy(mandationStatus = pf(mandationStatus)) else this
     def withRegistrationReason(registrationReason: Option[String]): CustomerDetails =
       copy(registrationReason = registrationReason)
+    def modifyRegistrationReason(pf: PartialFunction[Option[String], Option[String]]): CustomerDetails =
+      if (pf.isDefinedAt(registrationReason)) copy(registrationReason = pf(registrationReason)) else this
     def withEffectiveRegistrationDate(effectiveRegistrationDate: Option[String]): CustomerDetails =
       copy(effectiveRegistrationDate = effectiveRegistrationDate)
+    def modifyEffectiveRegistrationDate(pf: PartialFunction[Option[String], Option[String]]): CustomerDetails =
+      if (pf.isDefinedAt(effectiveRegistrationDate)) copy(effectiveRegistrationDate = pf(effectiveRegistrationDate))
+      else this
     def withBusinessStartDate(businessStartDate: Option[String]): CustomerDetails =
       copy(businessStartDate = businessStartDate)
+    def modifyBusinessStartDate(pf: PartialFunction[Option[String], Option[String]]): CustomerDetails =
+      if (pf.isDefinedAt(businessStartDate)) copy(businessStartDate = pf(businessStartDate)) else this
   }
 
   object CustomerDetails extends RecordUtils[CustomerDetails] {
@@ -705,10 +809,17 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     def withDeregistrationReason(deregistrationReason: Option[String]): Deregistration =
       copy(deregistrationReason = deregistrationReason)
+    def modifyDeregistrationReason(pf: PartialFunction[Option[String], Option[String]]): Deregistration =
+      if (pf.isDefinedAt(deregistrationReason)) copy(deregistrationReason = pf(deregistrationReason)) else this
     def withEffectDateOfCancellation(effectDateOfCancellation: Option[String]): Deregistration =
       copy(effectDateOfCancellation = effectDateOfCancellation)
+    def modifyEffectDateOfCancellation(pf: PartialFunction[Option[String], Option[String]]): Deregistration =
+      if (pf.isDefinedAt(effectDateOfCancellation)) copy(effectDateOfCancellation = pf(effectDateOfCancellation))
+      else this
     def withLastReturnDueDate(lastReturnDueDate: Option[String]): Deregistration =
       copy(lastReturnDueDate = lastReturnDueDate)
+    def modifyLastReturnDueDate(pf: PartialFunction[Option[String], Option[String]]): Deregistration =
+      if (pf.isDefinedAt(lastReturnDueDate)) copy(lastReturnDueDate = pf(lastReturnDueDate)) else this
   }
 
   object Deregistration extends RecordUtils[Deregistration] {
@@ -761,10 +872,18 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     limitedCostTrader: Option[Boolean] = None) {
 
     def withFRSCategory(FRSCategory: Option[String]): FlatRateScheme = copy(FRSCategory = FRSCategory)
+    def modifyFRSCategory(pf: PartialFunction[Option[String], Option[String]]): FlatRateScheme =
+      if (pf.isDefinedAt(FRSCategory)) copy(FRSCategory = pf(FRSCategory)) else this
     def withFRSPercentage(FRSPercentage: Option[BigDecimal]): FlatRateScheme = copy(FRSPercentage = FRSPercentage)
+    def modifyFRSPercentage(pf: PartialFunction[Option[BigDecimal], Option[BigDecimal]]): FlatRateScheme =
+      if (pf.isDefinedAt(FRSPercentage)) copy(FRSPercentage = pf(FRSPercentage)) else this
     def withStartDate(startDate: Option[String]): FlatRateScheme = copy(startDate = startDate)
+    def modifyStartDate(pf: PartialFunction[Option[String], Option[String]]): FlatRateScheme =
+      if (pf.isDefinedAt(startDate)) copy(startDate = pf(startDate)) else this
     def withLimitedCostTrader(limitedCostTrader: Option[Boolean]): FlatRateScheme =
       copy(limitedCostTrader = limitedCostTrader)
+    def modifyLimitedCostTrader(pf: PartialFunction[Option[Boolean], Option[Boolean]]): FlatRateScheme =
+      if (pf.isDefinedAt(limitedCostTrader)) copy(limitedCostTrader = pf(limitedCostTrader)) else this
   }
 
   object FlatRateScheme extends RecordUtils[FlatRateScheme] {
@@ -818,11 +937,23 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       extends Address {
 
     def withLine1(line1: String): ForeignAddress = copy(line1 = line1)
+    def modifyLine1(pf: PartialFunction[String, String]): ForeignAddress =
+      if (pf.isDefinedAt(line1)) copy(line1 = pf(line1)) else this
     def withLine2(line2: String): ForeignAddress = copy(line2 = line2)
+    def modifyLine2(pf: PartialFunction[String, String]): ForeignAddress =
+      if (pf.isDefinedAt(line2)) copy(line2 = pf(line2)) else this
     def withLine3(line3: Option[String]): ForeignAddress = copy(line3 = line3)
+    def modifyLine3(pf: PartialFunction[Option[String], Option[String]]): ForeignAddress =
+      if (pf.isDefinedAt(line3)) copy(line3 = pf(line3)) else this
     def withLine4(line4: Option[String]): ForeignAddress = copy(line4 = line4)
+    def modifyLine4(pf: PartialFunction[Option[String], Option[String]]): ForeignAddress =
+      if (pf.isDefinedAt(line4)) copy(line4 = pf(line4)) else this
     def withPostCode(postCode: Option[String]): ForeignAddress = copy(postCode = postCode)
+    def modifyPostCode(pf: PartialFunction[Option[String], Option[String]]): ForeignAddress =
+      if (pf.isDefinedAt(postCode)) copy(postCode = pf(postCode)) else this
     def withCountryCode(countryCode: String): ForeignAddress = copy(countryCode = countryCode)
+    def modifyCountryCode(pf: PartialFunction[String, String]): ForeignAddress =
+      if (pf.isDefinedAt(countryCode)) copy(countryCode = pf(countryCode)) else this
   }
 
   object ForeignAddress extends RecordUtils[ForeignAddress] {
@@ -867,7 +998,11 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
   case class FormInformation(formBundle: String, dateReceived: String) {
 
     def withFormBundle(formBundle: String): FormInformation = copy(formBundle = formBundle)
+    def modifyFormBundle(pf: PartialFunction[String, String]): FormInformation =
+      if (pf.isDefinedAt(formBundle)) copy(formBundle = pf(formBundle)) else this
     def withDateReceived(dateReceived: String): FormInformation = copy(dateReceived = dateReceived)
+    def modifyDateReceived(pf: PartialFunction[String, String]): FormInformation =
+      if (pf.isDefinedAt(dateReceived)) copy(dateReceived = pf(dateReceived)) else this
   }
 
   object FormInformation extends RecordUtils[FormInformation] {
@@ -904,10 +1039,18 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     def withTypeOfRelationship(typeOfRelationship: String): GroupOrPartner =
       copy(typeOfRelationship = typeOfRelationship)
+    def modifyTypeOfRelationship(pf: PartialFunction[String, String]): GroupOrPartner =
+      if (pf.isDefinedAt(typeOfRelationship)) copy(typeOfRelationship = pf(typeOfRelationship)) else this
     def withOrganisationName(organisationName: Option[String]): GroupOrPartner =
       copy(organisationName = organisationName)
+    def modifyOrganisationName(pf: PartialFunction[Option[String], Option[String]]): GroupOrPartner =
+      if (pf.isDefinedAt(organisationName)) copy(organisationName = pf(organisationName)) else this
     def withIndividual(individual: Option[IndividualName]): GroupOrPartner = copy(individual = individual)
+    def modifyIndividual(pf: PartialFunction[Option[IndividualName], Option[IndividualName]]): GroupOrPartner =
+      if (pf.isDefinedAt(individual)) copy(individual = pf(individual)) else this
     def withSAP_Number(SAP_Number: String): GroupOrPartner = copy(SAP_Number = SAP_Number)
+    def modifySAP_Number(pf: PartialFunction[String, String]): GroupOrPartner =
+      if (pf.isDefinedAt(SAP_Number)) copy(SAP_Number = pf(SAP_Number)) else this
   }
 
   object GroupOrPartner extends RecordUtils[GroupOrPartner] {
@@ -961,17 +1104,33 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     def withFormInformation(formInformation: FormInformation): InFlightBankDetails =
       copy(formInformation = formInformation)
+    def modifyFormInformation(pf: PartialFunction[FormInformation, FormInformation]): InFlightBankDetails =
+      if (pf.isDefinedAt(formInformation)) copy(formInformation = pf(formInformation)) else this
     def withIBAN(IBAN: Option[String]): InFlightBankDetails = copy(IBAN = IBAN)
+    def modifyIBAN(pf: PartialFunction[Option[String], Option[String]]): InFlightBankDetails =
+      if (pf.isDefinedAt(IBAN)) copy(IBAN = pf(IBAN)) else this
     def withBIC(BIC: Option[String]): InFlightBankDetails = copy(BIC = BIC)
+    def modifyBIC(pf: PartialFunction[Option[String], Option[String]]): InFlightBankDetails =
+      if (pf.isDefinedAt(BIC)) copy(BIC = pf(BIC)) else this
     def withAccountHolderName(accountHolderName: Option[String]): InFlightBankDetails =
       copy(accountHolderName = accountHolderName)
+    def modifyAccountHolderName(pf: PartialFunction[Option[String], Option[String]]): InFlightBankDetails =
+      if (pf.isDefinedAt(accountHolderName)) copy(accountHolderName = pf(accountHolderName)) else this
     def withBankAccountNumber(bankAccountNumber: Option[String]): InFlightBankDetails =
       copy(bankAccountNumber = bankAccountNumber)
+    def modifyBankAccountNumber(pf: PartialFunction[Option[String], Option[String]]): InFlightBankDetails =
+      if (pf.isDefinedAt(bankAccountNumber)) copy(bankAccountNumber = pf(bankAccountNumber)) else this
     def withSortCode(sortCode: Option[String]): InFlightBankDetails = copy(sortCode = sortCode)
+    def modifySortCode(pf: PartialFunction[Option[String], Option[String]]): InFlightBankDetails =
+      if (pf.isDefinedAt(sortCode)) copy(sortCode = pf(sortCode)) else this
     def withBuildingSocietyNumber(buildingSocietyNumber: Option[String]): InFlightBankDetails =
       copy(buildingSocietyNumber = buildingSocietyNumber)
+    def modifyBuildingSocietyNumber(pf: PartialFunction[Option[String], Option[String]]): InFlightBankDetails =
+      if (pf.isDefinedAt(buildingSocietyNumber)) copy(buildingSocietyNumber = pf(buildingSocietyNumber)) else this
     def withBankBuildSocietyName(bankBuildSocietyName: Option[String]): InFlightBankDetails =
       copy(bankBuildSocietyName = bankBuildSocietyName)
+    def modifyBankBuildSocietyName(pf: PartialFunction[Option[String], Option[String]]): InFlightBankDetails =
+      if (pf.isDefinedAt(bankBuildSocietyName)) copy(bankBuildSocietyName = pf(bankBuildSocietyName)) else this
   }
 
   object InFlightBankDetails extends RecordUtils[InFlightBankDetails] {
@@ -1064,11 +1223,21 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     def withFormInformation(formInformation: FormInformation): InFlightBusinessActivities =
       copy(formInformation = formInformation)
+    def modifyFormInformation(pf: PartialFunction[FormInformation, FormInformation]): InFlightBusinessActivities =
+      if (pf.isDefinedAt(formInformation)) copy(formInformation = pf(formInformation)) else this
     def withPrimaryMainCode(primaryMainCode: String): InFlightBusinessActivities =
       copy(primaryMainCode = primaryMainCode)
+    def modifyPrimaryMainCode(pf: PartialFunction[String, String]): InFlightBusinessActivities =
+      if (pf.isDefinedAt(primaryMainCode)) copy(primaryMainCode = pf(primaryMainCode)) else this
     def withMainCode2(mainCode2: Option[String]): InFlightBusinessActivities = copy(mainCode2 = mainCode2)
+    def modifyMainCode2(pf: PartialFunction[Option[String], Option[String]]): InFlightBusinessActivities =
+      if (pf.isDefinedAt(mainCode2)) copy(mainCode2 = pf(mainCode2)) else this
     def withMainCode3(mainCode3: Option[String]): InFlightBusinessActivities = copy(mainCode3 = mainCode3)
+    def modifyMainCode3(pf: PartialFunction[Option[String], Option[String]]): InFlightBusinessActivities =
+      if (pf.isDefinedAt(mainCode3)) copy(mainCode3 = pf(mainCode3)) else this
     def withMainCode4(mainCode4: Option[String]): InFlightBusinessActivities = copy(mainCode4 = mainCode4)
+    def modifyMainCode4(pf: PartialFunction[Option[String], Option[String]]): InFlightBusinessActivities =
+      if (pf.isDefinedAt(mainCode4)) copy(mainCode4 = pf(mainCode4)) else this
   }
 
   object InFlightBusinessActivities extends RecordUtils[InFlightBusinessActivities] {
@@ -1130,9 +1299,17 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     def withFormInformation(formInformation: FormInformation): InFlightCorrespondenceContactDetails =
       copy(formInformation = formInformation)
+    def modifyFormInformation(
+      pf: PartialFunction[FormInformation, FormInformation]): InFlightCorrespondenceContactDetails =
+      if (pf.isDefinedAt(formInformation)) copy(formInformation = pf(formInformation)) else this
     def withAddress(address: Option[Address]): InFlightCorrespondenceContactDetails = copy(address = address)
+    def modifyAddress(pf: PartialFunction[Option[Address], Option[Address]]): InFlightCorrespondenceContactDetails =
+      if (pf.isDefinedAt(address)) copy(address = pf(address)) else this
     def withContactDetails(contactDetails: Option[ContactDetails]): InFlightCorrespondenceContactDetails =
       copy(contactDetails = contactDetails)
+    def modifyContactDetails(
+      pf: PartialFunction[Option[ContactDetails], Option[ContactDetails]]): InFlightCorrespondenceContactDetails =
+      if (pf.isDefinedAt(contactDetails)) copy(contactDetails = pf(contactDetails)) else this
   }
 
   object InFlightCorrespondenceContactDetails extends RecordUtils[InFlightCorrespondenceContactDetails] {
@@ -1182,16 +1359,33 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     def withFormInformation(formInformation: FormInformation): InFlightCustomerDetails =
       copy(formInformation = formInformation)
+    def modifyFormInformation(pf: PartialFunction[FormInformation, FormInformation]): InFlightCustomerDetails =
+      if (pf.isDefinedAt(formInformation)) copy(formInformation = pf(formInformation)) else this
     def withOrganisationName(organisationName: Option[String]): InFlightCustomerDetails =
       copy(organisationName = organisationName)
+    def modifyOrganisationName(pf: PartialFunction[Option[String], Option[String]]): InFlightCustomerDetails =
+      if (pf.isDefinedAt(organisationName)) copy(organisationName = pf(organisationName)) else this
     def withIndividual(individual: Option[IndividualName]): InFlightCustomerDetails = copy(individual = individual)
+    def modifyIndividual(pf: PartialFunction[Option[IndividualName], Option[IndividualName]]): InFlightCustomerDetails =
+      if (pf.isDefinedAt(individual)) copy(individual = pf(individual)) else this
     def withDateOfBirth(dateOfBirth: Option[String]): InFlightCustomerDetails = copy(dateOfBirth = dateOfBirth)
+    def modifyDateOfBirth(pf: PartialFunction[Option[String], Option[String]]): InFlightCustomerDetails =
+      if (pf.isDefinedAt(dateOfBirth)) copy(dateOfBirth = pf(dateOfBirth)) else this
     def withTradingName(tradingName: Option[String]): InFlightCustomerDetails = copy(tradingName = tradingName)
+    def modifyTradingName(pf: PartialFunction[Option[String], Option[String]]): InFlightCustomerDetails =
+      if (pf.isDefinedAt(tradingName)) copy(tradingName = pf(tradingName)) else this
     def withMandationStatus(mandationStatus: String): InFlightCustomerDetails = copy(mandationStatus = mandationStatus)
+    def modifyMandationStatus(pf: PartialFunction[String, String]): InFlightCustomerDetails =
+      if (pf.isDefinedAt(mandationStatus)) copy(mandationStatus = pf(mandationStatus)) else this
     def withRegistrationReason(registrationReason: Option[String]): InFlightCustomerDetails =
       copy(registrationReason = registrationReason)
+    def modifyRegistrationReason(pf: PartialFunction[Option[String], Option[String]]): InFlightCustomerDetails =
+      if (pf.isDefinedAt(registrationReason)) copy(registrationReason = pf(registrationReason)) else this
     def withEffectiveRegistrationDate(effectiveRegistrationDate: Option[String]): InFlightCustomerDetails =
       copy(effectiveRegistrationDate = effectiveRegistrationDate)
+    def modifyEffectiveRegistrationDate(pf: PartialFunction[Option[String], Option[String]]): InFlightCustomerDetails =
+      if (pf.isDefinedAt(effectiveRegistrationDate)) copy(effectiveRegistrationDate = pf(effectiveRegistrationDate))
+      else this
   }
 
   object InFlightCustomerDetails extends RecordUtils[InFlightCustomerDetails] {
@@ -1281,11 +1475,19 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     def withFormInformation(formInformation: FormInformation): InFlightDeregistration =
       copy(formInformation = formInformation)
+    def modifyFormInformation(pf: PartialFunction[FormInformation, FormInformation]): InFlightDeregistration =
+      if (pf.isDefinedAt(formInformation)) copy(formInformation = pf(formInformation)) else this
     def withDeregistrationReason(deregistrationReason: String): InFlightDeregistration =
       copy(deregistrationReason = deregistrationReason)
+    def modifyDeregistrationReason(pf: PartialFunction[String, String]): InFlightDeregistration =
+      if (pf.isDefinedAt(deregistrationReason)) copy(deregistrationReason = pf(deregistrationReason)) else this
     def withDeregDate(deregDate: Option[String]): InFlightDeregistration = copy(deregDate = deregDate)
+    def modifyDeregDate(pf: PartialFunction[Option[String], Option[String]]): InFlightDeregistration =
+      if (pf.isDefinedAt(deregDate)) copy(deregDate = pf(deregDate)) else this
     def withDeregDateInFuture(deregDateInFuture: Option[String]): InFlightDeregistration =
       copy(deregDateInFuture = deregDateInFuture)
+    def modifyDeregDateInFuture(pf: PartialFunction[Option[String], Option[String]]): InFlightDeregistration =
+      if (pf.isDefinedAt(deregDateInFuture)) copy(deregDateInFuture = pf(deregDateInFuture)) else this
   }
 
   object InFlightDeregistration extends RecordUtils[InFlightDeregistration] {
@@ -1341,12 +1543,22 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     def withFormInformation(formInformation: FormInformation): InFlightFlatRateScheme =
       copy(formInformation = formInformation)
+    def modifyFormInformation(pf: PartialFunction[FormInformation, FormInformation]): InFlightFlatRateScheme =
+      if (pf.isDefinedAt(formInformation)) copy(formInformation = pf(formInformation)) else this
     def withFRSCategory(FRSCategory: Option[String]): InFlightFlatRateScheme = copy(FRSCategory = FRSCategory)
+    def modifyFRSCategory(pf: PartialFunction[Option[String], Option[String]]): InFlightFlatRateScheme =
+      if (pf.isDefinedAt(FRSCategory)) copy(FRSCategory = pf(FRSCategory)) else this
     def withFRSPercentage(FRSPercentage: Option[BigDecimal]): InFlightFlatRateScheme =
       copy(FRSPercentage = FRSPercentage)
+    def modifyFRSPercentage(pf: PartialFunction[Option[BigDecimal], Option[BigDecimal]]): InFlightFlatRateScheme =
+      if (pf.isDefinedAt(FRSPercentage)) copy(FRSPercentage = pf(FRSPercentage)) else this
     def withStartDate(startDate: Option[String]): InFlightFlatRateScheme = copy(startDate = startDate)
+    def modifyStartDate(pf: PartialFunction[Option[String], Option[String]]): InFlightFlatRateScheme =
+      if (pf.isDefinedAt(startDate)) copy(startDate = pf(startDate)) else this
     def withLimitedCostTrader(limitedCostTrader: Option[Boolean]): InFlightFlatRateScheme =
       copy(limitedCostTrader = limitedCostTrader)
+    def modifyLimitedCostTrader(pf: PartialFunction[Option[Boolean], Option[Boolean]]): InFlightFlatRateScheme =
+      if (pf.isDefinedAt(limitedCostTrader)) copy(limitedCostTrader = pf(limitedCostTrader)) else this
   }
 
   object InFlightFlatRateScheme extends RecordUtils[InFlightFlatRateScheme] {
@@ -1417,20 +1629,42 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     def withFormInformation(formInformation: FormInformation): InFlightGroupOrPartner =
       copy(formInformation = formInformation)
+    def modifyFormInformation(pf: PartialFunction[FormInformation, FormInformation]): InFlightGroupOrPartner =
+      if (pf.isDefinedAt(formInformation)) copy(formInformation = pf(formInformation)) else this
     def withAction(action: String): InFlightGroupOrPartner = copy(action = action)
+    def modifyAction(pf: PartialFunction[String, String]): InFlightGroupOrPartner =
+      if (pf.isDefinedAt(action)) copy(action = pf(action)) else this
     def withSAP_Number(SAP_Number: Option[String]): InFlightGroupOrPartner = copy(SAP_Number = SAP_Number)
+    def modifySAP_Number(pf: PartialFunction[Option[String], Option[String]]): InFlightGroupOrPartner =
+      if (pf.isDefinedAt(SAP_Number)) copy(SAP_Number = pf(SAP_Number)) else this
     def withTypeOfRelationship(typeOfRelationship: Option[String]): InFlightGroupOrPartner =
       copy(typeOfRelationship = typeOfRelationship)
+    def modifyTypeOfRelationship(pf: PartialFunction[Option[String], Option[String]]): InFlightGroupOrPartner =
+      if (pf.isDefinedAt(typeOfRelationship)) copy(typeOfRelationship = pf(typeOfRelationship)) else this
     def withMakeGrpMember(makeGrpMember: Option[Boolean]): InFlightGroupOrPartner = copy(makeGrpMember = makeGrpMember)
+    def modifyMakeGrpMember(pf: PartialFunction[Option[Boolean], Option[Boolean]]): InFlightGroupOrPartner =
+      if (pf.isDefinedAt(makeGrpMember)) copy(makeGrpMember = pf(makeGrpMember)) else this
     def withMakeControllingBody(makeControllingBody: Option[Boolean]): InFlightGroupOrPartner =
       copy(makeControllingBody = makeControllingBody)
+    def modifyMakeControllingBody(pf: PartialFunction[Option[Boolean], Option[Boolean]]): InFlightGroupOrPartner =
+      if (pf.isDefinedAt(makeControllingBody)) copy(makeControllingBody = pf(makeControllingBody)) else this
     def withIsControllingBody(isControllingBody: Option[Boolean]): InFlightGroupOrPartner =
       copy(isControllingBody = isControllingBody)
+    def modifyIsControllingBody(pf: PartialFunction[Option[Boolean], Option[Boolean]]): InFlightGroupOrPartner =
+      if (pf.isDefinedAt(isControllingBody)) copy(isControllingBody = pf(isControllingBody)) else this
     def withOrganisationName(organisationName: Option[String]): InFlightGroupOrPartner =
       copy(organisationName = organisationName)
+    def modifyOrganisationName(pf: PartialFunction[Option[String], Option[String]]): InFlightGroupOrPartner =
+      if (pf.isDefinedAt(organisationName)) copy(organisationName = pf(organisationName)) else this
     def withTradingName(tradingName: Option[String]): InFlightGroupOrPartner = copy(tradingName = tradingName)
+    def modifyTradingName(pf: PartialFunction[Option[String], Option[String]]): InFlightGroupOrPartner =
+      if (pf.isDefinedAt(tradingName)) copy(tradingName = pf(tradingName)) else this
     def withIndividual(individual: Option[IndividualName]): InFlightGroupOrPartner = copy(individual = individual)
+    def modifyIndividual(pf: PartialFunction[Option[IndividualName], Option[IndividualName]]): InFlightGroupOrPartner =
+      if (pf.isDefinedAt(individual)) copy(individual = pf(individual)) else this
     def withPPOB(PPOB: Option[PPOB]): InFlightGroupOrPartner = copy(PPOB = PPOB)
+    def modifyPPOB(pf: PartialFunction[Option[PPOB], Option[PPOB]]): InFlightGroupOrPartner =
+      if (pf.isDefinedAt(PPOB)) copy(PPOB = pf(PPOB)) else this
   }
 
   object InFlightGroupOrPartner extends RecordUtils[InFlightGroupOrPartner] {
@@ -1524,8 +1758,12 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     def withChangeIndicators(changeIndicators: ChangeIndicators): InFlightInformation =
       copy(changeIndicators = changeIndicators)
+    def modifyChangeIndicators(pf: PartialFunction[ChangeIndicators, ChangeIndicators]): InFlightInformation =
+      if (pf.isDefinedAt(changeIndicators)) copy(changeIndicators = pf(changeIndicators)) else this
     def withInflightChanges(inflightChanges: InflightChanges): InFlightInformation =
       copy(inflightChanges = inflightChanges)
+    def modifyInflightChanges(pf: PartialFunction[InflightChanges, InflightChanges]): InFlightInformation =
+      if (pf.isDefinedAt(inflightChanges)) copy(inflightChanges = pf(inflightChanges)) else this
   }
 
   object InFlightInformation extends RecordUtils[InFlightInformation] {
@@ -1563,10 +1801,18 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     def withFormInformation(formInformation: FormInformation): InFlightPPOBDetails =
       copy(formInformation = formInformation)
+    def modifyFormInformation(pf: PartialFunction[FormInformation, FormInformation]): InFlightPPOBDetails =
+      if (pf.isDefinedAt(formInformation)) copy(formInformation = pf(formInformation)) else this
     def withAddress(address: Option[Address]): InFlightPPOBDetails = copy(address = address)
+    def modifyAddress(pf: PartialFunction[Option[Address], Option[Address]]): InFlightPPOBDetails =
+      if (pf.isDefinedAt(address)) copy(address = pf(address)) else this
     def withContactDetails(contactDetails: Option[ContactDetails]): InFlightPPOBDetails =
       copy(contactDetails = contactDetails)
+    def modifyContactDetails(pf: PartialFunction[Option[ContactDetails], Option[ContactDetails]]): InFlightPPOBDetails =
+      if (pf.isDefinedAt(contactDetails)) copy(contactDetails = pf(contactDetails)) else this
     def withWebsiteAddress(websiteAddress: Option[String]): InFlightPPOBDetails = copy(websiteAddress = websiteAddress)
+    def modifyWebsiteAddress(pf: PartialFunction[Option[String], Option[String]]): InFlightPPOBDetails =
+      if (pf.isDefinedAt(websiteAddress)) copy(websiteAddress = pf(websiteAddress)) else this
   }
 
   object InFlightPPOBDetails extends RecordUtils[InFlightPPOBDetails] {
@@ -1621,16 +1867,30 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     def withFormInformation(formInformation: FormInformation): InFlightReturnPeriod =
       copy(formInformation = formInformation)
+    def modifyFormInformation(pf: PartialFunction[FormInformation, FormInformation]): InFlightReturnPeriod =
+      if (pf.isDefinedAt(formInformation)) copy(formInformation = pf(formInformation)) else this
     def withChangeReturnPeriod(changeReturnPeriod: Option[Boolean]): InFlightReturnPeriod =
       copy(changeReturnPeriod = changeReturnPeriod)
+    def modifyChangeReturnPeriod(pf: PartialFunction[Option[Boolean], Option[Boolean]]): InFlightReturnPeriod =
+      if (pf.isDefinedAt(changeReturnPeriod)) copy(changeReturnPeriod = pf(changeReturnPeriod)) else this
     def withNonStdTaxPeriodsRequested(nonStdTaxPeriodsRequested: Option[Boolean]): InFlightReturnPeriod =
       copy(nonStdTaxPeriodsRequested = nonStdTaxPeriodsRequested)
+    def modifyNonStdTaxPeriodsRequested(pf: PartialFunction[Option[Boolean], Option[Boolean]]): InFlightReturnPeriod =
+      if (pf.isDefinedAt(nonStdTaxPeriodsRequested)) copy(nonStdTaxPeriodsRequested = pf(nonStdTaxPeriodsRequested))
+      else this
     def withCeaseNonStdTaxPeriods(ceaseNonStdTaxPeriods: Option[Boolean]): InFlightReturnPeriod =
       copy(ceaseNonStdTaxPeriods = ceaseNonStdTaxPeriods)
+    def modifyCeaseNonStdTaxPeriods(pf: PartialFunction[Option[Boolean], Option[Boolean]]): InFlightReturnPeriod =
+      if (pf.isDefinedAt(ceaseNonStdTaxPeriods)) copy(ceaseNonStdTaxPeriods = pf(ceaseNonStdTaxPeriods)) else this
     def withStdReturnPeriod(stdReturnPeriod: Option[String]): InFlightReturnPeriod =
       copy(stdReturnPeriod = stdReturnPeriod)
+    def modifyStdReturnPeriod(pf: PartialFunction[Option[String], Option[String]]): InFlightReturnPeriod =
+      if (pf.isDefinedAt(stdReturnPeriod)) copy(stdReturnPeriod = pf(stdReturnPeriod)) else this
     def withNonStdTaxPeriods(nonStdTaxPeriods: Option[NonStdTaxPeriods]): InFlightReturnPeriod =
       copy(nonStdTaxPeriods = nonStdTaxPeriods)
+    def modifyNonStdTaxPeriods(
+      pf: PartialFunction[Option[NonStdTaxPeriods], Option[NonStdTaxPeriods]]): InFlightReturnPeriod =
+      if (pf.isDefinedAt(nonStdTaxPeriods)) copy(nonStdTaxPeriods = pf(nonStdTaxPeriods)) else this
   }
 
   object InFlightReturnPeriod extends RecordUtils[InFlightReturnPeriod] {
@@ -1699,9 +1959,17 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     lastName: Option[String] = None) {
 
     def withTitle(title: Option[String]): IndividualName = copy(title = title)
+    def modifyTitle(pf: PartialFunction[Option[String], Option[String]]): IndividualName =
+      if (pf.isDefinedAt(title)) copy(title = pf(title)) else this
     def withFirstName(firstName: Option[String]): IndividualName = copy(firstName = firstName)
+    def modifyFirstName(pf: PartialFunction[Option[String], Option[String]]): IndividualName =
+      if (pf.isDefinedAt(firstName)) copy(firstName = pf(firstName)) else this
     def withMiddleName(middleName: Option[String]): IndividualName = copy(middleName = middleName)
+    def modifyMiddleName(pf: PartialFunction[Option[String], Option[String]]): IndividualName =
+      if (pf.isDefinedAt(middleName)) copy(middleName = pf(middleName)) else this
     def withLastName(lastName: Option[String]): IndividualName = copy(lastName = lastName)
+    def modifyLastName(pf: PartialFunction[Option[String], Option[String]]): IndividualName =
+      if (pf.isDefinedAt(lastName)) copy(lastName = pf(lastName)) else this
   }
 
   object IndividualName extends RecordUtils[IndividualName] {
@@ -1753,20 +2021,50 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     def withCustomerDetails(customerDetails: Option[InFlightCustomerDetails]): InflightChanges =
       copy(customerDetails = customerDetails)
+    def modifyCustomerDetails(
+      pf: PartialFunction[Option[InFlightCustomerDetails], Option[InFlightCustomerDetails]]): InflightChanges =
+      if (pf.isDefinedAt(customerDetails)) copy(customerDetails = pf(customerDetails)) else this
     def withPPOBDetails(PPOBDetails: Option[InFlightPPOBDetails]): InflightChanges = copy(PPOBDetails = PPOBDetails)
+    def modifyPPOBDetails(
+      pf: PartialFunction[Option[InFlightPPOBDetails], Option[InFlightPPOBDetails]]): InflightChanges =
+      if (pf.isDefinedAt(PPOBDetails)) copy(PPOBDetails = pf(PPOBDetails)) else this
     def withCorrespondenceContactDetails(
       correspondenceContactDetails: Option[InFlightCorrespondenceContactDetails]): InflightChanges =
       copy(correspondenceContactDetails = correspondenceContactDetails)
+    def modifyCorrespondenceContactDetails(
+      pf: PartialFunction[Option[InFlightCorrespondenceContactDetails], Option[InFlightCorrespondenceContactDetails]])
+      : InflightChanges =
+      if (pf.isDefinedAt(correspondenceContactDetails))
+        copy(correspondenceContactDetails = pf(correspondenceContactDetails))
+      else this
     def withBankDetails(bankDetails: Option[InFlightBankDetails]): InflightChanges = copy(bankDetails = bankDetails)
+    def modifyBankDetails(
+      pf: PartialFunction[Option[InFlightBankDetails], Option[InFlightBankDetails]]): InflightChanges =
+      if (pf.isDefinedAt(bankDetails)) copy(bankDetails = pf(bankDetails)) else this
     def withBusinessActivities(businessActivities: Option[InFlightBusinessActivities]): InflightChanges =
       copy(businessActivities = businessActivities)
+    def modifyBusinessActivities(
+      pf: PartialFunction[Option[InFlightBusinessActivities], Option[InFlightBusinessActivities]]): InflightChanges =
+      if (pf.isDefinedAt(businessActivities)) copy(businessActivities = pf(businessActivities)) else this
     def withFlatRateScheme(flatRateScheme: Option[InFlightFlatRateScheme]): InflightChanges =
       copy(flatRateScheme = flatRateScheme)
+    def modifyFlatRateScheme(
+      pf: PartialFunction[Option[InFlightFlatRateScheme], Option[InFlightFlatRateScheme]]): InflightChanges =
+      if (pf.isDefinedAt(flatRateScheme)) copy(flatRateScheme = pf(flatRateScheme)) else this
     def withDeregister(deregister: Option[InFlightDeregistration]): InflightChanges = copy(deregister = deregister)
+    def modifyDeregister(
+      pf: PartialFunction[Option[InFlightDeregistration], Option[InFlightDeregistration]]): InflightChanges =
+      if (pf.isDefinedAt(deregister)) copy(deregister = pf(deregister)) else this
     def withReturnPeriod(returnPeriod: Option[InFlightReturnPeriod]): InflightChanges =
       copy(returnPeriod = returnPeriod)
+    def modifyReturnPeriod(
+      pf: PartialFunction[Option[InFlightReturnPeriod], Option[InFlightReturnPeriod]]): InflightChanges =
+      if (pf.isDefinedAt(returnPeriod)) copy(returnPeriod = pf(returnPeriod)) else this
     def withGroupOrPartner(groupOrPartner: Option[Seq[InFlightGroupOrPartner]]): InflightChanges =
       copy(groupOrPartner = groupOrPartner)
+    def modifyGroupOrPartner(
+      pf: PartialFunction[Option[Seq[InFlightGroupOrPartner]], Option[Seq[InFlightGroupOrPartner]]]): InflightChanges =
+      if (pf.isDefinedAt(groupOrPartner)) copy(groupOrPartner = pf(groupOrPartner)) else this
   }
 
   object InflightChanges extends RecordUtils[InflightChanges] {
@@ -1890,27 +2188,71 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     period22: Option[String] = None) {
 
     def withPeriod01(period01: Option[String]): NonStdTaxPeriods = copy(period01 = period01)
+    def modifyPeriod01(pf: PartialFunction[Option[String], Option[String]]): NonStdTaxPeriods =
+      if (pf.isDefinedAt(period01)) copy(period01 = pf(period01)) else this
     def withPeriod02(period02: Option[String]): NonStdTaxPeriods = copy(period02 = period02)
+    def modifyPeriod02(pf: PartialFunction[Option[String], Option[String]]): NonStdTaxPeriods =
+      if (pf.isDefinedAt(period02)) copy(period02 = pf(period02)) else this
     def withPeriod03(period03: Option[String]): NonStdTaxPeriods = copy(period03 = period03)
+    def modifyPeriod03(pf: PartialFunction[Option[String], Option[String]]): NonStdTaxPeriods =
+      if (pf.isDefinedAt(period03)) copy(period03 = pf(period03)) else this
     def withPeriod04(period04: Option[String]): NonStdTaxPeriods = copy(period04 = period04)
+    def modifyPeriod04(pf: PartialFunction[Option[String], Option[String]]): NonStdTaxPeriods =
+      if (pf.isDefinedAt(period04)) copy(period04 = pf(period04)) else this
     def withPeriod05(period05: Option[String]): NonStdTaxPeriods = copy(period05 = period05)
+    def modifyPeriod05(pf: PartialFunction[Option[String], Option[String]]): NonStdTaxPeriods =
+      if (pf.isDefinedAt(period05)) copy(period05 = pf(period05)) else this
     def withPeriod06(period06: Option[String]): NonStdTaxPeriods = copy(period06 = period06)
+    def modifyPeriod06(pf: PartialFunction[Option[String], Option[String]]): NonStdTaxPeriods =
+      if (pf.isDefinedAt(period06)) copy(period06 = pf(period06)) else this
     def withPeriod07(period07: Option[String]): NonStdTaxPeriods = copy(period07 = period07)
+    def modifyPeriod07(pf: PartialFunction[Option[String], Option[String]]): NonStdTaxPeriods =
+      if (pf.isDefinedAt(period07)) copy(period07 = pf(period07)) else this
     def withPeriod08(period08: Option[String]): NonStdTaxPeriods = copy(period08 = period08)
+    def modifyPeriod08(pf: PartialFunction[Option[String], Option[String]]): NonStdTaxPeriods =
+      if (pf.isDefinedAt(period08)) copy(period08 = pf(period08)) else this
     def withPeriod09(period09: Option[String]): NonStdTaxPeriods = copy(period09 = period09)
+    def modifyPeriod09(pf: PartialFunction[Option[String], Option[String]]): NonStdTaxPeriods =
+      if (pf.isDefinedAt(period09)) copy(period09 = pf(period09)) else this
     def withPeriod10(period10: Option[String]): NonStdTaxPeriods = copy(period10 = period10)
+    def modifyPeriod10(pf: PartialFunction[Option[String], Option[String]]): NonStdTaxPeriods =
+      if (pf.isDefinedAt(period10)) copy(period10 = pf(period10)) else this
     def withPeriod11(period11: Option[String]): NonStdTaxPeriods = copy(period11 = period11)
+    def modifyPeriod11(pf: PartialFunction[Option[String], Option[String]]): NonStdTaxPeriods =
+      if (pf.isDefinedAt(period11)) copy(period11 = pf(period11)) else this
     def withPeriod12(period12: Option[String]): NonStdTaxPeriods = copy(period12 = period12)
+    def modifyPeriod12(pf: PartialFunction[Option[String], Option[String]]): NonStdTaxPeriods =
+      if (pf.isDefinedAt(period12)) copy(period12 = pf(period12)) else this
     def withPeriod13(period13: Option[String]): NonStdTaxPeriods = copy(period13 = period13)
+    def modifyPeriod13(pf: PartialFunction[Option[String], Option[String]]): NonStdTaxPeriods =
+      if (pf.isDefinedAt(period13)) copy(period13 = pf(period13)) else this
     def withPeriod14(period14: Option[String]): NonStdTaxPeriods = copy(period14 = period14)
+    def modifyPeriod14(pf: PartialFunction[Option[String], Option[String]]): NonStdTaxPeriods =
+      if (pf.isDefinedAt(period14)) copy(period14 = pf(period14)) else this
     def withPeriod15(period15: Option[String]): NonStdTaxPeriods = copy(period15 = period15)
+    def modifyPeriod15(pf: PartialFunction[Option[String], Option[String]]): NonStdTaxPeriods =
+      if (pf.isDefinedAt(period15)) copy(period15 = pf(period15)) else this
     def withPeriod16(period16: Option[String]): NonStdTaxPeriods = copy(period16 = period16)
+    def modifyPeriod16(pf: PartialFunction[Option[String], Option[String]]): NonStdTaxPeriods =
+      if (pf.isDefinedAt(period16)) copy(period16 = pf(period16)) else this
     def withPeriod17(period17: Option[String]): NonStdTaxPeriods = copy(period17 = period17)
+    def modifyPeriod17(pf: PartialFunction[Option[String], Option[String]]): NonStdTaxPeriods =
+      if (pf.isDefinedAt(period17)) copy(period17 = pf(period17)) else this
     def withPeriod18(period18: Option[String]): NonStdTaxPeriods = copy(period18 = period18)
+    def modifyPeriod18(pf: PartialFunction[Option[String], Option[String]]): NonStdTaxPeriods =
+      if (pf.isDefinedAt(period18)) copy(period18 = pf(period18)) else this
     def withPeriod19(period19: Option[String]): NonStdTaxPeriods = copy(period19 = period19)
+    def modifyPeriod19(pf: PartialFunction[Option[String], Option[String]]): NonStdTaxPeriods =
+      if (pf.isDefinedAt(period19)) copy(period19 = pf(period19)) else this
     def withPeriod20(period20: Option[String]): NonStdTaxPeriods = copy(period20 = period20)
+    def modifyPeriod20(pf: PartialFunction[Option[String], Option[String]]): NonStdTaxPeriods =
+      if (pf.isDefinedAt(period20)) copy(period20 = pf(period20)) else this
     def withPeriod21(period21: Option[String]): NonStdTaxPeriods = copy(period21 = period21)
+    def modifyPeriod21(pf: PartialFunction[Option[String], Option[String]]): NonStdTaxPeriods =
+      if (pf.isDefinedAt(period21)) copy(period21 = pf(period21)) else this
     def withPeriod22(period22: Option[String]): NonStdTaxPeriods = copy(period22 = period22)
+    def modifyPeriod22(pf: PartialFunction[Option[String], Option[String]]): NonStdTaxPeriods =
+      if (pf.isDefinedAt(period22)) copy(period22 = pf(period22)) else this
   }
 
   object NonStdTaxPeriods extends RecordUtils[NonStdTaxPeriods] {
@@ -2089,9 +2431,17 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     websiteAddress: Option[String] = None) {
 
     def withAddress(address: Address): PPOB = copy(address = address)
+    def modifyAddress(pf: PartialFunction[Address, Address]): PPOB =
+      if (pf.isDefinedAt(address)) copy(address = pf(address)) else this
     def withRLS(RLS: Option[String]): PPOB = copy(RLS = RLS)
+    def modifyRLS(pf: PartialFunction[Option[String], Option[String]]): PPOB =
+      if (pf.isDefinedAt(RLS)) copy(RLS = pf(RLS)) else this
     def withContactDetails(contactDetails: Option[ContactDetails]): PPOB = copy(contactDetails = contactDetails)
+    def modifyContactDetails(pf: PartialFunction[Option[ContactDetails], Option[ContactDetails]]): PPOB =
+      if (pf.isDefinedAt(contactDetails)) copy(contactDetails = pf(contactDetails)) else this
     def withWebsiteAddress(websiteAddress: Option[String]): PPOB = copy(websiteAddress = websiteAddress)
+    def modifyWebsiteAddress(pf: PartialFunction[Option[String], Option[String]]): PPOB =
+      if (pf.isDefinedAt(websiteAddress)) copy(websiteAddress = pf(websiteAddress)) else this
   }
 
   object PPOB extends RecordUtils[PPOB] {
@@ -2134,8 +2484,12 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
   case class Period(stdReturnPeriod: Option[String] = None, nonStdTaxPeriods: Option[NonStdTaxPeriods] = None) {
 
     def withStdReturnPeriod(stdReturnPeriod: Option[String]): Period = copy(stdReturnPeriod = stdReturnPeriod)
+    def modifyStdReturnPeriod(pf: PartialFunction[Option[String], Option[String]]): Period =
+      if (pf.isDefinedAt(stdReturnPeriod)) copy(stdReturnPeriod = pf(stdReturnPeriod)) else this
     def withNonStdTaxPeriods(nonStdTaxPeriods: Option[NonStdTaxPeriods]): Period =
       copy(nonStdTaxPeriods = nonStdTaxPeriods)
+    def modifyNonStdTaxPeriods(pf: PartialFunction[Option[NonStdTaxPeriods], Option[NonStdTaxPeriods]]): Period =
+      if (pf.isDefinedAt(nonStdTaxPeriods)) copy(nonStdTaxPeriods = pf(nonStdTaxPeriods)) else this
   }
 
   object Period extends RecordUtils[Period] {
@@ -2178,11 +2532,23 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       extends Address {
 
     def withLine1(line1: String): UkAddress = copy(line1 = line1)
+    def modifyLine1(pf: PartialFunction[String, String]): UkAddress =
+      if (pf.isDefinedAt(line1)) copy(line1 = pf(line1)) else this
     def withLine2(line2: String): UkAddress = copy(line2 = line2)
+    def modifyLine2(pf: PartialFunction[String, String]): UkAddress =
+      if (pf.isDefinedAt(line2)) copy(line2 = pf(line2)) else this
     def withLine3(line3: Option[String]): UkAddress = copy(line3 = line3)
+    def modifyLine3(pf: PartialFunction[Option[String], Option[String]]): UkAddress =
+      if (pf.isDefinedAt(line3)) copy(line3 = pf(line3)) else this
     def withLine4(line4: Option[String]): UkAddress = copy(line4 = line4)
+    def modifyLine4(pf: PartialFunction[Option[String], Option[String]]): UkAddress =
+      if (pf.isDefinedAt(line4)) copy(line4 = pf(line4)) else this
     def withPostCode(postCode: String): UkAddress = copy(postCode = postCode)
+    def modifyPostCode(pf: PartialFunction[String, String]): UkAddress =
+      if (pf.isDefinedAt(postCode)) copy(postCode = pf(postCode)) else this
     def withCountryCode(countryCode: String): UkAddress = copy(countryCode = countryCode)
+    def modifyCountryCode(pf: PartialFunction[String, String]): UkAddress =
+      if (pf.isDefinedAt(countryCode)) copy(countryCode = pf(countryCode)) else this
   }
 
   object UkAddress extends RecordUtils[UkAddress] {
