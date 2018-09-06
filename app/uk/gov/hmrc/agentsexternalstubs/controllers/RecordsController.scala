@@ -169,12 +169,7 @@ class RecordsController @Inject()(
         record =>
           agentRecordsService
             .store(record, autoFill, session.planetId)
-            .map(
-              recordId =>
-                Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))).withHeaders(
-                  HeaderNames.LOCATION -> routes.DesStubController
-                    .getAgentRecord("arn", record.agentReferenceNumber.get)
-                    .url)))
+            .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url)))))
     }(SessionRecordNotFound)
   }
 

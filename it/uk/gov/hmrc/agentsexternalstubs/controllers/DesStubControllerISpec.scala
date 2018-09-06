@@ -3,7 +3,8 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import org.joda.time.LocalDate
 import play.api.libs.json._
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, RelationshipRecord}
+import uk.gov.hmrc.agentsexternalstubs.models.AgentRecord.Individual
+import uk.gov.hmrc.agentsexternalstubs.models.{AgentRecord, AuthenticatedSession, RelationshipRecord}
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
@@ -19,7 +20,7 @@ class DesStubControllerISpec
 
     "POST /registration/relationship" should {
       "respond 200 when authorising for ITSA" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = DesStub.authoriseOrDeAuthoriseRelationship(
           Json.parse("""
@@ -38,7 +39,7 @@ class DesStubControllerISpec
       }
 
       "respond 200 when de-authorising an ITSA relationship" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = DesStub.authoriseOrDeAuthoriseRelationship(
           Json.parse("""
@@ -58,7 +59,7 @@ class DesStubControllerISpec
 
     "GET /registration/relationship" should {
       "respond 200" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         await(
           repo.store(
@@ -105,7 +106,7 @@ class DesStubControllerISpec
 
     "GET /registration/relationship/nino/:nino" should {
       "return 200 response if relationship exists" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val createAgentResult = Records.createLegacyAgent(Json.parse(validLegacyAgentPayload))
         createAgentResult should haveStatus(201)
         val createRelationshipResult = Records.createLegacyRelationship(Json.parse(validLegacyRelationshipPayload))
@@ -122,7 +123,7 @@ class DesStubControllerISpec
       }
 
       "return 200 response if relationship does not exist" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val result = DesStub.getLegacyRelationshipsByNino("HW827856C")
         result should haveStatus(200)
         result.json.as[JsObject] should haveProperty[Seq[JsObject]]("agents", have.size(0))
@@ -131,7 +132,7 @@ class DesStubControllerISpec
 
     "GET /registration/relationship/utr/:utr" should {
       "return 200 response if relationship does not exists" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val createAgentResult = Records.createLegacyAgent(Json.parse(validLegacyAgentPayload))
         createAgentResult should haveStatus(201)
         val createRelationshipResult = Records.createLegacyRelationship(Json.parse(validLegacyRelationshipPayload))
@@ -148,7 +149,7 @@ class DesStubControllerISpec
       }
 
       "return 200 response if relationship does not exist" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val result = DesStub.getLegacyRelationshipsByUtr("1234567890")
         result should haveStatus(200)
         result.json.as[JsObject] should haveProperty[Seq[JsObject]]("agents", have.size(0))
@@ -157,7 +158,7 @@ class DesStubControllerISpec
 
     "GET /registration/business-details/nino/:idNumber" should {
       "return 200 response if record found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val createResult = Records.createBusinessDetails(Json.parse(validBusinessDetailsPayload))
         createResult should haveStatus(201)
 
@@ -169,7 +170,7 @@ class DesStubControllerISpec
       }
 
       "return 404 response if record not found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val result = DesStub.getBusinessDetails("nino", "HW827856C")
         result should haveStatus(404)
       }
@@ -177,7 +178,7 @@ class DesStubControllerISpec
 
     "GET /registration/business-details/mtdbsa/:idNumber" should {
       "return 200 response if record found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val createResult = Records.createBusinessDetails(Json.parse(validBusinessDetailsPayload))
         createResult should haveStatus(201)
 
@@ -189,7 +190,7 @@ class DesStubControllerISpec
       }
 
       "return 404 response if record not found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val result = DesStub.getBusinessDetails("mtdbsa", "999999999999999")
         result should haveStatus(404)
       }
@@ -197,7 +198,7 @@ class DesStubControllerISpec
 
     "GET /vat/customer/vrn/:vrn/information" should {
       "return 200 response if record found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val createResult = Records.createVatCustomerInformation(Json.parse(validVatCustomerInformationPayload))
         createResult should haveStatus(201)
 
@@ -208,7 +209,7 @@ class DesStubControllerISpec
       }
 
       "return 404 response if record not found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val result = DesStub.getVatCustomerInformation("999999999")
         result should haveStatus(200)
       }
@@ -216,7 +217,7 @@ class DesStubControllerISpec
 
     "GET /registration/personal-details/arn/:arn" should {
       "return 200 response if record found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val createResult = Records.createAgentRecord(Json.parse(validAgentRecordPayload))
         createResult should haveStatus(201)
 
@@ -227,7 +228,7 @@ class DesStubControllerISpec
       }
 
       "return 404 response if record not found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val result = DesStub.getAgentRecord("arn", "BARN1234567")
         result should haveStatus(404)
       }
@@ -235,7 +236,7 @@ class DesStubControllerISpec
 
     "GET /registration/personal-details/utr/:utr" should {
       "return 200 response if record found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val createResult = Records.createAgentRecord(Json.parse(validAgentRecordPayload))
         createResult should haveStatus(201)
 
@@ -246,9 +247,38 @@ class DesStubControllerISpec
       }
 
       "return 404 response if record not found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val result = DesStub.getAgentRecord("utr", "0123456789")
         result should haveStatus(404)
+      }
+    }
+
+    "POST /registration/agents/utr/:utr" should {
+      "subscribe agent to AgentServices and return ARN" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val createResult = Records.createAgentRecord(
+          AgentRecord
+            .seed("foo")
+            .withUtr(Some("0123456789"))
+            .withIndividual(Some(Individual.seed("foo"))))
+        createResult should haveStatus(201)
+
+        val result = DesStub.subscribeToAgentServices("0123456789", Json.parse(validAgentSubmission))
+        result should haveStatus(200)
+      }
+
+      "return 400 if utr not valid" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = DesStub.subscribeToAgentServices("foo", Json.parse(validAgentSubmission))
+        result should haveStatus(400)
+      }
+
+      "return 400 if utr not found" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = DesStub.subscribeToAgentServices("0123456789", Json.parse(validAgentSubmission))
+        result should haveStatus(400)
       }
     }
   }

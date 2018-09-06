@@ -19,7 +19,9 @@ trait CurrentSession extends HttpHelpers {
     case e: BadRequestException    => badRequest("BAD_REQUEST", e.getMessage)
     case e: HttpException          => Results.Status(e.responseCode)(errorMessage("SERVER_ERROR", Some(e.getMessage)))
     case e: AuthorisationException => forbidden(e.getMessage)
-    case NonFatal(e)               => internalServerError("SERVER_ERROR", e.getMessage)
+    case NonFatal(e) =>
+      e.printStackTrace()
+      internalServerError("SERVER_ERROR", e.getMessage)
   }
 
   def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(

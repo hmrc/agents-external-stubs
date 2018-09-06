@@ -18,8 +18,6 @@ import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
-import scala.concurrent.Future
-
 @Singleton
 class DesStubController @Inject()(
   val authenticationService: AuthenticationService,
@@ -413,6 +411,8 @@ object DesStubController {
             )
         }
         .withAddressDetails(address)
+        .withIsAnAgent(true)
+        .withIsAnASAgent(true)
     }
 
     case class Response(safeId: String, agentRegistrationNumber: String)
