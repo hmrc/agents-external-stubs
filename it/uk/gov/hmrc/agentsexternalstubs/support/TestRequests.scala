@@ -56,6 +56,13 @@ trait TestRequests extends ScalaFutures {
   implicit def fromAuthenticatedSession(authSession: AuthenticatedSession): AuthContext =
     AuthContext.fromToken(authSession.authToken)
 
+  def get(path: String)(implicit authContext: AuthContext): WSResponse =
+    wsClient
+      .url(s"$url$path")
+      .withHeaders(authContext.headers: _*)
+      .get()
+      .futureValue
+
   object SignIn {
     def signIn(
       userId: String,
@@ -82,12 +89,7 @@ trait TestRequests extends ScalaFutures {
       session.json.as[AuthenticatedSession]
     }
 
-    def signOut(implicit authContext: AuthContext): WSResponse =
-      wsClient
-        .url(s"$url/agents-external-stubs/sign-out")
-        .withHeaders(authContext.headers: _*)
-        .get()
-        .futureValue
+    def signOut(implicit authContext: AuthContext): WSResponse = get(s"/agents-external-stubs/sign-out")
   }
 
   object AuthStub {
@@ -144,34 +146,18 @@ trait TestRequests extends ScalaFutures {
 
   object CitizenDetailsStub {
     def getCitizen(idName: String, taxId: String)(implicit authContext: AuthContext): WSResponse =
-      wsClient
-        .url(s"$url/citizen-details/$idName/$taxId")
-        .withHeaders(authContext.headers: _*)
-        .get()
-        .futureValue
+      get(s"/citizen-details/$idName/$taxId")
   }
 
   object UsersGroupSearchStub {
     def getUser(userId: String)(implicit authContext: AuthContext): WSResponse =
-      wsClient
-        .url(s"$url/users-groups-search/users/$userId")
-        .withHeaders(authContext.headers: _*)
-        .get()
-        .futureValue
+      get(s"/users-groups-search/users/$userId")
 
     def getGroup(groupId: String)(implicit authContext: AuthContext): WSResponse =
-      wsClient
-        .url(s"$url/users-groups-search/groups/$groupId")
-        .withHeaders(authContext.headers: _*)
-        .get()
-        .futureValue
+      get(s"/users-groups-search/groups/$groupId")
 
     def getGroupUsers(groupId: String)(implicit authContext: AuthContext): WSResponse =
-      wsClient
-        .url(s"$url/users-groups-search/groups/$groupId/users")
-        .withHeaders(authContext.headers: _*)
-        .get()
-        .futureValue
+      get(s"/users-groups-search/groups/$groupId/users")
 
     def getGroupByAgentCode(agentCode: String, agentId: String)(implicit authContext: AuthContext): WSResponse =
       wsClient
@@ -266,55 +252,27 @@ trait TestRequests extends ScalaFutures {
         .futureValue
 
     def getLegacyRelationshipsByNino(nino: String)(implicit authContext: AuthContext): WSResponse =
-      wsClient
-        .url(s"$url/registration/relationship/nino/$nino")
-        .withHeaders(authContext.headers: _*)
-        .get()
-        .futureValue
+      get(s"/registration/relationship/nino/$nino")
 
     def getLegacyRelationshipsByUtr(utr: String)(implicit authContext: AuthContext): WSResponse =
-      wsClient
-        .url(s"$url/registration/relationship/utr/$utr")
-        .withHeaders(authContext.headers: _*)
-        .get()
-        .futureValue
+      get(s"/registration/relationship/utr/$utr")
 
     def getBusinessDetails(idType: String, idNumber: String)(implicit authContext: AuthContext): WSResponse =
-      wsClient
-        .url(s"$url/registration/business-details/$idType/$idNumber")
-        .withHeaders(authContext.headers: _*)
-        .get()
-        .futureValue
+      get(s"/registration/business-details/$idType/$idNumber")
 
     def getVatCustomerInformation(vrn: String)(implicit authContext: AuthContext): WSResponse =
-      wsClient
-        .url(s"$url/vat/customer/vrn/$vrn/information")
-        .withHeaders(authContext.headers: _*)
-        .get()
-        .futureValue
+      get(s"/vat/customer/vrn/$vrn/information")
 
     def getAgentRecord(idType: String, idNumber: String)(implicit authContext: AuthContext): WSResponse =
-      wsClient
-        .url(s"$url/registration/personal-details/$idType/$idNumber")
-        .withHeaders(authContext.headers: _*)
-        .get()
-        .futureValue
+      get(s"/registration/personal-details/$idType/$idNumber")
   }
 
   object Records {
     def getRecords()(implicit authContext: AuthContext): WSResponse =
-      wsClient
-        .url(s"$url/agents-external-stubs/records")
-        .withHeaders(authContext.headers: _*)
-        .get
-        .futureValue
+      get(s"/agents-external-stubs/records")
 
     def getRecord(recordId: String)(implicit authContext: AuthContext): WSResponse =
-      wsClient
-        .url(s"$url/agents-external-stubs/record/$recordId")
-        .withHeaders(authContext.headers: _*)
-        .get
-        .futureValue
+      get(s"/agents-external-stubs/record/$recordId")
 
     def updateRecord[T: Writeable](recordId: String, payload: T)(implicit authContext: AuthContext): WSResponse =
       wsClient
@@ -408,11 +366,7 @@ trait TestRequests extends ScalaFutures {
 
   object Config {
     def getServices()(implicit authContext: AuthContext): WSResponse =
-      wsClient
-        .url(s"$url/agents-external-stubs/config/services")
-        .withHeaders(authContext.headers: _*)
-        .get()
-        .futureValue
+      get(s"/agents-external-stubs/config/services")
   }
 
 }

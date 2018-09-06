@@ -119,7 +119,7 @@ object UsersGroupsSearchStubController {
   /**
     * {
     *   "_links": [
-    *     { "rel": "users", "link": "/groups/:groupdId/users" }
+    *     { "rel": "users", "href": "/groups/:groupdId/users" }
     *   ],
     *   "groupId": ":groupId",
     *   "affinityGroup": "Agent",

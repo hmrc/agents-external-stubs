@@ -3,6 +3,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 import java.util.UUID
 
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId}
+import uk.gov.hmrc.agentsexternalstubs.models.AgentRecord.UkAddress
 import uk.gov.hmrc.agentsexternalstubs.models.UserGenerator
 import uk.gov.hmrc.agentsexternalstubs.support._
 import uk.gov.hmrc.domain.Nino
@@ -85,10 +86,14 @@ class UserRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
 
       val result = await(agentRecordsService.getAgentRecord(Arn("XARN0001230"), planetId))
       result.flatMap(_.agencyDetails.flatMap(_.agencyName)) shouldBe Some("ABC123")
+      result.flatMap(_.agencyDetails.flatMap(_.agencyAddress.map(_.asInstanceOf[UkAddress].postalCode))) shouldBe defined
+      result.map(_.addressDetails.asInstanceOf[UkAddress].postalCode) shouldBe defined
 
       await(usersService.updateUser(user.userId, planetId, user => user.copy(agentFriendlyName = Some("foobar"))))
       val result2 = await(agentRecordsService.getAgentRecord(Arn("XARN0001230"), planetId))
       result2.flatMap(_.agencyDetails.flatMap(_.agencyName)) shouldBe Some("foobar")
+      result2.flatMap(_.agencyDetails.flatMap(_.agencyAddress.map(_.asInstanceOf[UkAddress].postalCode))) shouldBe defined
+      result2.map(_.addressDetails.asInstanceOf[UkAddress].postalCode) shouldBe defined
     }
   }
 }

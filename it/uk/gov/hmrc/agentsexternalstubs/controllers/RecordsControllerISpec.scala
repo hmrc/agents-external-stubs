@@ -2,7 +2,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.json.{JsArray, JsObject, Json}
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.models.AuthenticatedSession
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, BusinessDetailsRecord}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
 
@@ -38,7 +38,7 @@ class RecordsControllerISpec
       }
     }
 
-    "GET /agenqts-external-stubs/records/:recordId" should {
+    "GET /agents-external-stubs/records/:recordId" should {
       "respond 200 with a record" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
 
@@ -51,9 +51,15 @@ class RecordsControllerISpec
         val createResult4 = Records.createLegacyRelationship(Json.parse(validLegacyRelationshipPayload))
         createResult4 should haveStatus(201)
 
-        println(createResult1.json.toString())
-        //val result = Records.getRecord()
-
+        val result1 = get(createResult1.json.as[Links].rel("self").getOrElse(fail()))
+        result1 should haveStatus(200)
+        result1.json.asOpt[BusinessDetailsRecord] shouldBe defined
+        val result2 = get(createResult2.json.as[Links].rel("self").getOrElse(fail()))
+        result2 should haveStatus(200)
+        val result3 = get(createResult3.json.as[Links].rel("self").getOrElse(fail()))
+        result3 should haveStatus(200)
+        val result4 = get(createResult4.json.as[Links].rel("self").getOrElse(fail()))
+        result4 should haveStatus(200)
       }
     }
 

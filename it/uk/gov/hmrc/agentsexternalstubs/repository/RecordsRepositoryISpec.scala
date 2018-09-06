@@ -98,5 +98,19 @@ class RecordsRepositoryISpec extends AppBaseISpec with MongoDB {
       val record = await(repo.findById(recordId, planetId))
       record shouldBe defined
     }
+
+    "remove a record by its ID" in {
+      val planetId = UUID.randomUUID().toString
+      val businessDetails = BusinessDetailsRecord.generate("foo")
+      val recordId = await(repo.store(businessDetails, planetId))
+
+      val record1 = await(repo.findById(recordId, planetId))
+      record1 shouldBe defined
+
+      await(repo.remove(recordId, planetId))
+
+      val record2 = await(repo.findById(recordId, planetId))
+      record2 shouldBe None
+    }
   }
 }

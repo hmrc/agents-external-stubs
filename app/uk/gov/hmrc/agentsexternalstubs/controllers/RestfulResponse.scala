@@ -1,10 +1,10 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 import play.api.libs.json._
 
-case class Link(rel: String, link: String)
+case class Link(rel: String, href: String)
 
 object Link {
-  implicit val writes: Writes[Link] = Json.writes[Link]
+  implicit val formats: Format[Link] = Json.format[Link]
 }
 
 object RestfulResponse {
@@ -18,4 +18,12 @@ object RestfulResponse {
 
   def apply(links: Link*): JsValue =
     Json.obj("_links" -> links)
+}
+
+case class Links(`_links`: Seq[Link]) {
+  def rel(rel: String): Option[String] = `_links`.find(_.rel == rel).map(_.href)
+}
+
+object Links {
+  implicit val reads: Reads[Links] = Json.reads[Links]
 }

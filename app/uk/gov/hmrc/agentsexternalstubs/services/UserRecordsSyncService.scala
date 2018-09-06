@@ -115,6 +115,7 @@ class UserRecordsSyncService @Inject()(
 
   val recordForAnAgent: UserRecordsSync = {
     case User.Agent(user) => {
+      val address = UkAddress.generate(user.userId)
       val agentRecord = AgentRecord
         .generate(user.userId)
         .withBusinessPartnerExists(true)
@@ -129,10 +130,10 @@ class UserRecordsSyncService @Inject()(
           Some(
             AgencyDetails
               .generate(user.userId)
+              .withAgencyAddress(Some(address))
               .withAgencyName(user.agentFriendlyName.map(_.take(40)))))
-
+        .withAddressDetails(address)
       val utr = Generator.utr(user.userId)
-      val address = UkAddress.generate(user.userId)
       user
         .findIdentifierValue("HMRC-AS-AGENT", "AgentReferenceNumber") match {
         case Some(arn) =>
@@ -140,13 +141,6 @@ class UserRecordsSyncService @Inject()(
             .withAgentReferenceNumber(Option(arn))
             .withIsAnAgent(true)
             .withIsAnASAgent(true)
-            .withAgencyDetails(
-              Some(
-                AgencyDetails
-                  .generate(user.userId)
-                  .withAgencyAddress(Some(address))
-                  .withAgencyName(user.agentFriendlyName)))
-            .withAddressDetails(address)
           agentRecordsService
             .getAgentRecord(Arn(arn), user.planetId.get)
             .map {

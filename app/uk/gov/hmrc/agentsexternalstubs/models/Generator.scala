@@ -117,11 +117,15 @@ trait Generator extends Names with Temporal with Companies with Addresses {
   def address(userId: String): Address = addressGen.seeded(userId).get
 
   case class Address4Lines35(line1: String, line2: String, line3: String, line4: String)
-  lazy val address4Lines35Gen: Gen[Address4Lines35] = ukAddress
-    .map {
-      case street :: town :: postcode :: Nil =>
-        Address4Lines35(street.take(35).replace(";", " "), "The House", town.take(35), postcode)
-    }
+  lazy val address4Lines35Gen: Gen[Address4Lines35] = surname
+    .flatMap(
+      s =>
+        ukAddress
+          .map {
+            case street :: town :: postcode :: Nil =>
+              Address4Lines35(street.take(35).replace(";", " "), s"The $s House".take(35), town.take(35), postcode)
+        })
+    .suchThat(_.line1.matches("""^[A-Za-z0-9 \-,.&'\/()!]{1,35}$"""))
 
   lazy val tradingNameGen: Gen[String] = company.map(_.split(" ").mkString(" "))
 

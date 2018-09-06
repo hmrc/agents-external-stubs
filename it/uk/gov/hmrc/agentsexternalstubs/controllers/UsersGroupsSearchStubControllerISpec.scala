@@ -88,7 +88,7 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with MongoDB 
         (json \ "agentFriendlyName").asOpt[String] shouldBe None
         (json \ "agentId").asOpt[String] shouldBe None
         ((json \ "_links")(0) \ "rel").as[String] shouldBe "users"
-        ((json \ "_links")(0) \ "link").as[String] shouldBe "/users-groups-search/groups/foo-group-3/users"
+        ((json \ "_links")(0) \ "href").as[String] shouldBe "/users-groups-search/groups/foo-group-3/users"
       }
 
       "respond 200 with agent group details if found" in {
@@ -112,7 +112,7 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with MongoDB 
         (json \ "agentFriendlyName").as[String] shouldBe "Foo-Foe Accountants"
         (json \ "agentId").as[String] shouldBe "1234567"
         ((json \ "_links")(0) \ "rel").as[String] shouldBe "users"
-        ((json \ "_links")(0) \ "link").as[String] shouldBe "/users-groups-search/groups/foo-group-4/users"
+        ((json \ "_links")(0) \ "href").as[String] shouldBe "/users-groups-search/groups/foo-group-4/users"
       }
 
       "respond 404 if group not found" in {
@@ -146,7 +146,7 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with MongoDB 
         (json \ "agentFriendlyName").as[String] shouldBe "Foo-Foe Accountants"
         (json \ "agentId").as[String] shouldBe "1234567"
         ((json \ "_links")(0) \ "rel").as[String] shouldBe "users"
-        ((json \ "_links")(0) \ "link").as[String] shouldBe "/users-groups-search/groups/foo-group-5/users"
+        ((json \ "_links")(0) \ "href").as[String] shouldBe "/users-groups-search/groups/foo-group-5/users"
       }
 
       "respond 404 if group not found" in {
