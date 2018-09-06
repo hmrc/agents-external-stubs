@@ -9,6 +9,7 @@ import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.services._
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import uk.gov.hmrc.agentsexternalstubs.syntax._
 
 @Singleton
 class RecordsController @Inject()(
@@ -25,7 +26,7 @@ class RecordsController @Inject()(
       recordsRepository
         .findAll(session.planetId)
         .collect[List](1000)
-        .flatMap(list => okF(list.groupBy(_.getClass.getSimpleName).mapValues(_.map(Record.toJson))))
+        .flatMap(list => okF(list.groupBy(Record.typeOf).mapValues(_.map(Record.toJson))))
     }(SessionRecordNotFound)
   }
 
@@ -36,6 +37,34 @@ class RecordsController @Inject()(
         .map {
           case Some(record) => ok(Record.toJson(record))
           case None         => notFound("NOT_FOUND_RECORD_ID")
+        }
+    }(SessionRecordNotFound)
+  }
+
+  def updateRecord(recordId: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
+    withCurrentSession { session =>
+      recordsRepository
+        .findById[Record](recordId, session.planetId)
+        .flatMap {
+          case None => notFoundF("NOT_FOUND_RECORD_ID")
+          case Some(record) =>
+            Record
+              .fromJson(Record.typeOf(record), request.body) |> whenSuccess { payload =>
+              recordsRepository
+                .store(payload, session.planetId)
+                .map(_ => ok(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))))
+            }
+        }
+    }(SessionRecordNotFound)
+  }
+
+  def deleteRecord(recordId: String): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      recordsRepository
+        .findById[Record](recordId, session.planetId)
+        .flatMap {
+          case Some(_) => recordsRepository.remove(recordId, session.planetId).map(_ => NoContent)
+          case None    => notFoundF("NOT_FOUND_RECORD_ID")
         }
     }(SessionRecordNotFound)
   }

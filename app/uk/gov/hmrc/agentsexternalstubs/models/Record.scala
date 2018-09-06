@@ -15,28 +15,22 @@ trait Record {
 
 object Record {
 
-  val ID = "_id"
-  val TYPE = "_record_type"
+  final val ID = "_id"
+  final val TYPE = "_record_type"
 
-  val reads: Reads[Record] = new Reads[Record] {
+  final val reads: Reads[Record] = new Reads[Record] {
     override def reads(json: JsValue): JsResult[Record] = json match {
       case obj: JsObject =>
         ((obj \ TYPE).asOpt[String] match {
-          case Some("RelationshipRecord")           => RelationshipRecord.formats.reads(obj)
-          case Some("LegacyAgentRecord")            => LegacyAgentRecord.formats.reads(obj)
-          case Some("LegacyRelationshipRecord")     => LegacyRelationshipRecord.formats.reads(obj)
-          case Some("BusinessDetailsRecord")        => BusinessDetailsRecord.formats.reads(obj)
-          case Some("VatCustomerInformationRecord") => VatCustomerInformationRecord.formats.reads(obj)
-          case Some("AgentRecord")                  => AgentRecord.formats.reads(obj)
-          case Some(r)                              => JsError(s"Record type $r not supported")
-          case None                                 => JsError("Missing record type field")
+          case Some(typeName) => fromJson(typeName, obj)
+          case None           => JsError("Missing record type field")
         }).map(_.withId((obj \ ID \ "$oid").asOpt[String]))
 
       case o => JsError(s"Cannot parse Record from $o, must be JsObject.")
     }
   }
 
-  val writes: Writes[Record] = new Writes[Record] {
+  final val writes: Writes[Record] = new Writes[Record] {
 
     override def writes(record: Record): JsValue =
       toJson(record) match {
@@ -52,7 +46,9 @@ object Record {
       }
   }
 
-  def toJson(r: Record): JsValue = r match {
+  final def typeOf(r: Record): String = r.getClass.getSimpleName
+
+  final def toJson(r: Record): JsValue = r match {
     case r: RelationshipRecord           => RelationshipRecord.formats.writes(r)
     case r: LegacyAgentRecord            => LegacyAgentRecord.formats.writes(r)
     case r: LegacyRelationshipRecord     => LegacyRelationshipRecord.formats.writes(r)
@@ -60,6 +56,16 @@ object Record {
     case r: VatCustomerInformationRecord => VatCustomerInformationRecord.formats.writes(r)
     case r: AgentRecord                  => AgentRecord.formats.writes(r)
     case _                               => throw new UnsupportedOperationException(s"Cannot serialize $record")
+  }
+
+  final def fromJson(typeName: String, json: JsValue): JsResult[Record] = typeName match {
+    case "RelationshipRecord"           => RelationshipRecord.formats.reads(json)
+    case "LegacyAgentRecord"            => LegacyAgentRecord.formats.reads(json)
+    case "LegacyRelationshipRecord"     => LegacyRelationshipRecord.formats.reads(json)
+    case "BusinessDetailsRecord"        => BusinessDetailsRecord.formats.reads(json)
+    case "VatCustomerInformationRecord" => VatCustomerInformationRecord.formats.reads(json)
+    case "AgentRecord"                  => AgentRecord.formats.reads(json)
+    case other                          => JsError(s"Record type $other not supported")
   }
 
   implicit val formats: Format[Record] = Format[Record](reads, writes)

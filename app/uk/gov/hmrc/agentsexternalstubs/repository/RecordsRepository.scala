@@ -37,9 +37,7 @@ import uk.gov.hmrc.agentsexternalstubs.syntax.|>
 @ImplementedBy(classOf[RecordsRepositoryMongo])
 trait RecordsRepository {
 
-  def store[T <: Record](entity: T, planetId: String)(
-    implicit ec: ExecutionContext,
-    recordType: RecordMetaData[T]): Future[String]
+  def store[T <: Record](entity: T, planetId: String)(implicit ec: ExecutionContext): Future[String]
 
   def cursor[T <: Record](
     key: String,
@@ -48,6 +46,8 @@ trait RecordsRepository {
   def findById[T <: Record](id: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[T]]
 
   def findAll(planetId: String)(implicit ec: ExecutionContext): Cursor[Record]
+
+  def remove(id: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
 }
 
 @Singleton
@@ -76,24 +76,22 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
       )
     )
 
-  override def store[T <: Record](entity: T, planetId: String)(
-    implicit ec: ExecutionContext,
-    recordType: RecordMetaData[T]): Future[String] = {
-
+  override def store[T <: Record](entity: T, planetId: String)(implicit ec: ExecutionContext): Future[String] = {
+    val typeName = Record.typeOf(entity)
     val json = Json
       .toJson[Record](entity)
       .as[JsObject]
       .+(PLANET_ID -> JsString(planetId))
-      .+(TYPE -> JsString(recordType.typeName))
+      .+(TYPE -> JsString(typeName))
       .+(
         KEYS -> JsArray(
           entity.uniqueKey
             .map(key => entity.lookupKeys :+ key)
             .getOrElse(entity.lookupKeys)
-            .map(key => JsString(keyOf(key, planetId, recordType)))))
+            .map(key => JsString(keyOf(key, planetId, typeName)))))
       .|> { obj =>
         entity.uniqueKey
-          .map(uniqueKey => obj.+(UNIQUE_KEY -> JsString(keyOf(uniqueKey, planetId, recordType))))
+          .map(uniqueKey => obj.+(UNIQUE_KEY -> JsString(keyOf(uniqueKey, planetId, typeName))))
           .getOrElse(obj)
       }
 
@@ -112,7 +110,7 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
     planetId: String)(implicit reads: Reads[T], ec: ExecutionContext, recordType: RecordMetaData[T]): Cursor[T] =
     collection
       .find(
-        JsObject(Seq(KEYS -> JsString(keyOf(key, planetId, recordType)))),
+        JsObject(Seq(KEYS -> JsString(keyOf(key, planetId, recordType.typeName)))),
         Json.obj(recordType.fieldNames.map(option => option -> toJsFieldJsValueWrapper(JsNumber(1))): _*)
       )
       .cursor[T](ReadPreference.primaryPreferred)(
@@ -141,6 +139,14 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
         ec,
         implicitly[CursorProducer[Record]])
 
-  private def keyOf[T <: Record](key: String, planetId: String, recordType: RecordMetaData[T]): String =
-    s"${recordType.typeName}:${key.replace(" ", "").toLowerCase}@$planetId"
+  override def remove(id: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+    this
+      .remove(
+        Record.ID -> toJsFieldJsValueWrapper(Json.obj("$oid" -> JsString(id))),
+        PLANET_ID -> toJsFieldJsValueWrapper(JsString(planetId))
+      )
+      .map(_ => ())
+
+  private def keyOf[T <: Record](key: String, planetId: String, recordType: String): String =
+    s"$recordType:${key.replace(" ", "").toLowerCase}@$planetId"
 }

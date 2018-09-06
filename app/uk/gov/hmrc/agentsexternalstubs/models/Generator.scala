@@ -2,8 +2,8 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import java.time.format.DateTimeFormatter
 
 import org.scalacheck.Gen
-import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId}
-import uk.gov.hmrc.domain.{Nino, Vrn}
+import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, UtrCheck}
+import uk.gov.hmrc.domain.{Modulus11Check, Nino, Vrn}
 import uk.gov.hmrc.smartstub.{Addresses, Companies, Names, Temporal, ToLong}
 import wolfendale.scalacheck.regexp.RegexpGen
 
@@ -60,7 +60,11 @@ trait Generator extends Names with Temporal with Companies with Addresses {
   lazy val mtdbsaGen: Gen[String] = pattern"ZZZZ99999999999".gen
   def mtdbsa(seed: String): MtdItId = mtdbsaGen.map(MtdItId.apply).seeded(seed).get
 
-  lazy val utrGen: Gen[String] = pattern"9999999999".gen
+  object Modulus11 extends Modulus11Check {
+    def apply(s: String) = calculateCheckCharacter(s) + s
+  }
+
+  lazy val utrGen: Gen[String] = pattern"999999999".gen.map(Modulus11.apply).retryUntil(UtrCheck.isValid)
   def utr(seed: String): String = utrGen.seeded(seed).get
 
   lazy val vrnGen: Gen[String] = pattern"999999999".gen
