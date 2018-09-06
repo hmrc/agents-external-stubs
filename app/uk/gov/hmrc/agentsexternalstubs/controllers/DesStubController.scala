@@ -10,11 +10,15 @@ import play.api.data.validation.{Constraint, Constraints, Invalid, Valid}
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent}
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Utr}
-import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.AgentRecord.AgencyDetails
+import uk.gov.hmrc.agentsexternalstubs.models.{SubscribeAgentServicesPayload, _}
+import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.services._
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+
+import scala.concurrent.Future
 
 @Singleton
 class DesStubController @Inject()(
@@ -23,7 +27,8 @@ class DesStubController @Inject()(
   legacyRelationshipRecordsService: LegacyRelationshipRecordsService,
   businessDetailsRecordsService: BusinessDetailsRecordsService,
   vatCustomerInformationRecordsService: VatCustomerInformationRecordsService,
-  agentRecordsService: AgentRecordsService
+  agentRecordsService: AgentRecordsService,
+  recordsRepository: RecordsRepository
 )(implicit usersService: UsersService)
     extends BaseController with DesCurrentSession {
 
@@ -178,6 +183,42 @@ class DesStubController @Inject()(
               case None         => Ok(Json.obj())
           }
         )
+    }(SessionRecordNotFound)
+  }
+
+  def subscribeAgentServices(utr: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
+    withCurrentSession { session =>
+      RegexPatterns
+        .validUtr(utr)
+        .fold(
+          error => badRequestF("INVALID_UTR", error),
+          _ =>
+            withPayload[SubscribeAgentServicesPayload] { payload =>
+              SubscribeAgentServicesPayload
+                .validate(payload)
+                .fold(
+                  error => badRequestF("INVALID_PAYLOAD", error.mkString(", ")),
+                  _ =>
+                    agentRecordsService.getAgentRecord(Utr(utr), session.planetId).flatMap {
+                      case None => badRequestF("NOT_FOUND")
+                      case Some(existingRecord) =>
+                        agentRecordsService
+                          .store(
+                            SubscribeAgentServices.toAgentRecord(payload, existingRecord),
+                            autoFill = false,
+                            session.planetId)
+                          .flatMap(id => recordsRepository.findById[AgentRecord](id, session.planetId))
+                          .map {
+                            case Some(record) =>
+                              ok(SubscribeAgentServices.Response(record.safeId, record.agentReferenceNumber.get))
+                            case None =>
+                              internalServerError("SERVER_ERROR", "AgentRecord creation failed silently.")
+                          }
+                  }
+                )
+          }
+        )
+
     }(SessionRecordNotFound)
   }
 
@@ -341,6 +382,43 @@ object DesStubController {
 
       implicit val formats1: Format[LegacyAgent] = Json.format[LegacyAgent]
       implicit val formats: Format[Response] = Json.format[Response]
+    }
+  }
+
+  object SubscribeAgentServices {
+
+    def toAgentRecord(payload: SubscribeAgentServicesPayload, existingRecord: AgentRecord): AgentRecord = {
+      val address = payload.agencyAddress match {
+        case SubscribeAgentServicesPayload.UkAddress(l1, l2, l3, l4, pc, cc) =>
+          AgentRecord.UkAddress(l1, l2, l3, l4, pc, cc)
+        case SubscribeAgentServicesPayload.ForeignAddress(l1, l2, l3, l4, pc, cc) =>
+          AgentRecord.ForeignAddress(l1, l2, l3, l4, pc, cc)
+      }
+      existingRecord
+        .modifyAgentReferenceNumber {
+          case None => Some(Generator.arn(existingRecord.utr.get).value)
+        }
+        .withAgencyDetails(
+          Some(
+            AgencyDetails()
+              .withAgencyName(Option(payload.agencyName))
+              .withAgencyAddress(Some(address))
+              .withAgencyEmail(payload.agencyEmail)))
+        .modifyContactDetails {
+          case Some(contactDetails) =>
+            Some(
+              contactDetails
+                .withPhoneNumber(payload.telephoneNumber)
+                .withEmailAddress(payload.agencyEmail)
+            )
+        }
+        .withAddressDetails(address)
+    }
+
+    case class Response(safeId: String, agentRegistrationNumber: String)
+
+    object Response {
+      implicit val writes: Writes[Response] = Json.writes[Response]
     }
   }
 

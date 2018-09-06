@@ -31,43 +31,44 @@ trait ExampleDesPayloads {
       |}
     """.stripMargin
 
-  val validBusinessDetailsPayload = """
-                                      |{
-                                      |    "safeId": "XE00001234567890",
-                                      |    "nino": "AA123456A",
-                                      |    "mtdbsa": "123456789012345",
-                                      |    "propertyIncome": false,
-                                      |    "businessData": [
-                                      |        {
-                                      |            "incomeSourceId": "123456789012345",
-                                      |            "accountingPeriodStartDate": "2001-01-01",
-                                      |            "accountingPeriodEndDate": "2001-01-01",
-                                      |            "tradingName": "RCDTS",
-                                      |            "businessAddressDetails":
-                                      |            {
-                                      |                "addressLine1": "100 SuttonStreet",
-                                      |                "addressLine2": "Wokingham",
-                                      |                "addressLine3": "Surrey",
-                                      |                "addressLine4": "London",
-                                      |                "postalCode": "DH14EJ",
-                                      |                "countryCode": "GB"
-                                      |            },
-                                      |            "businessContactDetails":
-                                      |            {
-                                      |                "phoneNumber": "01332752856",
-                                      |                "mobileNumber": "07782565326",
-                                      |                "faxNumber": "01332754256",
-                                      |                "emailAddress": "stephen@manncorpone.co.uk"
-                                      |            },
-                                      |            "tradingStartDate": "2001-01-01",
-                                      |            "cashOrAccruals": "cash",
-                                      |            "seasonal": true,
-                                      |            "cessationDate": "2001-01-01",
-                                      |            "cessationReason": "002",
-                                      |            "paperLess": true
-                                      |        }
-                                      |    ]
-                                      |}
+  val validBusinessDetailsPayload =
+    """
+      |{
+      |    "safeId": "XE00001234567890",
+      |    "nino": "AA123456A",
+      |    "mtdbsa": "123456789012345",
+      |    "propertyIncome": false,
+      |    "businessData": [
+      |        {
+      |            "incomeSourceId": "123456789012345",
+      |            "accountingPeriodStartDate": "2001-01-01",
+      |            "accountingPeriodEndDate": "2001-01-01",
+      |            "tradingName": "RCDTS",
+      |            "businessAddressDetails":
+      |            {
+      |                "addressLine1": "100 SuttonStreet",
+      |                "addressLine2": "Wokingham",
+      |                "addressLine3": "Surrey",
+      |                "addressLine4": "London",
+      |                "postalCode": "DH14EJ",
+      |                "countryCode": "GB"
+      |            },
+      |            "businessContactDetails":
+      |            {
+      |                "phoneNumber": "01332752856",
+      |                "mobileNumber": "07782565326",
+      |                "faxNumber": "01332754256",
+      |                "emailAddress": "stephen@manncorpone.co.uk"
+      |            },
+      |            "tradingStartDate": "2001-01-01",
+      |            "cashOrAccruals": "cash",
+      |            "seasonal": true,
+      |            "cessationDate": "2001-01-01",
+      |            "cessationReason": "002",
+      |            "paperLess": true
+      |        }
+      |    ]
+      |}
                                     """.stripMargin
 
   val validVatCustomerInformationPayload =
@@ -390,5 +391,21 @@ trait ExampleDesPayloads {
       |  }
       |}
     """.stripMargin
+
+  val validAgentSubmission =
+    """{
+      |  "safeId": "XE0001234567890",
+      |  "agencyName": "HMRC",
+      |  "agencyAddress": {
+      |    "addressLine1": "Plaza 2",
+      |    "addressLine2": "Ironmasters Way",
+      |    "addressLine3": "Telford",
+      |    "addressLine4": "Shropshire",
+      |    "postalCode": "TF3 4NT",
+      |    "countryCode": "GB"
+      |  },
+      |  "telephoneNumber": "01332752856",
+      |  "agencyEmail": "hmrc@hmrc.gsi.gov.uk"
+      |}""".stripMargin
 
 }

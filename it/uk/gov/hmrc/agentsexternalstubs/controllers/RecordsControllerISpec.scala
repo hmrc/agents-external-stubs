@@ -2,7 +2,8 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.json.{JsArray, JsObject, Json}
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, BusinessDetailsRecord}
+import play.mvc.Http.HeaderNames
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, BusinessDetailsRecord, Record}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
 
@@ -60,6 +61,28 @@ class RecordsControllerISpec
         result3 should haveStatus(200)
         val result4 = get(createResult4.json.as[Links].rel("self").getOrElse(fail()))
         result4 should haveStatus(200)
+      }
+    }
+
+    "PUT /agents-external-stubs/records/:recordId" should {
+      "update a record and return 202" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+
+        val createResult1 = Records.createBusinessDetails(Json.parse(validBusinessDetailsPayload))
+        createResult1 should haveStatus(201)
+        val getResult1 = get(createResult1.json.as[Links].rel("self").getOrElse(fail()))
+        getResult1 should haveStatus(200)
+
+        val record = getResult1.json
+          .as[BusinessDetailsRecord]
+          .modifyMtdbsa { case s => s.reverse }
+
+        val result = Records.updateRecord(record.id.get, Record.toJson(record))
+        result should haveStatus(202)
+
+        val getResult2 = get(result.header(HeaderNames.LOCATION).get)
+        getResult2 should haveStatus(200)
+        getResult2.json.as[BusinessDetailsRecord].mtdbsa shouldBe "123456789012345".reverse
       }
     }
 

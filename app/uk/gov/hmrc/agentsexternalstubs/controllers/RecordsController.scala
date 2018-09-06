@@ -52,7 +52,7 @@ class RecordsController @Inject()(
               .fromJson(Record.typeOf(record), request.body) |> whenSuccess { payload =>
               recordsRepository
                 .store(payload.withId(Some(recordId)), session.planetId)
-                .map(_ => ok(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))))
+                .map(id => Accepted.withHeaders(HeaderNames.LOCATION -> routes.RecordsController.getRecord(id).url))
             }
         }
     }(SessionRecordNotFound)

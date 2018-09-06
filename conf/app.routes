@@ -30,6 +30,7 @@ GET         /registration/relationship/nino/:nino                            @uk
 GET         /registration/business-details/:idType/:idNumber                 @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getBusinessDetails(idType: String, idNumber: String)
 GET         /vat/customer/vrn/:vrn/information                               @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getVatCustomerInformation(vrn: String)
 GET         /registration/personal-details/:idType/:idNumber                 @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getAgentRecord(idType: String, idNumber: String)
+POST        /registration/agents/utr/:utr                                    @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.subscribeAgentServices(utr: String)
 
 # Authentication
 POST        /agents-external-stubs/sign-in                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.signIn

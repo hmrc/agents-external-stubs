@@ -99,6 +99,7 @@ Endpoint | Description
 `GET  /vat/customer/vrn/:vrn/information` | Provides the ability for a taxpayer (Business or Individual) to retrieve a customer data record from the master system for the VAT tax regime.
 `GET  /registration/personal-details/arn/:arn` | Provides the ability to request the Agent Record Details (business partner record) associated with the Register Once Number or Agent Register Once Number
 `GET  /registration/personal-details/utr/:utr` | ^^ as above
+`GET  /registration/agents/utr/:utr` | Provides the ability for an Agent to be subscribed into Agents Services, generating the agent reference number.
 
 ## Custom API <a name="custom_api"></a>
 

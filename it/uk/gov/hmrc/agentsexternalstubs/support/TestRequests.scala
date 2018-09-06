@@ -45,7 +45,11 @@ trait TestRequests extends ScalaFutures {
   def url: String
   def wsClient: WSClient
 
-  import JsonWriteable._
+  implicit def jsonWriteable[T](implicit writes: Writes[T], jsValueWriteable: Writeable[JsValue]): Writeable[T] =
+    new Writeable[T](
+      entity => jsValueWriteable.transform(writes.writes(entity)),
+      Some(MimeTypes.JSON)
+    )
 
   implicit def headerCarrier(implicit authSession: AuthenticatedSession): HeaderCarrier =
     HeaderCarrier(authorization = Some(Authorization(s"Bearer ${authSession.authToken}")))
@@ -81,7 +85,7 @@ trait TestRequests extends ScalaFutures {
         .futureValue
 
     def signInAndGetSession(
-      userId: String,
+      userId: String = "foo",
       password: String = "p@ssw0rd",
       planetId: String = UUID.randomUUID().toString): AuthenticatedSession = {
       val signedIn = signIn(userId, password, planetId = planetId)
@@ -265,6 +269,13 @@ trait TestRequests extends ScalaFutures {
 
     def getAgentRecord(idType: String, idNumber: String)(implicit authContext: AuthContext): WSResponse =
       get(s"/registration/personal-details/$idType/$idNumber")
+
+    def subscribeToAgentServices[T: Writeable](utr: String, payload: T)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/registration/agents/utr/$utr")
+        .withHeaders(authContext.headers: _*)
+        .post[T](payload)
+        .futureValue
   }
 
   object Records {
@@ -272,11 +283,11 @@ trait TestRequests extends ScalaFutures {
       get(s"/agents-external-stubs/records")
 
     def getRecord(recordId: String)(implicit authContext: AuthContext): WSResponse =
-      get(s"/agents-external-stubs/record/$recordId")
+      get(s"/agents-external-stubs/records/$recordId")
 
     def updateRecord[T: Writeable](recordId: String, payload: T)(implicit authContext: AuthContext): WSResponse =
       wsClient
-        .url(s"$url/agents-external-stubs/record/$recordId")
+        .url(s"$url/agents-external-stubs/records/$recordId")
         .withHeaders(authContext.headers: _*)
         .put[T](payload)
         .futureValue
@@ -369,14 +380,6 @@ trait TestRequests extends ScalaFutures {
       get(s"/agents-external-stubs/config/services")
   }
 
-}
-
-object JsonWriteable {
-  implicit def jsonWriteable[T](implicit writes: Writes[T], jsValueWriteable: Writeable[JsValue]): Writeable[T] =
-    new Writeable[T](
-      entity => jsValueWriteable.transform(writes.writes(entity)),
-      Some(MimeTypes.JSON)
-    )
 }
 
 trait CookieConverter {

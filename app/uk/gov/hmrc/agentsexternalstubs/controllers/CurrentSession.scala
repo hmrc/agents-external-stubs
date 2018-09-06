@@ -1,4 +1,5 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
+import play.api.libs.json.{JsValue, Json, OWrites, Writes}
 import play.api.mvc.{Request, Result, Results}
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, User}
@@ -56,6 +57,14 @@ trait CurrentSession extends HttpHelpers {
 trait DesCurrentSession extends DesHttpHelpers {
 
   def authenticationService: AuthenticationService
+
+  case class DesErrorResponse(code: String, reason: Option[String])
+  object DesErrorResponse {
+    implicit val writes: Writes[DesErrorResponse] = Json.writes[DesErrorResponse]
+  }
+
+  override def errorMessage(code: String, reason: Option[String]): JsValue =
+    Json.toJson(DesErrorResponse(code, reason))
 
   val errorHandler: PartialFunction[Throwable, Result] = {
     case e: NotFoundException      => notFound("NOT_FOUND", e.getMessage)
