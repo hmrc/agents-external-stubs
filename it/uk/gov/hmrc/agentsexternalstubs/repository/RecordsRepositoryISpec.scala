@@ -90,6 +90,15 @@ class RecordsRepositoryISpec extends AppBaseISpec with MongoDB {
       records.size shouldBe 1
     }
 
+    "store a BusinessPartnerRecord entities" in {
+      val planetId = UUID.randomUUID().toString
+      val businessPartnerRecord = BusinessPartnerRecord.generate("foo")
+      await(repo.store(businessPartnerRecord, planetId))
+
+      val records = await(underlyingRepo.find("_planetId" -> planetId))
+      records.size shouldBe 1
+    }
+
     "find a record by its ID" in {
       val planetId = UUID.randomUUID().toString
       val businessDetails = BusinessDetailsRecord.generate("foo")

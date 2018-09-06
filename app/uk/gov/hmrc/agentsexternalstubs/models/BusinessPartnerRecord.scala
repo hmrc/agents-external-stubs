@@ -2,16 +2,16 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json._
-import uk.gov.hmrc.agentsexternalstubs.models.AgentRecord._
+import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord._
 
 /**
   * ----------------------------------------------------------------------------
   * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
   * How to regenerate? Run this command in the project root directory:
-  * sbt "test:runMain uk.gov.hmrc.agentsexternalstubs.RecordClassGeneratorFromJsonSchema docs/schemas/DES1170.json app/uk/gov/hmrc/agentsexternalstubs/models/AgentRecord.scala AgentRecord "
+  * sbt "test:runMain uk.gov.hmrc.agentsexternalstubs.RecordClassGeneratorFromJsonSchema docs/schemas/DES1170.json app/uk/gov/hmrc/agentsexternalstubs/models/BusinessPartnerRecord.scala BusinessPartnerRecord "
   * ----------------------------------------------------------------------------
   *
-  *  AgentRecord
+  *  BusinessPartnerRecord
   *  -  AddressDetails
   *  -  AgencyDetails
   *  -  -  AgencyAddress
@@ -21,7 +21,7 @@ import uk.gov.hmrc.agentsexternalstubs.models.AgentRecord._
   *  -  Organisation
   *  -  UkAddress
   */
-case class AgentRecord(
+case class BusinessPartnerRecord(
   businessPartnerExists: Boolean,
   safeId: String,
   agentReferenceNumber: Option[String] = None,
@@ -38,65 +38,70 @@ case class AgentRecord(
   id: Option[String] = None
 ) extends Record {
 
-  override def uniqueKey: Option[String] = agentReferenceNumber.map(AgentRecord.uniqueKey)
-  override def lookupKeys: Seq[String] = Seq(utr.map(AgentRecord.utrKey)).collect { case Some(x) => x }
-  override def withId(id: Option[String]): AgentRecord = copy(id = id)
+  override def uniqueKey: Option[String] = Option(safeId).map(BusinessPartnerRecord.uniqueKey)
+  override def lookupKeys: Seq[String] =
+    Seq(agentReferenceNumber.map(BusinessPartnerRecord.agentReferenceNumberKey), utr.map(BusinessPartnerRecord.utrKey))
+      .collect { case Some(x) => x }
+  override def withId(id: Option[String]): BusinessPartnerRecord = copy(id = id)
 
-  def withBusinessPartnerExists(businessPartnerExists: Boolean): AgentRecord =
+  def withBusinessPartnerExists(businessPartnerExists: Boolean): BusinessPartnerRecord =
     copy(businessPartnerExists = businessPartnerExists)
-  def modifyBusinessPartnerExists(pf: PartialFunction[Boolean, Boolean]): AgentRecord =
+  def modifyBusinessPartnerExists(pf: PartialFunction[Boolean, Boolean]): BusinessPartnerRecord =
     if (pf.isDefinedAt(businessPartnerExists)) copy(businessPartnerExists = pf(businessPartnerExists)) else this
-  def withSafeId(safeId: String): AgentRecord = copy(safeId = safeId)
-  def modifySafeId(pf: PartialFunction[String, String]): AgentRecord =
+  def withSafeId(safeId: String): BusinessPartnerRecord = copy(safeId = safeId)
+  def modifySafeId(pf: PartialFunction[String, String]): BusinessPartnerRecord =
     if (pf.isDefinedAt(safeId)) copy(safeId = pf(safeId)) else this
-  def withAgentReferenceNumber(agentReferenceNumber: Option[String]): AgentRecord =
+  def withAgentReferenceNumber(agentReferenceNumber: Option[String]): BusinessPartnerRecord =
     copy(agentReferenceNumber = agentReferenceNumber)
-  def modifyAgentReferenceNumber(pf: PartialFunction[Option[String], Option[String]]): AgentRecord =
+  def modifyAgentReferenceNumber(pf: PartialFunction[Option[String], Option[String]]): BusinessPartnerRecord =
     if (pf.isDefinedAt(agentReferenceNumber)) copy(agentReferenceNumber = pf(agentReferenceNumber)) else this
-  def withUtr(utr: Option[String]): AgentRecord = copy(utr = utr)
-  def modifyUtr(pf: PartialFunction[Option[String], Option[String]]): AgentRecord =
+  def withUtr(utr: Option[String]): BusinessPartnerRecord = copy(utr = utr)
+  def modifyUtr(pf: PartialFunction[Option[String], Option[String]]): BusinessPartnerRecord =
     if (pf.isDefinedAt(utr)) copy(utr = pf(utr)) else this
-  def withIsAnAgent(isAnAgent: Boolean): AgentRecord = copy(isAnAgent = isAnAgent)
-  def modifyIsAnAgent(pf: PartialFunction[Boolean, Boolean]): AgentRecord =
+  def withIsAnAgent(isAnAgent: Boolean): BusinessPartnerRecord = copy(isAnAgent = isAnAgent)
+  def modifyIsAnAgent(pf: PartialFunction[Boolean, Boolean]): BusinessPartnerRecord =
     if (pf.isDefinedAt(isAnAgent)) copy(isAnAgent = pf(isAnAgent)) else this
-  def withIsAnASAgent(isAnASAgent: Boolean): AgentRecord = copy(isAnASAgent = isAnASAgent)
-  def modifyIsAnASAgent(pf: PartialFunction[Boolean, Boolean]): AgentRecord =
+  def withIsAnASAgent(isAnASAgent: Boolean): BusinessPartnerRecord = copy(isAnASAgent = isAnASAgent)
+  def modifyIsAnASAgent(pf: PartialFunction[Boolean, Boolean]): BusinessPartnerRecord =
     if (pf.isDefinedAt(isAnASAgent)) copy(isAnASAgent = pf(isAnASAgent)) else this
-  def withIsAnIndividual(isAnIndividual: Boolean): AgentRecord = copy(isAnIndividual = isAnIndividual)
-  def modifyIsAnIndividual(pf: PartialFunction[Boolean, Boolean]): AgentRecord =
+  def withIsAnIndividual(isAnIndividual: Boolean): BusinessPartnerRecord = copy(isAnIndividual = isAnIndividual)
+  def modifyIsAnIndividual(pf: PartialFunction[Boolean, Boolean]): BusinessPartnerRecord =
     if (pf.isDefinedAt(isAnIndividual)) copy(isAnIndividual = pf(isAnIndividual)) else this
-  def withIndividual(individual: Option[Individual]): AgentRecord = copy(individual = individual)
-  def modifyIndividual(pf: PartialFunction[Option[Individual], Option[Individual]]): AgentRecord =
+  def withIndividual(individual: Option[Individual]): BusinessPartnerRecord = copy(individual = individual)
+  def modifyIndividual(pf: PartialFunction[Option[Individual], Option[Individual]]): BusinessPartnerRecord =
     if (pf.isDefinedAt(individual)) copy(individual = pf(individual)) else this
-  def withIsAnOrganisation(isAnOrganisation: Boolean): AgentRecord = copy(isAnOrganisation = isAnOrganisation)
-  def modifyIsAnOrganisation(pf: PartialFunction[Boolean, Boolean]): AgentRecord =
+  def withIsAnOrganisation(isAnOrganisation: Boolean): BusinessPartnerRecord = copy(isAnOrganisation = isAnOrganisation)
+  def modifyIsAnOrganisation(pf: PartialFunction[Boolean, Boolean]): BusinessPartnerRecord =
     if (pf.isDefinedAt(isAnOrganisation)) copy(isAnOrganisation = pf(isAnOrganisation)) else this
-  def withOrganisation(organisation: Option[Organisation]): AgentRecord = copy(organisation = organisation)
-  def modifyOrganisation(pf: PartialFunction[Option[Organisation], Option[Organisation]]): AgentRecord =
+  def withOrganisation(organisation: Option[Organisation]): BusinessPartnerRecord = copy(organisation = organisation)
+  def modifyOrganisation(pf: PartialFunction[Option[Organisation], Option[Organisation]]): BusinessPartnerRecord =
     if (pf.isDefinedAt(organisation)) copy(organisation = pf(organisation)) else this
-  def withAddressDetails(addressDetails: AddressDetails): AgentRecord = copy(addressDetails = addressDetails)
-  def modifyAddressDetails(pf: PartialFunction[AddressDetails, AddressDetails]): AgentRecord =
+  def withAddressDetails(addressDetails: AddressDetails): BusinessPartnerRecord = copy(addressDetails = addressDetails)
+  def modifyAddressDetails(pf: PartialFunction[AddressDetails, AddressDetails]): BusinessPartnerRecord =
     if (pf.isDefinedAt(addressDetails)) copy(addressDetails = pf(addressDetails)) else this
-  def withContactDetails(contactDetails: Option[ContactDetails]): AgentRecord = copy(contactDetails = contactDetails)
-  def modifyContactDetails(pf: PartialFunction[Option[ContactDetails], Option[ContactDetails]]): AgentRecord =
+  def withContactDetails(contactDetails: Option[ContactDetails]): BusinessPartnerRecord =
+    copy(contactDetails = contactDetails)
+  def modifyContactDetails(pf: PartialFunction[Option[ContactDetails], Option[ContactDetails]]): BusinessPartnerRecord =
     if (pf.isDefinedAt(contactDetails)) copy(contactDetails = pf(contactDetails)) else this
-  def withAgencyDetails(agencyDetails: Option[AgencyDetails]): AgentRecord = copy(agencyDetails = agencyDetails)
-  def modifyAgencyDetails(pf: PartialFunction[Option[AgencyDetails], Option[AgencyDetails]]): AgentRecord =
+  def withAgencyDetails(agencyDetails: Option[AgencyDetails]): BusinessPartnerRecord =
+    copy(agencyDetails = agencyDetails)
+  def modifyAgencyDetails(pf: PartialFunction[Option[AgencyDetails], Option[AgencyDetails]]): BusinessPartnerRecord =
     if (pf.isDefinedAt(agencyDetails)) copy(agencyDetails = pf(agencyDetails)) else this
 }
 
-object AgentRecord extends RecordUtils[AgentRecord] {
+object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
 
   implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
-  implicit val recordType: RecordMetaData[AgentRecord] = RecordMetaData[AgentRecord](this)
+  implicit val recordType: RecordMetaData[BusinessPartnerRecord] = RecordMetaData[BusinessPartnerRecord](this)
 
-  def uniqueKey(key: String): String = s"""agentReferenceNumber:${key.toUpperCase}"""
+  def uniqueKey(key: String): String = s"""safeId:${key.toUpperCase}"""
+  def agentReferenceNumberKey(key: String): String = s"""agentReferenceNumber:${key.toUpperCase}"""
   def utrKey(key: String): String = s"""utr:${key.toUpperCase}"""
 
   import Validator._
   import Generator.GenOps._
 
-  override val validate: Validator[AgentRecord] = Validator(
+  override val validate: Validator[BusinessPartnerRecord] = Validator(
     check(
       _.safeId.matches(Common.safeIdPattern),
       s"""Invalid safeId, does not matches regex ${Common.safeIdPattern}"""),
@@ -113,7 +118,7 @@ object AgentRecord extends RecordUtils[AgentRecord] {
     checkIfAtLeastOneIsDefined(Seq(_.organisation, _.individual))
   )
 
-  override val gen: Gen[AgentRecord] = for {
+  override val gen: Gen[BusinessPartnerRecord] = for {
     businessPartnerExists <- Generator.booleanGen
     safeId                <- Generator.safeIdGen
     isAnAgent             <- Generator.booleanGen
@@ -122,7 +127,7 @@ object AgentRecord extends RecordUtils[AgentRecord] {
     isAnOrganisation      <- Generator.booleanGen
     addressDetails        <- AddressDetails.gen
   } yield
-    AgentRecord(
+    BusinessPartnerRecord(
       businessPartnerExists = businessPartnerExists,
       safeId = safeId,
       isAnAgent = isAnAgent,
@@ -181,7 +186,7 @@ object AgentRecord extends RecordUtils[AgentRecord] {
     agencyDetailsSanitizer,
     organisationOrIndividualSanitizer)
 
-  implicit val formats: Format[AgentRecord] = Json.format[AgentRecord]
+  implicit val formats: Format[BusinessPartnerRecord] = Json.format[BusinessPartnerRecord]
 
   sealed trait AddressDetails {
     def addressLine2: Option[String] = None

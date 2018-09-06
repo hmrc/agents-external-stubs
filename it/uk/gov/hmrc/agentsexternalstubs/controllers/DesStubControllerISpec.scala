@@ -3,8 +3,8 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import org.joda.time.LocalDate
 import play.api.libs.json._
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.models.AgentRecord.Individual
-import uk.gov.hmrc.agentsexternalstubs.models.{AgentRecord, AuthenticatedSession, RelationshipRecord}
+import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.Individual
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, BusinessPartnerRecord, RelationshipRecord}
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
@@ -218,10 +218,10 @@ class DesStubControllerISpec
     "GET /registration/personal-details/arn/:arn" should {
       "return 200 response if record found" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-        val createResult = Records.createAgentRecord(Json.parse(validAgentRecordPayload))
+        val createResult = Records.createBusinessPartnerRecord(Json.parse(validBusinessPartnerRecordPayload))
         createResult should haveStatus(201)
 
-        val result = DesStub.getAgentRecord("arn", "AARN1234567")
+        val result = DesStub.getBusinessPartnerRecord("arn", "AARN1234567")
         result should haveStatus(200)
         val json = result.json
         json.as[JsObject] should haveProperty[String]("agentReferenceNumber")
@@ -229,7 +229,7 @@ class DesStubControllerISpec
 
       "return 404 response if record not found" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-        val result = DesStub.getAgentRecord("arn", "BARN1234567")
+        val result = DesStub.getBusinessPartnerRecord("arn", "BARN1234567")
         result should haveStatus(404)
       }
     }
@@ -237,10 +237,10 @@ class DesStubControllerISpec
     "GET /registration/personal-details/utr/:utr" should {
       "return 200 response if record found" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-        val createResult = Records.createAgentRecord(Json.parse(validAgentRecordPayload))
+        val createResult = Records.createBusinessPartnerRecord(Json.parse(validBusinessPartnerRecordPayload))
         createResult should haveStatus(201)
 
-        val result = DesStub.getAgentRecord("utr", "0123456789")
+        val result = DesStub.getBusinessPartnerRecord("utr", "0123456789")
         result should haveStatus(200)
         val json = result.json
         json.as[JsObject] should haveProperty[String]("agentReferenceNumber")
@@ -248,7 +248,7 @@ class DesStubControllerISpec
 
       "return 404 response if record not found" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-        val result = DesStub.getAgentRecord("utr", "0123456789")
+        val result = DesStub.getBusinessPartnerRecord("utr", "0123456789")
         result should haveStatus(404)
       }
     }
@@ -256,8 +256,8 @@ class DesStubControllerISpec
     "POST /registration/agents/utr/:utr" should {
       "subscribe agent to AgentServices and return ARN" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-        val createResult = Records.createAgentRecord(
-          AgentRecord
+        val createResult = Records.createBusinessPartnerRecord(
+          BusinessPartnerRecord
             .seed("foo")
             .withUtr(Some("0123456789"))
             .withIndividual(Some(Individual.seed("foo"))))

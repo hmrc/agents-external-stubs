@@ -185,7 +185,7 @@ class RecordsControllerISpec
       "respond 200 with a minimal auto-generated entity" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
 
-        val result = Records.generateAgentRecord("foo", minimal = true)
+        val result = Records.generateBusinessPartnerRecord("foo", minimal = true)
         result should haveStatus(200)
         result should haveValidJsonBody(
           haveProperty[String]("safeId") and haveProperty[Boolean]("businessPartnerExists") and haveProperty[Boolean](
@@ -197,7 +197,7 @@ class RecordsControllerISpec
       "respond 200 with a complete auto-generated entity" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
 
-        val result = Records.generateAgentRecord("foo", minimal = false)
+        val result = Records.generateBusinessPartnerRecord("foo", minimal = false)
         result should haveStatus(200)
         result should haveValidJsonBody(
           haveProperty[String]("safeId") and haveProperty[Boolean]("businessPartnerExists") and haveProperty[Boolean](

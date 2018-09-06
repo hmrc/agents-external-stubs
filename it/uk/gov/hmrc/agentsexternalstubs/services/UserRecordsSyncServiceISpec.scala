@@ -3,7 +3,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 import java.util.UUID
 
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId}
-import uk.gov.hmrc.agentsexternalstubs.models.AgentRecord.UkAddress
+import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.UkAddress
 import uk.gov.hmrc.agentsexternalstubs.models.UserGenerator
 import uk.gov.hmrc.agentsexternalstubs.support._
 import uk.gov.hmrc.domain.Nino
@@ -14,7 +14,7 @@ class UserRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
   lazy val userRecordsService = app.injector.instanceOf[UserRecordsSyncService]
   lazy val businessDetailsRecordsService = app.injector.instanceOf[BusinessDetailsRecordsService]
   lazy val vatCustomerInformationRecordsService = app.injector.instanceOf[VatCustomerInformationRecordsService]
-  lazy val agentRecordsService = app.injector.instanceOf[AgentRecordsService]
+  lazy val BusinessPartnerRecordsService = app.injector.instanceOf[BusinessPartnerRecordsService]
 
   "UserRecordsSyncService" should {
     "sync mtd-it individual to business details records" in {
@@ -84,13 +84,13 @@ class UserRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
 
       await(usersService.createUser(user, planetId))
 
-      val result = await(agentRecordsService.getAgentRecord(Arn("XARN0001230"), planetId))
+      val result = await(BusinessPartnerRecordsService.getBusinessPartnerRecord(Arn("XARN0001230"), planetId))
       result.flatMap(_.agencyDetails.flatMap(_.agencyName)) shouldBe Some("ABC123")
       result.flatMap(_.agencyDetails.flatMap(_.agencyAddress.map(_.asInstanceOf[UkAddress].postalCode))) shouldBe defined
       result.map(_.addressDetails.asInstanceOf[UkAddress].postalCode) shouldBe defined
 
       await(usersService.updateUser(user.userId, planetId, user => user.copy(agentFriendlyName = Some("foobar"))))
-      val result2 = await(agentRecordsService.getAgentRecord(Arn("XARN0001230"), planetId))
+      val result2 = await(BusinessPartnerRecordsService.getBusinessPartnerRecord(Arn("XARN0001230"), planetId))
       result2.flatMap(_.agencyDetails.flatMap(_.agencyName)) shouldBe Some("foobar")
       result2.flatMap(_.agencyDetails.flatMap(_.agencyAddress.map(_.asInstanceOf[UkAddress].postalCode))) shouldBe defined
       result2.map(_.addressDetails.asInstanceOf[UkAddress].postalCode) shouldBe defined

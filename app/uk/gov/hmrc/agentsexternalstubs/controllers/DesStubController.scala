@@ -10,7 +10,7 @@ import play.api.data.validation.{Constraint, Constraints, Invalid, Valid}
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent}
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Utr}
-import uk.gov.hmrc.agentsexternalstubs.models.AgentRecord.AgencyDetails
+import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.AgencyDetails
 import uk.gov.hmrc.agentsexternalstubs.models.{SubscribeAgentServicesPayload, _}
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.services._
@@ -25,7 +25,7 @@ class DesStubController @Inject()(
   legacyRelationshipRecordsService: LegacyRelationshipRecordsService,
   businessDetailsRecordsService: BusinessDetailsRecordsService,
   vatCustomerInformationRecordsService: VatCustomerInformationRecordsService,
-  agentRecordsService: AgentRecordsService,
+  BusinessPartnerRecordsService: BusinessPartnerRecordsService,
   recordsRepository: RecordsRepository
 )(implicit usersService: UsersService)
     extends BaseController with DesCurrentSession {
@@ -135,38 +135,39 @@ class DesStubController @Inject()(
     }(SessionRecordNotFound)
   }
 
-  def getAgentRecord(idType: String, idNumber: String): Action[AnyContent] = Action.async { implicit request =>
-    withCurrentSession { session =>
-      idType match {
-        case "arn" =>
-          RegexPatterns
-            .validArn(idNumber)
-            .fold(
-              error => badRequestF("INVALID_ARN", error),
-              _ =>
-                agentRecordsService
-                  .getAgentRecord(Arn(idNumber), session.planetId)
-                  .map {
-                    case Some(record) => Ok(Json.toJson(record))
-                    case None         => notFound("NOT_FOUND")
-                }
-            )
-        case "utr" =>
-          RegexPatterns
-            .validUtr(idNumber)
-            .fold(
-              error => badRequestF("INVALID_UTR", error),
-              _ =>
-                agentRecordsService
-                  .getAgentRecord(Utr(idNumber), session.planetId)
-                  .map {
-                    case Some(record) => Ok(Json.toJson(record))
-                    case None         => notFound("NOT_FOUND")
-                }
-            )
-        case _ => badRequestF("INVALID_IDTYPE")
-      }
-    }(SessionRecordNotFound)
+  def getBusinessPartnerRecord(idType: String, idNumber: String): Action[AnyContent] = Action.async {
+    implicit request =>
+      withCurrentSession { session =>
+        idType match {
+          case "arn" =>
+            RegexPatterns
+              .validArn(idNumber)
+              .fold(
+                error => badRequestF("INVALID_ARN", error),
+                _ =>
+                  BusinessPartnerRecordsService
+                    .getBusinessPartnerRecord(Arn(idNumber), session.planetId)
+                    .map {
+                      case Some(record) => Ok(Json.toJson(record))
+                      case None         => notFound("NOT_FOUND")
+                  }
+              )
+          case "utr" =>
+            RegexPatterns
+              .validUtr(idNumber)
+              .fold(
+                error => badRequestF("INVALID_UTR", error),
+                _ =>
+                  BusinessPartnerRecordsService
+                    .getBusinessPartnerRecord(Utr(idNumber), session.planetId)
+                    .map {
+                      case Some(record) => Ok(Json.toJson(record))
+                      case None         => notFound("NOT_FOUND")
+                  }
+              )
+          case _ => badRequestF("INVALID_IDTYPE")
+        }
+      }(SessionRecordNotFound)
   }
 
   def getVatCustomerInformation(vrn: String): Action[AnyContent] = Action.async { implicit request =>
@@ -197,20 +198,20 @@ class DesStubController @Inject()(
                 .fold(
                   error => badRequestF("INVALID_PAYLOAD", error.mkString(", ")),
                   _ =>
-                    agentRecordsService.getAgentRecord(Utr(utr), session.planetId).flatMap {
+                    BusinessPartnerRecordsService.getBusinessPartnerRecord(Utr(utr), session.planetId).flatMap {
                       case None => badRequestF("NOT_FOUND")
                       case Some(existingRecord) =>
-                        agentRecordsService
+                        BusinessPartnerRecordsService
                           .store(
-                            SubscribeAgentServices.toAgentRecord(payload, existingRecord),
+                            SubscribeAgentServices.toBusinessPartnerRecord(payload, existingRecord),
                             autoFill = false,
                             session.planetId)
-                          .flatMap(id => recordsRepository.findById[AgentRecord](id, session.planetId))
+                          .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, session.planetId))
                           .map {
                             case Some(record) =>
                               ok(SubscribeAgentServices.Response(record.safeId, record.agentReferenceNumber.get))
                             case None =>
-                              internalServerError("SERVER_ERROR", "AgentRecord creation failed silently.")
+                              internalServerError("SERVER_ERROR", "BusinessPartnerRecord creation failed silently.")
                           }
                   }
                 )
@@ -385,12 +386,14 @@ object DesStubController {
 
   object SubscribeAgentServices {
 
-    def toAgentRecord(payload: SubscribeAgentServicesPayload, existingRecord: AgentRecord): AgentRecord = {
+    def toBusinessPartnerRecord(
+      payload: SubscribeAgentServicesPayload,
+      existingRecord: BusinessPartnerRecord): BusinessPartnerRecord = {
       val address = payload.agencyAddress match {
         case SubscribeAgentServicesPayload.UkAddress(l1, l2, l3, l4, pc, cc) =>
-          AgentRecord.UkAddress(l1, l2, l3, l4, pc, cc)
+          BusinessPartnerRecord.UkAddress(l1, l2, l3, l4, pc, cc)
         case SubscribeAgentServicesPayload.ForeignAddress(l1, l2, l3, l4, pc, cc) =>
-          AgentRecord.ForeignAddress(l1, l2, l3, l4, pc, cc)
+          BusinessPartnerRecord.ForeignAddress(l1, l2, l3, l4, pc, cc)
       }
       existingRecord
         .modifyAgentReferenceNumber {

@@ -16,7 +16,7 @@ class RecordsController @Inject()(
   businessDetailsRecordsService: BusinessDetailsRecordsService,
   legacyRelationshipRecordsService: LegacyRelationshipRecordsService,
   vatCustomerInformationRecordsService: VatCustomerInformationRecordsService,
-  agentRecordsService: AgentRecordsService,
+  BusinessPartnerRecordsService: BusinessPartnerRecordsService,
   recordsRepository: RecordsRepository,
   val authenticationService: AuthenticationService)
     extends BaseController with CurrentSession {
@@ -163,24 +163,24 @@ class RecordsController @Inject()(
       }(SessionRecordNotFound)
   }
 
-  def storeAgentRecord(autoFill: Boolean): Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def storeBusinessPartnerRecord(autoFill: Boolean): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withCurrentSession { session =>
-      withPayload[AgentRecord](
+      withPayload[BusinessPartnerRecord](
         record =>
-          agentRecordsService
+          BusinessPartnerRecordsService
             .store(record, autoFill, session.planetId)
             .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url)))))
     }(SessionRecordNotFound)
   }
 
-  def generateAgentRecord(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] = Action.async {
+  def generateBusinessPartnerRecord(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] = Action.async {
     implicit request =>
       withCurrentSession { session =>
         val seed = seedOpt.getOrElse(session.sessionId)
         implicit val optionGenStrategy: Generator.OptionGenStrategy = Generator.AlwaysSome
-        val record = AgentRecord.seed(seed)
-        val result = if (minimal) record else AgentRecord.sanitize(seed)(record)
-        okF(result, Link("create", routes.RecordsController.storeAgentRecord(minimal).url))
+        val record = BusinessPartnerRecord.seed(seed)
+        val result = if (minimal) record else BusinessPartnerRecord.sanitize(seed)(record)
+        okF(result, Link("create", routes.RecordsController.storeBusinessPartnerRecord(minimal).url))
       }(SessionRecordNotFound)
   }
 

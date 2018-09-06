@@ -1,7 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Utr}
-import uk.gov.hmrc.agentsexternalstubs.models.AgentRecord.{AddressDetails, AgencyDetails, Individual, UkAddress}
+import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{AgencyDetails, Individual, UkAddress}
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, IndividualName}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.domain.Nino
@@ -13,7 +13,7 @@ import scala.concurrent.Future
 class UserRecordsSyncService @Inject()(
   businessDetailsRecordsService: BusinessDetailsRecordsService,
   vatCustomerInformationRecordsService: VatCustomerInformationRecordsService,
-  agentRecordsService: AgentRecordsService) {
+  BusinessPartnerRecordsService: BusinessPartnerRecordsService) {
 
   type UserRecordsSync = PartialFunction[User, Future[Unit]]
 
@@ -113,12 +113,14 @@ class UserRecordsSyncService @Inject()(
     }
   }
 
-  val recordForAnAgent: UserRecordsSync = {
+  val businessPartnerRecordForAnUser: UserRecordsSync = {
     case User.Agent(user) => {
       val address = UkAddress.generate(user.userId)
-      val agentRecord = AgentRecord
+      val record = BusinessPartnerRecord
         .generate(user.userId)
         .withBusinessPartnerExists(true)
+        .withIsAnOrganisation(false)
+        .withIsAnIndividual(true)
         .withIndividual(
           Some(
             Individual
@@ -137,29 +139,31 @@ class UserRecordsSyncService @Inject()(
       user
         .findIdentifierValue("HMRC-AS-AGENT", "AgentReferenceNumber") match {
         case Some(arn) =>
-          val ar = agentRecord
+          val ar = record
             .withAgentReferenceNumber(Option(arn))
             .withIsAnAgent(true)
             .withIsAnASAgent(true)
-          agentRecordsService
-            .getAgentRecord(Arn(arn), user.planetId.get)
+          BusinessPartnerRecordsService
+            .getBusinessPartnerRecord(Arn(arn), user.planetId.get)
             .map {
               case Some(existingRecord) => ar.withId(existingRecord.id)
               case None                 => ar
             }
-            .flatMap(entity => agentRecordsService.store(entity, autoFill = false, user.planetId.get).map(_ => ()))
+            .flatMap(entity =>
+              BusinessPartnerRecordsService.store(entity, autoFill = false, user.planetId.get).map(_ => ()))
         case None if user.principalEnrolments.isEmpty =>
-          val ar = agentRecord
+          val ar = record
             .withUtr(Option(utr))
             .withIsAnAgent(false)
             .withIsAnASAgent(false)
-          agentRecordsService
-            .getAgentRecord(Utr(utr), user.planetId.get)
+          BusinessPartnerRecordsService
+            .getBusinessPartnerRecord(Utr(utr), user.planetId.get)
             .map {
               case Some(existingRecord) => ar.withId(existingRecord.id)
               case None                 => ar
             }
-            .flatMap(entity => agentRecordsService.store(entity, autoFill = false, user.planetId.get).map(_ => ()))
+            .flatMap(entity =>
+              BusinessPartnerRecordsService.store(entity, autoFill = false, user.planetId.get).map(_ => ()))
         case _ =>
           Future.successful(())
       }
@@ -170,7 +174,7 @@ class UserRecordsSyncService @Inject()(
     businessDetailsForMtdItIndividual,
     vatCustomerInformationForMtdVatIndividual,
     vatCustomerInformationForMtdVatOrganisation,
-    recordForAnAgent
+    businessPartnerRecordForAnUser
   )
 
   final val syncUserToRecords: Option[User] => Future[Unit] = {

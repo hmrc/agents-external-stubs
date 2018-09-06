@@ -267,7 +267,7 @@ trait TestRequests extends ScalaFutures {
     def getVatCustomerInformation(vrn: String)(implicit authContext: AuthContext): WSResponse =
       get(s"/vat/customer/vrn/$vrn/information")
 
-    def getAgentRecord(idType: String, idNumber: String)(implicit authContext: AuthContext): WSResponse =
+    def getBusinessPartnerRecord(idType: String, idNumber: String)(implicit authContext: AuthContext): WSResponse =
       get(s"/registration/personal-details/$idType/$idNumber")
 
     def subscribeToAgentServices[T: Writeable](utr: String, payload: T)(implicit authContext: AuthContext): WSResponse =
@@ -359,16 +359,16 @@ trait TestRequests extends ScalaFutures {
         .get
         .futureValue
 
-    def createAgentRecord[T: Writeable](payload: T)(implicit authContext: AuthContext): WSResponse =
+    def createBusinessPartnerRecord[T: Writeable](payload: T)(implicit authContext: AuthContext): WSResponse =
       wsClient
-        .url(s"$url/agents-external-stubs/records/agent-record")
+        .url(s"$url/agents-external-stubs/records/business-partner-record")
         .withHeaders(authContext.headers: _*)
         .post[T](payload)
         .futureValue
 
-    def generateAgentRecord(seed: String, minimal: Boolean)(implicit authContext: AuthContext): WSResponse =
+    def generateBusinessPartnerRecord(seed: String, minimal: Boolean)(implicit authContext: AuthContext): WSResponse =
       wsClient
-        .url(s"$url/agents-external-stubs/records/agent-record/generate")
+        .url(s"$url/agents-external-stubs/records/business-partner-record/generate")
         .withQueryString("seed" -> seed, "minimal" -> minimal.toString)
         .withHeaders(authContext.headers: _*)
         .get

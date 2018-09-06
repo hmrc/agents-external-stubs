@@ -347,7 +347,7 @@ trait ExampleDesPayloads {
       |  }
       |}""".stripMargin
 
-  val validAgentRecordPayload =
+  val validBusinessPartnerRecordPayload =
     """
       |{
       |  "businessPartnerExists": true,
