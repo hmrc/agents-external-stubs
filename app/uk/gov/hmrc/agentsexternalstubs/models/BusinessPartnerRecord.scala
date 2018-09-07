@@ -26,6 +26,8 @@ case class BusinessPartnerRecord(
   safeId: String,
   agentReferenceNumber: Option[String] = None,
   utr: Option[String] = None,
+  nino: Option[String] = None,
+  eori: Option[String] = None,
   isAnAgent: Boolean,
   isAnASAgent: Boolean,
   isAnIndividual: Boolean,
@@ -40,8 +42,12 @@ case class BusinessPartnerRecord(
 
   override def uniqueKey: Option[String] = Option(safeId).map(BusinessPartnerRecord.uniqueKey)
   override def lookupKeys: Seq[String] =
-    Seq(agentReferenceNumber.map(BusinessPartnerRecord.agentReferenceNumberKey), utr.map(BusinessPartnerRecord.utrKey))
-      .collect { case Some(x) => x }
+    Seq(
+      agentReferenceNumber.map(BusinessPartnerRecord.agentReferenceNumberKey),
+      utr.map(BusinessPartnerRecord.utrKey),
+      nino.map(BusinessPartnerRecord.ninoKey),
+      eori.map(BusinessPartnerRecord.eoriKey)
+    ).collect { case Some(x) => x }
   override def withId(id: Option[String]): BusinessPartnerRecord = copy(id = id)
 
   def withBusinessPartnerExists(businessPartnerExists: Boolean): BusinessPartnerRecord =
@@ -58,6 +64,12 @@ case class BusinessPartnerRecord(
   def withUtr(utr: Option[String]): BusinessPartnerRecord = copy(utr = utr)
   def modifyUtr(pf: PartialFunction[Option[String], Option[String]]): BusinessPartnerRecord =
     if (pf.isDefinedAt(utr)) copy(utr = pf(utr)) else this
+  def withNino(nino: Option[String]): BusinessPartnerRecord = copy(nino = nino)
+  def modifyNino(pf: PartialFunction[Option[String], Option[String]]): BusinessPartnerRecord =
+    if (pf.isDefinedAt(nino)) copy(nino = pf(nino)) else this
+  def withEori(eori: Option[String]): BusinessPartnerRecord = copy(eori = eori)
+  def modifyEori(pf: PartialFunction[Option[String], Option[String]]): BusinessPartnerRecord =
+    if (pf.isDefinedAt(eori)) copy(eori = pf(eori)) else this
   def withIsAnAgent(isAnAgent: Boolean): BusinessPartnerRecord = copy(isAnAgent = isAnAgent)
   def modifyIsAnAgent(pf: PartialFunction[Boolean, Boolean]): BusinessPartnerRecord =
     if (pf.isDefinedAt(isAnAgent)) copy(isAnAgent = pf(isAnAgent)) else this
@@ -97,6 +109,8 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
   def uniqueKey(key: String): String = s"""safeId:${key.toUpperCase}"""
   def agentReferenceNumberKey(key: String): String = s"""agentReferenceNumber:${key.toUpperCase}"""
   def utrKey(key: String): String = s"""utr:${key.toUpperCase}"""
+  def ninoKey(key: String): String = s"""nino:${key.toUpperCase}"""
+  def eoriKey(key: String): String = s"""eori:${key.toUpperCase}"""
 
   import Validator._
   import Generator.GenOps._
@@ -110,6 +124,8 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
       s"""Invalid agentReferenceNumber, does not matches regex ${Common.agentReferenceNumberPattern}"""
     ),
     check(_.utr.matches(Common.utrPattern), s"""Invalid utr, does not matches regex ${Common.utrPattern}"""),
+    check(_.nino.matches(Common.ninoPattern), s"""Invalid nino, does not matches regex ${Common.ninoPattern}"""),
+    check(_.eori.matches(Common.eoriPattern), s"""Invalid eori, does not matches regex ${Common.eoriPattern}"""),
     checkObjectIfSome(_.individual, Individual.validate),
     checkObjectIfSome(_.organisation, Organisation.validate),
     checkObject(_.addressDetails, AddressDetails.validate),
@@ -143,6 +159,12 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
 
   val utrSanitizer: Update = seed =>
     entity => entity.copy(utr = entity.utr.orElse(Generator.get(Generator.utrGen)(seed)))
+
+  val ninoSanitizer: Update = seed =>
+    entity => entity.copy(nino = entity.nino.orElse(Generator.get(Generator.ninoNoSpacesGen)(seed)))
+
+  val eoriSanitizer: Update = seed =>
+    entity => entity.copy(eori = entity.eori.orElse(Generator.get(Generator.regex(Common.eoriPattern))(seed)))
 
   val individualSanitizer: Update = seed =>
     entity =>
@@ -182,9 +204,12 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
   override val sanitizers: Seq[Update] = Seq(
     agentReferenceNumberSanitizer,
     utrSanitizer,
+    ninoSanitizer,
+    eoriSanitizer,
     contactDetailsSanitizer,
     agencyDetailsSanitizer,
-    organisationOrIndividualSanitizer)
+    organisationOrIndividualSanitizer
+  )
 
   implicit val formats: Format[BusinessPartnerRecord] = Json.format[BusinessPartnerRecord]
 
@@ -676,6 +701,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
   }
 
   object Common {
+    val ninoPattern = """^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$"""
     val phoneNumberPattern = """^[A-Z0-9 )/(*#-]+$"""
     val countryCodeEnum0 = Seq(
       "AD",
@@ -939,5 +965,6 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     val safeIdPattern = """^X[A-Z]000[0-9]{10}$"""
     val utrPattern = """^[0-9]{1,10}$"""
     val agentReferenceNumberPattern = """^[A-Z](ARN)[0-9]{7}$"""
+    val eoriPattern = """^[A-Z]{2}[0-9]{12}$"""
   }
 }

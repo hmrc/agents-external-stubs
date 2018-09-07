@@ -4,6 +4,7 @@ import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, Utr}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
+import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.BadRequestException
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -31,5 +32,13 @@ class BusinessPartnerRecordsService @Inject()(val recordsRepository: RecordsRepo
   def getBusinessPartnerRecord(utr: Utr, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[BusinessPartnerRecord]] =
     findByKey[BusinessPartnerRecord](BusinessPartnerRecord.utrKey(utr.value), planetId).map(_.headOption)
+
+  def getBusinessPartnerRecord(nino: Nino, planetId: String)(
+    implicit ec: ExecutionContext): Future[Option[BusinessPartnerRecord]] =
+    findByKey[BusinessPartnerRecord](BusinessPartnerRecord.ninoKey(nino.value), planetId).map(_.headOption)
+
+  def getBusinessPartnerRecordByEori(eori: String, planetId: String)(
+    implicit ec: ExecutionContext): Future[Option[BusinessPartnerRecord]] =
+    findByKey[BusinessPartnerRecord](BusinessPartnerRecord.eoriKey(eori), planetId).map(_.headOption)
 
 }

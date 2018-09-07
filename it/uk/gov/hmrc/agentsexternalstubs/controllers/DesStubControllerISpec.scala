@@ -265,6 +265,9 @@ class DesStubControllerISpec
 
         val result = DesStub.subscribeToAgentServices("0123456789", Json.parse(validAgentSubmission))
         result should haveStatus(200)
+        result should haveValidJsonBody(
+          haveProperty[String]("safeId") and haveProperty[String]("agentRegistrationNumber")
+        )
       }
 
       "return 400 if utr not valid" in {
@@ -279,6 +282,101 @@ class DesStubControllerISpec
 
         val result = DesStub.subscribeToAgentServices("0123456789", Json.parse(validAgentSubmission))
         result should haveStatus(400)
+      }
+    }
+
+    "POST /registration/individual/utr/:utr" should {
+      "register a new individual BPR with UTR" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = DesStub.registerIndividual("utr", "0123456789", Json.parse(validIndividualSubmission))
+        result should haveStatus(200)
+        result should haveValidJsonBody(
+          haveProperty[String]("safeId") and haveProperty[String]("utr", be("0123456789")) and haveProperty[JsObject](
+            "individual") and notHaveProperty("organisation") and haveProperty[Boolean]("isAnAgent", be(false)) and haveProperty[
+            Boolean]("isAnASAgent", be(false))
+        )
+      }
+
+      "register a new individual BPR with NINO" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = DesStub.registerIndividual("nino", "HW827856C", Json.parse(validIndividualSubmission))
+        result should haveStatus(200)
+        result should haveValidJsonBody(
+          haveProperty[String]("safeId") and haveProperty[String]("nino", be("HW827856C")) and haveProperty[JsObject](
+            "individual") and notHaveProperty("organisation") and haveProperty[Boolean]("isAnAgent", be(false)) and haveProperty[
+            Boolean]("isAnASAgent", be(false))
+        )
+      }
+
+      "return an existing BPR if found by UTR" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val createResult = Records.createBusinessPartnerRecord(
+          BusinessPartnerRecord
+            .seed("foo")
+            .withSafeId("XA0000000000001")
+            .withUtr(Some("0123456789"))
+            .withIndividual(Some(Individual.seed("foo")))
+            .withIsAnAgent(false)
+            .withIsAnASAgent(false)
+            .withOrganisation(None)
+        )
+        createResult should haveStatus(201)
+
+        val result = DesStub.registerIndividual("utr", "0123456789", Json.parse(validIndividualSubmission))
+        result should haveStatus(200)
+        result should haveValidJsonBody(
+          haveProperty[String]("safeId", be("XA0000000000001")) and haveProperty[String]("utr", be("0123456789")) and haveProperty[
+            JsObject]("individual") and notHaveProperty("organisation") and haveProperty[Boolean](
+            "isAnAgent",
+            be(false)) and haveProperty[Boolean]("isAnASAgent", be(false))
+        )
+      }
+
+      "return an existing BPR if found by NINO" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val createResult = Records.createBusinessPartnerRecord(
+          BusinessPartnerRecord
+            .seed("foo")
+            .withSafeId("XA0000000000001")
+            .withNino(Some("HW827856C"))
+            .withIndividual(Some(Individual.seed("foo")))
+            .withIsAnAgent(false)
+            .withIsAnASAgent(false)
+            .withOrganisation(None)
+        )
+        createResult should haveStatus(201)
+
+        val result = DesStub.registerIndividual("nino", "HW827856C", Json.parse(validIndividualSubmission))
+        result should haveStatus(200)
+        result should haveValidJsonBody(
+          haveProperty[String]("safeId", be("XA0000000000001")) and haveProperty[String]("nino", be("HW827856C")) and haveProperty[
+            JsObject]("individual") and notHaveProperty("organisation") and haveProperty[Boolean](
+            "isAnAgent",
+            be(false)) and haveProperty[Boolean]("isAnASAgent", be(false))
+        )
+      }
+
+      "return 404 if an existing BPR does not match expectations" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val createResult = Records.createBusinessPartnerRecord(
+          BusinessPartnerRecord
+            .seed("foo")
+            .withSafeId("XA0000000000001")
+            .withNino(Some("HW827856C"))
+            .withIndividual(Some(Individual.seed("foo")))
+            .withIsAnAgent(true)
+            .withIsAnASAgent(false)
+            .withOrganisation(None)
+        )
+        createResult should haveStatus(201)
+
+        val result = DesStub.registerIndividual("nino", "HW827856C", Json.parse(validIndividualSubmission))
+        result should haveStatus(404)
       }
     }
   }

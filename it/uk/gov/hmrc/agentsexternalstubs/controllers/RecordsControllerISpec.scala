@@ -31,7 +31,6 @@ class RecordsControllerISpec
         createResult5 should haveStatus(201)
 
         val result = Records.getRecords()
-        println(result.body)
         result should haveStatus(200)
         result should haveValidJsonBody(
           haveProperty[JsArray]("VatCustomerInformationRecord") and
@@ -185,7 +184,7 @@ class RecordsControllerISpec
       }
     }
 
-    "GET /agents-external-stubs/records/agent-record/generate" should {
+    "GET /agents-external-stubs/records/business-partner-record/generate" should {
       "respond 200 with a minimal auto-generated entity" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
 

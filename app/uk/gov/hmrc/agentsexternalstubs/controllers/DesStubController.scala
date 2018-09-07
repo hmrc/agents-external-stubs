@@ -8,15 +8,16 @@ import play.api.data.Form
 import play.api.data.Forms._
 import play.api.data.validation.{Constraint, Constraints, Invalid, Valid}
 import play.api.libs.json._
-import play.api.mvc.{Action, AnyContent}
+import play.api.mvc.{Action, AnyContent, Result}
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Utr}
-import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.AgencyDetails
-import uk.gov.hmrc.agentsexternalstubs.models.{SubscribeAgentServicesPayload, _}
+import uk.gov.hmrc.agentsexternalstubs.models.{BusinessPartnerRecord, SubscribeAgentServicesPayload, _}
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.services._
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class DesStubController @Inject()(
@@ -25,7 +26,7 @@ class DesStubController @Inject()(
   legacyRelationshipRecordsService: LegacyRelationshipRecordsService,
   businessDetailsRecordsService: BusinessDetailsRecordsService,
   vatCustomerInformationRecordsService: VatCustomerInformationRecordsService,
-  BusinessPartnerRecordsService: BusinessPartnerRecordsService,
+  businessPartnerRecordsService: BusinessPartnerRecordsService,
   recordsRepository: RecordsRepository
 )(implicit usersService: UsersService)
     extends BaseController with DesCurrentSession {
@@ -103,34 +104,21 @@ class DesStubController @Inject()(
 
   def getBusinessDetails(idType: String, idNumber: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
-      idType match {
-        case "nino" =>
-          RegexPatterns
-            .validNinoNoSpaces(idNumber)
-            .fold(
-              error => badRequestF("INVALID_NINO", error),
-              _ =>
-                businessDetailsRecordsService
-                  .getBusinessDetails(Nino(idNumber), session.planetId)
-                  .map {
-                    case Some(record) => Ok(Json.toJson(record))
-                    case None         => notFound("NOT_FOUND_NINO")
-                }
-            )
-        case "mtdbsa" =>
-          RegexPatterns
-            .validMtdbsa(idNumber)
-            .fold(
-              error => badRequestF("INVALID_MTDBSA", error),
-              _ =>
-                businessDetailsRecordsService
-                  .getBusinessDetails(MtdItId(idNumber), session.planetId)
-                  .map {
-                    case Some(record) => Ok(Json.toJson(record))
-                    case None         => notFound("NOT_FOUND_MTDBSA")
-                }
-            )
-        case _ => badRequestF("INVALID_IDTYPE")
+      withValidIdentifier(idType, idNumber) {
+        case ("nino", nino) =>
+          businessDetailsRecordsService
+            .getBusinessDetails(Nino(nino), session.planetId)
+            .map {
+              case Some(record) => Ok(Json.toJson(record))
+              case None         => notFound("NOT_FOUND_NINO")
+            }
+        case ("mtdbsa", mtdbsa) =>
+          businessDetailsRecordsService
+            .getBusinessDetails(MtdItId(mtdbsa), session.planetId)
+            .map {
+              case Some(record) => Ok(Json.toJson(record))
+              case None         => notFound("NOT_FOUND_MTDBSA")
+            }
       }
     }(SessionRecordNotFound)
   }
@@ -138,34 +126,21 @@ class DesStubController @Inject()(
   def getBusinessPartnerRecord(idType: String, idNumber: String): Action[AnyContent] = Action.async {
     implicit request =>
       withCurrentSession { session =>
-        idType match {
-          case "arn" =>
-            RegexPatterns
-              .validArn(idNumber)
-              .fold(
-                error => badRequestF("INVALID_ARN", error),
-                _ =>
-                  BusinessPartnerRecordsService
-                    .getBusinessPartnerRecord(Arn(idNumber), session.planetId)
-                    .map {
-                      case Some(record) => Ok(Json.toJson(record))
-                      case None         => notFound("NOT_FOUND")
-                  }
-              )
-          case "utr" =>
-            RegexPatterns
-              .validUtr(idNumber)
-              .fold(
-                error => badRequestF("INVALID_UTR", error),
-                _ =>
-                  BusinessPartnerRecordsService
-                    .getBusinessPartnerRecord(Utr(idNumber), session.planetId)
-                    .map {
-                      case Some(record) => Ok(Json.toJson(record))
-                      case None         => notFound("NOT_FOUND")
-                  }
-              )
-          case _ => badRequestF("INVALID_IDTYPE")
+        withValidIdentifier(idType, idNumber) {
+          case ("arn", arn) =>
+            businessPartnerRecordsService
+              .getBusinessPartnerRecord(Arn(arn), session.planetId)
+              .map {
+                case Some(record) => Ok(Json.toJson(record))
+                case None         => notFound("NOT_FOUND")
+              }
+          case ("utr", utr) =>
+            businessPartnerRecordsService
+              .getBusinessPartnerRecord(Utr(utr), session.planetId)
+              .map {
+                case Some(record) => Ok(Json.toJson(record))
+                case None         => notFound("NOT_FOUND")
+              }
         }
       }(SessionRecordNotFound)
   }
@@ -198,10 +173,10 @@ class DesStubController @Inject()(
                 .fold(
                   error => badRequestF("INVALID_PAYLOAD", error.mkString(", ")),
                   _ =>
-                    BusinessPartnerRecordsService.getBusinessPartnerRecord(Utr(utr), session.planetId).flatMap {
+                    businessPartnerRecordsService.getBusinessPartnerRecord(Utr(utr), session.planetId).flatMap {
                       case None => badRequestF("NOT_FOUND")
                       case Some(existingRecord) =>
-                        BusinessPartnerRecordsService
+                        businessPartnerRecordsService
                           .store(
                             SubscribeAgentServices.toBusinessPartnerRecord(payload, existingRecord),
                             autoFill = false,
@@ -220,6 +195,74 @@ class DesStubController @Inject()(
 
     }(SessionRecordNotFound)
   }
+
+  def register(idType: String, idNumber: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
+    withCurrentSession { session =>
+      withPayload[RegistrationPayload] { payload =>
+        withValidIdentifier(idType, idNumber) {
+          case ("utr", utr) =>
+            businessPartnerRecordsService
+              .getBusinessPartnerRecord(Utr(utr), session.planetId)
+              .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId)(record =>
+                record.isAnAgent == payload.isAnAgent))
+          case ("nino", nino) =>
+            businessPartnerRecordsService
+              .getBusinessPartnerRecord(Nino(nino), session.planetId)
+              .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId)(record =>
+                record.isAnAgent == payload.isAnAgent))
+          case ("eori", eori) =>
+            businessPartnerRecordsService
+              .getBusinessPartnerRecordByEori(eori, session.planetId)
+              .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId)(record =>
+                record.isAnAgent == payload.isAnAgent))
+        }
+      }
+    }(SessionRecordNotFound)
+  }
+
+  private def getOrCreateBusinessPartnerRecord[T <: Record](
+    payload: RegistrationPayload,
+    idType: String,
+    idNumber: String,
+    planetId: String)(matches: T => Boolean)(implicit ec: ExecutionContext): Option[T] => Future[Result] = {
+    case Some(record) =>
+      if (matches(record)) okF(record)
+      else notFoundF("NOT_FOUND", "BusinessPartnerRecord exists but fails match expectations.")
+    case None =>
+      if (payload.organisation.isDefined || payload.individual.isDefined) {
+        businessPartnerRecordsService
+          .store(Registration.toBusinessPartnerRecord(payload, idType, idNumber), autoFill = false, planetId)
+          .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, planetId))
+          .map {
+            case Some(record: T) =>
+              if (matches(record)) ok(record)
+              else internalServerError("SERVER_ERROR", "Created BusinessPartnerRecord fails match expectations.")
+            case _ =>
+              internalServerError("SERVER_ERROR", "BusinessPartnerRecord creation failed silently.")
+          }
+      } else notFoundF("NOT_FOUND")
+  }
+
+  private def withValidIdentifier(idType: String, idNumber: String)(
+    pf: PartialFunction[(String, String), Future[Result]])(implicit ec: ExecutionContext): Future[Result] =
+    idType match {
+      case "nino"   => validateIdentifier(RegexPatterns.validNinoNoSpaces, "INVALID_NINO", idType, idNumber)(pf)
+      case "mtdbsa" => validateIdentifier(RegexPatterns.validMtdbsa, "INVALID_MTDBSA", idType, idNumber)(pf)
+      case "utr"    => validateIdentifier(RegexPatterns.validUtr, "INVALID_UTR", idType, idNumber)(pf)
+      case "arn"    => validateIdentifier(RegexPatterns.validArn, "INVALID_ARN", idType, idNumber)(pf)
+      case "vrn"    => validateIdentifier(RegexPatterns.validVrn, "INVALID_VRN", idType, idNumber)(pf)
+      case "eori"   => validateIdentifier(RegexPatterns.validEori, "INVALID_EORI", idType, idNumber)(pf)
+      case _        => badRequestF("INVALID_IDTYPE")
+    }
+
+  private def validateIdentifier(matcher: RegexPatterns.Matcher, errorCode: String, idType: String, idNumber: String)(
+    pf: PartialFunction[(String, String), Future[Result]]): Future[Result] =
+    matcher(idNumber).fold(
+      error => badRequestF(errorCode, error),
+      _ =>
+        if (pf.isDefinedAt((idType, idNumber))) pf((idType, idNumber))
+        else badRequestF(errorCode, "Unsupported identifier type")
+    )
 
 }
 
@@ -401,7 +444,8 @@ object DesStubController {
         }
         .withAgencyDetails(
           Some(
-            AgencyDetails()
+            BusinessPartnerRecord
+              .AgencyDetails()
               .withAgencyName(Option(payload.agencyName))
               .withAgencyAddress(Some(address))
               .withAgencyEmail(payload.agencyEmail)))
@@ -423,6 +467,39 @@ object DesStubController {
     object Response {
       implicit val writes: Writes[Response] = Json.writes[Response]
     }
+  }
+
+  object Registration {
+
+    def toBusinessPartnerRecord(payload: RegistrationPayload, idType: String, idNumber: String): BusinessPartnerRecord =
+      BusinessPartnerRecord
+        .seed(idNumber)
+        .withNino(if (idType == "nino") Some(idNumber) else None)
+        .withUtr(if (idType == "utr") Some(idNumber) else None)
+        .withEori(if (idType == "eori") Some(idNumber) else None)
+        .withIsAnIndividual(payload.individual.isDefined)
+        .withIsAnOrganisation(payload.organisation.isDefined)
+        .withIsAnAgent(payload.isAnAgent)
+        .withIsAnASAgent(false)
+        .withIndividual(
+          payload.individual.map(
+            i =>
+              BusinessPartnerRecord.Individual
+                .seed(idNumber)
+                .withFirstName(i.firstName)
+                .withLastName(i.lastName)
+                .modifyDateOfBirth { case dob => i.dateOfBirth.getOrElse(dob) }
+          )
+        )
+        .withOrganisation(
+          payload.organisation.map(
+            o =>
+              BusinessPartnerRecord.Organisation
+                .seed(idNumber)
+                .withOrganisationName(o.organisationName)
+                .withIsAGroup(false)
+                .withOrganisationType(o.organisationType)))
+
   }
 
 }

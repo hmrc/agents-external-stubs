@@ -14,8 +14,10 @@ object ErrorResponse {
 
 trait HttpHelpers {
 
+  def success[T](value: T): Future[T] = Future.successful(value)
+
   def okF[T: Writes](entity: T, links: Link*): Future[Result] =
-    Future.successful(ok(entity, links: _*))
+    success(ok(entity, links: _*))
 
   def ok[T: Writes](entity: T, links: Link*): Result =
     Results.Ok(RestfulResponse(entity, links: _*))
@@ -24,7 +26,7 @@ trait HttpHelpers {
     Json.toJson(ErrorResponse(code, message))
 
   def unauthorizedF(reason: String): Future[Result] =
-    Future.successful(unauthorized(reason))
+    success(unauthorized(reason))
 
   def unauthorized(reason: String): Result =
     Results
@@ -32,25 +34,25 @@ trait HttpHelpers {
       .withHeaders("WWW-Authenticate" -> s"""MDTP detail="$reason"""")
 
   def badRequestF(code: String, message: String = null): Future[Result] =
-    Future.successful(badRequest(code, message))
+    success(badRequest(code, message))
 
   def badRequest(code: String, message: String = null): Result =
     Results.BadRequest(errorMessage(code, Option(message)))
 
   def forbiddenF(code: String, message: String = null): Future[Result] =
-    Future.successful(forbidden(code, message))
+    success(forbidden(code, message))
 
   def forbidden(code: String, message: String = null): Result =
     Results.Forbidden(errorMessage(code, Option(message)))
 
   def notFoundF(code: String, message: String = null): Future[Result] =
-    Future.successful(notFound(code, message))
+    success(notFound(code, message))
 
   def notFound(code: String, message: String = null): Result =
     Results.NotFound(errorMessage(code, Option(message)))
 
   def internalServerErrorF(code: String, message: String = null): Future[Result] =
-    Future.successful(internalServerError(code, message))
+    success(internalServerError(code, message))
 
   def internalServerError(code: String, message: String = null): Result =
     Results.InternalServerError(errorMessage(code, Option(message)))

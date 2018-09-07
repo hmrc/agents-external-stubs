@@ -67,6 +67,13 @@ trait TestRequests extends ScalaFutures {
       .get()
       .futureValue
 
+  def post[T: Writeable](path: String, payload: T)(implicit authContext: AuthContext): WSResponse =
+    wsClient
+      .url(s"$url$path")
+      .withHeaders(authContext.headers: _*)
+      .post[T](payload)
+      .futureValue
+
   object SignIn {
     def signIn(
       userId: String,
@@ -271,11 +278,15 @@ trait TestRequests extends ScalaFutures {
       get(s"/registration/personal-details/$idType/$idNumber")
 
     def subscribeToAgentServices[T: Writeable](utr: String, payload: T)(implicit authContext: AuthContext): WSResponse =
-      wsClient
-        .url(s"$url/registration/agents/utr/$utr")
-        .withHeaders(authContext.headers: _*)
-        .post[T](payload)
-        .futureValue
+      post(s"/registration/agents/utr/$utr", payload)
+
+    def registerIndividual[T: Writeable](idType: String, idNumber: String, payload: T)(
+      implicit authContext: AuthContext): WSResponse =
+      post(s"/registration/individual/$idType/$idNumber", payload)
+
+    def registerOrganisation[T: Writeable](idType: String, idNumber: String, payload: T)(
+      implicit authContext: AuthContext): WSResponse =
+      post(s"/registration/organisation/$idType/$idNumber", payload)
   }
 
   object Records {
@@ -300,11 +311,7 @@ trait TestRequests extends ScalaFutures {
         .futureValue
 
     def createBusinessDetails[T: Writeable](payload: T)(implicit authContext: AuthContext): WSResponse =
-      wsClient
-        .url(s"$url/agents-external-stubs/records/business-details")
-        .withHeaders(authContext.headers: _*)
-        .post[T](payload)
-        .futureValue
+      post(s"/agents-external-stubs/records/business-details", payload)
 
     def generateBusinessDetails(seed: String, minimal: Boolean)(implicit authContext: AuthContext): WSResponse =
       wsClient

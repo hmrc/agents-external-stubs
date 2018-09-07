@@ -408,4 +408,16 @@ trait ExampleDesPayloads {
       |  "agencyEmail": "hmrc@hmrc.gsi.gov.uk"
       |}""".stripMargin
 
+  val validIndividualSubmission =
+    """{
+      |  "regime": "ITSA",
+      |  "requiresNameMatch": true,
+      |  "isAnAgent": false,
+      |  "individual": {
+      |    "firstName": "Stephen",
+      |    "lastName": "Wood",
+      |    "dateOfBirth": "1990-04-03"
+      |  }
+      |}""".stripMargin
+
 }
