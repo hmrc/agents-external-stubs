@@ -378,5 +378,14 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         user.principalEnrolments.isEmpty shouldBe true
       }
     }
+
+    "DELETE /enrolment-store/enrolments/:enrolmentKey" should {
+      "return 204 NoContent" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        val result = EnrolmentStoreProxyStub.removeKnownFact("IR-SA~UTR~12345678")
+
+        result should haveStatus(204)
+      }
+    }
   }
 }

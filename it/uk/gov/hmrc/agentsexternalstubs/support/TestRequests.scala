@@ -225,6 +225,13 @@ trait TestRequests extends ScalaFutures {
         .withHeaders(authContext.headers: _*)
         .delete()
         .futureValue
+
+    def removeKnownFact(enrolmentKey: String)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey")
+        .withHeaders(authContext.headers: _*)
+        .delete()
+        .futureValue
   }
 
   object DesStub {

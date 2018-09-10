@@ -88,6 +88,12 @@ class EnrolmentStoreProxyStubController @Inject()(val authenticationService: Aut
     }(SessionRecordNotFound)
   }
 
+  def removeKnownFact(enrolmentKey: EnrolmentKey): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { _ =>
+      Future.successful(NoContent)
+    }(SessionRecordNotFound)
+  }
+
 }
 
 object EnrolmentStoreProxyStubController {
