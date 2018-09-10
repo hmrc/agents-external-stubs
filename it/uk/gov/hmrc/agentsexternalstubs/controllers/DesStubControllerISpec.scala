@@ -242,8 +242,8 @@ class DesStubControllerISpec
 
         val result = DesStub.getBusinessPartnerRecord("utr", "0123456789")
         result should haveStatus(200)
-        val json = result.json
-        json.as[JsObject] should haveProperty[String]("agentReferenceNumber")
+        result should haveValidJsonBody(
+          haveProperty[String]("agentReferenceNumber") and haveProperty[JsObject]("addressDetails"))
       }
 
       "return 404 response if record not found" in {
@@ -294,7 +294,7 @@ class DesStubControllerISpec
         result should haveValidJsonBody(
           haveProperty[String]("safeId") and haveProperty[String]("utr", be("0123456789")) and haveProperty[JsObject](
             "individual") and notHaveProperty("organisation") and haveProperty[Boolean]("isAnAgent", be(false)) and haveProperty[
-            Boolean]("isAnASAgent", be(false))
+            Boolean]("isAnASAgent", be(false)) and haveProperty[JsObject]("address")
         )
       }
 
@@ -306,7 +306,7 @@ class DesStubControllerISpec
         result should haveValidJsonBody(
           haveProperty[String]("safeId") and haveProperty[String]("nino", be("HW827856C")) and haveProperty[JsObject](
             "individual") and notHaveProperty("organisation") and haveProperty[Boolean]("isAnAgent", be(false)) and haveProperty[
-            Boolean]("isAnASAgent", be(false))
+            Boolean]("isAnASAgent", be(false)) and haveProperty[JsObject]("address")
         )
       }
 

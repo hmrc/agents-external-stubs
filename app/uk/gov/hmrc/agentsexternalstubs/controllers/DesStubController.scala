@@ -226,7 +226,7 @@ class DesStubController @Inject()(
     idNumber: String,
     planetId: String)(matches: T => Boolean)(implicit ec: ExecutionContext): Option[T] => Future[Result] = {
     case Some(record) =>
-      if (matches(record)) okF(record)
+      if (matches(record)) okF(record, Registration.fixSchemaDifferences _)
       else notFoundF("NOT_FOUND", "BusinessPartnerRecord exists but fails match expectations.")
     case None =>
       if (payload.organisation.isDefined || payload.individual.isDefined) {
@@ -235,7 +235,7 @@ class DesStubController @Inject()(
           .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, planetId))
           .map {
             case Some(record: T) =>
-              if (matches(record)) ok(record)
+              if (matches(record)) ok(record, Registration.fixSchemaDifferences _)
               else internalServerError("SERVER_ERROR", "Created BusinessPartnerRecord fails match expectations.")
             case _ =>
               internalServerError("SERVER_ERROR", "BusinessPartnerRecord creation failed silently.")
@@ -499,6 +499,15 @@ object DesStubController {
                 .withOrganisationName(o.organisationName)
                 .withIsAGroup(false)
                 .withOrganisationType(o.organisationType)))
+
+    def fixSchemaDifferences(value: JsValue): JsValue = value match {
+      case obj: JsObject =>
+        (obj \ "addressDetails").asOpt[JsObject] match {
+          case Some(address) => obj.-("addressDetails").+("address", address)
+          case None          => obj
+        }
+      case other => other
+    }
 
   }
 

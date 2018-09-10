@@ -22,6 +22,12 @@ trait HttpHelpers {
   def ok[T: Writes](entity: T, links: Link*): Result =
     Results.Ok(RestfulResponse(entity, links: _*))
 
+  def okF[T: Writes](entity: T, fix: JsValue => JsValue): Future[Result] =
+    success(ok(entity, fix))
+
+  def ok[T: Writes](entity: T, fix: JsValue => JsValue): Result =
+    Results.Ok(fix(Json.toJson(entity)))
+
   def errorMessage(code: String, message: Option[String]): JsValue =
     Json.toJson(ErrorResponse(code, message))
 
