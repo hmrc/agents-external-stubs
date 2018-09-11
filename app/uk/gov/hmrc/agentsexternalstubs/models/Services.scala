@@ -17,6 +17,8 @@ case class Service(
 
   def getIdentifier(name: String): Option[Service.Identifier] = identifiers.find(_.name.toUpperCase == name.toUpperCase)
 
+  def getKnownFact(name: String): Option[Service.KnownFact] = knownFacts.find(_.name.toUpperCase == name.toUpperCase)
+
   val generator: Gen[Enrolment] = {
     val identifiersGen: Gen[Seq[Identifier]] =
       identifiers.map(_.generator.map(Seq(_))).reduce((a, b) => a.flatMap(ia => b.map(ib => ia ++ ib)))

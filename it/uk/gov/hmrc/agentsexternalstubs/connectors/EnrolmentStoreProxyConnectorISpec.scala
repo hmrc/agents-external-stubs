@@ -66,7 +66,7 @@ class EnrolmentStoreProxyConnectorISpec
 
     "return Empty when VRN not found" in {
       implicit val session = givenAuthenticatedSession()
-      await(connector.getDelegatedGroupIdsFor(Vrn("foo"))) should be(empty)
+      await(connector.getDelegatedGroupIdsFor(Vrn("345"))) should be(empty)
     }
 
     "return some clients userId for given MTDITID" in {
