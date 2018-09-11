@@ -68,8 +68,10 @@ trait HttpHelpers {
   def withPayload[T](
     f: T => Future[Result])(implicit request: Request[JsValue], reads: Reads[T], ec: ExecutionContext): Future[Result] =
     Try(request.body.validate[T]) match {
-      case Success(validationResult) => whenSuccess(f)(validationResult)
-      case Failure(e)                => Future.failed(new BadRequestException(s"Could not parse body due to ${e.getMessage}"))
+      case Success(validationResult) =>
+        whenSuccess(f)(validationResult)
+      case Failure(e) =>
+        Future.failed(new BadRequestException(s"Could not parse body due to ${e.getMessage}"))
     }
 
   def whenSuccess[T](f: T => Future[Result])(jsResult: JsResult[T]): Future[Result] = jsResult match {

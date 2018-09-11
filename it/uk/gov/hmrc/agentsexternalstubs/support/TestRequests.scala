@@ -74,6 +74,20 @@ trait TestRequests extends ScalaFutures {
       .post[T](payload)
       .futureValue
 
+  def put[T: Writeable](path: String, payload: T)(implicit authContext: AuthContext): WSResponse =
+    wsClient
+      .url(s"$url$path")
+      .withHeaders(authContext.headers: _*)
+      .put[T](payload)
+      .futureValue
+
+  def delete(path: String)(implicit authContext: AuthContext): WSResponse =
+    wsClient
+      .url(s"$url$path")
+      .withHeaders(authContext.headers: _*)
+      .delete()
+      .futureValue
+
   object SignIn {
     def signIn(
       userId: String,
@@ -226,12 +240,11 @@ trait TestRequests extends ScalaFutures {
         .delete()
         .futureValue
 
-    def removeKnownFact(enrolmentKey: String)(implicit authContext: AuthContext): WSResponse =
-      wsClient
-        .url(s"$url/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey")
-        .withHeaders(authContext.headers: _*)
-        .delete()
-        .futureValue
+    def setKnownFacts[T: Writeable](enrolmentKey: String, payload: T)(implicit authContext: AuthContext): WSResponse =
+      put(s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey", payload)
+
+    def removeKnownFacts(enrolmentKey: String)(implicit authContext: AuthContext): WSResponse =
+      delete(s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey")
   }
 
   object DesStub {

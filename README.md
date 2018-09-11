@@ -77,6 +77,8 @@ Endpoint | Description
 ---|---
 `GET /enrolment-store-proxy/enrolment-store/enrolments/:enrolmentKey/users` | get user ids for the enrolment
 `GET /enrolment-store-proxy/enrolment-store/enrolments/:enrolmentKey/groups` | get group ids for the enrolment
+`PUT /enrolment-store-proxy/enrolment-store/enrolments/:enrolmentKey` | upsert an (allocated or unallocated) enrolment
+`DELETE /enrolment-store-proxy/enrolment-store/enrolments/:enrolmentKey` | remove an unallocated enrolment
 `POST /enrolment-store-proxy/enrolment-store/groups/:groupId/enrolments/:enrolmentKey` | allocate an enrolment to a group (agent)
 `DELETE /enrolment-store-proxy/enrolment-store/groups/:groupId/enrolments/:enrolmentKey` | de-allocate an enrolment from a group (agent)
 
@@ -86,6 +88,8 @@ Endpoint | Description
 ---|---
 `POST /tax-enrolments/groups/:groupId/enrolments/:enrolmentKey` | allocate an enrolment to a group (agent)
 `DELETE /tax-enrolments/groups/:groupId/enrolments/:enrolmentKey` | de-allocate an enrolment from a group (agent)
+`PUT /tax-enrolments/enrolments/:enrolmentKey` | upsert an (allocated or unallocated) enrolment
+`DELETE /tax-enrolments/enrolments/:enrolmentKey` | remove an unallocated enrolment
 
 ### DES <a name="stubbed_api_des"></a>
 

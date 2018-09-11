@@ -379,10 +379,46 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
       }
     }
 
+    "PUT /enrolment-store/enrolments/:enrolmentKey" should {
+      "return 204 NoContent" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        val result = EnrolmentStoreProxyStub.setKnownFacts(
+          enrolmentKey = "IR-SA~UTR~12345678",
+          payload = Json.parse("""{
+                                 |  "verifiers": [
+                                 |    {
+                                 |      "key": "Postcode",
+                                 |      "value": "TF2 6NU"
+                                 |    },
+                                 |    {
+                                 |      "key": "NINO",
+                                 |      "value": "AB123456X"
+                                 |    }
+                                 |  ],
+                                 |  "legacy": {
+                                 |    "previousVerifiers": [
+                                 |      {
+                                 |        "key": "Postcode",
+                                 |        "value": "TF2 6NU"
+                                 |      },
+                                 |      {
+                                 |        "key": "NINO",
+                                 |        "value": "AB123456X"
+                                 |      }
+                                 |    ]
+                                 |  }
+                                 |}
+          """.stripMargin)
+        )
+
+        result should haveStatus(204)
+      }
+    }
+
     "DELETE /enrolment-store/enrolments/:enrolmentKey" should {
       "return 204 NoContent" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
-        val result = EnrolmentStoreProxyStub.removeKnownFact("IR-SA~UTR~12345678")
+        val result = EnrolmentStoreProxyStub.removeKnownFacts("IR-SA~UTR~12345678")
 
         result should haveStatus(204)
       }

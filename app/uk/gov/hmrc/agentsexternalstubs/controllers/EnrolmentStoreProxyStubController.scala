@@ -4,7 +4,8 @@ import cats.data.Validated
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent}
-import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.{AllocateGroupEnrolmentRequest, GetGroupIdsResponse, GetUserIdsResponse}
+import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.SetKnownFactsRequest.{KnownFact, Legacy}
+import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.{AllocateGroupEnrolmentRequest, GetGroupIdsResponse, GetUserIdsResponse, SetKnownFactsRequest}
 import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, User, Validator}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
@@ -51,6 +52,20 @@ class EnrolmentStoreProxyStubController @Inject()(val authenticationService: Aut
     }(SessionRecordNotFound)
   }
 
+  def setKnownFacts(enrolmentKey: EnrolmentKey): Action[JsValue] = Action.async(parse.json) { implicit request =>
+    withCurrentSession { _ =>
+      withPayload[SetKnownFactsRequest] { payload =>
+        Future.successful(NoContent)
+      }
+    }(SessionRecordNotFound)
+  }
+
+  def removeKnownFacts(enrolmentKey: EnrolmentKey): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { _ =>
+      Future.successful(NoContent)
+    }(SessionRecordNotFound)
+  }
+
   def allocateGroupEnrolment(
     groupId: String,
     enrolmentKey: EnrolmentKey,
@@ -85,12 +100,6 @@ class EnrolmentStoreProxyStubController @Inject()(val authenticationService: Aut
       usersService
         .deallocateEnrolmentFromGroup(groupId, enrolmentKey, `legacy-agentCode`, keepAgentAllocations, session.planetId)
         .map(_ => NoContent)
-    }(SessionRecordNotFound)
-  }
-
-  def removeKnownFact(enrolmentKey: EnrolmentKey): Action[AnyContent] = Action.async { implicit request =>
-    withCurrentSession { _ =>
-      Future.successful(NoContent)
     }(SessionRecordNotFound)
   }
 
@@ -138,6 +147,24 @@ object EnrolmentStoreProxyStubController {
     val validate: AllocateGroupEnrolmentRequest => Validated[List[String], Unit] =
       Validator[AllocateGroupEnrolmentRequest](
         Validator.check(_.`type`.matches("principal|delegated"), "Unsupported `type` param value"))
+  }
+
+  case class SetKnownFactsRequest(verifiers: Seq[KnownFact], legacy: Option[Legacy] = None)
+
+  object SetKnownFactsRequest {
+
+    case class KnownFact(key: String, value: String)
+    case class Legacy(previousVerifiers: Seq[KnownFact])
+
+    object KnownFact {
+      implicit val formats: Format[KnownFact] = Json.format[KnownFact]
+    }
+
+    object Legacy {
+      implicit val formats: Format[Legacy] = Json.format[Legacy]
+    }
+
+    implicit val formats: Format[SetKnownFactsRequest] = Json.format[SetKnownFactsRequest]
   }
 
 }
