@@ -105,7 +105,7 @@ trait Generator extends Names with Temporal with Companies with Addresses {
 
   lazy val emailGen: Gen[String] = for {
     domain       <- Gen.oneOf(".com", ".co.uk", ".uk", ".eu", ".me")
-    size         <- Gen.chooseNum[Int](10, 132 - domain.length)
+    size         <- Gen.chooseNum[Int](10, 32 - domain.length)
     usernameSize <- Gen.chooseNum[Int](1, size - 3)
     username     <- stringMaxN(usernameSize)
     host         <- stringMaxN(size - usernameSize - 1)
