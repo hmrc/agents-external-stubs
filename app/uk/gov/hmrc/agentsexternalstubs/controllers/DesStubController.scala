@@ -503,7 +503,7 @@ object DesStubController {
     def fixSchemaDifferences(value: JsValue): JsValue = value match {
       case obj: JsObject =>
         (obj \ "addressDetails").asOpt[JsObject] match {
-          case Some(address) => obj.-("addressDetails").+("address", address)
+          case Some(address) => obj.-("addressDetails").+("address" -> address)
           case None          => obj
         }
       case other => other

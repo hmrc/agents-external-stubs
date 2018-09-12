@@ -2,8 +2,8 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import java.time.format.DateTimeFormatter
 
 import org.scalacheck.Gen
-import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, UtrCheck}
-import uk.gov.hmrc.domain.{Modulus11Check, Modulus23Check, Nino, Vrn}
+import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, UtrCheck, Vrn}
+import uk.gov.hmrc.domain.{Modulus11Check, Modulus23Check, Nino}
 import uk.gov.hmrc.smartstub.{Addresses, Companies, Names, Temporal, ToLong}
 import wolfendale.scalacheck.regexp.RegexpGen
 
@@ -67,7 +67,26 @@ trait Generator extends Names with Temporal with Companies with Addresses {
   lazy val utrGen: Gen[String] = pattern"999999999".gen.map(Modulus11.apply).retryUntil(UtrCheck.isValid)
   def utr(seed: String): String = utrGen.seeded(seed).get
 
-  lazy val vrnGen: Gen[String] = pattern"999999999".gen
+  object VrnChecksum {
+
+    private def calcCheckSum97(total: Int): String = {
+      var x = total
+      while (x >= 0) {
+        x = x - 97
+      }
+      if (x > -10) s"0${-x}" else (-x).toString
+    }
+
+    private def weightedTotal(reference: String): Int = {
+      val weighting = List(8, 7, 6, 5, 4, 3, 2)
+      val ref = reference.map(_.asDigit).take(7)
+      (ref, weighting).zipped.map(_ * _).sum
+    }
+
+    def apply(s: String) = s + calcCheckSum97(weightedTotal(s))
+  }
+
+  lazy val vrnGen: Gen[String] = pattern"9999999".gen.map(VrnChecksum.apply).retryUntil(Vrn.isValid)
   def vrn(seed: String): Vrn = vrnGen.map(Vrn.apply).seeded(seed).get
 
   def chooseBigDecimal(min: Double, max: Double, multipleOf: Option[Double]): Gen[BigDecimal] =
