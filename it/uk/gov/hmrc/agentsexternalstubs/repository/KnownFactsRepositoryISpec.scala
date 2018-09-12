@@ -36,7 +36,7 @@ class KnownFactsRepositoryISpec extends AppBaseISpec with MongoDB {
         KnownFacts(
           enrolmentKey = EnrolmentKey("IR-SA~UTR~1234567890"),
           verifiers = Seq(KnownFact("Postcode", "TF2 6NU"), KnownFact("NINO", "AB123456X")),
-          planetId = planetId
+          planetId = Some(planetId)
         )
       await(repo.upsert(knownFacts1, planetId))
 
@@ -48,7 +48,7 @@ class KnownFactsRepositoryISpec extends AppBaseISpec with MongoDB {
         KnownFacts(
           enrolmentKey = EnrolmentKey("IR-SA~UTR~1234567890"),
           verifiers = Seq(KnownFact("NINO", "AB123654X")),
-          planetId = planetId)
+          planetId = Some(planetId))
       await(repo.upsert(knownFacts2, planetId))
 
       val result2 =
@@ -62,7 +62,7 @@ class KnownFactsRepositoryISpec extends AppBaseISpec with MongoDB {
         KnownFacts(
           enrolmentKey = EnrolmentKey("IR-SA~UTR~1234567890"),
           verifiers = Seq(KnownFact("DateOfBirth", "2000-01-01"), KnownFact("NINO", "AB123456X")),
-          planetId = planetId
+          planetId = Some(planetId)
         )
 
       an[Exception] shouldBe thrownBy {

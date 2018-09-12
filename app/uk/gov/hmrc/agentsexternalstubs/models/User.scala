@@ -90,6 +90,10 @@ object User {
     def withPrincipalEnrolment(service: String, identifierKey: String, identifierValue: String): User =
       withPrincipalEnrolment(Enrolment(service, identifierKey, identifierValue))
 
+    def withPrincipalEnrolment(enrolmentKey: String): User =
+      withPrincipalEnrolment(
+        Enrolment.from(EnrolmentKey.parse(enrolmentKey).fold(e => throw new Exception(e), identity)))
+
     def withDelegatedEnrolment(enrolment: Enrolment): User =
       user.copy(delegatedEnrolments = user.delegatedEnrolments :+ enrolment)
 

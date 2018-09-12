@@ -5,8 +5,8 @@ import play.api.libs.json.{Format, Json}
 
 case class Enrolment(key: String, identifiers: Option[Seq[Identifier]] = None) {
 
-  lazy val toEnrolmentKeyTag: Option[String] =
-    identifiers.map(ii => s"${key.toUpperCase}~${ii.sorted.map(i => s"${i.key.toUpperCase}~${i.value}").mkString("~")}")
+  lazy val toEnrolmentKey: Option[EnrolmentKey] = identifiers.map(ii => EnrolmentKey(key, ii))
+  lazy val toEnrolmentKeyTag: Option[String] = toEnrolmentKey.map(_.tag)
 
   def description: String =
     s"enrolment for service $key${identifiers.map(_.map(i => s"${i.key.toUpperCase} ${i.value}").mkString(" and ")).map(x => s" with identifier $x").getOrElse("")}"

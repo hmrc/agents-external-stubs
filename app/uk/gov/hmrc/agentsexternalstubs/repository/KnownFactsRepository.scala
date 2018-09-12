@@ -23,7 +23,7 @@ import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.api.{CursorProducer, ReadPreference}
-import reactivemongo.bson.BSONObjectID
+import reactivemongo.bson.{BSONDocument, BSONLong, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers
 import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, KnownFact, KnownFacts}
 import uk.gov.hmrc.mongo.ReactiveRepository
@@ -37,7 +37,7 @@ trait KnownFactsRepository {
     implicit ec: ExecutionContext): Future[Option[KnownFacts]]
   def findByVerifier(knownFact: KnownFact, planetId: String)(implicit ec: ExecutionContext): Future[Option[KnownFacts]]
   def upsert(knownFacts: KnownFacts, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
-  def delete(enrolmentKey: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
+  def delete(enrolmentKey: EnrolmentKey, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
 }
 
 @Singleton
@@ -53,7 +53,13 @@ class KnownFactsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent
 
   override def indexes = Seq(
     Index(Seq(KnownFacts.UNIQUE_KEY     -> Ascending), Some("KnownFactsByEnrolmentKey"), unique = true),
-    Index(Seq(KnownFacts.VERIFIERS_KEYS -> Ascending), Some("KnownFactsByVerifiers"))
+    Index(Seq(KnownFacts.VERIFIERS_KEYS -> Ascending), Some("KnownFactsByVerifiers")),
+    // TTL indexes
+    Index(
+      Seq("planetId" -> Ascending),
+      Some("TTL"),
+      options = BSONDocument("expireAfterSeconds" -> BSONLong(2592000))
+    )
   )
 
   def findByEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
@@ -89,15 +95,16 @@ class KnownFactsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent
           collection
             .update(
               Json.obj(KnownFacts.UNIQUE_KEY -> KnownFacts.uniqueKey(knownFacts.enrolmentKey.tag, planetId)),
-              knownFacts.copy(planetId = planetId),
-              upsert = true)
+              knownFacts.copy(planetId = Some(planetId)),
+              upsert = true
+            )
             .flatMap(MongoHelper.interpretWriteResultUnit)
       )
 
-  def delete(enrolmentKey: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+  def delete(enrolmentKey: EnrolmentKey, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     this
       .remove(
-        KnownFacts.UNIQUE_KEY -> toJsFieldJsValueWrapper(KnownFacts.uniqueKey(enrolmentKey, planetId))
+        KnownFacts.UNIQUE_KEY -> toJsFieldJsValueWrapper(KnownFacts.uniqueKey(enrolmentKey.tag, planetId))
       )(ec)
       .flatMap(MongoHelper.interpretWriteResultUnit)
 

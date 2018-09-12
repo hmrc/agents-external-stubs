@@ -3,14 +3,14 @@ import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
 import play.api.libs.json._
 
-case class KnownFacts(enrolmentKey: EnrolmentKey, verifiers: Seq[KnownFact], planetId: String) {
+case class KnownFacts(enrolmentKey: EnrolmentKey, verifiers: Seq[KnownFact], planetId: Option[String] = None) {
   override def toString: String = s"$enrolmentKey~${verifiers.sorted.mkString("~")}"
 }
 
 object KnownFacts {
 
-  final val UNIQUE_KEY = "_unique_key"
-  final val VERIFIERS_KEYS = "_verifiers_keys"
+  val UNIQUE_KEY = "_unique_key"
+  val VERIFIERS_KEYS = "_verifiers_keys"
 
   type Transformer = JsObject => JsObject
 
@@ -69,4 +69,13 @@ object KnownFacts {
             _ => Valid(())
           )
     }
+
+  def generate(enrolmentKey: EnrolmentKey, seed: String): Option[KnownFacts] =
+    Services(enrolmentKey.service).map(s => {
+      val verifiers =
+        s.knownFacts.map(kf => Generator.get(kf.valueGenerator)(seed).map(value => KnownFact(kf.name, value))).collect {
+          case Some(x) => x
+        }
+      KnownFacts(enrolmentKey, verifiers)
+    })
 }

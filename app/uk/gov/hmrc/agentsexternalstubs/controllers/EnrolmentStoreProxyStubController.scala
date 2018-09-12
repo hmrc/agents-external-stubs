@@ -4,9 +4,10 @@ import cats.data.Validated
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent}
-import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.SetKnownFactsRequest.{KnownFact, Legacy}
+import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.SetKnownFactsRequest.Legacy
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.{AllocateGroupEnrolmentRequest, GetGroupIdsResponse, GetUserIdsResponse, SetKnownFactsRequest}
-import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, User, Validator}
+import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
@@ -14,8 +15,9 @@ import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import scala.concurrent.Future
 
 @Singleton
-class EnrolmentStoreProxyStubController @Inject()(val authenticationService: AuthenticationService)(
-  implicit usersService: UsersService)
+class EnrolmentStoreProxyStubController @Inject()(
+  val authenticationService: AuthenticationService,
+  knownFactsRepository: KnownFactsRepository)(implicit usersService: UsersService)
     extends BaseController with CurrentSession {
 
   def getUserIds(enrolmentKey: EnrolmentKey, `type`: String): Action[AnyContent] = Action.async { implicit request =>
@@ -53,16 +55,24 @@ class EnrolmentStoreProxyStubController @Inject()(val authenticationService: Aut
   }
 
   def setKnownFacts(enrolmentKey: EnrolmentKey): Action[JsValue] = Action.async(parse.json) { implicit request =>
-    withCurrentSession { _ =>
+    withCurrentSession { session =>
       withPayload[SetKnownFactsRequest] { payload =>
-        Future.successful(NoContent)
+        knownFactsRepository
+          .upsert(KnownFacts(enrolmentKey, payload.verifiers), session.planetId)
+          .map(_ => NoContent)
       }
     }(SessionRecordNotFound)
   }
 
   def removeKnownFacts(enrolmentKey: EnrolmentKey): Action[AnyContent] = Action.async { implicit request =>
-    withCurrentSession { _ =>
-      Future.successful(NoContent)
+    withCurrentSession { session =>
+      knownFactsRepository.findByEnrolmentKey(enrolmentKey, session.planetId).flatMap {
+        case None => notFoundF("ALLOCATION_DOES_NOT_EXIST")
+        case Some(_) =>
+          knownFactsRepository
+            .delete(enrolmentKey, session.planetId)
+            .map(_ => NoContent)
+      }
     }(SessionRecordNotFound)
   }
 
@@ -153,18 +163,18 @@ object EnrolmentStoreProxyStubController {
 
   object SetKnownFactsRequest {
 
-    case class KnownFact(key: String, value: String)
     case class Legacy(previousVerifiers: Seq[KnownFact])
-
-    object KnownFact {
-      implicit val formats: Format[KnownFact] = Json.format[KnownFact]
-    }
 
     object Legacy {
       implicit val formats: Format[Legacy] = Json.format[Legacy]
     }
 
     implicit val formats: Format[SetKnownFactsRequest] = Json.format[SetKnownFactsRequest]
+
+    def generate(enrolmentKey: String): Option[SetKnownFactsRequest] =
+      KnownFacts
+        .generate(EnrolmentKey(enrolmentKey), enrolmentKey)
+        .map(kf => SetKnownFactsRequest(kf.verifiers, Some(Legacy(kf.verifiers))))
   }
 
 }

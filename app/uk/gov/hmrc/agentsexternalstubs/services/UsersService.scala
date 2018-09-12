@@ -4,7 +4,7 @@ import cats.data.Validated.{Invalid, Valid}
 import javax.inject.{Inject, Singleton}
 import play.api.mvc.Result
 import uk.gov.hmrc.agentsexternalstubs.models.{User, _}
-import uk.gov.hmrc.agentsexternalstubs.repository.UsersRepository
+import uk.gov.hmrc.agentsexternalstubs.repository.{KnownFactsRepository, UsersRepository}
 import uk.gov.hmrc.auth.core.UnsupportedCredentialRole
 import uk.gov.hmrc.http.{BadRequestException, NotFoundException}
 
@@ -12,7 +12,10 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 @Singleton
-class UsersService @Inject()(usersRepository: UsersRepository, userRecordsService: UserRecordsSyncService) {
+class UsersService @Inject()(
+  usersRepository: UsersRepository,
+  userRecordsService: UserRecordsSyncService,
+  knownFactsRepository: KnownFactsRepository) {
 
   def findByUserId(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
     usersRepository.findByUserId(userId, planetId)
@@ -60,6 +63,7 @@ class UsersService @Inject()(usersRepository: UsersRepository, userRecordsServic
       refined   <- refineAndValidateUser(user, planetId)
       _         <- usersRepository.create(refined, planetId)
       maybeUser <- findByUserId(refined.userId, planetId)
+      _         <- updateKnownFacts(refined, planetId)
       _         <- userRecordsService.syncUserToRecords(maybeUser)
       newUser = maybeUser.getOrElse(throw new Exception(s"User $user creation failed."))
     } yield newUser
@@ -74,6 +78,7 @@ class UsersService @Inject()(usersRepository: UsersRepository, userRecordsServic
                      refined <- refineAndValidateUser(user, planetId)
                      _       <- usersRepository.create(refined, planetId)
                      newUser <- findByUserId(refined.userId, planetId)
+                     _       <- updateKnownFacts(refined, planetId)
                      _       <- userRecordsService.syncUserToRecords(newUser)
                    } yield newUser.map(Success.apply).getOrElse(Failure(new Exception(s"User $user creation failed")))
                }
@@ -89,6 +94,7 @@ class UsersService @Inject()(usersRepository: UsersRepository, userRecordsServic
                           refined   <- refineAndValidateUser(modified, planetId)
                           _         <- usersRepository.update(refined, planetId)
                           maybeUser <- findByUserId(userId, planetId)
+                          _         <- updateKnownFacts(refined, planetId)
                           _         <- userRecordsService.syncUserToRecords(maybeUser)
                         } yield maybeUser.getOrElse(throw new Exception)
                         else Future.successful(existingUser)
@@ -104,6 +110,7 @@ class UsersService @Inject()(usersRepository: UsersRepository, userRecordsServic
               for {
                 _ <- checkCanRemoveUser(user, planetId)
                 _ <- usersRepository.delete(user.userId, planetId)
+                _ <- deleteKnownFacts(user, planetId)
                 _ <- userRecordsService.syncAfterUserRemoved(user)
               } yield ()
             case None => Future.successful(())
@@ -128,6 +135,24 @@ class UsersService @Inject()(usersRepository: UsersRepository, userRecordsServic
                        user => Future.successful(user)
                      ))
       } yield accepted
+
+  private def updateKnownFacts(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+    Future
+      .sequence(
+        user.principalEnrolments
+          .map(_.toEnrolmentKey.flatMap(ek => KnownFacts.generate(ek, user.userId)))
+          .collect { case Some(x) => x }
+          .map(knownFacts => knownFactsRepository.upsert(knownFacts, planetId)))
+      .map(_ => ())
+
+  private def deleteKnownFacts(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+    Future
+      .sequence(
+        user.principalEnrolments
+          .map(_.toEnrolmentKey)
+          .collect { case Some(x) => x }
+          .map(enrolmentKey => knownFactsRepository.delete(enrolmentKey, planetId)))
+      .map(_ => ())
 
   private def checkCanAcceptUser(user: User, planetId: String)(
     implicit ec: ExecutionContext): Future[Either[List[String], User]] =
@@ -172,42 +197,46 @@ class UsersService @Inject()(usersRepository: UsersRepository, userRecordsServic
     enrolmentType: String,
     agentCodeOpt: Option[String],
     planetId: String)(implicit ec: ExecutionContext): Future[User] =
-    findByUserId(userId, planetId)
-      .flatMap {
-        case Some(user) =>
-          if (user.groupId.contains(groupId)) {
-            (if (user.credentialRole.contains(User.CR.Admin)) Future.successful(user)
-             else if (user.credentialRole.contains(User.CR.Assistant))
-               Future.failed(UnsupportedCredentialRole("INVALID_CREDENTIAL_TYPE"))
-             else {
-               agentCodeOpt match {
-                 case None =>
-                   findAdminByGroupId(groupId, planetId)
-                     .map(_.getOrElse(throw new BadRequestException("INVALID_GROUP_ID")))
-                 case Some(agentCode) =>
-                   findAdminByAgentCode(agentCode, planetId)
-                     .map(_.getOrElse(throw new BadRequestException("INVALID_AGENT_FORMAT")))
-               }
-             }).flatMap { admin =>
-              if (enrolmentType == "principal")
-                updateUser(
-                  admin.userId,
-                  planetId,
-                  u => u.copy(principalEnrolments = u.principalEnrolments :+ Enrolment.from(enrolmentKey)))
-              else if (enrolmentType == "delegated" && admin.affinityGroup.contains(User.AG.Agent))
-                findByPrincipalEnrolmentKey(enrolmentKey, planetId).flatMap {
-                  case Some(owner) if !owner.affinityGroup.contains(User.AG.Agent) =>
+    knownFactsRepository.findByEnrolmentKey(enrolmentKey, planetId).flatMap {
+      case None => Future.failed(new NotFoundException("ALLOCATION_DOES_NOT_EXIST"))
+      case Some(_) =>
+        findByUserId(userId, planetId)
+          .flatMap {
+            case Some(user) =>
+              if (user.groupId.contains(groupId)) {
+                (if (user.credentialRole.contains(User.CR.Admin)) Future.successful(user)
+                 else if (user.credentialRole.contains(User.CR.Assistant))
+                   Future.failed(UnsupportedCredentialRole("INVALID_CREDENTIAL_TYPE"))
+                 else {
+                   agentCodeOpt match {
+                     case None =>
+                       findAdminByGroupId(groupId, planetId)
+                         .map(_.getOrElse(throw new BadRequestException("INVALID_GROUP_ID")))
+                     case Some(agentCode) =>
+                       findAdminByAgentCode(agentCode, planetId)
+                         .map(_.getOrElse(throw new BadRequestException("INVALID_AGENT_FORMAT")))
+                   }
+                 }).flatMap { admin =>
+                  if (enrolmentType == "principal")
                     updateUser(
                       admin.userId,
                       planetId,
-                      u => u.copy(delegatedEnrolments = u.delegatedEnrolments :+ Enrolment.from(enrolmentKey)))
-                  case None =>
-                    Future.failed(throw new BadRequestException("INVALID_QUERY_PARAMETERS"))
-                } else Future.failed(throw new BadRequestException("INVALID_QUERY_PARAMETERS"))
-            }
-          } else Future.failed(throw new BadRequestException("INVALID_GROUP_ID"))
-        case None => Future.failed(throw new BadRequestException("INVALID_JSON_BODY"))
-      }
+                      u => u.copy(principalEnrolments = u.principalEnrolments :+ Enrolment.from(enrolmentKey)))
+                  else if (enrolmentType == "delegated" && admin.affinityGroup.contains(User.AG.Agent))
+                    findByPrincipalEnrolmentKey(enrolmentKey, planetId).flatMap {
+                      case Some(owner) if !owner.affinityGroup.contains(User.AG.Agent) =>
+                        updateUser(
+                          admin.userId,
+                          planetId,
+                          u => u.copy(delegatedEnrolments = u.delegatedEnrolments :+ Enrolment.from(enrolmentKey)))
+                      case None =>
+                        Future.failed(throw new BadRequestException("INVALID_QUERY_PARAMETERS"))
+                    } else Future.failed(throw new BadRequestException("INVALID_QUERY_PARAMETERS"))
+                }
+              } else Future.failed(throw new BadRequestException("INVALID_GROUP_ID"))
+            case None => Future.failed(throw new BadRequestException("INVALID_JSON_BODY"))
+          }
+    }
 
   /* Group enrolment is de-assigned from the unique Admin user of the group */
   def deallocateEnrolmentFromGroup(

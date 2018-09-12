@@ -22,7 +22,7 @@ trait Generator extends Names with Temporal with Companies with Addresses {
     knownPatterns.getOrElse(pattern, PatternContext(StringContext(pattern)).pattern())
 
   def regex(regex: String): Gen[String] =
-    knownPatterns.getOrElse(regex, RegexpGen.from(regex).retryUntil(s => s.matches(regex)))
+    knownRegex.getOrElse(regex, RegexpGen.from(regex).retryUntil(s => s.matches(regex)))
 
   def toJodaDate(date: java.time.LocalDate): org.joda.time.LocalDate = org.joda.time.LocalDate.parse(date.toString)
 
@@ -150,6 +150,11 @@ trait Generator extends Names with Temporal with Companies with Addresses {
     "date:dd/MM/yy"   -> dateDDMMYYGen,
     "date:yyyy-MM-dd" -> dateYYYYMMDDGen,
     "date:MMM"        -> shortMonthNameGen
+  )
+
+  lazy val knownRegex: Map[String, Gen[String]] = Map(
+    ".{0,1}"              -> Gen.oneOf("y", "n"),
+    "^[A-Za-z0-9]{0,12}$" -> pattern"Zzz00099900Z"
   )
 
 }

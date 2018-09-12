@@ -2,7 +2,8 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, Enrolment, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.SetKnownFactsRequest
+import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{MongoDB, ServerBaseISpec, TestRequests}
 
@@ -193,6 +194,12 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
     "POST /enrolment-store/groups/:groupId/enrolments/:enrolmentKey" should {
       "allocate principal enrolment to the group identified by groupId" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("00000000123166122235")
+        EnrolmentStoreProxyStub
+          .setKnownFacts(
+            "IR-SA~UTR~12345678",
+            SetKnownFactsRequest
+              .generate("IR-SA~UTR~12345678")
+              .getOrElse(throw new Exception("Could not generate known facts")))
         Users.update(UserGenerator.individual(userId = "00000000123166122235", groupId = "group1"))
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
@@ -244,6 +251,12 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
       "fail to allocate delegated enrolment to the agent if enrolment does not exist" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("0000000021313132")
         Users.update(UserGenerator.agent(userId = "0000000021313132", groupId = "group1"))
+        EnrolmentStoreProxyStub
+          .setKnownFacts(
+            "IR-SA~UTR~12345678",
+            SetKnownFactsRequest
+              .generate("IR-SA~UTR~12345678")
+              .getOrElse(throw new Exception("Could not generate known facts")))
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
           "group1",
@@ -264,6 +277,12 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("0000000021313132")
         Users.update(UserGenerator.agent(userId = "0000000021313132", groupId = "group1", agentCode = "ABC123"))
         Users.create(UserGenerator.individual().withPrincipalEnrolment("IR-SA", "UTR", "12345678"))
+        EnrolmentStoreProxyStub
+          .setKnownFacts(
+            "IR-SA~UTR~12345678",
+            SetKnownFactsRequest
+              .generate("IR-SA~UTR~12345678")
+              .getOrElse(throw new Exception("Could not generate known facts")))
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
           "group1",
@@ -284,6 +303,12 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
       "fail to allocate delegated enrolment to the agent (identified by legacy-agentCode) if enrolment does not exist" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("0000000021313132")
         Users.update(UserGenerator.agent(userId = "0000000021313132", groupId = "group1", agentCode = "ABC123"))
+        EnrolmentStoreProxyStub
+          .setKnownFacts(
+            "IR-SA~UTR~12345678",
+            SetKnownFactsRequest
+              .generate("IR-SA~UTR~12345678")
+              .getOrElse(throw new Exception("Could not generate known facts")))
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
           "group1",
@@ -301,6 +326,12 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
       "return 400 if groupId does not exist" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("00000000123166122235")
         Users.update(UserGenerator.individual(userId = "00000000123166122235", groupId = "group1"))
+        EnrolmentStoreProxyStub
+          .setKnownFacts(
+            "IR-SA~UTR~12345678",
+            SetKnownFactsRequest
+              .generate("IR-SA~UTR~12345678")
+              .getOrElse(throw new Exception("Could not generate known facts")))
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
           "group2",
@@ -317,6 +348,12 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
       "return 400 if userId does not exist" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("00000000123166122235")
         Users.update(UserGenerator.individual(userId = "00000000123166122235", groupId = "group1"))
+        EnrolmentStoreProxyStub
+          .setKnownFacts(
+            "IR-SA~UTR~12345678",
+            SetKnownFactsRequest
+              .generate("IR-SA~UTR~12345678")
+              .getOrElse(throw new Exception("Could not generate known facts")))
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
           "group1",
@@ -328,6 +365,22 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         )
 
         result should haveStatus(400)
+      }
+
+      "return 404 if enrolment does not exist" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("00000000123166122235")
+        Users.update(UserGenerator.individual(userId = "00000000123166122235", groupId = "group1"))
+
+        val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
+          "group1",
+          "IR-SA~UTR~12345678",
+          Json.parse("""{
+                       |    "userId" : "foo1",
+                       |    "type":         "principal"
+                       |}""".stripMargin)
+        )
+
+        result should haveStatus(404)
       }
 
       "return 400 if enrolment key is invalid" in {
@@ -418,9 +471,33 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
     "DELETE /enrolment-store/enrolments/:enrolmentKey" should {
       "return 204 NoContent" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        EnrolmentStoreProxyStub.setKnownFacts(
+          enrolmentKey = "IR-SA~UTR~12345678",
+          payload = Json.parse("""{
+                                 |  "verifiers": [
+                                 |    {
+                                 |      "key": "Postcode",
+                                 |      "value": "TF2 6NU"
+                                 |    },
+                                 |    {
+                                 |      "key": "NINO",
+                                 |      "value": "AB123456X"
+                                 |    }
+                                 |  ]
+                                 |}
+                               """.stripMargin)
+        )
+
         val result = EnrolmentStoreProxyStub.removeKnownFacts("IR-SA~UTR~12345678")
 
         result should haveStatus(204)
+      }
+
+      "return 404 if enrolment does not exist" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        val result = EnrolmentStoreProxyStub.removeKnownFacts("IR-SA~UTR~12345678")
+
+        result should haveStatus(404)
       }
     }
   }
