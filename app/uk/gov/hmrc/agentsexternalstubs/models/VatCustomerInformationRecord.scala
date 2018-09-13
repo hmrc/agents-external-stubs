@@ -287,7 +287,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       entity =>
         entity.copy(
           groupOrPartnerMbrs = entity.groupOrPartnerMbrs
-            .orElse(Generator.get(Generator.nonEmptyListOfMaxN(2, GroupOrPartner.gen))(seed))
+            .orElse(Generator.get(Generator.nonEmptyListOfMaxN(1, GroupOrPartner.gen))(seed))
             .map(_.map(GroupOrPartner.sanitize(seed))))
 
     override val sanitizers: Seq[Update] = Seq(
@@ -2144,7 +2144,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       entity =>
         entity.copy(
           groupOrPartner = entity.groupOrPartner
-            .orElse(Generator.get(Generator.nonEmptyListOfMaxN(2, InFlightGroupOrPartner.gen))(seed))
+            .orElse(Generator.get(Generator.nonEmptyListOfMaxN(1, InFlightGroupOrPartner.gen))(seed))
             .map(_.map(InFlightGroupOrPartner.sanitize(seed))))
 
     override val sanitizers: Seq[Update] = Seq(

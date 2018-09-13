@@ -96,7 +96,7 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     entity =>
       entity.copy(
         businessData = entity.businessData
-          .orElse(Generator.get(Generator.nonEmptyListOfMaxN(2, BusinessData.gen))(seed))
+          .orElse(Generator.get(Generator.nonEmptyListOfMaxN(1, BusinessData.gen))(seed))
           .map(_.map(BusinessData.sanitize(seed))))
 
   val propertyDataSanitizer: Update = seed =>

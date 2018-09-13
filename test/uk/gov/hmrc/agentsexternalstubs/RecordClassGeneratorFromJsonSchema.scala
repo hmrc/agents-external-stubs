@@ -511,7 +511,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
           })
 
         case b: BooleanDefinition => "Generator.booleanGen"
-        case a: ArrayDefinition   => s"Generator.nonEmptyListOfMaxN(2,${generateValueGenerator(a.item, context)})"
+        case a: ArrayDefinition   => s"Generator.nonEmptyListOfMaxN(1,${generateValueGenerator(a.item, context)})"
         case o: ObjectDefinition  => s"${o.typeName}.gen"
 
         case o: OneOfDefinition =>
