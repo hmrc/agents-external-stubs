@@ -67,5 +67,8 @@ GET         /agents-external-stubs/records/vat-customer-information/generate @uk
 POST        /agents-external-stubs/records/business-partner-record           @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.storeBusinessPartnerRecord(autoFill: Boolean ?= true)
 GET         /agents-external-stubs/records/business-partner-record/generate  @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generateBusinessPartnerRecord(seed: Option[String] ?= None, minimal: Boolean ?= false)
 
+# Known facts management
+GET         /agents-external-stubs/known-facts/:enrolmentKey                 @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.getKnownFacts(enrolmentKey: EnrolmentKey)
+
 # Config management
 GET         /agents-external-stubs/config/services                           @uk.gov.hmrc.agentsexternalstubs.controllers.ConfigController.getServices

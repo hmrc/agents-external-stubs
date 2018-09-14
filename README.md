@@ -22,6 +22,7 @@ This app SHOULD NOT be run on QA nor Production environment.
     * [Authentication](#custom_api_authentication)
     * [Users Management](#custom_api_users)
     * [Master Records (DES)](#custom_api_records)
+    * [Known Facts](#custom_api_known_facts)
 
 ## How requests are handled?
 
@@ -231,6 +232,11 @@ Removes the record
 
 #### POST /agents-external-stubs/records/vat-customer-information
 #### GET /agents-external-stubs/records/vat-customer-information/generate
+
+### Test Known Facts Management <a name="custom_api_known_facts"></a>
+
+#### GET /agents-external-stubs/known-facts/:enrolmentKey
+Get known facts (enrolment) information
 
 ## Running the tests
 

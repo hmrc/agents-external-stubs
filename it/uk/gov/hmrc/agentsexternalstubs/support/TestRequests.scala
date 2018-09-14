@@ -402,6 +402,11 @@ trait TestRequests extends ScalaFutures {
         .futureValue
   }
 
+  object KnownFacts {
+    def getKnownFacts(enrolmentKey: String)(implicit authContext: AuthContext): WSResponse =
+      get(s"/agents-external-stubs/known-facts/$enrolmentKey")
+  }
+
   object Config {
     def getServices()(implicit authContext: AuthContext): WSResponse =
       get(s"/agents-external-stubs/config/services")

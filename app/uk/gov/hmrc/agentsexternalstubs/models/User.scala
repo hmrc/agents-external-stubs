@@ -99,6 +99,10 @@ object User {
 
     def withDelegatedEnrolment(service: String, identifierKey: String, identifierValue: String): User =
       withDelegatedEnrolment(Enrolment(service, Some(Seq(Identifier(identifierKey, identifierValue)))))
+
+    def withDelegatedEnrolment(enrolmentKey: String): User =
+      withDelegatedEnrolment(
+        Enrolment.from(EnrolmentKey.parse(enrolmentKey).fold(e => throw new Exception(e), identity)))
   }
 
   type Transformer = JsObject => JsObject
