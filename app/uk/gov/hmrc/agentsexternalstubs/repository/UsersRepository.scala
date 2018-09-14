@@ -41,7 +41,7 @@ trait UsersRepository {
   def findByUserId(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]]
   def findByNino(nino: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]]
   def findByPlanetId(planetId: String, affinityGroup: Option[String])(limit: Int)(
-    implicit ec: ExecutionContext): Future[Seq[UserBrief]]
+    implicit ec: ExecutionContext): Future[Seq[User]]
   def findByGroupId(groupId: String, planetId: String)(limit: Int)(implicit ec: ExecutionContext): Future[Seq[User]]
   def findAdminByGroupId(groupId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]]
   def findByAgentCode(agentCode: String, planetId: String)(limit: Int)(implicit ec: ExecutionContext): Future[Seq[User]]
@@ -128,11 +128,9 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
     }
 
   override def findByPlanetId(planetId: String, affinityGroup: Option[String])(limit: Int)(
-    implicit ec: ExecutionContext): Future[Seq[UserBrief]] =
-    cursor(
-      Seq(PLANET_ID -> Option(planetId), "affinityGroup" -> affinityGroup),
-      Seq("userId"  -> 1, "groupId"                      -> 1, "affinityGroup" -> 1, "credentialRole" -> 1))(UserBrief.formats)
-      .collect[Seq](maxDocs = limit, err = Cursor.ContOnError[Seq[UserBrief]]())
+    implicit ec: ExecutionContext): Future[Seq[User]] =
+    cursor(Seq(PLANET_ID -> Option(planetId), "affinityGroup" -> affinityGroup))(User.formats)
+      .collect[Seq](maxDocs = limit, err = Cursor.ContOnError[Seq[User]]())
 
   override def findByGroupId(groupId: String, planetId: String)(limit: Int)(
     implicit ec: ExecutionContext): Future[Seq[User]] =

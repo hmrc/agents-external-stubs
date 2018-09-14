@@ -33,28 +33,44 @@ class UserRecordsSyncService @Inject()(
       val mtdbsa = user
         .findIdentifierValue("HMRC-MTD-IT", "MTDITID")
         .getOrElse(Generator.mtdbsa(user.userId).value)
-      val record = BusinessDetailsRecord
-        .generate(user.userId)
-        .withNino(nino)
-        .withMtdbsa(mtdbsa)
-        .modifyBusinessData {
-          case Some(businessData :: _) => Some(Seq(businessData.withCessationDate(None).withCessationReason(None)))
-        }
-      val maybeRecord1 = businessDetailsRecordsService.getBusinessDetails(Nino(nino), user.planetId.get)
-      val maybeRecord2 = businessDetailsRecordsService.getBusinessDetails(MtdItId(mtdbsa), user.planetId.get)
-      Future
-        .sequence(Seq(maybeRecord1, maybeRecord2))
-        .map(_.collect { case Some(x) => x })
-        .map(_.toList match {
-          case r1 :: r2 :: Nil if r1.id == r2.id => record.withId(r2.id)
-          case r :: Nil                          => record.withId(r.id)
-          case Nil                               => record
+      knownFactsRepository
+        .findByEnrolmentKey(EnrolmentKey.from("HMRC-MTD-IT", "MTDITID" -> mtdbsa), user.planetId.get)
+        .map(_.flatMap(_.getVerifierValue("businesspostcode")))
+        .flatMap(businessPostcodeOpt => {
+          val address = BusinessDetailsRecord.UkAddress
+            .generate(user.userId)
+            .modifyPostalCode {
+              case pc => businessPostcodeOpt.getOrElse(pc)
+            }
+          val record = BusinessDetailsRecord
+            .generate(user.userId)
+            .withNino(nino)
+            .withMtdbsa(mtdbsa)
+            .modifyBusinessData {
+              case Some(businessData :: _) =>
+                Some(
+                  Seq(
+                    businessData
+                      .withCessationDate(None)
+                      .withCessationReason(None)
+                      .withBusinessAddressDetails(Some(address))
+                  ))
+            }
+          val maybeRecord1 = businessDetailsRecordsService.getBusinessDetails(Nino(nino), user.planetId.get)
+          val maybeRecord2 = businessDetailsRecordsService.getBusinessDetails(MtdItId(mtdbsa), user.planetId.get)
+          Future
+            .sequence(Seq(maybeRecord1, maybeRecord2))
+            .map(_.collect { case Some(x) => x })
+            .map(_.toList match {
+              case r1 :: r2 :: Nil if r1.id == r2.id => record.withId(r2.id)
+              case r :: Nil                          => record.withId(r.id)
+              case Nil                               => record
+            })
+            .flatMap(entity =>
+              businessDetailsRecordsService
+                .store(entity, autoFill = false, user.planetId.get)
+                .map(_ => ()))
         })
-        .flatMap(
-          entity =>
-            businessDetailsRecordsService
-              .store(entity, autoFill = false, user.planetId.get)
-              .map(_ => ()))
     }
   }
 
@@ -140,7 +156,7 @@ class UserRecordsSyncService @Inject()(
     }
   }
 
-  val businessPartnerRecordForAnUser: UserRecordsSync = {
+  val businessPartnerRecordForAnAgent: UserRecordsSync = {
     case User.Agent(user) => {
       val address = UkAddress.generate(user.userId)
       val record = BusinessPartnerRecord
@@ -219,7 +235,7 @@ class UserRecordsSyncService @Inject()(
     businessDetailsForMtdItIndividual,
     vatCustomerInformationForMtdVatIndividual,
     vatCustomerInformationForMtdVatOrganisation,
-    businessPartnerRecordForAnUser
+    businessPartnerRecordForAnAgent
   )
 
   final val syncUserToRecords: Option[User] => Future[Unit] = {
