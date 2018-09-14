@@ -24,6 +24,9 @@ class UserRecordsSyncService @Inject()(
 
   implicit val optionGenStrategy: Generator.OptionGenStrategy = Generator.AlwaysSome
 
+  private val dateFormatddMMyy = DateTimeFormatter.ofPattern("dd/MM/yy")
+  private val dateFormatyyyyMMdd = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+
   val businessDetailsForMtdItIndividual: UserRecordsSync = {
     case User.Individual(user) if user.principalEnrolments.exists(_.key == "HMRC-MTD-IT") => {
       val nino = user.nino.map(_.value.replace(" ", "")).getOrElse(Generator.ninoNoSpaces(user.userId).value)
@@ -60,37 +63,42 @@ class UserRecordsSyncService @Inject()(
       val vrn = user
         .findIdentifierValue("HMRC-MTD-VAT", "VRN")
         .getOrElse(throw new IllegalStateException("Expected individual having VRN identifier."))
-      val record = VatCustomerInformationRecord
-        .generate(user.userId)
-        .withVrn(vrn)
-        .withApprovedInformation(
-          Some(
-            ApprovedInformation
-              .generate(user.userId)
-              .withCustomerDetails(
-                CustomerDetails
+      knownFactsRepository
+        .findByEnrolmentKey(EnrolmentKey.from("HMRC-MTD-VAT", "VRN" -> vrn), user.planetId.get)
+        .map(_.flatMap(_.getVerifierValue("VATRegistrationDate").map(LocalDate.parse(_, dateFormatddMMyy))))
+        .flatMap(vatRegistrationDateOpt => {
+          val record = VatCustomerInformationRecord
+            .generate(user.userId)
+            .withVrn(vrn)
+            .withApprovedInformation(
+              Some(
+                ApprovedInformation
                   .generate(user.userId)
-                  .withOrganisationName(None)
-                  .withIndividual(Some(IndividualName()
-                    .withFirstName(user.firstName)
-                    .withLastName(user.lastName)))
-                  .withDateOfBirth(user.dateOfBirth.map(_.toString("yyyy-MM-dd")))
-              )
-              .withDeregistration(None)
-          ))
-      vatCustomerInformationRecordsService
-        .getCustomerInformation(vrn, user.planetId.get)
-        .map {
-          case Some(existing) => record.withId(existing.id)
-          case None           => record
-        }
-        .flatMap(entity =>
-          vatCustomerInformationRecordsService.store(entity, autoFill = false, user.planetId.get).map(_ => ()))
+                  .withCustomerDetails(
+                    CustomerDetails
+                      .generate(user.userId)
+                      .withOrganisationName(None)
+                      .withIndividual(Some(IndividualName()
+                        .withFirstName(user.firstName)
+                        .withLastName(user.lastName)))
+                      .withDateOfBirth(user.dateOfBirth.map(_.toString("yyyy-MM-dd")))
+                      .modifyEffectiveRegistrationDate {
+                        case date => vatRegistrationDateOpt.map(_.format(dateFormatyyyyMMdd)).orElse(date)
+                      }
+                  )
+                  .withDeregistration(None)
+              ))
+          vatCustomerInformationRecordsService
+            .getCustomerInformation(vrn, user.planetId.get)
+            .map {
+              case Some(existing) => record.withId(existing.id)
+              case None           => record
+            }
+            .flatMap(entity =>
+              vatCustomerInformationRecordsService.store(entity, autoFill = false, user.planetId.get).map(_ => ()))
+        })
     }
   }
-
-  private val formatter1 = DateTimeFormatter.ofPattern("dd/MM/yy")
-  private val formatter2 = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
   val vatCustomerInformationForMtdVatOrganisation: UserRecordsSync = {
     case User.Organisation(user) if user.principalEnrolments.exists(_.key == "HMRC-MTD-VAT") => {
@@ -99,7 +107,7 @@ class UserRecordsSyncService @Inject()(
         .getOrElse(throw new IllegalStateException("Expected individual having VRN identifier."))
       knownFactsRepository
         .findByEnrolmentKey(EnrolmentKey.from("HMRC-MTD-VAT", "VRN" -> vrn), user.planetId.get)
-        .map(_.flatMap(_.getVerifierValue("VATRegistrationDate").map(LocalDate.parse(_, formatter1))))
+        .map(_.flatMap(_.getVerifierValue("VATRegistrationDate").map(LocalDate.parse(_, dateFormatddMMyy))))
         .flatMap(vatRegistrationDateOpt => {
           val record = VatCustomerInformationRecord
             .generate(user.userId)
@@ -115,7 +123,7 @@ class UserRecordsSyncService @Inject()(
                       .withDateOfBirth(None)
                       .withOrganisationName(user.name)
                       .modifyEffectiveRegistrationDate {
-                        case date => vatRegistrationDateOpt.map(_.format(formatter2)).orElse(date)
+                        case date => vatRegistrationDateOpt.map(_.format(dateFormatyyyyMMdd)).orElse(date)
                       }
                   )
                   .withDeregistration(None)

@@ -13,10 +13,10 @@ import scala.concurrent.Future
 class ConfigController @Inject()(val authenticationService: AuthenticationService)
     extends BaseController with CurrentSession {
 
+  private lazy val servicesResponse = RestfulResponse(Services(services = Services.services))
+
   def getServices: Action[AnyContent] = Action.async { implicit request =>
-    withCurrentSession { _ =>
-      Future.successful(Ok(RestfulResponse(Services(services = Services.services))))
-    }(SessionRecordNotFound)
+    Future.successful(Ok(servicesResponse))
   }
 
 }
