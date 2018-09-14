@@ -1,9 +1,13 @@
 package uk.gov.hmrc.agentsexternalstubs.services
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
 import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Utr}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{AgencyDetails, Individual, UkAddress}
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, IndividualName}
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.domain.Nino
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -13,7 +17,8 @@ import scala.concurrent.Future
 class UserRecordsSyncService @Inject()(
   businessDetailsRecordsService: BusinessDetailsRecordsService,
   vatCustomerInformationRecordsService: VatCustomerInformationRecordsService,
-  BusinessPartnerRecordsService: BusinessPartnerRecordsService) {
+  BusinessPartnerRecordsService: BusinessPartnerRecordsService,
+  knownFactsRepository: KnownFactsRepository) {
 
   type UserRecordsSync = PartialFunction[User, Future[Unit]]
 
@@ -84,35 +89,46 @@ class UserRecordsSyncService @Inject()(
     }
   }
 
+  private val formatter1 = DateTimeFormatter.ofPattern("dd/MM/yy")
+  private val formatter2 = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+
   val vatCustomerInformationForMtdVatOrganisation: UserRecordsSync = {
     case User.Organisation(user) if user.principalEnrolments.exists(_.key == "HMRC-MTD-VAT") => {
       val vrn = user
         .findIdentifierValue("HMRC-MTD-VAT", "VRN")
         .getOrElse(throw new IllegalStateException("Expected individual having VRN identifier."))
-      val record = VatCustomerInformationRecord
-        .generate(user.userId)
-        .withVrn(vrn)
-        .withApprovedInformation(
-          Some(
-            ApprovedInformation
-              .generate(user.userId)
-              .withCustomerDetails(
-                CustomerDetails
+      knownFactsRepository
+        .findByEnrolmentKey(EnrolmentKey.from("HMRC-MTD-VAT", "VRN" -> vrn), user.planetId.get)
+        .map(_.flatMap(_.getVerifierValue("VATRegistrationDate").map(LocalDate.parse(_, formatter1))))
+        .flatMap(vatRegistrationDateOpt => {
+          val record = VatCustomerInformationRecord
+            .generate(user.userId)
+            .withVrn(vrn)
+            .withApprovedInformation(
+              Some(
+                ApprovedInformation
                   .generate(user.userId)
-                  .withIndividual(None)
-                  .withDateOfBirth(None)
-                  .withOrganisationName(user.name)
-              )
-              .withDeregistration(None)
-          ))
-      vatCustomerInformationRecordsService
-        .getCustomerInformation(vrn, user.planetId.get)
-        .map {
-          case Some(existing) => record.withId(existing.id)
-          case None           => record
-        }
-        .flatMap(entity =>
-          vatCustomerInformationRecordsService.store(entity, autoFill = false, user.planetId.get).map(_ => ()))
+                  .withCustomerDetails(
+                    CustomerDetails
+                      .generate(user.userId)
+                      .withIndividual(None)
+                      .withDateOfBirth(None)
+                      .withOrganisationName(user.name)
+                      .modifyEffectiveRegistrationDate {
+                        case date => vatRegistrationDateOpt.map(_.format(formatter2)).orElse(date)
+                      }
+                  )
+                  .withDeregistration(None)
+              ))
+          vatCustomerInformationRecordsService
+            .getCustomerInformation(vrn, user.planetId.get)
+            .map {
+              case Some(existing) => record.withId(existing.id)
+              case None           => record
+            }
+            .flatMap(entity =>
+              vatCustomerInformationRecordsService.store(entity, autoFill = false, user.planetId.get).map(_ => ()))
+        })
     }
   }
 
@@ -142,18 +158,35 @@ class UserRecordsSyncService @Inject()(
       user
         .findIdentifierValue("HMRC-AS-AGENT", "AgentReferenceNumber") match {
         case Some(arn) =>
-          val ar = record
-            .withAgentReferenceNumber(Option(arn))
-            .withIsAnAgent(true)
-            .withIsAnASAgent(true)
-          BusinessPartnerRecordsService
-            .getBusinessPartnerRecord(Arn(arn), user.planetId.get)
-            .map {
-              case Some(existingRecord) => ar.withId(existingRecord.id)
-              case None                 => ar
-            }
-            .flatMap(entity =>
-              BusinessPartnerRecordsService.store(entity, autoFill = false, user.planetId.get).map(_ => ()))
+          knownFactsRepository
+            .findByEnrolmentKey(EnrolmentKey.from("HMRC-AS-AGENT", "AgentReferenceNumber" -> arn), user.planetId.get)
+            .map(_.flatMap(_.getVerifierValue("AgencyPostcode")))
+            .flatMap(postcodeOpt => {
+              val ar = record
+                .withAgentReferenceNumber(Option(arn))
+                .withIsAnAgent(true)
+                .withIsAnASAgent(true)
+                .modifyAgencyDetails {
+                  case Some(ad) =>
+                    Some(ad.modifyAgencyAddress {
+                      case Some(aa: BusinessPartnerRecord.UkAddress) =>
+                        Some(aa.modifyPostalCode { case pc => postcodeOpt.getOrElse(pc) })
+                    })
+                }
+                .modifyAddressDetails {
+                  case ad: BusinessPartnerRecord.UkAddress =>
+                    ad.modifyPostalCode { case pc => postcodeOpt.getOrElse(pc) }
+                }
+              BusinessPartnerRecordsService
+                .getBusinessPartnerRecord(Arn(arn), user.planetId.get)
+                .map {
+                  case Some(existingRecord) => ar.withId(existingRecord.id)
+                  case None                 => ar
+                }
+                .flatMap(entity =>
+                  BusinessPartnerRecordsService.store(entity, autoFill = false, user.planetId.get).map(_ => ()))
+            })
+
         case None if user.principalEnrolments.isEmpty =>
           val ar = record
             .withUtr(Option(utr))
@@ -167,6 +200,7 @@ class UserRecordsSyncService @Inject()(
             }
             .flatMap(entity =>
               BusinessPartnerRecordsService.store(entity, autoFill = false, user.planetId.get).map(_ => ()))
+
         case _ =>
           Future.successful(())
       }

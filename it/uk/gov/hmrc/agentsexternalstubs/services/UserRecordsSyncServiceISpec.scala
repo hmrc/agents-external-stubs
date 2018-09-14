@@ -1,10 +1,13 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.UkAddress
-import uk.gov.hmrc.agentsexternalstubs.models.UserGenerator
+import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.agentsexternalstubs.support._
 import uk.gov.hmrc.domain.Nino
 
@@ -14,7 +17,11 @@ class UserRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
   lazy val userRecordsService = app.injector.instanceOf[UserRecordsSyncService]
   lazy val businessDetailsRecordsService = app.injector.instanceOf[BusinessDetailsRecordsService]
   lazy val vatCustomerInformationRecordsService = app.injector.instanceOf[VatCustomerInformationRecordsService]
-  lazy val BusinessPartnerRecordsService = app.injector.instanceOf[BusinessPartnerRecordsService]
+  lazy val businessPartnerRecordsService = app.injector.instanceOf[BusinessPartnerRecordsService]
+  lazy val knownFactsRepository = app.injector.instanceOf[KnownFactsRepository]
+
+  private val formatter1 = DateTimeFormatter.ofPattern("dd/MM/yy")
+  private val formatter2 = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
   "UserRecordsSyncService" should {
     "sync mtd-it individual to business details records" in {
@@ -67,13 +74,25 @@ class UserRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
         .organisation("foo", name = "ABC123 Corp.")
         .withPrincipalEnrolment("HMRC-MTD-VAT", "VRN", "923456788")
       await(usersService.createUser(user, planetId))
+
+      val knownFacts = await(
+        knownFactsRepository
+          .findByEnrolmentKey(EnrolmentKey.from("HMRC-MTD-VAT", "VRN" -> "923456788"), planetId))
+      val dateOpt = knownFacts.flatMap(_.getVerifierValue("VATRegistrationDate").map(LocalDate.parse(_, formatter1)))
+
       val result = await(vatCustomerInformationRecordsService.getCustomerInformation("923456788", planetId))
       result.flatMap(_.approvedInformation.flatMap(_.customerDetails.organisationName)) shouldBe Some("ABC123 Corp.")
+      result.flatMap(
+        _.approvedInformation
+          .flatMap(_.customerDetails.effectiveRegistrationDate.map(LocalDate.parse(_, formatter2)))) shouldBe dateOpt
 
       await(usersService.updateUser(user.userId, planetId, user => user.copy(name = Some("Foo Bar"))))
 
       val result2 = await(vatCustomerInformationRecordsService.getCustomerInformation("923456788", planetId))
       result2.flatMap(_.approvedInformation.flatMap(_.customerDetails.organisationName)) shouldBe Some("Foo Bar")
+      result2.flatMap(
+        _.approvedInformation
+          .flatMap(_.customerDetails.effectiveRegistrationDate.map(LocalDate.parse(_, formatter2)))) shouldBe dateOpt
     }
 
     "sync hmrc-as-agent agent to agent records" in {
@@ -84,16 +103,21 @@ class UserRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
 
       await(usersService.createUser(user, planetId))
 
-      val result = await(BusinessPartnerRecordsService.getBusinessPartnerRecord(Arn("XARN0001230"), planetId))
+      val knownFacts = await(
+        knownFactsRepository
+          .findByEnrolmentKey(EnrolmentKey.from("HMRC-AS-AGENT", "AgentReferenceNumber" -> "XARN0001230"), planetId))
+      val postcodeOpt = knownFacts.flatMap(_.getVerifierValue("AgencyPostcode"))
+
+      val result = await(businessPartnerRecordsService.getBusinessPartnerRecord(Arn("XARN0001230"), planetId))
       result.flatMap(_.agencyDetails.flatMap(_.agencyName)) shouldBe Some("ABC123")
-      result.flatMap(_.agencyDetails.flatMap(_.agencyAddress.map(_.asInstanceOf[UkAddress].postalCode))) shouldBe defined
-      result.map(_.addressDetails.asInstanceOf[UkAddress].postalCode) shouldBe defined
+      result.flatMap(_.agencyDetails.flatMap(_.agencyAddress.map(_.asInstanceOf[UkAddress].postalCode))) shouldBe postcodeOpt
+      result.map(_.addressDetails.asInstanceOf[UkAddress].postalCode) shouldBe postcodeOpt
 
       await(usersService.updateUser(user.userId, planetId, user => user.copy(agentFriendlyName = Some("foobar"))))
-      val result2 = await(BusinessPartnerRecordsService.getBusinessPartnerRecord(Arn("XARN0001230"), planetId))
+      val result2 = await(businessPartnerRecordsService.getBusinessPartnerRecord(Arn("XARN0001230"), planetId))
       result2.flatMap(_.agencyDetails.flatMap(_.agencyName)) shouldBe Some("foobar")
-      result2.flatMap(_.agencyDetails.flatMap(_.agencyAddress.map(_.asInstanceOf[UkAddress].postalCode))) shouldBe defined
-      result2.map(_.addressDetails.asInstanceOf[UkAddress].postalCode) shouldBe defined
+      result2.flatMap(_.agencyDetails.flatMap(_.agencyAddress.map(_.asInstanceOf[UkAddress].postalCode))) shouldBe postcodeOpt
+      result2.map(_.addressDetails.asInstanceOf[UkAddress].postalCode) shouldBe postcodeOpt
     }
   }
 }

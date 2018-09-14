@@ -5,6 +5,8 @@ import play.api.libs.json._
 
 case class KnownFacts(enrolmentKey: EnrolmentKey, verifiers: Seq[KnownFact], planetId: Option[String] = None) {
   override def toString: String = s"$enrolmentKey~${verifiers.sorted.mkString("~")}"
+
+  def getVerifierValue(key: String): Option[String] = verifiers.find(_.key == key).map(_.value)
 }
 
 object KnownFacts {
