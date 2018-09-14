@@ -13,16 +13,17 @@ import scala.concurrent.{ExecutionContext, Future}
 class BusinessPartnerRecordsService @Inject()(val recordsRepository: RecordsRepository) extends RecordsService {
 
   def store(record: BusinessPartnerRecord, autoFill: Boolean, planetId: String)(
-    implicit ec: ExecutionContext): Future[String] =
+    implicit ec: ExecutionContext): Future[String] = {
+    val entity = if (autoFill) BusinessPartnerRecord.sanitize(record.safeId)(record) else record
     BusinessPartnerRecord
-      .validate(record)
+      .validate(entity)
       .fold(
         errors => Future.failed(new BadRequestException(errors.mkString(", "))),
         _ => {
-          val entity = if (autoFill) BusinessPartnerRecord.sanitize(record.safeId)(record) else record
           recordsRepository.store(entity, planetId)
         }
       )
+  }
 
   def getBusinessPartnerRecord(arn: Arn, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[BusinessPartnerRecord]] =

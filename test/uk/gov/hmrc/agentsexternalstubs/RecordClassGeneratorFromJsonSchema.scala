@@ -150,7 +150,7 @@ trait JsonSchemaCodeRenderer extends JsonSchemaRenderer {
     definition: Definition,
     prefix: String,
     wrapOption: Boolean = true,
-    defaultNone: Boolean = true): String = {
+    defaultValue: Boolean = true): String = {
     val typeName = definition match {
       case _: StringDefinition  => "String"
       case _: NumberDefinition  => "BigDecimal"
@@ -163,7 +163,8 @@ trait JsonSchemaCodeRenderer extends JsonSchemaRenderer {
         else
           s"${if (o.isRef) "" else prefix}${o.typeName}"
     }
-    if (!definition.isMandatory && wrapOption) s"Option[$typeName]${if (defaultNone) " = None" else ""}" else typeName
+    if (!definition.isMandatory && wrapOption) s"Option[$typeName]${if (defaultValue) " = None" else ""}"
+    else { s"""$typeName ${if (defaultValue && definition.isBoolean) " = false" else ""}""" }
   }
 }
 
@@ -175,8 +176,8 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
     keys: Seq[(String, String)],
     commonVals: Map[String, String]) {
 
-    val isRecordOutputType = outputType == "record"
-    val isPayloadOutputType = outputType == "payload"
+    val isRecordOutputType: Boolean = outputType == "record"
+    val isPayloadOutputType: Boolean = outputType == "payload"
 
     def commonReference(s: String): String = commonVals.get(s).map(n => s"Common.$n").getOrElse(s)
   }
@@ -481,7 +482,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
     s"""${typeDef.definition.properties
          .take(22)
          .map(prop => {
-           val propType = typeOf(prop, typeDef.prefix, defaultNone = false)
+           val propType = typeOf(prop, typeDef.prefix, defaultValue = false)
            s"""  def with${prop.nameWithFirstCharUpper}(${prop.name}: $propType): ${typeDef.name} = copy(${prop.name} = ${prop.name})
            |  def modify${prop.nameWithFirstCharUpper}(pf: PartialFunction[$propType, $propType]): ${typeDef.name} =
            |    if (pf.isDefinedAt(${prop.name})) copy(${prop.name} = pf(${prop.name})) else this"""
@@ -537,9 +538,13 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
     val validators =
       if (definition.alternatives.isEmpty) fieldValidators
       else
-        fieldValidators :+ s"""  checkIfAtLeastOneIsDefined(${definition.alternatives
-          .map(a => s"_.$a")
-          .mkString("Seq(", ",", ")")})"""
+        fieldValidators :+ s"""  checkIfOnlyOneSetIsDefined(${definition.alternatives
+          .map(_.map(a => {
+            definition.properties.find(_.name == a).map(prop => s"_.$a${if (prop.isBoolean) ".asOption" else ""}").get
+          }).mkString("Set(", ",", ")"))
+          .mkString("Seq(", ",", ")")},"${definition.alternatives
+          .map(_.mkString("{", ",", "}"))
+          .mkString("[", ",", "]")}")"""
     validators.mkString(",\n  ")
   }
 
@@ -611,12 +616,13 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
 
   private def generateSanitizerList(definition: ObjectDefinition): String = {
     val simpleSanitizerList = definition.properties
-      .filter(p => !(p.isMandatory && p.isPrimitive) && !definition.alternatives.contains(p.name))
+      .filter(p => !(p.isMandatory && p.isPrimitive) && !definition.alternatives.exists(_.contains(p.name)))
       .take(22)
       .map(prop => s"${prop.name}Sanitizer")
     val sanitizerList =
       if (definition.alternatives.isEmpty) simpleSanitizerList
-      else simpleSanitizerList :+ s"${generateComposedFieldName(definition.alternatives, "Or")}Sanitizer"
+      else
+        simpleSanitizerList :+ s"${generateComposedFieldName(definition.alternatives.map(_.head), "Or")}AlternativeSanitizer"
     sanitizerList.mkString(",\n  ")
   }
 
@@ -652,27 +658,72 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
                wrapOption = false)})(seed))${generateSanitizerSuffix(prop)})
          """.stripMargin
       })
+
     val sanitizers =
       if (definition.alternatives.isEmpty) simpleSanitizers
-      else
-        simpleSanitizers :+ s"""  val ${generateComposedFieldName(definition.alternatives, "Or")}Sanitizer: Update = seed => entity => entity.${definition.alternatives.head}
-                               |          ${definition.alternatives.tail
-                                 .map(a => s".orElse(entity.$a)")
-                                 .mkString("\n          ")}
-                               |          .map(_ => entity)
-                               |          .getOrElse(
-                               |    Generator.get(Gen.chooseNum(0,${definition.alternatives.size - 1}))(seed) match {
-                               |      ${definition.alternatives.zipWithIndex
-                                 .map {
-                                   case (a, i) =>
-                                     s"case ${if (i == definition.alternatives.size - 1) "_" else s"Some($i)"} => ${a}Sanitizer(seed)(entity)"
-                                 }
-                                 .mkString("\n      ")}
-                               |    }
-                               |  )
-                               |""".stripMargin
+      else simpleSanitizers :+ generateAlternativeSanitizers(definition, context)
     sanitizers.mkString("\n")
   }
+
+  private def generateAlternativeSanitizers(definition: ObjectDefinition, context: Context): String = {
+
+    val compoundSanitizers = definition.alternatives
+      .map(set =>
+        generateCompoundSanitizer(definition, set, definition.alternatives.filterNot(_ == set).reduce(_ ++ _), context))
+      .mkString("\n", "\n  ", "\n")
+
+    compoundSanitizers + s"""|
+                             |  val ${generateComposedFieldName(definition.alternatives.map(_.head), "Or")}AlternativeSanitizer: Update = seed => entity =>
+                             |          ${definition.alternatives
+                              .map(set =>
+                                s"if(entity.${set.head}.isDefined) ${generateComposedFieldName(set.toSeq, "And")}CompoundSanitizer(seed)(entity)")
+                              .mkString("\nelse      ")}
+                             |          else Generator.get(Gen.chooseNum(0,${definition.alternatives.size - 1}))(seed) match {
+                             |      ${definition.alternatives.zipWithIndex
+                              .map {
+                                case (set, i) =>
+                                  s"case ${if (i == definition.alternatives.size - 1) "_" else s"Some($i)"} => ${generateComposedFieldName(set.toSeq, "And")}CompoundSanitizer(seed)(entity)"
+                              }
+                              .mkString("\n      ")}
+                             |    }
+                             |""".stripMargin
+  }
+
+  private def generateCompoundSanitizer(
+    definition: ObjectDefinition,
+    included: Set[String],
+    excluded: Set[String],
+    context: Context): String =
+    s"""
+       |val ${generateComposedFieldName(included.toSeq, "And")}CompoundSanitizer: Update = seed =>
+       |    entity =>
+       |      entity.copy(
+       |        ${included
+         .map(name => {
+           definition.properties
+             .find(_.name == name)
+             .map(
+               prop =>
+                 if (prop.isBoolean) s"""$name = true"""
+                 else
+                   s"""$name = entity.$name.orElse(Generator.get(${generateValueGenerator(
+                     prop,
+                     context,
+                     wrapOption = false)})(seed))${generateSanitizerSuffix(prop)}""")
+             .getOrElse("")
+         })
+         .mkString(",\n        ")}
+       |       ${excluded
+         .map(name => {
+           definition.properties
+             .find(_.name == name)
+             .map(prop =>
+               if (prop.isBoolean) s"""$name = false"""
+               else s"""$name = None""")
+             .getOrElse("")
+         })
+         .mkString(",\n        ", ",\n        ", "")}  
+       |   )""".stripMargin
 
   private def generateSanitizerSuffix(definition: Definition): String = definition match {
     case a: ArrayDefinition  => s".map(_.map(${a.item.typeName}.sanitize(seed)))"
@@ -694,25 +745,19 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
 
 }
 
-object RegexContext {
-  implicit class RegexContext(val sc: StringContext) extends AnyVal {
-    def regex(i: Any*): Regex = ???
-  }
-}
-
 trait KnownFieldGenerators {
 
-  val phoneNumber = "^(.*?)(?:tele)?phonenumber(.*)$".r
-  val mobileNumber = "^(.*?)mobilenumber(.*)$".r
-  val faxNumber = "^(.*?)faxnumber(.*)$".r
-  val emailAddress = "^(.*?)email(?:address)?(.*)$".r
-  val addressLine = "^(.*?)(?:address)?line(1|2|3|4)(.*)$".r
-  val postalCode = "^(.*?)post(?:al)?code(.*)$".r
-  val organisationName = "^(.*?)(?:organisation|company)name(.*)$".r
-  val lastName = "^(.*?)(?:lastname|surname)(.*)$".r
-  val firstName = "^(.*?)firstname(.*)$".r
-  val agencyName = "^(.*?)agen(?:t|cy)name(.*)$".r
-  val date = "^(.*?)date(?:string)?(.*)$".r
+  val phoneNumber: Regex = "^(.*?)(?:tele)?phonenumber(.*)$".r
+  val mobileNumber: Regex = "^(.*?)mobilenumber(.*)$".r
+  val faxNumber: Regex = "^(.*?)faxnumber(.*)$".r
+  val emailAddress: Regex = "^(.*?)email(?:address)?(.*)$".r
+  val addressLine: Regex = "^(.*?)(?:address)?line(1|2|3|4)(.*)$".r
+  val postalCode: Regex = "^(.*?)post(?:al)?code(.*)$".r
+  val organisationName: Regex = "^(.*?)(?:organisation|company)name(.*)$".r
+  val lastName: Regex = "^(.*?)(?:lastname|surname)(.*)$".r
+  val firstName: Regex = "^(.*?)firstname(.*)$".r
+  val agencyName: Regex = "^(.*?)agen(?:t|cy)name(.*)$".r
+  val date: Regex = "^(.*?)date(?:string)?(.*)$".r
 
   val knownFieldGenerators: String => Option[String] = s =>
     Option(s.toLowerCase match {

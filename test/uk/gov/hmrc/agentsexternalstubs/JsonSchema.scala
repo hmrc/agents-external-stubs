@@ -22,7 +22,8 @@ object JsonSchema {
     val isRef: Boolean
 
     def isMandatory: Boolean
-    def isPrimitive: Boolean = true
+    val isPrimitive: Boolean = true
+    val isBoolean: Boolean = false
 
     final def typeName: String = {
       val n = if (isRef) pathToName(path) else name
@@ -51,8 +52,8 @@ object JsonSchema {
     isRef: Boolean = false,
     description: Option[String] = None,
     isMandatory: Boolean,
-    alternatives: Seq[String] = Seq.empty)
-      extends Definition { override def isPrimitive: Boolean = false }
+    alternatives: Seq[Set[String]] = Seq.empty)
+      extends Definition { override val isPrimitive: Boolean = false }
 
   case class OneOfDefinition(
     name: String,
@@ -61,7 +62,7 @@ object JsonSchema {
     isRef: Boolean = false,
     description: Option[String] = None,
     isMandatory: Boolean,
-    alternatives: Seq[String] = Seq.empty)
+    alternatives: Seq[Set[String]] = Seq.empty)
       extends Definition
 
   case class StringDefinition(
@@ -97,7 +98,7 @@ object JsonSchema {
     isRef: Boolean = false,
     description: Option[String] = None,
     isMandatory: Boolean)
-      extends Definition
+      extends Definition { override val isBoolean: Boolean = true }
 
   case class ArrayDefinition(
     name: String,
@@ -106,7 +107,7 @@ object JsonSchema {
     isRef: Boolean = false,
     description: Option[String] = None,
     isMandatory: Boolean)
-      extends Definition { override def isPrimitive: Boolean = false }
+      extends Definition { override val isPrimitive: Boolean = false }
 
   private def readProperty(
     name: String,
@@ -124,7 +125,7 @@ object JsonSchema {
           case "object"  => readObject(name, path, property, schema, isRef, desc, isMandatory)
           case "string"  => readString(name, path, property, schema, isRef, desc, isMandatory)
           case "number"  => readNumber(name, path, property, schema, isRef, desc, isMandatory)
-          case "boolean" => BooleanDefinition(name, path, isRef, desc, isMandatory)
+          case "boolean" => BooleanDefinition(name, path, isRef, desc, isMandatory = true)
           case "array"   => readArray(name, path, property, schema, isRef, desc, isMandatory)
         }
       case None =>
@@ -239,7 +240,7 @@ object JsonSchema {
     }
   }
 
-  private def readRequiredProperty(property: JsObject): (Seq[String], Seq[String]) =
+  private def readRequiredProperty(property: JsObject): (Seq[String], Seq[Set[String]]) =
     (property \ "required")
       .asOpt[Seq[String]]
       .map(s => (s, Seq.empty))
@@ -248,9 +249,9 @@ object JsonSchema {
           .asOpt[Seq[JsObject]]
           .map(s => {
             val names = s.map(o => (o \ "required").asOpt[Set[String]].getOrElse(Set.empty))
-            val intersection = names.reduce(_ intersect _)
-            val sum = names.reduce(_ ++ _)
-            (intersection.toSeq, (sum -- intersection).toSeq)
+            val required = names.reduce(_ intersect _)
+            val variants = names.map(_ -- required)
+            (required.toSeq, variants)
           })
       )
       .getOrElse((Seq.empty, Seq.empty))
@@ -264,7 +265,7 @@ object JsonSchema {
     description: Option[String] = None,
     isMandatory: Boolean,
     required: Seq[String],
-    alternatives: Seq[String]): Definition = (property \ "oneOf").asOpt[JsArray] match {
+    alternatives: Seq[Set[String]]): Definition = (property \ "oneOf").asOpt[JsArray] match {
     case Some(array) =>
       val props = array.value.map(p => readProperty(name, path, p.as[JsObject], schema, required = required))
       OneOfDefinition(name, path, variants = props, isRef = isRef, description = description, isMandatory, alternatives)

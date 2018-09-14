@@ -11,28 +11,30 @@ import scala.concurrent.{ExecutionContext, Future}
 class LegacyRelationshipRecordsService @Inject()(recordsRepository: RecordsRepository) {
 
   def store(record: LegacyRelationshipRecord, autoFill: Boolean, planetId: String)(
-    implicit ec: ExecutionContext): Future[String] =
+    implicit ec: ExecutionContext): Future[String] = {
+    val entity = if (autoFill) LegacyRelationshipRecord.sanitize(record.agentId)(record) else record
     LegacyRelationshipRecord
-      .validate(record)
+      .validate(entity)
       .fold(
         errors => Future.failed(new BadRequestException(errors.mkString(", "))),
         _ => {
-          val entity = if (autoFill) LegacyRelationshipRecord.sanitize(record.agentId)(record) else record
           recordsRepository.store(entity, planetId)
         }
       )
+  }
 
   def store(record: LegacyAgentRecord, autoFill: Boolean, planetId: String)(
-    implicit ec: ExecutionContext): Future[String] =
+    implicit ec: ExecutionContext): Future[String] = {
+    val entity = if (autoFill) LegacyAgentRecord.sanitize(record.agentId)(record) else record
     LegacyAgentRecord
-      .validate(record)
+      .validate(entity)
       .fold(
         errors => Future.failed(new BadRequestException(errors.mkString(", "))),
         _ => {
-          val entity = if (autoFill) LegacyAgentRecord.sanitize(record.agentId)(record) else record
           recordsRepository.store(entity, planetId)
         }
       )
+  }
 
   def getLegacyRelationshipsByNino(nino: String, planetId: String)(
     implicit ec: ExecutionContext): Future[List[(String, LegacyAgentRecord)]] =

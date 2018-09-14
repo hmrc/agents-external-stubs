@@ -8,7 +8,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 class RecordSpec extends UnitSpec with PropertyChecks with ValidatedMatchers {
 
-  val seeds = "fooba".permutations.toSeq
+  val seeds = "foeba".permutations.toSeq
 
   val registrationEntity =
     RelationshipRecord(
@@ -43,21 +43,6 @@ class RecordSpec extends UnitSpec with PropertyChecks with ValidatedMatchers {
         val entity = BusinessDetailsRecord.generate(seed)
         BusinessDetailsRecord.validate(entity) should beValid
       }
-    }
-    "sanitize provided entity" in {
-      val entity = BusinessDetailsRecord(
-        safeId = "9090909",
-        nino = "HW827856C",
-        mtdbsa = "123456789098765"
-      )
-      BusinessDetailsRecord.validate(entity) should beValid
-
-      val sanitized = BusinessDetailsRecord.sanitize(entity.safeId)(entity)
-
-      BusinessDetailsRecord.validate(sanitized) should beValid
-      sanitized.safeId === "9090909"
-      sanitized.mtdbsa === "123456789098765"
-      sanitized.nino === "HW827856C"
     }
   }
 

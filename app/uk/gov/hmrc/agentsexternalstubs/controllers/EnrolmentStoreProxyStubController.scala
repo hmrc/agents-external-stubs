@@ -13,6 +13,7 @@ import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.Future
+import scala.util.control.NonFatal
 
 @Singleton
 class EnrolmentStoreProxyStubController @Inject()(
@@ -66,13 +67,12 @@ class EnrolmentStoreProxyStubController @Inject()(
 
   def removeKnownFacts(enrolmentKey: EnrolmentKey): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
-      knownFactsRepository.findByEnrolmentKey(enrolmentKey, session.planetId).flatMap {
-        case None => notFoundF("ALLOCATION_DOES_NOT_EXIST")
-        case Some(_) =>
-          knownFactsRepository
-            .delete(enrolmentKey, session.planetId)
-            .map(_ => NoContent)
-      }
+      knownFactsRepository
+        .delete(enrolmentKey, session.planetId)
+        .map(_ => NoContent)
+        .recover {
+          case NonFatal(_) => NoContent
+        }
     }(SessionRecordNotFound)
   }
 

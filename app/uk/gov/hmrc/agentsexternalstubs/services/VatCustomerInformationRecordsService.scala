@@ -11,16 +11,17 @@ import scala.concurrent.{ExecutionContext, Future}
 class VatCustomerInformationRecordsService @Inject()(val recordsRepository: RecordsRepository) extends RecordsService {
 
   def store(record: VatCustomerInformationRecord, autoFill: Boolean, planetId: String)(
-    implicit ec: ExecutionContext): Future[String] =
+    implicit ec: ExecutionContext): Future[String] = {
+    val entity = if (autoFill) VatCustomerInformationRecord.sanitize(record.vrn)(record) else record
     VatCustomerInformationRecord
-      .validate(record)
+      .validate(entity)
       .fold(
         errors => Future.failed(new BadRequestException(errors.mkString(", "))),
         _ => {
-          val entity = if (autoFill) VatCustomerInformationRecord.sanitize(record.vrn)(record) else record
           recordsRepository.store(entity, planetId)
         }
       )
+  }
 
   def getCustomerInformation(vrn: String, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[VatCustomerInformationRecord]] =

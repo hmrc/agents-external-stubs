@@ -22,17 +22,17 @@ import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord._
   *  -  UkAddress
   */
 case class BusinessPartnerRecord(
-  businessPartnerExists: Boolean,
+  businessPartnerExists: Boolean = false,
   safeId: String,
   agentReferenceNumber: Option[String] = None,
   utr: Option[String] = None,
   nino: Option[String] = None,
   eori: Option[String] = None,
-  isAnAgent: Boolean,
-  isAnASAgent: Boolean,
-  isAnIndividual: Boolean,
+  isAnAgent: Boolean = false,
+  isAnASAgent: Boolean = false,
+  isAnIndividual: Boolean = false,
   individual: Option[Individual] = None,
-  isAnOrganisation: Boolean,
+  isAnOrganisation: Boolean = false,
   organisation: Option[Organisation] = None,
   addressDetails: AddressDetails,
   contactDetails: Option[ContactDetails] = None,
@@ -131,7 +131,10 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     checkObject(_.addressDetails, AddressDetails.validate),
     checkObjectIfSome(_.contactDetails, ContactDetails.validate),
     checkObjectIfSome(_.agencyDetails, AgencyDetails.validate),
-    checkIfAtLeastOneIsDefined(Seq(_.organisation, _.individual))
+    checkIfOnlyOneSetIsDefined(
+      Seq(Set(_.isAnIndividual.asOption, _.individual), Set(_.isAnOrganisation.asOption, _.organisation)),
+      "[{isAnIndividual,individual},{isAnOrganisation,organisation}]"
+    )
   )
 
   override val gen: Gen[BusinessPartnerRecord] = for {
@@ -189,17 +192,34 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
         agencyDetails =
           entity.agencyDetails.orElse(Generator.get(AgencyDetails.gen)(seed)).map(AgencyDetails.sanitize(seed)))
 
-  val organisationOrIndividualSanitizer: Update = seed =>
+  val isAnIndividualAndIndividualCompoundSanitizer: Update = seed =>
     entity =>
-      entity.organisation
-        .orElse(entity.individual)
-        .map(_ => entity)
-        .getOrElse(
-          Generator.get(Gen.chooseNum(0, 1))(seed) match {
-            case Some(0) => organisationSanitizer(seed)(entity)
-            case _       => individualSanitizer(seed)(entity)
-          }
-    )
+      entity.copy(
+        isAnIndividual = true,
+        individual = entity.individual.orElse(Generator.get(Individual.gen)(seed)).map(Individual.sanitize(seed)),
+        isAnOrganisation = false,
+        organisation = None
+  )
+
+  val isAnOrganisationAndOrganisationCompoundSanitizer: Update = seed =>
+    entity =>
+      entity.copy(
+        isAnOrganisation = true,
+        organisation =
+          entity.organisation.orElse(Generator.get(Organisation.gen)(seed)).map(Organisation.sanitize(seed)),
+        isAnIndividual = false,
+        individual = None
+  )
+
+  val isAnIndividualOrIsAnOrganisationAlternativeSanitizer: Update = seed =>
+    entity =>
+      if (entity.isAnIndividual.isDefined) isAnIndividualAndIndividualCompoundSanitizer(seed)(entity)
+      else if (entity.isAnOrganisation.isDefined) isAnOrganisationAndOrganisationCompoundSanitizer(seed)(entity)
+      else
+        Generator.get(Gen.chooseNum(0, 1))(seed) match {
+          case Some(0) => isAnIndividualAndIndividualCompoundSanitizer(seed)(entity)
+          case _       => isAnOrganisationAndOrganisationCompoundSanitizer(seed)(entity)
+    }
 
   override val sanitizers: Seq[Update] = Seq(
     agentReferenceNumberSanitizer,
@@ -208,7 +228,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     eoriSanitizer,
     contactDetailsSanitizer,
     agencyDetailsSanitizer,
-    organisationOrIndividualSanitizer
+    isAnIndividualOrIsAnOrganisationAlternativeSanitizer
   )
 
   implicit val formats: Format[BusinessPartnerRecord] = Json.format[BusinessPartnerRecord]
@@ -577,7 +597,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
 
   }
 
-  case class Organisation(organisationName: String, isAGroup: Boolean, organisationType: String) {
+  case class Organisation(organisationName: String, isAGroup: Boolean = false, organisationType: String) {
 
     def withOrganisationName(organisationName: String): Organisation = copy(organisationName = organisationName)
     def modifyOrganisationName(pf: PartialFunction[String, String]): Organisation =

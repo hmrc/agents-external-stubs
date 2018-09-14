@@ -65,6 +65,7 @@ class UserRecordsSyncService @Inject()(
               .withCustomerDetails(
                 CustomerDetails
                   .generate(user.userId)
+                  .withOrganisationName(None)
                   .withIndividual(Some(IndividualName()
                     .withFirstName(user.firstName)
                     .withLastName(user.lastName)))
@@ -98,6 +99,8 @@ class UserRecordsSyncService @Inject()(
               .withCustomerDetails(
                 CustomerDetails
                   .generate(user.userId)
+                  .withIndividual(None)
+                  .withDateOfBirth(None)
                   .withOrganisationName(user.name)
               )
               .withDeregistration(None)

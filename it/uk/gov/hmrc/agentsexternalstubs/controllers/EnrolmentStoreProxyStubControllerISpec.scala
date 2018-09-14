@@ -493,11 +493,11 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         result should haveStatus(204)
       }
 
-      "return 404 if enrolment does not exist" in {
+      "return 204 if enrolment does not exist" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         val result = EnrolmentStoreProxyStub.removeKnownFacts("IR-SA~UTR~12345678")
 
-        result should haveStatus(404)
+        result should haveStatus(204)
       }
     }
   }

@@ -111,8 +111,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
   implicit val formats: Format[VatCustomerInformationRecord] = Json.format[VatCustomerInformationRecord]
 
   sealed trait Address {
-    def line1: String
     def line4: Option[String] = None
+    def line1: String
     def line2: String
     def line3: Option[String] = None
     def countryCode: String
@@ -480,15 +480,15 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
   }
 
   case class ChangeIndicators(
-    customerDetails: Boolean,
-    PPOBDetails: Boolean,
-    correspContactDetails: Boolean,
-    bankDetails: Boolean,
-    businessActivities: Boolean,
-    flatRateScheme: Boolean,
-    deRegistrationInfo: Boolean,
-    returnPeriods: Boolean,
-    groupOrPartners: Boolean) {
+    customerDetails: Boolean = false,
+    PPOBDetails: Boolean = false,
+    correspContactDetails: Boolean = false,
+    bankDetails: Boolean = false,
+    businessActivities: Boolean = false,
+    flatRateScheme: Boolean = false,
+    deRegistrationInfo: Boolean = false,
+    returnPeriods: Boolean = false,
+    groupOrPartners: Boolean = false) {
 
     def withCustomerDetails(customerDetails: Boolean): ChangeIndicators = copy(customerDetails = customerDetails)
     def modifyCustomerDetails(pf: PartialFunction[Boolean, Boolean]): ChangeIndicators =
@@ -732,7 +732,9 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       check(
         _.businessStartDate.matches(Common.dateOfBirthPattern),
         s"""Invalid businessStartDate, does not matches regex ${Common.dateOfBirthPattern}"""),
-      checkIfAtLeastOneIsDefined(Seq(_.individual, _.organisationName))
+      checkIfOnlyOneSetIsDefined(
+        Seq(Set(_.individual, _.dateOfBirth), Set(_.organisationName)),
+        "[{individual,dateOfBirth},{organisationName}]")
     )
 
     override val gen: Gen[CustomerDetails] = for {
@@ -777,25 +779,39 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
           businessStartDate =
             entity.businessStartDate.orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("businessstart"))(seed)))
 
-    val individualOrOrganisationNameSanitizer: Update = seed =>
+    val individualAndDateOfBirthCompoundSanitizer: Update = seed =>
       entity =>
-        entity.individual
-          .orElse(entity.organisationName)
-          .map(_ => entity)
-          .getOrElse(
-            Generator.get(Gen.chooseNum(0, 1))(seed) match {
-              case Some(0) => individualSanitizer(seed)(entity)
-              case _       => organisationNameSanitizer(seed)(entity)
-            }
-      )
+        entity.copy(
+          individual =
+            entity.individual.orElse(Generator.get(IndividualName.gen)(seed)).map(IndividualName.sanitize(seed)),
+          dateOfBirth = entity.dateOfBirth.orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("ofbirth"))(seed)),
+          organisationName = None
+    )
+
+    val organisationNameCompoundSanitizer: Update = seed =>
+      entity =>
+        entity.copy(
+          organisationName = entity.organisationName.orElse(Generator.get(Generator.company)(seed)),
+          individual = None,
+          dateOfBirth = None
+    )
+
+    val individualOrOrganisationNameAlternativeSanitizer: Update = seed =>
+      entity =>
+        if (entity.individual.isDefined) individualAndDateOfBirthCompoundSanitizer(seed)(entity)
+        else if (entity.organisationName.isDefined) organisationNameCompoundSanitizer(seed)(entity)
+        else
+          Generator.get(Gen.chooseNum(0, 1))(seed) match {
+            case Some(0) => individualAndDateOfBirthCompoundSanitizer(seed)(entity)
+            case _       => organisationNameCompoundSanitizer(seed)(entity)
+      }
 
     override val sanitizers: Seq[Update] = Seq(
-      dateOfBirthSanitizer,
       tradingNameSanitizer,
       registrationReasonSanitizer,
       effectiveRegistrationDateSanitizer,
       businessStartDateSanitizer,
-      individualOrOrganisationNameSanitizer
+      individualOrOrganisationNameAlternativeSanitizer
     )
 
     implicit val formats: Format[CustomerDetails] = Json.format[CustomerDetails]
@@ -869,7 +885,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     FRSCategory: Option[String] = None,
     FRSPercentage: Option[BigDecimal] = None,
     startDate: Option[String] = None,
-    limitedCostTrader: Option[Boolean] = None) {
+    limitedCostTrader: Boolean = false) {
 
     def withFRSCategory(FRSCategory: Option[String]): FlatRateScheme = copy(FRSCategory = FRSCategory)
     def modifyFRSCategory(pf: PartialFunction[Option[String], Option[String]]): FlatRateScheme =
@@ -880,9 +896,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     def withStartDate(startDate: Option[String]): FlatRateScheme = copy(startDate = startDate)
     def modifyStartDate(pf: PartialFunction[Option[String], Option[String]]): FlatRateScheme =
       if (pf.isDefinedAt(startDate)) copy(startDate = pf(startDate)) else this
-    def withLimitedCostTrader(limitedCostTrader: Option[Boolean]): FlatRateScheme =
-      copy(limitedCostTrader = limitedCostTrader)
-    def modifyLimitedCostTrader(pf: PartialFunction[Option[Boolean], Option[Boolean]]): FlatRateScheme =
+    def withLimitedCostTrader(limitedCostTrader: Boolean): FlatRateScheme = copy(limitedCostTrader = limitedCostTrader)
+    def modifyLimitedCostTrader(pf: PartialFunction[Boolean, Boolean]): FlatRateScheme =
       if (pf.isDefinedAt(limitedCostTrader)) copy(limitedCostTrader = pf(limitedCostTrader)) else this
   }
 
@@ -898,7 +913,11 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
         s"""Invalid startDate, does not matches regex ${Common.dateOfBirthPattern}""")
     )
 
-    override val gen: Gen[FlatRateScheme] = Gen const FlatRateScheme(
+    override val gen: Gen[FlatRateScheme] = for {
+      limitedCostTrader <- Generator.booleanGen
+    } yield
+      FlatRateScheme(
+        limitedCostTrader = limitedCostTrader
       )
 
     val FRSCategorySanitizer: Update = seed =>
@@ -916,12 +935,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
         entity.copy(
           startDate = entity.startDate.orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("start"))(seed)))
 
-    val limitedCostTraderSanitizer: Update = seed =>
-      entity =>
-        entity.copy(limitedCostTrader = entity.limitedCostTrader.orElse(Generator.get(Generator.booleanGen)(seed)))
-
-    override val sanitizers: Seq[Update] =
-      Seq(FRSCategorySanitizer, FRSPercentageSanitizer, startDateSanitizer, limitedCostTraderSanitizer)
+    override val sanitizers: Seq[Update] = Seq(FRSCategorySanitizer, FRSPercentageSanitizer, startDateSanitizer)
 
     implicit val formats: Format[FlatRateScheme] = Json.format[FlatRateScheme]
 
@@ -1539,7 +1553,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     FRSCategory: Option[String] = None,
     FRSPercentage: Option[BigDecimal] = None,
     startDate: Option[String] = None,
-    limitedCostTrader: Option[Boolean] = None) {
+    limitedCostTrader: Boolean = false) {
 
     def withFormInformation(formInformation: FormInformation): InFlightFlatRateScheme =
       copy(formInformation = formInformation)
@@ -1555,9 +1569,9 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     def withStartDate(startDate: Option[String]): InFlightFlatRateScheme = copy(startDate = startDate)
     def modifyStartDate(pf: PartialFunction[Option[String], Option[String]]): InFlightFlatRateScheme =
       if (pf.isDefinedAt(startDate)) copy(startDate = pf(startDate)) else this
-    def withLimitedCostTrader(limitedCostTrader: Option[Boolean]): InFlightFlatRateScheme =
+    def withLimitedCostTrader(limitedCostTrader: Boolean): InFlightFlatRateScheme =
       copy(limitedCostTrader = limitedCostTrader)
-    def modifyLimitedCostTrader(pf: PartialFunction[Option[Boolean], Option[Boolean]]): InFlightFlatRateScheme =
+    def modifyLimitedCostTrader(pf: PartialFunction[Boolean, Boolean]): InFlightFlatRateScheme =
       if (pf.isDefinedAt(limitedCostTrader)) copy(limitedCostTrader = pf(limitedCostTrader)) else this
   }
 
@@ -1575,10 +1589,12 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     )
 
     override val gen: Gen[InFlightFlatRateScheme] = for {
-      formInformation <- FormInformation.gen
+      formInformation   <- FormInformation.gen
+      limitedCostTrader <- Generator.booleanGen
     } yield
       InFlightFlatRateScheme(
-        formInformation = formInformation
+        formInformation = formInformation,
+        limitedCostTrader = limitedCostTrader
       )
 
     val formInformationSanitizer: Update = seed =>
@@ -1599,16 +1615,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
         entity.copy(
           startDate = entity.startDate.orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("start"))(seed)))
 
-    val limitedCostTraderSanitizer: Update = seed =>
-      entity =>
-        entity.copy(limitedCostTrader = entity.limitedCostTrader.orElse(Generator.get(Generator.booleanGen)(seed)))
-
-    override val sanitizers: Seq[Update] = Seq(
-      formInformationSanitizer,
-      FRSCategorySanitizer,
-      FRSPercentageSanitizer,
-      startDateSanitizer,
-      limitedCostTraderSanitizer)
+    override val sanitizers: Seq[Update] =
+      Seq(formInformationSanitizer, FRSCategorySanitizer, FRSPercentageSanitizer, startDateSanitizer)
 
     implicit val formats: Format[InFlightFlatRateScheme] = Json.format[InFlightFlatRateScheme]
 
@@ -1619,9 +1627,9 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     action: String,
     SAP_Number: Option[String] = None,
     typeOfRelationship: Option[String] = None,
-    makeGrpMember: Option[Boolean] = None,
-    makeControllingBody: Option[Boolean] = None,
-    isControllingBody: Option[Boolean] = None,
+    makeGrpMember: Boolean = false,
+    makeControllingBody: Boolean = false,
+    isControllingBody: Boolean = false,
     organisationName: Option[String] = None,
     tradingName: Option[String] = None,
     individual: Option[IndividualName] = None,
@@ -1641,16 +1649,16 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       copy(typeOfRelationship = typeOfRelationship)
     def modifyTypeOfRelationship(pf: PartialFunction[Option[String], Option[String]]): InFlightGroupOrPartner =
       if (pf.isDefinedAt(typeOfRelationship)) copy(typeOfRelationship = pf(typeOfRelationship)) else this
-    def withMakeGrpMember(makeGrpMember: Option[Boolean]): InFlightGroupOrPartner = copy(makeGrpMember = makeGrpMember)
-    def modifyMakeGrpMember(pf: PartialFunction[Option[Boolean], Option[Boolean]]): InFlightGroupOrPartner =
+    def withMakeGrpMember(makeGrpMember: Boolean): InFlightGroupOrPartner = copy(makeGrpMember = makeGrpMember)
+    def modifyMakeGrpMember(pf: PartialFunction[Boolean, Boolean]): InFlightGroupOrPartner =
       if (pf.isDefinedAt(makeGrpMember)) copy(makeGrpMember = pf(makeGrpMember)) else this
-    def withMakeControllingBody(makeControllingBody: Option[Boolean]): InFlightGroupOrPartner =
+    def withMakeControllingBody(makeControllingBody: Boolean): InFlightGroupOrPartner =
       copy(makeControllingBody = makeControllingBody)
-    def modifyMakeControllingBody(pf: PartialFunction[Option[Boolean], Option[Boolean]]): InFlightGroupOrPartner =
+    def modifyMakeControllingBody(pf: PartialFunction[Boolean, Boolean]): InFlightGroupOrPartner =
       if (pf.isDefinedAt(makeControllingBody)) copy(makeControllingBody = pf(makeControllingBody)) else this
-    def withIsControllingBody(isControllingBody: Option[Boolean]): InFlightGroupOrPartner =
+    def withIsControllingBody(isControllingBody: Boolean): InFlightGroupOrPartner =
       copy(isControllingBody = isControllingBody)
-    def modifyIsControllingBody(pf: PartialFunction[Option[Boolean], Option[Boolean]]): InFlightGroupOrPartner =
+    def modifyIsControllingBody(pf: PartialFunction[Boolean, Boolean]): InFlightGroupOrPartner =
       if (pf.isDefinedAt(isControllingBody)) copy(isControllingBody = pf(isControllingBody)) else this
     def withOrganisationName(organisationName: Option[String]): InFlightGroupOrPartner =
       copy(organisationName = organisationName)
@@ -1689,12 +1697,18 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     )
 
     override val gen: Gen[InFlightGroupOrPartner] = for {
-      formInformation <- FormInformation.gen
-      action          <- Gen.oneOf(Common.actionEnum)
+      formInformation     <- FormInformation.gen
+      action              <- Gen.oneOf(Common.actionEnum)
+      makeGrpMember       <- Generator.booleanGen
+      makeControllingBody <- Generator.booleanGen
+      isControllingBody   <- Generator.booleanGen
     } yield
       InFlightGroupOrPartner(
         formInformation = formInformation,
-        action = action
+        action = action,
+        makeGrpMember = makeGrpMember,
+        makeControllingBody = makeControllingBody,
+        isControllingBody = isControllingBody
       )
 
     val formInformationSanitizer: Update = seed =>
@@ -1710,17 +1724,6 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
         entity.copy(
           typeOfRelationship =
             entity.typeOfRelationship.orElse(Generator.get(Gen.oneOf(Common.typeOfRelationshipEnum))(seed)))
-
-    val makeGrpMemberSanitizer: Update = seed =>
-      entity => entity.copy(makeGrpMember = entity.makeGrpMember.orElse(Generator.get(Generator.booleanGen)(seed)))
-
-    val makeControllingBodySanitizer: Update = seed =>
-      entity =>
-        entity.copy(makeControllingBody = entity.makeControllingBody.orElse(Generator.get(Generator.booleanGen)(seed)))
-
-    val isControllingBodySanitizer: Update = seed =>
-      entity =>
-        entity.copy(isControllingBody = entity.isControllingBody.orElse(Generator.get(Generator.booleanGen)(seed)))
 
     val organisationNameSanitizer: Update = seed =>
       entity => entity.copy(organisationName = entity.organisationName.orElse(Generator.get(Generator.company)(seed)))
@@ -1741,9 +1744,6 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       formInformationSanitizer,
       SAP_NumberSanitizer,
       typeOfRelationshipSanitizer,
-      makeGrpMemberSanitizer,
-      makeControllingBodySanitizer,
-      isControllingBodySanitizer,
       organisationNameSanitizer,
       tradingNameSanitizer,
       individualSanitizer,
@@ -1859,9 +1859,9 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
   case class InFlightReturnPeriod(
     formInformation: FormInformation,
-    changeReturnPeriod: Option[Boolean] = None,
-    nonStdTaxPeriodsRequested: Option[Boolean] = None,
-    ceaseNonStdTaxPeriods: Option[Boolean] = None,
+    changeReturnPeriod: Boolean = false,
+    nonStdTaxPeriodsRequested: Boolean = false,
+    ceaseNonStdTaxPeriods: Boolean = false,
     stdReturnPeriod: Option[String] = None,
     nonStdTaxPeriods: Option[NonStdTaxPeriods] = None) {
 
@@ -1869,18 +1869,18 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       copy(formInformation = formInformation)
     def modifyFormInformation(pf: PartialFunction[FormInformation, FormInformation]): InFlightReturnPeriod =
       if (pf.isDefinedAt(formInformation)) copy(formInformation = pf(formInformation)) else this
-    def withChangeReturnPeriod(changeReturnPeriod: Option[Boolean]): InFlightReturnPeriod =
+    def withChangeReturnPeriod(changeReturnPeriod: Boolean): InFlightReturnPeriod =
       copy(changeReturnPeriod = changeReturnPeriod)
-    def modifyChangeReturnPeriod(pf: PartialFunction[Option[Boolean], Option[Boolean]]): InFlightReturnPeriod =
+    def modifyChangeReturnPeriod(pf: PartialFunction[Boolean, Boolean]): InFlightReturnPeriod =
       if (pf.isDefinedAt(changeReturnPeriod)) copy(changeReturnPeriod = pf(changeReturnPeriod)) else this
-    def withNonStdTaxPeriodsRequested(nonStdTaxPeriodsRequested: Option[Boolean]): InFlightReturnPeriod =
+    def withNonStdTaxPeriodsRequested(nonStdTaxPeriodsRequested: Boolean): InFlightReturnPeriod =
       copy(nonStdTaxPeriodsRequested = nonStdTaxPeriodsRequested)
-    def modifyNonStdTaxPeriodsRequested(pf: PartialFunction[Option[Boolean], Option[Boolean]]): InFlightReturnPeriod =
+    def modifyNonStdTaxPeriodsRequested(pf: PartialFunction[Boolean, Boolean]): InFlightReturnPeriod =
       if (pf.isDefinedAt(nonStdTaxPeriodsRequested)) copy(nonStdTaxPeriodsRequested = pf(nonStdTaxPeriodsRequested))
       else this
-    def withCeaseNonStdTaxPeriods(ceaseNonStdTaxPeriods: Option[Boolean]): InFlightReturnPeriod =
+    def withCeaseNonStdTaxPeriods(ceaseNonStdTaxPeriods: Boolean): InFlightReturnPeriod =
       copy(ceaseNonStdTaxPeriods = ceaseNonStdTaxPeriods)
-    def modifyCeaseNonStdTaxPeriods(pf: PartialFunction[Option[Boolean], Option[Boolean]]): InFlightReturnPeriod =
+    def modifyCeaseNonStdTaxPeriods(pf: PartialFunction[Boolean, Boolean]): InFlightReturnPeriod =
       if (pf.isDefinedAt(ceaseNonStdTaxPeriods)) copy(ceaseNonStdTaxPeriods = pf(ceaseNonStdTaxPeriods)) else this
     def withStdReturnPeriod(stdReturnPeriod: Option[String]): InFlightReturnPeriod =
       copy(stdReturnPeriod = stdReturnPeriod)
@@ -1904,28 +1904,20 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     )
 
     override val gen: Gen[InFlightReturnPeriod] = for {
-      formInformation <- FormInformation.gen
+      formInformation           <- FormInformation.gen
+      changeReturnPeriod        <- Generator.booleanGen
+      nonStdTaxPeriodsRequested <- Generator.booleanGen
+      ceaseNonStdTaxPeriods     <- Generator.booleanGen
     } yield
       InFlightReturnPeriod(
-        formInformation = formInformation
+        formInformation = formInformation,
+        changeReturnPeriod = changeReturnPeriod,
+        nonStdTaxPeriodsRequested = nonStdTaxPeriodsRequested,
+        ceaseNonStdTaxPeriods = ceaseNonStdTaxPeriods
       )
 
     val formInformationSanitizer: Update = seed =>
       entity => entity.copy(formInformation = FormInformation.sanitize(seed)(entity.formInformation))
-
-    val changeReturnPeriodSanitizer: Update = seed =>
-      entity =>
-        entity.copy(changeReturnPeriod = entity.changeReturnPeriod.orElse(Generator.get(Generator.booleanGen)(seed)))
-
-    val nonStdTaxPeriodsRequestedSanitizer: Update = seed =>
-      entity =>
-        entity.copy(nonStdTaxPeriodsRequested =
-          entity.nonStdTaxPeriodsRequested.orElse(Generator.get(Generator.booleanGen)(seed)))
-
-    val ceaseNonStdTaxPeriodsSanitizer: Update = seed =>
-      entity =>
-        entity.copy(
-          ceaseNonStdTaxPeriods = entity.ceaseNonStdTaxPeriods.orElse(Generator.get(Generator.booleanGen)(seed)))
 
     val stdReturnPeriodSanitizer: Update = seed =>
       entity =>
@@ -1939,14 +1931,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
             .orElse(Generator.get(NonStdTaxPeriods.gen)(seed))
             .map(NonStdTaxPeriods.sanitize(seed)))
 
-    override val sanitizers: Seq[Update] = Seq(
-      formInformationSanitizer,
-      changeReturnPeriodSanitizer,
-      nonStdTaxPeriodsRequestedSanitizer,
-      ceaseNonStdTaxPeriodsSanitizer,
-      stdReturnPeriodSanitizer,
-      nonStdTaxPeriodsSanitizer
-    )
+    override val sanitizers: Seq[Update] =
+      Seq(formInformationSanitizer, stdReturnPeriodSanitizer, nonStdTaxPeriodsSanitizer)
 
     implicit val formats: Format[InFlightReturnPeriod] = Json.format[InFlightReturnPeriod]
 

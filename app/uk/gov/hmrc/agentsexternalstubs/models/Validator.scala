@@ -55,10 +55,20 @@ object Validator {
             .foldLeft[Validated[List[String], Unit]](Valid(()))((a, b) => a.combine(b)))
         .getOrElse(if (isValidIfNone) Valid(()) else Invalid(List("Some sequence expected but got None")))
 
-  def checkIfAtLeastOneIsDefined[T](alternatives: Seq[T => Option[Any]]): Validator[T] =
+  def checkIfAtLeastOneIsDefined[T](alternatives: Seq[T => Option[Any]], expectations: String): Validator[T] =
     (entity: T) =>
       if (alternatives.exists(f => f(entity).isDefined)) Valid(())
-      else Invalid(List(s"One of alternative values must be defined"))
+      else Invalid(List(s"One of an alternative values $expectations must be defined"))
+
+  def checkIfOnlyOneSetIsDefined[T](alternatives: Seq[Set[T => Option[Any]]], expectations: String): Validator[T] =
+    (entity: T) => {
+      val definedSetCount = alternatives.map(_.map(f => f(entity).isDefined).reduce(_ && _)).count(_ == true)
+      if (definedSetCount == 0)
+        Invalid(List(s"At least one of an alternative property sets $expectations must be defined or true"))
+      else if (definedSetCount > 1)
+        Invalid(List(s"Only one of an alternative property sets $expectations can be defined or true"))
+      else Valid(())
+    }
 
   implicit class StringMatchers(val value: String) extends AnyVal {
     def lengthMinMaxInclusive(min: Int, max: Int): Boolean = value != null && value.length >= min && value.length <= max
@@ -98,6 +108,13 @@ object Validator {
       value.forall(v => v != null && v <= max && multipleOf.forall(a => (v % a).abs < 0.0001))
     def gteq(min: BigDecimal, multipleOf: Option[BigDecimal] = None): Boolean =
       value.forall(v => v != null && v >= min && multipleOf.forall(a => (v % a).abs < 0.0001))
+  }
+
+  implicit class BooleanOps(val value: Boolean) extends AnyVal {
+    def map[T](f: Unit => T): Option[T] = if (value) Some(f()) else None
+    def orElse(b: => Boolean): Boolean = value || b
+    def asOption: Option[Unit] = if (value) Some(()) else None
+    def isDefined: Boolean = value
   }
 
   object Implicits {

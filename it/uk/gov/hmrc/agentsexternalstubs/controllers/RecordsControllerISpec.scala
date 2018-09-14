@@ -96,8 +96,8 @@ class RecordsControllerISpec
         val result = Records.generateBusinessDetails("foo", minimal = true)
         result should haveStatus(200)
         result should haveValidJsonBody(
-          haveProperty[String]("safeId") and haveProperty[String]("nino") and haveProperty[String]("mtdbsa") and notHaveProperty(
-            "propertyIncome") and notHaveProperty("businessData") and notHaveProperty("propertyData")
+          haveProperty[String]("safeId") and haveProperty[String]("nino") and haveProperty[String]("mtdbsa") and haveProperty[
+            Boolean]("propertyIncome") and notHaveProperty("businessData") and notHaveProperty("propertyData")
         )
       }
 

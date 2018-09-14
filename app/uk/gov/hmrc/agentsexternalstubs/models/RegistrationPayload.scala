@@ -16,8 +16,8 @@ import uk.gov.hmrc.agentsexternalstubs.models.RegistrationPayload._
   */
 case class RegistrationPayload(
   regime: String,
-  requiresNameMatch: Boolean,
-  isAnAgent: Boolean,
+  requiresNameMatch: Boolean = false,
+  isAnAgent: Boolean = false,
   individual: Option[Individual] = None,
   organisation: Option[Organisation] = None) {
 
@@ -49,7 +49,7 @@ object RegistrationPayload {
       s"""Invalid regime, does not matches regex ${Common.regimePattern}"""),
     checkObjectIfSome(_.individual, Individual.validate),
     checkObjectIfSome(_.organisation, Organisation.validate),
-    checkIfAtLeastOneIsDefined(Seq(_.organisation, _.individual))
+    checkIfOnlyOneSetIsDefined(Seq(Set(_.individual), Set(_.organisation)), "[{individual},{organisation}]")
   )
 
   implicit val formats: Format[RegistrationPayload] = Json.format[RegistrationPayload]

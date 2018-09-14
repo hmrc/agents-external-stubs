@@ -54,8 +54,8 @@ object LegacyAgentRecord extends RecordUtils[LegacyAgentRecord] {
     for {
       agentId   <- agentIdGen
       agentName <- UserGenerator.nameForAgentGen
-      address1  <- Generator.address4Lines35Gen.map(_.line1)
-      address2  <- Generator.address4Lines35Gen.map(_.line3)
+      address1  <- Generator.address4Lines35Gen.map(_.line1.take(28))
+      address2  <- Generator.address4Lines35Gen.map(_.line3.take(28))
     } yield
       LegacyAgentRecord(
         agentId = agentId,

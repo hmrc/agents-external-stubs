@@ -23,7 +23,7 @@ case class BusinessDetailsRecord(
   safeId: String,
   nino: String,
   mtdbsa: String,
-  propertyIncome: Option[Boolean] = None,
+  propertyIncome: Boolean = false,
   businessData: Option[Seq[BusinessData]] = None,
   propertyData: Option[PropertyData] = None,
   id: Option[String] = None
@@ -45,8 +45,8 @@ case class BusinessDetailsRecord(
   def withMtdbsa(mtdbsa: String): BusinessDetailsRecord = copy(mtdbsa = mtdbsa)
   def modifyMtdbsa(pf: PartialFunction[String, String]): BusinessDetailsRecord =
     if (pf.isDefinedAt(mtdbsa)) copy(mtdbsa = pf(mtdbsa)) else this
-  def withPropertyIncome(propertyIncome: Option[Boolean]): BusinessDetailsRecord = copy(propertyIncome = propertyIncome)
-  def modifyPropertyIncome(pf: PartialFunction[Option[Boolean], Option[Boolean]]): BusinessDetailsRecord =
+  def withPropertyIncome(propertyIncome: Boolean): BusinessDetailsRecord = copy(propertyIncome = propertyIncome)
+  def modifyPropertyIncome(pf: PartialFunction[Boolean, Boolean]): BusinessDetailsRecord =
     if (pf.isDefinedAt(propertyIncome)) copy(propertyIncome = pf(propertyIncome)) else this
   def withBusinessData(businessData: Option[Seq[BusinessData]]): BusinessDetailsRecord =
     copy(businessData = businessData)
@@ -79,18 +79,17 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
   )
 
   override val gen: Gen[BusinessDetailsRecord] = for {
-    safeId <- Generator.safeIdGen
-    nino   <- Generator.ninoNoSpacesGen
-    mtdbsa <- Generator.mtdbsaGen
+    safeId         <- Generator.safeIdGen
+    nino           <- Generator.ninoNoSpacesGen
+    mtdbsa         <- Generator.mtdbsaGen
+    propertyIncome <- Generator.booleanGen
   } yield
     BusinessDetailsRecord(
       safeId = safeId,
       nino = nino,
-      mtdbsa = mtdbsa
+      mtdbsa = mtdbsa,
+      propertyIncome = propertyIncome
     )
-
-  val propertyIncomeSanitizer: Update = seed =>
-    entity => entity.copy(propertyIncome = entity.propertyIncome.orElse(Generator.get(Generator.booleanGen)(seed)))
 
   val businessDataSanitizer: Update = seed =>
     entity =>
@@ -105,7 +104,7 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
         propertyData =
           entity.propertyData.orElse(Generator.get(PropertyData.gen)(seed)).map(PropertyData.sanitize(seed)))
 
-  override val sanitizers: Seq[Update] = Seq(propertyIncomeSanitizer, businessDataSanitizer, propertyDataSanitizer)
+  override val sanitizers: Seq[Update] = Seq(businessDataSanitizer, propertyDataSanitizer)
 
   implicit val formats: Format[BusinessDetailsRecord] = Json.format[BusinessDetailsRecord]
 
@@ -177,10 +176,10 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     businessContactDetails: Option[BusinessContactDetails] = None,
     tradingStartDate: Option[String] = None,
     cashOrAccruals: Option[String] = None,
-    seasonal: Option[Boolean] = None,
+    seasonal: Boolean = false,
     cessationDate: Option[String] = None,
     cessationReason: Option[String] = None,
-    paperLess: Option[Boolean] = None) {
+    paperLess: Boolean = false) {
 
     def withIncomeSourceId(incomeSourceId: String): BusinessData = copy(incomeSourceId = incomeSourceId)
     def modifyIncomeSourceId(pf: PartialFunction[String, String]): BusinessData =
@@ -214,8 +213,8 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     def withCashOrAccruals(cashOrAccruals: Option[String]): BusinessData = copy(cashOrAccruals = cashOrAccruals)
     def modifyCashOrAccruals(pf: PartialFunction[Option[String], Option[String]]): BusinessData =
       if (pf.isDefinedAt(cashOrAccruals)) copy(cashOrAccruals = pf(cashOrAccruals)) else this
-    def withSeasonal(seasonal: Option[Boolean]): BusinessData = copy(seasonal = seasonal)
-    def modifySeasonal(pf: PartialFunction[Option[Boolean], Option[Boolean]]): BusinessData =
+    def withSeasonal(seasonal: Boolean): BusinessData = copy(seasonal = seasonal)
+    def modifySeasonal(pf: PartialFunction[Boolean, Boolean]): BusinessData =
       if (pf.isDefinedAt(seasonal)) copy(seasonal = pf(seasonal)) else this
     def withCessationDate(cessationDate: Option[String]): BusinessData = copy(cessationDate = cessationDate)
     def modifyCessationDate(pf: PartialFunction[Option[String], Option[String]]): BusinessData =
@@ -223,8 +222,8 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     def withCessationReason(cessationReason: Option[String]): BusinessData = copy(cessationReason = cessationReason)
     def modifyCessationReason(pf: PartialFunction[Option[String], Option[String]]): BusinessData =
       if (pf.isDefinedAt(cessationReason)) copy(cessationReason = pf(cessationReason)) else this
-    def withPaperLess(paperLess: Option[Boolean]): BusinessData = copy(paperLess = paperLess)
-    def modifyPaperLess(pf: PartialFunction[Option[Boolean], Option[Boolean]]): BusinessData =
+    def withPaperLess(paperLess: Boolean): BusinessData = copy(paperLess = paperLess)
+    def modifyPaperLess(pf: PartialFunction[Boolean, Boolean]): BusinessData =
       if (pf.isDefinedAt(paperLess)) copy(paperLess = pf(paperLess)) else this
   }
 
@@ -267,11 +266,15 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
       incomeSourceId            <- Generator.stringMinMaxN(15, 16)
       accountingPeriodStartDate <- Generator.dateYYYYMMDDGen.variant("accountingperiodstart")
       accountingPeriodEndDate   <- Generator.dateYYYYMMDDGen.variant("accountingperiodend")
+      seasonal                  <- Generator.booleanGen
+      paperLess                 <- Generator.booleanGen
     } yield
       BusinessData(
         incomeSourceId = incomeSourceId,
         accountingPeriodStartDate = accountingPeriodStartDate,
-        accountingPeriodEndDate = accountingPeriodEndDate
+        accountingPeriodEndDate = accountingPeriodEndDate,
+        seasonal = seasonal,
+        paperLess = paperLess
       )
 
     val tradingNameSanitizer: Update = seed =>
@@ -302,9 +305,6 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
         entity.copy(
           cashOrAccruals = entity.cashOrAccruals.orElse(Generator.get(Gen.oneOf(Common.cashOrAccrualsEnum))(seed)))
 
-    val seasonalSanitizer: Update = seed =>
-      entity => entity.copy(seasonal = entity.seasonal.orElse(Generator.get(Generator.booleanGen)(seed)))
-
     val cessationDateSanitizer: Update = seed =>
       entity =>
         entity.copy(
@@ -316,19 +316,14 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
         entity.copy(
           cessationReason = entity.cessationReason.orElse(Generator.get(Gen.oneOf(Common.cessationReasonEnum))(seed)))
 
-    val paperLessSanitizer: Update = seed =>
-      entity => entity.copy(paperLess = entity.paperLess.orElse(Generator.get(Generator.booleanGen)(seed)))
-
     override val sanitizers: Seq[Update] = Seq(
       tradingNameSanitizer,
       businessAddressDetailsSanitizer,
       businessContactDetailsSanitizer,
       tradingStartDateSanitizer,
       cashOrAccrualsSanitizer,
-      seasonalSanitizer,
       cessationDateSanitizer,
-      cessationReasonSanitizer,
-      paperLessSanitizer
+      cessationReasonSanitizer
     )
 
     implicit val formats: Format[BusinessData] = Json.format[BusinessData]
@@ -488,7 +483,7 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     emailAddress: Option[String] = None,
     cessationDate: Option[String] = None,
     cessationReason: Option[String] = None,
-    paperLess: Option[Boolean] = None) {
+    paperLess: Boolean = false) {
 
     def withIncomeSourceId(incomeSourceId: String): PropertyData = copy(incomeSourceId = incomeSourceId)
     def modifyIncomeSourceId(pf: PartialFunction[String, String]): PropertyData =
@@ -524,8 +519,8 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     def withCessationReason(cessationReason: Option[String]): PropertyData = copy(cessationReason = cessationReason)
     def modifyCessationReason(pf: PartialFunction[Option[String], Option[String]]): PropertyData =
       if (pf.isDefinedAt(cessationReason)) copy(cessationReason = pf(cessationReason)) else this
-    def withPaperLess(paperLess: Option[Boolean]): PropertyData = copy(paperLess = paperLess)
-    def modifyPaperLess(pf: PartialFunction[Option[Boolean], Option[Boolean]]): PropertyData =
+    def withPaperLess(paperLess: Boolean): PropertyData = copy(paperLess = paperLess)
+    def modifyPaperLess(pf: PartialFunction[Boolean, Boolean]): PropertyData =
       if (pf.isDefinedAt(paperLess)) copy(paperLess = pf(paperLess)) else this
   }
 
@@ -571,11 +566,13 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
       incomeSourceId            <- Generator.stringMinMaxN(15, 16)
       accountingPeriodStartDate <- Generator.dateYYYYMMDDGen.variant("accountingperiodstart")
       accountingPeriodEndDate   <- Generator.dateYYYYMMDDGen.variant("accountingperiodend")
+      paperLess                 <- Generator.booleanGen
     } yield
       PropertyData(
         incomeSourceId = incomeSourceId,
         accountingPeriodStartDate = accountingPeriodStartDate,
-        accountingPeriodEndDate = accountingPeriodEndDate
+        accountingPeriodEndDate = accountingPeriodEndDate,
+        paperLess = paperLess
       )
 
     val numPropRentedSanitizer: Update = seed =>
@@ -615,9 +612,6 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
         entity.copy(
           cessationReason = entity.cessationReason.orElse(Generator.get(Gen.oneOf(Common.cessationReasonEnum))(seed)))
 
-    val paperLessSanitizer: Update = seed =>
-      entity => entity.copy(paperLess = entity.paperLess.orElse(Generator.get(Generator.booleanGen)(seed)))
-
     override val sanitizers: Seq[Update] = Seq(
       numPropRentedSanitizer,
       numPropRentedUKSanitizer,
@@ -625,8 +619,7 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
       numPropRentedNONEEASanitizer,
       emailAddressSanitizer,
       cessationDateSanitizer,
-      cessationReasonSanitizer,
-      paperLessSanitizer
+      cessationReasonSanitizer
     )
 
     implicit val formats: Format[PropertyData] = Json.format[PropertyData]
