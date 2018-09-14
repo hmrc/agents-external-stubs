@@ -111,7 +111,7 @@ object Validator {
   }
 
   implicit class BooleanOps(val value: Boolean) extends AnyVal {
-    def map[T](f: Unit => T): Option[T] = if (value) Some(f()) else None
+    def map[T](f: Unit => T): Option[T] = if (value) Some(f(())) else None
     def orElse(b: => Boolean): Boolean = value || b
     def asOption: Option[Unit] = if (value) Some(()) else None
     def isDefined: Boolean = value
