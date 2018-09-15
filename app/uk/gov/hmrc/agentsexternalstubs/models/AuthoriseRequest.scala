@@ -25,7 +25,8 @@ object Predicate {
     ConfidenceLevel,
     AffinityGroup,
     HasNino,
-    CredentialRole
+    CredentialRole,
+    Alternative
   )
 
   val supportedKeys = supportedPredicateFormats.map(_.key).mkString(",")
@@ -39,7 +40,8 @@ object Predicate {
     val keys = json.keys
     supportedPredicateFormats
       .collectFirst {
-        case r if keys.contains(r.key) => r.format.map[Predicate](a => a)
+        case r if keys.contains(r.key) =>
+          r.format.map[Predicate](a => a)
       }
       .getOrElse(failedReads(json))
   }
@@ -160,4 +162,26 @@ case class CredentialRole(credentialRole: String) extends Predicate {
 
 object CredentialRole extends PredicateFormat[CredentialRole]("credentialRole") {
   implicit val format: Format[CredentialRole] = Json.format[CredentialRole]
+}
+
+case class Alternative(`$or`: Seq[Predicate]) extends Predicate {
+  override def validate(context: AuthoriseContext): Either[String, Unit] =
+    `$or`.foldLeft[Either[String, Unit]](Left(""))((a, p) => a.fold(_ => p.validate(context), Right.apply))
+      .fold(_ => Left(s"None of ${`$or`.size} alternative predicates was fulfilled."), Right.apply)
+}
+
+object Alternative extends PredicateFormat[Alternative]("$or") {
+  val writes: Writes[Alternative] = Json.writes[Alternative]
+  val reads: Reads[Alternative] = new Reads[Alternative] {
+    override def reads(json: JsValue): JsResult[Alternative] = json match {
+      case obj: JsObject =>
+        (obj \ "$or").asOpt[Seq[Predicate]].map(Alternative.apply) match {
+          case Some(alt) => JsSuccess(alt)
+          case None      => JsError("Expected an array value for $or predicate")
+        }
+    }
+  }
+
+  implicit val format: Format[Alternative] = Format(reads, writes)
+
 }

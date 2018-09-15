@@ -6,6 +6,7 @@ import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models.{User, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
+import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
 import uk.gov.hmrc.auth.core.authorise.EmptyPredicate
 import uk.gov.hmrc.auth.core.retrieve._
 import uk.gov.hmrc.auth.core.{Nino => NinoPredicate, _}
@@ -18,6 +19,10 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDB with TestRequ
   lazy val wsClient = app.injector.instanceOf[WSClient]
 
   val authConnector: AuthConnector = app.injector.instanceOf[AuthConnector]
+
+  class TestFixture extends AuthorisedFunctions {
+    def authConnector: AuthConnector = app.injector.instanceOf[AuthConnector]
+  }
 
   "AuthStubController" when {
 
@@ -420,6 +425,22 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDB with TestRequ
         agentInfo.agentCode shouldBe Some("AAABBB1234567")
         agentInfo.agentFriendlyName shouldBe Some("Fox & Co")
         agentInfo.agentId.isDefined shouldBe true
+      }
+
+      "authorize if any of enrolment matches" in new TestFixture {
+        val authToken =
+          givenAnAuthenticatedUser(
+            UserGenerator
+              .individual(randomId)
+              .withPrincipalEnrolment("HMRC-MTD-VAT~VRN~936707596"))
+
+        implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
+
+        val result: String = await(
+          authorised((Enrolment("HMRC-MTD-IT") or Enrolment("HMRC-NI") or Enrolment("HMRC-MTD-VAT"))
+            and AuthProviders(GovernmentGateway)) {
+            "success"
+          })
       }
     }
   }

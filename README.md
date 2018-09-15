@@ -54,7 +54,7 @@ Endpoint | Description
 
 Feature | What's implemented
 -----------|-------------------------- 
-predicates | `enrolment`, `authProviders`, `affinityGroup`, `confidenceLevel`, `credentialStrength`, `nino`, `credentialRole`
+predicates | `enrolment`, `authProviders`, `affinityGroup`, `confidenceLevel`, `credentialStrength`, `nino`, `credentialRole`, `$or`
 retrievals | `authProviderId`, `credentials`, `authorisedEnrolments`, `allEnrolments`,`affinityGroup`,`confidenceLevel`,`credentialStrength`, `credentialRole`, `nino`, `groupIdentifier`, `name`, `dateOfBirth`, `agentCode`, `agentInformation`
 
 ### [Citizen Details](https://github.com/hmrc/citizen-details) <a name="stubbed_api_citizen_details"></a>

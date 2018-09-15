@@ -169,6 +169,19 @@ class AuthoriseRequestSpec extends UnitSpec {
         .toJson(AuthoriseRequest(Seq(CredentialRole("foobar")), Seq.empty))
         .toString() shouldBe """{"authorise":[{"credentialRole":"foobar"}],"retrieve":[]}"""
     }
+
+    "parse authorise request with $or predicate" in {
+      Json.parse(s"""{
+                    |"authorise": [{"$$or":[
+                    |   {
+                    |      "credentialRole": "foobar"
+                    |   }
+                    |]}],
+                    |"retrieve": []
+                    |}""".stripMargin).as[AuthoriseRequest] shouldBe AuthoriseRequest(
+        Seq(Alternative(Seq(CredentialRole("foobar")))),
+        Seq.empty)
+    }
   }
 
   "EnrolmentPredicate" should {

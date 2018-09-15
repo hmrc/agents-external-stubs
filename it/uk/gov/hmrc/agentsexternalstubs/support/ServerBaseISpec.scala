@@ -18,6 +18,9 @@ abstract class ServerBaseISpec
   override lazy val app: Application = PlayServer.app
   val port: Int = PlayServer.port
 
+  import scala.concurrent.duration._
+  override implicit val defaultTimeout: FiniteDuration = 30.seconds
+
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
   implicit override val patienceConfig: PatienceConfig =
