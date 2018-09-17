@@ -38,9 +38,10 @@ class SignInController @Inject()(val authenticationService: AuthenticationServic
       maybeSession <- authenticationService
                        .createNewAuthentication(
                          signInRequest.userId,
-                         signInRequest.plainTextPassword,
-                         signInRequest.providerType,
-                         signInRequest.planetId)
+                         signInRequest.plainTextPassword.getOrElse("p@ssw0rd"),
+                         signInRequest.providerType.getOrElse("GovernmentGateway"),
+                         signInRequest.planetId
+                       )
       result <- maybeSession match {
                  case Some(session) =>
                    usersService
