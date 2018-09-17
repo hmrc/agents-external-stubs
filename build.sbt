@@ -45,6 +45,7 @@ lazy val root = (project in file("."))
     name := "agents-external-stubs",
     organization := "uk.gov.hmrc",
     scalaVersion := "2.11.11",
+    majorVersion := 0,
     PlayKeys.playDefaultPort := 9009,
     resolvers := Seq(
       Resolver.bintrayRepo("hmrc", "releases"),
@@ -69,7 +70,7 @@ lazy val root = (project in file("."))
     parallelExecution in IntegrationTest := false,
     scalafmtOnCompile in IntegrationTest := true
   )
-  .enablePlugins(PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin)
+  .enablePlugins(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin, SbtArtifactory)
 
 inConfig(IntegrationTest)(scalafmtCoreSettings)
 
