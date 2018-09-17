@@ -187,7 +187,7 @@ Optional params:
    
 Response | Description
 ---|---
-200| list of users as [User entity brief](docs/userEntity.md)
+200| list of users as [User entity](docs/userEntity.md)
 204| empty list of users
     
 #### GET  /agents-external-stubs/users/:userId
@@ -237,6 +237,10 @@ Examples:
     http POST localhost:9009/agents-external-stubs/users/ Authorization:"Bearer 7f53d0bb-f15c-4c83-9a0c-057a33caba0a" userId=Alf affinityGroup=Agent
     HTTP/1.1 201 Created
     Location: /agents-external-stubs/users/Alf
+    
+or
+
+    curl -v -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer 7f53d0bb-f15c-4c83-9a0c-057a33caba0a' --data '{"userId":"Alf","affinityGroup":"Individual"}'
 
 #### DELETE  /agents-external-stubs/users/:userId
 Delete user. (_requires valid bearer token_)
