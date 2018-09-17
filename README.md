@@ -154,7 +154,7 @@ Optional params:
    
 Response | Description
 ---|---
-200| list of users as [User entity brief](docs/userEntity.md#brief)
+200| list of users as [User entity brief](docs/userEntity.md)
 204| empty list of users
     
 #### GET  /agents-external-stubs/users/:userId
