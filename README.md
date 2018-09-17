@@ -126,6 +126,17 @@ Response | Description
 200| when an existing authentication (based on a header) and user found
 201| when new authentication and user created
 202| when new authentication created for an existing user
+
+Example (using [httpie](https://httpie.org/)):
+
+    http POST localhost:9009/agents-external-stubs/sign-in userId=Alf planetId=Melmac
+    HTTP/1.1 202 Accepted
+    Location: /agents-external-stubs/session?authToken=8321db03-ba01-4115-838a-49daab5c6679
+    
+or    
+
+    curl -v -X POST http://localhost:9009/agents-external-stubs/sign-in -H "Content-Type: application/json" --data '{"userId":"Alf","planetId":"Melmac"}'
+    
     
 #### GET  /agents-external-stubs/session/:authToken
 Get current user authentication details
