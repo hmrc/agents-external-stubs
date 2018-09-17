@@ -1,10 +1,12 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import cats.data.Validated.{Invalid, Valid}
-import cats.data.{NonEmptyList, Validated}
 import org.joda.time.LocalDate
+import play.api.libs.functional.FunctionalBuilder
 import play.api.libs.json._
 import uk.gov.hmrc.domain.Nino
+
+import scala.util.Random
 
 case class User(
   userId: String,
@@ -203,7 +205,29 @@ object User {
     .andThen(addAgentCodeIndexKey)
     .andThen(addGroupIdIndexKey)
 
-  implicit val reads: Reads[User] = Json.reads[User]
+  import play.api.libs.functional.syntax._
+
+  implicit val reads: Reads[User] = (
+    (JsPath \ "userId").readNullable[String].map(_.getOrElse(Generator.userID(Random.nextString(8)))) and
+      (JsPath \ "groupId").readNullable[String] and
+      (JsPath \ "affinityGroup").readNullable[String] and
+      (JsPath \ "confidenceLevel").readNullable[Int] and
+      (JsPath \ "credentialStrength").readNullable[String] and
+      (JsPath \ "credentialRole").readNullable[String] and
+      (JsPath \ "nino").readNullable[Nino] and
+      (JsPath \ "principalEnrolments").readNullable[Seq[Enrolment]].map(_.getOrElse(Seq.empty)) and
+      (JsPath \ "delegatedEnrolments").readNullable[Seq[Enrolment]].map(_.getOrElse(Seq.empty)) and
+      (JsPath \ "name").readNullable[String] and
+      (JsPath \ "dateOfBirth").readNullable[LocalDate] and
+      (JsPath \ "agentCode").readNullable[String] and
+      (JsPath \ "agentFriendlyName").readNullable[String] and
+      (JsPath \ "agentId").readNullable[String] and
+      (JsPath \ "planetId").readNullable[String] and
+      (JsPath \ "isNonCompliant").readNullable[Boolean] and
+      (JsPath \ "complianceIssues").readNullable[Seq[String]] and
+      (JsPath \ "isPermanent").readNullable[Boolean]
+  )(User.apply _)
+
   implicit val writes: Writes[User] = Json
     .writes[User]
     .transform(addIndexedFields)

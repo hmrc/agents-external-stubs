@@ -44,6 +44,9 @@ trait Generator extends Names with Temporal with Companies with Addresses {
       list <- Gen.listOfN(size, gen)
     } yield list
 
+  lazy val userID: Gen[String] = pattern"999".gen.map("User" + _)
+  def userID(seed: String): String = userID.seeded(seed).get
+
   lazy val ninoWithSpacesGen: Gen[String] =
     Enumerable.instances.ninoEnum.gen.map(n => if (Nino.isValid(n)) n else "AB" + n.drop(2))
   def ninoWithSpaces(seed: String): Nino =

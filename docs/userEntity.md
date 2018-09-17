@@ -10,6 +10,13 @@ Group and User constraints:
 - Agent MAY NOT be in the group with Organisation and Individuals
 - All Agents in the group MUST have the same AgentCode
 
+### Minimal user payload:
+
+    { 
+      "userId" : "YourUserId", 
+      "affinityGroup" : "Individual|Organisation|Agent" 
+    }
+
 ### Individual user example:
 
     {

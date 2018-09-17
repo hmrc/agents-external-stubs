@@ -146,6 +146,28 @@ Response | Description
 200| body: `{"userId": "foo", "authToken": "G676JHDJSHJ767676H", "providerType": "GovernmentGateway", "planetId": "your_test_planetId"}`, `Location` header contains link to get the entity
 404| when `authToken` not found
 
+Example (using [httpie](https://httpie.org/)):
+
+    http GET localhost:9009/agents-external-stubs/session?authToken=8321db03-ba01-4115-838a-49daab5c6679
+    HTTP/1.1 200 OK
+    {
+        "_links": [
+            {
+                "href": "/agents-external-stubs/sign-out",
+                "rel": "delete"
+            }
+        ],
+        "authToken": "8321db03-ba01-4115-838a-49daab5c6679",
+        "planetId": "Melmac",
+        "providerType": "GovernmentGateway",
+        "sessionId": "e47f1b42-9616-43da-91f0-734eb958e88d",
+        "userId": "Alf"
+    }
+    
+or
+
+    curl -v http://localhost:9009/agents-external-stubs/session?authToken=da7a42f1-7c31-4c0b-b8cb-c9f325457275
+
 #### GET /agents-external-stubs/sign-out
 Terminate current authentication and invalidate bearer token.
 
@@ -205,6 +227,16 @@ Response | Description
 400| when user payload has not passed validation
 404| when `userId` not found
 409| when `userId` already exists or any other unique constraint violation
+
+Examples:
+
+    http POST localhost:9009/agents-external-stubs/users/ Authorization:"Bearer 7f53d0bb-f15c-4c83-9a0c-057a33caba0a" affinityGroup=Agent
+    HTTP/1.1 201 Created
+    Location: /agents-external-stubs/users/User239
+    
+    http POST localhost:9009/agents-external-stubs/users/ Authorization:"Bearer 7f53d0bb-f15c-4c83-9a0c-057a33caba0a" userId=Alf affinityGroup=Agent
+    HTTP/1.1 201 Created
+    Location: /agents-external-stubs/users/Alf
 
 #### DELETE  /agents-external-stubs/users/:userId
 Delete user. (_requires valid bearer token_)
