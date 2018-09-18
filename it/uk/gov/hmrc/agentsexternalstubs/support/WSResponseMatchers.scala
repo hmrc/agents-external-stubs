@@ -39,7 +39,7 @@ trait WSResponseMatchers {
       case Success(o: JsObject) =>
         matchers.foldLeft(MatchResult(true, "", ""))((a, b) => if (a.matches) b(o) else a)
       case Success(_) => MatchResult(true, "", "Have valid JSON body")
-      case Failure(e) => MatchResult(false, s"Could not parse JSON body because of $e", "")
+      case Failure(e) => MatchResult(false, s"Could not parse.tolerantJson body because of $e", "")
     }
   }
 
@@ -48,7 +48,7 @@ trait WSResponseMatchers {
       case Success(o: JsArray) =>
         matchers.foldLeft(MatchResult(true, "", ""))((a, b) => if (a.matches) b(o) else a)
       case Success(x) => MatchResult(false, s"JSON value should be an array but was $x", "")
-      case Failure(e) => MatchResult(false, s"Could not parse JSON body because of $e", "")
+      case Failure(e) => MatchResult(false, s"Could not parse.tolerantJson body because of $e", "")
     }
   }
 

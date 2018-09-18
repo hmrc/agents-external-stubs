@@ -119,7 +119,9 @@ Returns `Location` header with a link to the authentication details.
 
 *Payload*
 
-    {"userId": "foo", "plainTextPassword": "not_required", "providerType": "GovernmentGateway", "planetId":"your_test_planet"}
+    {"userId": "your_test_user", "providerType": "GovernmentGateway", "planetId":"your_test_planet"}
+    
+All parameters are optional. Sensible random values will be generated if missing.
 
 Response | Description
 ---|---
@@ -135,7 +137,10 @@ Example (using [httpie](https://httpie.org/)):
     
 or    
 
-    curl -v -X POST http://localhost:9009/agents-external-stubs/sign-in -H "Content-Type: application/json" --data '{"userId":"Alf","planetId":"Melmac"}'
+    curl -v -X POST http://localhost:9009/agents-external-stubs/sign-in
+    curl -v -X POST http://localhost:9009/agents-external-stubs/sign-in --data '{"userId":"Alf"}'
+    curl -v -X POST http://localhost:9009/agents-external-stubs/sign-in --data '{"planetId":"Melmac"}'
+    curl -v -X POST http://localhost:9009/agents-external-stubs/sign-in --data '{"userId":"Alf","planetId":"Melmac"}'
     
     
 #### GET  /agents-external-stubs/session/:authToken
@@ -228,12 +233,12 @@ Response | Description
 404| when `userId` not found
 409| when `userId` already exists or any other unique constraint violation
 
-Examples:
+Examples (using [httpie](https://httpie.org/)):
 
     http POST localhost:9009/agents-external-stubs/users/ Authorization:"Bearer 7f53d0bb-f15c-4c83-9a0c-057a33caba0a" affinityGroup=Agent
     HTTP/1.1 201 Created
     Location: /agents-external-stubs/users/User239
-    
+  
     http POST localhost:9009/agents-external-stubs/users/ Authorization:"Bearer 7f53d0bb-f15c-4c83-9a0c-057a33caba0a" userId=Alf affinityGroup=Agent
     HTTP/1.1 201 Created
     Location: /agents-external-stubs/users/Alf

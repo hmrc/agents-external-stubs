@@ -2,7 +2,6 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import javax.inject.{Inject, Singleton}
 import play.api.http.HeaderNames
-import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, Result}
 import uk.gov.hmrc.agentsexternalstubs.models.{Generator, SignInRequest, User}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
@@ -16,12 +15,12 @@ import scala.util.{Failure, Random, Success}
 class SignInController @Inject()(val authenticationService: AuthenticationService, usersService: UsersService)
     extends BaseController with CurrentSession {
 
-  def signIn(): Action[JsValue] = Action.async(parse.json) { implicit request =>
-    withPayload[SignInRequest] { signInRequest =>
+  def signIn(): Action[AnyContent] = Action.async { implicit request =>
+    withPayloadOrDefault[SignInRequest](SignInRequest(None, None, None, None)) { signInRequest =>
       withCurrentSession { session =>
         if (signInRequest.userId.contains(session.userId))
           Future.successful(
-            Ok("").withHeaders(HeaderNames.LOCATION -> routes.SignInController.session(session.authToken).url))
+            Ok.withHeaders(HeaderNames.LOCATION -> routes.SignInController.session(session.authToken).url))
         else createNewAuthentication(signInRequest)
       }(createNewAuthentication(signInRequest))
     }
@@ -48,10 +47,10 @@ class SignInController @Inject()(val authenticationService: AuthenticationServic
                      .tryCreateUser(User(session.userId), session.planetId)
                      .map {
                        case Success(_) =>
-                         Created("").withHeaders(
+                         Created.withHeaders(
                            HeaderNames.LOCATION -> routes.SignInController.session(session.authToken).url)
                        case Failure(_) =>
-                         Accepted("").withHeaders(
+                         Accepted.withHeaders(
                            HeaderNames.LOCATION -> routes.SignInController.session(session.authToken).url)
 
                      }

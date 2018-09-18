@@ -39,13 +39,13 @@ class UsersController @Inject()(usersService: UsersService, val authenticationSe
             Link("delete", routes.UsersController.deleteUser(userId).url),
             Link("store", routes.UsersController.createUser().url),
             Link("list", routes.UsersController.getUsers(None, None).url)
-          ))
+          )(User.plainWrites))
         case None => notFound("USER_NOT_FOUND", s"Could not found user $userId")
       }
     }(SessionRecordNotFound)
   }
 
-  def updateUser(userId: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def updateUser(userId: String): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
       withPayload[User](
         updatedUser =>
@@ -61,7 +61,7 @@ class UsersController @Inject()(usersService: UsersService, val authenticationSe
     }(SessionRecordNotFound)
   }
 
-  def createUser(): Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def createUser(): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
       withPayload[User](
         newUser =>

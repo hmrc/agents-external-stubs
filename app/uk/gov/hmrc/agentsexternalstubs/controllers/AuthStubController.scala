@@ -16,7 +16,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class AuthStubController @Inject()(authSessionRepository: AuthenticatedSessionsRepository, usersService: UsersService)
     extends BaseController {
 
-  def authorise(): Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def authorise(): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     request.headers.get(HeaderNames.AUTHORIZATION) match {
       case Some(BearerToken(authToken)) =>
         for {

@@ -1,6 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 import play.api.libs.json._
-import play.api.mvc.{Request, Result, Results}
+import play.api.mvc.{AnyContent, Request, Result, Results}
 import uk.gov.hmrc.http.BadRequestException
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -65,9 +65,19 @@ trait HttpHelpers {
 
   val SessionRecordNotFound: Future[Result] = unauthorizedF("SessionRecordNotFound")
 
+  def withPayloadOrDefault[T](default: T)(f: T => Future[Result])(
+    implicit request: Request[AnyContent],
+    reads: Reads[T],
+    ec: ExecutionContext): Future[Result] =
+    request.body.asJson.map(j => validate(j)(f)).getOrElse(f(default))
+
   def withPayload[T](
     f: T => Future[Result])(implicit request: Request[JsValue], reads: Reads[T], ec: ExecutionContext): Future[Result] =
-    Try(request.body.validate[T]) match {
+    validate(request.body)(f)
+
+  def validate[T](body: JsValue)(
+    f: T => Future[Result])(implicit reads: Reads[T], ec: ExecutionContext): Future[Result] =
+    Try(body.validate[T]) match {
       case Success(validationResult) =>
         whenSuccess(f)(validationResult)
       case Failure(e) =>

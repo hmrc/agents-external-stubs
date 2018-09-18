@@ -33,7 +33,7 @@ class DesStubController @Inject()(
 
   import DesStubController._
 
-  val authoriseOrDeAuthoriseRelationship: Action[JsValue] = Action.async(parse.json) { implicit request =>
+  val authoriseOrDeAuthoriseRelationship: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
       withPayload[CreateUpdateAgentRelationshipPayload] { payload =>
         CreateUpdateAgentRelationshipPayload
@@ -160,7 +160,7 @@ class DesStubController @Inject()(
     }(SessionRecordNotFound)
   }
 
-  def subscribeAgentServices(utr: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def subscribeAgentServices(utr: String): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
       RegexPatterns
         .validUtr(utr)
@@ -196,28 +196,29 @@ class DesStubController @Inject()(
     }(SessionRecordNotFound)
   }
 
-  def register(idType: String, idNumber: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
-    withCurrentSession { session =>
-      withPayload[RegistrationPayload] { payload =>
-        withValidIdentifier(idType, idNumber) {
-          case ("utr", utr) =>
-            businessPartnerRecordsService
-              .getBusinessPartnerRecord(Utr(utr), session.planetId)
-              .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId)(record =>
-                record.isAnAgent == payload.isAnAgent))
-          case ("nino", nino) =>
-            businessPartnerRecordsService
-              .getBusinessPartnerRecord(Nino(nino), session.planetId)
-              .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId)(record =>
-                record.isAnAgent == payload.isAnAgent))
-          case ("eori", eori) =>
-            businessPartnerRecordsService
-              .getBusinessPartnerRecordByEori(eori, session.planetId)
-              .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId)(record =>
-                record.isAnAgent == payload.isAnAgent))
+  def register(idType: String, idNumber: String): Action[JsValue] = Action.async(parse.tolerantJson) {
+    implicit request =>
+      withCurrentSession { session =>
+        withPayload[RegistrationPayload] { payload =>
+          withValidIdentifier(idType, idNumber) {
+            case ("utr", utr) =>
+              businessPartnerRecordsService
+                .getBusinessPartnerRecord(Utr(utr), session.planetId)
+                .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId)(record =>
+                  record.isAnAgent == payload.isAnAgent))
+            case ("nino", nino) =>
+              businessPartnerRecordsService
+                .getBusinessPartnerRecord(Nino(nino), session.planetId)
+                .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId)(record =>
+                  record.isAnAgent == payload.isAnAgent))
+            case ("eori", eori) =>
+              businessPartnerRecordsService
+                .getBusinessPartnerRecordByEori(eori, session.planetId)
+                .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId)(record =>
+                  record.isAnAgent == payload.isAnAgent))
+          }
         }
-      }
-    }(SessionRecordNotFound)
+      }(SessionRecordNotFound)
   }
 
   private def getOrCreateBusinessPartnerRecord[T <: Record](

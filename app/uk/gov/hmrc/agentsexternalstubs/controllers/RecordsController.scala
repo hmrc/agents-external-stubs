@@ -41,7 +41,7 @@ class RecordsController @Inject()(
     }(SessionRecordNotFound)
   }
 
-  def updateRecord(recordId: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def updateRecord(recordId: String): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
       recordsRepository
         .findById[Record](recordId, session.planetId)
@@ -69,7 +69,7 @@ class RecordsController @Inject()(
     }(SessionRecordNotFound)
   }
 
-  def storeBusinessDetails(autoFill: Boolean): Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def storeBusinessDetails(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
       withPayload[BusinessDetailsRecord](
         record =>
@@ -92,7 +92,7 @@ class RecordsController @Inject()(
       }(SessionRecordNotFound)
   }
 
-  def storeLegacyAgent(autoFill: Boolean): Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def storeLegacyAgent(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
       withPayload[LegacyAgentRecord](
         record =>
@@ -113,20 +113,21 @@ class RecordsController @Inject()(
       }(SessionRecordNotFound)
   }
 
-  def storeLegacyRelationship(autoFill: Boolean): Action[JsValue] = Action.async(parse.json) { implicit request =>
-    withCurrentSession { session =>
-      withPayload[LegacyRelationshipRecord](
-        record =>
-          legacyRelationshipRecordsService
-            .store(record, autoFill, session.planetId)
-            .map(
-              recordId =>
-                Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))).withHeaders(
-                  HeaderNames.LOCATION -> record.nino
-                    .map(nino => routes.DesStubController.getLegacyRelationshipsByNino(nino).url)
-                    .orElse(record.utr.map(utr => routes.DesStubController.getLegacyRelationshipsByUtr(utr).url))
-                    .getOrElse(""))))
-    }(SessionRecordNotFound)
+  def storeLegacyRelationship(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) {
+    implicit request =>
+      withCurrentSession { session =>
+        withPayload[LegacyRelationshipRecord](
+          record =>
+            legacyRelationshipRecordsService
+              .store(record, autoFill, session.planetId)
+              .map(
+                recordId =>
+                  Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))).withHeaders(
+                    HeaderNames.LOCATION -> record.nino
+                      .map(nino => routes.DesStubController.getLegacyRelationshipsByNino(nino).url)
+                      .orElse(record.utr.map(utr => routes.DesStubController.getLegacyRelationshipsByUtr(utr).url))
+                      .getOrElse(""))))
+      }(SessionRecordNotFound)
   }
 
   def generateLegacyRelationship(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] = Action.async {
@@ -140,16 +141,17 @@ class RecordsController @Inject()(
       }(SessionRecordNotFound)
   }
 
-  def storeVatCustomerInformation(autoFill: Boolean): Action[JsValue] = Action.async(parse.json) { implicit request =>
-    withCurrentSession { session =>
-      withPayload[VatCustomerInformationRecord](
-        record =>
-          vatCustomerInformationRecordsService
-            .store(record, autoFill, session.planetId)
-            .map(recordId =>
-              Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))).withHeaders(
-                HeaderNames.LOCATION -> routes.DesStubController.getVatCustomerInformation(record.vrn).url)))
-    }(SessionRecordNotFound)
+  def storeVatCustomerInformation(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) {
+    implicit request =>
+      withCurrentSession { session =>
+        withPayload[VatCustomerInformationRecord](
+          record =>
+            vatCustomerInformationRecordsService
+              .store(record, autoFill, session.planetId)
+              .map(recordId =>
+                Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))).withHeaders(
+                  HeaderNames.LOCATION -> routes.DesStubController.getVatCustomerInformation(record.vrn).url)))
+      }(SessionRecordNotFound)
   }
 
   def generateVatCustomerInformation(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] = Action.async {
@@ -163,14 +165,14 @@ class RecordsController @Inject()(
       }(SessionRecordNotFound)
   }
 
-  def storeBusinessPartnerRecord(autoFill: Boolean): Action[JsValue] = Action.async(parse.json) { implicit request =>
-    withCurrentSession { session =>
-      withPayload[BusinessPartnerRecord](
-        record =>
+  def storeBusinessPartnerRecord(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) {
+    implicit request =>
+      withCurrentSession { session =>
+        withPayload[BusinessPartnerRecord](record =>
           BusinessPartnerRecordsService
             .store(record, autoFill, session.planetId)
             .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url)))))
-    }(SessionRecordNotFound)
+      }(SessionRecordNotFound)
   }
 
   def generateBusinessPartnerRecord(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] = Action.async {

@@ -228,9 +228,9 @@ object User {
       (JsPath \ "isPermanent").readNullable[Boolean]
   )(User.apply _)
 
-  implicit val writes: Writes[User] = Json
-    .writes[User]
-    .transform(addIndexedFields)
+  val plainWrites: OWrites[User] = Json.writes[User]
+
+  implicit val writes: Writes[User] = plainWrites.transform(addIndexedFields)
 
   val formats = Format(reads, writes)
 

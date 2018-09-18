@@ -55,14 +55,15 @@ class EnrolmentStoreProxyStubController @Inject()(
     }(SessionRecordNotFound)
   }
 
-  def setKnownFacts(enrolmentKey: EnrolmentKey): Action[JsValue] = Action.async(parse.json) { implicit request =>
-    withCurrentSession { session =>
-      withPayload[SetKnownFactsRequest] { payload =>
-        knownFactsRepository
-          .upsert(KnownFacts(enrolmentKey, payload.verifiers), session.planetId)
-          .map(_ => NoContent)
-      }
-    }(SessionRecordNotFound)
+  def setKnownFacts(enrolmentKey: EnrolmentKey): Action[JsValue] = Action.async(parse.tolerantJson) {
+    implicit request =>
+      withCurrentSession { session =>
+        withPayload[SetKnownFactsRequest] { payload =>
+          knownFactsRepository
+            .upsert(KnownFacts(enrolmentKey, payload.verifiers), session.planetId)
+            .map(_ => NoContent)
+        }
+      }(SessionRecordNotFound)
   }
 
   def removeKnownFacts(enrolmentKey: EnrolmentKey): Action[AnyContent] = Action.async { implicit request =>
@@ -79,7 +80,7 @@ class EnrolmentStoreProxyStubController @Inject()(
   def allocateGroupEnrolment(
     groupId: String,
     enrolmentKey: EnrolmentKey,
-    `legacy-agentCode`: Option[String]): Action[JsValue] = Action.async(parse.json) { implicit request =>
+    `legacy-agentCode`: Option[String]): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
       withPayload[AllocateGroupEnrolmentRequest] { payload =>
         AllocateGroupEnrolmentRequest
