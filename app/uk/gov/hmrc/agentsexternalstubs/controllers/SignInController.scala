@@ -4,13 +4,13 @@ import javax.inject.{Inject, Singleton}
 import play.api.http.HeaderNames
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, Result}
-import uk.gov.hmrc.agentsexternalstubs.models.{SignInRequest, User}
+import uk.gov.hmrc.agentsexternalstubs.models.{Generator, SignInRequest, User}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Random, Success}
 
 @Singleton
 class SignInController @Inject()(val authenticationService: AuthenticationService, usersService: UsersService)
@@ -19,7 +19,7 @@ class SignInController @Inject()(val authenticationService: AuthenticationServic
   def signIn(): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withPayload[SignInRequest] { signInRequest =>
       withCurrentSession { session =>
-        if (session.userId == signInRequest.userId)
+        if (signInRequest.userId.contains(session.userId))
           Future.successful(
             Ok("").withHeaders(HeaderNames.LOCATION -> routes.SignInController.session(session.authToken).url))
         else createNewAuthentication(signInRequest)
@@ -37,10 +37,10 @@ class SignInController @Inject()(val authenticationService: AuthenticationServic
     for {
       maybeSession <- authenticationService
                        .createNewAuthentication(
-                         signInRequest.userId,
+                         signInRequest.userId.getOrElse(Generator.userID(Random.nextString(8))),
                          signInRequest.plainTextPassword.getOrElse("p@ssw0rd"),
                          signInRequest.providerType.getOrElse("GovernmentGateway"),
-                         signInRequest.planetId
+                         signInRequest.planetId.getOrElse(Generator.planetID(Random.nextString(8)))
                        )
       result <- maybeSession match {
                  case Some(session) =>

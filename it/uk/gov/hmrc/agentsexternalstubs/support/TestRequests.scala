@@ -90,13 +90,13 @@ trait TestRequests extends ScalaFutures {
 
   object SignIn {
     def signIn(
-      userId: String,
+      userId: String = null,
       password: String = null,
       providerType: String = null,
-      planetId: String = UUID.randomUUID().toString): WSResponse =
+      planetId: String = null): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/sign-in")
-        .post(SignInRequest(userId, Option(password), Option(providerType), planetId))
+        .post(SignInRequest(Option(userId), Option(password), Option(providerType), Option(planetId)))
         .futureValue
 
     def authSessionFor(loginResponse: WSResponse): WSResponse =

@@ -47,6 +47,12 @@ trait Generator extends Names with Temporal with Companies with Addresses {
   lazy val userID: Gen[String] = pattern"999".gen.map("User" + _)
   def userID(seed: String): String = userID.seeded(seed).get
 
+  lazy val planetID: Gen[String] = for {
+    prefix <- Gen.oneOf("Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto")
+    id     <- pattern"ZZ999"
+  } yield prefix + "_" + id
+  def planetID(seed: String): String = userID.seeded(seed).get
+
   lazy val ninoWithSpacesGen: Gen[String] =
     Enumerable.instances.ninoEnum.gen.map(n => if (Nino.isValid(n)) n else "AB" + n.drop(2))
   def ninoWithSpaces(seed: String): Nino =

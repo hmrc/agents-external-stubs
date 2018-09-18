@@ -19,6 +19,13 @@ class SignInControllerISpec extends ServerBaseISpec with MongoDB with TestReques
         result.header(HeaderNames.LOCATION) should not be empty
       }
 
+      "authenticate anonymous user and return session data" in {
+        val result = SignIn.signIn()
+        result should haveStatus(201)
+        result should haveStatus(201)
+        result.header(HeaderNames.LOCATION) should not be empty
+      }
+
       "authenticate same user again and return new session data" in {
         val session1 = SignIn.signInAndGetSession("foo", "boo")
         val result2 = SignIn.signIn("foo", "boo", planetId = session1.planetId)
