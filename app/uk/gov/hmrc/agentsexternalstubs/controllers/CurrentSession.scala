@@ -5,7 +5,7 @@ import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, User}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.auth.core.AuthorisationException
-import uk.gov.hmrc.http.{BadRequestException, HttpException, NotFoundException}
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpException, NotFoundException}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -23,6 +23,23 @@ trait CurrentSession extends HttpHelpers {
       e.printStackTrace()
       internalServerError("SERVER_ERROR", e.getMessage)
   }
+
+  def withCurrentOrExternalSession[T](body: AuthenticatedSession => Future[Result])(
+    ifSessionNotFound: => Future[Result])(
+    implicit request: Request[T],
+    ec: ExecutionContext,
+    hc: HeaderCarrier): Future[Result] =
+    request.headers.get(HeaderNames.AUTHORIZATION) match {
+      case None => ifSessionNotFound
+      case Some(BearerToken(authToken)) =>
+        for {
+          maybeSession <- authenticationService.findByAuthTokenOrLookupExternal(authToken)
+          result <- maybeSession match {
+                     case Some(session) => body(session).recover(errorHandler)
+                     case _             => ifSessionNotFound
+                   }
+        } yield result
+    }
 
   def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(
     ifSessionNotFound: => Future[Result])(implicit request: Request[T], ec: ExecutionContext): Future[Result] =

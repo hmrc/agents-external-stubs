@@ -3,6 +3,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import org.joda.time.LocalDate
 import play.api.libs.ws.WSClient
 import play.mvc.Http.HeaderNames
+import uk.gov.hmrc.agentsexternalstubs.connectors.MicroserviceAuthConnector
 import uk.gov.hmrc.agentsexternalstubs.models.{User, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
@@ -18,10 +19,10 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDB with TestRequ
   val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
 
-  val authConnector: AuthConnector = app.injector.instanceOf[AuthConnector]
+  val authConnector: AuthConnector = app.injector.instanceOf[MicroserviceAuthConnector]
 
   class TestFixture extends AuthorisedFunctions {
-    def authConnector: AuthConnector = app.injector.instanceOf[AuthConnector]
+    def authConnector: AuthConnector = app.injector.instanceOf[MicroserviceAuthConnector]
   }
 
   "AuthStubController" when {

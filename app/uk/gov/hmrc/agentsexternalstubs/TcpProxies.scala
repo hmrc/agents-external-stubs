@@ -18,14 +18,17 @@ case class TcpProxiesConfig @Inject()(
   @Named("users-groups-search.port") usersGroupsSearchPort: Int,
   @Named("enrolment-store-proxy.port") enrolmentStoreProxyPort: Int,
   @Named("tax-enrolments.port") taxEnrolmentsPort: Int,
-  @Named("des.port") desPort: Int)
+  @Named("des.port") desPort: Int) {
+
+  val isProxyMode: Boolean = startProxies == "true"
+}
 
 @Singleton
 class TcpProxies @Inject()(tcpProxiesConfig: TcpProxiesConfig, @Named("http.port") httpPort: String)(
   implicit system: ActorSystem,
   materializer: Materializer) {
 
-  if (tcpProxiesConfig.startProxies == "true") {
+  if (tcpProxiesConfig.isProxyMode) {
     Logger(getClass).info("Starting local TCP proxies ...")
 
     implicit val ec: ExecutionContext = system.dispatcher

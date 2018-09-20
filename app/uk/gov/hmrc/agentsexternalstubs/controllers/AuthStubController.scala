@@ -5,26 +5,25 @@ import play.api.http.HeaderNames
 import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
 import play.api.mvc.{Action, Result}
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.repository.AuthenticatedSessionsRepository
-import uk.gov.hmrc.agentsexternalstubs.services.UsersService
+import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class AuthStubController @Inject()(authSessionRepository: AuthenticatedSessionsRepository, usersService: UsersService)
+class AuthStubController @Inject()(authenticationService: AuthenticationService, usersService: UsersService)
     extends BaseController {
 
   def authorise(): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     request.headers.get(HeaderNames.AUTHORIZATION) match {
       case Some(BearerToken(authToken)) =>
         for {
-          maybeSession <- authSessionRepository.findByAuthToken(authToken)
-          response <- maybeSession match {
-                       case Some(authenticatedSession) =>
-                         request.body.validate[AuthoriseRequest] match {
-                           case JsSuccess(authoriseRequest, _) =>
+          maybeSession <- authenticationService.findByAuthTokenOrLookupExternal(authToken)
+          response <- request.body.validate[AuthoriseRequest] match {
+                       case JsSuccess(authoriseRequest, _) =>
+                         maybeSession match {
+                           case Some(authenticatedSession) =>
                              for {
                                maybeUser <- usersService
                                              .findByUserId(authenticatedSession.userId, authenticatedSession.planetId)
@@ -38,13 +37,14 @@ class AuthStubController @Inject()(authSessionRepository: AuthenticatedSessionsR
                                           error => unauthorized(error),
                                           response => Ok(Json.toJson(response))))
                              } yield result
-                           case JsError(errors) =>
-                             Future.successful(
-                               BadRequest(errors
-                                 .map { case (p, ve) => s"$p -> [${ve.map(v => v.message).mkString(",")}]" }
-                                 .mkString("\n")))
+                           case None =>
+                             unauthorizedF("SessionRecordNotFound")
                          }
-                       case None => unauthorizedF("SessionRecordNotFound")
+                       case JsError(errors) =>
+                         Future.successful(
+                           BadRequest(errors
+                             .map { case (p, ve) => s"$p -> [${ve.map(v => v.message).mkString(",")}]" }
+                             .mkString("\n")))
                      }
         } yield response
       case Some(_) => unauthorizedF("InvalidBearerToken")

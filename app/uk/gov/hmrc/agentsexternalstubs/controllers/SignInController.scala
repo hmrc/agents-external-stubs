@@ -1,9 +1,11 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
+import java.util.UUID
+
 import javax.inject.{Inject, Singleton}
 import play.api.http.HeaderNames
 import play.api.mvc.{Action, AnyContent, Result}
-import uk.gov.hmrc.agentsexternalstubs.models.{Generator, SignInRequest, User}
+import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
@@ -17,7 +19,7 @@ class SignInController @Inject()(val authenticationService: AuthenticationServic
 
   def signIn(): Action[AnyContent] = Action.async { implicit request =>
     withPayloadOrDefault[SignInRequest](SignInRequest(None, None, None, None)) { signInRequest =>
-      withCurrentSession { session =>
+      withCurrentOrExternalSession { session =>
         if (signInRequest.userId.contains(session.userId))
           Future.successful(
             Ok.withHeaders(HeaderNames.LOCATION -> routes.SignInController.session(session.authToken).url))
@@ -34,13 +36,14 @@ class SignInController @Inject()(val authenticationService: AuthenticationServic
 
   private def createNewAuthentication(signInRequest: SignInRequest)(implicit ec: ExecutionContext): Future[Result] =
     for {
-      maybeSession <- authenticationService
-                       .createNewAuthentication(
-                         signInRequest.userId.getOrElse(Generator.userID(Random.nextString(8))),
-                         signInRequest.plainTextPassword.getOrElse("p@ssw0rd"),
-                         signInRequest.providerType.getOrElse("GovernmentGateway"),
-                         signInRequest.planetId.getOrElse(Generator.planetID(Random.nextString(8)))
-                       )
+      maybeSession <- authenticationService.authenticate(
+                       AuthenticateRequest(
+                         sessionId = UUID.randomUUID().toString,
+                         userId = signInRequest.userId.getOrElse(Generator.userID(Random.nextString(8))),
+                         password = signInRequest.plainTextPassword.getOrElse("p@ssw0rd"),
+                         providerType = signInRequest.providerType.getOrElse("GovernmentGateway"),
+                         planetId = signInRequest.planetId.getOrElse(Generator.planetID(Random.nextString(8)))
+                       ))
       result <- maybeSession match {
                  case Some(session) =>
                    usersService

@@ -5,7 +5,7 @@ import java.util.UUID
 import org.scalatest.Suite
 import org.scalatestplus.play.ServerProvider
 import play.api.Application
-import uk.gov.hmrc.agentsexternalstubs.models.{Enrolment, Identifier, User}
+import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -25,8 +25,10 @@ trait TestStubs {
     providerType: String = "GovernmentGateway",
     planetId: String = UUID.randomUUID().toString)(implicit ec: ExecutionContext, timeout: Duration): String =
     await(for {
-      authSession <- authenticationService.createNewAuthentication(user.userId, "any", providerType, planetId)
-      _           <- userService.tryCreateUser(user, planetId)
+      authSession <- authenticationService
+                      .authenticate(
+                        AuthenticateRequest(UUID.randomUUID().toString, user.userId, "any", providerType, planetId))
+      _ <- userService.tryCreateUser(user, planetId)
     } yield authSession)
       .getOrElse(throw new Exception("Could not sign in user"))
       .authToken

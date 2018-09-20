@@ -24,7 +24,7 @@ case class AuthoriseResponse(
 )
 
 object AuthoriseResponse {
-  implicit val writes: Writes[AuthoriseResponse] = Json.writes[AuthoriseResponse]
+  implicit val formats: Format[AuthoriseResponse] = Json.format[AuthoriseResponse]
 }
 
 sealed trait Retrieve {
@@ -146,7 +146,10 @@ case object GroupIdentifierRetrieve extends Retrieve {
     Right(response.copy(groupIdentifier = context.groupId))
 }
 
-case class Name(name: Option[String], lastName: Option[String] = None)
+case class Name(name: Option[String], lastName: Option[String] = None) {
+  override val toString: String = Seq(name, lastName).collect { case Some(x) => x }.mkString(" ")
+}
+
 object Name {
   implicit val format: Format[Name] = Json.format[Name]
 
