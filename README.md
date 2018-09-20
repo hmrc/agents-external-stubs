@@ -300,7 +300,7 @@ Get known facts (enrolment) information
 
 ## Running the app locally
 
-    sm --start AGENTS_EXTERNAL_STUBS -f
+    sm --start AGENTS_STUBS -f
 
 or
 
