@@ -54,7 +54,8 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
         authoriseRequest,
         AuthoriseResponse(
           credentials = Some(Credentials("AgentFoo", "GovernmentGateway")),
-          allEnrolments = Seq(Enrolment("HMRC-AS-AGENT", Some(Seq(Identifier("AgentReferenceNumber", "TARN0000001"))))),
+          allEnrolments =
+            Some(Seq(Enrolment("HMRC-AS-AGENT", Some(Seq(Identifier("AgentReferenceNumber", "TARN0000001")))))),
           affinityGroup = Some("Agent"),
           confidenceLevel = None,
           credentialStrength = None,
@@ -106,7 +107,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
         authoriseRequest,
         AuthoriseResponse(
           credentials = Some(Credentials("UserFoo", "GovernmentGateway")),
-          allEnrolments = Seq(Enrolment("HMRC-MTD-IT", Some(Seq(Identifier("MTDITID", "X12345678909876"))))),
+          allEnrolments = Some(Seq(Enrolment("HMRC-MTD-IT", Some(Seq(Identifier("MTDITID", "X12345678909876")))))),
           affinityGroup = Some("Individual"),
           confidenceLevel = Some(200),
           credentialStrength = Some("strong"),
@@ -176,7 +177,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
         authoriseRequest,
         AuthoriseResponse(
           credentials = Some(Credentials("UserFoo", "GovernmentGateway")),
-          allEnrolments = Seq(Enrolment("HMRC-MTD-IT", Some(Seq(Identifier("MTDITID", "X12345678909876"))))),
+          allEnrolments = Some(Seq(Enrolment("HMRC-MTD-IT", Some(Seq(Identifier("MTDITID", "X12345678909876")))))),
           affinityGroup = Some("Individual"),
           confidenceLevel = Some(200),
           credentialStrength = Some("strong"),
@@ -209,6 +210,73 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       user.groupId shouldBe Some("foo-group-2")
       user.name shouldBe Some("Foo Bar")
       user.dateOfBirth shouldBe Some(LocalDate.parse("1993-09-21"))
+      user.agentCode shouldBe None
+      user.agentFriendlyName shouldBe None
+      user.agentId shouldBe None
+    }
+
+    "consult external auth service and parse response" in {
+      val planetId = UUID.randomUUID().toString
+      val authToken = UUID.randomUUID().toString
+      val sessionId = UUID.randomUUID().toString
+      val hc = HeaderCarrier(authorization = Some(Authorization(authToken)), sessionId = Some(SessionId(sessionId)))
+      val ec = ExecutionContext.Implicits.global
+
+      givenAuthorisedFor(
+        s"""
+           |{
+           |  "credentials": {
+           |    "providerId": "1551815928588520",
+           |    "providerType": "GovernmentGateway"
+           |  },
+           |  "allEnrolments": [
+           |    {
+           |      "key": "HMRC-NI",
+           |      "identifiers": [
+           |        {
+           |          "key": "NINO",
+           |          "value": "AB123456A"
+           |        }
+           |      ],
+           |      "state": "Activated",
+           |      "confidenceLevel": 200
+           |    }
+           |  ],
+           |  "affinityGroup": "Individual",
+           |  "confidenceLevel": 200,
+           |  "credentialStrength": "weak",
+           |  "credentialRole": "User",
+           |  "nino": "AB123456A",
+           |  "groupIdentifier": "testGroupId-b1062cdf-c73f-4a3f-b949-d43354399729",
+           |  "name": {
+           |    "name": "Foo Bar"
+           |  },
+           |  "agentInformation": {}
+           |}
+         """.stripMargin
+      )
+
+      val sessionOpt =
+        await(underTest.maybeExternalSession(planetId, authenticationService.authenticate)(ec, hc))
+      sessionOpt shouldBe defined
+      val session = sessionOpt.get
+      session.authToken shouldBe authToken
+      session.planetId shouldBe planetId
+      session.userId shouldBe "1551815928588520"
+      session.sessionId shouldBe sessionId
+
+      val userOpt = await(usersService.findByUserId("1551815928588520", sessionOpt.get.planetId))
+      userOpt shouldBe defined
+      val user = userOpt.get
+      user.userId shouldBe "1551815928588520"
+      user.principalEnrolments shouldBe empty
+      user.affinityGroup shouldBe Some("Individual")
+      user.confidenceLevel shouldBe Some(200)
+      user.credentialStrength shouldBe Some("weak")
+      user.credentialRole shouldBe Some("Admin")
+      user.nino shouldBe Some(Nino("AB123456A"))
+      user.groupId shouldBe Some("testGroupId-b1062cdf-c73f-4a3f-b949-d43354399729")
+      user.name shouldBe Some("Foo Bar")
       user.agentCode shouldBe None
       user.agentFriendlyName shouldBe None
       user.agentId shouldBe None

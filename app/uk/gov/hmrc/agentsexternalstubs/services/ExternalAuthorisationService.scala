@@ -26,8 +26,6 @@ class ExternalAuthorisationService @Inject()(
     if (tcpProxiesConfig.isProxyMode) {
       Future.successful(None)
     } else {
-      Logger(getClass).info(
-        s"Looking for external authorisation using ${hc.authorization.map(_.value).getOrElse("<none>")}")
       val authRequest = AuthoriseRequest(
         Seq.empty,
         Seq(
@@ -49,9 +47,7 @@ class ExternalAuthorisationService @Inject()(
         .map {
           _.json match {
             case null => None
-            case body =>
-              Logger(getClass).info(s"External authorization response was $body")
-              body.asOpt[AuthoriseResponse]
+            case body => Some(body.as[AuthoriseResponse])
           }
         }
         .recover {
@@ -71,7 +67,7 @@ class ExternalAuthorisationService @Inject()(
               credentialStrength = response.credentialStrength,
               credentialRole = response.credentialRole,
               nino = response.nino,
-              principalEnrolments = response.allEnrolments,
+              principalEnrolments = response.allEnrolments.map(_.filterNot(_.key == "HMRC-NI")).getOrElse(Seq.empty),
               name = response.name.map(_.toString),
               dateOfBirth = response.dateOfBirth,
               agentCode = response.agentInformation.flatMap(_.agentCode),

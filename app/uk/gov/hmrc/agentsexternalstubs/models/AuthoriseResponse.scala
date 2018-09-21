@@ -9,8 +9,8 @@ import scala.concurrent.ExecutionContext
 case class AuthoriseResponse(
   credentials: Option[Credentials] = None,
   authProviderId: Option[GGCredId] = None,
-  authorisedEnrolments: Seq[Enrolment] = Seq.empty,
-  allEnrolments: Seq[Enrolment] = Seq.empty,
+  authorisedEnrolments: Option[Seq[Enrolment]] = None,
+  allEnrolments: Option[Seq[Enrolment]] = None,
   affinityGroup: Option[String] = None,
   confidenceLevel: Option[Int] = None,
   credentialStrength: Option[String] = None,
@@ -93,15 +93,15 @@ case object AuthorisedEnrolmentsRetrieve extends Retrieve {
   val key = "authorisedEnrolments"
   override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
     implicit ec: ExecutionContext): MaybeResponse =
-    Right(response.copy(authorisedEnrolments = context.principalEnrolments.filter(p =>
-      context.authorisedServices.contains(p.key))))
+    Right(response.copy(authorisedEnrolments = Some(context.principalEnrolments.filter(p =>
+      context.authorisedServices.contains(p.key)))))
 }
 
 case object AllEnrolmentsRetrieve extends Retrieve {
   val key = "allEnrolments"
   override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
     implicit ec: ExecutionContext): MaybeResponse =
-    Right(response.copy(allEnrolments = context.principalEnrolments))
+    Right(response.copy(allEnrolments = Some(context.principalEnrolments)))
 }
 
 case object AffinityGroupRetrieve extends Retrieve {

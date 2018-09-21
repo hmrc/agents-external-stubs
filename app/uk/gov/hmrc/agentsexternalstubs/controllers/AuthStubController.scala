@@ -52,7 +52,6 @@ class AuthStubController @Inject()(authenticationService: AuthenticationService,
         Logger(getClass).warn(s"Unsupported bearer token format $token")
         unauthorizedF("InvalidBearerToken")
       case None =>
-        Logger(getClass).info(s"Missing bearer token")
         unauthorizedF("MissingBearerToken")
     }
   }

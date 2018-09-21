@@ -19,6 +19,17 @@ trait AuthStubs {
             .withHeader("Content-Type", "application/json")
             .withBody(Json.toJson(response).toString)))
 
+  def givenAuthorisedFor(response: String): Unit =
+    stubFor(
+      post(urlEqualTo("/auth/authorise"))
+        .atPriority(1)
+        .withRequestBody(equalToJson(Json.toJson(AuthoriseRequest(Seq.empty, Seq.empty)).toString, true, true))
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "application/json")
+            .withBody(response)))
+
   def givenUnauthorised =
     stubFor(
       post(urlEqualTo("/auth/authorise"))
