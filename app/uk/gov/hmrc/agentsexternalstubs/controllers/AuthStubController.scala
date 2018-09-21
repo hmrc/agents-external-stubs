@@ -1,6 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import javax.inject.{Inject, Singleton}
+import play.api.Logger
 import play.api.http.HeaderNames
 import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
 import play.api.mvc.{Action, Result}
@@ -47,8 +48,10 @@ class AuthStubController @Inject()(authenticationService: AuthenticationService,
                              .mkString("\n")))
                      }
         } yield response
-      case Some(_) => unauthorizedF("InvalidBearerToken")
-      case None    => unauthorizedF("MissingBearerToken")
+      case Some(token) =>
+        Logger(getClass).warn(s"Unsupported bearer token format $token")
+        unauthorizedF("InvalidBearerToken")
+      case None => unauthorizedF("MissingBearerToken")
     }
   }
 
