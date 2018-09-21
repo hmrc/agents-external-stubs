@@ -400,6 +400,21 @@ trait TestRequests extends ScalaFutures {
         .withHeaders(authContext.headers: _*)
         .get
         .futureValue
+
+    def createRelationship[T: Writeable](payload: T)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/records/relationship")
+        .withHeaders(authContext.headers: _*)
+        .post[T](payload)
+        .futureValue
+
+    def generateRelationship(seed: String, minimal: Boolean)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/records/relationship/generate")
+        .withQueryString("seed" -> seed, "minimal" -> minimal.toString)
+        .withHeaders(authContext.headers: _*)
+        .get
+        .futureValue
   }
 
   object KnownFacts {

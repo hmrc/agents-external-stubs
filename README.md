@@ -276,14 +276,17 @@ Removes the record
 #### POST /agents-external-stubs/records/business-details
 #### GET /agents-external-stubs/records/business-details/generate
 
+#### POST /agents-external-stubs/records/vat-customer-information
+#### GET /agents-external-stubs/records/vat-customer-information/generate
+
+#### POST /agents-external-stubs/records/relationship
+#### GET /agents-external-stubs/records/relationship/generate
+
 #### POST /agents-external-stubs/records/legacy-agent
 #### GET /agents-external-stubs/records/legacy-agent/generate
 
 #### POST /agents-external-stubs/records/legacy-relationship
 #### GET /agents-external-stubs/records/legacy-relationship/generate
-
-#### POST /agents-external-stubs/records/vat-customer-information
-#### GET /agents-external-stubs/records/vat-customer-information/generate
 
 ### Test Known Facts Management <a name="custom_api_known_facts"></a>
 

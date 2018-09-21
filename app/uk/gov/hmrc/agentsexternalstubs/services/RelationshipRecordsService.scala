@@ -2,8 +2,9 @@ package uk.gov.hmrc.agentsexternalstubs.services
 
 import javax.inject.{Inject, Singleton}
 import org.joda.time.LocalDate
-import uk.gov.hmrc.agentsexternalstubs.models.RelationshipRecord
+import uk.gov.hmrc.agentsexternalstubs.models.{BusinessDetailsRecord, RelationshipRecord}
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
+import uk.gov.hmrc.http.BadRequestException
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -11,6 +12,19 @@ import scala.concurrent.{ExecutionContext, Future}
 class RelationshipRecordsService @Inject()(recordsRepository: RecordsRepository) {
 
   private val MAX_DOCS = 1000
+
+  def store(record: RelationshipRecord, autoFill: Boolean, planetId: String)(
+    implicit ec: ExecutionContext): Future[String] = {
+    val entity = if (autoFill) RelationshipRecord.sanitize(record.arn)(record) else record
+    RelationshipRecord
+      .validate(entity)
+      .fold(
+        errors => Future.failed(new BadRequestException(errors.mkString(", "))),
+        _ => {
+          recordsRepository.store(entity, planetId)
+        }
+      )
+  }
 
   def authorise(relationship: RelationshipRecord, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     for {

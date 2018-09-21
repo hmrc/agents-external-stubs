@@ -37,6 +37,15 @@ class RecordSpec extends UnitSpec with PropertyChecks with ValidatedMatchers {
     }
   }
 
+  "RelationshipRecord" should {
+    "generate valid entity from seed" in {
+      Inspectors.forAll(seeds) { seed: String =>
+        val entity = RelationshipRecord.generate(seed)
+        RelationshipRecord.validate(entity) should beValid
+      }
+    }
+  }
+
   "BusinessDetailsRecord" should {
     "generate valid entity from seed" in {
       Inspectors.forAll(seeds) { seed: String =>

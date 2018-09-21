@@ -16,7 +16,8 @@ class RecordsController @Inject()(
   businessDetailsRecordsService: BusinessDetailsRecordsService,
   legacyRelationshipRecordsService: LegacyRelationshipRecordsService,
   vatCustomerInformationRecordsService: VatCustomerInformationRecordsService,
-  BusinessPartnerRecordsService: BusinessPartnerRecordsService,
+  businessPartnerRecordsService: BusinessPartnerRecordsService,
+  relationshipRecordsService: RelationshipRecordsService,
   recordsRepository: RecordsRepository,
   val authenticationService: AuthenticationService)
     extends BaseController with CurrentSession {
@@ -169,7 +170,7 @@ class RecordsController @Inject()(
     implicit request =>
       withCurrentSession { session =>
         withPayload[BusinessPartnerRecord](record =>
-          BusinessPartnerRecordsService
+          businessPartnerRecordsService
             .store(record, autoFill, session.planetId)
             .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url)))))
       }(SessionRecordNotFound)
@@ -183,6 +184,27 @@ class RecordsController @Inject()(
         val record = BusinessPartnerRecord.seed(seed)
         val result = if (minimal) record else BusinessPartnerRecord.sanitize(seed)(record)
         okF(result, Link("create", routes.RecordsController.storeBusinessPartnerRecord(minimal).url))
+      }(SessionRecordNotFound)
+  }
+
+  def storeRelationship(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+    withCurrentSession { session =>
+      withPayload[RelationshipRecord](
+        record =>
+          relationshipRecordsService
+            .store(record, autoFill, session.planetId)
+            .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url)))))
+    }(SessionRecordNotFound)
+  }
+
+  def generateRelationship(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] = Action.async {
+    implicit request =>
+      withCurrentSession { session =>
+        val seed = seedOpt.getOrElse(session.sessionId)
+        implicit val optionGenStrategy: Generator.OptionGenStrategy = Generator.AlwaysSome
+        val record = RelationshipRecord.seed(seed)
+        val result = if (minimal) record else RelationshipRecord.sanitize(seed)(record)
+        okF(result, Link("create", routes.RecordsController.storeRelationship(minimal).url))
       }(SessionRecordNotFound)
   }
 

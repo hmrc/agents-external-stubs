@@ -420,4 +420,16 @@ trait ExampleDesPayloads {
       |  }
       |}""".stripMargin
 
+  val validRelationshipPayload =
+    """{
+      |  "regime" : "VATC",
+      |  "arn" : "DARN6768822",
+      |  "idType" : "vrn",
+      |  "refNumber" : "170332692",
+      |  "active" : true,
+      |  "relationshipType" : "ZA02",
+      |  "authProfile" : "CORR0001",
+      |  "startDate" : "1992-05-14"
+      |}""".stripMargin
+
 }

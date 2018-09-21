@@ -28,9 +28,9 @@ DELETE      /tax-enrolments/enrolments/:enrolmentKey                         @uk
 
 # DES stubs
 POST        /registration/relationship                                       @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.authoriseOrDeAuthoriseRelationship
-GET         /registration/relationship                                       @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getRelationship(idtype: Option[String] ?= None, `ref-no`: Option[String] ?= None, arn: Option[String] ?= None, agent: Boolean, `active-only`: Boolean, regime: String, from: Option[String] ?= None, to: Option[String] ?= None)
 GET         /registration/relationship/utr/:utr                              @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getLegacyRelationshipsByUtr(utr: String)
 GET         /registration/relationship/nino/:nino                            @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getLegacyRelationshipsByNino(nino: String)
+GET         /registration/relationship                                       @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getRelationship(idtype: Option[String] ?= None, `ref-no`: Option[String] ?= None, arn: Option[String] ?= None, agent: Boolean, `active-only`: Boolean, regime: String, from: Option[String] ?= None, to: Option[String] ?= None)
 GET         /registration/business-details/:idType/:idNumber                 @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getBusinessDetails(idType: String, idNumber: String)
 GET         /vat/customer/vrn/:vrn/information                               @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getVatCustomerInformation(vrn: String)
 GET         /registration/personal-details/:idType/:idNumber                 @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getBusinessPartnerRecord(idType: String, idNumber: String)
@@ -66,6 +66,9 @@ POST        /agents-external-stubs/records/vat-customer-information          @uk
 GET         /agents-external-stubs/records/vat-customer-information/generate @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generateVatCustomerInformation(seed: Option[String] ?= None, minimal: Boolean ?= false)
 POST        /agents-external-stubs/records/business-partner-record           @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.storeBusinessPartnerRecord(autoFill: Boolean ?= true)
 GET         /agents-external-stubs/records/business-partner-record/generate  @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generateBusinessPartnerRecord(seed: Option[String] ?= None, minimal: Boolean ?= false)
+POST        /agents-external-stubs/records/relationship                      @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.storeRelationship(autoFill: Boolean ?= true)
+GET         /agents-external-stubs/records/relationship/generate             @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generateRelationship(seed: Option[String] ?= None, minimal: Boolean ?= false)
+
 
 # Known facts management
 GET         /agents-external-stubs/known-facts/:enrolmentKey                 @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.getKnownFacts(enrolmentKey: EnrolmentKey)
