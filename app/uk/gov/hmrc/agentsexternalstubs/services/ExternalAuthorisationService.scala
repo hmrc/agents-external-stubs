@@ -3,6 +3,7 @@ import java.net.URL
 import java.util.UUID
 
 import javax.inject.{Inject, Named, Singleton}
+import play.api.Logger
 import uk.gov.hmrc.agentsexternalstubs.TcpProxiesConfig
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpPost, Upstream4xxResponse}
@@ -21,8 +22,10 @@ class ExternalAuthorisationService @Inject()(
     createNewAuthentication: AuthenticateRequest => Future[Option[AuthenticatedSession]])(
     implicit ec: ExecutionContext,
     hc: HeaderCarrier): Future[Option[AuthenticatedSession]] =
-    if (tcpProxiesConfig.isProxyMode) Future.successful(None)
-    else {
+    if (tcpProxiesConfig.isProxyMode) {
+      Future.successful(None)
+    } else {
+      Logger(getClass).info(s"Looking for external authorisation using ${hc.authorization}")
       val authRequest = AuthoriseRequest(
         Seq.empty,
         Seq(
@@ -81,6 +84,7 @@ class ExternalAuthorisationService @Inject()(
                                ))
               _ <- maybeSession match {
                     case Some(session) =>
+                      Logger(getClass).info(s"New session ${session.authToken} created based on external.")
                       usersService.findByUserId(userId, planetId).flatMap {
                         case Some(_) =>
                           usersService.updateUser(session.userId, session.planetId, existing => merge(user, existing))
