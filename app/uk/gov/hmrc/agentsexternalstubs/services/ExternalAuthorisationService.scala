@@ -9,6 +9,7 @@ import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpPost, Upstream4xxResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 @Singleton
 class ExternalAuthorisationService @Inject()(
@@ -25,7 +26,8 @@ class ExternalAuthorisationService @Inject()(
     if (tcpProxiesConfig.isProxyMode) {
       Future.successful(None)
     } else {
-      Logger(getClass).info(s"Looking for external authorisation using ${hc.authorization}")
+      Logger(getClass).info(
+        s"Looking for external authorisation using ${hc.authorization.map(_.value).getOrElse("<none>")}")
       val authRequest = AuthoriseRequest(
         Seq.empty,
         Seq(
@@ -51,7 +53,9 @@ class ExternalAuthorisationService @Inject()(
           }
         }
         .recover {
-          case _ @Upstream4xxResponse(_, 401, _, _) => None
+          case NonFatal(e) =>
+            Logger(getClass).warn(s"External authorization lookup failed with $e")
+            None
         }
         .flatMap {
           case Some(response) =>
