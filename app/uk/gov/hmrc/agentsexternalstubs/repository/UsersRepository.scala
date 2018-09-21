@@ -57,6 +57,8 @@ trait UsersRepository {
   def create(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
   def update(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
   def delete(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[WriteResult]
+
+  def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit]
 }
 
 @Singleton
@@ -264,5 +266,8 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
     case Some(true) => Some(true)
     case _          => Some(false)
   }
+
+  def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+    remove(PLANET_ID -> Option(planetId)).map(_ => ())
 
 }

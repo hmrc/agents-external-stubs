@@ -25,7 +25,7 @@ class RecordsController @Inject()(
   val getRecords: Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       recordsRepository
-        .findAll(session.planetId)
+        .findByPlanetId(session.planetId)
         .collect[List](1000)
         .flatMap(list => okF(list.groupBy(Record.typeOf).mapValues(_.map(Record.toJson))))
     }(SessionRecordNotFound)

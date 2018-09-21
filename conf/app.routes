@@ -69,9 +69,12 @@ GET         /agents-external-stubs/records/business-partner-record/generate  @uk
 POST        /agents-external-stubs/records/relationship                      @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.storeRelationship(autoFill: Boolean ?= true)
 GET         /agents-external-stubs/records/relationship/generate             @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generateRelationship(seed: Option[String] ?= None, minimal: Boolean ?= false)
 
-
 # Known facts management
 GET         /agents-external-stubs/known-facts/:enrolmentKey                 @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.getKnownFacts(enrolmentKey: EnrolmentKey)
 
 # Config management
 GET         /agents-external-stubs/config/services                           @uk.gov.hmrc.agentsexternalstubs.controllers.ConfigController.getServices
+
+# Planets management
+DELETE      /agents-external-stubs/planets/:planetId                         @uk.gov.hmrc.agentsexternalstubs.controllers.PlanetsController.destroy(planetId: String)
+

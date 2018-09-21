@@ -20,7 +20,6 @@ import java.util.UUID
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
-import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.mongo.Repository
 
 import scala.concurrent.ExecutionContext.Implicits.global

@@ -23,6 +23,7 @@ This app SHOULD NOT be run on QA nor Production environment.
     * [Users Management](#custom_api_users)
     * [Master Records (DES)](#custom_api_records)
     * [Known Facts](#custom_api_known_facts)
+    * [Test Planets](#custom_api_planets)
 
 ## How requests are handled?
 
@@ -292,6 +293,11 @@ Removes the record
 
 #### GET /agents-external-stubs/known-facts/:enrolmentKey
 Get known facts (enrolment) information
+
+### Test Planets Management <a name="custom_api_planets"></a>
+
+#### DELETE /agents-external-stubs/planets/:planetId
+Destroy the test planet and all the data there
 
 ## Running the tests
 

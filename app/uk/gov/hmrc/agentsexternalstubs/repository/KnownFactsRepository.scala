@@ -38,6 +38,8 @@ trait KnownFactsRepository {
   def findByVerifier(knownFact: KnownFact, planetId: String)(implicit ec: ExecutionContext): Future[Option[KnownFacts]]
   def upsert(knownFacts: KnownFacts, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
   def delete(enrolmentKey: EnrolmentKey, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
+
+  def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit]
 }
 
 @Singleton
@@ -51,12 +53,14 @@ class KnownFactsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent
 
   import ImplicitBSONHandlers._
 
+  private final val PLANET_ID = "planetId"
+
   override def indexes = Seq(
     Index(Seq(KnownFacts.UNIQUE_KEY     -> Ascending), Some("KnownFactsByEnrolmentKey"), unique = true),
     Index(Seq(KnownFacts.VERIFIERS_KEYS -> Ascending), Some("KnownFactsByVerifiers")),
     // TTL indexes
     Index(
-      Seq("planetId" -> Ascending),
+      Seq(PLANET_ID -> Ascending),
       Some("TTL"),
       options = BSONDocument("expireAfterSeconds" -> BSONLong(2592000))
     )
@@ -108,4 +112,6 @@ class KnownFactsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent
       )(ec)
       .flatMap(MongoHelper.interpretWriteResultUnit)
 
+  def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+    remove(PLANET_ID -> Option(planetId)).map(_ => ())
 }

@@ -427,6 +427,11 @@ trait TestRequests extends ScalaFutures {
       get(s"/agents-external-stubs/config/services")
   }
 
+  object Planets {
+    def destroy(planetId: String)(implicit authContext: AuthContext): WSResponse =
+      delete(s"/agents-external-stubs/planets/$planetId")
+  }
+
 }
 
 trait CookieConverter {

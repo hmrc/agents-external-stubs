@@ -45,9 +45,11 @@ trait RecordsRepository {
 
   def findById[T <: Record](id: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[T]]
 
-  def findAll(planetId: String)(implicit ec: ExecutionContext): Cursor[Record]
+  def findByPlanetId(planetId: String)(implicit ec: ExecutionContext): Cursor[Record]
 
   def remove(id: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
+
+  def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit]
 }
 
 @Singleton
@@ -137,7 +139,7 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
         implicitly[CursorProducer[T]])
       .headOption
 
-  override def findAll(planetId: String)(implicit ec: ExecutionContext): Cursor[Record] =
+  override def findByPlanetId(planetId: String)(implicit ec: ExecutionContext): Cursor[Record] =
     collection
       .find(
         JsObject(Seq(PLANET_ID -> JsString(planetId)))
@@ -157,4 +159,7 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
 
   private def keyOf[T <: Record](key: String, planetId: String, recordType: String): String =
     s"$recordType:${key.replace(" ", "").toLowerCase}@$planetId"
+
+  def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+    remove(PLANET_ID -> Option(planetId)).map(_ => ())
 }
