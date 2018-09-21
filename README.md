@@ -192,7 +192,7 @@ Optional params:
    
 Response | Description
 ---|---
-200| list of users as [User entity](docs/userEntity.md)
+200| list of users as [User entity](docs/users.md)
 204| empty list of users
     
 #### GET  /agents-external-stubs/users/:userId
@@ -200,7 +200,7 @@ Get current user details. (_requires valid bearer token_)
 
 Response | Description
 ---|---
-200| [User entity](docs/userEntity.md)
+200| [User entity](docs/users.md)
 404| when userId not found
 
 #### PUT  /agents-external-stubs/users/:userId
@@ -210,7 +210,7 @@ Update an existing user. (_requires valid bearer token_)
 
 *Payload*
 
-[User entity](docs/userEntity.md)
+[User entity](docs/users.md)
      
 Response | Description
 ---|---
@@ -224,7 +224,7 @@ Create a new user. (_requires valid bearer token_)
 
 *Payload*
 
-[User entity](docs/userEntity.md)
+[User entity](docs/users.md)
 
 Response | Description
 ---|---

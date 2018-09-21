@@ -1,6 +1,8 @@
-## User entity
+## Users
 
-Group and User constraints:
+Agents External Stubs let you define, authenticate and authorise test users using a dedicated frontend or an API.
+
+### Group and User constraints:
 
 - Group MUST have one and at most one Admin
 - Group CAN have at most one Organisation

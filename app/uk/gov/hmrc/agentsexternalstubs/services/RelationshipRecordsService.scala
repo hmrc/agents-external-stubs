@@ -2,7 +2,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 
 import javax.inject.{Inject, Singleton}
 import org.joda.time.LocalDate
-import uk.gov.hmrc.agentsexternalstubs.models.{BusinessDetailsRecord, RelationshipRecord}
+import uk.gov.hmrc.agentsexternalstubs.models.RelationshipRecord
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.http.BadRequestException
 
