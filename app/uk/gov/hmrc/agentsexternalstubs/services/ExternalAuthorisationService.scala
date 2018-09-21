@@ -6,7 +6,7 @@ import javax.inject.{Inject, Named, Singleton}
 import play.api.Logger
 import uk.gov.hmrc.agentsexternalstubs.TcpProxiesConfig
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpPost, Upstream4xxResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpPost}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -49,7 +49,9 @@ class ExternalAuthorisationService @Inject()(
         .map {
           _.json match {
             case null => None
-            case body => body.asOpt[AuthoriseResponse]
+            case body =>
+              Logger(getClass).info(s"External authorization response was $body")
+              body.asOpt[AuthoriseResponse]
           }
         }
         .recover {
@@ -99,6 +101,11 @@ class ExternalAuthorisationService @Inject()(
                   }
             } yield maybeSession
           case None => Future.successful(None)
+        }
+        .recover {
+          case NonFatal(e) =>
+            Logger(getClass).warn(s"External authorization failed with $e")
+            None
         }
     }
 
