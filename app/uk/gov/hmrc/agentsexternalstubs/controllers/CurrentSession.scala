@@ -1,4 +1,5 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
+import play.api.Logger
 import play.api.libs.json.{JsValue, Json, OWrites, Writes}
 import play.api.mvc.{Request, Result, Results}
 import play.mvc.Http.HeaderNames
@@ -30,13 +31,17 @@ trait CurrentSession extends HttpHelpers {
     ec: ExecutionContext,
     hc: HeaderCarrier): Future[Result] =
     request.headers.get(HeaderNames.AUTHORIZATION) match {
-      case None => ifSessionNotFound
+      case None =>
+        Logger(getClass).info(s"Missing Authorization HTTP header.")
+        ifSessionNotFound
       case Some(BearerToken(authToken)) =>
         (for {
           maybeSession <- authenticationService.findByAuthTokenOrLookupExternal(authToken)
           result <- maybeSession match {
                      case Some(session) => body(session)
-                     case _             => ifSessionNotFound
+                     case _ =>
+                       Logger(getClass).info(s"Authorization $authToken not found locally nor externally.")
+                       ifSessionNotFound
                    }
         } yield result)
           .recover(errorHandler)
@@ -45,15 +50,20 @@ trait CurrentSession extends HttpHelpers {
   def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(
     ifSessionNotFound: => Future[Result])(implicit request: Request[T], ec: ExecutionContext): Future[Result] =
     request.headers.get(HeaderNames.AUTHORIZATION) match {
-      case None => ifSessionNotFound
+      case None =>
+        Logger(getClass).info(s"Missing Authorization HTTP header.")
+        ifSessionNotFound
       case Some(BearerToken(authToken)) =>
         (for {
           maybeSession <- authenticationService.findByAuthToken(authToken)
           result <- maybeSession match {
                      case Some(session) => body(session)
-                     case _             => ifSessionNotFound
+                     case _ =>
+                       Logger(getClass).info(s"Authorization $authToken not found.")
+                       ifSessionNotFound
                    }
-        } yield result).recover(errorHandler)
+        } yield result)
+          .recover(errorHandler)
     }
 
   def withCurrentUser[T](body: (User, AuthenticatedSession) => Future[Result])(ifSessionNotFound: => Future[Result])(
