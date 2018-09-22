@@ -32,13 +32,14 @@ trait CurrentSession extends HttpHelpers {
     request.headers.get(HeaderNames.AUTHORIZATION) match {
       case None => ifSessionNotFound
       case Some(BearerToken(authToken)) =>
-        for {
+        (for {
           maybeSession <- authenticationService.findByAuthTokenOrLookupExternal(authToken)
           result <- maybeSession match {
-                     case Some(session) => body(session).recover(errorHandler)
+                     case Some(session) => body(session)
                      case _             => ifSessionNotFound
                    }
-        } yield result
+        } yield result)
+          .recover(errorHandler)
     }
 
   def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(
@@ -46,13 +47,13 @@ trait CurrentSession extends HttpHelpers {
     request.headers.get(HeaderNames.AUTHORIZATION) match {
       case None => ifSessionNotFound
       case Some(BearerToken(authToken)) =>
-        for {
+        (for {
           maybeSession <- authenticationService.findByAuthToken(authToken)
           result <- maybeSession match {
-                     case Some(session) => body(session).recover(errorHandler)
+                     case Some(session) => body(session)
                      case _             => ifSessionNotFound
                    }
-        } yield result
+        } yield result).recover(errorHandler)
     }
 
   def withCurrentUser[T](body: (User, AuthenticatedSession) => Future[Result])(ifSessionNotFound: => Future[Result])(
