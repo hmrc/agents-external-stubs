@@ -5,6 +5,7 @@ import java.util.UUID
 import javax.inject.{Inject, Named, Singleton}
 import play.api.Logger
 import uk.gov.hmrc.agentsexternalstubs.TcpProxiesConfig
+import uk.gov.hmrc.agentsexternalstubs.controllers.BearerToken
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpPost}
 
@@ -82,7 +83,12 @@ class ExternalAuthorisationService @Inject()(
                                  password = "p@ssw0rd",
                                  providerType = creds.providerType,
                                  planetId = planetId,
-                                 authTokenOpt = hc.authorization.map(_.value)
+                                 authTokenOpt = hc.authorization.map(
+                                   a =>
+                                     BearerToken
+                                       .unapply(a.value)
+                                       .getOrElse(throw new IllegalStateException(
+                                         s"Unsupported authorization token format ${a.value}")))
                                ))
               _ <- maybeSession match {
                     case Some(session) =>

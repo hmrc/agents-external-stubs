@@ -5,6 +5,7 @@ import java.util.UUID
 import org.joda.time.LocalDate
 import uk.gov.hmrc.agentsexternalstubs.TcpProxiesConfig
 import uk.gov.hmrc.agentsexternalstubs.connectors.MicroserviceAuthConnector
+import uk.gov.hmrc.agentsexternalstubs.controllers.BearerToken
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.stubs.AuthStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
@@ -45,7 +46,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
   "ExternalAuthorisationService" should {
     "consult external auth service, and if session exists recreate session and agent user locally" in {
       val planetId = UUID.randomUUID().toString
-      val authToken = UUID.randomUUID().toString
+      val authToken = "Bearer " + UUID.randomUUID().toString
       val sessionId = UUID.randomUUID().toString
       val hc = HeaderCarrier(authorization = Some(Authorization(authToken)), sessionId = Some(SessionId(sessionId)))
       val ec = ExecutionContext.Implicits.global
@@ -72,7 +73,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
         await(underTest.maybeExternalSession(planetId, authenticationService.authenticate)(ec, hc))
       sessionOpt shouldBe defined
       val session = sessionOpt.get
-      session.authToken shouldBe authToken
+      session.authToken shouldBe BearerToken.unapply(authToken).get
       session.planetId shouldBe planetId
       session.userId shouldBe "AgentFoo"
       session.sessionId shouldBe sessionId
@@ -98,7 +99,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
 
     "consult external auth service, and if session exists recreate session and individual user locally" in {
       val planetId = UUID.randomUUID().toString
-      val authToken = UUID.randomUUID().toString
+      val authToken = "Bearer " + UUID.randomUUID().toString
       val sessionId = UUID.randomUUID().toString
       val hc = HeaderCarrier(authorization = Some(Authorization(authToken)), sessionId = Some(SessionId(sessionId)))
       val ec = ExecutionContext.Implicits.global
@@ -124,7 +125,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
         await(underTest.maybeExternalSession(planetId, authenticationService.authenticate)(ec, hc))
       sessionOpt shouldBe defined
       val session = sessionOpt.get
-      session.authToken shouldBe authToken
+      session.authToken shouldBe BearerToken.unapply(authToken).get
       session.planetId shouldBe planetId
       session.userId shouldBe "UserFoo"
       session.sessionId shouldBe sessionId
@@ -162,7 +163,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
 
     "consult external auth service, and if session exists recreate session and merge individual user" in {
       val planetId = UUID.randomUUID().toString
-      val hc = HeaderCarrier(authorization = Some(Authorization(UUID.randomUUID().toString)))
+      val hc = HeaderCarrier(authorization = Some(Authorization("Bearer " + UUID.randomUUID().toString)))
       val ec = ExecutionContext.Implicits.global
 
       await(
@@ -217,7 +218,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
 
     "consult external auth service and parse response" in {
       val planetId = UUID.randomUUID().toString
-      val authToken = UUID.randomUUID().toString
+      val authToken = "Bearer " + UUID.randomUUID().toString
       val sessionId = UUID.randomUUID().toString
       val hc = HeaderCarrier(authorization = Some(Authorization(authToken)), sessionId = Some(SessionId(sessionId)))
       val ec = ExecutionContext.Implicits.global
@@ -260,7 +261,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
         await(underTest.maybeExternalSession(planetId, authenticationService.authenticate)(ec, hc))
       sessionOpt shouldBe defined
       val session = sessionOpt.get
-      session.authToken shouldBe authToken
+      session.authToken shouldBe BearerToken.unapply(authToken).get
       session.planetId shouldBe planetId
       session.userId shouldBe "1551815928588520"
       session.sessionId shouldBe sessionId
