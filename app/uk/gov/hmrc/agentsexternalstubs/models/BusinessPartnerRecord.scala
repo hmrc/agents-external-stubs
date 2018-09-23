@@ -326,7 +326,8 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     val agencyNameSanitizer: Update = seed =>
       entity =>
         entity.copy(
-          agencyName = entity.agencyName.orElse(Generator.get(UserGenerator.agencyNameGen.map(_.take(40)))(seed)))
+          agencyName = entity.agencyName.orElse(Generator.get(
+            UserGenerator.agencyNameGen.map(_.take(40)).suchThat(_.length >= 1).suchThat(_.length <= 40))(seed)))
 
     val agencyAddressSanitizer: Update = seed =>
       entity =>
@@ -336,7 +337,8 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
 
     val agencyEmailSanitizer: Update = seed =>
       entity =>
-        entity.copy(agencyEmail = entity.agencyEmail.orElse(Generator.get(Generator.emailGen.variant("agency"))(seed)))
+        entity.copy(agencyEmail = entity.agencyEmail.orElse(
+          Generator.get(Generator.emailGen.variant("agency").suchThat(_.length >= 1).suchThat(_.length <= 132))(seed)))
 
     override val sanitizers: Seq[Update] = Seq(agencyNameSanitizer, agencyAddressSanitizer, agencyEmailSanitizer)
 
@@ -441,16 +443,28 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
       )
 
     val phoneNumberSanitizer: Update = seed =>
-      entity => entity.copy(phoneNumber = entity.phoneNumber.orElse(Generator.get(Generator.ukPhoneNumber)(seed)))
+      entity =>
+        entity.copy(
+          phoneNumber = entity.phoneNumber.orElse(
+            Generator.get(Generator.ukPhoneNumber.suchThat(_.length >= 1).suchThat(_.length <= 24))(seed)))
 
     val mobileNumberSanitizer: Update = seed =>
-      entity => entity.copy(mobileNumber = entity.mobileNumber.orElse(Generator.get(Generator.ukPhoneNumber)(seed)))
+      entity =>
+        entity.copy(
+          mobileNumber = entity.mobileNumber.orElse(
+            Generator.get(Generator.ukPhoneNumber.suchThat(_.length >= 1).suchThat(_.length <= 24))(seed)))
 
     val faxNumberSanitizer: Update = seed =>
-      entity => entity.copy(faxNumber = entity.faxNumber.orElse(Generator.get(Generator.ukPhoneNumber)(seed)))
+      entity =>
+        entity.copy(
+          faxNumber = entity.faxNumber.orElse(
+            Generator.get(Generator.ukPhoneNumber.suchThat(_.length >= 1).suchThat(_.length <= 24))(seed)))
 
     val emailAddressSanitizer: Update = seed =>
-      entity => entity.copy(emailAddress = entity.emailAddress.orElse(Generator.get(Generator.emailGen)(seed)))
+      entity =>
+        entity.copy(
+          emailAddress = entity.emailAddress.orElse(
+            Generator.get(Generator.emailGen.suchThat(_.length >= 1).suchThat(_.length <= 132))(seed)))
 
     override val sanitizers: Seq[Update] =
       Seq(phoneNumberSanitizer, mobileNumberSanitizer, faxNumberSanitizer, emailAddressSanitizer)
@@ -510,7 +524,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     )
 
     override val gen: Gen[ForeignAddress] = for {
-      addressLine1 <- Generator.address4Lines35Gen.map(_.line1)
+      addressLine1 <- Generator.address4Lines35Gen.map(_.line1).suchThat(_.length >= 1).suchThat(_.length <= 35)
       countryCode  <- Gen.oneOf(Common.countryCodeEnum0)
     } yield
       ForeignAddress(
@@ -521,20 +535,26 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     val addressLine2Sanitizer: Update = seed =>
       entity =>
         entity.copy(
-          addressLine2 = entity.addressLine2.orElse(Generator.get(Generator.address4Lines35Gen.map(_.line2))(seed)))
+          addressLine2 = entity.addressLine2.orElse(Generator.get(
+            Generator.address4Lines35Gen.map(_.line2).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
 
     val addressLine3Sanitizer: Update = seed =>
       entity =>
         entity.copy(
-          addressLine3 = entity.addressLine3.orElse(Generator.get(Generator.address4Lines35Gen.map(_.line3))(seed)))
+          addressLine3 = entity.addressLine3.orElse(Generator.get(
+            Generator.address4Lines35Gen.map(_.line3).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
 
     val addressLine4Sanitizer: Update = seed =>
       entity =>
         entity.copy(
-          addressLine4 = entity.addressLine4.orElse(Generator.get(Generator.address4Lines35Gen.map(_.line4))(seed)))
+          addressLine4 = entity.addressLine4.orElse(Generator.get(
+            Generator.address4Lines35Gen.map(_.line4).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
 
     val postalCodeSanitizer: Update = seed =>
-      entity => entity.copy(postalCode = entity.postalCode.orElse(Generator.get(Generator.postcode)(seed)))
+      entity =>
+        entity.copy(
+          postalCode = entity.postalCode.orElse(
+            Generator.get(Generator.postcode.suchThat(_.length >= 1).suchThat(_.length <= 10))(seed)))
 
     override val sanitizers: Seq[Update] =
       Seq(addressLine2Sanitizer, addressLine3Sanitizer, addressLine4Sanitizer, postalCodeSanitizer)
@@ -577,8 +597,8 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     )
 
     override val gen: Gen[Individual] = for {
-      firstName   <- Generator.forename()
-      lastName    <- Generator.surname
+      firstName   <- Generator.forename().suchThat(_.length >= 1).suchThat(_.length <= 35)
+      lastName    <- Generator.surname.suchThat(_.length >= 1).suchThat(_.length <= 35)
       dateOfBirth <- Generator.dateYYYYMMDDGen.variant("ofbirth")
     } yield
       Individual(
@@ -589,7 +609,8 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
 
     val middleNameSanitizer: Update = seed =>
       entity =>
-        entity.copy(middleName = entity.middleName.orElse(Generator.get(Generator.forename().variant("middle"))(seed)))
+        entity.copy(middleName = entity.middleName.orElse(
+          Generator.get(Generator.forename().variant("middle").suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
 
     override val sanitizers: Seq[Update] = Seq(middleNameSanitizer)
 
@@ -622,7 +643,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     )
 
     override val gen: Gen[Organisation] = for {
-      organisationName <- Generator.company
+      organisationName <- Generator.company.suchThat(_.length >= 1).suchThat(_.length <= 105)
       isAGroup         <- Generator.booleanGen
       organisationType <- Generator.regex(Common.organisationTypePattern)
     } yield
@@ -689,8 +710,8 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     )
 
     override val gen: Gen[UkAddress] = for {
-      addressLine1 <- Generator.address4Lines35Gen.map(_.line1)
-      postalCode   <- Generator.postcode
+      addressLine1 <- Generator.address4Lines35Gen.map(_.line1).suchThat(_.length >= 1).suchThat(_.length <= 35)
+      postalCode   <- Generator.postcode.suchThat(_.length >= 1).suchThat(_.length <= 10)
       countryCode  <- Gen.const("GB")
     } yield
       UkAddress(
@@ -702,17 +723,20 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     val addressLine2Sanitizer: Update = seed =>
       entity =>
         entity.copy(
-          addressLine2 = entity.addressLine2.orElse(Generator.get(Generator.address4Lines35Gen.map(_.line2))(seed)))
+          addressLine2 = entity.addressLine2.orElse(Generator.get(
+            Generator.address4Lines35Gen.map(_.line2).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
 
     val addressLine3Sanitizer: Update = seed =>
       entity =>
         entity.copy(
-          addressLine3 = entity.addressLine3.orElse(Generator.get(Generator.address4Lines35Gen.map(_.line3))(seed)))
+          addressLine3 = entity.addressLine3.orElse(Generator.get(
+            Generator.address4Lines35Gen.map(_.line3).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
 
     val addressLine4Sanitizer: Update = seed =>
       entity =>
         entity.copy(
-          addressLine4 = entity.addressLine4.orElse(Generator.get(Generator.address4Lines35Gen.map(_.line4))(seed)))
+          addressLine4 = entity.addressLine4.orElse(Generator.get(
+            Generator.address4Lines35Gen.map(_.line4).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
 
     override val sanitizers: Seq[Update] = Seq(addressLine2Sanitizer, addressLine3Sanitizer, addressLine4Sanitizer)
 

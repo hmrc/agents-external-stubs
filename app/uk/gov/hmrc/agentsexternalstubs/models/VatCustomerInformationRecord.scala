@@ -369,15 +369,22 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       )
 
     val IBANSanitizer: Update = seed =>
-      entity => entity.copy(IBAN = entity.IBAN.orElse(Generator.get(Generator.stringMinMaxN(1, 34))(seed)))
+      entity =>
+        entity.copy(
+          IBAN = entity.IBAN.orElse(
+            Generator.get(Generator.stringMinMaxN(1, 34).suchThat(_.length >= 1).suchThat(_.length <= 34))(seed)))
 
     val BICSanitizer: Update = seed =>
-      entity => entity.copy(BIC = entity.BIC.orElse(Generator.get(Generator.stringMinMaxN(1, 11))(seed)))
+      entity =>
+        entity.copy(
+          BIC = entity.BIC.orElse(
+            Generator.get(Generator.stringMinMaxN(1, 11).suchThat(_.length >= 1).suchThat(_.length <= 11))(seed)))
 
     val accountHolderNameSanitizer: Update = seed =>
       entity =>
         entity.copy(
-          accountHolderName = entity.accountHolderName.orElse(Generator.get(Generator.stringMinMaxN(1, 60))(seed)))
+          accountHolderName = entity.accountHolderName.orElse(
+            Generator.get(Generator.stringMinMaxN(1, 60).suchThat(_.length >= 1).suchThat(_.length <= 60))(seed)))
 
     val bankAccountNumberSanitizer: Update = seed =>
       entity =>
@@ -392,13 +399,14 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     val buildingSocietyNumberSanitizer: Update = seed =>
       entity =>
         entity.copy(
-          buildingSocietyNumber =
-            entity.buildingSocietyNumber.orElse(Generator.get(Generator.stringMinMaxN(1, 20))(seed)))
+          buildingSocietyNumber = entity.buildingSocietyNumber.orElse(
+            Generator.get(Generator.stringMinMaxN(1, 20).suchThat(_.length >= 1).suchThat(_.length <= 20))(seed)))
 
     val bankBuildSocietyNameSanitizer: Update = seed =>
       entity =>
-        entity.copy(bankBuildSocietyName =
-          entity.bankBuildSocietyName.orElse(Generator.get(Generator.stringMinMaxN(1, 40))(seed)))
+        entity.copy(
+          bankBuildSocietyName = entity.bankBuildSocietyName.orElse(
+            Generator.get(Generator.stringMinMaxN(1, 40).suchThat(_.length >= 1).suchThat(_.length <= 40))(seed)))
 
     override val sanitizers: Seq[Update] = Seq(
       IBANSanitizer,
@@ -600,17 +608,26 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     val primaryPhoneNumberSanitizer: Update = seed =>
       entity =>
         entity.copy(
-          primaryPhoneNumber =
-            entity.primaryPhoneNumber.orElse(Generator.get(Generator.ukPhoneNumber.variant("primary"))(seed)))
+          primaryPhoneNumber = entity.primaryPhoneNumber.orElse(Generator.get(
+            Generator.ukPhoneNumber.variant("primary").suchThat(_.length >= 1).suchThat(_.length <= 24))(seed)))
 
     val mobileNumberSanitizer: Update = seed =>
-      entity => entity.copy(mobileNumber = entity.mobileNumber.orElse(Generator.get(Generator.ukPhoneNumber)(seed)))
+      entity =>
+        entity.copy(
+          mobileNumber = entity.mobileNumber.orElse(
+            Generator.get(Generator.ukPhoneNumber.suchThat(_.length >= 1).suchThat(_.length <= 24))(seed)))
 
     val faxNumberSanitizer: Update = seed =>
-      entity => entity.copy(faxNumber = entity.faxNumber.orElse(Generator.get(Generator.ukPhoneNumber)(seed)))
+      entity =>
+        entity.copy(
+          faxNumber = entity.faxNumber.orElse(
+            Generator.get(Generator.ukPhoneNumber.suchThat(_.length >= 1).suchThat(_.length <= 24))(seed)))
 
     val emailAddressSanitizer: Update = seed =>
-      entity => entity.copy(emailAddress = entity.emailAddress.orElse(Generator.get(Generator.emailGen)(seed)))
+      entity =>
+        entity.copy(
+          emailAddress = entity.emailAddress.orElse(
+            Generator.get(Generator.emailGen.suchThat(_.length >= 3).suchThat(_.length <= 132))(seed)))
 
     override val sanitizers: Seq[Update] =
       Seq(primaryPhoneNumberSanitizer, mobileNumberSanitizer, faxNumberSanitizer, emailAddressSanitizer)
@@ -745,7 +762,10 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       )
 
     val organisationNameSanitizer: Update = seed =>
-      entity => entity.copy(organisationName = entity.organisationName.orElse(Generator.get(Generator.company)(seed)))
+      entity =>
+        entity.copy(
+          organisationName = entity.organisationName.orElse(
+            Generator.get(Generator.company.suchThat(_.length >= 1).suchThat(_.length <= 105))(seed)))
 
     val individualSanitizer: Update = seed =>
       entity =>
@@ -759,7 +779,10 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
           dateOfBirth = entity.dateOfBirth.orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("ofbirth"))(seed)))
 
     val tradingNameSanitizer: Update = seed =>
-      entity => entity.copy(tradingName = entity.tradingName.orElse(Generator.get(Generator.tradingNameGen)(seed)))
+      entity =>
+        entity.copy(
+          tradingName = entity.tradingName.orElse(
+            Generator.get(Generator.tradingNameGen.suchThat(_.length >= 1).suchThat(_.length <= 160))(seed)))
 
     val registrationReasonSanitizer: Update = seed =>
       entity =>
@@ -791,7 +814,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     val organisationNameCompoundSanitizer: Update = seed =>
       entity =>
         entity.copy(
-          organisationName = entity.organisationName.orElse(Generator.get(Generator.company)(seed)),
+          organisationName = entity.organisationName.orElse(
+            Generator.get(Generator.company.suchThat(_.length >= 1).suchThat(_.length <= 105))(seed)),
           individual = None,
           dateOfBirth = None
     )
@@ -1092,7 +1116,10 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       )
 
     val organisationNameSanitizer: Update = seed =>
-      entity => entity.copy(organisationName = entity.organisationName.orElse(Generator.get(Generator.company)(seed)))
+      entity =>
+        entity.copy(
+          organisationName = entity.organisationName.orElse(
+            Generator.get(Generator.company.suchThat(_.length >= 1).suchThat(_.length <= 105))(seed)))
 
     val individualSanitizer: Update = seed =>
       entity =>
@@ -1182,15 +1209,22 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       entity => entity.copy(formInformation = FormInformation.sanitize(seed)(entity.formInformation))
 
     val IBANSanitizer: Update = seed =>
-      entity => entity.copy(IBAN = entity.IBAN.orElse(Generator.get(Generator.stringMinMaxN(1, 34))(seed)))
+      entity =>
+        entity.copy(
+          IBAN = entity.IBAN.orElse(
+            Generator.get(Generator.stringMinMaxN(1, 34).suchThat(_.length >= 1).suchThat(_.length <= 34))(seed)))
 
     val BICSanitizer: Update = seed =>
-      entity => entity.copy(BIC = entity.BIC.orElse(Generator.get(Generator.stringMinMaxN(1, 11))(seed)))
+      entity =>
+        entity.copy(
+          BIC = entity.BIC.orElse(
+            Generator.get(Generator.stringMinMaxN(1, 11).suchThat(_.length >= 1).suchThat(_.length <= 11))(seed)))
 
     val accountHolderNameSanitizer: Update = seed =>
       entity =>
         entity.copy(
-          accountHolderName = entity.accountHolderName.orElse(Generator.get(Generator.stringMinMaxN(1, 60))(seed)))
+          accountHolderName = entity.accountHolderName.orElse(
+            Generator.get(Generator.stringMinMaxN(1, 60).suchThat(_.length >= 1).suchThat(_.length <= 60))(seed)))
 
     val bankAccountNumberSanitizer: Update = seed =>
       entity =>
@@ -1205,13 +1239,14 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     val buildingSocietyNumberSanitizer: Update = seed =>
       entity =>
         entity.copy(
-          buildingSocietyNumber =
-            entity.buildingSocietyNumber.orElse(Generator.get(Generator.stringMinMaxN(1, 20))(seed)))
+          buildingSocietyNumber = entity.buildingSocietyNumber.orElse(
+            Generator.get(Generator.stringMinMaxN(1, 20).suchThat(_.length >= 1).suchThat(_.length <= 20))(seed)))
 
     val bankBuildSocietyNameSanitizer: Update = seed =>
       entity =>
-        entity.copy(bankBuildSocietyName =
-          entity.bankBuildSocietyName.orElse(Generator.get(Generator.stringMinMaxN(1, 40))(seed)))
+        entity.copy(
+          bankBuildSocietyName = entity.bankBuildSocietyName.orElse(
+            Generator.get(Generator.stringMinMaxN(1, 40).suchThat(_.length >= 1).suchThat(_.length <= 40))(seed)))
 
     override val sanitizers: Seq[Update] = Seq(
       formInformationSanitizer,
@@ -1439,7 +1474,10 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       entity => entity.copy(formInformation = FormInformation.sanitize(seed)(entity.formInformation))
 
     val organisationNameSanitizer: Update = seed =>
-      entity => entity.copy(organisationName = entity.organisationName.orElse(Generator.get(Generator.company)(seed)))
+      entity =>
+        entity.copy(
+          organisationName = entity.organisationName.orElse(
+            Generator.get(Generator.company.suchThat(_.length >= 1).suchThat(_.length <= 105))(seed)))
 
     val individualSanitizer: Update = seed =>
       entity =>
@@ -1453,7 +1491,10 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
           dateOfBirth = entity.dateOfBirth.orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("ofbirth"))(seed)))
 
     val tradingNameSanitizer: Update = seed =>
-      entity => entity.copy(tradingName = entity.tradingName.orElse(Generator.get(Generator.tradingNameGen)(seed)))
+      entity =>
+        entity.copy(
+          tradingName = entity.tradingName.orElse(
+            Generator.get(Generator.tradingNameGen.suchThat(_.length >= 1).suchThat(_.length <= 160))(seed)))
 
     val registrationReasonSanitizer: Update = seed =>
       entity =>
@@ -1726,10 +1767,16 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
             entity.typeOfRelationship.orElse(Generator.get(Gen.oneOf(Common.typeOfRelationshipEnum))(seed)))
 
     val organisationNameSanitizer: Update = seed =>
-      entity => entity.copy(organisationName = entity.organisationName.orElse(Generator.get(Generator.company)(seed)))
+      entity =>
+        entity.copy(
+          organisationName = entity.organisationName.orElse(
+            Generator.get(Generator.company.suchThat(_.length >= 1).suchThat(_.length <= 160))(seed)))
 
     val tradingNameSanitizer: Update = seed =>
-      entity => entity.copy(tradingName = entity.tradingName.orElse(Generator.get(Generator.tradingNameGen)(seed)))
+      entity =>
+        entity.copy(
+          tradingName = entity.tradingName.orElse(
+            Generator.get(Generator.tradingNameGen.suchThat(_.length >= 1).suchThat(_.length <= 160))(seed)))
 
     val individualSanitizer: Update = seed =>
       entity =>
@@ -1848,7 +1895,9 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     val websiteAddressSanitizer: Update = seed =>
       entity =>
-        entity.copy(websiteAddress = entity.websiteAddress.orElse(Generator.get(Generator.stringMinMaxN(1, 132))(seed)))
+        entity.copy(
+          websiteAddress = entity.websiteAddress.orElse(
+            Generator.get(Generator.stringMinMaxN(1, 132).suchThat(_.length >= 1).suchThat(_.length <= 132))(seed)))
 
     override val sanitizers: Seq[Update] =
       Seq(formInformationSanitizer, addressSanitizer, contactDetailsSanitizer, websiteAddressSanitizer)
@@ -1978,14 +2027,21 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       entity => entity.copy(title = entity.title.orElse(Generator.get(Gen.oneOf(Common.titleEnum))(seed)))
 
     val firstNameSanitizer: Update = seed =>
-      entity => entity.copy(firstName = entity.firstName.orElse(Generator.get(Generator.forename())(seed)))
+      entity =>
+        entity.copy(
+          firstName = entity.firstName.orElse(
+            Generator.get(Generator.forename().suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
 
     val middleNameSanitizer: Update = seed =>
       entity =>
-        entity.copy(middleName = entity.middleName.orElse(Generator.get(Generator.forename().variant("middle"))(seed)))
+        entity.copy(middleName = entity.middleName.orElse(
+          Generator.get(Generator.forename().variant("middle").suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
 
     val lastNameSanitizer: Update = seed =>
-      entity => entity.copy(lastName = entity.lastName.orElse(Generator.get(Generator.surname)(seed)))
+      entity =>
+        entity.copy(
+          lastName = entity.lastName.orElse(
+            Generator.get(Generator.surname.suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
 
     override val sanitizers: Seq[Update] =
       Seq(titleSanitizer, firstNameSanitizer, middleNameSanitizer, lastNameSanitizer)
@@ -2459,7 +2515,9 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     val websiteAddressSanitizer: Update = seed =>
       entity =>
-        entity.copy(websiteAddress = entity.websiteAddress.orElse(Generator.get(Generator.stringMinMaxN(1, 132))(seed)))
+        entity.copy(
+          websiteAddress = entity.websiteAddress.orElse(
+            Generator.get(Generator.stringMinMaxN(1, 132).suchThat(_.length >= 1).suchThat(_.length <= 132))(seed)))
 
     override val sanitizers: Seq[Update] = Seq(RLSSanitizer, contactDetailsSanitizer, websiteAddressSanitizer)
 

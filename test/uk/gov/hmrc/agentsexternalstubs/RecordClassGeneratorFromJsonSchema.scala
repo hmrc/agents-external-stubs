@@ -527,7 +527,17 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
                   .mkString(",\n  ")})"
             }
       })
-    if (!property.isMandatory && wrapOption) s"""Generator.optionGen($gen)""" else gen
+
+    val genWithConstraints = property match {
+      case s: StringDefinition =>
+        val withMinLength = s.minLength.map(minLength => s"""$gen.suchThat(_.length>=$minLength)""").getOrElse(gen)
+        val withMaxLength =
+          s.maxLength.map(maxLength => s"""$withMinLength.suchThat(_.length<=$maxLength)""").getOrElse(withMinLength)
+        withMaxLength
+      case _ => gen
+    }
+
+    if (!property.isMandatory && wrapOption) s"""Generator.optionGen($genWithConstraints)""" else genWithConstraints
   }
 
   private def generateFieldValidators(definition: ObjectDefinition, context: Context): String = {

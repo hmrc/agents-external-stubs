@@ -155,7 +155,7 @@ trait Generator extends Names with Temporal with Companies with Addresses {
         })
     .suchThat(_.line1.matches("""^[A-Za-z0-9 \-,.&'\/()!]{1,35}$"""))
 
-  lazy val tradingNameGen: Gen[String] = company.suchThat(_.length > 0).map(_.take(105))
+  lazy val tradingNameGen: Gen[String] = company
 
   lazy val `date_dd/MM/yy` = DateTimeFormatter.ofPattern("dd/MM/yy")
   lazy val `date_yyyy-MM-dd` = DateTimeFormatter.ofPattern("yyyy-MM-dd")
