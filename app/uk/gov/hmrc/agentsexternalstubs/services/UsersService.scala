@@ -14,7 +14,7 @@ import scala.util.{Failure, Success, Try}
 @Singleton
 class UsersService @Inject()(
   usersRepository: UsersRepository,
-  userRecordsService: UserRecordsSyncService,
+  userRecordsService: UserToRecordsSyncService,
   knownFactsRepository: KnownFactsRepository) {
 
   def findByUserId(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
@@ -64,7 +64,7 @@ class UsersService @Inject()(
       _         <- usersRepository.create(refined, planetId)
       maybeUser <- findByUserId(refined.userId, planetId)
       _         <- updateKnownFacts(refined, planetId)
-      _         <- userRecordsService.syncUserToRecords(maybeUser)
+      _         <- userRecordsService.syncUserToRecords(addRecordId(maybeUser, planetId))(maybeUser)
       newUser = maybeUser.getOrElse(throw new Exception(s"User $user creation failed."))
     } yield newUser
 
@@ -79,7 +79,7 @@ class UsersService @Inject()(
                      _       <- usersRepository.create(refined, planetId)
                      newUser <- findByUserId(refined.userId, planetId)
                      _       <- updateKnownFacts(refined, planetId)
-                     _       <- userRecordsService.syncUserToRecords(newUser)
+                     _       <- userRecordsService.syncUserToRecords(addRecordId(maybeUser, planetId))(newUser)
                    } yield newUser.map(Success.apply).getOrElse(Failure(new Exception(s"User $user creation failed")))
                }
     } yield result
@@ -95,12 +95,19 @@ class UsersService @Inject()(
                           _         <- usersRepository.update(refined, planetId)
                           maybeUser <- findByUserId(userId, planetId)
                           _         <- updateKnownFacts(refined, planetId)
-                          _         <- userRecordsService.syncUserToRecords(maybeUser)
+                          _         <- userRecordsService.syncUserToRecords(addRecordId(maybeUser, planetId))(maybeUser)
                         } yield maybeUser.getOrElse(throw new Exception)
                         else Future.successful(existingUser)
                       case None => Future.failed(new NotFoundException(s"User $userId not found"))
                     }
     } yield updatedUser
+
+  def addRecordId(userOpt: Option[User], planetId: String)(recordId: String)(
+    implicit ec: ExecutionContext): Future[Unit] =
+    userOpt match {
+      case Some(user) => usersRepository.addRecordId(user.userId, recordId, planetId).map(_ => ())
+      case None       => Future.successful(())
+    }
 
   def deleteUser(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     for {

@@ -26,7 +26,8 @@ case class User(
   planetId: Option[String] = None,
   isNonCompliant: Option[Boolean] = None,
   complianceIssues: Option[Seq[String]] = None,
-  isPermanent: Option[Boolean] = None
+  isPermanent: Option[Boolean] = None,
+  recordIds: Seq[String] = Seq.empty
 ) {
 
   def isIndividual: Boolean = affinityGroup.contains(User.AG.Individual)
@@ -45,6 +46,8 @@ case class User(
 
   def firstName: Option[String] = name.map(_.split(" ").dropRight(1).mkString(" "))
   def lastName: Option[String] = name.map(_.split(" ").last)
+
+  def withRecordId(recordId: String): User = copy(recordIds = recordIds :+ recordId)
 }
 
 object User {
@@ -225,7 +228,8 @@ object User {
       (JsPath \ "planetId").readNullable[String] and
       (JsPath \ "isNonCompliant").readNullable[Boolean] and
       (JsPath \ "complianceIssues").readNullable[Seq[String]] and
-      (JsPath \ "isPermanent").readNullable[Boolean]
+      (JsPath \ "isPermanent").readNullable[Boolean] and
+      (JsPath \ "recordIds").readNullable[Seq[String]].map(_.map(_.distinct).getOrElse(Seq.empty))
   )(User.apply _)
 
   val plainWrites: OWrites[User] = Json.writes[User]

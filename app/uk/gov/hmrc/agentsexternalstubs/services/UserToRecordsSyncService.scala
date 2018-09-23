@@ -14,20 +14,21 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 @Singleton
-class UserRecordsSyncService @Inject()(
+class UserToRecordsSyncService @Inject()(
   businessDetailsRecordsService: BusinessDetailsRecordsService,
   vatCustomerInformationRecordsService: VatCustomerInformationRecordsService,
   BusinessPartnerRecordsService: BusinessPartnerRecordsService,
   knownFactsRepository: KnownFactsRepository) {
 
-  type UserRecordsSync = PartialFunction[User, Future[Unit]]
+  type SaveRecordId = String => Future[Unit]
+  type UserRecordsSync = SaveRecordId => PartialFunction[User, Future[Unit]]
 
   implicit val optionGenStrategy: Generator.OptionGenStrategy = Generator.AlwaysSome
 
   private val dateFormatddMMyy = DateTimeFormatter.ofPattern("dd/MM/yy")
   private val dateFormatyyyyMMdd = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
-  val businessDetailsForMtdItIndividual: UserRecordsSync = {
+  val businessDetailsForMtdItIndividual: UserRecordsSync = saveRecordId => {
     case User.Individual(user) if user.principalEnrolments.exists(_.key == "HMRC-MTD-IT") => {
       val nino = user.nino.map(_.value.replace(" ", "")).getOrElse(Generator.ninoNoSpaces(user.userId).value)
       val mtdbsa = user
@@ -69,12 +70,12 @@ class UserRecordsSyncService @Inject()(
             .flatMap(entity =>
               businessDetailsRecordsService
                 .store(entity, autoFill = false, user.planetId.get)
-                .map(_ => ()))
+                .flatMap(saveRecordId))
         })
     }
   }
 
-  val vatCustomerInformationForMtdVatIndividual: UserRecordsSync = {
+  val vatCustomerInformationForMtdVatIndividual: UserRecordsSync = saveRecordId => {
     case User.Individual(user) if user.principalEnrolments.exists(_.key == "HMRC-MTD-VAT") => {
       val vrn = user
         .findIdentifierValue("HMRC-MTD-VAT", "VRN")
@@ -104,19 +105,19 @@ class UserRecordsSyncService @Inject()(
                   )
                   .withDeregistration(None)
               ))
-          vatCustomerInformationRecordsService
-            .getCustomerInformation(vrn, user.planetId.get)
-            .map {
-              case Some(existing) => record.withId(existing.id)
-              case None           => record
-            }
-            .flatMap(entity =>
-              vatCustomerInformationRecordsService.store(entity, autoFill = false, user.planetId.get).map(_ => ()))
+          for {
+            entity <- vatCustomerInformationRecordsService.getCustomerInformation(vrn, user.planetId.get).map {
+                       case Some(existing) => record.withId(existing.id)
+                       case None           => record
+                     }
+            recordId <- vatCustomerInformationRecordsService.store(entity, autoFill = false, user.planetId.get)
+            _        <- saveRecordId(recordId)
+          } yield ()
         })
     }
   }
 
-  val vatCustomerInformationForMtdVatOrganisation: UserRecordsSync = {
+  val vatCustomerInformationForMtdVatOrganisation: UserRecordsSync = saveRecordId => {
     case User.Organisation(user) if user.principalEnrolments.exists(_.key == "HMRC-MTD-VAT") => {
       val vrn = user
         .findIdentifierValue("HMRC-MTD-VAT", "VRN")
@@ -150,13 +151,16 @@ class UserRecordsSyncService @Inject()(
               case Some(existing) => record.withId(existing.id)
               case None           => record
             }
-            .flatMap(entity =>
-              vatCustomerInformationRecordsService.store(entity, autoFill = false, user.planetId.get).map(_ => ()))
+            .flatMap(
+              entity =>
+                vatCustomerInformationRecordsService
+                  .store(entity, autoFill = false, user.planetId.get)
+                  .flatMap(saveRecordId))
         })
     }
   }
 
-  val businessPartnerRecordForAnAgent: UserRecordsSync = {
+  val businessPartnerRecordForAnAgent: UserRecordsSync = saveRecordId => {
     case User.Agent(user) => {
       val address = UkAddress.generate(user.userId)
       val record = BusinessPartnerRecord
@@ -207,8 +211,11 @@ class UserRecordsSyncService @Inject()(
                   case Some(existingRecord) => ar.withId(existingRecord.id)
                   case None                 => ar
                 }
-                .flatMap(entity =>
-                  BusinessPartnerRecordsService.store(entity, autoFill = false, user.planetId.get).map(_ => ()))
+                .flatMap(
+                  entity =>
+                    BusinessPartnerRecordsService
+                      .store(entity, autoFill = false, user.planetId.get)
+                      .flatMap(saveRecordId))
             })
 
         case None if user.principalEnrolments.isEmpty =>
@@ -222,8 +229,11 @@ class UserRecordsSyncService @Inject()(
               case Some(existingRecord) => ar.withId(existingRecord.id)
               case None                 => ar
             }
-            .flatMap(entity =>
-              BusinessPartnerRecordsService.store(entity, autoFill = false, user.planetId.get).map(_ => ()))
+            .flatMap(
+              entity =>
+                BusinessPartnerRecordsService
+                  .store(entity, autoFill = false, user.planetId.get)
+                  .flatMap(saveRecordId))
 
         case _ =>
           Future.successful(())
@@ -238,13 +248,13 @@ class UserRecordsSyncService @Inject()(
     businessPartnerRecordForAnAgent
   )
 
-  final val syncUserToRecords: Option[User] => Future[Unit] = {
+  final val syncUserToRecords: SaveRecordId => Option[User] => Future[Unit] = saveRecordId => {
     case None => Future.successful(())
     case Some(user) =>
       Future
         .sequence(
           userRecordsSyncOperations
-            .map(f => if (f.isDefinedAt(user)) f(user) else Future.successful(())))
+            .map(f => if (f(saveRecordId).isDefinedAt(user)) f(saveRecordId)(user) else Future.successful(())))
         .map(_.reduce((_, _) => ()))
   }
 

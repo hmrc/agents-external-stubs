@@ -57,6 +57,7 @@ trait UsersRepository {
   def create(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
   def update(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
   def delete(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[WriteResult]
+  def addRecordId(userId: String, recordId: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
 
   def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit]
 }
@@ -266,6 +267,13 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
     case Some(true) => Some(true)
     case _          => Some(false)
   }
+
+  def addRecordId(userId: String, recordId: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+    collection
+      .update(
+        Json.obj(User.user_index_key -> User.userIndexKey(userId, planetId)),
+        Json.obj("$push"             -> Json.obj("recordIds" -> recordId)))
+      .flatMap(MongoHelper.interpretWriteResultUnit)
 
   def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     remove(PLANET_ID -> Option(planetId)).map(_ => ())

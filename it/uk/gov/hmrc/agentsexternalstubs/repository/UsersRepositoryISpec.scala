@@ -468,4 +468,16 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       result3.size shouldBe 0
     }
   }
+
+  "addRecordId" should {
+    "add record id to the array" in {
+      val planetId = UUID.randomUUID().toString
+      await(repo.create(UserGenerator.agent("foo1", agentCode = "ABC123", credentialRole = User.CR.Admin), planetId = planetId))
+
+      await(repo.addRecordId("foo1","123456789", planetId))
+
+      val userOpt = await(repo.findByUserId("foo1", planetId))
+      userOpt.map(_.recordIds).get should contain.only("123456789")
+    }
+  }
 }

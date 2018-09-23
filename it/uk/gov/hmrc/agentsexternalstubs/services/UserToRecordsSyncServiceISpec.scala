@@ -11,10 +11,10 @@ import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.agentsexternalstubs.support._
 import uk.gov.hmrc.domain.Nino
 
-class UserRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
+class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
 
   lazy val usersService = app.injector.instanceOf[UsersService]
-  lazy val userRecordsService = app.injector.instanceOf[UserRecordsSyncService]
+  lazy val userRecordsService = app.injector.instanceOf[UserToRecordsSyncService]
   lazy val businessDetailsRecordsService = app.injector.instanceOf[BusinessDetailsRecordsService]
   lazy val vatCustomerInformationRecordsService = app.injector.instanceOf[VatCustomerInformationRecordsService]
   lazy val businessPartnerRecordsService = app.injector.instanceOf[BusinessPartnerRecordsService]
@@ -23,7 +23,7 @@ class UserRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
   private val formatter1 = DateTimeFormatter.ofPattern("dd/MM/yy")
   private val formatter2 = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
-  "UserRecordsSyncService" should {
+  "UserToRecordsSyncService" should {
     "sync mtd-it individual to business details records" in {
       val planetId = UUID.randomUUID().toString
       val user = UserGenerator
@@ -42,6 +42,9 @@ class UserRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
 
       val result3 = await(businessDetailsRecordsService.getBusinessDetails(Nino("HW827856C"), planetId))
       result3.map(_.mtdbsa) shouldBe Some("123456789098765")
+
+      val userWithRecordId = await(usersService.findByUserId(user.userId, planetId))
+      userWithRecordId.map(_.recordIds).get should not be empty
 
     }
 
@@ -66,6 +69,9 @@ class UserRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
         "Foo")
       result2.flatMap(_.approvedInformation.flatMap(_.customerDetails.individual.flatMap(_.lastName))) shouldBe Some(
         "Bar")
+
+      val userWithRecordId = await(usersService.findByUserId(user.userId, planetId))
+      userWithRecordId.map(_.recordIds).get should not be empty
     }
 
     "sync mtd-vat organisation to vat customer information records" in {
@@ -93,6 +99,9 @@ class UserRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
       result2.flatMap(
         _.approvedInformation
           .flatMap(_.customerDetails.effectiveRegistrationDate.map(LocalDate.parse(_, formatter2)))) shouldBe dateOpt
+
+      val userWithRecordId = await(usersService.findByUserId(user.userId, planetId))
+      userWithRecordId.map(_.recordIds).get should not be empty
     }
 
     "sync hmrc-as-agent agent to agent records" in {
@@ -118,6 +127,9 @@ class UserRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
       result2.flatMap(_.agencyDetails.flatMap(_.agencyName)) shouldBe Some("foobar")
       result2.flatMap(_.agencyDetails.flatMap(_.agencyAddress.map(_.asInstanceOf[UkAddress].postalCode))) shouldBe postcodeOpt
       result2.map(_.addressDetails.asInstanceOf[UkAddress].postalCode) shouldBe postcodeOpt
+
+      val userWithRecordId = await(usersService.findByUserId(user.userId, planetId))
+      userWithRecordId.map(_.recordIds).get should not be empty
     }
   }
 }
