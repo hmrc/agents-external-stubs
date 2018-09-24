@@ -116,32 +116,27 @@ trait DesCurrentSession extends DesHttpHelpers {
                        body(session)
                      case _ =>
                        Logger(getClass).warn(
-                         s"AuthenticatedSession for sessionIs=$sessionId not found, cannot guess planetID for DES stubs")
+                         s"AuthenticatedSession for sessionIs=$sessionId not found, cannot continue to DES stubs")
                        ifSessionNotFound
                    }
         } yield result)
           .recover(errorHandler)
       case None =>
         // When DES request originates from an API gateway
-        request.headers.get("X-Client-ID") match {
-          case Some(apiClientId) =>
-            (for {
-              maybeSession <- authenticationService.findByPlanetId(apiClientId)
-              result <- maybeSession match {
-                         case Some(session) =>
-                           body(session)
-                         case _ =>
-                           Logger(getClass).warn(
-                             s"AuthenticatedSession for apiClientId=$apiClientId not found, cannot guess planetID for DES stubs")
-                           ifSessionNotFound
-                       }
-            } yield result)
-              .recover(errorHandler)
-          case None =>
-            Logger(getClass).warn(
-              s"None of 'X-Session-ID' or 'X-Client-ID' request headers found, cannot guess planetID for DES stubs")
-            ifSessionNotFound
-        }
+        val planetId = request.headers.get("X-Client-ID").getOrElse("hmrc")
+        (for {
+          maybeSession <- authenticationService.findByPlanetId(planetId)
+          result <- maybeSession match {
+                     case Some(session) =>
+                       body(session)
+                     case _ =>
+                       Logger(getClass).warn(
+                         s"AuthenticatedSession for planetId=$planetId not found, cannot continue to DES stubs")
+                       ifSessionNotFound
+                   }
+        } yield result)
+          .recover(errorHandler)
+
     }
 
 }

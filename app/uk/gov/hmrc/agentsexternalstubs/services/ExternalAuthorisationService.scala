@@ -93,7 +93,7 @@ class ExternalAuthorisationService @Inject()(
               _ <- maybeSession match {
                     case Some(session) =>
                       Logger(getClass).info(
-                        s"New session '${session.sessionId}' created on planet '$planetId` from an external user '$userId' authorization.")
+                        s"New session '${session.sessionId}' created on planet '$planetId' from an external user '$userId' authorization.")
                       usersService.findByUserId(userId, planetId).flatMap {
                         case Some(_) =>
                           usersService.updateUser(session.userId, session.planetId, existing => merge(user, existing))
