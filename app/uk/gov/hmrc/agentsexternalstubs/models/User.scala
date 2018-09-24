@@ -44,7 +44,11 @@ case class User(
       .flatMap(_.identifiers.flatMap(_.find(_.key == identifierName)))
       .map(_.value)
 
-  def firstName: Option[String] = name.map(_.split(" ").dropRight(1).mkString(" "))
+  lazy val firstName: Option[String] =
+    name
+      .map(_.split(" ").dropRight(1))
+      .map(a => if (a.nonEmpty) a.mkString(" ") else Generator.get(Generator.forename())(userId).getOrElse("John"))
+
   def lastName: Option[String] = name.map(_.split(" ").last)
 
   def withRecordId(recordId: String): User = copy(recordIds = recordIds :+ recordId)

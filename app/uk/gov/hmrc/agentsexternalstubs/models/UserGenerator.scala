@@ -12,17 +12,18 @@ object UserGenerator extends Generator {
 
   def nameForIndividual(userId: String): String =
     (for {
-      fn <- forename()
-      ln <- surname
+      fn <- forename().suchThat(_.length > 0)
+      ln <- surname.suchThat(_.length > 0)
     } yield s"$fn $ln").seeded(userId).get
 
   def nameForAgent(seed: String): String = nameForAgent(seed, seed)
 
-  val nameForAgentGen: Gen[String] = for { f <- forename(); s <- surname } yield s"$f $s"
+  val nameForAgentGen
+    : Gen[String] = for { f <- forename().suchThat(_.length > 0); s <- surname.suchThat(_.length > 0) } yield s"$f $s"
   def nameForAgent(userId: String, groupId: String): String =
-    s"${forename().seeded(userId).getOrElse("Agent")} ${surname.seeded(groupId).getOrElse("Cooper")}"
+    s"${forename().suchThat(_.length > 0).seeded(userId).getOrElse("Agent")} ${surname.suchThat(_.length > 0).seeded(groupId).getOrElse("Cooper")}"
 
-  def nameForOrganisation(userId: String): String = company.seeded(userId).get
+  def nameForOrganisation(userId: String): String = company.suchThat(_.length > 0).seeded(userId).get
 
   private final val dateOfBirthLow: java.time.LocalDate = java.time.LocalDate.now().minusYears(100)
   private final val dateOfBirthHigh: java.time.LocalDate = java.time.LocalDate.now().minusYears(18)
