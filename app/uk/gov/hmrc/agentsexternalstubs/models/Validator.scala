@@ -32,10 +32,19 @@ object Validator {
   def checkObject[T, E](element: T => E, validator: Validator[E]): Validator[T] =
     (entity: T) => validator(element(entity))
 
+  def checkProperty[T, E](element: T => E, validator: Validator[E]): Validator[T] =
+    (entity: T) => validator(element(entity))
+
   def checkObjectIfSome[T, E](
     element: T => Option[E],
     validator: Validator[E],
     isValidIfNone: Boolean = true): Validator[T] =
+    (entity: T) =>
+      element(entity)
+        .map(validator)
+        .getOrElse(if (isValidIfNone) Valid(()) else Invalid(List("Some value expected but got None")))
+
+  def checkIfSome[T, E](element: T => Option[E], validator: Validator[E], isValidIfNone: Boolean = true): Validator[T] =
     (entity: T) =>
       element(entity)
         .map(validator)

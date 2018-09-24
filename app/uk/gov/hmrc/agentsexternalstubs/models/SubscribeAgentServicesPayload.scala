@@ -45,20 +45,24 @@ object SubscribeAgentServicesPayload {
 
   import Validator._
 
+  val safeIdValidator: Validator[Option[String]] =
+    check(_.matches(Common.safeIdPattern), s"""Invalid safeId, does not matches regex ${Common.safeIdPattern}""")
+  val agencyNameValidator: Validator[String] = check(
+    _.matches(Common.agencyNamePattern),
+    s"""Invalid agencyName, does not matches regex ${Common.agencyNamePattern}""")
+  val agencyAddressValidator: Validator[AgencyAddress] = checkProperty(identity, AgencyAddress.validate)
+  val telephoneNumberValidator: Validator[Option[String]] = check(
+    _.matches(Common.telephoneNumberPattern),
+    s"""Invalid telephoneNumber, does not matches regex ${Common.telephoneNumberPattern}""")
+  val agencyEmailValidator: Validator[Option[String]] =
+    check(_.lengthMinMaxInclusive(1, 132), "Invalid length of agencyEmail, should be between 1 and 132 inclusive")
+
   val validate: Validator[SubscribeAgentServicesPayload] = Validator(
-    check(
-      _.safeId.matches(Common.safeIdPattern),
-      s"""Invalid safeId, does not matches regex ${Common.safeIdPattern}"""),
-    check(
-      _.agencyName.matches(Common.agencyNamePattern),
-      s"""Invalid agencyName, does not matches regex ${Common.agencyNamePattern}"""),
-    checkObject(_.agencyAddress, AgencyAddress.validate),
-    check(
-      _.telephoneNumber.matches(Common.telephoneNumberPattern),
-      s"""Invalid telephoneNumber, does not matches regex ${Common.telephoneNumberPattern}"""),
-    check(
-      _.agencyEmail.lengthMinMaxInclusive(1, 132),
-      "Invalid length of agencyEmail, should be between 1 and 132 inclusive")
+    checkProperty(_.safeId, safeIdValidator),
+    checkProperty(_.agencyName, agencyNameValidator),
+    checkProperty(_.agencyAddress, agencyAddressValidator),
+    checkProperty(_.telephoneNumber, telephoneNumberValidator),
+    checkProperty(_.agencyEmail, agencyEmailValidator)
   )
 
   implicit val formats: Format[SubscribeAgentServicesPayload] = Json.format[SubscribeAgentServicesPayload]
@@ -141,23 +145,31 @@ object SubscribeAgentServicesPayload {
 
   object ForeignAddress {
 
+    val addressLine1Validator: Validator[String] = check(
+      _.matches(Common.addressLinePattern),
+      s"""Invalid addressLine1, does not matches regex ${Common.addressLinePattern}""")
+    val addressLine2Validator: Validator[Option[String]] = check(
+      _.matches(Common.addressLinePattern),
+      s"""Invalid addressLine2, does not matches regex ${Common.addressLinePattern}""")
+    val addressLine3Validator: Validator[Option[String]] = check(
+      _.matches(Common.addressLinePattern),
+      s"""Invalid addressLine3, does not matches regex ${Common.addressLinePattern}""")
+    val addressLine4Validator: Validator[Option[String]] = check(
+      _.matches(Common.addressLinePattern),
+      s"""Invalid addressLine4, does not matches regex ${Common.addressLinePattern}""")
+    val postalCodeValidator: Validator[Option[String]] = check(
+      _.matches(Common.postalCodePattern1),
+      s"""Invalid postalCode, does not matches regex ${Common.postalCodePattern1}""")
+    val countryCodeValidator: Validator[String] =
+      check(_.isOneOf(Common.countryCodeEnum0), "Invalid countryCode, does not match allowed values")
+
     val validate: Validator[ForeignAddress] = Validator(
-      check(
-        _.addressLine1.matches(Common.addressLinePattern),
-        s"""Invalid addressLine1, does not matches regex ${Common.addressLinePattern}"""),
-      check(
-        _.addressLine2.matches(Common.addressLinePattern),
-        s"""Invalid addressLine2, does not matches regex ${Common.addressLinePattern}"""),
-      check(
-        _.addressLine3.matches(Common.addressLinePattern),
-        s"""Invalid addressLine3, does not matches regex ${Common.addressLinePattern}"""),
-      check(
-        _.addressLine4.matches(Common.addressLinePattern),
-        s"""Invalid addressLine4, does not matches regex ${Common.addressLinePattern}"""),
-      check(
-        _.postalCode.matches(Common.postalCodePattern1),
-        s"""Invalid postalCode, does not matches regex ${Common.postalCodePattern1}"""),
-      check(_.countryCode.isOneOf(Common.countryCodeEnum0), "Invalid countryCode, does not match allowed values")
+      checkProperty(_.addressLine1, addressLine1Validator),
+      checkProperty(_.addressLine2, addressLine2Validator),
+      checkProperty(_.addressLine3, addressLine3Validator),
+      checkProperty(_.addressLine4, addressLine4Validator),
+      checkProperty(_.postalCode, postalCodeValidator),
+      checkProperty(_.countryCode, countryCodeValidator)
     )
 
     implicit val formats: Format[ForeignAddress] = Json.format[ForeignAddress]
@@ -195,23 +207,31 @@ object SubscribeAgentServicesPayload {
 
   object UkAddress {
 
+    val addressLine1Validator: Validator[String] = check(
+      _.matches(Common.addressLinePattern),
+      s"""Invalid addressLine1, does not matches regex ${Common.addressLinePattern}""")
+    val addressLine2Validator: Validator[Option[String]] = check(
+      _.matches(Common.addressLinePattern),
+      s"""Invalid addressLine2, does not matches regex ${Common.addressLinePattern}""")
+    val addressLine3Validator: Validator[Option[String]] = check(
+      _.matches(Common.addressLinePattern),
+      s"""Invalid addressLine3, does not matches regex ${Common.addressLinePattern}""")
+    val addressLine4Validator: Validator[Option[String]] = check(
+      _.matches(Common.addressLinePattern),
+      s"""Invalid addressLine4, does not matches regex ${Common.addressLinePattern}""")
+    val postalCodeValidator: Validator[String] = check(
+      _.matches(Common.postalCodePattern0),
+      s"""Invalid postalCode, does not matches regex ${Common.postalCodePattern0}""")
+    val countryCodeValidator: Validator[String] =
+      check(_.isOneOf(Common.countryCodeEnum1), "Invalid countryCode, does not match allowed values")
+
     val validate: Validator[UkAddress] = Validator(
-      check(
-        _.addressLine1.matches(Common.addressLinePattern),
-        s"""Invalid addressLine1, does not matches regex ${Common.addressLinePattern}"""),
-      check(
-        _.addressLine2.matches(Common.addressLinePattern),
-        s"""Invalid addressLine2, does not matches regex ${Common.addressLinePattern}"""),
-      check(
-        _.addressLine3.matches(Common.addressLinePattern),
-        s"""Invalid addressLine3, does not matches regex ${Common.addressLinePattern}"""),
-      check(
-        _.addressLine4.matches(Common.addressLinePattern),
-        s"""Invalid addressLine4, does not matches regex ${Common.addressLinePattern}"""),
-      check(
-        _.postalCode.matches(Common.postalCodePattern0),
-        s"""Invalid postalCode, does not matches regex ${Common.postalCodePattern0}"""),
-      check(_.countryCode.isOneOf(Common.countryCodeEnum1), "Invalid countryCode, does not match allowed values")
+      checkProperty(_.addressLine1, addressLine1Validator),
+      checkProperty(_.addressLine2, addressLine2Validator),
+      checkProperty(_.addressLine3, addressLine3Validator),
+      checkProperty(_.addressLine4, addressLine4Validator),
+      checkProperty(_.postalCode, postalCodeValidator),
+      checkProperty(_.countryCode, countryCodeValidator)
     )
 
     implicit val formats: Format[UkAddress] = Json.format[UkAddress]

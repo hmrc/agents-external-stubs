@@ -115,22 +115,34 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
   import Validator._
   import Generator.GenOps._
 
+  val safeIdValidator: Validator[String] =
+    check(_.matches(Common.safeIdPattern), s"""Invalid safeId, does not matches regex ${Common.safeIdPattern}""")
+  val agentReferenceNumberValidator: Validator[Option[String]] = check(
+    _.matches(Common.agentReferenceNumberPattern),
+    s"""Invalid agentReferenceNumber, does not matches regex ${Common.agentReferenceNumberPattern}""")
+  val utrValidator: Validator[Option[String]] =
+    check(_.matches(Common.utrPattern), s"""Invalid utr, does not matches regex ${Common.utrPattern}""")
+  val ninoValidator: Validator[Option[String]] =
+    check(_.matches(Common.ninoPattern), s"""Invalid nino, does not matches regex ${Common.ninoPattern}""")
+  val eoriValidator: Validator[Option[String]] =
+    check(_.matches(Common.eoriPattern), s"""Invalid eori, does not matches regex ${Common.eoriPattern}""")
+  val individualValidator: Validator[Option[Individual]] = checkIfSome(identity, Individual.validate)
+  val organisationValidator: Validator[Option[Organisation]] = checkIfSome(identity, Organisation.validate)
+  val addressDetailsValidator: Validator[AddressDetails] = checkProperty(identity, AddressDetails.validate)
+  val contactDetailsValidator: Validator[Option[ContactDetails]] = checkIfSome(identity, ContactDetails.validate)
+  val agencyDetailsValidator: Validator[Option[AgencyDetails]] = checkIfSome(identity, AgencyDetails.validate)
+
   override val validate: Validator[BusinessPartnerRecord] = Validator(
-    check(
-      _.safeId.matches(Common.safeIdPattern),
-      s"""Invalid safeId, does not matches regex ${Common.safeIdPattern}"""),
-    check(
-      _.agentReferenceNumber.matches(Common.agentReferenceNumberPattern),
-      s"""Invalid agentReferenceNumber, does not matches regex ${Common.agentReferenceNumberPattern}"""
-    ),
-    check(_.utr.matches(Common.utrPattern), s"""Invalid utr, does not matches regex ${Common.utrPattern}"""),
-    check(_.nino.matches(Common.ninoPattern), s"""Invalid nino, does not matches regex ${Common.ninoPattern}"""),
-    check(_.eori.matches(Common.eoriPattern), s"""Invalid eori, does not matches regex ${Common.eoriPattern}"""),
-    checkObjectIfSome(_.individual, Individual.validate),
-    checkObjectIfSome(_.organisation, Organisation.validate),
-    checkObject(_.addressDetails, AddressDetails.validate),
-    checkObjectIfSome(_.contactDetails, ContactDetails.validate),
-    checkObjectIfSome(_.agencyDetails, AgencyDetails.validate),
+    checkProperty(_.safeId, safeIdValidator),
+    checkProperty(_.agentReferenceNumber, agentReferenceNumberValidator),
+    checkProperty(_.utr, utrValidator),
+    checkProperty(_.nino, ninoValidator),
+    checkProperty(_.eori, eoriValidator),
+    checkProperty(_.individual, individualValidator),
+    checkProperty(_.organisation, organisationValidator),
+    checkProperty(_.addressDetails, addressDetailsValidator),
+    checkProperty(_.contactDetails, contactDetailsValidator),
+    checkProperty(_.agencyDetails, agencyDetailsValidator),
     checkIfOnlyOneSetIsDefined(
       Seq(Set(_.isAnIndividual.asOption, _.individual), Set(_.isAnOrganisation.asOption, _.organisation)),
       "[{isAnIndividual,individual},{isAnOrganisation,organisation}]"
@@ -158,39 +170,59 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
 
   val agentReferenceNumberSanitizer: Update = seed =>
     entity =>
-      entity.copy(agentReferenceNumber = entity.agentReferenceNumber.orElse(Generator.get(Generator.arnGen)(seed)))
+      entity.copy(
+        agentReferenceNumber = agentReferenceNumberValidator(entity.agentReferenceNumber)
+          .fold(_ => None, _ => entity.agentReferenceNumber)
+          .orElse(Generator.get(Generator.arnGen)(seed)))
 
   val utrSanitizer: Update = seed =>
-    entity => entity.copy(utr = entity.utr.orElse(Generator.get(Generator.utrGen)(seed)))
+    entity =>
+      entity.copy(
+        utr = utrValidator(entity.utr)
+          .fold(_ => None, _ => entity.utr)
+          .orElse(Generator.get(Generator.utrGen)(seed)))
 
   val ninoSanitizer: Update = seed =>
-    entity => entity.copy(nino = entity.nino.orElse(Generator.get(Generator.ninoNoSpacesGen)(seed)))
+    entity =>
+      entity.copy(
+        nino = ninoValidator(entity.nino)
+          .fold(_ => None, _ => entity.nino)
+          .orElse(Generator.get(Generator.ninoNoSpacesGen)(seed)))
 
   val eoriSanitizer: Update = seed =>
-    entity => entity.copy(eori = entity.eori.orElse(Generator.get(Generator.regex(Common.eoriPattern))(seed)))
+    entity =>
+      entity.copy(
+        eori = eoriValidator(entity.eori)
+          .fold(_ => None, _ => entity.eori)
+          .orElse(Generator.get(Generator.regex(Common.eoriPattern))(seed)))
 
   val individualSanitizer: Update = seed =>
     entity =>
       entity.copy(
-        individual = entity.individual.orElse(Generator.get(Individual.gen)(seed)).map(Individual.sanitize(seed)))
+        individual = entity.individual
+          .orElse(Generator.get(Individual.gen)(seed))
+          .map(Individual.sanitize(seed)))
 
   val organisationSanitizer: Update = seed =>
     entity =>
       entity.copy(
-        organisation =
-          entity.organisation.orElse(Generator.get(Organisation.gen)(seed)).map(Organisation.sanitize(seed)))
+        organisation = entity.organisation
+          .orElse(Generator.get(Organisation.gen)(seed))
+          .map(Organisation.sanitize(seed)))
 
   val contactDetailsSanitizer: Update = seed =>
     entity =>
       entity.copy(
-        contactDetails =
-          entity.contactDetails.orElse(Generator.get(ContactDetails.gen)(seed)).map(ContactDetails.sanitize(seed)))
+        contactDetails = entity.contactDetails
+          .orElse(Generator.get(ContactDetails.gen)(seed))
+          .map(ContactDetails.sanitize(seed)))
 
   val agencyDetailsSanitizer: Update = seed =>
     entity =>
       entity.copy(
-        agencyDetails =
-          entity.agencyDetails.orElse(Generator.get(AgencyDetails.gen)(seed)).map(AgencyDetails.sanitize(seed)))
+        agencyDetails = entity.agencyDetails
+          .orElse(Generator.get(AgencyDetails.gen)(seed))
+          .map(AgencyDetails.sanitize(seed)))
 
   val isAnIndividualAndIndividualCompoundSanitizer: Update = seed =>
     entity =>
@@ -310,14 +342,16 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
 
   object AgencyDetails extends RecordUtils[AgencyDetails] {
 
+    val agencyNameValidator: Validator[Option[String]] =
+      check(_.lengthMinMaxInclusive(1, 40), "Invalid length of agencyName, should be between 1 and 40 inclusive")
+    val agencyAddressValidator: Validator[Option[AgencyAddress]] = checkIfSome(identity, AgencyAddress.validate)
+    val agencyEmailValidator: Validator[Option[String]] =
+      check(_.lengthMinMaxInclusive(1, 132), "Invalid length of agencyEmail, should be between 1 and 132 inclusive")
+
     override val validate: Validator[AgencyDetails] = Validator(
-      check(
-        _.agencyName.lengthMinMaxInclusive(1, 40),
-        "Invalid length of agencyName, should be between 1 and 40 inclusive"),
-      checkObjectIfSome(_.agencyAddress, AgencyAddress.validate),
-      check(
-        _.agencyEmail.lengthMinMaxInclusive(1, 132),
-        "Invalid length of agencyEmail, should be between 1 and 132 inclusive")
+      checkProperty(_.agencyName, agencyNameValidator),
+      checkProperty(_.agencyAddress, agencyAddressValidator),
+      checkProperty(_.agencyEmail, agencyEmailValidator)
     )
 
     override val gen: Gen[AgencyDetails] = Gen const AgencyDetails(
@@ -326,19 +360,25 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     val agencyNameSanitizer: Update = seed =>
       entity =>
         entity.copy(
-          agencyName = entity.agencyName.orElse(Generator.get(
-            UserGenerator.agencyNameGen.map(_.take(40)).suchThat(_.length >= 1).suchThat(_.length <= 40))(seed)))
+          agencyName = agencyNameValidator(entity.agencyName)
+            .fold(_ => None, _ => entity.agencyName)
+            .orElse(Generator.get(
+              UserGenerator.agencyNameGen.map(_.take(40)).suchThat(_.length >= 1).suchThat(_.length <= 40))(seed)))
 
     val agencyAddressSanitizer: Update = seed =>
       entity =>
         entity.copy(
-          agencyAddress =
-            entity.agencyAddress.orElse(Generator.get(AgencyAddress.gen)(seed)).map(AgencyAddress.sanitize(seed)))
+          agencyAddress = agencyAddressValidator(entity.agencyAddress)
+            .fold(_ => None, _ => entity.agencyAddress)
+            .orElse(Generator.get(AgencyAddress.gen)(seed)))
 
     val agencyEmailSanitizer: Update = seed =>
       entity =>
-        entity.copy(agencyEmail = entity.agencyEmail.orElse(
-          Generator.get(Generator.emailGen.variant("agency").suchThat(_.length >= 1).suchThat(_.length <= 132))(seed)))
+        entity.copy(
+          agencyEmail = agencyEmailValidator(entity.agencyEmail)
+            .fold(_ => None, _ => entity.agencyEmail)
+            .orElse(Generator.get(
+              Generator.emailGen.variant("agency").suchThat(_.length >= 1).suchThat(_.length <= 132))(seed)))
 
     override val sanitizers: Seq[Update] = Seq(agencyNameSanitizer, agencyAddressSanitizer, agencyEmailSanitizer)
 
@@ -424,19 +464,23 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
 
   object ContactDetails extends RecordUtils[ContactDetails] {
 
+    val phoneNumberValidator: Validator[Option[String]] = check(
+      _.matches(Common.phoneNumberPattern),
+      s"""Invalid phoneNumber, does not matches regex ${Common.phoneNumberPattern}""")
+    val mobileNumberValidator: Validator[Option[String]] = check(
+      _.matches(Common.phoneNumberPattern),
+      s"""Invalid mobileNumber, does not matches regex ${Common.phoneNumberPattern}""")
+    val faxNumberValidator: Validator[Option[String]] = check(
+      _.matches(Common.phoneNumberPattern),
+      s"""Invalid faxNumber, does not matches regex ${Common.phoneNumberPattern}""")
+    val emailAddressValidator: Validator[Option[String]] =
+      check(_.lengthMinMaxInclusive(1, 132), "Invalid length of emailAddress, should be between 1 and 132 inclusive")
+
     override val validate: Validator[ContactDetails] = Validator(
-      check(
-        _.phoneNumber.matches(Common.phoneNumberPattern),
-        s"""Invalid phoneNumber, does not matches regex ${Common.phoneNumberPattern}"""),
-      check(
-        _.mobileNumber.matches(Common.phoneNumberPattern),
-        s"""Invalid mobileNumber, does not matches regex ${Common.phoneNumberPattern}"""),
-      check(
-        _.faxNumber.matches(Common.phoneNumberPattern),
-        s"""Invalid faxNumber, does not matches regex ${Common.phoneNumberPattern}"""),
-      check(
-        _.emailAddress.lengthMinMaxInclusive(1, 132),
-        "Invalid length of emailAddress, should be between 1 and 132 inclusive")
+      checkProperty(_.phoneNumber, phoneNumberValidator),
+      checkProperty(_.mobileNumber, mobileNumberValidator),
+      checkProperty(_.faxNumber, faxNumberValidator),
+      checkProperty(_.emailAddress, emailAddressValidator)
     )
 
     override val gen: Gen[ContactDetails] = Gen const ContactDetails(
@@ -445,26 +489,30 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     val phoneNumberSanitizer: Update = seed =>
       entity =>
         entity.copy(
-          phoneNumber = entity.phoneNumber.orElse(
-            Generator.get(Generator.ukPhoneNumber.suchThat(_.length >= 1).suchThat(_.length <= 24))(seed)))
+          phoneNumber = phoneNumberValidator(entity.phoneNumber)
+            .fold(_ => None, _ => entity.phoneNumber)
+            .orElse(Generator.get(Generator.ukPhoneNumber.suchThat(_.length >= 1).suchThat(_.length <= 24))(seed)))
 
     val mobileNumberSanitizer: Update = seed =>
       entity =>
         entity.copy(
-          mobileNumber = entity.mobileNumber.orElse(
-            Generator.get(Generator.ukPhoneNumber.suchThat(_.length >= 1).suchThat(_.length <= 24))(seed)))
+          mobileNumber = mobileNumberValidator(entity.mobileNumber)
+            .fold(_ => None, _ => entity.mobileNumber)
+            .orElse(Generator.get(Generator.ukPhoneNumber.suchThat(_.length >= 1).suchThat(_.length <= 24))(seed)))
 
     val faxNumberSanitizer: Update = seed =>
       entity =>
         entity.copy(
-          faxNumber = entity.faxNumber.orElse(
-            Generator.get(Generator.ukPhoneNumber.suchThat(_.length >= 1).suchThat(_.length <= 24))(seed)))
+          faxNumber = faxNumberValidator(entity.faxNumber)
+            .fold(_ => None, _ => entity.faxNumber)
+            .orElse(Generator.get(Generator.ukPhoneNumber.suchThat(_.length >= 1).suchThat(_.length <= 24))(seed)))
 
     val emailAddressSanitizer: Update = seed =>
       entity =>
         entity.copy(
-          emailAddress = entity.emailAddress.orElse(
-            Generator.get(Generator.emailGen.suchThat(_.length >= 1).suchThat(_.length <= 132))(seed)))
+          emailAddress = emailAddressValidator(entity.emailAddress)
+            .fold(_ => None, _ => entity.emailAddress)
+            .orElse(Generator.get(Generator.emailGen.suchThat(_.length >= 1).suchThat(_.length <= 132))(seed)))
 
     override val sanitizers: Seq[Update] =
       Seq(phoneNumberSanitizer, mobileNumberSanitizer, faxNumberSanitizer, emailAddressSanitizer)
@@ -504,23 +552,26 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
 
   object ForeignAddress extends RecordUtils[ForeignAddress] {
 
+    val addressLine1Validator: Validator[String] =
+      check(_.lengthMinMaxInclusive(1, 35), "Invalid length of addressLine1, should be between 1 and 35 inclusive")
+    val addressLine2Validator: Validator[Option[String]] =
+      check(_.lengthMinMaxInclusive(1, 35), "Invalid length of addressLine2, should be between 1 and 35 inclusive")
+    val addressLine3Validator: Validator[Option[String]] =
+      check(_.lengthMinMaxInclusive(1, 35), "Invalid length of addressLine3, should be between 1 and 35 inclusive")
+    val addressLine4Validator: Validator[Option[String]] =
+      check(_.lengthMinMaxInclusive(1, 35), "Invalid length of addressLine4, should be between 1 and 35 inclusive")
+    val postalCodeValidator: Validator[Option[String]] =
+      check(_.lengthMinMaxInclusive(1, 10), "Invalid length of postalCode, should be between 1 and 10 inclusive")
+    val countryCodeValidator: Validator[String] =
+      check(_.isOneOf(Common.countryCodeEnum0), "Invalid countryCode, does not match allowed values")
+
     override val validate: Validator[ForeignAddress] = Validator(
-      check(
-        _.addressLine1.lengthMinMaxInclusive(1, 35),
-        "Invalid length of addressLine1, should be between 1 and 35 inclusive"),
-      check(
-        _.addressLine2.lengthMinMaxInclusive(1, 35),
-        "Invalid length of addressLine2, should be between 1 and 35 inclusive"),
-      check(
-        _.addressLine3.lengthMinMaxInclusive(1, 35),
-        "Invalid length of addressLine3, should be between 1 and 35 inclusive"),
-      check(
-        _.addressLine4.lengthMinMaxInclusive(1, 35),
-        "Invalid length of addressLine4, should be between 1 and 35 inclusive"),
-      check(
-        _.postalCode.lengthMinMaxInclusive(1, 10),
-        "Invalid length of postalCode, should be between 1 and 10 inclusive"),
-      check(_.countryCode.isOneOf(Common.countryCodeEnum0), "Invalid countryCode, does not match allowed values")
+      checkProperty(_.addressLine1, addressLine1Validator),
+      checkProperty(_.addressLine2, addressLine2Validator),
+      checkProperty(_.addressLine3, addressLine3Validator),
+      checkProperty(_.addressLine4, addressLine4Validator),
+      checkProperty(_.postalCode, postalCodeValidator),
+      checkProperty(_.countryCode, countryCodeValidator)
     )
 
     override val gen: Gen[ForeignAddress] = for {
@@ -535,26 +586,33 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     val addressLine2Sanitizer: Update = seed =>
       entity =>
         entity.copy(
-          addressLine2 = entity.addressLine2.orElse(Generator.get(
-            Generator.address4Lines35Gen.map(_.line2).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
+          addressLine2 = addressLine2Validator(entity.addressLine2)
+            .fold(_ => None, _ => entity.addressLine2)
+            .orElse(Generator.get(
+              Generator.address4Lines35Gen.map(_.line2).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
 
     val addressLine3Sanitizer: Update = seed =>
       entity =>
         entity.copy(
-          addressLine3 = entity.addressLine3.orElse(Generator.get(
-            Generator.address4Lines35Gen.map(_.line3).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
+          addressLine3 = addressLine3Validator(entity.addressLine3)
+            .fold(_ => None, _ => entity.addressLine3)
+            .orElse(Generator.get(
+              Generator.address4Lines35Gen.map(_.line3).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
 
     val addressLine4Sanitizer: Update = seed =>
       entity =>
         entity.copy(
-          addressLine4 = entity.addressLine4.orElse(Generator.get(
-            Generator.address4Lines35Gen.map(_.line4).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
+          addressLine4 = addressLine4Validator(entity.addressLine4)
+            .fold(_ => None, _ => entity.addressLine4)
+            .orElse(Generator.get(
+              Generator.address4Lines35Gen.map(_.line4).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
 
     val postalCodeSanitizer: Update = seed =>
       entity =>
         entity.copy(
-          postalCode = entity.postalCode.orElse(
-            Generator.get(Generator.postcode.suchThat(_.length >= 1).suchThat(_.length <= 10))(seed)))
+          postalCode = postalCodeValidator(entity.postalCode)
+            .fold(_ => None, _ => entity.postalCode)
+            .orElse(Generator.get(Generator.postcode.suchThat(_.length >= 1).suchThat(_.length <= 10))(seed)))
 
     override val sanitizers: Seq[Update] =
       Seq(addressLine2Sanitizer, addressLine3Sanitizer, addressLine4Sanitizer, postalCodeSanitizer)
@@ -581,19 +639,21 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
 
   object Individual extends RecordUtils[Individual] {
 
+    val firstNameValidator: Validator[String] =
+      check(_.lengthMinMaxInclusive(1, 35), "Invalid length of firstName, should be between 1 and 35 inclusive")
+    val middleNameValidator: Validator[Option[String]] =
+      check(_.lengthMinMaxInclusive(1, 35), "Invalid length of middleName, should be between 1 and 35 inclusive")
+    val lastNameValidator: Validator[String] =
+      check(_.lengthMinMaxInclusive(1, 35), "Invalid length of lastName, should be between 1 and 35 inclusive")
+    val dateOfBirthValidator: Validator[String] = check(
+      _.matches(Common.dateOfBirthPattern),
+      s"""Invalid dateOfBirth, does not matches regex ${Common.dateOfBirthPattern}""")
+
     override val validate: Validator[Individual] = Validator(
-      check(
-        _.firstName.lengthMinMaxInclusive(1, 35),
-        "Invalid length of firstName, should be between 1 and 35 inclusive"),
-      check(
-        _.middleName.lengthMinMaxInclusive(1, 35),
-        "Invalid length of middleName, should be between 1 and 35 inclusive"),
-      check(
-        _.lastName.lengthMinMaxInclusive(1, 35),
-        "Invalid length of lastName, should be between 1 and 35 inclusive"),
-      check(
-        _.dateOfBirth.matches(Common.dateOfBirthPattern),
-        s"""Invalid dateOfBirth, does not matches regex ${Common.dateOfBirthPattern}""")
+      checkProperty(_.firstName, firstNameValidator),
+      checkProperty(_.middleName, middleNameValidator),
+      checkProperty(_.lastName, lastNameValidator),
+      checkProperty(_.dateOfBirth, dateOfBirthValidator)
     )
 
     override val gen: Gen[Individual] = for {
@@ -609,8 +669,11 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
 
     val middleNameSanitizer: Update = seed =>
       entity =>
-        entity.copy(middleName = entity.middleName.orElse(
-          Generator.get(Generator.forename().variant("middle").suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
+        entity.copy(
+          middleName = middleNameValidator(entity.middleName)
+            .fold(_ => None, _ => entity.middleName)
+            .orElse(Generator.get(
+              Generator.forename().variant("middle").suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
 
     override val sanitizers: Seq[Update] = Seq(middleNameSanitizer)
 
@@ -633,14 +696,16 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
 
   object Organisation extends RecordUtils[Organisation] {
 
+    val organisationNameValidator: Validator[String] = check(
+      _.lengthMinMaxInclusive(1, 105),
+      "Invalid length of organisationName, should be between 1 and 105 inclusive")
+    val organisationTypeValidator: Validator[String] = check(
+      _.matches(Common.organisationTypePattern),
+      s"""Invalid organisationType, does not matches regex ${Common.organisationTypePattern}""")
+
     override val validate: Validator[Organisation] = Validator(
-      check(
-        _.organisationName.lengthMinMaxInclusive(1, 105),
-        "Invalid length of organisationName, should be between 1 and 105 inclusive"),
-      check(
-        _.organisationType.matches(Common.organisationTypePattern),
-        s"""Invalid organisationType, does not matches regex ${Common.organisationTypePattern}""")
-    )
+      checkProperty(_.organisationName, organisationNameValidator),
+      checkProperty(_.organisationType, organisationTypeValidator))
 
     override val gen: Gen[Organisation] = for {
       organisationName <- Generator.company.suchThat(_.length >= 1).suchThat(_.length <= 105)
@@ -690,23 +755,26 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
 
   object UkAddress extends RecordUtils[UkAddress] {
 
+    val addressLine1Validator: Validator[String] =
+      check(_.lengthMinMaxInclusive(1, 35), "Invalid length of addressLine1, should be between 1 and 35 inclusive")
+    val addressLine2Validator: Validator[Option[String]] =
+      check(_.lengthMinMaxInclusive(1, 35), "Invalid length of addressLine2, should be between 1 and 35 inclusive")
+    val addressLine3Validator: Validator[Option[String]] =
+      check(_.lengthMinMaxInclusive(1, 35), "Invalid length of addressLine3, should be between 1 and 35 inclusive")
+    val addressLine4Validator: Validator[Option[String]] =
+      check(_.lengthMinMaxInclusive(1, 35), "Invalid length of addressLine4, should be between 1 and 35 inclusive")
+    val postalCodeValidator: Validator[String] =
+      check(_.lengthMinMaxInclusive(1, 10), "Invalid length of postalCode, should be between 1 and 10 inclusive")
+    val countryCodeValidator: Validator[String] =
+      check(_.isOneOf(Common.countryCodeEnum1), "Invalid countryCode, does not match allowed values")
+
     override val validate: Validator[UkAddress] = Validator(
-      check(
-        _.addressLine1.lengthMinMaxInclusive(1, 35),
-        "Invalid length of addressLine1, should be between 1 and 35 inclusive"),
-      check(
-        _.addressLine2.lengthMinMaxInclusive(1, 35),
-        "Invalid length of addressLine2, should be between 1 and 35 inclusive"),
-      check(
-        _.addressLine3.lengthMinMaxInclusive(1, 35),
-        "Invalid length of addressLine3, should be between 1 and 35 inclusive"),
-      check(
-        _.addressLine4.lengthMinMaxInclusive(1, 35),
-        "Invalid length of addressLine4, should be between 1 and 35 inclusive"),
-      check(
-        _.postalCode.lengthMinMaxInclusive(1, 10),
-        "Invalid length of postalCode, should be between 1 and 10 inclusive"),
-      check(_.countryCode.isOneOf(Common.countryCodeEnum1), "Invalid countryCode, does not match allowed values")
+      checkProperty(_.addressLine1, addressLine1Validator),
+      checkProperty(_.addressLine2, addressLine2Validator),
+      checkProperty(_.addressLine3, addressLine3Validator),
+      checkProperty(_.addressLine4, addressLine4Validator),
+      checkProperty(_.postalCode, postalCodeValidator),
+      checkProperty(_.countryCode, countryCodeValidator)
     )
 
     override val gen: Gen[UkAddress] = for {
@@ -723,20 +791,26 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     val addressLine2Sanitizer: Update = seed =>
       entity =>
         entity.copy(
-          addressLine2 = entity.addressLine2.orElse(Generator.get(
-            Generator.address4Lines35Gen.map(_.line2).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
+          addressLine2 = addressLine2Validator(entity.addressLine2)
+            .fold(_ => None, _ => entity.addressLine2)
+            .orElse(Generator.get(
+              Generator.address4Lines35Gen.map(_.line2).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
 
     val addressLine3Sanitizer: Update = seed =>
       entity =>
         entity.copy(
-          addressLine3 = entity.addressLine3.orElse(Generator.get(
-            Generator.address4Lines35Gen.map(_.line3).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
+          addressLine3 = addressLine3Validator(entity.addressLine3)
+            .fold(_ => None, _ => entity.addressLine3)
+            .orElse(Generator.get(
+              Generator.address4Lines35Gen.map(_.line3).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
 
     val addressLine4Sanitizer: Update = seed =>
       entity =>
         entity.copy(
-          addressLine4 = entity.addressLine4.orElse(Generator.get(
-            Generator.address4Lines35Gen.map(_.line4).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
+          addressLine4 = addressLine4Validator(entity.addressLine4)
+            .fold(_ => None, _ => entity.addressLine4)
+            .orElse(Generator.get(
+              Generator.address4Lines35Gen.map(_.line4).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
 
     override val sanitizers: Seq[Update] = Seq(addressLine2Sanitizer, addressLine3Sanitizer, addressLine4Sanitizer)
 

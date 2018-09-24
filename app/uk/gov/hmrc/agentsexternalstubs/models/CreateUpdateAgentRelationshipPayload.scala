@@ -61,29 +61,35 @@ object CreateUpdateAgentRelationshipPayload {
 
   import Validator._
 
+  val acknowledgmentReferenceValidator: Validator[String] = check(
+    _.matches(Common.acknowledgmentReferencePattern),
+    s"""Invalid acknowledgmentReference, does not matches regex ${Common.acknowledgmentReferencePattern}"""
+  )
+  val refNumberValidator: Validator[String] = check(
+    _.matches(Common.refNumberPattern),
+    s"""Invalid refNumber, does not matches regex ${Common.refNumberPattern}""")
+  val idTypeValidator: Validator[Option[String]] =
+    check(_.matches(Common.idTypePattern), s"""Invalid idType, does not matches regex ${Common.idTypePattern}""")
+  val agentReferenceNumberValidator: Validator[String] = check(
+    _.matches(Common.agentReferenceNumberPattern),
+    s"""Invalid agentReferenceNumber, does not matches regex ${Common.agentReferenceNumberPattern}""")
+  val regimeValidator: Validator[String] =
+    check(_.matches(Common.regimePattern), s"""Invalid regime, does not matches regex ${Common.regimePattern}""")
+  val authorisationValidator: Validator[Authorisation] = checkProperty(identity, Authorisation.validate)
+  val relationshipTypeValidator: Validator[Option[String]] =
+    check(_.isOneOf(Common.relationshipTypeEnum), "Invalid relationshipType, does not match allowed values")
+  val authProfileValidator: Validator[Option[String]] =
+    check(_.isOneOf(Common.authProfileEnum), "Invalid authProfile, does not match allowed values")
+
   val validate: Validator[CreateUpdateAgentRelationshipPayload] = Validator(
-    check(
-      _.acknowledgmentReference.matches(Common.acknowledgmentReferencePattern),
-      s"""Invalid acknowledgmentReference, does not matches regex ${Common.acknowledgmentReferencePattern}"""
-    ),
-    check(
-      _.refNumber.matches(Common.refNumberPattern),
-      s"""Invalid refNumber, does not matches regex ${Common.refNumberPattern}"""),
-    check(
-      _.idType.matches(Common.idTypePattern),
-      s"""Invalid idType, does not matches regex ${Common.idTypePattern}"""),
-    check(
-      _.agentReferenceNumber.matches(Common.agentReferenceNumberPattern),
-      s"""Invalid agentReferenceNumber, does not matches regex ${Common.agentReferenceNumberPattern}"""
-    ),
-    check(
-      _.regime.matches(Common.regimePattern),
-      s"""Invalid regime, does not matches regex ${Common.regimePattern}"""),
-    checkObject(_.authorisation, Authorisation.validate),
-    check(
-      _.relationshipType.isOneOf(Common.relationshipTypeEnum),
-      "Invalid relationshipType, does not match allowed values"),
-    check(_.authProfile.isOneOf(Common.authProfileEnum), "Invalid authProfile, does not match allowed values")
+    checkProperty(_.acknowledgmentReference, acknowledgmentReferenceValidator),
+    checkProperty(_.refNumber, refNumberValidator),
+    checkProperty(_.idType, idTypeValidator),
+    checkProperty(_.agentReferenceNumber, agentReferenceNumberValidator),
+    checkProperty(_.regime, regimeValidator),
+    checkProperty(_.authorisation, authorisationValidator),
+    checkProperty(_.relationshipType, relationshipTypeValidator),
+    checkProperty(_.authProfile, authProfileValidator)
   )
 
   implicit val formats: Format[CreateUpdateAgentRelationshipPayload] = Json.format[CreateUpdateAgentRelationshipPayload]
@@ -127,7 +133,7 @@ object CreateUpdateAgentRelationshipPayload {
 
   }
 
-  case class Authorise(override val action: String, isExclusiveAgent: Boolean) extends Authorisation {
+  case class Authorise(override val action: String, isExclusiveAgent: Boolean = false) extends Authorisation {
 
     def withAction(action: String): Authorise = copy(action = action)
     def modifyAction(pf: PartialFunction[String, String]): Authorise =
@@ -139,8 +145,10 @@ object CreateUpdateAgentRelationshipPayload {
 
   object Authorise {
 
-    val validate: Validator[Authorise] = Validator(
-      check(_.action.isOneOf(Common.actionEnum1), "Invalid action, does not match allowed values"))
+    val actionValidator: Validator[String] =
+      check(_.isOneOf(Common.actionEnum1), "Invalid action, does not match allowed values")
+
+    val validate: Validator[Authorise] = Validator(checkProperty(_.action, actionValidator))
 
     implicit val formats: Format[Authorise] = Json.format[Authorise]
 
@@ -155,8 +163,10 @@ object CreateUpdateAgentRelationshipPayload {
 
   object Deauthorise {
 
-    val validate: Validator[Deauthorise] = Validator(
-      check(_.action.isOneOf(Common.actionEnum0), "Invalid action, does not match allowed values"))
+    val actionValidator: Validator[String] =
+      check(_.isOneOf(Common.actionEnum0), "Invalid action, does not match allowed values")
+
+    val validate: Validator[Deauthorise] = Validator(checkProperty(_.action, actionValidator))
 
     implicit val formats: Format[Deauthorise] = Json.format[Deauthorise]
 

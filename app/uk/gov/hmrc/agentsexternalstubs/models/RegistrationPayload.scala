@@ -43,12 +43,15 @@ object RegistrationPayload {
 
   import Validator._
 
+  val regimeValidator: Validator[String] =
+    check(_.matches(Common.regimePattern), s"""Invalid regime, does not matches regex ${Common.regimePattern}""")
+  val individualValidator: Validator[Option[Individual]] = checkIfSome(identity, Individual.validate)
+  val organisationValidator: Validator[Option[Organisation]] = checkIfSome(identity, Organisation.validate)
+
   val validate: Validator[RegistrationPayload] = Validator(
-    check(
-      _.regime.matches(Common.regimePattern),
-      s"""Invalid regime, does not matches regex ${Common.regimePattern}"""),
-    checkObjectIfSome(_.individual, Individual.validate),
-    checkObjectIfSome(_.organisation, Organisation.validate),
+    checkProperty(_.regime, regimeValidator),
+    checkProperty(_.individual, individualValidator),
+    checkProperty(_.organisation, organisationValidator),
     checkIfOnlyOneSetIsDefined(Seq(Set(_.individual), Set(_.organisation)), "[{individual},{organisation}]")
   )
 
@@ -69,17 +72,20 @@ object RegistrationPayload {
 
   object Individual {
 
+    val firstNameValidator: Validator[String] = check(
+      _.matches(Common.firstNamePattern),
+      s"""Invalid firstName, does not matches regex ${Common.firstNamePattern}""")
+    val lastNameValidator: Validator[String] = check(
+      _.matches(Common.firstNamePattern),
+      s"""Invalid lastName, does not matches regex ${Common.firstNamePattern}""")
+    val dateOfBirthValidator: Validator[Option[String]] = check(
+      _.matches(Common.dateOfBirthPattern),
+      s"""Invalid dateOfBirth, does not matches regex ${Common.dateOfBirthPattern}""")
+
     val validate: Validator[Individual] = Validator(
-      check(
-        _.firstName.matches(Common.firstNamePattern),
-        s"""Invalid firstName, does not matches regex ${Common.firstNamePattern}"""),
-      check(
-        _.lastName.matches(Common.firstNamePattern),
-        s"""Invalid lastName, does not matches regex ${Common.firstNamePattern}"""),
-      check(
-        _.dateOfBirth.matches(Common.dateOfBirthPattern),
-        s"""Invalid dateOfBirth, does not matches regex ${Common.dateOfBirthPattern}""")
-    )
+      checkProperty(_.firstName, firstNameValidator),
+      checkProperty(_.lastName, lastNameValidator),
+      checkProperty(_.dateOfBirth, dateOfBirthValidator))
 
     implicit val formats: Format[Individual] = Json.format[Individual]
 
@@ -97,14 +103,15 @@ object RegistrationPayload {
 
   object Organisation {
 
+    val organisationNameValidator: Validator[String] = check(
+      _.matches(Common.organisationNamePattern),
+      s"""Invalid organisationName, does not matches regex ${Common.organisationNamePattern}""")
+    val organisationTypeValidator: Validator[String] =
+      check(_.isOneOf(Common.organisationTypeEnum), "Invalid organisationType, does not match allowed values")
+
     val validate: Validator[Organisation] = Validator(
-      check(
-        _.organisationName.matches(Common.organisationNamePattern),
-        s"""Invalid organisationName, does not matches regex ${Common.organisationNamePattern}"""),
-      check(
-        _.organisationType.isOneOf(Common.organisationTypeEnum),
-        "Invalid organisationType, does not match allowed values")
-    )
+      checkProperty(_.organisationName, organisationNameValidator),
+      checkProperty(_.organisationType, organisationTypeValidator))
 
     implicit val formats: Format[Organisation] = Json.format[Organisation]
 

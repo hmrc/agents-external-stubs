@@ -302,7 +302,8 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
   private def generateTypeDefinition(typeDef: TypeDefinition, isTopLevel: Boolean, context: Context): String = {
 
     lazy val classFields = generateClassFields(typeDef)
-    lazy val fieldValidators = generateFieldValidators(typeDef.definition, context)
+    lazy val propertyValidators = generatePropertyValidators(typeDef.definition, context)
+    lazy val objectValidator = generateObjectValidator(typeDef.definition, context)
     lazy val fieldGenerators = generateFieldGenerators(typeDef.definition, context)
     lazy val fieldsInitialization = generateGenFieldsInitialization(typeDef.definition)
     lazy val sanitizers = generateSanitizers(typeDef.definition, context)
@@ -350,12 +351,12 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
            |  """.stripMargin
       else ""
 
-    lazy val validatorsCode: String =
+    lazy val validatorCode: String =
       s"""  ${if (context.isRecordOutputType) "override " else ""}val validate: Validator[${typeDef.name}] = ${if (typeDef.isInterface && typeDef.subtypes.nonEmpty)
         s"{${typeDef.subtypes
           .map(subTypeDef => s"""case x: ${subTypeDef.name}   => ${subTypeDef.name}.validate(x)""")
           .mkString("\n    ")}}"
-      else s"Validator($fieldValidators)"}"""
+      else s"Validator($objectValidator)"}"""
 
     lazy val sanitizersCode: String = if (context.isRecordOutputType) {
       if (typeDef.isInterface && typeDef.subtypes.nonEmpty)
@@ -385,7 +386,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
              .mkString(", ")}"),${(for (i <- typeDef.subtypes.indices)
              yield s"r$i").mkString(",")}))
            |      }
-           |      
+           |
            |      private def aggregateErrors[T](errors: JsResult[T]*): JsError =
            |        errors.foldLeft(JsError())((a, r) =>
            |          r match {
@@ -393,7 +394,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
            |            case _          => a
            |        })
            |  }
-           |    
+           |
            |  implicit val writes: Writes[${typeDef.name}] = new Writes[${typeDef.name}] {
            |    override def writes(o: ${typeDef.name}): JsValue = o match {
            |      ${typeDef.subtypes
@@ -435,7 +436,8 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
        |
        |object ${typeDef.name}${if (context.isRecordOutputType) s" extends RecordUtils[${typeDef.name}]" else ""} {
        |  $recordObjectMembersCode
-       |  $validatorsCode
+       |  $propertyValidators
+       |  $validatorCode
        |  $generatorsCode
        |  $sanitizersCode
        |  $formatsCode
@@ -540,15 +542,25 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
     if (!property.isMandatory && wrapOption) s"""Generator.optionGen($genWithConstraints)""" else genWithConstraints
   }
 
-  private def generateFieldValidators(definition: ObjectDefinition, context: Context): String = {
-    val fieldValidators = definition.properties
+  private def generatePropertyValidators(definition: ObjectDefinition, context: Context): String =
+    definition.properties
       .take(22)
-      .map(prop => generateValueValidator(prop, context))
+      .map(prop => generateValueValidator(prop, context, extractProperty = false).map((prop, _)))
+      .collect {
+        case Some((prop, validator)) =>
+          s"""val ${prop.name}Validator: Validator[${typeOf(prop, "", defaultValue = false)}] = $validator""".stripMargin
+      }
+      .mkString("\n", "\n  ", "\n")
+
+  private def generateObjectValidator(definition: ObjectDefinition, context: Context): String = {
+    val propertyValidatorsCalls = definition.properties
+      .take(22)
+      .map(prop => generateValueValidatorCall(prop, context))
       .collect { case Some(validator) => s"""$validator""".stripMargin }
     val validators =
-      if (definition.alternatives.isEmpty) fieldValidators
+      if (definition.alternatives.isEmpty) propertyValidatorsCalls
       else
-        fieldValidators :+ s"""  checkIfOnlyOneSetIsDefined(${definition.alternatives
+        propertyValidatorsCalls :+ s"""  checkIfOnlyOneSetIsDefined(${definition.alternatives
           .map(_.map(a => {
             definition.properties.find(_.name == a).map(prop => s"_.$a${if (prop.isBoolean) ".asOption" else ""}").get
           }).mkString("Set(", ",", ")"))
@@ -561,36 +573,39 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
   private def generateValueValidator(
     property: Definition,
     context: Context,
-    isMandatory: Boolean = false): Option[String] =
+    isMandatory: Boolean = false,
+    extractProperty: Boolean = true): Option[String] = {
+    val propertyReference = if (extractProperty) s"_.${property.name}" else "_"
+    val propertyExtractor = if (extractProperty) s"_.${property.name}" else "identity"
     property match {
       case s: StringDefinition =>
-        if (s.enum.isDefined) Some(s"""  check(_.${property.name}.isOneOf(${context.commonReference(s"Seq(${s.enum.get
+        if (s.enum.isDefined) Some(s"""  check($propertyReference.isOneOf(${context.commonReference(s"Seq(${s.enum.get
           .mkString("\"", "\",\"", "\"")})")}), "Invalid ${property.name}, does not match allowed values")""")
         else if (s.pattern.isDefined)
-          Some(s"""  check(_.${property.name}.matches(${context
+          Some(s"""  check($propertyReference.matches(${context
             .commonReference(context.commonReference(quoted(s.pattern.get)))}), s${quoted(
             s"Invalid ${property.name}, does not matches regex $${${context.commonReference(quoted(s.pattern.get))}}")})""")
         else if (s.minLength.isDefined && s.maxLength.isDefined)
           Some(
-            s"""  check(_.${property.name}.lengthMinMaxInclusive(${s.minLength.get},${s.maxLength.get}), "Invalid length of ${property.name}, should be between ${s.minLength.get} and ${s.maxLength.get} inclusive")""")
+            s"""  check($propertyReference.lengthMinMaxInclusive(${s.minLength.get},${s.maxLength.get}), "Invalid length of ${property.name}, should be between ${s.minLength.get} and ${s.maxLength.get} inclusive")""")
         else if (s.minLength.isDefined)
           Some(
-            s"""  check(_.${property.name}.lengthMin(${s.minLength.get}),"Invalid length of ${property.name}, minimum length should be ${s.minLength.get}")""")
+            s"""  check($propertyReference.lengthMin(${s.minLength.get}),"Invalid length of ${property.name}, minimum length should be ${s.minLength.get}")""")
         else if (s.maxLength.isDefined)
           Some(
-            s"""  check(_.${property.name}.lengthMax(${s.maxLength.get}),"Invalid length of ${property.name}, maximum length should be ${s.maxLength.get}")""")
+            s"""  check($propertyReference.lengthMax(${s.maxLength.get}),"Invalid length of ${property.name}, maximum length should be ${s.maxLength.get}")""")
         else None
 
       case n: NumberDefinition =>
         (n.minimum, n.maximum, n.multipleOf) match {
           case (Some(min), Some(max), mlt) =>
-            Some(s"""  check(_.${property.name}.inRange(BigDecimal($min),BigDecimal($max),${mlt.map(a =>
+            Some(s"""  check($propertyReference.inRange(BigDecimal($min),BigDecimal($max),${mlt.map(a =>
               s"BigDecimal($a)")}),"Invalid number ${property.name}, must be in range <$min,$max>")""")
           case (None, Some(max), mlt) =>
-            Some(s"""  check(_.${property.name}.lteq(BigDecimal($max),${mlt
+            Some(s"""  check($propertyReference.lteq(BigDecimal($max),${mlt
               .map(a => s"BigDecimal($a)")}),"Invalid number ${property.name}, must be lower than or equal to $max")""")
           case (Some(min), None, mlt) =>
-            Some(s"""  check(_.${property.name}.gteq(BigDecimal($min),${mlt
+            Some(s"""  check($propertyReference.gteq(BigDecimal($min),${mlt
               .map(a => s"BigDecimal($a)")}),"Invalid number ${property.name}, must be greater than or equal to $min")""")
           case _ => None
         }
@@ -600,13 +615,13 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
           case o: ObjectDefinition => Some(s"""${o.typeName}.validate""")
           case x                   => generateValueValidator(x, context)
         }).map(vv =>
-          if (property.isMandatory || isMandatory) s""" checkEach(_.${property.name}, $vv)"""
-          else s"""  checkEachIfSome(_.${property.name}, $vv)""")
+          if (property.isMandatory || isMandatory) s""" checkEach($propertyExtractor, $vv)"""
+          else s"""  checkEachIfSome($propertyExtractor, $vv)""")
 
       case _: ObjectDefinition =>
         if (property.isMandatory || isMandatory)
-          Some(s""" checkObject(_.${property.name}, ${property.typeName}.validate)""")
-        else Some(s"""  checkObjectIfSome(_.${property.name}, ${property.typeName}.validate)""")
+          Some(s""" checkProperty($propertyExtractor, ${property.typeName}.validate)""")
+        else Some(s"""  checkIfSome($propertyExtractor, ${property.typeName}.validate)""")
 
       case o: OneOfDefinition =>
         if (o.variants.isEmpty) None
@@ -615,13 +630,23 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
           o.variants.head match {
             case _: ObjectDefinition =>
               if (property.isMandatory || isMandatory)
-                Some(s""" checkObject(_.${property.name}, ${property.typeName}.validate)""")
-              else Some(s"""  checkObjectIfSome(_.${property.name}, ${property.typeName}.validate)""")
+                Some(s""" checkProperty($propertyExtractor, ${property.typeName}.validate)""")
+              else Some(s"""  checkIfSome($propertyExtractor, ${property.typeName}.validate)""")
             case _ =>
               generateValueValidator(o.variants.head, context, o.isMandatory)
           }
 
       case _: BooleanDefinition => None
+    }
+  }
+
+  private def generateValueValidatorCall(
+    property: Definition,
+    context: Context,
+    isMandatory: Boolean = false): Option[String] =
+    property match {
+      case _: BooleanDefinition => None
+      case _                    => Some(s"""  checkProperty(_.${property.name}, ${property.name}Validator)""")
     }
 
   private def generateSanitizerList(definition: ObjectDefinition): String = {
@@ -661,12 +686,17 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
                }})
          """.stripMargin
         } else {
-          s"""  val ${prop.name}Sanitizer: Update = seed => entity =>
-             |    entity.copy(${prop.name} = entity.${prop.name}.orElse(Generator.get(${generateValueGenerator(
-               prop,
-               context,
-               wrapOption = false)})(seed))${generateSanitizerSuffix(prop)})
-         """.stripMargin
+          if (prop.isPrimitive)
+            s"""  val ${prop.name}Sanitizer: Update = seed => entity =>
+               |    entity.copy(${prop.name} = ${prop.name}Validator(entity.${prop.name}).fold(_ => None, _ => entity.${prop.name})
+               |      .orElse(Generator.get(${generateValueGenerator(prop, context, wrapOption = false)})(seed)))
+           """.stripMargin
+          else
+            s"""  val ${prop.name}Sanitizer: Update = seed => entity =>
+               |    entity.copy(${prop.name} = entity.${prop.name}
+               |      .orElse(Generator.get(${generateValueGenerator(prop, context, wrapOption = false)})(seed))${generateSanitizerSuffix(
+                 prop)})
+           """.stripMargin
       })
 
     val sanitizers =
