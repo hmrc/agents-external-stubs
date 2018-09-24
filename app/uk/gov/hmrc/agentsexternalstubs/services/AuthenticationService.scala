@@ -24,7 +24,7 @@ class AuthenticationService @Inject()(
       case Some(session) => Future.successful(Some(session))
       case None =>
         val planetId =
-          request.session.get("X-Client-ID").orElse(hc.deviceID).getOrElse("hmrc")
+          request.headers.get("X-Client-ID").orElse(hc.deviceID).getOrElse("hmrc")
         externalAuthorisationService.maybeExternalSession(planetId, this.authenticate)
     }
 

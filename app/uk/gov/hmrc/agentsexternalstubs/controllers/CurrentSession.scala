@@ -106,7 +106,7 @@ trait DesCurrentSession extends DesHttpHelpers {
 
   def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(
     ifSessionNotFound: => Future[Result])(implicit request: Request[T], ec: ExecutionContext): Future[Result] =
-    // When DES request comes from authenticated browser session
+    // When DES request originates from an authenticated UI session
     request.headers.get(uk.gov.hmrc.http.HeaderNames.xSessionId) match {
       case Some(sessionId) =>
         (for {
@@ -122,8 +122,8 @@ trait DesCurrentSession extends DesHttpHelpers {
         } yield result)
           .recover(errorHandler)
       case None =>
-        // When DES request comes through api gateway
-        request.session.get("X-Client-ID") match {
+        // When DES request originates from an API gateway
+        request.headers.get("X-Client-ID") match {
           case Some(apiClientId) =>
             (for {
               maybeSession <- authenticationService.findByPlanetId(apiClientId)
@@ -139,7 +139,7 @@ trait DesCurrentSession extends DesHttpHelpers {
               .recover(errorHandler)
           case None =>
             Logger(getClass).warn(
-              s"None of 'X-Session-ID' request header or 'X-Client-ID' session attribute found, cannot guess planetID for DES stubs")
+              s"None of 'X-Session-ID' or 'X-Client-ID' request headers found, cannot guess planetID for DES stubs")
             ifSessionNotFound
         }
     }

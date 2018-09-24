@@ -42,6 +42,10 @@ object AuthContext {
       HeaderNames.COOKIE -> Cookies.encodeCookieHeader(Seq(Session.encodeAsCookie(new Session(session.toMap))))
     )
   }
+
+  def fromHeaders(headerSeq: (String, String)*): AuthContext = new AuthContext {
+    override def headers: Seq[(String, String)] = headerSeq
+  }
 }
 
 case object NotAuthorized extends AuthContext {
