@@ -166,7 +166,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       val hc = HeaderCarrier(authorization = Some(Authorization("Bearer " + UUID.randomUUID().toString)))
       val ec = ExecutionContext.Implicits.global
 
-      await(
+      val existingUser = await(
         usersService.createUser(
           UserGenerator
             .individual("UserFoo", 50, "User")
@@ -186,7 +186,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
           nino = Some(Nino("HW827856C")),
           groupIdentifier = Some("foo-group-2"),
           name = Some(Name(Some("Foo"), Some("Bar"))),
-          dateOfBirth = Some(LocalDate.parse("1993-09-21")),
+          dateOfBirth = existingUser.dateOfBirth,
           agentInformation = None
         )
       )
@@ -204,13 +204,13 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
         Enrolment("HMRC-MTD-VAT", Some(Seq(Identifier("VRN", "405985922"))))
       )
       user.affinityGroup shouldBe Some("Individual")
-      user.confidenceLevel shouldBe Some(200)
+      user.confidenceLevel shouldBe Some(50)
       user.credentialStrength shouldBe Some("strong")
       user.credentialRole shouldBe Some("Admin")
-      user.nino shouldBe Some(Nino("HW827856C"))
-      user.groupId shouldBe Some("foo-group-2")
-      user.name shouldBe Some("Foo Bar")
-      user.dateOfBirth shouldBe Some(LocalDate.parse("1993-09-21"))
+      user.nino shouldBe existingUser.nino
+      user.groupId shouldBe existingUser.groupId
+      user.name shouldBe existingUser.name
+      user.dateOfBirth shouldBe existingUser.dateOfBirth
       user.agentCode shouldBe None
       user.agentFriendlyName shouldBe None
       user.agentId shouldBe None

@@ -96,7 +96,7 @@ class ExternalAuthorisationService @Inject()(
                         s"New session '${session.sessionId}' created on planet '$planetId' from an external user '$userId' authorization.")
                       usersService.findByUserId(userId, planetId).flatMap {
                         case Some(_) =>
-                          usersService.updateUser(session.userId, session.planetId, existing => merge(user, existing))
+                          usersService.updateUser(session.userId, session.planetId, existing => merge(existing, user))
                         case None =>
                           usersService.createUser(user.copy(session.userId), session.planetId)
                       }
@@ -112,21 +112,25 @@ class ExternalAuthorisationService @Inject()(
         }
     }
 
-  private def merge(newUser: User, existing: User): User = User(
-    userId = newUser.userId,
-    groupId = newUser.groupId.orElse(existing.groupId),
-    affinityGroup = newUser.affinityGroup.orElse(existing.affinityGroup),
-    confidenceLevel = newUser.confidenceLevel.orElse(existing.confidenceLevel),
-    credentialStrength = newUser.credentialStrength.orElse(existing.credentialStrength),
-    credentialRole = newUser.credentialRole.orElse(existing.credentialRole),
-    nino = newUser.nino.orElse(existing.nino),
-    principalEnrolments = (newUser.principalEnrolments ++ existing.principalEnrolments).distinct,
-    delegatedEnrolments = (newUser.delegatedEnrolments ++ existing.delegatedEnrolments).distinct,
-    name = newUser.name.orElse(existing.name),
-    dateOfBirth = newUser.dateOfBirth.orElse(existing.dateOfBirth),
-    agentCode = newUser.agentCode.orElse(existing.agentCode),
-    agentFriendlyName = newUser.agentFriendlyName.orElse(existing.agentFriendlyName),
-    agentId = newUser.agentId.orElse(existing.agentId)
+  private def merge(first: User, second: User): User = User(
+    userId = first.userId,
+    groupId = first.groupId.orElse(second.groupId),
+    affinityGroup = first.affinityGroup.orElse(second.affinityGroup),
+    confidenceLevel = first.confidenceLevel.orElse(second.confidenceLevel),
+    credentialStrength = first.credentialStrength.orElse(second.credentialStrength),
+    credentialRole = first.credentialRole.orElse(second.credentialRole),
+    nino = first.nino.orElse(second.nino),
+    principalEnrolments = (first.principalEnrolments ++ second.principalEnrolments).distinct,
+    delegatedEnrolments = (first.delegatedEnrolments ++ second.delegatedEnrolments).distinct,
+    name = first.name.orElse(second.name),
+    dateOfBirth = first.dateOfBirth.orElse(second.dateOfBirth),
+    agentCode = first.agentCode.orElse(second.agentCode),
+    agentFriendlyName = first.agentFriendlyName.orElse(second.agentFriendlyName),
+    agentId = first.agentId.orElse(second.agentId),
+    recordIds = (first.recordIds ++ second.recordIds).distinct,
+    isPermanent = first.isPermanent,
+    isNonCompliant = first.isNonCompliant,
+    planetId = first.planetId
   )
 
 }
