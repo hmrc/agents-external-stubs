@@ -114,7 +114,10 @@ trait DesCurrentSession extends DesHttpHelpers {
           result <- maybeSession match {
                      case Some(session) =>
                        body(session)
-                     case _ => ifSessionNotFound
+                     case _ =>
+                       Logger(getClass).warn(
+                         s"AuthenticatedSession for sessionIs=$sessionId not found, cannot guess planetID for DES stubs")
+                       ifSessionNotFound
                    }
         } yield result)
           .recover(errorHandler)
@@ -127,11 +130,17 @@ trait DesCurrentSession extends DesHttpHelpers {
               result <- maybeSession match {
                          case Some(session) =>
                            body(session)
-                         case _ => ifSessionNotFound
+                         case _ =>
+                           Logger(getClass).warn(
+                             s"AuthenticatedSession for apiClientId=$apiClientId not found, cannot guess planetID for DES stubs")
+                           ifSessionNotFound
                        }
             } yield result)
               .recover(errorHandler)
-          case None => ifSessionNotFound
+          case None =>
+            Logger(getClass).warn(
+              s"None of 'X-Session-ID' request header or 'X-Client-ID' session attribute found, cannot guess planetID for DES stubs")
+            ifSessionNotFound
         }
     }
 
