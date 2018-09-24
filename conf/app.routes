@@ -40,6 +40,7 @@ POST        /registration/organisation/:idType/:idNumber                     @uk
 
 # Authentication
 POST        /agents-external-stubs/sign-in                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.signIn
+GET         /agents-external-stubs/session/current                           @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.currentSession
 GET         /agents-external-stubs/session                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.session(authToken: String)
 GET         /agents-external-stubs/sign-out                                  @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.signOut
 

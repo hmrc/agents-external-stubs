@@ -71,4 +71,10 @@ class SignInController @Inject()(val authenticationService: AuthenticationServic
       }
   }
 
+  def currentSession: Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      okF(session, Link("delete", routes.SignInController.signOut().url))
+    }(notFoundF("MISSING_AUTH_SESSION"))
+  }
+
 }

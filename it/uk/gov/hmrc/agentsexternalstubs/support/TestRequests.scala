@@ -116,6 +116,9 @@ trait TestRequests extends ScalaFutures {
         .get()
         .futureValue
 
+    def currentSession(implicit authContext: AuthContext): WSResponse =
+      get("/agents-external-stubs/session/current")
+
     def signInAndGetSession(
       userId: String = "foo",
       password: String = "p@ssw0rd",

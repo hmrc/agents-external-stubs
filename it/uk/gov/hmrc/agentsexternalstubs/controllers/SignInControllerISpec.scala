@@ -26,6 +26,12 @@ class SignInControllerISpec extends ServerBaseISpec with MongoDB with TestReques
         result.header(HeaderNames.LOCATION) should not be empty
       }
 
+      "authenticate anonymous user and return current session data" in {
+        val authToken = SignIn.signInAndGetSession("foo", "boo").authToken
+        val result = SignIn.currentSession(AuthContext.fromToken(authToken))
+        result.status shouldBe 200
+      }
+
       "authenticate same user again and return new session data" in {
         val session1 = SignIn.signInAndGetSession("foo", "boo")
         val result2 = SignIn.signIn("foo", "boo", planetId = session1.planetId)
@@ -36,7 +42,7 @@ class SignInControllerISpec extends ServerBaseISpec with MongoDB with TestReques
 
     "GET /agents-external-stubs/session" should {
       "return session data" in {
-        val result1 = SignIn.signIn("foo123", "boo", planetId = "C")
+        val result1 = SignIn.signIn("foo123", "boo")
         result1 should haveStatus(201)
         val result2 = SignIn.authSessionFor(result1)
         (result2.json \ "userId").as[String] shouldBe "foo123"
@@ -46,7 +52,7 @@ class SignInControllerISpec extends ServerBaseISpec with MongoDB with TestReques
 
     "GET /agents-external-stubs/sign-out" should {
       "remove authentication" in {
-        val authToken = SignIn.signInAndGetSession("foo", "boo", planetId = "D").authToken
+        val authToken = SignIn.signInAndGetSession("foo", "boo").authToken
         val result = SignIn.signOut(AuthContext.fromToken(authToken))
         result should haveStatus(204)
         result.header(HeaderNames.LOCATION) should be(empty)

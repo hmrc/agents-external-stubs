@@ -9,6 +9,16 @@ You will have to run [UI stubs](https://github.com/hmrc/agents-external-stubs-fr
 
 This app SHOULD NOT be run on QA nor Production environment.
 
+## Principles
+
+- dynamic (data can be changed, no initial data included)
+- permanent (data are persisted until modified or removed)
+- programmable (data can be created and retrieved entirely through the custom API)
+- smart (only minimal input needed, sensibly auto-generates missing values)
+- complete (feels and behaves like real API would)
+- self-contained (does not need any other services to run)
+- easy-to-use (through ergonomic API and complementary UI frontend)
+
 ## Table of contents
 
 * [Stubbed APIs](#stubbed_api)
