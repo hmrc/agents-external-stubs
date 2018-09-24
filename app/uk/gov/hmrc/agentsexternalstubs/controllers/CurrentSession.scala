@@ -106,17 +106,33 @@ trait DesCurrentSession extends DesHttpHelpers {
 
   def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(
     ifSessionNotFound: => Future[Result])(implicit request: Request[T], ec: ExecutionContext): Future[Result] =
+    // When DES request comes from authenticated browser session
     request.headers.get(uk.gov.hmrc.http.HeaderNames.xSessionId) match {
-      case None => ifSessionNotFound
       case Some(sessionId) =>
-        for {
+        (for {
           maybeSession <- authenticationService.findBySessionId(sessionId)
           result <- maybeSession match {
                      case Some(session) =>
-                       body(session).recover(errorHandler)
+                       body(session)
                      case _ => ifSessionNotFound
                    }
-        } yield result
+        } yield result)
+          .recover(errorHandler)
+      case None =>
+        // When DES request comes through api gateway
+        request.session.get("X-Client-ID") match {
+          case Some(apiClientId) =>
+            (for {
+              maybeSession <- authenticationService.findByPlanetId(apiClientId)
+              result <- maybeSession match {
+                         case Some(session) =>
+                           body(session)
+                         case _ => ifSessionNotFound
+                       }
+            } yield result)
+              .recover(errorHandler)
+          case None => ifSessionNotFound
+        }
     }
 
 }

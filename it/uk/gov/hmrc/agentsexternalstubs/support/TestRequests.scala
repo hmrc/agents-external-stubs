@@ -6,7 +6,8 @@ import org.scalatest.concurrent.ScalaFutures
 import play.api.http.{HeaderNames, MimeTypes, Writeable}
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.libs.ws.{WSClient, WSCookie, WSResponse}
-import play.api.mvc.{Cookie, Cookies}
+import play.api.mvc.{Cookie, Cookies, Session}
+import play.api.test.FakeRequest
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, SignInRequest, User}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.logging.Authorization
@@ -33,6 +34,12 @@ object AuthContext {
   def fromCookies(response: WSResponse): AuthContext = new AuthContext with CookieConverter {
     override def headers: Seq[(String, String)] = Seq(
       HeaderNames.COOKIE -> Cookies.encodeCookieHeader(response.cookies.map(x => asCookie(x)))
+    )
+  }
+
+  def fromSession(session: (String, String)*): AuthContext = new AuthContext {
+    override def headers: Seq[(String, String)] = Seq(
+      HeaderNames.COOKIE -> Cookies.encodeCookieHeader(Seq(Session.encodeAsCookie(new Session(session.toMap))))
     )
   }
 }

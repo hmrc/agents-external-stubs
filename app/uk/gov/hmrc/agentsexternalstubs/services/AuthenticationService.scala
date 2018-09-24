@@ -34,6 +34,9 @@ class AuthenticationService @Inject()(
   def findBySessionId(sessionId: String)(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
     authSessionRepository.findBySessionId(sessionId)
 
+  def findByPlanetId(planetId: String)(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
+    authSessionRepository.findByPlanetId(planetId)
+
   def authenticate(request: AuthenticateRequest)(
     implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] = {
     val authToken = request.authTokenOpt.getOrElse(UUID.randomUUID().toString)

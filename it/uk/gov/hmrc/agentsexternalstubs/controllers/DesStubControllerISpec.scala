@@ -38,6 +38,26 @@ class DesStubControllerISpec
         result should haveStatus(200)
       }
 
+      "respond 200 when authorising for ITSA through API gateway" in {
+        SignIn.signInAndGetSession(planetId = "foo123")
+        implicit val apiAuthContext: AuthContext = AuthContext.fromSession("X-Client-ID" -> "foo123")
+
+        val result = DesStub.authoriseOrDeAuthoriseRelationship(
+          Json.parse("""
+                       |{
+                       |   "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+                       |   "refNumber": "012345678901234",  
+                       |   "agentReferenceNumber": "ZARN1234567",  
+                       |   "regime": "ITSA",
+                       |   "authorisation": {    
+                       |     "action": "Authorise",    
+                       |     "isExclusiveAgent": true  
+                       |   }
+                       |}
+                     """.stripMargin))
+        result should haveStatus(200)
+      }
+
       "respond 200 when de-authorising an ITSA relationship" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 

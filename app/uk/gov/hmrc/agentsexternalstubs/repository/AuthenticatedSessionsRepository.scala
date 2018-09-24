@@ -45,6 +45,10 @@ class AuthenticatedSessionsRepository @Inject()(mongoComponent: ReactiveMongoCom
     find(Seq("sessionId" -> Option(sessionId)).map(option => option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*)
       .map(_.headOption)
 
+  def findByPlanetId(planetId: String)(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
+    find(Seq("planetId" -> Option(planetId)).map(option => option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*)
+      .map(_.headOption)
+
   def findByUserId(userId: String)(implicit ec: ExecutionContext): Future[List[AuthenticatedSession]] =
     find(Seq("userId" -> Option(userId)).map(option => option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*)
 
