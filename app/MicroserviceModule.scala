@@ -32,6 +32,7 @@ class MicroserviceModule(val environment: Environment, val configuration: Config
     bindProperty("appName")
     bindProperty("http.port")
     bindProperty("proxies.start")
+    bindProperty("auditing.consumer.baseUri.port")
 
     bindServiceConfigProperty[Int]("auth.port")
     bindServiceConfigProperty[Int]("citizen-details.port")

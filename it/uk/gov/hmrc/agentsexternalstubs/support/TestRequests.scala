@@ -7,7 +7,6 @@ import play.api.http.{HeaderNames, MimeTypes, Writeable}
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.libs.ws.{WSClient, WSCookie, WSResponse}
 import play.api.mvc.{Cookie, Cookies, Session}
-import play.api.test.FakeRequest
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, SignInRequest, User}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.logging.Authorization
@@ -321,6 +320,16 @@ trait TestRequests extends ScalaFutures {
     def registerOrganisation[T: Writeable](idType: String, idNumber: String, payload: T)(
       implicit authContext: AuthContext): WSResponse =
       post(s"/registration/organisation/$idType/$idNumber", payload)
+  }
+
+  object DataStreamStubs {
+
+    def writeAudit(event: String)(implicit authContext: AuthContext): WSResponse =
+      post("/write/audit", event)
+
+    def writeAuditMerged(event: String)(implicit authContext: AuthContext): WSResponse =
+      post("/write/audit/merged", event)
+
   }
 
   object Records {

@@ -18,7 +18,8 @@ case class TcpProxiesConfig @Inject()(
   @Named("users-groups-search.port") usersGroupsSearchPort: Int,
   @Named("enrolment-store-proxy.port") enrolmentStoreProxyPort: Int,
   @Named("tax-enrolments.port") taxEnrolmentsPort: Int,
-  @Named("des.port") desPort: Int) {
+  @Named("des.port") desPort: Int,
+  @Named("auditing.consumer.baseUri.port") dataStreamPort: String) {
 
   val isProxyMode: Boolean = startProxies == "true"
 }
@@ -55,6 +56,7 @@ class TcpProxies @Inject()(tcpProxiesConfig: TcpProxiesConfig, @Named("http.port
     startProxy(tcpProxiesConfig.enrolmentStoreProxyPort, "enrolment-store-proxy")
     startProxy(tcpProxiesConfig.taxEnrolmentsPort, "tax-enrolments")
     startProxy(tcpProxiesConfig.desPort, "des")
+    startProxy(tcpProxiesConfig.dataStreamPort.toInt, "datastream")
 
   } else {
     Logger(getClass).info("TCP proxying feature is switched off")

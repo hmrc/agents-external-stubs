@@ -17,7 +17,7 @@ This app SHOULD NOT be run on QA nor Production environment.
 - smart (only minimal input needed, sensibly auto-generates missing values)
 - complete (feels and behaves like real API would)
 - self-contained (does not need any other services to run)
-- easy-to-use (through ergonomic API and complementary UI frontend)
+- easy-to-use (i.e. ergonomic API and complementary UI frontend)
 
 ## Table of contents
 
@@ -28,6 +28,7 @@ This app SHOULD NOT be run on QA nor Production environment.
     * [Enrolment Store Proxy](#stubbed_api_enrolment_store_proxy)
     * [Tax Enrolments](#stubbed_api_tax_enrolments)
     * [DES](#stubbed_api_des)
+    * [Datastream](#stubbed_api_datastream)
 * [Custom API](#custom_api)
     * [Authentication](#custom_api_authentication)
     * [Users Management](#custom_api_users)
@@ -44,6 +45,7 @@ We handle local requests gracefully and do not require existing applications to 
 - listening on 9984 for users-groups-search requests
 - listening on 7775 for enrolment-store-proxy requests
 - listening on 9904 for des requests
+- listening on 8100 for datastream events
 
 You can switch this behaviour off by setting `proxies.start` config property to `false`.
 
@@ -118,6 +120,16 @@ Endpoint | Description
 `GET  /registration/agents/utr/:utr` | Provides the ability for an Agent to be subscribed into Agents Services, generating the agent reference number.
 `GET  /registration/individual/:idType/:idNumber` | Provides the ability for a Taxpayer (Business or Individual) to register on the master system. In order to utilise this API, the taxpayer must have a valid NINO, UTR or EORI..
 `GET  /registration/organisation/:idType/:idNumber` | Provides the ability for a Taxpayer (Business or Individual) to register on the master system. In order to utilise this API, the taxpayer must have a valid NINO, UTR or EORI..
+
+### [Datastream](https://github.com/hmrc/datastream) <a name="stubbed_api_datastream"></a>
+
+Writes received events to the output stream.
+
+Endpoint | Description
+---|---
+`POST /write/audit` | write audit event
+`POST /write/audit/merged` | write audit event
+
 
 ## Custom API <a name="custom_api"></a>
 

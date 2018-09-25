@@ -6,8 +6,7 @@ import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, UserGenerat
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
 
-class KnownFactsControllerISpec
-    extends ServerBaseISpec with MongoDB with TestRequests with TestStubs with ExampleDesPayloads {
+class KnownFactsControllerISpec extends ServerBaseISpec with MongoDB with TestRequests {
 
   val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]

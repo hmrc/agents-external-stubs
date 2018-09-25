@@ -38,6 +38,10 @@ POST        /registration/agents/utr/:utr                                    @uk
 POST        /registration/individual/:idType/:idNumber                       @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.register(idType: String, idNumber: String)
 POST        /registration/organisation/:idType/:idNumber                     @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.register(idType: String, idNumber: String)
 
+# Datastream
+POST        /write/audit                                                     @uk.gov.hmrc.agentsexternalstubs.controllers.DataStreamStubController.writeEvent
+POST        /write/audit/merged                                              @uk.gov.hmrc.agentsexternalstubs.controllers.DataStreamStubController.writeEvent
+
 # Authentication
 POST        /agents-external-stubs/sign-in                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.signIn
 GET         /agents-external-stubs/session/current                           @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.currentSession
