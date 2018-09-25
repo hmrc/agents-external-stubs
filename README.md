@@ -168,11 +168,11 @@ or
     
     
 #### GET  /agents-external-stubs/session/:authToken
-Get current user authentication details
+Get authentication details
 
 Response | Description
 ---|---
-200| body: `{"userId": "foo", "authToken": "G676JHDJSHJ767676H", "providerType": "GovernmentGateway", "planetId": "your_test_planetId"}`, `Location` header contains link to get the entity
+200| body: `{"userId": "foo", "authToken": "G676JHDJSHJ767676H", "providerType": "GovernmentGateway", "planetId": "your_test_planetId", "sessionId": "your_session_id"}`, `Location` header contains link to get the entity
 404| when `authToken` not found
 
 Example (using [httpie](https://httpie.org/)):
@@ -196,6 +196,14 @@ Example (using [httpie](https://httpie.org/)):
 or
 
     curl -v http://localhost:9009/agents-external-stubs/session?authToken=da7a42f1-7c31-4c0b-b8cb-c9f325457275
+
+#### GET  /agents-external-stubs/session/current
+Get current authentication details
+
+Response | Description
+---|---
+200| body: `{"userId": "foo", "authToken": "G676JHDJSHJ767676H", "providerType": "GovernmentGateway", "planetId": "your_test_planetId", "sessionId": "your_session_id"}`
+
 
 #### GET /agents-external-stubs/sign-out
 Terminate current authentication and invalidate bearer token.
