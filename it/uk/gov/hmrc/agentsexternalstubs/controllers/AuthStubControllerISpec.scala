@@ -164,6 +164,36 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDB with TestRequ
         }
       }
 
+      "throw InsufficientEnrolments if user does not have NINO" in {
+        val id = randomId
+        val authToken = givenAnAuthenticatedUser(User(id), planetId = id)
+        an[InsufficientEnrolments] shouldBe thrownBy {
+          await(
+            authConnector
+              .authorise(Enrolment("HMRC-NI").withIdentifier("NINO", "HW827856C"), EmptyRetrieval)(
+                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+                concurrent.ExecutionContext.Implicits.global))
+        }
+      }
+
+      "authorise if user has an synthetic HMRC-NI enrolment" in {
+        val authToken = givenAnAuthenticatedUser(UserGenerator.individual(randomId))
+        await(
+          authConnector
+            .authorise[Unit](Enrolment("HMRC-NI"), EmptyRetrieval)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global))
+      }
+
+      "authorise if user has an synthetic HMRC-NI enrolment and NINO matches" in {
+        val authToken = givenAnAuthenticatedUser(UserGenerator.individual(randomId, nino = "HW827856C"))
+        await(
+          authConnector
+            .authorise[Unit](Enrolment("HMRC-NI").withIdentifier("NINO", "HW827856C"), EmptyRetrieval)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global))
+      }
+
       "retrieve authorisedEnrolments" in {
         val id = randomId
         val authToken = givenAnAuthenticatedUser(User(id), planetId = id)
@@ -178,6 +208,24 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDB with TestRequ
         enrolments.getEnrolment("HMRC-MTD-IT") shouldBe Some(
           Enrolment("HMRC-MTD-IT", Seq(EnrolmentIdentifier("MTDITID", "236216873678126")), "Activated"))
         enrolments.getEnrolment("IR-SA") shouldBe None
+      }
+
+      "retrieve authorisedEnrolments with HMRC-NI" in {
+        val id = randomId
+        val user = UserGenerator.individual(id)
+        val authToken = givenAnAuthenticatedUser(user, planetId = id)
+        givenUserEnrolledFor(id, planetId = id, "HMRC-MTD-IT", "MTDITID", "236216873678126")
+        givenUserEnrolledFor(id, planetId = id, "IR-SA", "UTR", "1234567890")
+
+        val enrolments = await(
+          authConnector
+            .authorise[Enrolments](Enrolment("HMRC-NI"), Retrievals.authorisedEnrolments)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global))
+        enrolments.getEnrolment("HMRC-MTD-IT") shouldBe None
+        enrolments.getEnrolment("IR-SA") shouldBe None
+        enrolments.getEnrolment("HMRC-NI") shouldBe Some(
+          Enrolment("HMRC-NI", Seq(EnrolmentIdentifier("NINO", user.nino.get.value)), "Activated"))
       }
 
       "retrieve allEnrolments" in {
@@ -196,6 +244,27 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDB with TestRequ
           Enrolment("HMRC-MTD-IT", Seq(EnrolmentIdentifier("MTDITID", "236216873678126")), "Activated"))
         enrolments.getEnrolment("IR-SA") shouldBe Some(
           Enrolment("IR-SA", Seq(EnrolmentIdentifier("UTR", "1234567890")), "Activated"))
+      }
+
+      "retrieve allEnrolments with HMRC-NI" in {
+        val id = randomId
+        val user = UserGenerator.individual(id)
+        val authToken = givenAnAuthenticatedUser(user, planetId = id)
+        givenUserEnrolledFor(id, planetId = id, "HMRC-MTD-IT", "MTDITID", "236216873678126")
+        givenUserEnrolledFor(id, planetId = id, "IR-SA", "UTR", "1234567890")
+
+        val enrolments = await(
+          authConnector
+            .authorise[Enrolments](EmptyPredicate, Retrievals.allEnrolments)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global))
+        enrolments.getEnrolment("foo") shouldBe None
+        enrolments.getEnrolment("HMRC-MTD-IT") shouldBe Some(
+          Enrolment("HMRC-MTD-IT", Seq(EnrolmentIdentifier("MTDITID", "236216873678126")), "Activated"))
+        enrolments.getEnrolment("IR-SA") shouldBe Some(
+          Enrolment("IR-SA", Seq(EnrolmentIdentifier("UTR", "1234567890")), "Activated"))
+        enrolments.getEnrolment("HMRC-NI") shouldBe Some(
+          Enrolment("HMRC-NI", Seq(EnrolmentIdentifier("NINO", user.nino.get.value)), "Activated"))
       }
 
       "authorize if confidenceLevel matches" in {

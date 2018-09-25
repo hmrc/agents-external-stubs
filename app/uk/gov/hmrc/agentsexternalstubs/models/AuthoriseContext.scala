@@ -30,7 +30,10 @@ case class FullAuthoriseContext(user: User, authenticatedSession: AuthenticatedS
 
   override def providerType: String = authenticatedSession.providerType
 
-  override def principalEnrolments: Seq[Enrolment] = user.principalEnrolments
+  override def principalEnrolments: Seq[Enrolment] =
+    if (user.affinityGroup.contains(User.AG.Individual) && user.nino.isDefined)
+      user.principalEnrolments :+ Enrolment("HMRC-NI", "NINO", nino.get.value)
+    else user.principalEnrolments
 
   override def delegatedEnrolments: Seq[Enrolment] = user.delegatedEnrolments
 

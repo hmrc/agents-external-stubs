@@ -1,6 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 import play.api.Logger
-import play.api.libs.json.{JsValue, Json, OWrites, Writes}
+import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.mvc.{Request, Result, Results}
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, User}
@@ -32,7 +32,6 @@ trait CurrentSession extends HttpHelpers {
     hc: HeaderCarrier): Future[Result] =
     request.headers.get(HeaderNames.AUTHORIZATION) match {
       case None =>
-        Logger(getClass).info(s"Missing Authorization HTTP header.")
         ifSessionNotFound
       case Some(BearerToken(authToken)) =>
         (for {
