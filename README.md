@@ -2,8 +2,8 @@
 
 [ ![Download](https://api.bintray.com/packages/hmrc/releases/agents-external-stubs/images/download.svg) ](https://bintray.com/hmrc/releases/agents-external-stubs/_latestVersion)
 
-This microservice is part of Agent Services local testing framework, 
-providing dynamic stubs for 3rd party upstream services.
+Agents External Stubs is the primary stub you need to run and test Agent Services locally and in other stubbed environments. 
+It replaces gg-stubs and agents-stubs together with auth, company-auth-frontend, enrolment-store-proxy, tax-enrolments, users-groups-search, citizen-details, DES and even datastream. 
 
 You will have to run [UI stubs](https://github.com/hmrc/agents-external-stubs-frontend) as well in order to be able to sign-in seamlessly into your application.
 
@@ -12,12 +12,13 @@ This app SHOULD NOT be run on QA nor Production environment.
 ## Principles
 
 - dynamic (data can be changed, no initial data included)
-- permanent (data are persisted until modified or removed)
+- persistent (data are persisted until modified or removed)
 - programmable (data can be created and retrieved entirely through the custom API)
 - smart (only minimal input needed, sensibly auto-generates missing values)
 - complete (feels and behaves like real API would)
+- multi-tenant (test data are sandboxed into planets, multiple data planets can co-exist)
 - self-contained (does not need any other services to run)
-- easy-to-use (i.e. ergonomic API and complementary UI frontend)
+- easy-to-use (through ergonomic API and complementary UI frontend)
 
 ## Table of contents
 
