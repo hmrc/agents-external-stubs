@@ -56,7 +56,9 @@ object KnownFacts {
             kf.verifiers.size == kf.verifiers.map(_.key).distinct.size,
             (),
             s"Known facts verifiers must represent distinct keys, unlike $kf")
-          .andThen(_ => kf.verifiers.map(v => validateVerifier(v, service)).reduce(_ combine _))
+          .andThen(_ =>
+            if (kf.verifiers.nonEmpty) kf.verifiers.map(v => validateVerifier(v, service)).reduce(_ combine _)
+            else Valid(()))
   }
 
   def validateVerifier(knownFact: KnownFact, service: Service): Validated[String, Unit] =
