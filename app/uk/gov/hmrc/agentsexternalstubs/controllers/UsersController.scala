@@ -4,7 +4,7 @@ import javax.inject.{Inject, Singleton}
 import play.api.libs.json.JsValue
 import play.api.mvc.{Action, AnyContent}
 import play.mvc.Http.HeaderNames
-import uk.gov.hmrc.agentsexternalstubs.models.{User, UserBrief, Users}
+import uk.gov.hmrc.agentsexternalstubs.models.{User, Users}
 import uk.gov.hmrc.agentsexternalstubs.repository.DuplicateUserException
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.http.NotFoundException

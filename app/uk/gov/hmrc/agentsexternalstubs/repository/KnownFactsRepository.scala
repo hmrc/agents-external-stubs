@@ -110,7 +110,7 @@ class KnownFactsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent
       .remove(
         KnownFacts.UNIQUE_KEY -> toJsFieldJsValueWrapper(KnownFacts.uniqueKey(enrolmentKey.tag, planetId))
       )(ec)
-      .flatMap(MongoHelper.interpretWriteResultUnit)
+      .map(_ => ())
 
   def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     remove(PLANET_ID -> Option(planetId)).map(_ => ())

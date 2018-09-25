@@ -27,7 +27,7 @@ import reactivemongo.api.{Cursor, CursorProducer, ReadPreference}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.core.errors.DatabaseException
 import reactivemongo.play.json.ImplicitBSONHandlers
-import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, User, UserBrief}
+import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, User}
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 

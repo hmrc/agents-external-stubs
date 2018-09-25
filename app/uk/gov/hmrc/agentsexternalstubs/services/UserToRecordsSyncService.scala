@@ -249,13 +249,13 @@ class UserToRecordsSyncService @Inject()(
   )
 
   final val syncUserToRecords: SaveRecordId => Option[User] => Future[Unit] = saveRecordId => {
-    case None => Future.successful(())
-    case Some(user) =>
+    case Some(user) if user.isNonCompliant.forall(_ == false) =>
       Future
         .sequence(
           userRecordsSyncOperations
             .map(f => if (f(saveRecordId).isDefinedAt(user)) f(saveRecordId)(user) else Future.successful(())))
         .map(_.reduce((_, _) => ()))
+    case _ => Future.successful(())
   }
 
   final val syncAfterUserRemoved: User => Future[Unit] =
