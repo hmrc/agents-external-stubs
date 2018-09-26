@@ -204,18 +204,15 @@ class DesStubController @Inject()(
             case ("utr", utr) =>
               businessPartnerRecordsService
                 .getBusinessPartnerRecord(Utr(utr), session.planetId)
-                .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId)(record =>
-                  record.isAnAgent == payload.isAnAgent))
+                .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId)(record => true))
             case ("nino", nino) =>
               businessPartnerRecordsService
                 .getBusinessPartnerRecord(Nino(nino), session.planetId)
-                .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId)(record =>
-                  record.isAnAgent == payload.isAnAgent))
+                .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId)(record => true))
             case ("eori", eori) =>
               businessPartnerRecordsService
                 .getBusinessPartnerRecordByEori(eori, session.planetId)
-                .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId)(record =>
-                  record.isAnAgent == payload.isAnAgent))
+                .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId)(record => true))
           }
         }
       }(SessionRecordNotFound)

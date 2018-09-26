@@ -20,7 +20,7 @@ class ExternalAuthorisationService @Inject()(
   @Named("auth-baseUrl") authBaseUrl: URL) {
 
   final def maybeExternalSession(
-    planetId: String,
+    _planetId: String,
     createNewAuthentication: AuthenticateRequest => Future[Option[AuthenticatedSession]])(
     implicit ec: ExecutionContext,
     hc: HeaderCarrier): Future[Option[AuthenticatedSession]] =
@@ -59,7 +59,10 @@ class ExternalAuthorisationService @Inject()(
         .flatMap {
           case Some(response) =>
             val creds = response.credentials.getOrElse(throw new Exception("Missing credentials"))
-            val userId = creds.providerId
+            val at = creds.providerId.indexOf('@')
+            val (userId, planetId) =
+              if (at >= 0) (creds.providerId.substring(0, at), creds.providerId.substring(at + 1))
+              else (creds.providerId, _planetId)
             val user = User(
               userId = userId,
               groupId = response.groupIdentifier,

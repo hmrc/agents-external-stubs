@@ -380,7 +380,7 @@ class DesStubControllerISpec
         )
       }
 
-      "return 404 if an existing BPR does not match expectations" in {
+      "return an existing BPR even if asAnAgent flags does not match" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val createResult = Records.createBusinessPartnerRecord(
@@ -396,7 +396,12 @@ class DesStubControllerISpec
         createResult should haveStatus(201)
 
         val result = DesStub.registerIndividual("nino", "HW827856C", Json.parse(validIndividualSubmission))
-        result should haveStatus(404)
+        result should haveStatus(200)
+        result should haveValidJsonBody(
+          haveProperty[String]("safeId", be("XA0000000000001")) and haveProperty[String]("nino", be("HW827856C")) and haveProperty[
+            JsObject]("individual") and notHaveProperty("organisation") and haveProperty[Boolean]("isAnAgent", be(true)) and haveProperty[
+            Boolean]("isAnASAgent", be(false))
+        )
       }
     }
   }
