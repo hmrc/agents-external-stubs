@@ -3,6 +3,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 import java.util.UUID
 
 import javax.inject.{Inject, Singleton}
+import play.api.Logger
 import play.api.mvc.Request
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticateRequest, AuthenticatedSession}
 import uk.gov.hmrc.agentsexternalstubs.repository.AuthenticatedSessionsRepository
@@ -24,7 +25,13 @@ class AuthenticationService @Inject()(
       case Some(session) => Future.successful(Some(session))
       case None =>
         val planetId =
-          request.headers.get("X-Client-ID").orElse(hc.deviceID).getOrElse("hmrc")
+          request.headers
+            .get("X-Client-ID")
+            .orElse(hc.deviceID)
+            .getOrElse({
+              Logger(getClass).info(s"Headers considered: ${request.headers.headers.mkString(", ")}")
+              "hmrc"
+            })
         externalAuthorisationService.maybeExternalSession(planetId, this.authenticate)
     }
 
