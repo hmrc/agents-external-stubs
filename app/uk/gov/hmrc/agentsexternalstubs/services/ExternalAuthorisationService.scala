@@ -98,7 +98,10 @@ class ExternalAuthorisationService @Inject()(
                         case Some(_) =>
                           usersService.updateUser(session.userId, session.planetId, existing => merge(existing, user))
                         case None =>
-                          usersService.createUser(user.copy(session.userId), session.planetId)
+                          for {
+                            fixed <- usersService.checkAndFixUser(user, planetId)
+                            user  <- usersService.createUser(fixed.copy(session.userId), session.planetId)
+                          } yield user
                       }
                     case _ => Future.successful(None)
                   }

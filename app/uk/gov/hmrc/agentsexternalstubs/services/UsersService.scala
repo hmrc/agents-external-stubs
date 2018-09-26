@@ -278,4 +278,35 @@ class UsersService @Inject()(
   private def removeEnrolment(enrolments: Seq[Enrolment], key: EnrolmentKey): Seq[Enrolment] =
     enrolments.filterNot(_.matches(key))
 
+  def checkAndFixUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] =
+    user.affinityGroup match {
+      case Some(User.AG.Agent) =>
+        CheckAndFix.checkAndFixAgentCode(user, planetId)
+
+      case Some(User.AG.Individual) =>
+        CheckAndFix.checkAndFixNino(user, planetId)
+
+      case _ => Future.successful(user)
+    }
+
+  object CheckAndFix {
+
+    def checkAndFixAgentCode(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] =
+      user.agentCode
+        .map(ac =>
+          for {
+            duplicateAgentCode <- usersRepository.findByAgentCode(ac, planetId)(1).map(_.nonEmpty)
+          } yield if (duplicateAgentCode) user.copy(agentCode = Some(UserGenerator.agentCode(user.userId))) else user)
+        .getOrElse(Future.successful(user))
+
+    def checkAndFixNino(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] =
+      user.nino
+        .map(nino =>
+          for {
+            duplicatedNino <- usersRepository.findByNino(nino.value, planetId).map(_.isDefined)
+          } yield if (duplicatedNino) user.copy(nino = Some(UserGenerator.ninoNoSpaces(user.userId))) else user)
+        .getOrElse(Future.successful(user))
+
+  }
+
 }
