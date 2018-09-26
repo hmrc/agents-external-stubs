@@ -82,4 +82,30 @@ object KnownFacts {
         }
       KnownFacts(enrolmentKey, verifiers)
     })
+
+  val knownFactSanitizer: Service => String => KnownFact => KnownFact = service =>
+    seed =>
+      entity =>
+        service.getKnownFact(entity.key) match {
+          case None => entity
+          case Some(knownFact) =>
+            if (entity.value.isEmpty || !entity.value.matches(knownFact.regex))
+              entity.copy(value = Generator.get(knownFact.valueGenerator)(seed).getOrElse(""))
+            else entity
+  }
+
+  val verifiersSanitizer: String => KnownFacts => KnownFacts = seed =>
+    entity => {
+      Services(entity.enrolmentKey.service) match {
+        case None => entity
+        case Some(service) => {
+          val verifiers =
+            service.knownFacts.map(kf => entity.verifiers.find(_.key == kf.name).getOrElse(KnownFact(kf.name, "")))
+          entity.copy(verifiers = verifiers.map(knownFactSanitizer(service)(seed)))
+        }
+      }
+  }
+
+  def sanitize(s: String)(entity: KnownFacts): KnownFacts =
+    Seq(verifiersSanitizer).foldLeft(entity)((u, fx) => fx(s)(u))
 }

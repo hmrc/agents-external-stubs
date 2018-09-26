@@ -325,6 +325,44 @@ Removes the record
 #### GET /agents-external-stubs/known-facts/:enrolmentKey
 Get known facts (enrolment) information
 
+Response | Description
+---|---
+200| EnrolmentInfo entity if found
+404| enrolmentKey not found
+
+#### POST /agents-external-stubs/known-facts
+Creates new known facts (enrolment)
+
+Payload: KnownFacts entity 
+
+    {   
+        "enrolmentKey": "HMRC-MTD-IT~MTDITID~XC1234567890987", 
+        "verifiers": [ 
+            { "key": "NINO", "value": "AB087054B" }
+        ] 
+    }
+
+Response | Description
+---|---
+201| new known facts created
+
+#### PUT /agents-external-stubs/known-facts/:enrolmentKey
+Upserts known facts (enrolment)
+
+Response | Description
+---|---
+201| new known facts created
+202| known facts updated
+404| enrolmentKey not found
+
+#### DELETE /agents-external-stubs/known-facts/:enrolmentKey
+Remove known facts (enrolment), do not removes users allocations and assignments
+
+Response | Description
+---|---
+204| known fact removed
+404| enrolmentKey not found
+
 ### Test Planets Management <a name="custom_api_planets"></a>
 
 #### DELETE /agents-external-stubs/planets/:planetId

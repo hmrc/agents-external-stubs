@@ -1,9 +1,8 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import play.api.libs.json.{JsArray, JsObject}
+import play.api.libs.json.{JsArray, JsObject, Json}
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, UserGenerator}
-import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, KnownFacts, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.support._
 
 class KnownFactsControllerISpec extends ServerBaseISpec with MongoDB with TestRequests {
@@ -32,6 +31,80 @@ class KnownFactsControllerISpec extends ServerBaseISpec with MongoDB with TestRe
             haveProperty[Seq[JsObject]]("agents", have(size(1))) and
             haveProperty[JsArray]("_links")
         )
+      }
+    }
+
+    "POST /agents-external-stubs/known-facts" should {
+      "create a sanitized known fact and return 201" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val enrolmentKey = "HMRC-MTD-IT~MTDITID~XAAA12345678901"
+
+        val result = KnownFacts.createKnownFacts(Json.parse(s"""
+                                                               |{ "enrolmentKey": "$enrolmentKey",
+                                                               | "verifiers": [
+                                                               |   {
+                                                               |     "key": "NINO",
+                                                               |     "value": ""
+                                                               |   }
+                                                               |  ]
+                                                               |} """.stripMargin))
+        result should haveStatus(201)
+
+        val feedback = KnownFacts.getKnownFacts(enrolmentKey)
+        feedback should haveStatus(200)
+        feedback should haveValidJsonBody(
+          haveProperty[String]("enrolmentKey", be(enrolmentKey)) and
+            haveProperty[Seq[JsObject]](
+              "verifiers",
+              eachElement(haveProperty[String]("key") and
+                haveProperty[String]("value"))))
+      }
+    }
+
+    "PUT /agents-external-stubs/known-facts/:enrolmentKey" should {
+      "sanitize and update known fact and return 201" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val enrolmentKey = "HMRC-MTD-IT~MTDITID~XAAA12345678901"
+        Users.create(UserGenerator.individual("foo1").withPrincipalEnrolment(enrolmentKey))
+
+        val result = KnownFacts.upsertKnownFacts(
+          enrolmentKey,
+          Json.parse(s"""
+                        |{ "enrolmentKey": "$enrolmentKey",
+                        | "verifiers": [
+                        |   {
+                        |     "key": "NINO",
+                        |     "value": "AB087054B"
+                        |   }
+                        |  ]
+                        |} """.stripMargin)
+        )
+        result should haveStatus(202)
+
+        val feedback = KnownFacts.getKnownFacts(enrolmentKey)
+        feedback should haveStatus(200)
+        feedback should haveValidJsonBody(
+          haveProperty[String]("enrolmentKey", be(enrolmentKey)) and
+            haveProperty[Seq[JsObject]](
+              "verifiers",
+              eachElement(haveProperty[String]("key") and
+                haveProperty[String]("value"))))
+        feedback.json.as[uk.gov.hmrc.agentsexternalstubs.models.KnownFacts].getVerifierValue("NINO") shouldBe Some(
+          "AB087054B")
+      }
+    }
+
+    "DELETE /agents-external-stubs/known-facts/:enrolmentKey" should {
+      "remove known fact and return 204" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val enrolmentKey = "HMRC-MTD-IT~MTDITID~XAAA12345678901"
+        Users.create(UserGenerator.individual("foo1").withPrincipalEnrolment(enrolmentKey))
+
+        val result = KnownFacts.deleteKnownFacts(enrolmentKey)
+        result should haveStatus(204)
+
+        val feedback = KnownFacts.getKnownFacts(enrolmentKey)
+        feedback should haveStatus(404)
       }
     }
   }

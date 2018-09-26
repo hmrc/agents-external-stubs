@@ -75,7 +75,10 @@ POST        /agents-external-stubs/records/relationship                      @uk
 GET         /agents-external-stubs/records/relationship/generate             @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generateRelationship(seed: Option[String] ?= None, minimal: Boolean ?= false)
 
 # Known facts management
+POST        /agents-external-stubs/known-facts                               @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.createKnownFacts
 GET         /agents-external-stubs/known-facts/:enrolmentKey                 @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.getKnownFacts(enrolmentKey: EnrolmentKey)
+PUT         /agents-external-stubs/known-facts/:enrolmentKey                 @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.upsertKnownFacts(enrolmentKey: EnrolmentKey)
+DELETE      /agents-external-stubs/known-facts/:enrolmentKey                 @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.deleteKnownFacts(enrolmentKey: EnrolmentKey)
 
 # Config management
 GET         /agents-external-stubs/config/services                           @uk.gov.hmrc.agentsexternalstubs.controllers.ConfigController.getServices

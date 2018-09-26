@@ -443,6 +443,16 @@ trait TestRequests extends ScalaFutures {
   object KnownFacts {
     def getKnownFacts(enrolmentKey: String)(implicit authContext: AuthContext): WSResponse =
       get(s"/agents-external-stubs/known-facts/$enrolmentKey")
+
+    def createKnownFacts[T: Writeable](payload: T)(implicit authContext: AuthContext): WSResponse =
+      post(s"/agents-external-stubs/known-facts", payload)
+
+    def upsertKnownFacts[T: Writeable](enrolmentKey: String, payload: T)(
+      implicit authContext: AuthContext): WSResponse =
+      put(s"/agents-external-stubs/known-facts/$enrolmentKey", payload)
+
+    def deleteKnownFacts(enrolmentKey: String)(implicit authContext: AuthContext): WSResponse =
+      delete(s"/agents-external-stubs/known-facts/$enrolmentKey")
   }
 
   object Config {
