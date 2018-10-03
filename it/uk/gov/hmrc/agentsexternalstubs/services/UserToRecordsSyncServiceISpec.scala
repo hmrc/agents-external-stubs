@@ -84,13 +84,19 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
       val knownFacts = await(
         knownFactsRepository
           .findByEnrolmentKey(EnrolmentKey.from("HMRC-MTD-VAT", "VRN" -> "923456788"), planetId))
-      val dateOpt = knownFacts.flatMap(_.getVerifierValue("VATRegistrationDate").map(LocalDate.parse(_, formatter1)))
+      val dateOpt = knownFacts.flatMap(
+        _.getVerifierValue("VATRegistrationDate")
+          .map(LocalDate.parse(_, formatter1))
+          .map(date => if (date.isAfter(LocalDate.now())) date.minusYears(100) else date))
 
       val result = await(vatCustomerInformationRecordsService.getCustomerInformation("923456788", planetId))
       result.flatMap(_.approvedInformation.flatMap(_.customerDetails.organisationName)) shouldBe Some("ABC123 Corp.")
       result.flatMap(
         _.approvedInformation
-          .flatMap(_.customerDetails.effectiveRegistrationDate.map(LocalDate.parse(_, formatter2)))) shouldBe dateOpt
+          .flatMap(
+            _.customerDetails.effectiveRegistrationDate
+              .map(LocalDate.parse(_, formatter2))
+          )) shouldBe dateOpt
 
       await(usersService.updateUser(user.userId, planetId, user => user.copy(name = Some("Foo Bar"))))
 
@@ -98,7 +104,10 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
       result2.flatMap(_.approvedInformation.flatMap(_.customerDetails.organisationName)) shouldBe Some("Foo Bar")
       result2.flatMap(
         _.approvedInformation
-          .flatMap(_.customerDetails.effectiveRegistrationDate.map(LocalDate.parse(_, formatter2)))) shouldBe dateOpt
+          .flatMap(
+            _.customerDetails.effectiveRegistrationDate
+              .map(LocalDate.parse(_, formatter2))
+          )) shouldBe dateOpt
 
       val userWithRecordId = await(usersService.findByUserId(user.userId, planetId))
       userWithRecordId.map(_.recordIds).get should not be empty

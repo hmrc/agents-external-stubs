@@ -82,7 +82,11 @@ class UserToRecordsSyncService @Inject()(
         .getOrElse(throw new IllegalStateException("Expected individual having VRN identifier."))
       knownFactsRepository
         .findByEnrolmentKey(EnrolmentKey.from("HMRC-MTD-VAT", "VRN" -> vrn), user.planetId.get)
-        .map(_.flatMap(_.getVerifierValue("VATRegistrationDate").map(LocalDate.parse(_, dateFormatddMMyy))))
+        .map(
+          _.flatMap(
+            _.getVerifierValue("VATRegistrationDate")
+              .map(LocalDate.parse(_, dateFormatddMMyy))
+              .map(date => if (date.isAfter(LocalDate.now())) date.minusYears(100) else date)))
         .flatMap(vatRegistrationDateOpt => {
           val record = VatCustomerInformationRecord
             .generate(user.userId)
@@ -124,7 +128,11 @@ class UserToRecordsSyncService @Inject()(
         .getOrElse(throw new IllegalStateException("Expected individual having VRN identifier."))
       knownFactsRepository
         .findByEnrolmentKey(EnrolmentKey.from("HMRC-MTD-VAT", "VRN" -> vrn), user.planetId.get)
-        .map(_.flatMap(_.getVerifierValue("VATRegistrationDate").map(LocalDate.parse(_, dateFormatddMMyy))))
+        .map(
+          _.flatMap(
+            _.getVerifierValue("VATRegistrationDate")
+              .map(LocalDate.parse(_, dateFormatddMMyy))
+              .map(date => if (date.isAfter(LocalDate.now())) date.minusYears(100) else date)))
         .flatMap(vatRegistrationDateOpt => {
           val record = VatCustomerInformationRecord
             .generate(user.userId)
