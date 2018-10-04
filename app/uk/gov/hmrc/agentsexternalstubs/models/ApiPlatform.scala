@@ -8,7 +8,6 @@ object ApiPlatform {
   case class TestUser(
     userId: String,
     userFullName: String,
-    affinityGroup: String,
     services: Seq[String],
     emailAddress: Option[String] = None,
     password: Option[String] = None,
@@ -25,7 +24,12 @@ object ApiPlatform {
     lisaManRefNum: Option[String] = None,
     secureElectronicTransferReferenceNumber: Option[String] = None,
     pensionSchemeAdministratorIdentifier: Option[String] = None
-  )
+  ) {
+    val affinityGroup: String =
+      if (individualDetails.isDefined) User.AG.Individual
+      else if (organisationDetails.isDefined) User.AG.Organisation
+      else User.AG.Agent
+  }
 
   case class Address(line1: String, line2: String, postcode: String)
   case class IndividualDetails(firstName: String, lastName: String, dateOfBirth: LocalDate, address: Address)
