@@ -6,7 +6,7 @@ import java.util.UUID
 
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.UkAddress
-import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.{BusinessDetailsRecord, EnrolmentKey, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.agentsexternalstubs.support._
 import uk.gov.hmrc.domain.Nino
@@ -31,12 +31,26 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
         .withPrincipalEnrolment("HMRC-MTD-IT", "MTDITID", "123456789098765")
 
       val theUser = await(usersService.createUser(user, planetId))
-
+      println(theUser)
       val result1 = await(businessDetailsRecordsService.getBusinessDetails(theUser.nino.get, planetId))
       result1.map(_.mtdbsa) shouldBe Some("123456789098765")
       val result2 =
         await(businessDetailsRecordsService.getBusinessDetails(MtdItId("123456789098765"), planetId))
       result2.map(_.nino) shouldBe Some(theUser.nino.get.value.replace(" ", ""))
+      result2.flatMap(_.businessData).flatMap(_.head.businessAddressDetails).map {
+        case BusinessDetailsRecord
+              .UkAddress(addressLine1, addressLine2, _, _, postalCode, countryCode) =>
+          addressLine1 shouldBe theUser.address.get.line1.get
+          addressLine2 shouldBe theUser.address.get.line2
+          postalCode shouldBe theUser.address.flatMap(_.postcode).get
+          countryCode shouldBe "GB"
+        case BusinessDetailsRecord
+              .ForeignAddress(addressLine1, addressLine2, _, _, postalCode, countryCode) =>
+          addressLine1 shouldBe theUser.address.get.line1.get
+          addressLine2 shouldBe theUser.address.get.line2
+          postalCode shouldBe theUser.address.flatMap(_.postcode)
+          countryCode shouldBe theUser.address.get.countryCode.get
+      }
 
       await(usersService.updateUser(user.userId, planetId, user => user.copy(nino = Some(Nino("HW827856C")))))
 
@@ -119,12 +133,13 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
         .agent("foo", agentFriendlyName = "ABC123")
         .withPrincipalEnrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "XARN0001230")
 
-      await(usersService.createUser(user, planetId))
+      val theUser = await(usersService.createUser(user, planetId))
 
       val knownFacts = await(
         knownFactsRepository
           .findByEnrolmentKey(EnrolmentKey.from("HMRC-AS-AGENT", "AgentReferenceNumber" -> "XARN0001230"), planetId))
       val postcodeOpt = knownFacts.flatMap(_.getVerifierValue("AgencyPostcode"))
+      postcodeOpt shouldBe theUser.address.flatMap(_.postcode)
 
       val result = await(businessPartnerRecordsService.getBusinessPartnerRecord(Arn("XARN0001230"), planetId))
       result.flatMap(_.agencyDetails.flatMap(_.agencyName)) shouldBe Some("ABC123")

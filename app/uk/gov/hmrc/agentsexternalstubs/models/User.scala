@@ -2,7 +2,6 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import cats.data.Validated.{Invalid, Valid}
 import org.joda.time.LocalDate
-import play.api.libs.functional.FunctionalBuilder
 import play.api.libs.json._
 import uk.gov.hmrc.domain.Nino
 
@@ -27,7 +26,8 @@ case class User(
   isNonCompliant: Option[Boolean] = None,
   complianceIssues: Option[Seq[String]] = None,
   isPermanent: Option[Boolean] = None,
-  recordIds: Seq[String] = Seq.empty
+  recordIds: Seq[String] = Seq.empty,
+  address: Option[User.Address] = None
 ) {
 
   def isIndividual: Boolean = affinityGroup.contains(User.AG.Individual)
@@ -52,9 +52,30 @@ case class User(
   def lastName: Option[String] = name.map(_.split(" ").last)
 
   def withRecordId(recordId: String): User = copy(recordIds = recordIds :+ recordId)
+
+  final val facts: String => Option[String] = {
+    case n if n.toLowerCase.contains("postcode") => address.flatMap(_.postcode)
+    case _                                       => None
+  }
 }
 
 object User {
+
+  case class Address(
+    line1: Option[String] = None,
+    line2: Option[String] = None,
+    line3: Option[String] = None,
+    line4: Option[String] = None,
+    postcode: Option[String] = None,
+    countryCode: Option[String] = None) {
+
+    def isUKAddress: Boolean = countryCode.contains("GB")
+
+  }
+
+  object Address {
+    implicit lazy val formats: Format[Address] = Json.format[Address]
+  }
 
   object AG {
     final val Individual = "Individual"
@@ -233,7 +254,8 @@ object User {
       (JsPath \ "isNonCompliant").readNullable[Boolean] and
       (JsPath \ "complianceIssues").readNullable[Seq[String]] and
       (JsPath \ "isPermanent").readNullable[Boolean] and
-      (JsPath \ "recordIds").readNullable[Seq[String]].map(_.map(_.distinct).getOrElse(Seq.empty))
+      (JsPath \ "recordIds").readNullable[Seq[String]].map(_.map(_.distinct).getOrElse(Seq.empty)) and
+      (JsPath \ "address").readNullable[Address]
   )(User.apply _)
 
   val plainWrites: OWrites[User] = Json.writes[User]

@@ -98,6 +98,9 @@ trait Generator extends Names with Temporal with Companies with Addresses {
   lazy val vrnGen: Gen[String] = pattern"9999999".gen.map(VrnChecksum.apply).retryUntil(Vrn.isValid)
   def vrn(seed: String): Vrn = vrnGen.map(Vrn.apply).seeded(seed).get
 
+  lazy val eoriGen: Gen[String] = pattern"ZZ999999999999".gen
+  def eori(seed: String): String = eoriGen.seeded(seed).get
+
   def chooseBigDecimal(min: Double, max: Double, multipleOf: Option[Double]): Gen[BigDecimal] =
     Gen
       .chooseNum[Double](min.toDouble, max.toDouble)
@@ -158,10 +161,12 @@ trait Generator extends Names with Temporal with Companies with Addresses {
   lazy val tradingNameGen: Gen[String] = company
 
   lazy val `date_dd/MM/yy` = DateTimeFormatter.ofPattern("dd/MM/yy")
+  lazy val `date_dd/MM/yyyy` = DateTimeFormatter.ofPattern("dd/MM/yyyy")
   lazy val `date_yyyy-MM-dd` = DateTimeFormatter.ofPattern("yyyy-MM-dd")
   lazy val `date_MMM` = DateTimeFormatter.ofPattern("MMM")
 
   lazy val dateDDMMYYGen: Gen[String] = date(1970, 2017).map(_.format(`date_dd/MM/yy`))
+  lazy val dateDDMMYYYYGen: Gen[String] = date(1970, 2017).map(_.format(`date_dd/MM/yyyy`))
   lazy val dateYYYYMMDDGen: Gen[String] = date(1970, 2017).map(_.format(`date_yyyy-MM-dd`))
   lazy val shortMonthNameGen: Gen[String] = date(1970, 2017).map(_.format(`date_MMM`).toUpperCase)
 
@@ -170,6 +175,7 @@ trait Generator extends Names with Temporal with Companies with Addresses {
     "utr"             -> utrGen,
     "mtditid"         -> mtdbsaGen,
     "vrn"             -> vrnGen,
+    "eori"            -> eoriGen,
     "nino"            -> ninoNoSpacesGen,
     "ninoWithSpaces"  -> ninoWithSpacesGen,
     "email"           -> emailGen,
@@ -177,7 +183,8 @@ trait Generator extends Names with Temporal with Companies with Addresses {
     "phoneNumber"     -> ukPhoneNumber,
     "date:dd/MM/yy"   -> dateDDMMYYGen,
     "date:yyyy-MM-dd" -> dateYYYYMMDDGen,
-    "date:MMM"        -> shortMonthNameGen
+    "date:MMM"        -> shortMonthNameGen,
+    "date:dd/MM/yyyy" -> dateDDMMYYYYGen
   )
 
   lazy val knownRegex: Map[String, Gen[String]] = Map(

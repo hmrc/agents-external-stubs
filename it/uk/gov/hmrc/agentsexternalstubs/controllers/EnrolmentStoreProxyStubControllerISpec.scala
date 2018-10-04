@@ -198,7 +198,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
           .setKnownFacts(
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
-              .generate("IR-SA~UTR~12345678")
+              .generate("IR-SA~UTR~12345678", _ => None)
               .getOrElse(throw new Exception("Could not generate known facts")))
         Users.update(UserGenerator.individual(userId = "00000000123166122235", groupId = "group1"))
 
@@ -255,7 +255,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
           .setKnownFacts(
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
-              .generate("IR-SA~UTR~12345678")
+              .generate("IR-SA~UTR~12345678", _ => None)
               .getOrElse(throw new Exception("Could not generate known facts")))
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
@@ -281,7 +281,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
           .setKnownFacts(
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
-              .generate("IR-SA~UTR~12345678")
+              .generate("IR-SA~UTR~12345678", _ => None)
               .getOrElse(throw new Exception("Could not generate known facts")))
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
@@ -307,7 +307,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
           .setKnownFacts(
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
-              .generate("IR-SA~UTR~12345678")
+              .generate("IR-SA~UTR~12345678", _ => None)
               .getOrElse(throw new Exception("Could not generate known facts")))
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
@@ -330,7 +330,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
           .setKnownFacts(
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
-              .generate("IR-SA~UTR~12345678")
+              .generate("IR-SA~UTR~12345678", _ => None)
               .getOrElse(throw new Exception("Could not generate known facts")))
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
@@ -352,7 +352,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
           .setKnownFacts(
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
-              .generate("IR-SA~UTR~12345678")
+              .generate("IR-SA~UTR~12345678", _ => None)
               .getOrElse(throw new Exception("Could not generate known facts")))
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(

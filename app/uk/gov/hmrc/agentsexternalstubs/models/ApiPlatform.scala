@@ -1,0 +1,98 @@
+package uk.gov.hmrc.agentsexternalstubs.models
+import org.joda.time.LocalDate
+import play.api.libs.json.{Format, Json}
+import uk.gov.hmrc.domain.{EmpRef, Nino}
+
+object ApiPlatform {
+
+  case class TestUser(
+    userId: String,
+    userFullName: String,
+    affinityGroup: String,
+    services: Seq[String],
+    emailAddress: Option[String] = None,
+    password: Option[String] = None,
+    individualDetails: Option[IndividualDetails] = None,
+    organisationDetails: Option[OrganisationDetails] = None,
+    saUtr: Option[String] = None,
+    nino: Option[String] = None,
+    mtdItId: Option[String] = None,
+    eoriNumber: Option[String] = None,
+    empRef: Option[EmpRef] = None,
+    ctUtr: Option[String] = None,
+    vrn: Option[String] = None,
+    arn: Option[String] = None,
+    lisaManRefNum: Option[String] = None,
+    secureElectronicTransferReferenceNumber: Option[String] = None,
+    pensionSchemeAdministratorIdentifier: Option[String] = None
+  )
+
+  case class Address(line1: String, line2: String, postcode: String)
+  case class IndividualDetails(firstName: String, lastName: String, dateOfBirth: LocalDate, address: Address)
+  case class OrganisationDetails(name: String, address: Address)
+
+  object TestUser {
+
+    implicit lazy val formats1: Format[Address] = Json.format[Address]
+    implicit lazy val formats2: Format[IndividualDetails] = Json.format[IndividualDetails]
+    implicit lazy val formats3: Format[OrganisationDetails] = Json.format[OrganisationDetails]
+    implicit lazy val formats4: Format[TestUser] = Json.format[TestUser]
+
+    def asUser(testUser: TestUser): User = User(
+      userId = testUser.userId,
+      affinityGroup = Option(testUser.affinityGroup),
+      confidenceLevel = if (testUser.affinityGroup == User.AG.Individual) Some(200) else None,
+      credentialStrength = Some("strong"),
+      nino = if (testUser.affinityGroup == User.AG.Individual) testUser.nino.map(Nino.apply) else None,
+      name = (testUser.affinityGroup match {
+        case User.AG.Individual   => testUser.individualDetails.map(d => d.firstName + " " + d.lastName)
+        case User.AG.Organisation => testUser.organisationDetails.map(d => d.name)
+        case _                    => None
+      }).orElse(Option(testUser.userFullName)),
+      dateOfBirth =
+        if (testUser.affinityGroup == User.AG.Individual) testUser.individualDetails.map(_.dateOfBirth) else None,
+      agentFriendlyName = if (testUser.affinityGroup == User.AG.Agent) Some(testUser.userFullName) else None,
+      principalEnrolments = mapServicesToEnrolments(testUser),
+      address = (testUser.affinityGroup match {
+        case User.AG.Individual   => testUser.individualDetails.map(_.address)
+        case User.AG.Organisation => testUser.organisationDetails.map(_.address)
+        case _                    => None
+      }).map(
+        a =>
+          User.Address(
+            line1 = Option(a.line1),
+            line2 = Option(a.line2),
+            postcode = Option(a.postcode),
+            countryCode = Some("GB")))
+    )
+
+    def mapServicesToEnrolments(testUser: ApiPlatform.TestUser): Seq[Enrolment] =
+      testUser.services
+        .map {
+          case "national-insurance" => None
+          case "self-assessment"    => testUser.saUtr.map(Enrolment("IR-SA", "UTR", _))
+          case "corporation-tax"    => testUser.ctUtr.map(Enrolment("IR-CT", "UTR", _))
+          case "paye-for-employers" =>
+            testUser.empRef.map(
+              empRef =>
+                Enrolment(
+                  "IR-PAYE",
+                  Some(
+                    Seq(
+                      Identifier("TaxOfficeNumber", empRef.taxOfficeNumber),
+                      Identifier("TaxOfficeReference", empRef.taxOfficeReference)))))
+          case "submit-vat-returns" => testUser.vrn.map(Enrolment("HMCE-VATDEC-ORG", "VATRegNo", _))
+          case "mtd-vat"            => testUser.vrn.map(Enrolment("HMRC-MTD-VAT", "VRN", _))
+          case "mtd-income-tax"     => testUser.mtdItId.map(Enrolment("HMRC-MTD-IT", "MTDITID", _))
+          case "agent-services"     => testUser.arn.map(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", _))
+          case "lisa"               => testUser.lisaManRefNum.map(Enrolment("HMRC-LISA-ORG", "ZREF", _))
+          case "secure-electronic-transfer" =>
+            testUser.secureElectronicTransferReferenceNumber.map(Enrolment("HMRC-SET-ORG", "SETReference", _))
+          case "relief-at-source" =>
+            testUser.pensionSchemeAdministratorIdentifier.map(Enrolment("HMRC-PSA-ORG", "PSAID", _))
+          case "customs-services" => testUser.eoriNumber.map(Enrolment("HMRC-CUS-ORG", "EORINumber", _))
+        }
+        .collect { case Some(x) => x }
+  }
+
+}

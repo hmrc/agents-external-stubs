@@ -194,7 +194,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
       entity.copy(
         eori = eoriValidator(entity.eori)
           .fold(_ => None, _ => entity.eori)
-          .orElse(Generator.get(Generator.regex(Common.eoriPattern))(seed)))
+          .orElse(Generator.get(Generator.eoriGen)(seed)))
 
   val individualSanitizer: Update = seed =>
     entity =>
@@ -819,6 +819,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
   }
 
   object Common {
+    val eoriPattern = """^[A-z]{2}[0-9]{10,15}$"""
     val ninoPattern = """^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$"""
     val phoneNumberPattern = """^[A-Z0-9 )/(*#-]+$"""
     val countryCodeEnum0 = Seq(
@@ -1083,6 +1084,5 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     val safeIdPattern = """^X[A-Z]000[0-9]{10}$"""
     val utrPattern = """^[0-9]{1,10}$"""
     val agentReferenceNumberPattern = """^[A-Z](ARN)[0-9]{7}$"""
-    val eoriPattern = """^[A-Z]{2}[0-9]{12}$"""
   }
 }

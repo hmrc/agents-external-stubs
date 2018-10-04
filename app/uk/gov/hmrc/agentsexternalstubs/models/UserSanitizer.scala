@@ -139,6 +139,35 @@ object UserSanitizer extends RecordUtils[User] {
       user.copy(delegatedEnrolments = modifiedDelegatedEnrolments)
   }
 
+  private def sanitizeAddress(addressOpt: Option[User.Address], seed: String): Option[User.Address] = {
+    val newAddress = Generator.address(seed)
+    addressOpt match {
+      case None =>
+        Some(
+          User.Address(
+            line1 = Some(newAddress.street.take(35)),
+            line2 = Some(newAddress.town.take(35)),
+            postcode = Some(newAddress.postcode),
+            countryCode = Some("GB")))
+      case Some(address) =>
+        Some(
+          address.copy(
+            line1 = address.line1.map(_.take(35)).orElse(Some(newAddress.street.take(35))),
+            line2 = address.line2.map(_.take(35)).orElse(Some(newAddress.town.take(35))),
+            postcode = UserValidator
+              .postalCodeValidator(address.postcode)
+              .fold(_ => None, _ => address.postcode)
+              .orElse(Generator.get(Generator.postcode)(seed)),
+            countryCode = UserValidator
+              .countryCodeValidator(address.countryCode)
+              .fold(_ => None, _ => address.countryCode)
+              .orElse(Some("GB"))
+          ))
+    }
+  }
+
+  private val ensureUserHaveAddress: Update = seed => user => user.copy(address = sanitizeAddress(user.address, seed))
+
   override val sanitizers: Seq[Update] =
     Seq(
       ensureUserHaveGroupIdentifier,
@@ -151,6 +180,7 @@ object UserSanitizer extends RecordUtils[User] {
       ensureAgentHaveAgentCode,
       ensureAgentHaveAgentId,
       ensureAgentHaveFriendlyName,
+      ensureUserHaveAddress,
       ensurePrincipalEnrolmentsHaveIdentifiers,
       ensureDelegatedEnrolmentsHaveIdentifiers
     )

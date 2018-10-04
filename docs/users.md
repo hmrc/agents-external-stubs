@@ -50,6 +50,12 @@ Agents External Stubs let you define, authenticate and authorise test users usin
         ],
         "name" : "Nicholas Brady",
         "dateOfBirth" : "1980-05-15",
+        "address" : {
+          "line1" : "72 Sidmouth Drive",
+          "line2" : "Torquay",
+          "postcode" : "TQ19 6KJ",
+          "countryCode" : "GB"
+        },
         "planetId" : "Alpha"
       
     }
@@ -73,6 +79,12 @@ Agents External Stubs let you define, authenticate and authorise test users usin
             }
         ],
         "name" : "Dai-ich",
+        "address" : {
+           "line1" : "72 Sidmouth Drive",
+           "line2" : "Torquay",
+           "postcode" : "TQ19 6KJ",
+           "countryCode" : "GB"
+        },
         "planetId" : "Alpha"
     }
     
@@ -109,5 +121,11 @@ Agents External Stubs let you define, authenticate and authorise test users usin
         "agentCode" : "OCILEJ135897",
         "agentFriendlyName" : "Pritchard Professional",
         "agentId" : "451484",
+        "address" : {
+          "line1" : "72 Sidmouth Drive",
+          "line2" : "Torquay",
+          "postcode" : "TQ19 6KJ",
+          "countryCode" : "GB"
+        },
         "planetId" : "Alpha"
     }

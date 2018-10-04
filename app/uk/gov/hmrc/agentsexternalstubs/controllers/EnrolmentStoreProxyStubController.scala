@@ -172,9 +172,9 @@ object EnrolmentStoreProxyStubController {
 
     implicit val formats: Format[SetKnownFactsRequest] = Json.format[SetKnownFactsRequest]
 
-    def generate(enrolmentKey: String): Option[SetKnownFactsRequest] =
+    def generate(enrolmentKey: String, alreadyKnownFacts: String => Option[String]): Option[SetKnownFactsRequest] =
       KnownFacts
-        .generate(EnrolmentKey(enrolmentKey), enrolmentKey)
+        .generate(EnrolmentKey(enrolmentKey), enrolmentKey, alreadyKnownFacts)
         .map(kf => SetKnownFactsRequest(kf.verifiers, Some(Legacy(kf.verifiers))))
   }
 

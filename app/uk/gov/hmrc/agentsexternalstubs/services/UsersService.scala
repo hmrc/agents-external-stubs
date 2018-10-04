@@ -147,7 +147,7 @@ class UsersService @Inject()(
     Future
       .sequence(
         user.principalEnrolments
-          .map(_.toEnrolmentKey.flatMap(ek => KnownFacts.generate(ek, user.userId)))
+          .map(_.toEnrolmentKey.flatMap(ek => KnownFacts.generate(ek, user.userId, user.facts)))
           .collect { case Some(x) => x }
           .map(knownFacts => knownFactsRepository.upsert(knownFacts, planetId)))
       .map(_ => ())

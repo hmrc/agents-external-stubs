@@ -99,6 +99,7 @@ object Validator {
     def isTrue(test: String => Boolean): Boolean = value.forall(test(_))
     def matches(regex: String): Boolean = value.forall(_.matches(regex))
     def isOneOf(seq: Seq[String]): Boolean = value.forall(seq.contains)
+    def isOneOf(set: Set[String]): Boolean = value.forall(set.apply)
   }
 
   implicit class BigDecimalMatchers(val value: BigDecimal) extends AnyVal {

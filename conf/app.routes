@@ -53,6 +53,7 @@ GET         /agents-external-stubs/users                                     @uk
 GET         /agents-external-stubs/users/:userId                             @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.getUser(userId: String)
 PUT         /agents-external-stubs/users/:userId                             @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.updateUser(userId: String)
 POST        /agents-external-stubs/users                                     @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.createUser
+POST        /agents-external-stubs/users/api-platform                        @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.createApiPlatformTestUser
 DELETE      /agents-external-stubs/users/:userId                             @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.deleteUser(userId: String)
 
 # Records management

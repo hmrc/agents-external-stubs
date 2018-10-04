@@ -1,6 +1,8 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
+import org.joda.time.LocalDate
 import play.api.http.Status
+import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models._
@@ -168,6 +170,127 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
         users2.map(_.userId) should contain.only("foo1")
         users2.flatMap(_.affinityGroup) should contain.only("Individual")
       }
+    }
+
+    "POST /agents-external-stubs/users/api-platform" should {
+      "store a new individual user" in {
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        val userId = "apitestuser"
+        val utr = Generator.utr(userId)
+        val nino = Generator.ninoNoSpaces(userId)
+        val payload = Json.parse(s"""{
+                                    |   "userId": "$userId",
+                                    |   "userFullName": "API Test User",
+                                    |   "emailAddress": "user@api.gov.uk",
+                                    |   "affinityGroup": "Individual",
+                                    |   "saUtr": "$utr",
+                                    |   "nino": "$nino",
+                                    |   "individualDetails": {
+                                    |      "firstName": "Test",
+                                    |      "lastName": "User",
+                                    |      "dateOfBirth": "1972-12-23",
+                                    |      "address": {
+                                    |        "line1": "11 High Lane",
+                                    |        "line2": "Croydon",
+                                    |        "postcode": "CR12 3XZ"
+                                    |      }
+                                    |   },
+                                    |   "services": [
+                                    |      "self-assessment"
+                                    |   ]
+                                    |}
+      """.stripMargin)
+        println(Json.prettyPrint(payload))
+
+        val result = Users.createApiPlatformTestUser(payload)
+
+        result should haveStatus(201)
+        result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/apitestuser")
+        val user = Users.get(userId).json.as[User]
+        user.affinityGroup shouldBe Some(User.AG.Individual)
+        user.nino shouldBe Some(nino)
+        user.dateOfBirth shouldBe Some(LocalDate.parse("1972-12-23"))
+        user.name shouldBe Some("Test User")
+        user.principalEnrolments should contain(Enrolment("IR-SA", "UTR", utr))
+        user.facts("businesspostcode") shouldBe Some("CR12 3XZ")
+      }
+    }
+
+    "store a new organisation user" in {
+      implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+      val userId = "apitestuser"
+      val utr = Generator.utr(userId)
+      val eori = Generator.eori(userId)
+      val vrn = Generator.vrn(userId).value
+      val payload = Json.parse(s"""{
+                                  |   "userId": "$userId",
+                                  |   "userFullName": "API Test User",
+                                  |   "emailAddress": "user@api.gov.uk",
+                                  |   "affinityGroup": "Organisation",
+                                  |   "ctUtr": "$utr",
+                                  |   "eoriNumber": "$eori",
+                                  |   "vrn": "$vrn",
+                                  |   "organisationDetails": {
+                                  |      "name": "Test Organisation User",
+                                  |      "address": {
+                                  |        "line1": "11 High Lane",
+                                  |        "line2": "Croydon",
+                                  |        "postcode": "CR12 3XZ"
+                                  |      }
+                                  |   },
+                                  |   "services": [
+                                  |      "corporation-tax",
+                                  |      "customs-services",
+                                  |      "mtd-vat",
+                                  |      "submit-vat-returns"
+                                  |   ]
+                                  |}
+      """.stripMargin)
+      println(Json.prettyPrint(payload))
+
+      val result = Users.createApiPlatformTestUser(payload)
+
+      result should haveStatus(201)
+      result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/apitestuser")
+      val user = Users.get(userId).json.as[User]
+      user.affinityGroup shouldBe Some(User.AG.Organisation)
+      user.nino shouldBe None
+      user.dateOfBirth shouldBe None
+      user.name shouldBe Some("Test Organisation User")
+      user.principalEnrolments should contain(Enrolment("IR-CT", "UTR", utr))
+      user.principalEnrolments should contain(Enrolment("HMRC-CUS-ORG", "EORINumber", eori))
+      user.principalEnrolments should contain(Enrolment("HMRC-MTD-VAT", "VRN", vrn))
+      user.principalEnrolments should contain(Enrolment("HMCE-VATDEC-ORG", "VATRegNo", vrn))
+      user.facts("Postcode") shouldBe Some("CR12 3XZ")
+    }
+
+    "store a new agent user" in {
+      implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+      val userId = "apitestuser"
+      val arn = Generator.arn(userId).value
+      val payload = Json.parse(s"""{
+                                  |   "userId": "$userId",
+                                  |   "userFullName": "API Test User",
+                                  |   "emailAddress": "user@api.gov.uk",
+                                  |   "affinityGroup": "Agent",
+                                  |   "arn": "$arn",
+                                  |   "services": [
+                                  |      "agent-services"
+                                  |   ]
+                                  |}
+      """.stripMargin)
+      println(Json.prettyPrint(payload))
+
+      val result = Users.createApiPlatformTestUser(payload)
+
+      result should haveStatus(201)
+      result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/apitestuser")
+      val user = Users.get(userId).json.as[User]
+      user.affinityGroup shouldBe Some(User.AG.Agent)
+      user.nino shouldBe None
+      user.dateOfBirth shouldBe None
+      user.name shouldBe Some("API Test User")
+      user.principalEnrolments should contain.only(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", arn))
     }
   }
 }

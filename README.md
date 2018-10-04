@@ -287,6 +287,20 @@ Response | Description
 204| user has been removed
 404| when userId not found
 
+#### POST /agents-external-stubs/users/api-platform
+Create a new user from api-platform test user. (_requires valid bearer token_)
+
+*Payload*
+
+[API Platform test user](docs/api-platform-test-user.md)
+
+Response | Description
+---|---
+201| when user created, `Location` header contains link to get the entity
+400| when user payload has not passed validation
+404| when `userId` not found
+409| when `userId` already exists or any other unique constraint violation
+
 ### Test Master Records Management <a name="custom_api_records"></a>
 
 #### GET /agents-external-stubs/records

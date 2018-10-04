@@ -263,6 +263,33 @@ class UserValidatorSpec extends UnitSpec {
           .isValid shouldBe false
       }
     }
+
+    "validate only when address is none or valid" in {
+      val user = UserGenerator.agent()
+      UserValidator.validate(user.copy(address = None)).isValid shouldBe true
+      UserValidator.validate(user.copy(address = Some(User.Address()))).isValid shouldBe true
+      UserValidator.validate(user.copy(address = Some(User.Address(line1 = Some("f"))))).isValid shouldBe true
+      UserValidator.validate(user.copy(address = Some(User.Address(line1 = Some("f" * 35))))).isValid shouldBe true
+      UserValidator.validate(user.copy(address = Some(User.Address(line2 = Some("f"))))).isValid shouldBe true
+      UserValidator.validate(user.copy(address = Some(User.Address(line3 = Some("f"))))).isValid shouldBe true
+      UserValidator.validate(user.copy(address = Some(User.Address(line4 = Some("f"))))).isValid shouldBe true
+      UserValidator.validate(user.copy(address = Some(User.Address(postcode = Some("CX12 6BU"))))).isValid shouldBe true
+      UserValidator.validate(user.copy(address = Some(User.Address(countryCode = Some("GB"))))).isValid shouldBe true
+      UserValidator.validate(user.copy(address = Some(User.Address(countryCode = Some("GB"))))).isValid shouldBe true
+      UserValidator.validate(user.copy(address = Some(User.Address(countryCode = None)))).isValid shouldBe true
+
+      UserValidator.validate(user.copy(address = Some(User.Address(postcode = Some("CX12"))))).isValid shouldBe false
+      UserValidator.validate(user.copy(address = Some(User.Address(postcode = Some(""))))).isValid shouldBe false
+      UserValidator.validate(user.copy(address = Some(User.Address(line1 = Some(""))))).isValid shouldBe false
+      UserValidator.validate(user.copy(address = Some(User.Address(line2 = Some(""))))).isValid shouldBe false
+      UserValidator.validate(user.copy(address = Some(User.Address(line3 = Some(""))))).isValid shouldBe false
+      UserValidator.validate(user.copy(address = Some(User.Address(line4 = Some(""))))).isValid shouldBe false
+      UserValidator.validate(user.copy(address = Some(User.Address(line1 = Some("a" * 36))))).isValid shouldBe false
+      UserValidator.validate(user.copy(address = Some(User.Address(line2 = Some("a" * 36))))).isValid shouldBe false
+      UserValidator.validate(user.copy(address = Some(User.Address(line3 = Some("a" * 36))))).isValid shouldBe false
+      UserValidator.validate(user.copy(address = Some(User.Address(line4 = Some("a" * 36))))).isValid shouldBe false
+      UserValidator.validate(user.copy(address = Some(User.Address(countryCode = Some(""))))).isValid shouldBe false
+    }
   }
 
 }

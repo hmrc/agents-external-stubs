@@ -187,6 +187,24 @@ class UserSanitizerSpec extends UnitSpec {
         .flatMap(_.identifiers.get.map(_.value))
         .filter(_.nonEmpty) should not be empty
     }
+
+    "add missing address" in {
+      val address = UserSanitizer.sanitize(User("foo")).address
+      address shouldBe defined
+      address.get.postcode shouldBe defined
+      address.get.line1 shouldBe defined
+      address.get.line2 shouldBe defined
+      address.get.countryCode shouldBe defined
+    }
+
+    "add missing address fields" in {
+      val address = UserSanitizer.sanitize(User("foo", address = Some(User.Address(line1 = Some("foo"))))).address
+      address shouldBe defined
+      address.get.postcode shouldBe defined
+      address.get.line1 shouldBe defined
+      address.get.line2 shouldBe defined
+      address.get.countryCode shouldBe defined
+    }
   }
 
 }

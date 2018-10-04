@@ -180,6 +180,9 @@ trait TestRequests extends ScalaFutures {
         .withHeaders(authContext.headers: _*)
         .delete()
         .futureValue
+
+    def createApiPlatformTestUser[T: Writeable](payload: T)(implicit authContext: AuthContext): WSResponse =
+      post("/agents-external-stubs/users/api-platform", payload)
   }
 
   object CitizenDetailsStub {

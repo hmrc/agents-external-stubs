@@ -4,6 +4,7 @@ import java.time.format.DateTimeFormatter
 
 import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Utr}
+import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.BusinessData
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{AgencyDetails, Individual, UkAddress}
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, IndividualName}
 import uk.gov.hmrc.agentsexternalstubs.models._
@@ -30,48 +31,66 @@ class UserToRecordsSyncService @Inject()(
 
   val businessDetailsForMtdItIndividual: UserRecordsSync = saveRecordId => {
     case User.Individual(user) if user.principalEnrolments.exists(_.key == "HMRC-MTD-IT") => {
-      val nino = user.nino.map(_.value.replace(" ", "")).getOrElse(Generator.ninoNoSpaces(user.userId).value)
+      val nino = user.nino
+        .map(_.value.replace(" ", ""))
+        .getOrElse(Generator.ninoNoSpaces(user.userId).value)
       val mtdbsa = user
         .findIdentifierValue("HMRC-MTD-IT", "MTDITID")
         .getOrElse(Generator.mtdbsa(user.userId).value)
-      knownFactsRepository
-        .findByEnrolmentKey(EnrolmentKey.from("HMRC-MTD-IT", "MTDITID" -> mtdbsa), user.planetId.get)
-        .map(_.flatMap(_.getVerifierValue("businesspostcode")))
-        .flatMap(businessPostcodeOpt => {
-          val address = BusinessDetailsRecord.UkAddress
-            .generate(user.userId)
-            .modifyPostalCode {
-              case pc => businessPostcodeOpt.getOrElse(pc)
-            }
-          val record = BusinessDetailsRecord
-            .generate(user.userId)
-            .withNino(nino)
-            .withMtdbsa(mtdbsa)
-            .modifyBusinessData {
-              case Some(businessData :: _) =>
-                Some(
-                  Seq(
-                    businessData
-                      .withCessationDate(None)
-                      .withCessationReason(None)
-                      .withBusinessAddressDetails(Some(address))
-                  ))
-            }
-          val maybeRecord1 = businessDetailsRecordsService.getBusinessDetails(Nino(nino), user.planetId.get)
-          val maybeRecord2 = businessDetailsRecordsService.getBusinessDetails(MtdItId(mtdbsa), user.planetId.get)
-          Future
-            .sequence(Seq(maybeRecord1, maybeRecord2))
-            .map(_.collect { case Some(x) => x })
-            .map(_.toList match {
-              case r1 :: r2 :: Nil if r1.id == r2.id => record.withId(r2.id)
-              case r :: Nil                          => record.withId(r.id)
-              case Nil                               => record
-            })
-            .flatMap(entity =>
-              businessDetailsRecordsService
-                .store(entity, autoFill = false, user.planetId.get)
-                .flatMap(saveRecordId))
+
+      val address = user.address
+        .map(
+          a =>
+            if (a.isUKAddress)
+              BusinessDetailsRecord.UkAddress(
+                addressLine1 = a.line1.getOrElse("1 Kingdom Road"),
+                addressLine2 = a.line2,
+                addressLine3 = a.line3,
+                addressLine4 = a.line4,
+                postalCode = a.postcode.getOrElse(""),
+                countryCode = a.countryCode.getOrElse("GB")
+              )
+            else
+              BusinessDetailsRecord.ForeignAddress(
+                addressLine1 = a.line1.getOrElse("2 Foreign Road"),
+                addressLine2 = a.line2,
+                addressLine3 = a.line3,
+                addressLine4 = a.line4,
+                postalCode = a.postcode,
+                countryCode = a.countryCode.getOrElse("IE")
+            ))
+        .getOrElse(BusinessDetailsRecord.UkAddress.generate(user.userId))
+
+      val record = BusinessDetailsRecord
+        .generate(user.userId)
+        .withNino(nino)
+        .withMtdbsa(mtdbsa)
+        .modifyBusinessData {
+          case Some(businessData :: _) =>
+            Some(
+              Seq(
+                businessData
+                  .withCessationDate(None)
+                  .withCessationReason(None)
+                  .withBusinessAddressDetails(Some(address))
+              ))
+        }
+      val maybeRecord1 = businessDetailsRecordsService.getBusinessDetails(Nino(nino), user.planetId.get)
+      val maybeRecord2 = businessDetailsRecordsService.getBusinessDetails(MtdItId(mtdbsa), user.planetId.get)
+      Future
+        .sequence(Seq(maybeRecord1, maybeRecord2))
+        .map(_.collect { case Some(x) => x })
+        .map(_.toList match {
+          case r1 :: r2 :: Nil if r1.id == r2.id => record.withId(r2.id)
+          case r :: Nil                          => record.withId(r.id)
+          case Nil                               => record
         })
+        .flatMap(
+          entity =>
+            businessDetailsRecordsService
+              .store(entity, autoFill = false, user.planetId.get)
+              .flatMap(saveRecordId))
+
     }
   }
 
@@ -170,7 +189,28 @@ class UserToRecordsSyncService @Inject()(
 
   val businessPartnerRecordForAnAgent: UserRecordsSync = saveRecordId => {
     case User.Agent(user) => {
-      val address = UkAddress.generate(user.userId)
+      val address = user.address
+        .map(
+          a =>
+            if (a.isUKAddress)
+              BusinessPartnerRecord.UkAddress(
+                addressLine1 = a.line1.getOrElse("1 Kingdom Road"),
+                addressLine2 = a.line2,
+                addressLine3 = a.line3,
+                addressLine4 = a.line4,
+                postalCode = a.postcode.getOrElse(""),
+                countryCode = a.countryCode.getOrElse("GB")
+              )
+            else
+              BusinessPartnerRecord.ForeignAddress(
+                addressLine1 = a.line1.getOrElse("2 Foreign Road"),
+                addressLine2 = a.line2,
+                addressLine3 = a.line3,
+                addressLine4 = a.line4,
+                postalCode = a.postcode,
+                countryCode = a.countryCode.getOrElse("IE")
+            ))
+        .getOrElse(BusinessPartnerRecord.UkAddress.generate(user.userId))
       val record = BusinessPartnerRecord
         .generate(user.userId)
         .withBusinessPartnerExists(true)

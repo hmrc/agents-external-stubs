@@ -74,12 +74,21 @@ object KnownFacts {
           )
     }
 
-  def generate(enrolmentKey: EnrolmentKey, seed: String): Option[KnownFacts] =
+  def generate(
+    enrolmentKey: EnrolmentKey,
+    seed: String,
+    alreadyKnownFacts: String => Option[String]): Option[KnownFacts] =
     Services(enrolmentKey.service).map(s => {
       val verifiers =
-        s.knownFacts.map(kf => Generator.get(kf.valueGenerator)(seed).map(value => KnownFact(kf.name, value))).collect {
-          case Some(x) => x
-        }
+        s.knownFacts
+          .map(
+            kf =>
+              alreadyKnownFacts(kf.name)
+                .orElse(Generator.get(kf.valueGenerator)(seed))
+                .map(value => KnownFact(kf.name, value)))
+          .collect {
+            case Some(x) => x
+          }
       KnownFacts(enrolmentKey, verifiers)
     })
 

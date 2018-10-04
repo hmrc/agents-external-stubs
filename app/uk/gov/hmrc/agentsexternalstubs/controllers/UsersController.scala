@@ -4,7 +4,7 @@ import javax.inject.{Inject, Singleton}
 import play.api.libs.json.JsValue
 import play.api.mvc.{Action, AnyContent}
 import play.mvc.Http.HeaderNames
-import uk.gov.hmrc.agentsexternalstubs.models.{User, Users}
+import uk.gov.hmrc.agentsexternalstubs.models.{ApiPlatform, User, Users}
 import uk.gov.hmrc.agentsexternalstubs.repository.DuplicateUserException
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.http.NotFoundException
@@ -82,6 +82,21 @@ class UsersController @Inject()(usersService: UsersService, val authenticationSe
         case Some(_) => usersService.deleteUser(userId, session.planetId).map(_ => NoContent)
         case None    => notFoundF("USER_NOT_FOUND", s"Could not found user $userId")
       }
+    }(SessionRecordNotFound)
+  }
+
+  def createApiPlatformTestUser(): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+    withCurrentOrExternalSession { session =>
+      withPayload[ApiPlatform.TestUser](
+        testUser =>
+          usersService
+            .createUser(ApiPlatform.TestUser.asUser(testUser), session.planetId)
+            .map(theUser =>
+              Created(s"API Platform test user ${theUser.userId} has been created.")
+                .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url))
+            .recover {
+              case DuplicateUserException(msg) => Conflict(msg)
+          })
     }(SessionRecordNotFound)
   }
 
