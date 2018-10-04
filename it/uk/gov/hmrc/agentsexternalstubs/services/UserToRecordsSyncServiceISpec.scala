@@ -6,7 +6,7 @@ import java.util.UUID
 
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.UkAddress
-import uk.gov.hmrc.agentsexternalstubs.models.{BusinessDetailsRecord, EnrolmentKey, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.{BusinessDetailsRecord, EnrolmentKey, UserGenerator, VatCustomerInformationRecord}
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.agentsexternalstubs.support._
 import uk.gov.hmrc.domain.Nino
@@ -76,13 +76,17 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
       result.flatMap(_.approvedInformation.flatMap(_.customerDetails.individual.flatMap(_.lastName))) shouldBe Some(
         "345")
 
-      await(usersService.updateUser(user.userId, planetId, user => user.copy(name = Some("Foo Bar"))))
+      val theUser = await(usersService.updateUser(user.userId, planetId, user => user.copy(name = Some("Foo Bar"))))
 
       val result2 = await(vatCustomerInformationRecordsService.getCustomerInformation("123456789", planetId))
       result2.flatMap(_.approvedInformation.flatMap(_.customerDetails.individual.flatMap(_.firstName))) shouldBe Some(
         "Foo")
       result2.flatMap(_.approvedInformation.flatMap(_.customerDetails.individual.flatMap(_.lastName))) shouldBe Some(
         "Bar")
+      result2.flatMap(
+        _.approvedInformation
+          .map(_.PPOB.address.asInstanceOf[VatCustomerInformationRecord.UkAddress].postCode)) shouldBe theUser.address
+        .flatMap(_.postcode)
 
       val userWithRecordId = await(usersService.findByUserId(user.userId, planetId))
       userWithRecordId.map(_.recordIds).get should not be empty
@@ -112,7 +116,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
               .map(LocalDate.parse(_, formatter2))
           )) shouldBe dateOpt
 
-      await(usersService.updateUser(user.userId, planetId, user => user.copy(name = Some("Foo Bar"))))
+      val theUser = await(usersService.updateUser(user.userId, planetId, user => user.copy(name = Some("Foo Bar"))))
 
       val result2 = await(vatCustomerInformationRecordsService.getCustomerInformation("923456788", planetId))
       result2.flatMap(_.approvedInformation.flatMap(_.customerDetails.organisationName)) shouldBe Some("Foo Bar")
@@ -122,6 +126,11 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
             _.customerDetails.effectiveRegistrationDate
               .map(LocalDate.parse(_, formatter2))
           )) shouldBe dateOpt
+
+      result2.flatMap(
+        _.approvedInformation
+          .map(_.PPOB.address.asInstanceOf[VatCustomerInformationRecord.UkAddress].postCode)) shouldBe theUser.address
+        .flatMap(_.postcode)
 
       val userWithRecordId = await(usersService.findByUserId(user.userId, planetId))
       userWithRecordId.map(_.recordIds).get should not be empty
