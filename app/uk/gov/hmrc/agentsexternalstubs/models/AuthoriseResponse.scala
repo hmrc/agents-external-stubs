@@ -115,7 +115,7 @@ case object ConfidenceLevelRetrieve extends Retrieve {
   val key = "confidenceLevel"
   override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
     implicit ec: ExecutionContext): MaybeResponse =
-    Right(response.copy(confidenceLevel = context.confidenceLevel))
+    Right(response.copy(confidenceLevel = context.confidenceLevel.orElse(Some(50))))
 }
 
 case object CredentialStrengthRetrieve extends Retrieve {
