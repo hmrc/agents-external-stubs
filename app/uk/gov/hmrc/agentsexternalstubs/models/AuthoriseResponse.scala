@@ -65,7 +65,7 @@ case class UnsupportedRetrieve(key: String) extends Retrieve {
     Left(s"Retrieval of $key not supported")
 }
 
-case class Credentials(providerId: String, providerType: String)
+case class Credentials(providerId: String, providerType: String, planetId: Option[String] = None)
 object Credentials {
   implicit val format: Format[Credentials] = Json.format[Credentials]
 }
@@ -74,7 +74,7 @@ case object CredentialsRetrieve extends Retrieve {
   val key = "credentials"
   override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
     implicit ec: ExecutionContext): MaybeResponse =
-    Right(response.copy(credentials = Some(Credentials(context.userId, "GovernmentGateway"))))
+    Right(response.copy(credentials = Some(Credentials(context.userId, "GovernmentGateway", context.planetId))))
 }
 
 case class GGCredId(ggCredId: String)

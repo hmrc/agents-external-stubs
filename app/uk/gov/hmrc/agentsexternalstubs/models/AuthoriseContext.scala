@@ -21,6 +21,7 @@ trait AuthoriseContext {
   def agentCode: Option[String]
   def agentFriendlyName: Option[String]
   def agentId: Option[String]
+  def planetId: Option[String]
 }
 
 case class FullAuthoriseContext(user: User, authenticatedSession: AuthenticatedSession, request: AuthoriseRequest)
@@ -58,6 +59,8 @@ case class FullAuthoriseContext(user: User, authenticatedSession: AuthenticatedS
   override def agentFriendlyName: Option[String] = user.agentFriendlyName
 
   override def agentId: Option[String] = user.agentId
+
+  override def planetId: Option[String] = Some(authenticatedSession.planetId)
 
   override lazy val authorisedServices: Set[String] = request.authorise.collect {
     case EnrolmentPredicate(service, _) => service
