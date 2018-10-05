@@ -405,7 +405,7 @@ object DesStubController {
           nino = nino,
           agentId = a.agentId,
           agentOwnRef = a.agentOwnRef,
-          hasAgent = a.hasAgent,
+          hasAgent = Some(true),
           isRegisteredAgent = a.isRegisteredAgent,
           govAgentId = a.govAgentId,
           agentName = a.agentName,

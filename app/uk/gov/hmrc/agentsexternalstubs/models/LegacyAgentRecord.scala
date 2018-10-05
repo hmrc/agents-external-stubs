@@ -5,7 +5,6 @@ import play.api.libs.json.{Format, Json}
 case class LegacyAgentRecord(
   agentId: String,
   agentOwnRef: Option[String] = None,
-  hasAgent: Option[Boolean] = None,
   isRegisteredAgent: Option[Boolean] = None,
   govAgentId: Option[String] = None,
   agentName: String,
@@ -52,16 +51,24 @@ object LegacyAgentRecord extends RecordUtils[LegacyAgentRecord] {
 
   override val gen: Gen[LegacyAgentRecord] =
     for {
-      agentId   <- agentIdGen
-      agentName <- UserGenerator.nameForAgentGen
-      address1  <- Generator.address4Lines35Gen.map(_.line1.take(28))
-      address2  <- Generator.address4Lines35Gen.map(_.line3.take(28))
+      agentId           <- agentIdGen
+      agentName         <- UserGenerator.nameForAgentGen
+      address1          <- Generator.address4Lines35Gen.map(_.line1.take(28))
+      address2          <- Generator.address4Lines35Gen.map(_.line3.take(28))
+      postcode          <- Generator.biasedOptionGen(Generator.postcode)
+      isRegisteredAgent <- Generator.biasedOptionGen(Generator.booleanGen)
+      agentCeasedDate   <- Generator.optionGen(Generator.date(1990, 2018).map(Generator.`date_yyyy-MM-dd`.format))
+      agentPhoneNo      <- Generator.biasedOptionGen(Generator.ukPhoneNumber)
     } yield
       LegacyAgentRecord(
         agentId = agentId,
         agentName = agentName,
         address1 = address1,
-        address2 = address2
+        address2 = address2,
+        postcode = postcode,
+        isRegisteredAgent = isRegisteredAgent,
+        agentCeasedDate = agentCeasedDate,
+        agentPhoneNo = agentPhoneNo
       )
 
   val agentPhoneNoSanitizer: Update = seed =>
