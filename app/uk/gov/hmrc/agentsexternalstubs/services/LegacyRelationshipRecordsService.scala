@@ -1,7 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
 import javax.inject.{Inject, Singleton}
-import uk.gov.hmrc.agentsexternalstubs.models.{LegacyAgentRecord, LegacyRelationshipRecord, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.{Generator, LegacyAgentRecord, LegacyRelationshipRecord, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.http.BadRequestException
 
@@ -69,10 +69,10 @@ class LegacyRelationshipRecordsService @Inject()(recordsRepository: RecordsRepos
           relationships.map(
             r =>
               (
-                r.nino.getOrElse(UserGenerator.ninoNoSpaces(r.agentId).value),
+                r.nino.getOrElse(Generator.ninoNoSpaces(r.agentId).value),
                 agentsMap.getOrElse(
                   r.agentId, {
-                    val address = UserGenerator.address(r.agentId)
+                    val address = Generator.address(r.agentId)
                     val agent = LegacyAgentRecord(
                       agentId = r.agentId,
                       agentName = UserGenerator.nameForAgent(r.agentId),

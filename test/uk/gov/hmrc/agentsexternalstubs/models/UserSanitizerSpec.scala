@@ -129,6 +129,36 @@ class UserSanitizerSpec extends UnitSpec {
         .flatMap(_.identifiers.get.map(_.key)) should contain.only("AgentReferenceNumber")
     }
 
+    "remove redundant dangling principal enrolment keys" in {
+      UserSanitizer
+        .sanitize(
+          User(
+            "foo",
+            affinityGroup = Some(User.AG.Individual),
+            principalEnrolments = Seq(Enrolment("HMRC-MTD-IT"), Enrolment("HMRC-MTD-IT"))))
+        .principalEnrolments
+        .flatMap(_.identifiers.get.map(_.key)) shouldBe Seq("MTDITID")
+      UserSanitizer
+        .sanitize(
+          User(
+            "foo",
+            affinityGroup = Some(User.AG.Individual),
+            principalEnrolments = Seq(Enrolment("HMRC-MTD-IT"), Enrolment("HMRC-MTD-VAT"))))
+        .principalEnrolments
+        .flatMap(_.identifiers.get.map(_.key)) should contain theSameElementsAs Seq("MTDITID", "VRN")
+      UserSanitizer
+        .sanitize(User(
+          "foo",
+          affinityGroup = Some(User.AG.Individual),
+          principalEnrolments = Seq(
+            Enrolment("HMRC-MTD-IT"),
+            Enrolment("HMRC-MTD-IT", "MTDITID", "CNOB96766112368"),
+            Enrolment("HMRC-MTD-IT"))
+        ))
+        .principalEnrolments
+        .flatMap(_.identifiers.get.map(_.value)) shouldBe Seq("CNOB96766112368")
+    }
+
     "add missing identifier names to principal enrolments" in {
       UserSanitizer
         .sanitize(

@@ -30,7 +30,7 @@ object UserSanitizer extends RecordUtils[User] {
     user =>
       user.affinityGroup match {
         case Some(User.AG.Individual) =>
-          if (user.nino.isEmpty) user.copy(nino = Some(UserGenerator.ninoWithSpaces(seed))) else user
+          if (user.nino.isEmpty) user.copy(nino = Some(Generator.ninoWithSpaces(seed))) else user
         case _ => user.copy(nino = None)
   }
 
@@ -97,47 +97,62 @@ object UserSanitizer extends RecordUtils[User] {
         case _ => user.copy(agentFriendlyName = None)
   }
 
+  private val ensurePrincipalEnrolmentKeysAreDistinct: Update = seed =>
+    user => {
+      user.copy(
+        principalEnrolments = user.principalEnrolments
+          .groupBy(_.key)
+          .collect {
+            case (key, es) if es.size == 1 || Services(key).exists(_.flags.multipleEnrolment) => es
+            case (_, es) =>
+              Seq(es.maxBy(_.identifiers.map(_.size).getOrElse(0)))
+          }
+          .flatten
+          .toSeq
+      )
+
+  }
+
   private val ensurePrincipalEnrolmentsHaveIdentifiers: Update = seed =>
     user => {
-      val modifiedPrincipalEnrolments = user.principalEnrolments.map(
-        e =>
-          if (e.identifiers.isEmpty) Services(e.key).flatMap(s => Generator.get(s.generator)(seed)).getOrElse(e)
-          else
-            e.copy(identifiers = e.identifiers.map(_.map(i => {
-              val key: String =
-                if (i.key.isEmpty) Services(e.key).flatMap(s => s.identifiers.headOption.map(_.name)).getOrElse("")
-                else i.key
-              val value: String =
-                if (i.value.isEmpty)
-                  Services(e.key)
-                    .flatMap(s => s.getIdentifier(key).flatMap(i => Generator.get(i.valueGenerator)(seed)))
-                    .getOrElse("")
-                else i.value
-              Identifier(key, value)
-            }))))
+      val modifiedPrincipalEnrolments = user.principalEnrolments
+        .groupBy(_.key)
+        .flatMap {
+          case (_, es) =>
+            es.zipWithIndex.map { case (e, i) => ensureEnrolmentHaveIdentifier(Generator.variant(seed, i))(e) }
+        }
+        .toSeq
       user.copy(principalEnrolments = modifiedPrincipalEnrolments)
   }
 
   private val ensureDelegatedEnrolmentsHaveIdentifiers: Update = seed =>
     user => {
-      val modifiedDelegatedEnrolments = user.delegatedEnrolments.map(
-        e =>
-          if (e.identifiers.isEmpty) Services(e.key).flatMap(s => Generator.get(s.generator)(seed)).getOrElse(e)
-          else
-            e.copy(identifiers = e.identifiers.map(_.map(i => {
-              val key: String =
-                if (i.key.isEmpty) Services(e.key).flatMap(s => s.identifiers.headOption.map(_.name)).getOrElse("")
-                else i.key
-              val value: String =
-                if (i.value.isEmpty)
-                  Services(e.key)
-                    .flatMap(s => s.getIdentifier(key).flatMap(i => Generator.get(i.valueGenerator)(seed)))
-                    .getOrElse("")
-                else i.value
-              Identifier(key, value)
-            }))))
+      val modifiedDelegatedEnrolments = user.delegatedEnrolments
+        .groupBy(_.key)
+        .flatMap {
+          case (_, es) =>
+            es.zipWithIndex.map { case (e, i) => ensureEnrolmentHaveIdentifier(Generator.variant(seed, i))(e) }
+        }
+        .toSeq
       user.copy(delegatedEnrolments = modifiedDelegatedEnrolments)
   }
+
+  private val ensureEnrolmentHaveIdentifier: String => Enrolment => Enrolment = seed =>
+    e =>
+      if (e.identifiers.isEmpty) Services(e.key).flatMap(s => Generator.get(s.generator)(seed)).getOrElse(e)
+      else
+        e.copy(identifiers = e.identifiers.map(_.map(i => {
+          val key: String =
+            if (i.key.isEmpty) Services(e.key).flatMap(s => s.identifiers.headOption.map(_.name)).getOrElse("")
+            else i.key
+          val value: String =
+            if (i.value.isEmpty)
+              Services(e.key)
+                .flatMap(s => s.getIdentifier(key).flatMap(i => Generator.get(i.valueGenerator)(seed)))
+                .getOrElse("")
+            else i.value
+          Identifier(key, value)
+        })))
 
   private def sanitizeAddress(addressOpt: Option[User.Address], seed: String): Option[User.Address] = {
     val newAddress = Generator.address(seed)
@@ -181,6 +196,7 @@ object UserSanitizer extends RecordUtils[User] {
       ensureAgentHaveAgentId,
       ensureAgentHaveFriendlyName,
       ensureUserHaveAddress,
+      ensurePrincipalEnrolmentKeysAreDistinct,
       ensurePrincipalEnrolmentsHaveIdentifiers,
       ensureDelegatedEnrolmentsHaveIdentifiers
     )

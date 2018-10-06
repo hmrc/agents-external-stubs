@@ -304,7 +304,7 @@ class UsersService @Inject()(
         .map(nino =>
           for {
             duplicatedNino <- usersRepository.findByNino(nino.value, planetId).map(_.isDefined)
-          } yield if (duplicatedNino) user.copy(nino = Some(UserGenerator.ninoNoSpaces(user.userId))) else user)
+          } yield if (duplicatedNino) user.copy(nino = Some(Generator.ninoNoSpaces(user.userId))) else user)
         .getOrElse(Future.successful(user))
 
   }

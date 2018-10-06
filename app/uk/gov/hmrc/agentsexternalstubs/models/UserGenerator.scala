@@ -6,8 +6,9 @@ import org.joda.time.format.ISODateTimeFormat
 import org.scalacheck.Gen
 import uk.gov.hmrc.domain.Nino
 
-object UserGenerator extends Generator {
+object UserGenerator {
 
+  import uk.gov.hmrc.agentsexternalstubs.models.Generator._
   import uk.gov.hmrc.smartstub._
 
   def nameForIndividual(userId: String): String =
@@ -70,7 +71,7 @@ object UserGenerator extends Generator {
       affinityGroup = Some(User.AG.Individual),
       confidenceLevel = Option(confidenceLevel),
       credentialRole = Option(credentialRole),
-      nino = Option(nino).map(Nino.apply).orElse(Option(UserGenerator.ninoWithSpaces(userId))),
+      nino = Option(nino).map(Nino.apply).orElse(Option(ninoWithSpaces(userId))),
       name = Option(name).orElse(Option(UserGenerator.nameForIndividual(userId))),
       dateOfBirth = Option(dateOfBirth)
         .map(LocalDate.parse(_, ISODateTimeFormat.date()))

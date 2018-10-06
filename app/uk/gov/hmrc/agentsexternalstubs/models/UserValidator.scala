@@ -98,7 +98,7 @@ object UserValidator {
       case _             => Valid(())
   }
 
-  val validatePrincipalEnrolments: UserConstraint = user =>
+  val validateEachPrincipalEnrolment: UserConstraint = user =>
     if (user.principalEnrolments.isEmpty) Valid(())
     else {
       import Validator.Implicits._
@@ -119,7 +119,22 @@ object UserValidator {
         .reduce(_ combine _)
   }
 
-  val validateDelegatedEnrolments: UserConstraint = user =>
+  val validatePrincipalEnrolmentsAreDistinct: UserConstraint = user =>
+    if (user.principalEnrolments.isEmpty) Valid(())
+    else {
+      val keys = user.principalEnrolments.map(_.key)
+      if (keys.size == keys.distinct.size) Valid(())
+      else {
+        val repeated: Iterable[String] = keys.groupBy(identity).filter { case (_, k) => k.size > 1 }.map(_._2.head)
+        val redundant = repeated.map(r => (r, Services.apply(r))).collect {
+          case (_, Some(s)) if !s.flags.multipleEnrolment => s.name
+          case (r, None)                                  => r
+        }
+        if (redundant.isEmpty) Valid(()) else Invalid(s"Repeated principal enrolments: ${redundant.mkString(", ")}")
+      }
+  }
+
+  val validateEachDelegatedEnrolment: UserConstraint = user =>
     user.delegatedEnrolments match {
       case s if s.isEmpty => Valid(())
       case _ if user.affinityGroup.contains(User.AG.Agent) =>
@@ -140,6 +155,26 @@ object UserValidator {
       case _ => Invalid("Only Agents can have delegated enrolments")
   }
 
+  val validateDelegatedEnrolmentsValuesAreDistinct: UserConstraint = user =>
+    if (user.delegatedEnrolments.isEmpty) Valid(())
+    else {
+      import Validator.Implicits._
+      val results = user.delegatedEnrolments
+        .groupBy(_.key)
+        .collect { case (key, es) if es.size > 1 => (key, es) }
+        .map {
+          case (key, es) =>
+            val keys = es.map(e => e.toEnrolmentKeyTag.getOrElse(e.key))
+            if (keys.size == keys.distinct.size) Valid(())
+            else Invalid(s", $key")
+        }
+      if (results.isEmpty) Valid(())
+      else
+        results
+          .reduce(_ combine _)
+          .leftMap(keys => s"Delegated enrolment values must be distinct$keys")
+  }
+
   private val constraints: Seq[UserConstraint] = Seq(
     validateAffinityGroup,
     validateConfidenceLevel,
@@ -149,8 +184,10 @@ object UserValidator {
     validateConfidenceLevelAndNino,
     validateDateOfBirth,
     validateAgentCode,
-    validatePrincipalEnrolments,
-    validateDelegatedEnrolments,
+    validateEachPrincipalEnrolment,
+    validatePrincipalEnrolmentsAreDistinct,
+    validateEachDelegatedEnrolment,
+    validateDelegatedEnrolmentsValuesAreDistinct,
     validateAddress
   )
 

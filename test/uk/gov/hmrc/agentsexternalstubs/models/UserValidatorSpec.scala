@@ -4,8 +4,9 @@ import org.joda.time.LocalDate
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.test.UnitSpec
 import org.scalatest.Inspectors._
+import uk.gov.hmrc.agentsexternalstubs.support.ValidatedMatchers
 
-class UserValidatorSpec extends UnitSpec {
+class UserValidatorSpec extends UnitSpec with ValidatedMatchers {
 
   "UserValidator" should {
     "validate only when affinityGroup is none or one of [Individual, Organisation, Agent]" in {
@@ -194,6 +195,21 @@ class UserValidatorSpec extends UnitSpec {
       }
     }
 
+    "validate only when principal enrolments are distinct" in {
+      UserValidator
+        .validate(User("foo", principalEnrolments = Seq(Enrolment("A", "A", "A"), Enrolment("A", "A", "A"))))
+        .isValid shouldBe false
+      UserValidator
+        .validate(User("foo", principalEnrolments = Seq(Enrolment("A"), Enrolment("A"))))
+        .isValid shouldBe false
+      UserValidator
+        .validate(User("foo", principalEnrolments = Seq(Enrolment("A", "A", "A"), Enrolment("A", "B", "B"))))
+        .isValid shouldBe false
+      UserValidator
+        .validate(User("foo", principalEnrolments = Seq(Enrolment("A", "B", "C1"), Enrolment("A", "B", "C2"))))
+        .isValid shouldBe false
+    }
+
     "validate only when principal enrolments are valid for an individual" in {
       val user = UserGenerator.individual("foo")
       forAll(Services.individualServices) { service =>
@@ -240,6 +256,53 @@ class UserValidatorSpec extends UnitSpec {
           .validate(user.withPrincipalEnrolment(enrolment))
           .isValid shouldBe false
       }
+    }
+
+    "validate only when delegated enrolments have distinct values" in {
+      UserValidator
+        .validate(
+          UserGenerator
+            .agent("foo")
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784"))
+        .isValid shouldBe true
+      UserValidator
+        .validate(
+          UserGenerator
+            .agent("foo")
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784"))
+        .isValid shouldBe false
+      UserValidator
+        .validate(
+          UserGenerator
+            .agent("foo")
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "429754517"))
+        .isValid shouldBe true
+      UserValidator
+        .validate(
+          UserGenerator
+            .agent("foo")
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "429754517")
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784"))
+        .isValid shouldBe false
+      UserValidator
+        .validate(
+          UserGenerator
+            .agent("foo")
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
+            .withDelegatedEnrolment("HMRC-MTD-IT", "MTDITID", "CNOB96766112368")
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784"))
+        .isValid shouldBe false
+      UserValidator
+        .validate(
+          UserGenerator
+            .agent("foo")
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
+            .withDelegatedEnrolment("HMRC-MTD-IT", "MTDITID", "CNOB96766112368")
+            .withDelegatedEnrolment("HMRC-MTD-IT", "MTDITID", "CNOB96766112368"))
+        .isValid shouldBe false
     }
 
     "validate only when delegated enrolment is of Individual or Organisation affinity" in {

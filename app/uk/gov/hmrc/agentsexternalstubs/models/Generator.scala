@@ -7,7 +7,7 @@ import uk.gov.hmrc.domain.{Modulus11Check, Modulus23Check, Nino}
 import uk.gov.hmrc.smartstub.{Addresses, Companies, Names, Temporal, ToLong}
 import wolfendale.scalacheck.regexp.RegexpGen
 
-trait Generator extends Names with Temporal with Companies with Addresses {
+object Generator extends Names with Temporal with Companies with Addresses {
 
   implicit val tls: ToLong[String] = new ToLong[String] {
     def asLong(s: String): Long = s.hashCode.toLong
@@ -17,6 +17,14 @@ trait Generator extends Names with Temporal with Companies with Addresses {
 
   def get[T](gen: Gen[T]): String => Option[T] =
     (seed: String) => gen.seeded(seed)
+
+  def shake(seed: String): String = {
+    val p = seed.charAt(0).toInt % seed.length
+    val s = seed.drop(1) + seed.head
+    s.take(p).reverse + s.drop(p)
+  }
+
+  def variant(seed: String, i: Int): String = if (i == 0) seed else variant(shake(seed), i - 1)
 
   def pattern(pattern: String): Gen[String] =
     knownPatterns.getOrElse(pattern, PatternContext(StringContext(pattern)).pattern())
@@ -191,10 +199,6 @@ trait Generator extends Names with Temporal with Companies with Addresses {
     ".{0,1}"              -> Gen.oneOf("y", "n"),
     "^[A-Za-z0-9]{0,12}$" -> pattern"Zzz00099900Z"
   )
-
-}
-
-object Generator extends Generator {
 
   object GenOps {
     implicit class GenOps[T](val gen: Gen[T]) extends AnyVal {
