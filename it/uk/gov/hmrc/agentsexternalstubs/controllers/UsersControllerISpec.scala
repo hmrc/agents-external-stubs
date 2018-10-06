@@ -200,7 +200,6 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
                                     |   ]
                                     |}
       """.stripMargin)
-        println(Json.prettyPrint(payload))
 
         val result = Users.createApiPlatformTestUser(payload)
 
@@ -246,7 +245,6 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
                                   |   ]
                                   |}
       """.stripMargin)
-      println(Json.prettyPrint(payload))
 
       val result = Users.createApiPlatformTestUser(payload)
 
@@ -279,7 +277,6 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
                                   |   ]
                                   |}
       """.stripMargin)
-      println(Json.prettyPrint(payload))
 
       val result = Users.createApiPlatformTestUser(payload)
 
