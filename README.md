@@ -65,6 +65,7 @@ All users and other data on each planet are removed after 12h unless marked as p
 Endpoint | Description
 ---|---
 [`POST /auth/authorise`](https://github.com/hmrc/auth/blob/master/docs/main.md#post-authauthorise) | general authorisation endpoint
+[`GET /auth/authority`](https://github.com/hmrc/auth/blob/master/docs/main.md#get-authauthority) | returns the authority record for the supplied bearer token
 
 Feature | What's implemented
 -----------|-------------------------- 

@@ -1,6 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.support
 import org.scalatest.matchers.{MatchResult, Matcher}
-import play.api.libs.json.{JsObject, JsValue, Reads}
+import play.api.libs.json.{JsArray, JsObject, JsValue, Reads}
 
 import scala.reflect.ClassTag
 
@@ -47,5 +47,13 @@ trait JsonMatchers {
     override def apply(left: Seq[T]): MatchResult =
       left.foldLeft(MatchResult(true, "", ""))((a: MatchResult, v: T) => if (a.matches) matcher(v) else a)
   }
+
+  def eachArrayElement[T: Reads](matcher: Matcher[T])(implicit classTag: ClassTag[T]): Matcher[JsArray] =
+    new Matcher[JsArray] {
+      override def apply(left: JsArray): MatchResult =
+        left.value
+          .map(_.as[T])
+          .foldLeft(MatchResult(true, "", ""))((a: MatchResult, v: T) => if (a.matches) matcher(v) else a)
+    }
 
 }

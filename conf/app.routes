@@ -2,6 +2,9 @@
 
 # Auth stubs
 POST        /auth/authorise                                                  @uk.gov.hmrc.agentsexternalstubs.controllers.AuthStubController.authorise
+GET         /auth/authority                                                  @uk.gov.hmrc.agentsexternalstubs.controllers.AuthStubController.getAuthority
+GET         /auth/_ids                                                       @uk.gov.hmrc.agentsexternalstubs.controllers.AuthStubController.getIds
+GET         /auth/_enrolments                                                @uk.gov.hmrc.agentsexternalstubs.controllers.AuthStubController.getEnrolments
 
 # Citizen details stubs
 GET         /citizen-details/:idName/:taxId                                  @uk.gov.hmrc.agentsexternalstubs.controllers.CitizenDetailsStubController.getCitizen(idName: String, taxId: String)

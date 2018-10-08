@@ -264,4 +264,10 @@ object User {
 
   val formats = Format(reads, writes)
 
+  def parseUserIdAtPlanetId(credId: String, defaultPlanetId: => String): (String, String) = {
+    val at = credId.indexOf('@')
+    if (at >= 0) (credId.substring(0, at), credId.substring(at + 1))
+    else (credId, defaultPlanetId)
+  }
+
 }

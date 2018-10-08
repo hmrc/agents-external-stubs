@@ -59,10 +59,7 @@ class ExternalAuthorisationService @Inject()(
         .flatMap {
           case Some(response) =>
             val creds = response.credentials.getOrElse(throw new Exception("Missing credentials"))
-            val at = creds.providerId.indexOf('@')
-            val (userId, planetId) =
-              if (at >= 0) (creds.providerId.substring(0, at), creds.providerId.substring(at + 1))
-              else (creds.providerId, _planetId)
+            val (userId, planetId) = User.parseUserIdAtPlanetId(creds.providerId, _planetId)
             val user = User(
               userId = userId,
               groupId = response.groupIdentifier,

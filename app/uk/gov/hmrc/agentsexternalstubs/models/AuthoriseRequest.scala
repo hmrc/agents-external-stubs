@@ -72,7 +72,7 @@ case class EnrolmentPredicate(enrolment: String, identifiers: Option[Seq[Identif
   override def validate(context: AuthoriseContext): Either[String, Unit] =
     context.principalEnrolments
       .collectFirst {
-        case Enrolment(`enrolment`, ii) if identifiersMatches(identifiers, ii) =>
+        case Enrolment(`enrolment`, ii, state) if identifiersMatches(identifiers, ii) && state == Enrolment.ACTIVATED =>
       }
       .toRight("InsufficientEnrolments")
 

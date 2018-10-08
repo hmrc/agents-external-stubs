@@ -137,6 +137,15 @@ trait TestRequests extends ScalaFutures {
         .withHeaders(Seq(HeaderNames.CONTENT_TYPE -> MimeTypes.JSON) ++ authContext.headers: _*)
         .post(Json.parse(body))
         .futureValue
+
+    def getAuthority()(implicit authContext: AuthContext): WSResponse =
+      get(s"/auth/authority")
+
+    def getIds()(implicit authContext: AuthContext): WSResponse =
+      get(s"/auth/_ids")
+
+    def getEnrolments()(implicit authContext: AuthContext): WSResponse =
+      get(s"/auth/_enrolments")
   }
 
   object Users {

@@ -1,9 +1,9 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
-import play.api.libs.json.{Format, Json}
+import play.api.libs.json._
 
-case class Enrolment(key: String, identifiers: Option[Seq[Identifier]] = None) {
+case class Enrolment(key: String, identifiers: Option[Seq[Identifier]] = None, state: String = Enrolment.ACTIVATED) {
 
   lazy val toEnrolmentKey: Option[EnrolmentKey] = identifiers.map(ii => EnrolmentKey(key, ii))
   lazy val toEnrolmentKeyTag: Option[String] = toEnrolmentKey.map(_.tag)
@@ -12,11 +12,13 @@ case class Enrolment(key: String, identifiers: Option[Seq[Identifier]] = None) {
     s"enrolment for service $key${identifiers.map(_.map(i => s"${i.key.toUpperCase} ${i.value}").mkString(" and ")).map(x => s" with identifier $x").getOrElse("")}"
 
   def matches(ek: EnrolmentKey): Boolean = toEnrolmentKeyTag.contains(ek.tag)
+
+  def isActivated: Boolean = state == Enrolment.ACTIVATED
 }
 
 object Enrolment {
 
-  implicit val format: Format[Enrolment] = Json.format[Enrolment]
+  val ACTIVATED = "Activated"
 
   def from(ek: EnrolmentKey): Enrolment =
     Enrolment(ek.service, if (ek.identifiers.isEmpty) None else Some(ek.identifiers))
@@ -56,5 +58,16 @@ object Enrolment {
             _ => Valid(())
           )
     }
+
+  import play.api.libs.functional.syntax._
+
+  val reads: Reads[Enrolment] = ((JsPath \ "key").read[String] and
+    (JsPath \ "identifiers").readNullable[Seq[Identifier]]
+    and (JsPath \ "state").readNullable[String].map(_.getOrElse(Enrolment.ACTIVATED)))((k, ii, s) =>
+    Enrolment.apply(k, ii, s))
+
+  val writes: Writes[Enrolment] = Json.writes[Enrolment]
+
+  implicit val format: Format[Enrolment] = Format(reads, writes)
 
 }

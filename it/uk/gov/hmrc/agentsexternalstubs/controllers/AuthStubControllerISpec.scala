@@ -1,10 +1,11 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import org.joda.time.LocalDate
+import play.api.libs.json.JsObject
 import play.api.libs.ws.WSClient
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.connectors.MicroserviceAuthConnector
-import uk.gov.hmrc.agentsexternalstubs.models.{User, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, User, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
 import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
@@ -511,6 +512,73 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDB with TestRequ
             and AuthProviders(GovernmentGateway)) {
             "success"
           })
+      }
+    }
+
+    "GET /auth/authority" should {
+      "return current user authority record" in {
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
+        val user = UserGenerator.individual(authSession.userId)
+        Users.update(user)
+        val result = AuthStub.getAuthority()
+        result should haveStatus(200)
+        result should haveValidJsonBody(haveProperty[String]("uri") and haveProperty[Int](
+          "confidenceLevel",
+          be(user.confidenceLevel.getOrElse(50))) and haveProperty[String](
+          "credentialStrength",
+          be(user.credentialStrength.getOrElse("weak"))) and haveProperty[String](
+          "userDetailsLink",
+          be(s"/user-details/id/${user.userId}")) and haveProperty[String]("legacyOid") and haveProperty[String](
+          "ids",
+          be(s"/auth/_ids")) and haveProperty[String]("lastUpdated") and haveProperty[String]("loggedInAt") and haveProperty[
+          String]("enrolments", be(s"/auth/_enrolments")) and haveProperty[String](
+          "affinityGroup",
+          be(user.affinityGroup.getOrElse("none"))) and haveProperty[String]("correlationId") and haveProperty[String](
+          "credId",
+          be(user.userId)))
+      }
+
+      "return 401 if auth token missing" in {
+        val result = AuthStub.getAuthority()(NotAuthorized)
+        result should haveStatus(401)
+      }
+    }
+
+    "GET /auth/_ids" should {
+      "return current user's internal and external ids" in {
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
+        val result = AuthStub.getIds()
+        result should haveStatus(200)
+        result should haveValidJsonBody(
+          haveProperty[String]("internalId", be(authSession.userId)) and haveProperty[String](
+            "externalId",
+            be(authSession.userId)))
+      }
+
+      "return 401 if auth token missing" in {
+        val result = AuthStub.getIds()(NotAuthorized)
+        result should haveStatus(401)
+      }
+    }
+
+    "GET /auth/_enrolments" should {
+      "return current user's enrolments" in {
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
+        val user = UserGenerator.individual(authSession.userId)
+        Users.update(user)
+        val result = AuthStub.getEnrolments()
+        result should haveStatus(200)
+        result should haveValidJsonArrayBody(
+          eachArrayElement[JsObject](
+            haveProperty[String]("key") and haveProperty[Seq[JsObject]](
+              "identifiers",
+              eachElement[JsObject](haveProperty[String]("key") and haveProperty[String]("value"))) and haveProperty[
+              String]("state")))
+      }
+
+      "return 401 if auth token missing" in {
+        val result = AuthStub.getEnrolments()(NotAuthorized)
+        result should haveStatus(401)
       }
     }
   }

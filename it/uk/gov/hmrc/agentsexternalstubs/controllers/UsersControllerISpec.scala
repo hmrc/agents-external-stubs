@@ -263,7 +263,7 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
     }
 
     "store a new agent user" in {
-      implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+      implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
       val userId = "apitestuser"
       val arn = Generator.arn(userId).value
       val payload = Json.parse(s"""{
