@@ -24,6 +24,7 @@ This app SHOULD NOT be run on QA nor Production environment.
 
 * [Stubbed APIs](#stubbed_api)
     * [Auth](#stubbed_api_auth)
+    * [User Details](#stubbed_api_user_details)
     * [Citizen Details](#stubbed_api_citizen_details)
     * [User Groups Search](#stubbed_api_users_groups_search)
     * [Enrolment Store Proxy](#stubbed_api_enrolment_store_proxy)
@@ -42,6 +43,7 @@ This app SHOULD NOT be run on QA nor Production environment.
 We handle local requests gracefully and do not require existing applications to reconfigure, i.e. we provide necessary TCP proxies:
 
 - listening on 8500 for auth requests
+- listening on 9978 for user-details requests
 - listening on 9337 for citizen-details requests
 - listening on 9984 for users-groups-search requests
 - listening on 7775 for enrolment-store-proxy requests
@@ -71,6 +73,12 @@ Feature | What's implemented
 -----------|-------------------------- 
 predicates | `enrolment`, `authProviders`, `affinityGroup`, `confidenceLevel`, `credentialStrength`, `nino`, `credentialRole`, `$or`
 retrievals | `authProviderId`, `credentials`, `authorisedEnrolments`, `allEnrolments`,`affinityGroup`,`confidenceLevel`,`credentialStrength`, `credentialRole`, `nino`, `groupIdentifier`, `name`, `dateOfBirth`, `agentCode`, `agentInformation`
+
+### [User Details](https://github.com/hmrc/user-details) <a name="stubbed_api_user_details"></a>
+
+Endpoint | Description
+---|---
+[`GET /user-details/id/:id`](https://github.com/hmrc/user-details#get-user-detailsidid) | returns the user details associated with the given id
 
 ### [Citizen Details](https://github.com/hmrc/citizen-details) <a name="stubbed_api_citizen_details"></a>
 

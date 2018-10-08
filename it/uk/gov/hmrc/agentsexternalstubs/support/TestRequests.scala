@@ -194,6 +194,11 @@ trait TestRequests extends ScalaFutures {
       post("/agents-external-stubs/users/api-platform", payload)
   }
 
+  object UserDetailsStub {
+    def getUser(id: String)(implicit authContext: AuthContext): WSResponse =
+      get(s"/user-details/id/$id")
+  }
+
   object CitizenDetailsStub {
     def getCitizen(idName: String, taxId: String)(implicit authContext: AuthContext): WSResponse =
       get(s"/citizen-details/$idName/$taxId")

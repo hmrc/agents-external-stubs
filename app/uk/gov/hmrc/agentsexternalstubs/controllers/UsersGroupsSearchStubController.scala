@@ -105,7 +105,7 @@ object UsersGroupsSearchStubController {
 
     def from(user: User): GetUserResponse =
       GetUserResponse(
-        name = user.name.getOrElse(""),
+        name = user.name.getOrElse("John Doe"),
         userId = Some(user.userId),
         affinityGroup = user.affinityGroup,
         agentCode = user.agentCode,

@@ -149,6 +149,7 @@ object Generator extends Names with Temporal with Companies with Addresses {
     username     <- stringMaxN(usernameSize)
     host         <- stringMaxN(size - usernameSize - 1)
   } yield username + "@" + host + domain
+  def email(seed: String): String = emailGen.seeded(seed).get
 
   case class Address(street: String, town: String, postcode: String)
   lazy val addressGen: Gen[Address] = ukAddress

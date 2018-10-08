@@ -14,6 +14,7 @@ import scala.util.Try
 case class TcpProxiesConfig @Inject()(
   @Named("proxies.start") startProxies: String,
   @Named("auth.port") authPort: Int,
+  @Named("user-details.port") userDetailsPort: Int,
   @Named("citizen-details.port") citizenDetailsPort: Int,
   @Named("users-groups-search.port") usersGroupsSearchPort: Int,
   @Named("enrolment-store-proxy.port") enrolmentStoreProxyPort: Int,
@@ -52,6 +53,7 @@ class TcpProxies @Inject()(tcpProxiesConfig: TcpProxiesConfig, @Named("http.port
 
     startProxy(tcpProxiesConfig.authPort, "auth")
     startProxy(tcpProxiesConfig.citizenDetailsPort, "citizen-details")
+    startProxy(tcpProxiesConfig.userDetailsPort, "user-details")
     startProxy(tcpProxiesConfig.usersGroupsSearchPort, "users-groups-search")
     startProxy(tcpProxiesConfig.enrolmentStoreProxyPort, "enrolment-store-proxy")
     startProxy(tcpProxiesConfig.taxEnrolmentsPort, "tax-enrolments")

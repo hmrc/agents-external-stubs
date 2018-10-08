@@ -76,10 +76,10 @@ object CitizenDetailsStubController {
           val nameParts = n.split(" ")
           val (fn, ln) = if (nameParts.length > 1) {
             (nameParts.init.mkString(" "), Some(nameParts.last))
-          } else (nameParts.headOption.getOrElse("John"), Some("Smith"))
+          } else (nameParts.headOption.getOrElse("John"), Some("Doe"))
           Name(fn, ln)
         })
-        .getOrElse(Name("John", Some("Smith")))
+        .getOrElse(Name("John", Some("Doe")))
 
     def from(user: User): GetCitizenResponse =
       GetCitizenResponse(

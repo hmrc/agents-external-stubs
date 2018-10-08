@@ -35,6 +35,7 @@ class MicroserviceModule(val environment: Environment, val configuration: Config
     bindProperty("auditing.consumer.baseUri.port")
 
     bindServiceConfigProperty[Int]("auth.port")
+    bindServiceConfigProperty[Int]("user-details.port")
     bindServiceConfigProperty[Int]("citizen-details.port")
     bindServiceConfigProperty[Int]("users-groups-search.port")
     bindServiceConfigProperty[Int]("enrolment-store-proxy.port")
