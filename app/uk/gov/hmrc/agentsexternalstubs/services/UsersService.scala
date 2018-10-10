@@ -210,37 +210,34 @@ class UsersService @Inject()(
         findByUserId(userId, planetId)
           .flatMap {
             case Some(user) =>
-              if (user.groupId.contains(groupId)) {
-                (if (user.credentialRole.contains(User.CR.Admin)) Future.successful(user)
-                 else if (user.credentialRole.contains(User.CR.Assistant))
-                   Future.failed(UnsupportedCredentialRole("INVALID_CREDENTIAL_TYPE"))
-                 else {
-                   agentCodeOpt match {
-                     case None =>
-                       findAdminByGroupId(groupId, planetId)
-                         .map(_.getOrElse(throw new BadRequestException("INVALID_GROUP_ID")))
-                     case Some(agentCode) =>
-                       findAdminByAgentCode(agentCode, planetId)
-                         .map(_.getOrElse(throw new BadRequestException("INVALID_AGENT_FORMAT")))
-                   }
-                 }).flatMap { admin =>
-                  if (enrolmentType == "principal")
-                    updateUser(
-                      admin.userId,
-                      planetId,
-                      u => u.copy(principalEnrolments = u.principalEnrolments :+ Enrolment.from(enrolmentKey)))
-                  else if (enrolmentType == "delegated" && admin.affinityGroup.contains(User.AG.Agent))
-                    findByPrincipalEnrolmentKey(enrolmentKey, planetId).flatMap {
-                      case Some(owner) if !owner.affinityGroup.contains(User.AG.Agent) =>
-                        updateUser(
-                          admin.userId,
-                          planetId,
-                          u => u.copy(delegatedEnrolments = u.delegatedEnrolments :+ Enrolment.from(enrolmentKey)))
-                      case None =>
-                        Future.failed(throw new BadRequestException("INVALID_QUERY_PARAMETERS"))
-                    } else Future.failed(throw new BadRequestException("INVALID_QUERY_PARAMETERS"))
-                }
-              } else Future.failed(throw new BadRequestException("INVALID_GROUP_ID"))
+              (if (user.credentialRole.contains(User.CR.Assistant))
+                 Future.failed(UnsupportedCredentialRole("INVALID_CREDENTIAL_TYPE"))
+               else {
+                 agentCodeOpt match {
+                   case None =>
+                     findAdminByGroupId(groupId, planetId)
+                       .map(_.getOrElse(throw new BadRequestException("INVALID_GROUP_ID")))
+                   case Some(agentCode) =>
+                     findAdminByAgentCode(agentCode, planetId)
+                       .map(_.getOrElse(throw new BadRequestException("INVALID_AGENT_FORMAT")))
+                 }
+               }).flatMap { admin =>
+                if (enrolmentType == "principal")
+                  updateUser(
+                    admin.userId,
+                    planetId,
+                    u => u.copy(principalEnrolments = u.principalEnrolments :+ Enrolment.from(enrolmentKey)))
+                else if (enrolmentType == "delegated" && admin.affinityGroup.contains(User.AG.Agent))
+                  findByPrincipalEnrolmentKey(enrolmentKey, planetId).flatMap {
+                    case Some(owner) if !owner.affinityGroup.contains(User.AG.Agent) =>
+                      updateUser(
+                        admin.userId,
+                        planetId,
+                        u => u.copy(delegatedEnrolments = u.delegatedEnrolments :+ Enrolment.from(enrolmentKey)))
+                    case None =>
+                      Future.failed(throw new BadRequestException("INVALID_QUERY_PARAMETERS"))
+                  } else Future.failed(throw new BadRequestException("INVALID_QUERY_PARAMETERS"))
+              }
             case None => Future.failed(throw new BadRequestException("INVALID_JSON_BODY"))
           }
     }
@@ -257,10 +254,19 @@ class UsersService @Inject()(
         findAdminByGroupId(groupId, planetId)
           .flatMap {
             case Some(admin) if admin.credentialRole.contains(User.CR.Admin) =>
-              updateUser(
-                admin.userId,
-                planetId,
-                u => u.copy(principalEnrolments = removeEnrolment(u.principalEnrolments, enrolmentKey)))
+              admin.affinityGroup match {
+                case Some(User.AG.Agent) =>
+                  updateUser(
+                    admin.userId,
+                    planetId,
+                    u => u.copy(delegatedEnrolments = removeEnrolment(u.delegatedEnrolments, enrolmentKey)))
+                case _ =>
+                  updateUser(
+                    admin.userId,
+                    planetId,
+                    u => u.copy(principalEnrolments = removeEnrolment(u.principalEnrolments, enrolmentKey)))
+              }
+
             case _ => Future.failed(throw new BadRequestException("INVALID_GROUP_ID"))
           }
       case Some(agentCode) =>

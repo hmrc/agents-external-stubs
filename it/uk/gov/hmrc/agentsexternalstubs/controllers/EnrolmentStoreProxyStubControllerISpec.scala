@@ -228,29 +228,29 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         user.principalEnrolments should contain.only(Enrolment("IR-SA", "UTR", "12345678"))
       }
 
-      "allocate delegated enrolment to the agent identified by userId and groupId" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("0000000021313132")
-        Users.update(UserGenerator.agent(userId = "0000000021313132", groupId = "group1"))
+      "allocate delegated enrolment to the agent identified by groupId" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        Users.create(UserGenerator.agent(userId = "0000000021313132", groupId = "group1"))
         Users.create(UserGenerator.individual().withPrincipalEnrolment("IR-SA", "UTR", "12345678"))
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
           "group1",
           "IR-SA~UTR~12345678",
           Json.parse("""{
-                       |    "userId" : "0000000021313132",
+                       |    "userId" : "foo",
                        |    "type" :         "delegated"
                        |}""".stripMargin)
         )
 
         result should haveStatus(201)
 
-        val user = await(userService.findByUserId(session.userId, session.planetId)).get
+        val user = await(userService.findByUserId("0000000021313132", session.planetId)).get
         user.delegatedEnrolments should contain.only(Enrolment("IR-SA", "UTR", "12345678"))
       }
 
       "fail to allocate delegated enrolment to the agent if enrolment does not exist" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("0000000021313132")
-        Users.update(UserGenerator.agent(userId = "0000000021313132", groupId = "group1"))
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        Users.create(UserGenerator.agent(userId = "0000000021313132", groupId = "group1"))
         EnrolmentStoreProxyStub
           .setKnownFacts(
             "IR-SA~UTR~12345678",
@@ -262,7 +262,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
           "group1",
           "IR-SA~UTR~12345678",
           Json.parse("""{
-                       |    "userId" : "0000000021313132",
+                       |    "userId" : "foo",
                        |    "type" :         "delegated"
                        |}""".stripMargin)
         )
@@ -274,58 +274,9 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
       }
 
       "allocate delegated enrolment to the agent identified by legacy-agentCode" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("0000000021313132")
-        Users.update(UserGenerator.agent(userId = "0000000021313132", groupId = "group1", agentCode = "ABC123"))
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        Users.create(UserGenerator.agent(userId = "0000000021313132", groupId = "group1", agentCode = "ABC123"))
         Users.create(UserGenerator.individual().withPrincipalEnrolment("IR-SA", "UTR", "12345678"))
-        EnrolmentStoreProxyStub
-          .setKnownFacts(
-            "IR-SA~UTR~12345678",
-            SetKnownFactsRequest
-              .generate("IR-SA~UTR~12345678", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts")))
-
-        val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
-          "group1",
-          "IR-SA~UTR~12345678",
-          Json.parse("""{
-                       |    "userId" : "0000000021313132",
-                       |    "type" :         "delegated"
-                       |}""".stripMargin),
-          `legacy-agentCode` = Some("ABC123")
-        )
-
-        result should haveStatus(201)
-
-        val user = await(userService.findByUserId(session.userId, session.planetId)).get
-        user.delegatedEnrolments should contain.only(Enrolment("IR-SA", "UTR", "12345678"))
-      }
-
-      "fail to allocate delegated enrolment to the agent (identified by legacy-agentCode) if enrolment does not exist" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("0000000021313132")
-        Users.update(UserGenerator.agent(userId = "0000000021313132", groupId = "group1", agentCode = "ABC123"))
-        EnrolmentStoreProxyStub
-          .setKnownFacts(
-            "IR-SA~UTR~12345678",
-            SetKnownFactsRequest
-              .generate("IR-SA~UTR~12345678", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts")))
-
-        val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
-          "group1",
-          "IR-SA~UTR~12345678",
-          Json.parse("""{
-                       |    "userId" : "0000000021313132",
-                       |    "type" :         "delegated"
-                       |}""".stripMargin),
-          `legacy-agentCode` = Some("ABC123")
-        )
-
-        result should haveStatus(400)
-      }
-
-      "return 400 if groupId does not exist" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("00000000123166122235")
-        Users.update(UserGenerator.individual(userId = "00000000123166122235", groupId = "group1"))
         EnrolmentStoreProxyStub
           .setKnownFacts(
             "IR-SA~UTR~12345678",
@@ -337,7 +288,56 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
           "group2",
           "IR-SA~UTR~12345678",
           Json.parse("""{
-                       |    "userId" : "00000000123166122235",
+                       |    "userId" : "foo",
+                       |    "type" :         "delegated"
+                       |}""".stripMargin),
+          `legacy-agentCode` = Some("ABC123")
+        )
+
+        result should haveStatus(201)
+
+        val user = await(userService.findByUserId("0000000021313132", session.planetId)).get
+        user.delegatedEnrolments should contain.only(Enrolment("IR-SA", "UTR", "12345678"))
+      }
+
+      "fail to allocate delegated enrolment to the agent (identified by legacy-agentCode) if enrolment does not exist" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        Users.create(UserGenerator.agent(userId = "0000000021313132", groupId = "group1", agentCode = "ABC123"))
+        EnrolmentStoreProxyStub
+          .setKnownFacts(
+            "IR-SA~UTR~12345678",
+            SetKnownFactsRequest
+              .generate("IR-SA~UTR~12345678", _ => None)
+              .getOrElse(throw new Exception("Could not generate known facts")))
+
+        val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
+          "group1",
+          "IR-SA~UTR~12345678",
+          Json.parse("""{
+                       |    "userId" : "foo",
+                       |    "type" :         "delegated"
+                       |}""".stripMargin),
+          `legacy-agentCode` = Some("ABC123")
+        )
+
+        result should haveStatus(400)
+      }
+
+      "return 400 if groupId does not exist" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        Users.create(UserGenerator.individual(userId = "00000000123166122235", groupId = "group1"))
+        EnrolmentStoreProxyStub
+          .setKnownFacts(
+            "IR-SA~UTR~12345678",
+            SetKnownFactsRequest
+              .generate("IR-SA~UTR~12345678", _ => None)
+              .getOrElse(throw new Exception("Could not generate known facts")))
+
+        val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
+          "group2",
+          "IR-SA~UTR~12345678",
+          Json.parse("""{
+                       |    "userId" : "foo",
                        |    "type":         "principal"
                        |}""".stripMargin)
         )
@@ -346,8 +346,8 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
       }
 
       "return 400 if userId does not exist" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("00000000123166122235")
-        Users.update(UserGenerator.individual(userId = "00000000123166122235", groupId = "group1"))
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        Users.create(UserGenerator.individual(userId = "00000000123166122235", groupId = "group1"))
         EnrolmentStoreProxyStub
           .setKnownFacts(
             "IR-SA~UTR~12345678",
@@ -428,7 +428,55 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         result should haveStatus(204)
 
         val user = await(userService.findByUserId(session.userId, session.planetId)).get
-        user.principalEnrolments.isEmpty shouldBe true
+        user.delegatedEnrolments.isEmpty shouldBe true
+      }
+
+      "deallocate delegated enrolment from the group identified by legacy-AgentCode" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        Users.update(
+          UserGenerator
+            .agent(userId = "foo1", groupId = "group1", agentCode = "ABCDEF")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678"))
+
+        val result = EnrolmentStoreProxyStub
+          .deallocateEnrolmentFromGroup("group2", "IR-SA~UTR~12345678", `legacy-agentCode` = Some("ABCDEF"))
+
+        result should haveStatus(204)
+
+        val user = await(userService.findByUserId(session.userId, session.planetId)).get
+        user.delegatedEnrolments.isEmpty shouldBe true
+      }
+
+      "fail if groupId is not found" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        Users.update(
+          UserGenerator
+            .agent(userId = "foo1", groupId = "group1", agentCode = "ABCDEF")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678"))
+
+        val result = EnrolmentStoreProxyStub
+          .deallocateEnrolmentFromGroup("group2", "IR-SA~UTR~12345678")
+
+        result should haveStatus(400)
+
+        val user = await(userService.findByUserId(session.userId, session.planetId)).get
+        user.delegatedEnrolments.isEmpty should not be true
+      }
+
+      "fail if legacy-AgentCode is not found" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        Users.update(
+          UserGenerator
+            .agent(userId = "foo1", groupId = "group1", agentCode = "ABCDEF")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678"))
+
+        val result = EnrolmentStoreProxyStub
+          .deallocateEnrolmentFromGroup("group2", "IR-SA~UTR~12345678", `legacy-agentCode` = Some("FFFFFFF"))
+
+        result should haveStatus(400)
+
+        val user = await(userService.findByUserId(session.userId, session.planetId)).get
+        user.delegatedEnrolments.isEmpty should not be true
       }
     }
 
