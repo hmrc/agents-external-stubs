@@ -12,7 +12,13 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.logging.Authorization
 
 trait AuthContext {
+  self =>
+
   def headers: Seq[(String, String)]
+
+  def withHeader(key: String, name: String): AuthContext = new AuthContext {
+    override def headers: Seq[(String, String)] = self.headers :+ (key -> name)
+  }
 }
 
 object AuthContext {

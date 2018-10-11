@@ -8,7 +8,7 @@ import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.services.UsersService
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
-import uk.gov.hmrc.agentsexternalstubs.support.{MongoDB, ServerBaseISpec, TestRequests}
+import uk.gov.hmrc.agentsexternalstubs.support._
 import uk.gov.hmrc.domain.Nino
 
 class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequests with TestStubs {
@@ -263,7 +263,6 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
     }
 
     "store a new agent user" in {
-      implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
       val userId = "apitestuser"
       val arn = Generator.arn(userId).value
       val payload = Json.parse(s"""{
@@ -278,16 +277,22 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
                                   |}
       """.stripMargin)
 
-      val result = Users.createApiPlatformTestUser(payload)
+      {
+        implicit val authContext: AuthContext = NotAuthorized.withHeader("X-Client-ID", "fooClientId")
+        val result = Users.createApiPlatformTestUser(payload)
 
-      result should haveStatus(201)
-      result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/apitestuser")
-      val user = Users.get(userId).json.as[User]
-      user.affinityGroup shouldBe Some(User.AG.Agent)
-      user.nino shouldBe None
-      user.dateOfBirth shouldBe None
-      user.name shouldBe Some("API Test User")
-      user.principalEnrolments should contain.only(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", arn))
+        result should haveStatus(201)
+        result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/apitestuser")
+      }
+      {
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession(planetId = "fooClientId")
+        val user = Users.get(userId).json.as[User]
+        user.affinityGroup shouldBe Some(User.AG.Agent)
+        user.nino shouldBe None
+        user.dateOfBirth shouldBe None
+        user.name shouldBe Some("API Test User")
+        user.principalEnrolments should contain.only(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", arn))
+      }
     }
   }
 }

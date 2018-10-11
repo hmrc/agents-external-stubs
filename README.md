@@ -297,7 +297,7 @@ Response | Description
 404| when userId not found
 
 #### POST /agents-external-stubs/users/api-platform
-Create a new user from api-platform test user. (_requires valid bearer token_)
+Create a new user from api-platform test user.
 
 *Payload*
 

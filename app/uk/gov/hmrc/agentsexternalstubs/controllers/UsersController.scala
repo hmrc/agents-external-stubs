@@ -86,13 +86,13 @@ class UsersController @Inject()(usersService: UsersService, val authenticationSe
   }
 
   def createApiPlatformTestUser(): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
-    withCurrentOrExternalSession { session =>
+    withPlanetId { planetId =>
       withPayload[ApiPlatform.TestUser](
         testUser =>
           usersService
-            .createUser(ApiPlatform.TestUser.asUser(testUser), session.planetId)
+            .createUser(ApiPlatform.TestUser.asUser(testUser), planetId)
             .map(theUser =>
-              Created(s"API Platform test user ${theUser.userId} has been created.")
+              Created(s"API Platform test user ${theUser.userId} has been created on the planet $planetId")
                 .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url))
             .recover {
               case DuplicateUserException(msg) => Conflict(msg)
