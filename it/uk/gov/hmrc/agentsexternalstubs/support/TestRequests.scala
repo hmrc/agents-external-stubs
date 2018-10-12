@@ -478,6 +478,23 @@ trait TestRequests extends ScalaFutures {
       delete(s"/agents-external-stubs/known-facts/$enrolmentKey")
   }
 
+  object SpecialCases {
+    def getAllSpecialCases(implicit authContext: AuthContext): WSResponse =
+      get(s"/agents-external-stubs/special-cases")
+
+    def getSpecialCase(id: String)(implicit authContext: AuthContext): WSResponse =
+      get(s"/agents-external-stubs/special-cases/$id")
+
+    def createSpecialCase[T: Writeable](payload: T)(implicit authContext: AuthContext): WSResponse =
+      post(s"/agents-external-stubs/special-cases", payload)
+
+    def updateSpecialCase[T: Writeable](id: String, payload: T)(implicit authContext: AuthContext): WSResponse =
+      put(s"/agents-external-stubs/special-cases/$id", payload)
+
+    def deleteSpecialCase(id: String)(implicit authContext: AuthContext): WSResponse =
+      delete(s"/agents-external-stubs/special-cases/$id")
+  }
+
   object Config {
     def getServices()(implicit authContext: AuthContext): WSResponse =
       get(s"/agents-external-stubs/config/services")

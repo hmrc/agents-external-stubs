@@ -97,7 +97,7 @@ class UsersController @Inject()(usersService: UsersService, val authenticationSe
             .recover {
               case DuplicateUserException(msg) => Conflict(msg)
           })
-    }(SessionRecordNotFound)
+    }
   }
 
 }

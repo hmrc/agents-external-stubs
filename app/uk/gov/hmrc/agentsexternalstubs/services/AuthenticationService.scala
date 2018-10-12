@@ -27,7 +27,6 @@ class AuthenticationService @Inject()(
         val planetId =
           request.headers
             .get("X-Client-ID")
-            .orElse(hc.deviceID)
             .getOrElse({
               Logger(getClass).info(s"Headers considered: ${request.headers.headers.mkString(", ")}")
               "hmrc"

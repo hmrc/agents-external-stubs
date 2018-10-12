@@ -87,6 +87,13 @@ GET         /agents-external-stubs/known-facts/:enrolmentKey                 @uk
 PUT         /agents-external-stubs/known-facts/:enrolmentKey                 @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.upsertKnownFacts(enrolmentKey: EnrolmentKey)
 DELETE      /agents-external-stubs/known-facts/:enrolmentKey                 @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.deleteKnownFacts(enrolmentKey: EnrolmentKey)
 
+# Special cases management
+GET         /agents-external-stubs/special-cases                             @uk.gov.hmrc.agentsexternalstubs.controllers.SpecialCasesController.getAllSpecialCases
+POST        /agents-external-stubs/special-cases                             @uk.gov.hmrc.agentsexternalstubs.controllers.SpecialCasesController.createSpecialCase
+GET         /agents-external-stubs/special-cases/:id                         @uk.gov.hmrc.agentsexternalstubs.controllers.SpecialCasesController.getSpecialCase(id: String)
+PUT         /agents-external-stubs/special-cases/:id                         @uk.gov.hmrc.agentsexternalstubs.controllers.SpecialCasesController.updateSpecialCase(id: String)
+DELETE      /agents-external-stubs/special-cases/:id                         @uk.gov.hmrc.agentsexternalstubs.controllers.SpecialCasesController.deleteSpecialCase(id: String)
+
 # Config management
 GET         /agents-external-stubs/config/services                           @uk.gov.hmrc.agentsexternalstubs.controllers.ConfigController.getServices
 

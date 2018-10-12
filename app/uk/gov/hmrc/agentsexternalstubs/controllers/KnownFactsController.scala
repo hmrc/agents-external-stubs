@@ -29,7 +29,7 @@ class KnownFactsController @Inject()(
             for {
               maybeUser <- usersRepository.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
               agents    <- usersRepository.findByDelegatedEnrolmentKey(enrolmentKey, session.planetId)(1000)
-            } yield Ok(RestfulResponse(EnrolmentInfo(enrolmentKey.tag, kf.verifiers, maybeUser, agents)))
+            } yield ok(EnrolmentInfo(enrolmentKey.tag, kf.verifiers, maybeUser, agents))
         }
     }(SessionRecordNotFound)
   }

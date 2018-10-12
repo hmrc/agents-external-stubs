@@ -35,8 +35,11 @@ trait KnownFactsRepository {
 
   def findByEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[KnownFacts]]
+
   def findByVerifier(knownFact: KnownFact, planetId: String)(implicit ec: ExecutionContext): Future[Option[KnownFacts]]
+
   def upsert(knownFacts: KnownFacts, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
+
   def delete(enrolmentKey: EnrolmentKey, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
 
   def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit]

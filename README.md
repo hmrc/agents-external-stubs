@@ -36,6 +36,7 @@ This app SHOULD NOT be run on QA nor Production environment.
     * [Users Management](#custom_api_users)
     * [Master Records (DES)](#custom_api_records)
     * [Known Facts](#custom_api_known_facts)
+    * [Special Cases (Exceptions)](#custom_api_special_case)
     * [Test Planets](#custom_api_planets)
 
 ## How requests are handled?
@@ -386,6 +387,46 @@ Response | Description
 204| known fact removed
 404| enrolmentKey not found
 
+### Special Cases (Exceptions) Management <a name="custom_api_special_case"></a>
+
+#### GET /agents-external-stubs/special-cases
+List all special cases defined on the planet
+
+Response | Description
+---|---
+200| special cases array if any
+204| None found
+
+#### GET /agents-external-stubs/special-cases/:id
+Get special case by id
+
+Response | Description
+---|---
+200| special case entity if found
+404| Not found
+
+#### POST /agents-external-stubs/special-cases
+Create special case
+
+Response | Description
+---|---
+201| special case entity created
+
+#### PUT /agents-external-stubs/special-cases/:id
+Update special case
+
+Response | Description
+---|---
+202| special case entity update accepted
+404| Not found
+
+#### DELETE /agents-external-stubs/special-cases/:id
+Delete special case
+
+Response | Description
+---|---
+204| special case entity removed
+
 ### Test Planets Management <a name="custom_api_planets"></a>
 
 #### DELETE /agents-external-stubs/planets/:planetId
@@ -407,7 +448,7 @@ or
 
     sbt run
 
-It should then be listening on ports 9009 and 8500
+It should then be listening on port 9009 and others
 
     browse http://localhost:9009/
 

@@ -76,21 +76,18 @@ trait CurrentSession extends HttpHelpers {
       }
     }(SessionRecordNotFound)
 
-  def withPlanetId[T](body: String => Future[Result])(ifSessionNotFound: => Future[Result])(
-    implicit request: Request[T],
-    ec: ExecutionContext,
-    hc: HeaderCarrier): Future[Result] =
+  def withPlanetId[T, R](
+    body: String => Future[R])(implicit request: Request[T], ec: ExecutionContext, hc: HeaderCarrier): Future[R] =
     request.headers.get(HeaderNames.AUTHORIZATION) match {
       case Some(BearerToken(authToken)) =>
-        (for {
+        for {
           maybeSession <- authenticationService.findByAuthTokenOrLookupExternal(authToken)
           result <- maybeSession match {
                      case Some(session) => body(session.planetId)
                      case _ =>
                        body("hmrc")
                    }
-        } yield result)
-          .recover(errorHandler)
+        } yield result
       case _ =>
         val planetId =
           request.headers
