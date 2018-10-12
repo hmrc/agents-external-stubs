@@ -17,7 +17,7 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 
 import com.google.inject.ImplementedBy
 import javax.inject.{Inject, Singleton}
-import play.api.libs.json.{JsString, Json}
+import play.api.libs.json._
 import play.api.libs.json.Json.toJsFieldJsValueWrapper
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.Index
@@ -25,6 +25,7 @@ import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.api.{CursorProducer, ReadPreference}
 import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers
+import uk.gov.hmrc.agentsexternalstubs.models.SpecialCase.internal
 import uk.gov.hmrc.agentsexternalstubs.models.{Id, SpecialCase}
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
@@ -51,7 +52,7 @@ class SpecialCasesRepositoryMongo @Inject()(mongoComponent: ReactiveMongoCompone
     extends ReactiveRepository[SpecialCase, BSONObjectID](
       "specialCases",
       mongoComponent.mongoConnector.db,
-      SpecialCase.formats,
+      Format(internal.reads, internal.writes),
       ReactiveMongoFormats.objectIdFormats) with StrictlyEnsureIndexes[SpecialCase, BSONObjectID]
     with SpecialCasesRepository {
 
@@ -63,6 +64,8 @@ class SpecialCasesRepositoryMongo @Inject()(mongoComponent: ReactiveMongoCompone
   )
 
   import ImplicitBSONHandlers._
+
+  implicit val writes: OWrites[SpecialCase] = SpecialCase.internal.writes
 
   def findById(id: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[SpecialCase]] =
     collection
@@ -98,7 +101,7 @@ class SpecialCasesRepositoryMongo @Inject()(mongoComponent: ReactiveMongoCompone
       .fold(
         errors => Future.failed(new Exception(s"SpecialCase validation failed because $errors")),
         _ =>
-          specialCase._id match {
+          specialCase.id match {
             case Some(id) =>
               collection
                 .update(
@@ -112,7 +115,7 @@ class SpecialCasesRepositoryMongo @Inject()(mongoComponent: ReactiveMongoCompone
               val newId = BSONObjectID.generate().stringify
               collection
                 .insert(
-                  specialCase.copy(planetId = Some(planetId), _id = Some(Id(newId)))
+                  specialCase.copy(planetId = Some(planetId), id = Some(Id(newId)))
                 )
                 .map((_, newId))
                 .flatMap(MongoHelper.interpretWriteResult)

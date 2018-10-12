@@ -411,6 +411,7 @@ Create special case
 Response | Description
 ---|---
 201| special case entity created
+409| special case for the given match criteria already exists
 
 #### PUT /agents-external-stubs/special-cases/:id
 Update special case

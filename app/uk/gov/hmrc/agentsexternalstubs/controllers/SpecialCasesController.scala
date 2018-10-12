@@ -5,10 +5,11 @@ import java.net.URLDecoder
 import akka.stream.Materializer
 import akka.util.ByteString
 import javax.inject.{Inject, Singleton}
-import play.api.libs.json.JsValue
+import play.api.libs.json.{Format, JsValue, Reads, Writes}
 import play.api.libs.streams.Accumulator
 import play.api.mvc._
 import play.mvc.Http.HeaderNames
+import reactivemongo.core.errors.DatabaseException
 import uk.gov.hmrc.agentsexternalstubs.models.{Id, SpecialCase}
 import uk.gov.hmrc.agentsexternalstubs.repository.SpecialCasesRepository
 import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
@@ -22,6 +23,9 @@ class SpecialCasesController @Inject()(
   specialCasesRepository: SpecialCasesRepository,
   val authenticationService: AuthenticationService)(implicit materializer: Materializer)
     extends BaseController with CurrentSession {
+
+  implicit val reads: Reads[SpecialCase] = SpecialCase.external.reads
+  implicit val writes: Writes[SpecialCase] = SpecialCase.external.writes
 
   val getAllSpecialCases: Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
@@ -50,6 +54,10 @@ class SpecialCasesController @Inject()(
             .map(id =>
               Created(s"Special case $id has been created.")
                 .withHeaders(HeaderNames.LOCATION -> routes.SpecialCasesController.getSpecialCase(id).url))
+            .recover {
+              case e: DatabaseException if e.message.contains("E11000") =>
+                Conflict(e.getMessage())
+          }
       )
     }(SessionRecordNotFound)
   }
@@ -62,7 +70,7 @@ class SpecialCasesController @Inject()(
             case None => notFoundF("NOT_FOUND")
             case Some(_) =>
               specialCasesRepository
-                .upsert(specialCase.copy(_id = Some(Id(id))), session.planetId)
+                .upsert(specialCase.copy(id = Some(Id(id))), session.planetId)
                 .map(id =>
                   Accepted(s"Special case $id has been updated.")
                     .withHeaders(HeaderNames.LOCATION -> routes.SpecialCasesController.getSpecialCase(id).url))

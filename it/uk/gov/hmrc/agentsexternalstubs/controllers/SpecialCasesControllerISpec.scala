@@ -1,6 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import play.api.libs.json.JsObject
+import play.api.libs.json.{JsObject, Reads, Writes}
 import play.api.libs.ws.WSClient
 import play.mvc.Http.{HeaderNames, MimeTypes}
 import uk.gov.hmrc.agentsexternalstubs.models.SpecialCase.RequestMatch
@@ -13,6 +13,9 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with MongoDB with Test
   val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
   lazy val repo = app.injector.instanceOf[SpecialCasesRepository]
+
+  implicit val reads: Reads[SpecialCase] = SpecialCase.external.reads
+  implicit val writes: Writes[SpecialCase] = SpecialCase.external.writes
 
   "SpecialCasesController" when {
 
@@ -161,13 +164,13 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with MongoDB with Test
         (result3.json \ "a").as[String] shouldBe "b"
 
         val result4 =
-          SpecialCases.updateSpecialCase(sc._id.get.value, sc.copy(response = sc.response.copy(status = 583)))
+          SpecialCases.updateSpecialCase(sc.id.get.value, sc.copy(response = sc.response.copy(status = 583)))
         result4 should haveStatus(202)
 
         val result5 = CitizenDetailsStub.getCitizen("nino", user.nino.get.value)
         result5 should haveStatus(583)
 
-        val result6 = SpecialCases.deleteSpecialCase(sc._id.get.value)
+        val result6 = SpecialCases.deleteSpecialCase(sc.id.get.value)
         result6 should haveStatus(204)
 
         val result7 = CitizenDetailsStub.getCitizen("nino", user.nino.get.value)

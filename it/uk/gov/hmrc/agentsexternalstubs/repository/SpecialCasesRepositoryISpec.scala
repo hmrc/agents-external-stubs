@@ -40,7 +40,7 @@ class SpecialCasesRepositoryISpec extends AppBaseISpec with MongoDB {
       val result = await(repo.findByMatchKey(key, planetId))
       result shouldBe defined
       result.map(_.response.status) shouldBe Some(404)
-      result.flatMap(_._id) shouldBe defined
+      result.flatMap(_.id) shouldBe defined
     }
 
     "find and update an entity by id" in {
@@ -51,7 +51,7 @@ class SpecialCasesRepositoryISpec extends AppBaseISpec with MongoDB {
       val result = await(repo.findById(id, planetId))
       result shouldBe defined
       result.map(_.response.status) shouldBe Some(404)
-      result.flatMap(_._id) shouldBe Some(Id(id))
+      result.flatMap(_.id) shouldBe Some(Id(id))
     }
 
     "delete an entity" in {

@@ -11,7 +11,7 @@ case class SpecialCase(
   requestMatch: SpecialCase.RequestMatch,
   response: SpecialCase.Response,
   planetId: Option[String] = None,
-  _id: Option[Id] = None)
+  id: Option[Id] = None)
 
 object SpecialCase {
 
@@ -55,26 +55,49 @@ object SpecialCase {
       "Request match contentType must be one of json, form, text")
   )
 
-  implicit lazy val formats1: Format[RequestMatch] = Json.format[RequestMatch]
-  implicit lazy val formats2: Format[Header] = Json.format[Header]
-  implicit lazy val formats3: Format[Response] = Json.format[Response]
+  implicit val formats1: Format[RequestMatch] = Json.format[RequestMatch]
+  implicit val formats2: Format[Header] = Json.format[Header]
+  implicit val formats3: Format[Response] = Json.format[Response]
 
-  implicit val reads: Reads[SpecialCase] = Json.reads[SpecialCase]
+  object internal {
 
-  type Transformer = JsObject => JsObject
+    implicit val idFormats: Format[Id] = Id.internalFormats
 
-  private def planetIdOf(json: JsObject): String =
-    (json \ "planetId").asOpt[String].getOrElse("hmrc")
+    import play.api.libs.functional.syntax._
+    val reads: Reads[SpecialCase] =
+      ((JsPath \ "requestMatch").read[RequestMatch] and
+        (JsPath \ "response").read[Response] and
+        (JsPath \ "planetId").readNullable[String] and
+        (JsPath \ "_id").readNullable[Id])((a, b, c, d) => SpecialCase.apply(a, b, c, d))
 
-  private final val addUniqueKey: Transformer = json => {
-    val key = (json \ "requestMatch").as[RequestMatch].toKey
-    val planetId = planetIdOf(json)
-    json + ((UNIQUE_KEY, JsString(uniqueKey(key, planetId))))
+    type Transformer = JsObject => JsObject
+
+    private def planetIdOf(json: JsObject): String =
+      (json \ "planetId").asOpt[String].getOrElse("hmrc")
+
+    private final val addUniqueKey: Transformer = json => {
+      val key = (json \ "requestMatch").as[RequestMatch].toKey
+      val planetId = planetIdOf(json)
+      json + ((UNIQUE_KEY, JsString(uniqueKey(key, planetId))))
+    }
+
+    private final val renameId: Transformer = json => {
+      (json \ "id").asOpt[JsObject] match {
+        case None     => json
+        case Some(id) => json.-("id").+(Id.ID -> id)
+      }
+    }
+
+    val writes: OWrites[SpecialCase] = Json
+      .writes[SpecialCase]
+      .transform(addUniqueKey)
+      .transform(renameId)
   }
 
-  implicit val writes: OWrites[SpecialCase] = Json
-    .writes[SpecialCase]
-    .transform(addUniqueKey)
+  object external {
 
-  val formats = Format(reads, writes)
+    implicit val idFormats: Format[Id] = Id.externalFormats
+    val reads: Reads[SpecialCase] = Json.reads[SpecialCase]
+    val writes: OWrites[SpecialCase] = Json.writes[SpecialCase]
+  }
 }
