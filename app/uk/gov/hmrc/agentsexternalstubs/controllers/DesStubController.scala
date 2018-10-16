@@ -218,6 +218,24 @@ class DesStubController @Inject()(
       }(SessionRecordNotFound)
   }
 
+  def agentClientAuthorisationFlags(agentref: String, utr: String): Action[AnyContent] = Action.async {
+    implicit request =>
+      withCurrentSession { session =>
+        RegexPatterns
+          .validUtr(utr)
+          .fold(
+            error => badRequestF("INVALID_UTR", error),
+            _ =>
+              legacyRelationshipRecordsService
+                .getLegacyRelationshipByAgentIdAndUtr(agentref, utr, session.planetId)
+                .map {
+                  case Some(relationship) => ok(SAAgentClientAuthorisation.Response.from(relationship))
+                  case None               => notFound("Resource not found")
+              }
+          )
+      }(SessionRecordNotFound)
+  }
+
   private def getOrCreateBusinessPartnerRecord[T <: Record](
     payload: RegistrationPayload,
     idType: String,
@@ -505,6 +523,20 @@ object DesStubController {
           case None          => obj
         }
       case other => other
+    }
+
+  }
+
+  object SAAgentClientAuthorisation {
+
+    case class Response(`Auth_64-8`: Boolean, `Auth_i64-8`: Boolean)
+
+    object Response {
+
+      def from(relationship: LegacyRelationshipRecord): Response =
+        Response(relationship.`Auth_64-8`.getOrElse(false), relationship.`Auth_i64-8`.getOrElse(false))
+
+      implicit val formats: Format[Response] = Json.format[Response]
     }
 
   }

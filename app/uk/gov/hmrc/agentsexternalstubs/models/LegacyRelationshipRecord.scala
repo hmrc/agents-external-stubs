@@ -1,19 +1,23 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalacheck.Gen
-import play.api.libs.json.{Format, Json}
+import play.api.libs.json._
 case class LegacyRelationshipRecord(
   agentId: String,
   nino: Option[String] = None,
   utr: Option[String] = None,
-  id: Option[String] = None)
+  id: Option[String] = None,
+  `Auth_64-8`: Option[Boolean] = None,
+  `Auth_i64-8`: Option[Boolean] = None)
     extends Record {
 
   override def lookupKeys: Seq[String] =
     Seq(
       nino.map(LegacyRelationshipRecord.ninoKey),
       utr.map(LegacyRelationshipRecord.utrKey),
-      Option(LegacyRelationshipRecord.agentIdKey(agentId))).collect {
+      Option(LegacyRelationshipRecord.agentIdKey(agentId)),
+      utr.map(LegacyRelationshipRecord.agentIdAndUtrKey(agentId, _))
+    ).collect {
       case Some(x) => x
     }
   override def withId(id: Option[String]): LegacyRelationshipRecord = copy(id = id)
@@ -22,6 +26,7 @@ case class LegacyRelationshipRecord(
 object LegacyRelationshipRecord extends RecordUtils[LegacyRelationshipRecord] {
 
   def agentIdKey(agentId: String): String = s"agentId:$agentId"
+  def agentIdAndUtrKey(agentId: String, utr: String): String = s"agentId:$agentId;utr:${utr.replace(" ", "")}"
   def ninoKey(nino: String): String = s"nino:${nino.replace(" ", "")}"
   def utrKey(utr: String): String = s"utr:${utr.replace(" ", "")}"
 
@@ -34,7 +39,18 @@ object LegacyRelationshipRecord extends RecordUtils[LegacyRelationshipRecord] {
     check(r => r.nino.isDefined || r.utr.isDefined, "Missing client identifier: nino or utr")
   )
 
-  implicit val formats: Format[LegacyRelationshipRecord] = Json.format[LegacyRelationshipRecord]
+  val writes: Writes[LegacyRelationshipRecord] = Json.writes[LegacyRelationshipRecord]
+
+  import play.api.libs.functional.syntax._
+  val reads: Reads[LegacyRelationshipRecord] =
+    ((JsPath \ "agentId").read[String] and
+      (JsPath \ "nino").readNullable[String] and
+      (JsPath \ "utr").readNullable[String] and
+      (JsPath \ "id").readNullable[String] and
+      (JsPath \ "Auth_64-8").readNullable[Boolean] and
+      (JsPath \ "Auth_i64-8").readNullable[Boolean])(LegacyRelationshipRecord.apply _)
+
+  implicit val formats: Format[LegacyRelationshipRecord] = Format(reads, writes)
   implicit val recordType: RecordMetaData[LegacyRelationshipRecord] =
     RecordMetaData[LegacyRelationshipRecord](LegacyRelationshipRecord)
 
@@ -42,10 +58,14 @@ object LegacyRelationshipRecord extends RecordUtils[LegacyRelationshipRecord] {
 
   override val gen: Gen[LegacyRelationshipRecord] =
     for {
-      agentId <- agentIdGen
+      agentId    <- agentIdGen
+      auth_64_8  <- Generator.biasedOptionGen(Generator.booleanGen)
+      auth_i64_8 <- Generator.biasedOptionGen(Generator.booleanGen)
     } yield
       LegacyRelationshipRecord(
-        agentId = agentId
+        agentId = agentId,
+        `Auth_64-8` = auth_64_8,
+        `Auth_i64-8` = auth_i64_8
       )
 
   val ninoSanitizer: Update = seed => e => e.copy(nino = e.nino.orElse(Some(Generator.ninoNoSpaces(e.agentId).value)))

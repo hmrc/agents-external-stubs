@@ -149,7 +149,9 @@ object AuthStubController {
       enrolments = s"/auth/_enrolments",
       affinityGroup = user.affinityGroup.getOrElse("none"),
       correlationId = UUID.randomUUID().toString,
-      credId = user.userId
+      credId = user.userId,
+      credentials = Some(Credentials(user.userId)),
+      accounts = Accounts.from(user)
     )
 
     case class Response(
@@ -164,10 +166,36 @@ object AuthStubController {
       enrolments: String,
       affinityGroup: String,
       correlationId: String,
-      credId: String)
+      credId: String,
+      credentials: Option[Credentials],
+      accounts: Option[Accounts])
 
     object Response {
       implicit val writes: Writes[Response] = Json.writes[Response]
+    }
+
+    case class Credentials(gatewayId: String)
+
+    object Credentials {
+      implicit val writes: Writes[Credentials] = Json.writes[Credentials]
+    }
+
+    case class Accounts(agent: Option[AgentAccount])
+
+    object Accounts {
+
+      def from(user: User): Option[Accounts] = user.affinityGroup match {
+        case Some(User.AG.Agent) => Some(Accounts(user.credentialRole.map(AgentAccount.apply)))
+        case _                   => None
+      }
+
+      implicit val writes: Writes[Accounts] = Json.writes[Accounts]
+    }
+
+    case class AgentAccount(agentUserRole: String)
+
+    object AgentAccount {
+      implicit val writes: Writes[AgentAccount] = Json.writes[AgentAccount]
     }
 
     case class Ids(internalId: String, externalId: String)

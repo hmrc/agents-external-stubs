@@ -2,6 +2,7 @@ package uk.gov.hmrc.agentsexternalstubs
 import better.files.File
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.agentsexternalstubs.JsonSchema._
+import uk.gov.hmrc.agentsexternalstubs.RecordCodeRenderer.Context.safeName
 
 import scala.io.Source
 import scala.util.matching.Regex
@@ -216,11 +217,13 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
         case _ => Seq.empty
       }
 
+    def safeName(name: String): String = if (name.contains("-")) s"`$name`" else name
+
     private def accessorFor(path: List[Definition], nested: String = "", option: Boolean = false): String = path match {
       case (o: ObjectDefinition) :: xs =>
         val prefix =
           if (o.name.isEmpty) ""
-          else if (o.isMandatory) s"${o.name}."
+          else if (o.isMandatory) s"${safeName(o.name)}."
           else s"${o.name}.${if (option) "flatMap" else "map"}(_."
         val suffix = if (o.name.isEmpty) "" else if (!o.isMandatory) ")" else ""
         accessorFor(xs, prefix + nested + suffix, !o.isMandatory || option)
@@ -456,15 +459,14 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
     typeDef.definition.properties
       .take(22)
       .map(prop =>
-        s"""${if (typeDef.interfaces.exists(_.interfaceMethods.exists(_._1 == prop.name))) "override val " else ""}${prop.name}: ${typeOf(
-             prop,
-             typeDef.prefix)}""".stripMargin)
+        s"""${if (typeDef.interfaces.exists(_.interfaceMethods.exists(_._1 == prop.name))) "override val " else ""}${safeName(
+             prop.name)}: ${typeOf(prop, typeDef.prefix)}""".stripMargin)
       .mkString(",\n  ")
 
   def generateInterfaceMethods(typeDef: TypeDefinition): String =
     if (!typeDef.isInterface) ""
     else
-      typeDef.interfaceMethods.map { case (name, typeOf) => s"def $name: $typeOf" }.mkString("\n ")
+      typeDef.interfaceMethods.map { case (name, typeOf) => s"def ${safeName(name)}: $typeOf" }.mkString("\n ")
 
   private def generateFieldGenerators(definition: ObjectDefinition, context: Context): String =
     definition.properties
@@ -477,7 +479,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
     definition.properties
       .filter(_.isMandatory)
       .take(22)
-      .map(prop => s"""${prop.name} = ${prop.variableName}""".stripMargin)
+      .map(prop => s"""${safeName(prop.name)} = ${prop.variableName}""".stripMargin)
       .mkString("\n    ", ",\n    ", "\n  ")
 
   private def generateBuilderMethods(typeDef: TypeDefinition): String =
@@ -485,9 +487,10 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
          .take(22)
          .map(prop => {
            val propType = typeOf(prop, typeDef.prefix, defaultValue = false)
-           s"""  def with${prop.nameWithFirstCharUpper}(${prop.name}: $propType): ${typeDef.name} = copy(${prop.name} = ${prop.name})
+           s"""  def with${prop.nameWithFirstCharUpper}(${safeName(prop.name)}: $propType): ${typeDef.name} = copy(${safeName(
+             prop.name)} = ${safeName(prop.name)})
            |  def modify${prop.nameWithFirstCharUpper}(pf: PartialFunction[$propType, $propType]): ${typeDef.name} =
-           |    if (pf.isDefinedAt(${prop.name})) copy(${prop.name} = pf(${prop.name})) else this"""
+           |    if (pf.isDefinedAt(${safeName(prop.name)})) copy(${safeName(prop.name)} = pf(${safeName(prop.name)})) else this"""
          })
          .mkString("\n  ")}""".stripMargin
 

@@ -31,10 +31,12 @@ object JsonSchema {
     }
 
     final def nameWithFirstCharUpper: String =
-      if (name.isEmpty) name else name.substring(0, 1).toUpperCase + name.substring(1)
+      normalizedName(if (name.isEmpty) name else name.substring(0, 1).toUpperCase + name.substring(1))
+
+    final def normalizedName(name: String): String = name.replace("-", "_")
 
     final def variableName: String =
-      if (name.charAt(0).isUpper) name.toLowerCase else name
+      normalizedName(if (name.charAt(0).isUpper) name.toLowerCase else name)
 
     final def pathLastPart: String = path.split("/").last
 

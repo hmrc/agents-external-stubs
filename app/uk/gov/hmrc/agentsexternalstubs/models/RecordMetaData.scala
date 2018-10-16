@@ -14,7 +14,13 @@ object RecordMetaData {
   def apply[T <: Record](utilities: RecordUtils[T])(implicit classTag: ClassTag[T]): RecordMetaData[T] = {
 
     val properties =
-      classTag.runtimeClass.getDeclaredFields.map(_.getName).toSet.-("id").+(Record.ID).+(Record.TYPE).toSeq
+      classTag.runtimeClass.getDeclaredFields
+        .map(_.getName.replace("$minus", "-"))
+        .toSet
+        .-("id")
+        .+(Record.ID)
+        .+(Record.TYPE)
+        .toSeq
 
     new RecordMetaData[T] {
       override val typeName: String = classTag.runtimeClass.getSimpleName

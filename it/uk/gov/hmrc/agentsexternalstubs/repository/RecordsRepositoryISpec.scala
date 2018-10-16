@@ -19,6 +19,7 @@ import java.util.UUID
 
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.services.LegacyRelationshipRecordsService
 import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
 import uk.gov.hmrc.mongo.ReactiveRepository
 
@@ -68,10 +69,16 @@ class RecordsRepositoryISpec extends AppBaseISpec with MongoDB {
 
     "store a LegacyRelationshipRecord entities" in {
       val planetId = UUID.randomUUID().toString
-      val registration1 = LegacyRelationshipRecord(nino = Some("A"), utr = Some("U1"), agentId = "1")
+      val registration1 =
+        LegacyRelationshipRecord(nino = Some("A"), utr = Some("U1"), agentId = "1")
       await(repo.store(registration1, planetId))
 
-      val registration2 = LegacyRelationshipRecord(nino = Some("B"), utr = Some("U2"), agentId = "2")
+      val registration2 = LegacyRelationshipRecord(
+        nino = Some("B"),
+        utr = Some("U2"),
+        agentId = "2",
+        `Auth_i64-8` = Some(true),
+        `Auth_64-8` = Some(true))
       await(repo.store(registration2, planetId))
 
       val records = await(underlyingRepo.find("_planetId" -> planetId))
@@ -79,6 +86,16 @@ class RecordsRepositoryISpec extends AppBaseISpec with MongoDB {
       records.map(_.asInstanceOf[LegacyRelationshipRecord].agentId) should contain.only("1", "2")
       records.map(_.asInstanceOf[LegacyRelationshipRecord].nino.get) should contain.only("A", "B")
       records.map(_.asInstanceOf[LegacyRelationshipRecord].utr.get) should contain.only("U1", "U2")
+      records.map(_.asInstanceOf[LegacyRelationshipRecord].`Auth_64-8`) should contain.only(Some(true), None)
+      records.map(_.asInstanceOf[LegacyRelationshipRecord].`Auth_i64-8`) should contain.only(Some(true), None)
+
+      val relationshipOpt = await(
+        app.injector
+          .instanceOf[LegacyRelationshipRecordsService]
+          .getLegacyRelationshipByAgentIdAndUtr("2", "U2", planetId))
+      relationshipOpt.flatMap(_.utr) shouldBe Some("U2")
+      relationshipOpt.flatMap(_.`Auth_64-8`) shouldBe Some(true)
+      relationshipOpt.flatMap(_.`Auth_i64-8`) shouldBe Some(true)
     }
 
     "store a BusinessDetails entities" in {

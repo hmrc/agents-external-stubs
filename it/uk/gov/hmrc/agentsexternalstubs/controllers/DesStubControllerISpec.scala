@@ -151,7 +151,7 @@ class DesStubControllerISpec
     }
 
     "GET /registration/relationship/utr/:utr" should {
-      "return 200 response if relationship does not exists" in {
+      "return 200 response if relationship exists" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val createAgentResult = Records.createLegacyAgent(Json.parse(validLegacyAgentPayload))
         createAgentResult should haveStatus(201)
@@ -402,6 +402,26 @@ class DesStubControllerISpec
             JsObject]("individual") and notHaveProperty("organisation") and haveProperty[Boolean]("isAnAgent", be(true)) and haveProperty[
             Boolean]("isAnASAgent", be(false))
         )
+      }
+    }
+
+    "GET /sa/agents/:agentref/client/:utr" should {
+      "return 200 response if relationship exists" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val createAgentResult = Records.createLegacyAgent(Json.parse(validLegacyAgentPayload))
+        createAgentResult should haveStatus(201)
+        val createRelationshipResult = Records.createLegacyRelationship(Json.parse(validLegacyRelationshipPayload))
+        createRelationshipResult should haveStatus(201)
+
+        val result = DesStub.getSAAgentClientAuthorisationFlags("SA6012", "1234567890")
+        result should haveStatus(200)
+        result should haveValidJsonBody(haveProperty[Boolean]("Auth_64-8") and haveProperty[Boolean]("Auth_i64-8"))
+      }
+
+      "return 200 response if relationship does not exist" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val result = DesStub.getSAAgentClientAuthorisationFlags("SA6012", "1234567890")
+        result should haveStatus(404)
       }
     }
   }

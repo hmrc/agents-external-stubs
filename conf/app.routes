@@ -43,6 +43,7 @@ GET         /registration/personal-details/:idType/:idNumber                 @uk
 POST        /registration/agents/utr/:utr                                    @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.subscribeAgentServices(utr: String)
 POST        /registration/individual/:idType/:idNumber                       @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.register(idType: String, idNumber: String)
 POST        /registration/organisation/:idType/:idNumber                     @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.register(idType: String, idNumber: String)
+GET         /sa/agents/:agentref/client/:utr                                 @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.agentClientAuthorisationFlags(agentref: String, utr: String)
 
 # Datastream
 POST        /write/audit                                                     @uk.gov.hmrc.agentsexternalstubs.controllers.DataStreamStubController.writeEvent
