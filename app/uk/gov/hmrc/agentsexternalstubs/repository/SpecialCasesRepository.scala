@@ -24,6 +24,7 @@ import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.api.{CursorProducer, ReadPreference}
 import reactivemongo.bson.BSONObjectID
+import reactivemongo.core.errors.DatabaseException
 import reactivemongo.play.json.ImplicitBSONHandlers
 import uk.gov.hmrc.agentsexternalstubs.models.SpecialCase.internal
 import uk.gov.hmrc.agentsexternalstubs.models.{Id, SpecialCase}
@@ -114,11 +115,31 @@ class SpecialCasesRepositoryMongo @Inject()(mongoComponent: ReactiveMongoCompone
             case None =>
               val newId = BSONObjectID.generate().stringify
               collection
-                .insert(
-                  specialCase.copy(planetId = Some(planetId), id = Some(Id(newId)))
+                .find(
+                  Json.obj(
+                    SpecialCase.UNIQUE_KEY -> JsString(SpecialCase.uniqueKey(specialCase.requestMatch.toKey, planetId)))
                 )
-                .map((_, newId))
-                .flatMap(MongoHelper.interpretWriteResult)
+                .one[SpecialCase]
+                .flatMap {
+                  case Some(sc) =>
+                    collection
+                      .update(
+                        Json.obj(
+                          Id.ID     -> Json.obj("$oid" -> JsString(sc.id.map(_.value).get)),
+                          PLANET_ID -> JsString(planetId)),
+                        specialCase.copy(planetId = Some(planetId)),
+                        upsert = false
+                      )
+                      .map((_, sc.id.map(_.value).get))
+                      .flatMap(MongoHelper.interpretWriteResult)
+                  case None =>
+                    collection
+                      .insert(
+                        specialCase.copy(planetId = Some(planetId), id = Some(Id(newId)))
+                      )
+                      .map((_, newId))
+                      .flatMap(MongoHelper.interpretWriteResult)
+                }
         }
       )
 

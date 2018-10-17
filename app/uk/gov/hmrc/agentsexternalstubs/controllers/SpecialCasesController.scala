@@ -5,7 +5,7 @@ import java.net.URLDecoder
 import akka.stream.Materializer
 import akka.util.ByteString
 import javax.inject.{Inject, Singleton}
-import play.api.libs.json.{Format, JsValue, Reads, Writes}
+import play.api.libs.json.{JsValue, Reads, Writes}
 import play.api.libs.streams.Accumulator
 import play.api.mvc._
 import play.mvc.Http.HeaderNames
@@ -54,10 +54,6 @@ class SpecialCasesController @Inject()(
             .map(id =>
               Created(s"Special case $id has been created.")
                 .withHeaders(HeaderNames.LOCATION -> routes.SpecialCasesController.getSpecialCase(id).url))
-            .recover {
-              case e: DatabaseException if e.message.contains("E11000") =>
-                Conflict(e.getMessage())
-          }
       )
     }(SessionRecordNotFound)
   }

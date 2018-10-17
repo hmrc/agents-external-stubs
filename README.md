@@ -407,12 +407,11 @@ Response | Description
 404| Not found
 
 #### POST /agents-external-stubs/special-cases
-Create special case
+Create special case (or update)
 
 Response | Description
 ---|---
 201| special case entity created
-409| special case for the given match criteria already exists
 
 #### PUT /agents-external-stubs/special-cases/:id
 Update special case

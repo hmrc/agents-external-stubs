@@ -54,6 +54,20 @@ class SpecialCasesRepositoryISpec extends AppBaseISpec with MongoDB {
       result.flatMap(_.id) shouldBe Some(Id(id))
     }
 
+    "update an entity by key" in {
+      val planetId = UUID.randomUUID().toString
+      val entity = SpecialCase(RequestMatch("/test3a"), SpecialCase.Response(404), Some(planetId))
+      val id = await(repo.upsert(entity, planetId))
+
+      val id2 = await(repo.upsert(entity.copy(response = SpecialCase.Response(444)), planetId))
+      id2 shouldBe id
+
+      val result = await(repo.findById(id2, planetId))
+      result shouldBe defined
+      result.map(_.response.status) shouldBe Some(444)
+      result.flatMap(_.id) shouldBe Some(Id(id2))
+    }
+
     "delete an entity" in {
       val planetId = UUID.randomUUID().toString
       val entity = SpecialCase(RequestMatch("/test2"), SpecialCase.Response(404), Some(planetId))
