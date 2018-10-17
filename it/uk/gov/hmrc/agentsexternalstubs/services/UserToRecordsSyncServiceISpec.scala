@@ -6,7 +6,7 @@ import java.util.UUID
 
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.UkAddress
-import uk.gov.hmrc.agentsexternalstubs.models.{BusinessDetailsRecord, EnrolmentKey, UserGenerator, VatCustomerInformationRecord}
+import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.agentsexternalstubs.support._
 import uk.gov.hmrc.domain.Nino
@@ -18,6 +18,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
   lazy val businessDetailsRecordsService = app.injector.instanceOf[BusinessDetailsRecordsService]
   lazy val vatCustomerInformationRecordsService = app.injector.instanceOf[VatCustomerInformationRecordsService]
   lazy val businessPartnerRecordsService = app.injector.instanceOf[BusinessPartnerRecordsService]
+  lazy val legacyRelationshipRecordsService = app.injector.instanceOf[LegacyRelationshipRecordsService]
   lazy val knownFactsRepository = app.injector.instanceOf[KnownFactsRepository]
 
   private val formatter1 = DateTimeFormatter.ofPattern("dd/MM/yy")
@@ -163,6 +164,49 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
 
       val userWithRecordId = await(usersService.findByUserId(user.userId, planetId))
       userWithRecordId.map(_.recordIds).get should not be empty
+    }
+
+    "sync ir-sa-agent agent to agent records" in {
+      val planetId = UUID.randomUUID().toString
+      val user = UserGenerator
+        .agent("foo", agentFriendlyName = "ABC123")
+        .withPrincipalEnrolment(Enrolment("IR-SA-AGENT"))
+
+      val theUser = await(usersService.createUser(user, planetId))
+      val saAgentReference = theUser.findIdentifierValue("IR-SA-AGENT", "IRAgentReference").get
+
+      val result = await(legacyRelationshipRecordsService.getLegacyAgentByAgentId(saAgentReference, planetId)).get
+      result.agentId shouldBe saAgentReference
+      result.govAgentId shouldBe theUser.agentId
+      result.postcode shouldBe theUser.address.flatMap(_.postcode)
+      result.address1 shouldBe theUser.address.flatMap(_.line1).get
+      result.address2 shouldBe theUser.address.flatMap(_.line2).get
+      result.agentName shouldBe theUser.agentFriendlyName.get
+    }
+
+    "sync ir-sa-agent agent to agent records and create legacy relationships" in {
+      val planetId = UUID.randomUUID().toString
+      val user = UserGenerator
+        .agent("foo", agentFriendlyName = "ABC123")
+        .withPrincipalEnrolment(Enrolment("IR-SA-AGENT"))
+        .withDelegatedEnrolment(Enrolment("IR-SA"))
+
+      val theUser = await(usersService.createUser(user, planetId))
+      val saAgentReference = theUser.findIdentifierValue("IR-SA-AGENT", "IRAgentReference").get
+      val utr = theUser.findDelegatedIdentifierValues("IR-SA", "UTR").head
+
+      val agent = await(legacyRelationshipRecordsService.getLegacyAgentByAgentId(saAgentReference, planetId)).get
+      agent.agentId shouldBe saAgentReference
+      agent.govAgentId shouldBe theUser.agentId
+      agent.postcode shouldBe theUser.address.flatMap(_.postcode)
+      agent.address1 shouldBe theUser.address.flatMap(_.line1).get
+      agent.address2 shouldBe theUser.address.flatMap(_.line2).get
+      agent.agentName shouldBe theUser.agentFriendlyName.get
+
+      val relationship = await(
+        legacyRelationshipRecordsService.getLegacyRelationshipByAgentIdAndUtr(saAgentReference, utr, planetId)).get
+      relationship.agentId shouldBe saAgentReference
+      relationship.utr shouldBe Some(utr)
     }
   }
 }

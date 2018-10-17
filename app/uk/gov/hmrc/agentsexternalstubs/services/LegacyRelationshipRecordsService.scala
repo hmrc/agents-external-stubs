@@ -57,6 +57,10 @@ class LegacyRelationshipRecordsService @Inject()(recordsRepository: RecordsRepos
   def getLegacyAgent(id: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[LegacyAgentRecord]] =
     recordsRepository.findById[LegacyAgentRecord](id, planetId)
 
+  def getLegacyAgentByAgentId(saAgentRef: String, planetId: String)(
+    implicit ec: ExecutionContext): Future[Option[LegacyAgentRecord]] =
+    findAgentByKey(LegacyAgentRecord.agentIdKey(saAgentRef), planetId)
+
   private def getNinosWithAgents(relationships: List[LegacyRelationshipRecord], planetId: String)(
     implicit ec: ExecutionContext): Future[List[(String, LegacyAgentRecord)]] =
     Future

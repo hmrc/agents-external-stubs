@@ -6,7 +6,7 @@ import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Utr}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{AgencyDetails, Individual}
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, IndividualName}
-import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.{User, _}
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.domain.Nino
 
@@ -18,7 +18,8 @@ class UserToRecordsSyncService @Inject()(
   businessDetailsRecordsService: BusinessDetailsRecordsService,
   vatCustomerInformationRecordsService: VatCustomerInformationRecordsService,
   BusinessPartnerRecordsService: BusinessPartnerRecordsService,
-  knownFactsRepository: KnownFactsRepository) {
+  knownFactsRepository: KnownFactsRepository,
+  legacyRelationshipRecordsService: LegacyRelationshipRecordsService) {
 
   type SaveRecordId = String => Future[Unit]
   type UserRecordsSync = SaveRecordId => PartialFunction[User, Future[Unit]]
@@ -27,7 +28,8 @@ class UserToRecordsSyncService @Inject()(
     Sync.businessDetailsForMtdItIndividual,
     Sync.vatCustomerInformationForMtdVatIndividual,
     Sync.vatCustomerInformationForMtdVatOrganisation,
-    Sync.businessPartnerRecordForAnAgent
+    Sync.businessPartnerRecordForAnAgent,
+    Sync.legacySaAgentRecord
   )
 
   final val syncUserToRecords: SaveRecordId => Option[User] => Future[Unit] = saveRecordId => {
@@ -50,14 +52,13 @@ class UserToRecordsSyncService @Inject()(
     private val dateFormatddMMyy = DateTimeFormatter.ofPattern("dd/MM/yy")
     private val dateFormatyyyyMMdd = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
+    final val MtdItIndividualMatch = User.Matches(User.AG.Individual, "HMRC-MTD-IT")
+
     val businessDetailsForMtdItIndividual: UserRecordsSync = saveRecordId => {
-      case User.Individual(user) if user.principalEnrolments.exists(_.key == "HMRC-MTD-IT") => {
+      case MtdItIndividualMatch(user, mtdbsa) => {
         val nino = user.nino
           .map(_.value.replace(" ", ""))
           .getOrElse(Generator.ninoNoSpaces(user.userId).value)
-        val mtdbsa = user
-          .findIdentifierValue("HMRC-MTD-IT", "MTDITID")
-          .getOrElse(Generator.mtdbsa(user.userId).value)
 
         val address = user.address
           .map(
@@ -115,11 +116,10 @@ class UserToRecordsSyncService @Inject()(
       }
     }
 
+    final val MtdVatIndividualMatch = User.Matches(User.AG.Individual, "HMRC-MTD-VAT")
+
     val vatCustomerInformationForMtdVatIndividual: UserRecordsSync = saveRecordId => {
-      case User.Individual(user) if user.principalEnrolments.exists(_.key == "HMRC-MTD-VAT") => {
-        val vrn = user
-          .findIdentifierValue("HMRC-MTD-VAT", "VRN")
-          .getOrElse(throw new IllegalStateException("Expected individual having VRN identifier."))
+      case MtdVatIndividualMatch(user, vrn) => {
         knownFactsRepository
           .findByEnrolmentKey(EnrolmentKey.from("HMRC-MTD-VAT", "VRN" -> vrn), user.planetId.get)
           .map(
@@ -188,11 +188,10 @@ class UserToRecordsSyncService @Inject()(
       }
     }
 
+    final val MtdVatOrganisationMatch = User.Matches(User.AG.Organisation, "HMRC-MTD-VAT")
+
     val vatCustomerInformationForMtdVatOrganisation: UserRecordsSync = saveRecordId => {
-      case User.Organisation(user) if user.principalEnrolments.exists(_.key == "HMRC-MTD-VAT") => {
-        val vrn = user
-          .findIdentifierValue("HMRC-MTD-VAT", "VRN")
-          .getOrElse(throw new IllegalStateException("Expected individual having VRN identifier."))
+      case MtdVatOrganisationMatch(user, vrn) => {
         knownFactsRepository
           .findByEnrolmentKey(EnrolmentKey.from("HMRC-MTD-VAT", "VRN" -> vrn), user.planetId.get)
           .map(
@@ -362,6 +361,60 @@ class UserToRecordsSyncService @Inject()(
             Future.successful(())
         }
       }
+    }
+
+    final val SaAgentMatch = User.Matches(User.AG.Agent, "IR-SA-AGENT")
+
+    val legacySaAgentRecord: UserRecordsSync = saveRecordId => {
+      case SaAgentMatch(user, saAgentRef) =>
+        val agentRecord = LegacyAgentRecord(
+          agentId = saAgentRef,
+          govAgentId = user.agentId,
+          agentName = user.agentFriendlyName.orElse(user.name).getOrElse("John Doe"),
+          address1 = user.address.flatMap(_.line1).getOrElse(Generator.address(user.userId).street),
+          address2 = user.address.flatMap(_.line2).getOrElse(Generator.address(user.userId).town),
+          address3 = user.address.flatMap(_.line3),
+          address4 = user.address
+            .flatMap(_.line4)
+            .orElse(user.address.flatMap(_.countryCode).flatMap { case "GB" => None; case x => Some(x) }),
+          postcode = user.address.flatMap(_.postcode),
+          isRegisteredAgent = Some(true),
+          isAgentAbroad = !user.address.exists(_.countryCode.contains("GB"))
+        )
+        for {
+          entity <- legacyRelationshipRecordsService
+                     .getLegacyAgentByAgentId(saAgentRef, user.planetId.get)
+                     .map {
+                       case Some(relationship) => agentRecord.withId(relationship.id)
+                       case None               => agentRecord
+                     }
+          id <- legacyRelationshipRecordsService.store(entity, autoFill = false, user.planetId.get)
+          _  <- saveRecordId(id)
+          _ <- Future.sequence(
+                user.delegatedEnrolments
+                  .filter(_.key == "IR-SA")
+                  .map(_.identifierValueOf("UTR"))
+                  .map {
+                    case Some(utr) =>
+                      legacyRelationshipRecordsService
+                        .getLegacyRelationshipByAgentIdAndUtr(saAgentRef, utr, user.planetId.get)
+                        .flatMap {
+                          case Some(relationship) =>
+                            relationship.id.map(saveRecordId).getOrElse(Future.successful(()))
+                          case None =>
+                            val relationship = LegacyRelationshipRecord(
+                              agentId = saAgentRef,
+                              utr = Some(utr),
+                              `Auth_64-8` = Some(true),
+                              `Auth_i64-8` = Some(true)
+                            )
+                            legacyRelationshipRecordsService
+                              .store(relationship, autoFill = false, user.planetId.get)
+                              .flatMap(saveRecordId)
+                        }
+                    case None => Future.successful(())
+                  })
+        } yield ()
     }
 
   }

@@ -92,10 +92,7 @@ trait CurrentSession extends HttpHelpers {
         val planetId =
           request.headers
             .get("X-Client-ID")
-            .getOrElse({
-              Logger(getClass).info(s"Headers considered: ${request.headers.headers.mkString(", ")}")
-              "hmrc"
-            })
+            .getOrElse("hmrc")
         body(planetId)
     }
 }

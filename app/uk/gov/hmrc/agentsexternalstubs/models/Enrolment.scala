@@ -14,6 +14,9 @@ case class Enrolment(key: String, identifiers: Option[Seq[Identifier]] = None, s
   def matches(ek: EnrolmentKey): Boolean = toEnrolmentKeyTag.contains(ek.tag)
 
   def isActivated: Boolean = state == Enrolment.ACTIVATED
+
+  def identifierValueOf(identifierName: String): Option[String] =
+    identifiers.flatMap(_.find(_.key == identifierName)).map(_.value)
 }
 
 object Enrolment {

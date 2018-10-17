@@ -38,12 +38,6 @@ case class User(
   def isUser: Boolean = credentialRole.contains(User.CR.User)
   def isAssistant: Boolean = credentialRole.contains(User.CR.Assistant)
 
-  def findIdentifierValue(serviceName: String, identifierName: String): Option[String] =
-    principalEnrolments
-      .find(_.key == serviceName)
-      .flatMap(_.identifiers.flatMap(_.find(_.key == identifierName)))
-      .map(_.value)
-
   lazy val firstName: Option[String] =
     name
       .map(_.split(" ").dropRight(1))
@@ -57,6 +51,18 @@ case class User(
     case n if n.toLowerCase.contains("postcode") => address.flatMap(_.postcode)
     case _                                       => None
   }
+
+  def findIdentifierValue(serviceName: String, identifierName: String): Option[String] =
+    principalEnrolments
+      .find(_.key == serviceName)
+      .flatMap(_.identifiers.flatMap(_.find(_.key == identifierName)))
+      .map(_.value)
+
+  def findDelegatedIdentifierValues(serviceName: String, identifierName: String): Seq[String] =
+    delegatedEnrolments
+      .filter(_.key == serviceName)
+      .flatMap(_.identifiers.flatMap(_.find(_.key == identifierName)))
+      .map(_.value)
 }
 
 object User {
@@ -106,6 +112,21 @@ object User {
   object Agent {
     def unapply(user: User): Option[User] =
       user.affinityGroup.flatMap(ag => if (ag == AG.Agent) Some(user) else None)
+  }
+
+  object Matches {
+    def apply(affinityGroup: String, serviceName: String): MatchesAffinityGroupAndEnrolment =
+      MatchesAffinityGroupAndEnrolment(affinityGroup, serviceName)
+  }
+
+  case class MatchesAffinityGroupAndEnrolment(affinityGroup: String, serviceName: String) {
+    def unapply(user: User): Option[(User, String)] =
+      user.affinityGroup
+        .flatMap(ag => if (ag == affinityGroup) Some(user) else None)
+        .flatMap(_.principalEnrolments.find(_.key == serviceName))
+        .flatMap(_.identifiers)
+        .flatMap(_.map(_.value).headOption)
+        .map((user, _))
   }
 
   def validate(user: User): Either[List[String], User] = UserValidator.validate(user) match {
