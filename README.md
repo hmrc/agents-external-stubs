@@ -131,6 +131,7 @@ Endpoint | Description
 `GET  /registration/agents/utr/:utr` | Provides the ability for an Agent to be subscribed into Agents Services, generating the agent reference number.
 `GET  /registration/individual/:idType/:idNumber` | Provides the ability for a Taxpayer (Business or Individual) to register on the master system. In order to utilise this API, the taxpayer must have a valid NINO, UTR or EORI..
 `GET  /registration/organisation/:idType/:idNumber` | Provides the ability for a Taxpayer (Business or Individual) to register on the master system. In order to utilise this API, the taxpayer must have a valid NINO, UTR or EORI..
+`GET  /sa/agents/:agentref/client/:utr` | Retrieves Agent-Client authorization flag from Data Cache
 
 ### [Datastream](https://github.com/hmrc/datastream) <a name="stubbed_api_datastream"></a>
 

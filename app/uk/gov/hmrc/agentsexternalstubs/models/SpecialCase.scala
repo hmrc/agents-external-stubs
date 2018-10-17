@@ -26,15 +26,15 @@ object SpecialCase {
     val toKey = SpecialCase.matchKey(method, path)
   }
 
-  case class Header(key: String, value: String)
+  case class Header(name: String, value: String)
 
   case class Response(status: Int, body: Option[String] = None, headers: Seq[Header] = Seq.empty) {
 
     def asResult: Result =
       Result(
-        header = ResponseHeader(status, headers.map(h => h.key -> h.value).toMap),
+        header = ResponseHeader(status, headers.map(h => h.name -> h.value).toMap),
         body = body
-          .map(b => HttpEntity.Strict(ByteString(b), headers.find(_.key == HeaderNames.CONTENT_TYPE).map(_.value)))
+          .map(b => HttpEntity.Strict(ByteString(b), headers.find(_.name == HeaderNames.CONTENT_TYPE).map(_.value)))
           .getOrElse(HttpEntity.NoEntity)
       )
 
@@ -55,20 +55,27 @@ object SpecialCase {
       "Request match contentType must be one of json, form, text")
   )
 
+  import play.api.libs.functional.syntax._
+
   implicit val formats1: Format[RequestMatch] = Json.format[RequestMatch]
   implicit val formats2: Format[Header] = Json.format[Header]
-  implicit val formats3: Format[Response] = Json.format[Response]
+
+  val responseReads: Reads[Response] = ((JsPath \ "status").read[Int] and
+    (JsPath \ "body").readNullable[String] and
+    (JsPath \ "headers")
+      .readNullable[Seq[Header]]
+      .map(_.getOrElse(Seq.empty)))(Response.apply _)
+  implicit val responseFormats: Format[Response] = Format(responseReads, Json.writes[Response])
 
   object internal {
 
     implicit val idFormats: Format[Id] = Id.internalFormats
 
-    import play.api.libs.functional.syntax._
     val reads: Reads[SpecialCase] =
       ((JsPath \ "requestMatch").read[RequestMatch] and
         (JsPath \ "response").read[Response] and
         (JsPath \ "planetId").readNullable[String] and
-        (JsPath \ "_id").readNullable[Id])((a, b, c, d) => SpecialCase.apply(a, b, c, d))
+        (JsPath \ "_id").readNullable[Id])(SpecialCase.apply _)
 
     type Transformer = JsObject => JsObject
 
