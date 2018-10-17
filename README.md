@@ -390,6 +390,8 @@ Response | Description
 
 ### Special Cases (Exceptions) Management <a name="custom_api_special_case"></a>
 
+[Payload and response examples](docs/special-cases.md)
+
 #### GET /agents-external-stubs/special-cases
 List all special cases defined on the planet
 
