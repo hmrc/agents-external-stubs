@@ -5,20 +5,25 @@ import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.http.HeaderNames
+import play.api.libs.concurrent.ExecutionContextProvider
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, Request, Result}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class AuthStubController @Inject()(authenticationService: AuthenticationService, usersService: UsersService)
+class AuthStubController @Inject()(
+  authenticationService: AuthenticationService,
+  usersService: UsersService,
+  ecp: ExecutionContextProvider)
     extends BaseController {
 
   import AuthStubController._
+
+  implicit val ec: ExecutionContext = ecp.get()
 
   val authorise: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     request.headers.get(HeaderNames.AUTHORIZATION) match {

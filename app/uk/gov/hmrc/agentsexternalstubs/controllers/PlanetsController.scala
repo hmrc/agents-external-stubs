@@ -2,13 +2,13 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
+import play.api.libs.concurrent.ExecutionContextProvider
 import play.api.mvc.{Action, AnyContent}
 import uk.gov.hmrc.agentsexternalstubs.repository.{KnownFactsRepository, RecordsRepository, UsersRepository}
 import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 @Singleton
@@ -16,8 +16,11 @@ class PlanetsController @Inject()(
   knownFactsRepository: KnownFactsRepository,
   usersRepository: UsersRepository,
   recordsRepository: RecordsRepository,
-  val authenticationService: AuthenticationService)
+  val authenticationService: AuthenticationService,
+  ecp: ExecutionContextProvider)
     extends BaseController with CurrentSession {
+
+  implicit val ec: ExecutionContext = ecp.get()
 
   def destroy(planetId: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>

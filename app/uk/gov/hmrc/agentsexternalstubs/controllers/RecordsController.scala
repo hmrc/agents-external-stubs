@@ -1,6 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import javax.inject.{Inject, Singleton}
+import play.api.libs.concurrent.ExecutionContextProvider
 import play.api.libs.json.JsValue
 import play.api.mvc.{Action, AnyContent}
 import play.mvc.Http.HeaderNames
@@ -8,8 +9,9 @@ import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.services._
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.agentsexternalstubs.syntax._
+
+import scala.concurrent.ExecutionContext
 
 @Singleton
 class RecordsController @Inject()(
@@ -19,8 +21,11 @@ class RecordsController @Inject()(
   businessPartnerRecordsService: BusinessPartnerRecordsService,
   relationshipRecordsService: RelationshipRecordsService,
   recordsRepository: RecordsRepository,
-  val authenticationService: AuthenticationService)
+  val authenticationService: AuthenticationService,
+  ecp: ExecutionContextProvider)
     extends BaseController with CurrentSession {
+
+  implicit val ec: ExecutionContext = ecp.get()
 
   val getRecords: Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>

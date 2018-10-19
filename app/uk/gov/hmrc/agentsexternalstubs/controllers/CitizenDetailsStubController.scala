@@ -1,6 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import javax.inject.{Inject, Singleton}
+import play.api.libs.concurrent.ExecutionContextProvider
 import play.api.libs.json.{Format, Json}
 import play.api.mvc.{Action, AnyContent}
 import uk.gov.hmrc.agentsexternalstubs.controllers.CitizenDetailsStubController.GetCitizenResponse
@@ -8,15 +9,17 @@ import uk.gov.hmrc.agentsexternalstubs.models.User
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
-import scala.concurrent.Future
+import scala.concurrent.ExecutionContext
 
 @Singleton
 class CitizenDetailsStubController @Inject()(
   val authenticationService: AuthenticationService,
-  usersService: UsersService)
+  usersService: UsersService,
+  ecp: ExecutionContextProvider)
     extends BaseController with CurrentSession {
+
+  implicit val ec: ExecutionContext = ecp.get()
 
   def getCitizen(idName: String, taxId: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>

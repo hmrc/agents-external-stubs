@@ -1,6 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import javax.inject.{Inject, Singleton}
+import play.api.libs.concurrent.ExecutionContextProvider
 import play.api.libs.json.{JsValue, Json, OWrites}
 import play.api.mvc.{Action, AnyContent}
 import play.mvc.Http.HeaderNames
@@ -8,16 +9,20 @@ import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, KnownFact, KnownFac
 import uk.gov.hmrc.agentsexternalstubs.repository.{KnownFactsRepository, UsersRepository}
 import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+
+import scala.concurrent.ExecutionContext
 
 @Singleton
 class KnownFactsController @Inject()(
   knownFactsRepository: KnownFactsRepository,
   usersRepository: UsersRepository,
-  val authenticationService: AuthenticationService)
+  val authenticationService: AuthenticationService,
+  ecp: ExecutionContextProvider)
     extends BaseController with CurrentSession {
 
   import KnownFactsController._
+
+  implicit val ec: ExecutionContext = ecp.get()
 
   def getKnownFacts(enrolmentKey: EnrolmentKey): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>

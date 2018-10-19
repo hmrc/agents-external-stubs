@@ -4,18 +4,23 @@ import java.util.UUID
 
 import javax.inject.{Inject, Singleton}
 import play.api.http.HeaderNames
+import play.api.libs.concurrent.ExecutionContextProvider
 import play.api.mvc.{Action, AnyContent, Result}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Random, Success}
 
 @Singleton
-class SignInController @Inject()(val authenticationService: AuthenticationService, usersService: UsersService)
+class SignInController @Inject()(
+  val authenticationService: AuthenticationService,
+  usersService: UsersService,
+  ecp: ExecutionContextProvider)
     extends BaseController with CurrentSession {
+
+  implicit val ec: ExecutionContext = ecp.get()
 
   def signIn(): Action[AnyContent] = Action.async { implicit request =>
     withPayloadOrDefault[SignInRequest](SignInRequest(None, None, None, None)) { signInRequest =>
