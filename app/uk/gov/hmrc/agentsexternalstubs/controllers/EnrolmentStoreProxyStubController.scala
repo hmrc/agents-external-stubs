@@ -2,10 +2,11 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import cats.data.Validated
 import javax.inject.{Inject, Singleton}
+import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.SetKnownFactsRequest.Legacy
-import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.{AllocateGroupEnrolmentRequest, GetGroupIdsResponse, GetUserIdsResponse, SetKnownFactsRequest}
+import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController._
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
@@ -114,22 +115,48 @@ class EnrolmentStoreProxyStubController @Inject()(
     }(SessionRecordNotFound)
   }
 
+  def getUserEnrolments(
+    userId: String,
+    `type`: String,
+    service: Option[String],
+    `start-record`: Option[Int],
+    `max-records`: Option[Int]): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      if (`type` != "principal" && `type` != "delegated") badRequestF("INVALID_ENROLMENT_TYPE")
+      else if (service.isDefined && !Services.servicesByKey.contains(service.get)) badRequestF("INVALID_SERVICE")
+      else if (`start-record`.isDefined && `start-record`.get < 1) badRequestF("INVALID_START_RECORD")
+      else if (`max-records`.isDefined && (`max-records`.get < 10 || `max-records`.get > 1000))
+        badRequestF("INVALID_MAX_RECORDS")
+      else {
+        usersService.findByUserId(userId, session.planetId).flatMap {
+          case None =>
+            notFoundF("INVALID_CREDENTIAL_ID")
+          case Some(user) =>
+            val principal = `type` == "principal"
+            val getKnownFacts: EnrolmentKey => Future[Option[KnownFacts]] =
+              if (principal) knownFactsRepository.findByEnrolmentKey(_, session.planetId)
+              else _ => Future.successful(None)
+            val startRecord = `start-record`.getOrElse(1)
+            val enrolments = (if (principal) user.principalEnrolments else user.delegatedEnrolments)
+              .filter(e => service.forall(_ == e.key))
+              .slice(startRecord - 1, startRecord - 1 + `max-records`.getOrElse(1000))
+            Future
+              .sequence(enrolments.map(_.toEnrolmentKey).collect { case Some(x) => x }.map(getKnownFacts))
+              .map(_.collect { case Some(x) => x })
+              .map { knownFacts =>
+                val response =
+                  GetUserEnrolmentsResponse.from(user, startRecord, enrolments, knownFacts)
+                if (response.totalRecords == 0) NoContent else Ok(Json.toJson(response))
+              }
+        }
+      }
+    }(SessionRecordNotFound)
+  }
+
 }
 
 object EnrolmentStoreProxyStubController {
 
-  /**
-    *{
-    *     "principalUserIds": [
-    *        "ABCEDEFGI1234567",
-    *        "ABCEDEFGI1234568"
-    *     ],
-    *     "delegatedUserIds": [
-    *        "ABCEDEFGI1234567",
-    *        "ABCEDEFGI1234568"
-    *     ]
-    * }
-    */
   case class GetUserIdsResponse(principalUserIds: Option[Seq[String]], delegatedUserIds: Option[Seq[String]])
 
   object GetUserIdsResponse {
@@ -176,6 +203,58 @@ object EnrolmentStoreProxyStubController {
       KnownFacts
         .generate(EnrolmentKey(enrolmentKey), enrolmentKey, alreadyKnownFacts)
         .map(kf => SetKnownFactsRequest(kf.verifiers, Some(Legacy(kf.verifiers))))
+  }
+
+  case class GetUserEnrolmentsResponse(
+    startRecord: Int,
+    totalRecords: Int,
+    enrolments: Seq[GetUserEnrolmentsResponse.Enrolment])
+
+  object GetUserEnrolmentsResponse {
+
+    case class Enrolment(
+      service: String,
+      state: String,
+      friendlyName: String,
+      enrolmentDate: Option[DateTime],
+      failedActivationCount: Int,
+      activationDate: Option[DateTime],
+      enrolmentTokenExpiryDate: Option[DateTime],
+      identifiers: Seq[Identifier])
+
+    object Enrolment {
+
+      def from(e: uk.gov.hmrc.agentsexternalstubs.models.Enrolment, kf: Option[KnownFacts]): Enrolment = Enrolment(
+        service = e.key,
+        state = e.state,
+        friendlyName = Services.servicesByKey.get(e.key).map(_.description).getOrElse(""),
+        failedActivationCount = 0,
+        activationDate = None,
+        enrolmentDate = None,
+        enrolmentTokenExpiryDate = None,
+        identifiers = e.identifiers
+          .getOrElse(Seq.empty) ++ kf.map(_.verifiers.map(v => Identifier(v.key, v.value))).getOrElse(Seq.empty)
+      )
+    }
+
+    def from(
+      user: User,
+      startRecord: Int,
+      enrolments: Seq[uk.gov.hmrc.agentsexternalstubs.models.Enrolment],
+      knownFacts: Seq[KnownFacts]): GetUserEnrolmentsResponse = {
+      val ee =
+        enrolments
+          .map(e => (e, knownFacts.find(kf => e.toEnrolmentKeyTag.contains(kf.enrolmentKey.tag))))
+          .map { case (e, kf) => Enrolment.from(e, kf) }
+      GetUserEnrolmentsResponse(
+        startRecord = startRecord,
+        totalRecords = ee.size,
+        enrolments = ee
+      )
+    }
+
+    implicit val writes1: Writes[Enrolment] = Json.writes[Enrolment]
+    implicit val writes2: Writes[GetUserEnrolmentsResponse] = Json.writes[GetUserEnrolmentsResponse]
   }
 
 }

@@ -106,6 +106,7 @@ Endpoint | Description
 `DELETE /enrolment-store-proxy/enrolment-store/enrolments/:enrolmentKey` | remove an unallocated enrolment
 `POST /enrolment-store-proxy/enrolment-store/groups/:groupId/enrolments/:enrolmentKey` | allocate an enrolment to a group (agent)
 `DELETE /enrolment-store-proxy/enrolment-store/groups/:groupId/enrolments/:enrolmentKey` | de-allocate an enrolment from a group (agent)
+`GET /enrolment-store-proxy/enrolment-store/users/:userId/enrolments` | get a list enrolments for a particular user, this is capable of returning both principle and delegated enrolments.
 
 ### [Tax Enrolments](https://github.com/hmrc/tax-enrolments) <a name="stubbed_api_tax_enrolments"></a>
 

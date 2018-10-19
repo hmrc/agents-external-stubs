@@ -32,6 +32,28 @@ trait JsonMatchers {
         }
     }
 
+  def havePropertyArrayOf[T: Reads](name: String, matcher: Matcher[T] = null)(
+    implicit classTag: ClassTag[T]): Matcher[JsObject] =
+    new Matcher[JsObject] {
+      override def apply(obj: JsObject): MatchResult =
+        (obj \ name).asOpt[JsArray] match {
+          case Some(array) =>
+            if (matcher != null)
+              array.value
+                .map(_.as[T])
+                .foldLeft(MatchResult(true, "", ""))((a: MatchResult, v: T) => if (a.matches) matcher(v) else a)
+            else MatchResult(true, "", s"JSON have property `$name`")
+          case _ =>
+            MatchResult(
+              false,
+              s"JSON should have array property `$name` of item type ${classTag.runtimeClass.getSimpleName}, but had only ${obj.fields
+                .map(f => s"${f._1}:${f._2.getClass.getSimpleName}")
+                .mkString(", ")}",
+              ""
+            )
+        }
+    }
+
   def notHaveProperty(name: String): Matcher[JsObject] =
     new Matcher[JsObject] {
       override def apply(obj: JsObject): MatchResult =
@@ -55,5 +77,13 @@ trait JsonMatchers {
           .map(_.as[T])
           .foldLeft(MatchResult(true, "", ""))((a: MatchResult, v: T) => if (a.matches) matcher(v) else a)
     }
+
+  def oneOfValues[T](values: T*): Matcher[T] = new Matcher[T] {
+    override def apply(left: T): MatchResult =
+      MatchResult(
+        values.contains(left),
+        s"$left is an unexpected value, should be one of ${values.mkString("[", ",", "]")}",
+        s"$left was expected")
+  }
 
 }

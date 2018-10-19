@@ -25,6 +25,7 @@ PUT         /enrolment-store-proxy/enrolment-store/enrolments/:enrolmentKey     
 DELETE      /enrolment-store-proxy/enrolment-store/enrolments/:enrolmentKey                        @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.removeKnownFacts(enrolmentKey: EnrolmentKey)
 POST        /enrolment-store-proxy/enrolment-store/groups/:groupId/enrolments/:enrolmentKey        @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.allocateGroupEnrolment(groupId: String, enrolmentKey: EnrolmentKey, `legacy-agentCode`: Option[String])
 DELETE      /enrolment-store-proxy/enrolment-store/groups/:groupId/enrolments/:enrolmentKey        @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.deallocateGroupEnrolment(groupId: String, enrolmentKey: EnrolmentKey, `legacy-agentCode`: Option[String], keepAgentAllocations: Option[String])
+GET         /enrolment-store-proxy/enrolment-store/users/:userId/enrolments                        @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.getUserEnrolments(userId: String, `type`: String ?= "principal", service: Option[String] ?= None, `start-record`: Option[Int] ?= None, `max-records`: Option[Int] ?= None)
 
 # Tax Enrolments stubs
 POST        /tax-enrolments/groups/:groupId/enrolments/:enrolmentKey         @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.allocateGroupEnrolment(groupId: String, enrolmentKey: EnrolmentKey, `legacy-agentCode`: Option[String])

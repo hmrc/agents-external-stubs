@@ -125,7 +125,7 @@ trait TestRequests extends ScalaFutures {
       get("/agents-external-stubs/session/current")
 
     def signInAndGetSession(
-      userId: String = "foo",
+      userId: String = UUID.randomUUID().toString,
       password: String = "p@ssw0rd",
       planetId: String = UUID.randomUUID().toString): AuthenticatedSession = {
       val signedIn = signIn(userId, password, planetId = planetId)
@@ -281,6 +281,26 @@ trait TestRequests extends ScalaFutures {
 
     def removeKnownFacts(enrolmentKey: String)(implicit authContext: AuthContext): WSResponse =
       delete(s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey")
+
+    def getUserEnrolments(
+      userId: String,
+      `type`: String = "principal",
+      service: Option[String] = None,
+      `start-record`: Option[Int] = None,
+      `max-records`: Option[Int] = None)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/enrolment-store-proxy/enrolment-store/users/$userId/enrolments")
+        .withQueryString(
+          Seq(
+            "type"         -> Some(`type`),
+            "service"      -> service,
+            "start-record" -> `start-record`.map(_.toString),
+            "max-records"  -> `max-records`.map(_.toString)).collect {
+            case (name, Some(value: String)) => (name, value)
+          }: _*)
+        .withHeaders(authContext.headers: _*)
+        .get()
+        .futureValue
   }
 
   object DesStub {

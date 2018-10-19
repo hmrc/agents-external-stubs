@@ -9,7 +9,6 @@ import play.api.libs.json.{JsValue, Reads, Writes}
 import play.api.libs.streams.Accumulator
 import play.api.mvc._
 import play.mvc.Http.HeaderNames
-import reactivemongo.core.errors.DatabaseException
 import uk.gov.hmrc.agentsexternalstubs.models.{Id, SpecialCase}
 import uk.gov.hmrc.agentsexternalstubs.repository.SpecialCasesRepository
 import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
@@ -50,7 +49,7 @@ class SpecialCasesController @Inject()(
       withPayload[SpecialCase](
         specialCase =>
           specialCasesRepository
-            .upsert(specialCase, session.planetId)
+            .upsert(specialCase.copy(planetId = None), session.planetId)
             .map(id =>
               Created(s"Special case $id has been created.")
                 .withHeaders(HeaderNames.LOCATION -> routes.SpecialCasesController.getSpecialCase(id).url))
@@ -66,7 +65,7 @@ class SpecialCasesController @Inject()(
             case None => notFoundF("NOT_FOUND")
             case Some(_) =>
               specialCasesRepository
-                .upsert(specialCase.copy(id = Some(Id(id))), session.planetId)
+                .upsert(specialCase.copy(id = Some(Id(id)), planetId = None), session.planetId)
                 .map(id =>
                   Accepted(s"Special case $id has been updated.")
                     .withHeaders(HeaderNames.LOCATION -> routes.SpecialCasesController.getSpecialCase(id).url))
