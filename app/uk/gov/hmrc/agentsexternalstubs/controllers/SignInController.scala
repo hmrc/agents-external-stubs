@@ -24,7 +24,7 @@ class SignInController @Inject()(
 
   def signIn(): Action[AnyContent] = Action.async { implicit request =>
     withPayloadOrDefault[SignInRequest](SignInRequest(None, None, None, None)) { signInRequest =>
-      withCurrentOrExternalSession { session =>
+      withCurrentSession { session =>
         if (signInRequest.userId.contains(session.userId))
           Future.successful(
             Ok.withHeaders(HeaderNames.LOCATION -> routes.SignInController.session(session.authToken).url))

@@ -93,7 +93,8 @@ class UsersController @Inject()(
   }
 
   def createApiPlatformTestUser(): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
-    withPlanetId { planetId =>
+    withMaybeCurrentSession { maybeSession =>
+      val planetId = CurrentPlanetId(maybeSession, request)
       withPayload[ApiPlatform.TestUser](
         testUser =>
           usersService

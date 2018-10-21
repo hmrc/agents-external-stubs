@@ -1,7 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json, Writes}
-import play.api.mvc.{Request, Result, Results}
+import play.api.mvc.{Request, RequestHeader, Result, Results}
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, User}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
@@ -15,7 +15,7 @@ trait CurrentSession extends HttpHelpers {
 
   def authenticationService: AuthenticationService
 
-  val errorHandler: PartialFunction[Throwable, Result] = {
+  final val errorHandler: PartialFunction[Throwable, Result] = {
     case e: NotFoundException      => notFound("NOT_FOUND", e.getMessage)
     case e: BadRequestException    => badRequest("BAD_REQUEST", e.getMessage)
     case e: HttpException          => Results.Status(e.responseCode)(errorMessage("SERVER_ERROR", Some(e.getMessage)))
@@ -25,76 +25,42 @@ trait CurrentSession extends HttpHelpers {
       internalServerError("SERVER_ERROR", e.getMessage)
   }
 
-  def withCurrentOrExternalSession[T](body: AuthenticatedSession => Future[Result])(
+  private final val fnone = Future.successful(None)
+
+  final def withMaybeCurrentSession[T, R](body: Option[AuthenticatedSession] => Future[R])(
+    implicit request: Request[T],
+    ec: ExecutionContext,
+    hc: HeaderCarrier): Future[R] =
+    AuthenticatedSession.fromRequest(request) match {
+      case s @ Some(_) => body(s)
+      case None =>
+        (request.headers.get(HeaderNames.AUTHORIZATION) match {
+          case Some(BearerToken(authToken)) =>
+            authenticationService.findByAuthTokenOrLookupExternal(authToken)
+          case _ => fnone
+        }).flatMap(body)
+    }
+
+  final def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(ifSessionNotFound: => Future[Result])(
+    implicit request: Request[T],
+    ec: ExecutionContext,
+    hc: HeaderCarrier): Future[Result] = withMaybeCurrentSession {
+    case Some(session) => body(session)
+    case None          => ifSessionNotFound
+  }
+
+  final def withCurrentUser[T](body: (User, AuthenticatedSession) => Future[Result])(
     ifSessionNotFound: => Future[Result])(
     implicit request: Request[T],
     ec: ExecutionContext,
+    usersService: UsersService,
     hc: HeaderCarrier): Future[Result] =
-    request.headers.get(HeaderNames.AUTHORIZATION) match {
-      case Some(BearerToken(authToken)) =>
-        (for {
-          maybeSession <- authenticationService.findByAuthTokenOrLookupExternal(authToken)
-          result <- maybeSession match {
-                     case Some(session) => body(session)
-                     case _ =>
-                       Logger(getClass).info(s"Authorization $authToken not found locally nor externally.")
-                       ifSessionNotFound
-                   }
-        } yield result)
-          .recover(errorHandler)
-      case _ =>
-        ifSessionNotFound
-    }
-
-  def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(
-    ifSessionNotFound: => Future[Result])(implicit request: Request[T], ec: ExecutionContext): Future[Result] =
-    request.headers.get(HeaderNames.AUTHORIZATION) match {
-      case Some(BearerToken(authToken)) =>
-        (for {
-          maybeSession <- authenticationService.findByAuthToken(authToken)
-          result <- maybeSession match {
-                     case Some(session) => body(session)
-                     case _ =>
-                       Logger(getClass).info(s"Authorization $authToken not found.")
-                       ifSessionNotFound
-                   }
-        } yield result)
-          .recover(errorHandler)
-      case _ =>
-        Logger(getClass).info(s"Missing Authorization HTTP header.")
-        ifSessionNotFound
-    }
-
-  def withCurrentUser[T](body: (User, AuthenticatedSession) => Future[Result])(ifSessionNotFound: => Future[Result])(
-    implicit request: Request[T],
-    ec: ExecutionContext,
-    usersService: UsersService): Future[Result] =
     withCurrentSession { session =>
       usersService.findByUserId(session.userId, session.planetId).flatMap {
         case None       => Future.successful(Results.NotFound("CURRENT_USER_NOT_FOUND"))
         case Some(user) => body(user, session).recover(errorHandler)
       }
     }(SessionRecordNotFound)
-
-  def withPlanetId[T, R](
-    body: String => Future[R])(implicit request: Request[T], ec: ExecutionContext, hc: HeaderCarrier): Future[R] =
-    request.headers.get(HeaderNames.AUTHORIZATION) match {
-      case Some(BearerToken(authToken)) =>
-        for {
-          maybeSession <- authenticationService.findByAuthTokenOrLookupExternal(authToken)
-          result <- maybeSession match {
-                     case Some(session) => body(session.planetId)
-                     case _ =>
-                       body("hmrc")
-                   }
-        } yield result
-      case _ =>
-        val planetId =
-          request.headers
-            .get("X-Client-ID")
-            .getOrElse("hmrc")
-        body(planetId)
-    }
 }
 
 /*
@@ -123,7 +89,7 @@ trait DesCurrentSession extends DesHttpHelpers {
     case NonFatal(e)               => internalServerError("SERVER_ERROR", e.getMessage)
   }
 
-  def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(
+  final def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(
     ifSessionNotFound: => Future[Result])(implicit request: Request[T], ec: ExecutionContext): Future[Result] =
     // When DES request originates from an authenticated UI session
     request.headers.get(uk.gov.hmrc.http.HeaderNames.xSessionId) match {
@@ -142,7 +108,7 @@ trait DesCurrentSession extends DesHttpHelpers {
           .recover(errorHandler)
       case None =>
         // When DES request originates from an API gateway
-        val planetId = request.headers.get("X-Client-ID").getOrElse("hmrc")
+        val planetId = CurrentPlanetId(None, request)
         (for {
           maybeSession <- authenticationService.findByPlanetId(planetId)
           result <- maybeSession match {
@@ -155,6 +121,20 @@ trait DesCurrentSession extends DesHttpHelpers {
                    }
         } yield result)
           .recover(errorHandler)
+
+    }
+
+}
+
+object CurrentPlanetId {
+
+  def apply(maybeSession: Option[AuthenticatedSession], rh: RequestHeader): String =
+    maybeSession match {
+      case Some(session) => session.planetId
+      case None =>
+        rh.headers
+          .get("X-Client-ID")
+          .getOrElse("hmrc")
 
     }
 

@@ -10,7 +10,7 @@ import play.api.libs.json.{JsValue, Reads, Writes}
 import play.api.libs.streams.Accumulator
 import play.api.mvc._
 import play.mvc.Http.HeaderNames
-import uk.gov.hmrc.agentsexternalstubs.models.{Id, SpecialCase}
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, Id, SpecialCase}
 import uk.gov.hmrc.agentsexternalstubs.repository.SpecialCasesRepository
 import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
@@ -26,8 +26,7 @@ class SpecialCasesController @Inject()(
 
   implicit val ec: ExecutionContext = ecp.get()
 
-  implicit val reads: Reads[SpecialCase] = SpecialCase.external.reads
-  implicit val writes: Writes[SpecialCase] = SpecialCase.external.writes
+  import SpecialCasesController._
 
   val getAllSpecialCases: Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
@@ -86,13 +85,12 @@ class SpecialCasesController @Inject()(
 
   final def maybeSpecialCase(action: EssentialAction): EssentialAction = new EssentialAction {
 
-    implicit val ec: ExecutionContext = play.api.libs.concurrent.Execution.defaultContext
-
     override def apply(rh: RequestHeader): Accumulator[ByteString, Result] =
-      Accumulator.flatten(withPlanetId { planetId =>
+      Accumulator.flatten(withMaybeCurrentSession { maybeSession =>
+        val planetId = CurrentPlanetId(maybeSession, rh)
         val key = SpecialCase.matchKey(rh.method, URLDecoder.decode(rh.path, "utf-8"))
         specialCasesRepository.findByMatchKey(key, planetId).map {
-          case None => action(rh)
+          case None => action(AuthenticatedSession.tagRequest(rh, maybeSession))
           case Some(specialCase) =>
             Accumulator.done(specialCase.response.asResult)
         }
@@ -101,4 +99,8 @@ class SpecialCasesController @Inject()(
 
 }
 
-object SpecialCasesController {}
+object SpecialCasesController {
+
+  implicit val reads: Reads[SpecialCase] = SpecialCase.external.reads
+  implicit val writes: Writes[SpecialCase] = SpecialCase.external.writes
+}
