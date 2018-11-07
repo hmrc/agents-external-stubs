@@ -156,6 +156,46 @@ class EnrolmentStoreProxyStubController @Inject()(
     }(SessionRecordNotFound)
   }
 
+  def getGroupEnrolments(
+    groupId: String,
+    `type`: String,
+    service: Option[String],
+    `start-record`: Option[Int],
+    `max-records`: Option[Int],
+    userId: Option[String],
+    `unassigned-clients`: Option[Boolean]): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      if (`type` != "principal" && `type` != "delegated") badRequestF("INVALID_ENROLMENT_TYPE")
+      else if (service.isDefined && !Services.servicesByKey.contains(service.get)) badRequestF("INVALID_SERVICE")
+      else if (`start-record`.isDefined && `start-record`.get < 1) badRequestF("INVALID_START_RECORD")
+      else if (`max-records`.isDefined && (`max-records`.get < 10 || `max-records`.get > 1000))
+        badRequestF("INVALID_MAX_RECORDS")
+      else {
+        usersService.findAdminByGroupId(groupId, session.planetId).flatMap {
+          case None =>
+            notFoundF("INVALID_GROUP_ID")
+          case Some(user) =>
+            val principal = `type` == "principal"
+            val getKnownFacts: EnrolmentKey => Future[Option[KnownFacts]] =
+              if (principal) knownFactsRepository.findByEnrolmentKey(_, session.planetId)
+              else _ => Future.successful(None)
+            val startRecord = `start-record`.getOrElse(1)
+            val enrolments = (if (principal) user.principalEnrolments else user.delegatedEnrolments)
+              .filter(e => service.forall(_ == e.key))
+              .slice(startRecord - 1, startRecord - 1 + `max-records`.getOrElse(1000))
+            Future
+              .sequence(enrolments.map(_.toEnrolmentKey).collect { case Some(x) => x }.map(getKnownFacts))
+              .map(_.collect { case Some(x) => x })
+              .map { knownFacts =>
+                val response =
+                  GetUserEnrolmentsResponse.from(user, startRecord, enrolments, knownFacts)
+                if (response.totalRecords == 0) NoContent else Ok(Json.toJson(response))
+              }
+        }
+      }
+    }(SessionRecordNotFound)
+  }
+
 }
 
 object EnrolmentStoreProxyStubController {
