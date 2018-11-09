@@ -301,6 +301,31 @@ trait TestRequests extends ScalaFutures {
         .withHeaders(authContext.headers: _*)
         .get()
         .futureValue
+
+    def getGroupEnrolments(
+      groupId: String,
+      `type`: String = "principal",
+      service: Option[String] = None,
+      `start-record`: Option[Int] = None,
+      `max-records`: Option[Int] = None,
+      userId: Option[String] = None,
+      `unassigned-clients`: Option[Boolean] = None)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/enrolment-store-proxy/enrolment-store/groups/$groupId/enrolments")
+        .withQueryString(
+          Seq(
+            "type"         -> Some(`type`),
+            "service"      -> service,
+            "start-record" -> `start-record`.map(_.toString),
+            "max-records"  -> `max-records`.map(_.toString),
+            "userId"  -> userId.map(_.toString),
+            "unassigned-clients"  -> `unassigned-clients`.map(_.toString)
+          ).collect {
+            case (name, Some(value: String)) => (name, value)
+          }: _*)
+        .withHeaders(authContext.headers: _*)
+        .get()
+        .futureValue
   }
 
   object DesStub {

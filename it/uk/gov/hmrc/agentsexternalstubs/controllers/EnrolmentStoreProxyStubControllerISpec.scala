@@ -716,5 +716,179 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         result should haveStatus(400)
       }
     }
+
+    "GET /enrolment-store/groups/:groupId/enrolments" should {
+      "return 204 with an empty list of principal enrolments" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        Users.update(
+          UserGenerator
+            .individual(userId = session.userId, groupId = "group1"))
+
+        val result = EnrolmentStoreProxyStub.getGroupEnrolments("group1")
+
+        result should haveStatus(204)
+        result.body shouldBe empty
+      }
+
+      "return 200 with a list of principal enrolments" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        Users.update(
+          UserGenerator
+            .individual(userId = session.userId, groupId = "group1")
+            .withPrincipalEnrolment("IR-SA", "UTR", "12345678"))
+
+        val result = EnrolmentStoreProxyStub.getGroupEnrolments("group1")
+
+        result should haveStatus(200)
+        result should haveValidJsonBody(haveProperty[Int]("startRecord", be(1)) and haveProperty[Int](
+          "totalRecords",
+          be(1)) and havePropertyArrayOf[JsObject](
+          "enrolments",
+          haveProperty[String]("service", be("IR-SA")) and haveProperty[String]("state") and havePropertyArrayOf[
+            JsObject](
+            "identifiers",
+            haveProperty[String]("key", oneOfValues("UTR", "Postcode", "NINO", "IsVIP", "DAT")) and haveProperty[
+              String]("value"))
+        ))
+      }
+
+      "return 204 with an empty list of delegated enrolments" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        Users.update(
+          UserGenerator
+            .individual(userId = session.userId, groupId = "group1"))
+
+        val result = EnrolmentStoreProxyStub.getGroupEnrolments("group1", `type` = "delegated")
+
+        result should haveStatus(204)
+        result.body shouldBe empty
+      }
+
+      "return 200 with a list of delegated enrolments" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        Users.update(
+          UserGenerator
+            .agent(userId = session.userId, groupId = "group1", agentCode = "ABCDEF")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345670"))
+
+        val result = EnrolmentStoreProxyStub.getGroupEnrolments("group1", `type` = "delegated")
+
+        result should haveStatus(200)
+        result should haveValidJsonBody(haveProperty[Int]("startRecord", be(1)) and haveProperty[Int](
+          "totalRecords",
+          be(2)) and havePropertyArrayOf[JsObject](
+          "enrolments",
+          haveProperty[String]("service", be("IR-SA")) and haveProperty[String]("state") and havePropertyArrayOf[
+            JsObject](
+            "identifiers",
+            haveProperty[String]("key", be("UTR")) and haveProperty[String](
+              "value",
+              oneOfValues("12345678", "12345670")))
+        ))
+      }
+
+      "return 200 with a paginated list of delegated enrolments" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val updateResult = Users.update(
+          UserGenerator
+            .agent(userId = session.userId, groupId = "group1")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345670")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345671")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345672")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345673")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345674")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345675")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345676")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345677")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345679")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345680")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345681")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345682")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345683")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345684")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345685")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345686")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345687")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345688")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345689")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345690")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345691")
+        )
+        updateResult should haveStatus(202)
+
+        val result = EnrolmentStoreProxyStub
+          .getGroupEnrolments("group1", `type` = "delegated", `start-record` = Some(3), `max-records` = Some(12))
+
+        result should haveStatus(200)
+        result should haveValidJsonBody(haveProperty[Int]("startRecord", be(3)) and haveProperty[Int](
+          "totalRecords",
+          be(12)) and havePropertyArrayOf[JsObject](
+          "enrolments",
+          haveProperty[String]("service", be("IR-SA")) and haveProperty[String]("state") and havePropertyArrayOf[
+            JsObject](
+            "identifiers",
+            haveProperty[String]("key", be("UTR")) and haveProperty[String](
+              "value",
+              oneOfValues(
+                "12345672",
+                "12345673",
+                "12345674",
+                "12345675",
+                "12345676",
+                "12345677",
+                "12345678",
+                "12345679",
+                "12345680",
+                "12345681",
+                "12345682",
+                "12345683")
+            )
+          )
+        ))
+      }
+
+      "return 404 if groupId not found" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = EnrolmentStoreProxyStub.getGroupEnrolments("foo")
+
+        result should haveStatus(404)
+      }
+
+      "return 400 if type param is invalid" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = EnrolmentStoreProxyStub.getGroupEnrolments("foo", `type` = "foo")
+
+        result should haveStatus(400)
+      }
+
+      "return 400 if service param is invalid" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = EnrolmentStoreProxyStub.getGroupEnrolments("foo", service = Some("FOO"))
+
+        result should haveStatus(400)
+      }
+
+      "return 400 if start-record param is invalid" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = EnrolmentStoreProxyStub.getGroupEnrolments("foo", `start-record` = Some(-1))
+
+        result should haveStatus(400)
+      }
+
+      "return 400 if max-records param is invalid" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = EnrolmentStoreProxyStub.getGroupEnrolments("foo", `max-records` = Some(1001))
+
+        result should haveStatus(400)
+      }
+    }
   }
 }
