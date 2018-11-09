@@ -27,10 +27,7 @@ class AuthenticationService @Inject()(
         val planetId =
           request.headers
             .get("X-Client-ID")
-            .getOrElse({
-              Logger(getClass).info(s"Headers considered: ${request.headers.headers.mkString(", ")}")
-              "hmrc"
-            })
+            .getOrElse("hmrc")
         externalAuthorisationService.maybeExternalSession(planetId, this.authenticate)
     }
 

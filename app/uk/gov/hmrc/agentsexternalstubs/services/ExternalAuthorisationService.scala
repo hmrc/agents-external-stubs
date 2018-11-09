@@ -7,7 +7,7 @@ import play.api.Logger
 import uk.gov.hmrc.agentsexternalstubs.TcpProxiesConfig
 import uk.gov.hmrc.agentsexternalstubs.controllers.BearerToken
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpPost}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpPost, Upstream4xxResponse, Upstream5xxResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -52,7 +52,10 @@ class ExternalAuthorisationService @Inject()(
           }
         }
         .recover {
-          case NonFatal(e) =>
+          case e: Upstream5xxResponse =>
+            Logger(getClass).warn(s"External authorization lookup failed with $e")
+            None
+          case e: Upstream4xxResponse if e.upstreamResponseCode != 401 =>
             Logger(getClass).warn(s"External authorization lookup failed with $e")
             None
         }
