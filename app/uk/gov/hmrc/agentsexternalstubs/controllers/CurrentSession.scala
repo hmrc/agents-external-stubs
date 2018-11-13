@@ -131,10 +131,7 @@ object CurrentPlanetId {
   def apply(maybeSession: Option[AuthenticatedSession], rh: RequestHeader): String =
     maybeSession match {
       case Some(session) => session.planetId
-      case None =>
-        rh.headers
-          .get("X-Client-ID")
-          .getOrElse("hmrc")
+      case None          => "hmrc"
 
     }
 

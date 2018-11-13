@@ -285,7 +285,7 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/apitestuser")
       }
       {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession(planetId = "fooClientId")
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession(planetId = "hmrc")
         val user = Users.get(userId).json.as[User]
         user.affinityGroup shouldBe Some(User.AG.Agent)
         user.nino shouldBe None

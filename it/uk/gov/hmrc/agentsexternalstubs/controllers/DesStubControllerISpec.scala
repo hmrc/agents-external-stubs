@@ -39,7 +39,7 @@ class DesStubControllerISpec
       }
 
       "respond 200 when authorising for ITSA through API gateway" in {
-        SignIn.signInAndGetSession(planetId = "foo123")
+        SignIn.signInAndGetSession(planetId = "hmrc")
         implicit val apiAuthContext: AuthContext = AuthContext.fromHeaders("X-Client-ID" -> "foo123")
 
         val result = DesStub.authoriseOrDeAuthoriseRelationship(

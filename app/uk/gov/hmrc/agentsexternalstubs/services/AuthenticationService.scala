@@ -24,10 +24,7 @@ class AuthenticationService @Inject()(
     authSessionRepository.findByAuthToken(authToken).flatMap {
       case Some(session) => Future.successful(Some(session))
       case None =>
-        val planetId =
-          request.headers
-            .get("X-Client-ID")
-            .getOrElse("hmrc")
+        val planetId = "hmrc"
         externalAuthorisationService.maybeExternalSession(planetId, this.authenticate)
     }
 
