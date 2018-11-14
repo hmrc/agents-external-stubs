@@ -6,7 +6,7 @@ object AuthLoginApi {
   case class Request(
     credId: String,
     affinityGroup: String,
-    confidenceLevel: Option[ConfidenceLevel],
+    confidenceLevel: Option[Int],
     credentialStrength: String,
     credentialRole: Option[String],
     enrolments: Seq[Enrolment],

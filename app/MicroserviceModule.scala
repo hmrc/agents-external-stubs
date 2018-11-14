@@ -48,6 +48,7 @@ class MicroserviceModule(val environment: Environment, val configuration: Config
     bindBaseUrl("enrolment-store-proxy")
     bindBaseUrl("tax-enrolments")
     bindBaseUrl("des")
+    bindBaseUrl("auth-login-api")
 
     bind(classOf[TcpProxies]).asEagerSingleton()
   }

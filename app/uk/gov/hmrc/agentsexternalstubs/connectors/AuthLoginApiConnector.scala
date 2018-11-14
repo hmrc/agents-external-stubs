@@ -28,17 +28,17 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class AuthLoginApiConnector @Inject()(@Named("auth-login-api-baseUrl") baseUrl: URL, http: HttpPost with HttpGet) {
 
-  def loginGovernmentGateway(authLoginApiRequest: AuthLoginApi.Request)(
+  def loginToGovernmentGateway(authLoginApiRequest: AuthLoginApi.Request)(
     implicit c: HeaderCarrier,
     ec: ExecutionContext): Future[AuthLoginApi.Response] = {
     val url = new URL(baseUrl, s"/government-gateway/session/login")
     for {
       response <- http.POST[AuthLoginApi.Request, HttpResponse](url.toString, authLoginApiRequest)
-      session <- response.header(HeaderNames.LOCATION) match {
-                  case None               => Future.failed(new Exception("Location header expected but missing"))
-                  case Some(authorityUrl) => http.GET[AuthLoginApi.Response](authorityUrl)
-                }
-    } yield session
+      token <- response.header(HeaderNames.AUTHORIZATION) match {
+                case None        => Future.failed(new Exception("Authorization header expected but missing"))
+                case Some(token) => Future.successful(token)
+              }
+    } yield AuthLoginApi.Response(token)
 
   }
 }
