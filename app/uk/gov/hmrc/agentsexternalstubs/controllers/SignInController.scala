@@ -27,7 +27,11 @@ class SignInController @Inject()(
       withCurrentSession { session =>
         if (signInRequest.userId.contains(session.userId))
           Future.successful(
-            Ok.withHeaders(HeaderNames.LOCATION -> routes.SignInController.session(session.authToken).url))
+            Ok.withHeaders(
+              HeaderNames.LOCATION                    -> routes.SignInController.session(session.authToken).url,
+              HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
+              uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId
+            ))
         else createNewAuthentication(signInRequest)
       }(createNewAuthentication(signInRequest))
     }
@@ -56,10 +60,16 @@ class SignInController @Inject()(
                      .map {
                        case Success(_) =>
                          Created.withHeaders(
-                           HeaderNames.LOCATION -> routes.SignInController.session(session.authToken).url)
+                           HeaderNames.LOCATION                    -> routes.SignInController.session(session.authToken).url,
+                           HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
+                           uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId
+                         )
                        case Failure(_) =>
                          Accepted.withHeaders(
-                           HeaderNames.LOCATION -> routes.SignInController.session(session.authToken).url)
+                           HeaderNames.LOCATION                    -> routes.SignInController.session(session.authToken).url,
+                           HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
+                           uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId
+                         )
 
                      }
                  case None => Future.successful(Unauthorized("SESSION_CREATE_FAILED"))
@@ -71,8 +81,12 @@ class SignInController @Inject()(
       maybeSession <- authenticationService.findByAuthToken(authToken)
     } yield
       maybeSession match {
-        case Some(session) => Ok(RestfulResponse(session, Link("delete", routes.SignInController.signOut().url)))
-        case None          => notFound("AUTH_SESSION_NOT_FOUND")
+        case Some(session) =>
+          Ok(RestfulResponse(session, Link("delete", routes.SignInController.signOut().url)))
+            .withHeaders(
+              HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
+              uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId)
+        case None => notFound("AUTH_SESSION_NOT_FOUND")
       }
   }
 

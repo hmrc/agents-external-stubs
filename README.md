@@ -152,7 +152,9 @@ Endpoint | Description
 #### POST /agents-external-stubs/sign-in 
 Authenticate an user. 
 
-Returns `Location` header with a link to the authentication details.
+Returns `Location` header with a link to the authentication details 
+and `Authorization` header containing bearer token
+and `X-Session-ID` header containing session ID.
 
 *Payload*
 
@@ -171,6 +173,8 @@ Example (using [httpie](https://httpie.org/)):
     http POST localhost:9009/agents-external-stubs/sign-in userId=Alf planetId=Melmac
     HTTP/1.1 202 Accepted
     Location: /agents-external-stubs/session?authToken=8321db03-ba01-4115-838a-49daab5c6679
+    Authorization: Bearer 8321db03-ba01-4115-838a-49daab5c6679
+    X-Session-ID: 7323-872-873872    
     
 or    
 
