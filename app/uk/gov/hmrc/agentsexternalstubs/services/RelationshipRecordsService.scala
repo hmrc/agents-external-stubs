@@ -2,6 +2,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 
 import javax.inject.{Inject, Singleton}
 import org.joda.time.LocalDate
+import reactivemongo.api.Cursor
 import uk.gov.hmrc.agentsexternalstubs.models.RelationshipRecord
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.http.BadRequestException
@@ -55,7 +56,7 @@ class RelationshipRecordsService @Inject()(recordsRepository: RecordsRepository)
         .map(r => recordsRepository.store[RelationshipRecord](r, planetId)))
 
   def findByKey(key: String, planetId: String)(implicit ec: ExecutionContext): Future[List[RelationshipRecord]] =
-    recordsRepository.cursor[RelationshipRecord](key, planetId).collect[List](MAX_DOCS)
+    recordsRepository.cursor[RelationshipRecord](key, planetId).collect[List](MAX_DOCS, Cursor.FailOnError())
 
   def findByQuery(query: RelationshipRecordQuery, planetId: String)(
     implicit ec: ExecutionContext): Future[List[RelationshipRecord]] = {

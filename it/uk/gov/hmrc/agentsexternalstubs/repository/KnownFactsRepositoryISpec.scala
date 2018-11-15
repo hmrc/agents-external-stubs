@@ -17,16 +17,14 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 
 import java.util.UUID
 
-import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
-import uk.gov.hmrc.mongo.Repository
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class KnownFactsRepositoryISpec extends AppBaseISpec with MongoDB {
 
-  lazy val repo = app.injector.instanceOf[KnownFactsRepository with Repository[KnownFacts, BSONObjectID]]
+  lazy val repo = app.injector.instanceOf[KnownFactsRepository]
 
   "KnownFactsRepository" should {
     "create or update an entity" in {

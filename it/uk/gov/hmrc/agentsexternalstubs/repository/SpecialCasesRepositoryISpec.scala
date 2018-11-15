@@ -17,17 +17,15 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 
 import java.util.UUID
 
-import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.agentsexternalstubs.models.SpecialCase.RequestMatch
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
-import uk.gov.hmrc.mongo.Repository
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class SpecialCasesRepositoryISpec extends AppBaseISpec with MongoDB {
 
-  lazy val repo = app.injector.instanceOf[SpecialCasesRepository with Repository[SpecialCase, BSONObjectID]]
+  lazy val repo = app.injector.instanceOf[SpecialCasesRepository]
 
   "SpecialCasesRepository" should {
     "create and find an entity" in {

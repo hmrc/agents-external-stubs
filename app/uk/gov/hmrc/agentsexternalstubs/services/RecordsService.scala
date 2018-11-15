@@ -1,5 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 import play.api.libs.json.Reads
+import reactivemongo.api.Cursor
 import uk.gov.hmrc.agentsexternalstubs.models.{Record, RecordMetaData}
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.http.BadRequestException
@@ -13,5 +14,5 @@ trait RecordsService {
   protected def findByKey[T <: Record](
     key: String,
     planetId: String)(implicit ec: ExecutionContext, recordType: RecordMetaData[T], reads: Reads[T]): Future[List[T]] =
-    recordsRepository.cursor[T](key, planetId).collect[List](1000)
+    recordsRepository.cursor[T](key, planetId).collect[List](1000, Cursor.FailOnError())
 }

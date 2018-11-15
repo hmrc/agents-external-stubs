@@ -17,24 +17,22 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 
 import java.util.UUID
 
-import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.mongo.Repository
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
 
-  lazy val repo = app.injector.instanceOf[UsersRepository with Repository[User,BSONObjectID]]
+  lazy val repo = app.injector.instanceOf[UsersRepository]
 
   "store" should {
     "store a simple user" in {
       val planetId = UUID.randomUUID().toString
       await(repo.create(User("foo"), planetId))
 
-      val result = await(repo.find("planetId" -> planetId))
+      val result = await(repo.findByPlanetId(planetId, None)(100))
 
       result.size shouldBe 1
       result.head.userId shouldBe "foo"
@@ -45,7 +43,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       val planetId2 = UUID.randomUUID().toString
 
       await(repo.create(User("foo", planetId = Some(planetId)), planetId))
-      await(repo.find("planetId" -> planetId)).size shouldBe 1
+      await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 1
 
       val userFoo = await(repo.findByUserId("foo",planetId))
       userFoo.map(_.userId) shouldBe Some("foo")
@@ -57,7 +55,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       val planetId = UUID.randomUUID().toString
       await(repo.create(User("889foo", principalEnrolments = Seq(Enrolment("foobar"))), planetId))
 
-      val result = await(repo.find("planetId" -> planetId))
+      val result = await(repo.findByPlanetId(planetId, None)(100))
 
       result.size shouldBe 1
       result.head.userId shouldBe "889foo"
@@ -82,9 +80,9 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       await(repo.create(User("foo2", principalEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("A","1")))))), planetId2))
       await(repo.create(User("foo2", principalEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("A","1")))), Enrolment("barfoo", Some(Seq(Identifier("B","2")))))), planetId3))
 
-      val result1 = await(repo.find("planetId" -> planetId1))
-      val result2 = await(repo.find("planetId" -> planetId2))
-      val result3 = await(repo.find("planetId" -> planetId3))
+      val result1 = await(repo.findByPlanetId(planetId1, None)(100))
+      val result2 = await(repo.findByPlanetId(planetId2, None)(100))
+      val result3 = await(repo.findByPlanetId(planetId3, None)(100))
 
       result1.size shouldBe 1
       result2.size shouldBe 1
@@ -95,7 +93,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       val planetId = UUID.randomUUID().toString
       await(repo.create(User("abcfoo", principalEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))), planetId))
 
-      val result = await(repo.find("planetId" -> planetId))
+      val result = await(repo.findByPlanetId(planetId, None)(100))
 
       result.size shouldBe 1
       result.head.userId shouldBe "abcfoo"
@@ -113,7 +111,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
               Enrolment("barefoot", Some(Seq(Identifier("foo", "foo345"))))
             )), planetId))
 
-      val result = await(repo.find("planetId" -> planetId))
+      val result = await(repo.findByPlanetId(planetId, None)(100))
 
       result.size shouldBe 1
       result.head.userId shouldBe "foo888"
@@ -127,7 +125,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       val planetId = UUID.randomUUID().toString
       await(repo.create(User("abcfoo", delegatedEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))), planetId))
 
-      val result = await(repo.find("planetId" -> planetId))
+      val result = await(repo.findByPlanetId(planetId, None)(100))
 
       result.size shouldBe 1
       result.head.userId shouldBe "abcfoo"
@@ -140,7 +138,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       await(repo.create(User("abcfoo1", delegatedEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))), planetId))
       await(repo.create(User("abcfoo2", delegatedEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))), planetId))
 
-      val result = await(repo.find("planetId" -> planetId))
+      val result = await(repo.findByPlanetId(planetId, None)(100))
 
       result.size shouldBe 2
       result.head.userId shouldBe "abcfoo1"
@@ -155,8 +153,8 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       await(repo.create(User("foo"), planetId1))
       await(repo.create(User("foo"), planetId2))
 
-      val result1 = await(repo.find("planetId" -> planetId1))
-      val result2 = await(repo.find("planetId" -> planetId2))
+      val result1 = await(repo.findByPlanetId(planetId1, None)(100))
+      val result2 = await(repo.findByPlanetId(planetId2, None)(100))
 
       result1.size shouldBe 1
       result2.size shouldBe 1
@@ -180,10 +178,10 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       await(repo.create(User("foo", nino = Some(Nino("HW827856C"))), planetId))
       await(repo.create(User("boo", nino = Some(Nino("HW827856C"))), planetId2))
 
-      val result1 = await(repo.find("planetId" -> planetId))
+      val result1 = await(repo.findByPlanetId(planetId, None)(100))
       result1.size shouldBe 1
 
-      val result2 = await(repo.find("planetId" -> planetId2))
+      val result2 = await(repo.findByPlanetId(planetId2, None)(100))
       result2.size shouldBe 1
 
       val userFoo = await(repo.findByNino("HW827856C",planetId))
@@ -198,7 +196,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       await(repo.create(User("foo", nino = Some(Nino("YL 97 02 21 C"))), planetId))
       await(repo.create(User("boo", nino = Some(Nino("HW827856C"))), planetId))
 
-      val result = await(repo.find("planetId" -> planetId))
+      val result = await(repo.findByPlanetId(planetId, None)(100))
       result.size shouldBe 2
 
       val userFoo = await(repo.findByNino("YL970221C",planetId))
@@ -224,10 +222,10 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
     "update an existing user" in {
       val planetId = UUID.randomUUID().toString
       await(repo.create(User("foo"), planetId))
-      await(repo.find("planetId" -> planetId)).size shouldBe 1
+      await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 1
 
       await(repo.update(User("foo", principalEnrolments = Seq(Enrolment("foobar"))), planetId))
-      await(repo.find("planetId" -> planetId)).size shouldBe 1
+      await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 1
 
       val userFoo = await(repo.findByUserId("foo",planetId))
       userFoo.map(_.principalEnrolments) shouldBe Some(Seq(Enrolment("foobar")))
@@ -238,10 +236,10 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       val planetId2 = UUID.randomUUID().toString
 
       await(repo.create(User("foo"), planetId))
-      await(repo.find("planetId" -> planetId)).size shouldBe 1
+      await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 1
 
       await(repo.update(User("foo", planetId = Some(planetId), principalEnrolments = Seq(Enrolment("foobar"))), planetId))
-      await(repo.find("planetId" -> planetId)).size shouldBe 1
+      await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 1
 
       val userFoo = await(repo.findByUserId("foo",planetId))
       userFoo.map(_.principalEnrolments) shouldBe Some(Seq(Enrolment("foobar")))
@@ -258,16 +256,16 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       await(repo.create(User("boo"), planetId))
       await(repo.create(User("foo"), planetId))
       await(repo.create(User("foo"), planetId2))
-      await(repo.find("planetId" -> planetId)).size shouldBe 2
-      await(repo.find("planetId" -> planetId2)).size shouldBe 1
+      await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 2
+      await(repo.findByPlanetId(planetId2, None)(100)).size shouldBe 1
 
       await(repo.delete("foo", planetId))
-      await(repo.find("planetId" -> planetId)).size shouldBe 1
-      await(repo.find("planetId" -> planetId2)).size shouldBe 1
+      await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 1
+      await(repo.findByPlanetId(planetId2, None)(100)).size shouldBe 1
 
       await(repo.delete("foo", planetId2))
-      await(repo.find("planetId" -> planetId)).size shouldBe 1
-      await(repo.find("planetId" -> planetId2)).size shouldBe 0
+      await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 1
+      await(repo.findByPlanetId(planetId2, None)(100)).size shouldBe 0
     }
   }
 
@@ -279,7 +277,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       await(repo.create(User("boo", groupId= Some("g1"), affinityGroup = Some("Individual"), credentialRole = Some("User")), planetId))
       await(repo.create(User("foo", groupId= Some("g2"), affinityGroup = Some("Agent"), credentialRole = Some("Admin")), planetId))
       await(repo.create(User("foo", groupId= Some("g3"), affinityGroup = Some("Individual"), credentialRole = Some("Assistant")), planetId2))
-      await(repo.find("planetId" -> planetId)).size shouldBe 2
+      await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 2
 
       val result1 = await(repo.findByPlanetId(planetId, None)(10))
       result1.size shouldBe 2
@@ -311,7 +309,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       await(repo.create(User("boo", affinityGroup = Some("Individual"), groupId = Some("ABC")), planetId = planetId))
       await(repo.create(User("foo", affinityGroup = Some("Agent"), groupId = Some("ABC")), planetId = planetId))
       await(repo.create(User("zoo", affinityGroup = Some("Individual"), groupId = Some("ABC")), planetId = planetId2))
-      await(repo.find("planetId" -> planetId)).size shouldBe 2
+      await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 2
 
       val result1 = await(repo.findByGroupId(groupId = "ABC", planetId = planetId)(10))
       result1.size shouldBe 2
@@ -331,7 +329,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       await(repo.create(User("foo1", affinityGroup = Some("Agent"), agentCode = Some("ABC")), planetId = planetId))
       await(repo.create(User("foo2", affinityGroup = Some("Agent"), agentCode = Some("ABC")), planetId = planetId))
       await(repo.create(User("foo3", affinityGroup = Some("Agent"), agentCode = Some("ABC")), planetId = planetId2))
-      await(repo.find("planetId" -> planetId)).size shouldBe 2
+      await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 2
 
       val result1 = await(repo.findByAgentCode(agentCode = "ABC", planetId = planetId)(10))
       result1.size shouldBe 2
@@ -348,7 +346,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       await(repo.create(User("foo1", affinityGroup = Some("Agent")), planetId = planetId))
       await(repo.create(User("foo2", affinityGroup = Some("Individual")), planetId = planetId))
       await(repo.create(User("foo3", affinityGroup = Some("Agent"), agentCode = Some("ABC")), planetId = planetId2))
-      await(repo.find("planetId" -> planetId)).size shouldBe 2
+      await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 2
 
       val result1 = await(repo.findByAgentCode(agentCode = "ABC", planetId = planetId)(10))
       result1.size shouldBe 0

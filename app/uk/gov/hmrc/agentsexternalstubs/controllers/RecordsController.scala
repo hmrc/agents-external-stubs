@@ -5,6 +5,7 @@ import play.api.libs.concurrent.ExecutionContextProvider
 import play.api.libs.json.JsValue
 import play.api.mvc.{Action, AnyContent}
 import play.mvc.Http.HeaderNames
+import reactivemongo.api.Cursor
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.services._
@@ -31,7 +32,7 @@ class RecordsController @Inject()(
     withCurrentSession { session =>
       recordsRepository
         .findByPlanetId(session.planetId)
-        .collect[List](1000)
+        .collect[List](1000, Cursor.FailOnError())
         .flatMap(list => okF(list.groupBy(Record.typeOf).mapValues(_.map(Record.toJson))))
     }(SessionRecordNotFound)
   }

@@ -1,6 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
 import javax.inject.{Inject, Singleton}
+import reactivemongo.api.Cursor
 import uk.gov.hmrc.agentsexternalstubs.models.{Generator, LegacyAgentRecord, LegacyRelationshipRecord, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.http.BadRequestException
@@ -96,6 +97,6 @@ class LegacyRelationshipRecordsService @Inject()(recordsRepository: RecordsRepos
 
   private def findRelationshipsByKey(key: String, planetId: String)(
     implicit ec: ExecutionContext): Future[List[LegacyRelationshipRecord]] =
-    recordsRepository.cursor[LegacyRelationshipRecord](key, planetId).collect[List](1000)
+    recordsRepository.cursor[LegacyRelationshipRecord](key, planetId).collect[List](1000, Cursor.FailOnError())
 
 }

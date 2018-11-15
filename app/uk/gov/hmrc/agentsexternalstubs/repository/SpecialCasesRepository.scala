@@ -22,7 +22,7 @@ import play.api.libs.json.Json.toJsFieldJsValueWrapper
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
-import reactivemongo.api.{CursorProducer, ReadPreference}
+import reactivemongo.api.{Cursor, CursorProducer, ReadPreference}
 import reactivemongo.bson.BSONObjectID
 import reactivemongo.core.errors.DatabaseException
 import reactivemongo.play.json.ImplicitBSONHandlers
@@ -75,7 +75,7 @@ class SpecialCasesRepositoryMongo @Inject()(mongoComponent: ReactiveMongoCompone
       )
       .cursor[SpecialCase](ReadPreference.primaryPreferred)(
         implicitly[collection.pack.Reader[SpecialCase]],
-        ec,
+        //ec,
         implicitly[CursorProducer[SpecialCase]])
       .headOption
 
@@ -86,15 +86,15 @@ class SpecialCasesRepositoryMongo @Inject()(mongoComponent: ReactiveMongoCompone
       )
       .cursor[SpecialCase](ReadPreference.primaryPreferred)(
         implicitly[collection.pack.Reader[SpecialCase]],
-        ec,
+        //ec,
         implicitly[CursorProducer[SpecialCase]])
       .headOption
 
   def findByPlanetId(planetId: String)(limit: Int)(implicit ec: ExecutionContext): Future[Seq[SpecialCase]] =
     collection
       .find(Json.obj(PLANET_ID -> planetId))
-      .cursor[SpecialCase]
-      .collect[Seq](limit)
+      .cursor[SpecialCase]()
+      .collect[Seq](limit, Cursor.FailOnError())
 
   def upsert(specialCase: SpecialCase, planetId: String)(implicit ec: ExecutionContext): Future[String] =
     SpecialCase
