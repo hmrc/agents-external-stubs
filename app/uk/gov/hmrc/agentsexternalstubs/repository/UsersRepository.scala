@@ -216,7 +216,7 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
         Json.obj(query.collect(toJsWrapper): _*),
         Json.obj(projection.map(option => option._1 -> toJsFieldJsValueWrapper(option._2)): _*)
       )
-      .cursor[T](ReadPreference.primaryPreferred)(reader, implicitly[CursorProducer[T]])
+      .cursor[T](ReadPreference.primaryPreferred)(reader, ec, implicitly[CursorProducer[T]])
 
   override def create(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     insert(user.copy(planetId = Some(planetId), isPermanent = explicitFlag(user.isPermanent))).map(_ => ()).recover {

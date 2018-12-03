@@ -125,6 +125,7 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
       )
       .cursor[T](ReadPreference.primaryPreferred)(
         implicitly[collection.pack.Reader[Record]].map(_.asInstanceOf[T]),
+        ec,
         implicitly[CursorProducer[T]])
 
   override def findById[T <: Record](id: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[T]] =
@@ -134,6 +135,7 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
       )
       .cursor[T](ReadPreference.primaryPreferred)(
         implicitly[collection.pack.Reader[Record]].map(_.asInstanceOf[T]),
+        ec,
         implicitly[CursorProducer[T]])
       .headOption
 
@@ -144,6 +146,7 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
       )
       .cursor[Record](ReadPreference.primaryPreferred)(
         implicitly[collection.pack.Reader[Record]],
+        ec,
         implicitly[CursorProducer[Record]])
 
   override def remove(id: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =

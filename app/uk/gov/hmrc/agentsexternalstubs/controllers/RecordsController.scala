@@ -32,7 +32,7 @@ class RecordsController @Inject()(
     withCurrentSession { session =>
       recordsRepository
         .findByPlanetId(session.planetId)
-        .collect[List](1000, Cursor.FailOnError())
+        .collect[List](1000)
         .flatMap(list => okF(list.groupBy(Record.typeOf).mapValues(_.map(Record.toJson))))
     }(SessionRecordNotFound)
   }

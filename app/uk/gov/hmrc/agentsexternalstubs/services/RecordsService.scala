@@ -14,5 +14,5 @@ trait RecordsService {
   protected def findByKey[T <: Record](
     key: String,
     planetId: String)(implicit ec: ExecutionContext, recordType: RecordMetaData[T], reads: Reads[T]): Future[List[T]] =
-    recordsRepository.cursor[T](key, planetId).collect[List](1000, Cursor.FailOnError())
+    recordsRepository.cursor[T](key, planetId).collect[List](1000)
 }

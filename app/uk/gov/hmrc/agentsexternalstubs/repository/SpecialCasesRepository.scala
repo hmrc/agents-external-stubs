@@ -75,7 +75,7 @@ class SpecialCasesRepositoryMongo @Inject()(mongoComponent: ReactiveMongoCompone
       )
       .cursor[SpecialCase](ReadPreference.primaryPreferred)(
         implicitly[collection.pack.Reader[SpecialCase]],
-        //ec,
+        ec,
         implicitly[CursorProducer[SpecialCase]])
       .headOption
 
@@ -86,7 +86,7 @@ class SpecialCasesRepositoryMongo @Inject()(mongoComponent: ReactiveMongoCompone
       )
       .cursor[SpecialCase](ReadPreference.primaryPreferred)(
         implicitly[collection.pack.Reader[SpecialCase]],
-        //ec,
+        ec,
         implicitly[CursorProducer[SpecialCase]])
       .headOption
 
@@ -94,7 +94,7 @@ class SpecialCasesRepositoryMongo @Inject()(mongoComponent: ReactiveMongoCompone
     collection
       .find(Json.obj(PLANET_ID -> planetId))
       .cursor[SpecialCase]()
-      .collect[Seq](limit, Cursor.FailOnError())
+      .collect[Seq](limit)
 
   def upsert(specialCase: SpecialCase, planetId: String)(implicit ec: ExecutionContext): Future[String] =
     SpecialCase
