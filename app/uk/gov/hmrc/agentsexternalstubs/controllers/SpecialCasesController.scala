@@ -88,7 +88,7 @@ class SpecialCasesController @Inject()(
     override def apply(rh: RequestHeader): Accumulator[ByteString, Result] =
       Accumulator.flatten(withMaybeCurrentSession { maybeSession =>
         val planetId = CurrentPlanetId(maybeSession, rh)
-        val key = SpecialCase.matchKey(rh.method, URLDecoder.decode(rh.path, "utf-8"))
+        val key = SpecialCase.matchKey(rh.method, URLDecoder.decode(rh.uri, "utf-8"))
         specialCasesRepository.findByMatchKey(key, planetId).map {
           case None => action(AuthenticatedSession.tagRequest(rh, maybeSession))
           case Some(specialCase) =>

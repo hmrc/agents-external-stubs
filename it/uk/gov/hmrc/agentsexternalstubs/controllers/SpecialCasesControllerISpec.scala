@@ -1,6 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import play.api.libs.json.{JsObject, Reads, Writes}
+import play.api.libs.json.{JsObject, Json, Reads, Writes}
 import play.api.libs.ws.WSClient
 import play.mvc.Http.{HeaderNames, MimeTypes}
 import uk.gov.hmrc.agentsexternalstubs.models.SpecialCase.RequestMatch
@@ -142,7 +142,8 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with MongoDB with Test
     }
 
     "specialCase" should {
-      "replace an ordinary response" in {
+
+      "replace an ordinary GET response" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val user = UserGenerator.individual(session.userId)
         Users.update(user)
@@ -175,6 +176,49 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with MongoDB with Test
 
         val result7 = CitizenDetailsStub.getCitizen("nino", user.nino.get.value)
         result7 should haveStatus(200)
+      }
+
+      "replace an ordinary POST response" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val agent = UserGenerator.agent()
+        Users.create(agent)
+        Users.create(UserGenerator.individual().withPrincipalEnrolment("HMRC-MTD-IT", "MTDITID", "RLWA69482506648"))
+
+        val result1 = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
+          agent.groupId.get,
+          "HMRC-MTD-IT~MTDITID~RLWA69482506648",
+          Json.parse(s"""{
+                        |    "userId" : "${agent.userId}",
+                        |    "type" : "delegated"
+                        |}""".stripMargin),
+          `legacy-agentCode` = agent.agentCode
+        )
+
+        result1 should haveStatus(201)
+
+        val result2 = SpecialCases.createSpecialCase(
+          SpecialCase(
+            requestMatch = SpecialCase.RequestMatch(
+              method = "POST",
+              path =
+                s"/enrolment-store-proxy/enrolment-store/groups/${agent.groupId.get}/enrolments/HMRC-MTD-IT~MTDITID~RLWA69482506648?legacy-agentCode=${agent.agentCode.get}"
+            ),
+            response = SpecialCase.Response(506)
+          ))
+        result2 should haveStatus(201)
+
+        val result3 = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
+          agent.groupId.get,
+          "HMRC-MTD-IT~MTDITID~RLWA69482506648",
+          Json.parse(s"""{
+                        |    "userId" : "${agent.userId}",
+                        |    "type" : "delegated"
+                        |}""".stripMargin),
+          `legacy-agentCode` = agent.agentCode
+        )
+
+        result3 should haveStatus(506)
       }
     }
   }
