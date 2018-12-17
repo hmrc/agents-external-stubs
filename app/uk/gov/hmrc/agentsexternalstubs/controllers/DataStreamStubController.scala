@@ -1,7 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import javax.inject.{Inject, Singleton}
-import play.api.Logger
 import play.api.libs.concurrent.ExecutionContextProvider
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent}
@@ -17,7 +16,7 @@ class DataStreamStubController @Inject()(ecp: ExecutionContextProvider) extends 
   val writeEvent: Action[AnyContent] = Action.async { implicit request =>
     request.body.asJson
       .map(Json.prettyPrint)
-      .foreach(Logger(getClass).info(_))
+      .foreach(System.out.println)
     Future.successful(NoContent)
   }
 
