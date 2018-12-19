@@ -25,8 +25,6 @@ trait CurrentSession extends HttpHelpers {
       internalServerError("SERVER_ERROR", e.getMessage)
   }
 
-  private final val fnone = Future.successful(None)
-
   final def withMaybeCurrentSession[T, R](body: Option[AuthenticatedSession] => Future[R])(
     implicit request: Request[T],
     ec: ExecutionContext,
@@ -34,11 +32,25 @@ trait CurrentSession extends HttpHelpers {
     AuthenticatedSession.fromRequest(request) match {
       case s @ Some(_) => body(s)
       case None =>
-        (request.headers.get(HeaderNames.AUTHORIZATION) match {
-          case Some(BearerToken(authToken)) =>
-            authenticationService.findByAuthTokenOrLookupExternal(authToken)
-          case _ => fnone
-        }).flatMap(body)
+        for {
+          maybeSession1 <- request.headers.get(HeaderNames.AUTHORIZATION) match {
+                            case Some(BearerToken(authToken)) =>
+                              authenticationService.findByAuthTokenOrLookupExternal(authToken)
+                            case _ =>
+                              Future.successful(None)
+                          }
+          maybeSession2 <- maybeSession1 match {
+                            case None =>
+                              request.headers.get(uk.gov.hmrc.http.HeaderNames.xSessionId) match {
+                                case Some(sessionId) =>
+                                  authenticationService.findBySessionId(sessionId)
+                                case None =>
+                                  Future.successful(None)
+                              }
+                            case some => Future.successful(some)
+                          }
+          result <- body(maybeSession2)
+        } yield result
     }
 
   final def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(ifSessionNotFound: => Future[Result])(
