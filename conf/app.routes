@@ -104,3 +104,9 @@ GET         /agents-external-stubs/config/services                           @uk
 # Planets management
 DELETE      /agents-external-stubs/planets/:planetId                         @uk.gov.hmrc.agentsexternalstubs.controllers.PlanetsController.destroy(planetId: String)
 
+# General drive through
+GET         /*path                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.ProxyController.proxyPassTo(path: String)
+POST        /*path                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.ProxyController.proxyPassTo(path: String)
+PUT         /*path                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.ProxyController.proxyPassTo(path: String)
+DELETE      /*path                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.ProxyController.proxyPassTo(path: String)
+
