@@ -7,8 +7,8 @@ class EnrolmentKeySpec extends UnitSpec {
   "EnrolmentKey.parse" should {
     "return EnrolmentKey if string format and content are valid" in {
       EnrolmentKey.parse("IR-SA~UTR~12345678") shouldBe Right(EnrolmentKey("IR-SA", Seq(Identifier("UTR", "12345678"))))
-      EnrolmentKey.parse("IR-PAYE~EmployerRef~12345678~TaxOfficeNo~112") shouldBe Right(
-        EnrolmentKey("IR-PAYE", Seq(Identifier("EmployerRef", "12345678"), Identifier("TaxOfficeNo", "112"))))
+      EnrolmentKey.parse("IR-PAYE~TaxOfficeNumber~754~TaxOfficeReference~KG12512") shouldBe Right(
+        EnrolmentKey("IR-PAYE", Seq(Identifier("TaxOfficeNumber", "754"), Identifier("TaxOfficeReference", "KG12512"))))
     }
     "return error if enrolment key is empty" in {
       EnrolmentKey.parse("") shouldBe Left("INVALID_ENROLMENT_KEY")
