@@ -1,5 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
+import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, urlEqualTo}
 import org.joda.time.LocalDate
 import play.api.libs.json.JsObject
 import play.api.libs.ws.WSClient
@@ -15,7 +17,8 @@ import uk.gov.hmrc.auth.core.{Nino => NinoPredicate, _}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.logging.Authorization
 
-class AuthStubControllerISpec extends ServerBaseISpec with MongoDB with TestRequests with TestStubs {
+class AuthStubControllerISpec
+    extends ServerBaseISpec with MongoDB with TestRequests with TestStubs with WireMockSupport {
 
   val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
@@ -513,6 +516,219 @@ class AuthStubControllerISpec extends ServerBaseISpec with MongoDB with TestRequ
             "success"
           })
       }
+
+      "authorize if mtd-it delegated auth rule returns true" in new TestFixture {
+        val agent = UserGenerator.agent(randomId)
+        val authToken =
+          givenAnAuthenticatedUser(agent)
+
+        WireMock.stubFor(
+          WireMock
+            .get(urlEqualTo(s"/agent-access-control/mtd-it-auth/agent/${agent.agentCode.get}/client/236216873678126"))
+            .willReturn(aResponse()
+              .withStatus(200)))
+
+        implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
+
+        val result: String =
+          await(
+            authorised(
+              Enrolment("HMRC-MTD-IT")
+                .withIdentifier("MTDITID", "236216873678126")
+                .withDelegatedAuthRule("mtd-it-auth")) {
+              "success"
+            })
+      }
+
+      "do not authorize if mtd-it delegated auth rule returns false" in new TestFixture {
+        val agent = UserGenerator.agent(randomId)
+        val authToken =
+          givenAnAuthenticatedUser(agent)
+
+        WireMock.stubFor(
+          WireMock
+            .get(urlEqualTo(s"/agent-access-control/mtd-it-auth/agent/${agent.agentCode.get}/client/236216873678126"))
+            .willReturn(aResponse()
+              .withStatus(401)))
+
+        implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
+
+        an[InternalError] shouldBe thrownBy {
+          await(
+            authorised(
+              Enrolment("HMRC-MTD-IT")
+                .withIdentifier("MTDITID", "236216873678126")
+                .withDelegatedAuthRule("mtd-it-auth")) {
+              "success"
+            })
+        }
+      }
+
+      "do not authorize for mtd-it delegated auth rule when identifier type differs" in new TestFixture {
+        val agent = UserGenerator.agent(randomId)
+        val authToken =
+          givenAnAuthenticatedUser(agent)
+
+        WireMock.stubFor(
+          WireMock
+            .get(urlEqualTo(s"/agent-access-control/mtd-it-auth/agent/${agent.agentCode.get}/client/236216873678126"))
+            .willReturn(aResponse()
+              .withStatus(401)))
+
+        implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
+
+        an[InternalError] shouldBe thrownBy {
+          await(
+            authorised(
+              Enrolment("HMRC-MTD-VAT")
+                .withIdentifier("VRN", "236216873678126")
+                .withDelegatedAuthRule("mtd-it-auth")) {
+              "success"
+            })
+        }
+      }
+
+      "authorize if mtd-vat delegated auth rule returns true" in new TestFixture {
+        val agent = UserGenerator.agent(randomId)
+        val authToken =
+          givenAnAuthenticatedUser(agent)
+
+        WireMock.stubFor(
+          WireMock
+            .get(urlEqualTo(s"/agent-access-control/mtd-vat-auth/agent/${agent.agentCode.get}/client/936707596"))
+            .willReturn(aResponse()
+              .withStatus(200)))
+
+        implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
+
+        val result: String =
+          await(
+            authorised(
+              Enrolment("HMRC-MTD-VAT")
+                .withIdentifier("VRN", "936707596")
+                .withDelegatedAuthRule("mtd-vat-auth")) {
+              "success"
+            })
+      }
+
+      "do not authorize if mtd-vat delegated auth rule returns false" in new TestFixture {
+        val agent = UserGenerator.agent(randomId)
+        val authToken =
+          givenAnAuthenticatedUser(agent)
+
+        WireMock.stubFor(
+          WireMock
+            .get(urlEqualTo(s"/agent-access-control/mtd-vat-auth/agent/${agent.agentCode.get}/client/936707596"))
+            .willReturn(aResponse()
+              .withStatus(401)))
+
+        implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
+
+        an[InternalError] shouldBe thrownBy {
+          await(
+            authorised(
+              Enrolment("HMRC-MTD-VAT")
+                .withIdentifier("VRN", "936707596")
+                .withDelegatedAuthRule("mtd-vat-auth")) {
+              "success"
+            })
+        }
+      }
+
+      "authorize if afi delegated auth rule returns true" in new TestFixture {
+        val agent = UserGenerator.agent(randomId)
+        val authToken =
+          givenAnAuthenticatedUser(agent)
+
+        WireMock.stubFor(
+          WireMock
+            .get(urlEqualTo(s"/agent-access-control/afi-auth/agent/${agent.agentCode.get}/client/HW827856C"))
+            .willReturn(aResponse()
+              .withStatus(200)))
+
+        implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
+
+        val result: String =
+          await(
+            authorised(
+              Enrolment("HMRC-NI")
+                .withIdentifier("NINO", "HW827856C")
+                .withDelegatedAuthRule("afi-auth")) {
+              "success"
+            })
+      }
+
+      "do not authorize if afi delegated auth rule returns false" in new TestFixture {
+        val agent = UserGenerator.agent(randomId)
+        val authToken =
+          givenAnAuthenticatedUser(agent)
+
+        WireMock.stubFor(
+          WireMock
+            .get(urlEqualTo(s"/agent-access-control/afi-auth/agent/${agent.agentCode.get}/client/HW827856C"))
+            .willReturn(aResponse()
+              .withStatus(401)))
+
+        implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
+
+        an[InternalError] shouldBe thrownBy {
+          await(
+            authorised(
+              Enrolment("HMRC-NI")
+                .withIdentifier("NINO", "HW827856C")
+                .withDelegatedAuthRule("afi-auth")) {
+              "success"
+            })
+        }
+      }
+
+      "authorize if sa delegated auth rule returns true" in new TestFixture {
+        val agent = UserGenerator.agent(randomId)
+        val authToken =
+          givenAnAuthenticatedUser(agent)
+
+        WireMock.stubFor(
+          WireMock
+            .get(urlEqualTo(s"/agent-access-control/sa-auth/agent/${agent.agentCode.get}/client/1234556"))
+            .willReturn(aResponse()
+              .withStatus(200)))
+
+        implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
+
+        val result: String =
+          await(
+            authorised(
+              Enrolment("IR-SA")
+                .withIdentifier("UTR", "1234556")
+                .withDelegatedAuthRule("sa-auth")) {
+              "success"
+            })
+      }
+
+      "do not authorize if sa delegated auth rule returns false" in new TestFixture {
+        val agent = UserGenerator.agent(randomId)
+        val authToken =
+          givenAnAuthenticatedUser(agent)
+
+        WireMock.stubFor(
+          WireMock
+            .get(urlEqualTo(s"/agent-access-control/sa-auth/agent/${agent.agentCode.get}/client/1234556"))
+            .willReturn(aResponse()
+              .withStatus(401)))
+
+        implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
+
+        an[InternalError] shouldBe thrownBy {
+          await(
+            authorised(
+              Enrolment("IR-SA")
+                .withIdentifier("UTR", "1234556")
+                .withDelegatedAuthRule("sa-auth")) {
+              "success"
+            })
+        }
+      }
+
     }
 
     "GET /auth/authority" should {

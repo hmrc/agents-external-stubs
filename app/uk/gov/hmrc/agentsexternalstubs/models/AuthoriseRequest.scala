@@ -68,13 +68,25 @@ abstract class PredicateFormat[P <: Predicate](val key: String)(implicit val tag
   val format: Format[P]
 }
 
-case class EnrolmentPredicate(enrolment: String, identifiers: Option[Seq[Identifier]] = None) extends Predicate {
+case class EnrolmentPredicate(
+  enrolment: String,
+  identifiers: Option[Seq[Identifier]] = None,
+  delegatedAuthRule: Option[String] = None)
+    extends Predicate {
   override def validate(context: AuthoriseContext): Either[String, Unit] =
-    context.principalEnrolments
-      .collectFirst {
-        case Enrolment(`enrolment`, ii, state) if identifiersMatches(identifiers, ii) && state == Enrolment.ACTIVATED =>
-      }
-      .toRight("InsufficientEnrolments")
+    (delegatedAuthRule, identifiers) match {
+      case (Some(rule), Some(identifierSeq)) =>
+        if (context.hasDelegatedAuth(rule, identifierSeq)) Right(()) else Left("Delegated auth not granted.")
+      case (Some(rule), None) =>
+        Left(s"Missing predicate part: delegated $rule enrolment identifiers")
+      case (None, _) =>
+        context.principalEnrolments
+          .collectFirst {
+            case Enrolment(`enrolment`, ii, state)
+                if identifiersMatches(identifiers, ii) && state == Enrolment.ACTIVATED =>
+          }
+          .toRight("InsufficientEnrolments")
+    }
 
   private def identifiersMatches(expected: Option[Seq[Identifier]], provided: Option[Seq[Identifier]]): Boolean =
     (expected, provided) match {

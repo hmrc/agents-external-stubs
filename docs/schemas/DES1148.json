@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "title":"SA Agent-Client Authorisation API",
+  "description": "Retrieves Agent-Client authorization flag from Data Cache",
+  "properties": {
+    "agentref":{
+      "type": "string",
+      "pattern": "^[A-Z0-9]{1,6}$",
+      "x_key": true
+    },
+    "utr" : {
+      "type": "string",
+      "pattern": "^[0-9]{10}$",
+      "x_key": true
+    },
+    "Auth_64-8": {
+      "type": "boolean"
+    },
+    "Auth_i64-8": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "Auth_64-8",
+    "Auth_i64-8"
+  ]
+}

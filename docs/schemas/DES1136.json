@@ -1,0 +1,1580 @@
+{
+  "title": "",
+  "type": "object",
+  "properties": {
+    "vrn": {
+        "type": "string",
+        "pattern": "^[0-9]{9}$",
+        "description": "VRN",
+        "x_uniqueKey": true,
+        "x_private": true
+    },
+    "approvedInformation": {
+      "description": "Approved information object",
+      "$ref": "#/definitions/approvedInformationType"
+    },
+    "inFlightInformation": {
+      "description": "In flight information object",
+      "$ref": "#/definitions/inFlightInformationType"
+    }
+  },
+  "required": ["vrn"],
+  "additionalProperties": false,
+  "definitions": {
+    "dateString": {
+      "type": "string",
+      "description": "Format YYYY-MM-DD",
+      "pattern": "^\\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"
+    },
+    "stdReturnPeriodType": {
+      "type": "string",
+      "description": "MA - Quarterly-The last day of Jan, April, July and Oct, MB - Quarterly-The last day of Feb, May, Aug and Nov, MC - Quarterly-The last day of Mar, June, Sep and Dec, MM - Monthly Returns",
+      "enum": [
+        "MA",
+        "MB",
+        "MC",
+        "MM"
+      ]
+    },
+    "approvedInformationType": {
+      "type": "object",
+      "properties": {
+        "customerDetails": {
+          "description": "Customer Details object",
+          "$ref": "#/definitions/customerDetailsType"
+        },
+        "PPOB": {
+          "description": "PPOB Details object",
+          "$ref": "#/definitions/PPOBType"
+        },
+        "correspondenceContactDetails": {
+          "description": "Correspondence Contact Details object",
+          "$ref": "#/definitions/correspondenceContactDetailsType"
+        },
+        "bankDetails": {
+          "description": "Bank Details object",
+          "$ref": "#/definitions/bankDetailsType"
+        },
+        "businessActivities": {
+          "description": "Business Activities object",
+          "$ref": "#/definitions/businessActivitiesType"
+        },
+        "flatRateScheme": {
+          "description": "Flat Rate Scheme object",
+          "$ref": "#/definitions/flatRateSchemeType"
+        },
+        "deregistration": {
+          "description": "Deregistration Information object",
+          "$ref": "#/definitions/deregistrationType"
+        },
+        "returnPeriod": {
+          "description": "Return Period Information object",
+          "$ref": "#/definitions/periodType"
+        },
+        "groupOrPartnerMbrs": {
+          "description": "Group or Partner array",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/definitions/groupOrPartnerType"
+          }
+        }
+      },
+      "required": [
+        "customerDetails",
+        "PPOB"
+      ],
+      "additionalProperties": false
+    },
+    "customerDetailsType": {
+      "type": "object",
+      "properties": {
+        "organisationName": {
+          "type": "string",
+          "description": "Organisation Name",
+          "minLength": 1,
+          "maxLength": 105
+        },
+        "individual": {
+          "description": "Individual Name object",
+          "$ref": "#/definitions/individualNameType"
+        },
+        "dateOfBirth": {
+          "description": "Date of birth",
+          "$ref": "#/definitions/dateString"
+        },
+        "tradingName": {
+          "type": "string",
+          "description": "Trading Name",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "mandationStatus": {
+          "type": "string",
+          "description": "Mandation Status: 1 - MTDfB Mandated, 2 - MTDfB Voluntary, 3 - Non MTDfB, 4 - Non Digital",
+          "enum": [
+            "1",
+            "2",
+            "3",
+            "4"
+          ]
+        },
+        "registrationReason": {
+          "type": "string",
+          "description": "Registration Reason: 0001 - VAT ICR, 0002 - Acquisitions, 0003 - Distance Sales, 0004 - Non-UK, 0005 - Government Department, 0006 - Prescribed Body, 0007 - Debt to Crown, 0008 - Exemption, 0009 - Exception, 0010 - LNLL, 0011 - MOSS, 0012 - Disposal of assets, 0013 - AFRS, 0014 - Group Registration",
+          "enum": [
+            "0001",
+            "0002",
+            "0003",
+            "0004",
+            "0005",
+            "0006",
+            "0007",
+            "0008",
+            "0009",
+            "0010",
+            "0011",
+            "0012",
+            "0013",
+            "0014"
+          ]
+        },
+        "effectiveRegistrationDate": {
+          "description": "Business Effective Date of Registration(EDR)",
+          "$ref": "#/definitions/dateString"
+        },
+        "businessStartDate": {
+          "description": "Date of Registration(HMRC)",
+          "$ref": "#/definitions/dateString"
+        }
+      },
+      "oneOf": [
+            {
+                "required": [
+                    "mandationStatus",
+                    "individual",
+                    "dateOfBirth"
+                ]
+            },
+            {
+                "required": [
+                    "mandationStatus",
+                    "organisationName"
+                ]
+            }
+     ],
+      "additionalProperties": false
+    },
+    "individualNameType": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Title: 0001 - Mr, 0002 - Mrs, 0003 - Miss, 0004 - Ms, 0005 - Dr, 0006 - Sir, 0007 - Rev, 0008 - Personal Representative of, 0009 - Professor, 0010 - Lord, 0011 - Lady, 0012 - Dame",
+          "enum": [
+            "0001",
+            "0002",
+            "0003",
+            "0004",
+            "0005",
+            "0006",
+            "0007",
+            "0008",
+            "0009",
+            "0010",
+            "0011",
+            "0012"
+          ]
+        },
+        "firstName": {
+          "description": "First Name",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 35
+        },
+        "middleName": {
+          "description": "Middle Name",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 35
+        },
+        "lastName": {
+          "description": "Last Name",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 35
+        }
+      },
+      "additionalProperties": false
+    },
+    "PPOBType": {
+      "type": "object",
+      "properties": {
+        "address": {
+          "description": "Address Object",
+          "$ref": "#/definitions/addressType"
+        },
+        "RLS": {
+          "type": "string",
+          "description": "RLS: 0001 - Receiver is not known, 0002 - Moved - New Address Not Known, 0003 - Incomplete Address, 0004 - Illegible Address, 0005 - No Letter Box, 0006 - PO Box Inexistent or Closed, 0007 - Not Accepted, 0008 - Deceased, 0009 - Company wound-up",
+          "enum": [
+            "0001",
+            "0002",
+            "0003",
+            "0004",
+            "0005",
+            "0006",
+            "0007",
+            "0008",
+            "0009"
+          ]
+        },
+        "contactDetails": {
+          "description": "Contact Details Object",
+          "$ref": "#/definitions/contactDetailsType"
+        },
+        "websiteAddress": {
+          "type": "string",
+          "description": "Website Address",
+          "minLength": 1,
+          "maxLength": 132
+        }
+      },
+      "required": [
+        "address"
+      ],
+      "additionalProperties": false
+    },
+    "correspondenceContactDetailsType": {
+      "type": "object",
+      "properties": {
+        "address": {
+          "description": "Address Object",
+          "$ref": "#/definitions/addressType"
+        },
+        "RLS": {
+          "type": "string",
+          "description": "RLS: 0001 - Receiver is not known, 0002 - Moved - New Address Not Known, 0003 - Incomplete Address, 0004 - Illegible Address, 0005 - No Letter Box, 0006 - PO Box Inexistent or Closed, 0007 - Not Accepted, 0008 - Deceased, 0009 - Company wound-up",
+          "enum": [
+            "0001",
+            "0002",
+            "0003",
+            "0004",
+            "0005",
+            "0006",
+            "0007",
+            "0008",
+            "0009"
+          ]
+        },
+        "contactDetails": {
+          "description": "Contact Details Object",
+          "$ref": "#/definitions/contactDetailsType"
+        }
+      },
+      "required": [
+        "address"
+      ],
+      "additionalProperties": false
+    },
+    "addressType": {
+      "type": "object",
+      "oneOf": [
+        {
+           "$ref": "#/definitions/ukAddressType"
+        },
+        {
+          "$ref": "#/definitions/foreignAddressType"
+        }
+      ]
+    },
+    "ukAddressType": {
+      "type": "object",
+      "properties": {
+        "line1": {
+          "description": "Address Line 1",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9 \\-,.&'\\/()!]{1,35}$"
+        },
+        "line2": {
+          "description": "Address Line 2",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9 \\-,.&'\\/()!]{1,35}$"
+        },
+        "line3": {
+          "description": "Address Line 3",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9 \\-,.&'\\/()!]{1,35}$"
+        },
+        "line4": {
+          "description": "Address Line 4",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9 \\-,.&'\\/()!]{1,35}$"
+        },
+        "postCode": {
+          "description": "Post code or Zip code",
+          "type": "string",
+          "pattern": "^[A-Z]{1,2}[0-9][0-9A-Z]?\\s?[0-9][A-Z]{2}|BFPO\\s?[0-9]{1,10}$"
+        },
+        "countryCode": {
+          "description": "2-digit ISO code for the country",
+          "type": "string",
+          "enum": [
+            "GB"
+          ]
+        }
+      },
+      "required": [
+        "line1",
+        "line2",
+        "postCode",
+        "countryCode"
+      ],
+      "additionalProperties": false
+    },
+    "foreignAddressType": {
+      "type": "object",
+      "properties": {
+        "line1": {
+          "description": "Address Line 1",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9 \\-,.&'\\/()!]{1,35}$"
+        },
+        "line2": {
+          "description": "Address Line 2",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9 \\-,.&'\\/()!]{1,35}$"
+        },
+        "line3": {
+          "description": "Address Line 3",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9 \\-,.&'\\/()!]{1,35}$"
+        },
+        "line4": {
+          "description": "Address Line 4",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9 \\-,.&'\\/()!]{1,35}$"
+        },
+        "postCode": {
+          "description": "Post code or Zip code",
+          "type": "string",
+          "pattern": "^[A-Z]{1,2}[0-9][0-9A-Z]?\\s?[0-9][A-Z]{2}|BFPO\\s?[0-9]{1,10}$"
+        },
+        "countryCode": {
+          "description": "Country Code Object",
+          "$ref": "#/definitions/countryCodeType"
+        }
+      },
+      "required": [
+        "line1",
+        "line2",
+        "countryCode"
+      ],
+      "additionalProperties": false
+    },
+    "countryCodeType": {
+      "type": "string",
+      "description": "2-digit ISO code for the country",
+      "enum": [
+        "AD",
+        "AE",
+        "AF",
+        "AG",
+        "AI",
+        "AL",
+        "AM",
+        "AN",
+        "AO",
+        "AQ",
+        "AR",
+        "AS",
+        "AT",
+        "AU",
+        "AW",
+        "AX",
+        "AZ",
+        "BA",
+        "BB",
+        "BD",
+        "BE",
+        "BF",
+        "BG",
+        "BH",
+        "BI",
+        "BJ",
+        "BM",
+        "BN",
+        "BO",
+        "BQ",
+        "BR",
+        "BS",
+        "BT",
+        "BV",
+        "BW",
+        "BY",
+        "BZ",
+        "CA",
+        "CC",
+        "CD",
+        "CF",
+        "CG",
+        "CH",
+        "CI",
+        "CK",
+        "CL",
+        "CM",
+        "CN",
+        "CO",
+        "CR",
+        "CS",
+        "CU",
+        "CV",
+        "CW",
+        "CX",
+        "CY",
+        "CZ",
+        "DE",
+        "DJ",
+        "DK",
+        "DM",
+        "DO",
+        "DZ",
+        "EC",
+        "EE",
+        "EG",
+        "EH",
+        "ER",
+        "ES",
+        "ET",
+        "EU",
+        "FI",
+        "FJ",
+        "FK",
+        "FM",
+        "FO",
+        "FR",
+        "GA",
+        "GD",
+        "GE",
+        "GF",
+        "GG",
+        "GH",
+        "GI",
+        "GL",
+        "GM",
+        "GN",
+        "GP",
+        "GQ",
+        "GR",
+        "GS",
+        "GT",
+        "GU",
+        "GW",
+        "GY",
+        "HK",
+        "HM",
+        "HN",
+        "HR",
+        "HT",
+        "HU",
+        "ID",
+        "IE",
+        "IL",
+        "IM",
+        "IN",
+        "IO",
+        "IQ",
+        "IR",
+        "IS",
+        "IT",
+        "JE",
+        "JM",
+        "JO",
+        "JP",
+        "KE",
+        "KG",
+        "KH",
+        "KI",
+        "KM",
+        "KN",
+        "KP",
+        "KR",
+        "KW",
+        "KY",
+        "KZ",
+        "LA",
+        "LB",
+        "LC",
+        "LI",
+        "LK",
+        "LR",
+        "LS",
+        "LT",
+        "LU",
+        "LV",
+        "LY",
+        "MA",
+        "MC",
+        "MD",
+        "ME",
+        "MF",
+        "MG",
+        "MH",
+        "MK",
+        "ML",
+        "MM",
+        "MN",
+        "MO",
+        "MP",
+        "MQ",
+        "MR",
+        "MS",
+        "MT",
+        "MU",
+        "MV",
+        "MW",
+        "MX",
+        "MY",
+        "MZ",
+        "NA",
+        "NC",
+        "NE",
+        "NF",
+        "NG",
+        "NI",
+        "NL",
+        "NO",
+        "NP",
+        "NR",
+        "NT",
+        "NU",
+        "NZ",
+        "OM",
+        "PA",
+        "PE",
+        "PF",
+        "PG",
+        "PH",
+        "PK",
+        "PL",
+        "PM",
+        "PN",
+        "PR",
+        "PS",
+        "PT",
+        "PW",
+        "PY",
+        "QA",
+        "RE",
+        "RO",
+        "RS",
+        "RU",
+        "RW",
+        "SA",
+        "SB",
+        "SC",
+        "SD",
+        "SE",
+        "SG",
+        "SH",
+        "SI",
+        "SJ",
+        "SK",
+        "SL",
+        "SM",
+        "SN",
+        "SO",
+        "SR",
+        "SS",
+        "ST",
+        "SV",
+        "SX",
+        "SY",
+        "SZ",
+        "TC",
+        "TD",
+        "TF",
+        "TG",
+        "TH",
+        "TJ",
+        "TK",
+        "TL",
+        "TM",
+        "TN",
+        "TO",
+        "TP",
+        "TR",
+        "TT",
+        "TV",
+        "TW",
+        "TZ",
+        "UA",
+        "UG",
+        "UM",
+        "UN",
+        "US",
+        "UY",
+        "UZ",
+        "VA",
+        "VC",
+        "VE",
+        "VG",
+        "VI",
+        "VN",
+        "VU",
+        "WF",
+        "WS",
+        "YE",
+        "YT",
+        "ZA",
+        "ZM",
+        "ZW"
+      ]
+    },
+    "contactDetailsType": {
+      "type": "object",
+      "properties": {
+        "primaryPhoneNumber": {
+          "description": "Telephone Number",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 24,
+          "pattern": "^[A-Z0-9 )/(*#-]+$"
+        },
+        "mobileNumber": {
+          "description": "Mobile Number",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 24,
+          "pattern": "^[A-Z0-9 )/(*#-]+$"
+        },
+        "faxNumber": {
+          "description": "Fax Number",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 24,
+          "pattern": "^[A-Z0-9 )/(*#-]+$"
+        },
+        "emailAddress": {
+          "description": "Email Address",
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 132
+        }
+      },
+      "additionalProperties": false
+    },
+    "bankDetailsType": {
+      "type": "object",
+      "properties": {
+        "IBAN": {
+          "description": "International Bank Account Number",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 34
+        },
+        "BIC": {
+          "description": "Bank Identifier Code",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 11
+        },
+        "accountHolderName": {
+          "description": "Account Holder Name",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "bankAccountNumber": {
+          "description": "Bank Account Number",
+          "type": "string",
+          "pattern": "^[0-9]{8}$"
+        },
+        "sortCode": {
+          "description": "Sort Code",
+          "type": "string",
+          "pattern": "^[0-9]{6}$"
+        },
+        "buildingSocietyNumber": {
+          "description": "Building Society Number. If Building Society number is populated then Sort Code and Bank Account Number must be populated",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "bankBuildSocietyName": {
+          "description": "Bank or Building Society Name",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        }
+      },
+      "additionalProperties": false
+    },
+    "businessActivitiesType": {
+      "type": "object",
+      "properties": {
+        "primaryMainCode": {
+          "description": "Primary Main Code",
+          "type": "string",
+          "pattern": "^[0-9]{5}$"
+        },
+        "mainCode2": {
+          "description": "Main Code 2",
+          "type": "string",
+          "pattern": "^[0-9]{5}$"
+        },
+        "mainCode3": {
+          "description": "Main Code 3",
+          "type": "string",
+          "pattern": "^[0-9]{5}$"
+        },
+        "mainCode4": {
+          "description": "Main Code 4",
+          "type": "string",
+          "pattern": "^[0-9]{5}$"
+        }
+      },
+      "required": [
+        "primaryMainCode"
+      ],
+      "additionalProperties": false
+    },
+    "flatRateSchemeType": {
+      "type": "object",
+      "properties": {
+        "FRSCategory": {
+          "description": "FRS Category: 001 Accountancy or book-keeping, 002 Advertising, 003 Agricultural services, 004 Any other activity not listed elsewhere, 005 Architect, civil and structural engineer or surveyor, 006 Boarding or care of animals, 007 Business services not listed elsewhere, 008 Catering services including restaurants and takeaways, 009 Computer and IT consultancy or data processing, 010 Computer repair services, 011 Entertainment or journalism, 012 Estate agency or property management services, 013 Farming or agriculture not listed elsewhere, 014 Film, radio, television or video production, 015 Financial services, 016 Forestry or fishing, 017 General building or construction services, 018 Hairdressing or other beauty treatment services, 019 Hiring or renting goods, 020 Hotel or accommodation, 021 Investigation or security, 022 Labour-only building or construction services, 023 Laundry or dry-cleaning services, 024 Lawyer or legal services, 025 Library, archive, museum or other cultural activity, 026 Management consultancy, 027 Manufacturing fabricated metal products, 028 Manufacturing food, 029 Manufacturing not listed elsewhere, 030 Manufacturing yarn, textiles or clothing, 031 Membership organisation, 032 Mining or quarrying, 033 Packaging, 034 Photography, 035 Post offices, 036 Printing, 037 Publishing, 038 Pubs, 039 Real estate activity not listed elsewhere, 040 Repairing personal or household goods, 041 Repairing vehicles, 042 Retailing food, confectionery, tobacco, newspapers or children’s clothing, 043 Retailing pharmaceuticals, medical goods, cosmetics or toiletries, 044 Retailing not listed elsewhere, 045 Retailing vehicles or fuel, 046 Secretarial services, 047 Social work, 048 Sport or recreation, 049 Transport or storage, including couriers, freight, removals and taxis, 050 Travel agency, 051 Veterinary medicine, 052 Wholesaling agricultural products, 053 Wholesaling food, 054 Wholesaling not listed elsewhere",
+          "type": "string",
+          "enum": [
+            "001",
+            "002",
+            "003",
+            "004",
+            "005",
+            "006",
+            "007",
+            "008",
+            "009",
+            "010",
+            "011",
+            "012",
+            "013",
+            "014",
+            "015",
+            "016",
+            "017",
+            "018",
+            "019",
+            "020",
+            "021",
+            "022",
+            "023",
+            "024",
+            "025",
+            "026",
+            "027",
+            "028",
+            "029",
+            "030",
+            "031",
+            "032",
+            "033",
+            "034",
+            "035",
+            "036",
+            "037",
+            "038",
+            "039",
+            "040",
+            "041",
+            "042",
+            "043",
+            "044",
+            "045",
+            "046",
+            "047",
+            "048",
+            "049",
+            "050",
+            "051",
+            "052",
+            "053",
+            "054"
+          ]
+        },
+        "FRSPercentage": {
+          "description": "FRS Percentage",
+          "$ref": "#/definitions/percent"
+        },
+        "startDate": {
+          "description": "Start Date",
+          "$ref": "#/definitions/dateString"
+        },
+        "limitedCostTrader": {
+          "description": "Are you a limited cost trader",
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "deregistrationType": {
+      "type": "object",
+      "properties": {
+        "deregistrationReason": {
+          "type": "string",
+          "description": "Deregistration Reason: 0001-Cancelled-Insolvent, 0002-Cancelled-Missing Trader, 0003-Ceased Trading, 0004-Ceased Trading(TOGC), 0005-Duplicated Registration, 0006-Registration Exemption Granted, 0007-Taken into Group Registration, 0008-Disbanding Group, 0009-Invalid Registration, 0010-Reduced Turnover, 0011-Joined AFRS",
+          "enum": [
+            "0001",
+            "0002",
+            "0003",
+            "0004",
+            "0005",
+            "0006",
+            "0007",
+            "0008",
+            "0009",
+            "0010",
+            "0011"
+          ]
+        },
+        "effectDateOfCancellation": {
+          "description": "EDC - Effective Date of Cancellation",
+          "$ref": "#/definitions/dateString"
+        },
+        "lastReturnDueDate": {
+          "description": "Last Return Due Date",
+          "$ref": "#/definitions/dateString"
+        }
+      },
+      "additionalProperties": false
+    },
+    "periodType": {
+      "type": "object",
+      "properties": {
+        "stdReturnPeriod": {
+          "description": "MA (Quarterly-The last day of Jan, April, July and Oct),MB (Quarterly-The last day of Feb, May, Aug and Nov),MC (Quarterly-The last day of Mar, June, Sep and Dec),MM (Monthly Returns)",
+          "$ref": "#/definitions/stdReturnPeriodType"
+        },
+        "nonStdTaxPeriods": {
+          "description": "Non Std Tax Periods object",
+          "$ref": "#/definitions/nonStdTaxPeriodsType"
+        }
+      },
+      "additionalProperties": false
+    },
+    "nonStdTaxPeriodsType": {
+      "type": "object",
+      "properties": {
+        "period01": {
+          "description": "Period 01",
+          "$ref": "#/definitions/dateString"
+        },
+        "period02": {
+          "description": "Period 02",
+          "$ref": "#/definitions/dateString"
+        },
+        "period03": {
+          "description": "Period 03",
+          "$ref": "#/definitions/dateString"
+        },
+        "period04": {
+          "description": "Period 04",
+          "$ref": "#/definitions/dateString"
+        },
+        "period05": {
+          "description": "Period 05",
+          "$ref": "#/definitions/dateString"
+        },
+        "period06": {
+          "description": "Period 06",
+          "$ref": "#/definitions/dateString"
+        },
+        "period07": {
+          "description": "Period 07",
+          "$ref": "#/definitions/dateString"
+        },
+        "period08": {
+          "description": "Period 08",
+          "$ref": "#/definitions/dateString"
+        },
+        "period09": {
+          "description": "Period 09",
+          "$ref": "#/definitions/dateString"
+        },
+        "period10": {
+          "description": "Period 10",
+          "$ref": "#/definitions/dateString"
+        },
+        "period11": {
+          "description": "Period 11",
+          "$ref": "#/definitions/dateString"
+        },
+        "period12": {
+          "description": "Period 12",
+          "$ref": "#/definitions/dateString"
+        },
+        "period13": {
+          "description": "Period 13",
+          "$ref": "#/definitions/dateString"
+        },
+        "period14": {
+          "description": "Period 14",
+          "$ref": "#/definitions/dateString"
+        },
+        "period15": {
+          "description": "Period 15",
+          "$ref": "#/definitions/dateString"
+        },
+        "period16": {
+          "description": "Period 16",
+          "$ref": "#/definitions/dateString"
+        },
+        "period17": {
+          "description": "Period 17",
+          "$ref": "#/definitions/dateString"
+        },
+        "period18": {
+          "description": "Period 18",
+          "$ref": "#/definitions/dateString"
+        },
+        "period19": {
+          "description": "Period 19",
+          "$ref": "#/definitions/dateString"
+        },
+        "period20": {
+          "description": "Period 20",
+          "$ref": "#/definitions/dateString"
+        },
+        "period21": {
+          "description": "Period 21",
+          "$ref": "#/definitions/dateString"
+        },
+        "period22": {
+          "description": "Period 22",
+          "$ref": "#/definitions/dateString"
+        },
+        "period23": {
+          "description": "Period 23",
+          "$ref": "#/definitions/dateString"
+        },
+        "period24": {
+          "description": "Period 24",
+          "$ref": "#/definitions/dateString"
+        }
+      },
+      "additionalProperties": false
+    },
+    "groupOrPartnerType": {
+      "type": "object",
+      "properties": {
+        "typeOfRelationship": {
+          "type": "string",
+          "description": "Type of relationship: 01 - Group Member, 02 - Group Representative Member, 03 - Controlling Body , 04 - Partner",
+          "enum": [
+            "01",
+            "02",
+            "03",
+            "04"
+          ]
+        },
+        "organisationName": {
+          "type": "string",
+          "description": "Organisation Name",
+          "minLength": 1,
+          "maxLength": 105
+        },
+        "individual": {
+          "description": "Individual Name object",
+          "$ref": "#/definitions/individualNameType"
+        },
+        "SAP_Number": {
+          "description": "SAP Number",
+          "type": "string",
+          "pattern": "^[0-9]{42}$"
+        }
+      },
+      "required": [
+        "typeOfRelationship",
+        "SAP_Number"
+      ],
+      "additionalProperties": false
+    },
+    "percent": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 999.99,
+      "multipleOf": 0.01,
+      "description": "Defines a percentage rate (to 2 decimal places), between 0.00 and 999.99"
+    },
+    "inFlightInformationType": {
+      "type": "object",
+      "properties": {
+        "changeIndicators": {
+          "description": "Change Indicators object",
+          "$ref": "#/definitions/changeIndicatorsType"
+        },
+        "inflightChanges": {
+          "description": "In flight changes object",
+          "$ref": "#/definitions/inflightChangesType"
+        }
+      },
+      "required": [
+        "changeIndicators",
+        "inflightChanges"
+      ],
+      "additionalProperties": false
+    },
+    "changeIndicatorsType": {
+      "type": "object",
+      "properties": {
+        "customerDetails": {
+          "description": "Customer Details indicator",
+          "type": "boolean"
+        },
+        "PPOBDetails": {
+          "description": "PPOBD details indicator",
+          "type": "boolean"
+        },
+        "correspContactDetails": {
+          "description": "Correspondence Contact Details indicator",
+          "type": "boolean"
+        },
+        "bankDetails": {
+          "description": "Bank Details indicator",
+          "type": "boolean"
+        },
+        "businessActivities": {
+          "description": "Business Activities indicator",
+          "type": "boolean"
+        },
+        "flatRateScheme": {
+          "description": "Flat Rate Scheme indicator",
+          "type": "boolean"
+        },
+        "deRegistrationInfo": {
+          "description": "DeRegistration Info indicator",
+          "type": "boolean"
+        },
+        "returnPeriods": {
+          "description": "Return Periods indicator",
+          "type": "boolean"
+        },
+        "groupOrPartners": {
+          "description": "Group or partners indicator",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "customerDetails",
+        "PPOBDetails",
+        "correspContactDetails",
+        "bankDetails",
+        "businessActivities",
+        "flatRateScheme",
+        "deRegistrationInfo",
+        "returnPeriods",
+        "groupOrPartners"
+      ],
+      "additionalProperties": false
+    },
+    "inflightChangesType": {
+      "type": "object",
+      "properties": {
+        "customerDetails": {
+          "description": "Customer Details object",
+          "$ref": "#/definitions/inFlightCustomerDetailsType"
+        },
+        "PPOBDetails": {
+          "description": "PPOB Details object",
+          "$ref": "#/definitions/inFlightPPOBDetailsType"
+        },
+        "correspondenceContactDetails": {
+          "description": "Correspondence Contact Details object",
+          "$ref": "#/definitions/inFlightCorrespondenceContactDetailsType"
+        },
+        "bankDetails": {
+          "description": "Bank Details object",
+          "$ref": "#/definitions/inFlightBankDetailsType"
+        },
+        "businessActivities": {
+          "description": "Business Activities object",
+          "$ref": "#/definitions/inFlightBusinessActivitiesType"
+        },
+        "flatRateScheme": {
+          "description": "Flat Rate Scheme object",
+          "$ref": "#/definitions/inFlightFlatRateSchemeType"
+        },
+        "deregister": {
+          "description": "DeRegistration Information object",
+          "$ref": "#/definitions/inFlightDeregistrationType"
+        },
+        "returnPeriod": {
+          "description": "Period Information object",
+          "$ref": "#/definitions/inFlightReturnPeriod"
+        },
+        "groupOrPartner": {
+          "description": "Group or Partner array",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/definitions/inFlightGroupOrPartnerType"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "formInformationType": {
+      "type": "object",
+      "properties": {
+        "formBundle": {
+          "type": "string",
+          "description": "Form Bundle Number",
+          "pattern": "^[0-9]{12}$"
+        },
+        "dateReceived": {
+          "description": "Date Received",
+          "$ref": "#/definitions/dateString"
+        }
+      },
+      "required": [
+        "formBundle",
+        "dateReceived"
+      ],
+      "additionalProperties": false
+    },
+    "inFlightCustomerDetailsType": {
+      "type": "object",
+      "properties": {
+        "formInformation": {
+          "description": "Form Information object",
+          "$ref": "#/definitions/formInformationType"
+        },
+        "organisationName": {
+          "type": "string",
+          "description": "Organisation Name",
+          "minLength": 1,
+          "maxLength": 105
+        },
+        "individual": {
+          "description": "Individual Name object",
+          "$ref": "#/definitions/individualNameType"
+        },
+        "dateOfBirth": {
+          "description": "Date of birth",
+          "$ref": "#/definitions/dateString"
+        },
+        "tradingName": {
+          "type": "string",
+          "description": "Trading Name",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "mandationStatus": {
+          "type": "string",
+          "description": "Mandation Status: 1 - MTDfB Mandated, 2 - MTDfB Voluntary, 3 - Non MTDfB, 4 - Non Digital",
+          "enum": [
+            "1",
+            "2",
+            "3",
+            "4"
+          ]
+        },
+        "registrationReason": {
+          "type": "string",
+          "description": "Registration Reason: 0001 - VAT ICR, 0002 - Acquisitions, 0003 - Distance Sales, 0004 - Non-UK, 0005 - Government Department, 0006 - Prescribed Body, 0007 - Debt to Crown, 0008 - Exemption, 0009 - Exception, 0010 - LNLL, 0011 - MOSS, 0012 - Disposal of assets, 0013 - AFRS, 0014 - Group Registration",
+          "enum": [
+            "0001",
+            "0002",
+            "0003",
+            "0004",
+            "0005",
+            "0006",
+            "0007",
+            "0008",
+            "0009",
+            "0010",
+            "0011",
+            "0012",
+            "0013",
+            "0014"
+          ]
+        },
+        "effectiveRegistrationDate": {
+          "description": "Business Effective Date of Registration(EDR)",
+          "$ref": "#/definitions/dateString"
+        }
+      },
+      "required": [
+        "formInformation",
+        "mandationStatus"
+      ],
+      "additionalProperties": false
+    },
+    "inFlightPPOBDetailsType": {
+      "type": "object",
+      "properties": {
+        "formInformation": {
+          "description": "Form Information object",
+          "$ref": "#/definitions/formInformationType"
+        },
+        "address": {
+          "description": "Address Object",
+          "$ref": "#/definitions/addressType"
+        },
+        "contactDetails": {
+          "description": "Contact Details Object",
+          "$ref": "#/definitions/contactDetailsType"
+        },
+        "websiteAddress": {
+          "type": "string",
+          "description": "Website Address",
+          "minLength": 1,
+          "maxLength": 132
+        }
+      },
+      "required": [
+        "formInformation"
+      ],
+      "additionalProperties": false
+    },
+    "inFlightCorrespondenceContactDetailsType": {
+      "type": "object",
+      "properties": {
+        "formInformation": {
+          "description": "Form Information object",
+          "$ref": "#/definitions/formInformationType"
+        },
+        "address": {
+          "description": "Address Object",
+          "$ref": "#/definitions/addressType"
+        },
+        "contactDetails": {
+          "description": "Contact Details Object",
+          "$ref": "#/definitions/contactDetailsType"
+        }
+      },
+      "required": [
+        "formInformation"
+      ],
+      "additionalProperties": false
+    },
+    "inFlightBankDetailsType": {
+      "type": "object",
+      "properties": {
+        "formInformation": {
+          "description": "Form Information object",
+          "$ref": "#/definitions/formInformationType"
+        },
+        "IBAN": {
+          "description": "IBAN",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 34
+        },
+        "BIC": {
+          "description": "BIC",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 11
+        },
+        "accountHolderName": {
+          "description": "Account Holder Name",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "bankAccountNumber": {
+          "description": "Bank Account Number",
+          "type": "string",
+          "pattern": "^[0-9]{8}$"
+        },
+        "sortCode": {
+          "description": "Sort Code",
+          "type": "string",
+          "pattern": "^[0-9]{6}$"
+        },
+        "buildingSocietyNumber": {
+          "description": "Building Society Number. If Building Society number is populated then Sort Code and Bank Account Number must be populated",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "bankBuildSocietyName": {
+          "description": "Bank or Building Society Name",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        }
+      },
+      "required": [
+        "formInformation"
+      ],
+      "additionalProperties": false
+    },
+    "inFlightBusinessActivitiesType": {
+      "type": "object",
+      "properties": {
+        "formInformation": {
+          "description": "Form Information object",
+          "$ref": "#/definitions/formInformationType"
+        },
+        "primaryMainCode": {
+          "description": "Primary Main Code",
+          "type": "string",
+          "pattern": "^[0-9]{5}$"
+        },
+        "mainCode2": {
+          "description": "Main Code 2",
+          "type": "string",
+          "pattern": "^[0-9]{5}$"
+        },
+        "mainCode3": {
+          "description": "Main Code 3",
+          "type": "string",
+          "pattern": "^[0-9]{5}$"
+        },
+        "mainCode4": {
+          "description": "Main Code 4",
+          "type": "string",
+          "pattern": "^[0-9]{5}$"
+        }
+      },
+      "required": [
+        "formInformation",
+        "primaryMainCode"
+      ],
+      "additionalProperties": false
+    },
+    "inFlightFlatRateSchemeType": {
+      "type": "object",
+      "properties": {
+        "formInformation": {
+          "description": "Form Information object",
+          "$ref": "#/definitions/formInformationType"
+        },
+        "FRSCategory": {
+          "description": "FRS Category: 001 Accountancy or book-keeping, 002 Advertising, 003 Agricultural services, 004 Any other activity not listed elsewhere, 005 Architect, civil and structural engineer or surveyor, 006 Boarding or care of animals, 007 Business services not listed elsewhere, 008 Catering services including restaurants and takeaways, 009 Computer and IT consultancy or data processing, 010 Computer repair services, 011 Entertainment or journalism, 012 Estate agency or property management services, 013 Farming or agriculture not listed elsewhere, 014 Film, radio, television or video production, 015 Financial services, 016 Forestry or fishing, 017 General building or construction services, 018 Hairdressing or other beauty treatment services, 019 Hiring or renting goods, 020 Hotel or accommodation, 021 Investigation or security, 022 Labour-only building or construction services, 023 Laundry or dry-cleaning services, 024 Lawyer or legal services, 025 Library, archive, museum or other cultural activity, 026 Management consultancy, 027 Manufacturing fabricated metal products, 028 Manufacturing food, 029 Manufacturing not listed elsewhere, 030 Manufacturing yarn, textiles or clothing, 031 Membership organisation, 032 Mining or quarrying, 033 Packaging, 034 Photography, 035 Post offices, 036 Printing, 037 Publishing, 038 Pubs, 039 Real estate activity not listed elsewhere, 040 Repairing personal or household goods, 041 Repairing vehicles, 042 Retailing food, confectionery, tobacco, newspapers or children’s clothing, 043 Retailing pharmaceuticals, medical goods, cosmetics or toiletries, 044 Retailing not listed elsewhere, 045 Retailing vehicles or fuel, 046 Secretarial services, 047 Social work, 048 Sport or recreation, 049 Transport or storage, including couriers, freight, removals and taxis, 050 Travel agency, 051 Veterinary medicine, 052 Wholesaling agricultural products, 053 Wholesaling food, 054 Wholesaling not listed elsewhere",
+          "type": "string",
+          "enum": [
+            "001",
+            "002",
+            "003",
+            "004",
+            "005",
+            "006",
+            "007",
+            "008",
+            "009",
+            "010",
+            "011",
+            "012",
+            "013",
+            "014",
+            "015",
+            "016",
+            "017",
+            "018",
+            "019",
+            "020",
+            "021",
+            "022",
+            "023",
+            "024",
+            "025",
+            "026",
+            "027",
+            "028",
+            "029",
+            "030",
+            "031",
+            "032",
+            "033",
+            "034",
+            "035",
+            "036",
+            "037",
+            "038",
+            "039",
+            "040",
+            "041",
+            "042",
+            "043",
+            "044",
+            "045",
+            "046",
+            "047",
+            "048",
+            "049",
+            "050",
+            "051",
+            "052",
+            "053",
+            "054"
+          ]
+        },
+        "FRSPercentage": {
+          "description": "FRS Percentage",
+          "$ref": "#/definitions/percent"
+        },
+        "startDate": {
+          "description": "Start Date",
+          "$ref": "#/definitions/dateString"
+        },
+        "limitedCostTrader": {
+          "description": "Are you a limited cost trader",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "formInformation"
+      ],
+      "additionalProperties": false
+    },
+    "inFlightGroupOrPartnerType": {
+      "type": "object",
+      "properties": {
+        "formInformation": {
+          "description": "Form Information object",
+          "$ref": "#/definitions/formInformationType"
+        },
+        "action": {
+          "type": "string",
+          "description": "Action: 1 - Add, 2 - Amend, 3 - Remove, 4 - Ignore",
+          "enum": [
+            "1",
+            "2",
+            "3",
+            "4"
+          ]
+        },
+        "SAP_Number": {
+          "description": "SAP Number",
+          "type": "string",
+          "pattern": "^[0-9]{42}$"
+        },
+        "typeOfRelationship": {
+          "type": "string",
+          "description": "Type of relationship: 01 - Group Member, 02 - Group Representative Member, 03 - Controlling Body , 04 - Partner",
+          "enum": [
+            "01",
+            "02",
+            "03",
+            "04"
+          ]
+        },
+        "makeGrpMember": {
+          "description": "Make GRP Member",
+          "type": "boolean"
+        },
+        "makeControllingBody": {
+          "description": "Make Controlling Body",
+          "type": "boolean"
+        },
+        "isControllingBody": {
+          "description": "Is Controlling Body",
+          "type": "boolean"
+        },
+        "organisationName": {
+          "type": "string",
+          "description": "Organisation Name",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "tradingName": {
+          "type": "string",
+          "description": "Trading Name",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "individual": {
+          "description": "Individual Name object",
+          "$ref": "#/definitions/individualNameType"
+        },
+        "PPOB": {
+          "description": "PPOB Details object",
+          "$ref": "#/definitions/PPOBType"
+        }
+      },
+      "required": [
+        "formInformation",
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "inFlightDeregistrationType": {
+      "type": "object",
+      "properties": {
+        "formInformation": {
+          "description": "Form Information object",
+          "$ref": "#/definitions/formInformationType"
+        },
+        "deregistrationReason": {
+          "type": "string",
+          "description": "Deregistration Reason: 0001-Cancelled-Insolvent, 0002-Cancelled-Missing Trader, 0003-Ceased Trading, 0004-Ceased Trading(TOGC), 0005-Duplicated Registration, 0006-Registration Exemption Granted, 0007-Taken into Group Registration, 0008-Disbanding Group, 0009-Invalid Registration, 0010-Reduced Turnover, 0011-Joined AFRS",
+          "enum": [
+            "0001",
+            "0002",
+            "0003",
+            "0004",
+            "0005",
+            "0006",
+            "0007",
+            "0008",
+            "0009",
+            "0010",
+            "0011"
+          ]
+        },
+        "deregDate": {
+          "description": "Customer requested - De-registration date",
+          "$ref": "#/definitions/dateString"
+        },
+        "deregDateInFuture": {
+          "description": "Customer requested - A de-regitration date in the future.",
+          "$ref": "#/definitions/dateString"
+        }
+      },
+      "required": [
+        "formInformation",
+        "deregistrationReason"
+      ],
+      "additionalProperties": false
+    },
+    "inFlightReturnPeriod": {
+      "type": "object",
+      "properties": {
+        "formInformation": {
+          "description": "Form Information object",
+          "$ref": "#/definitions/formInformationType"
+        },
+        "changeReturnPeriod": {
+          "type": "boolean",
+          "description": "Change Return Period"
+        },
+        "nonStdTaxPeriodsRequested": {
+          "type": "boolean",
+          "description": "Non Std Tax Periods Requested"
+        },
+        "ceaseNonStdTaxPeriods": {
+          "type": "boolean",
+          "description": "Cease Non Std Tax Periods"
+        },
+        "stdReturnPeriod": {
+          "description": "MA (Quarterly-The last day of Jan, April, July and Oct),MB (Quarterly-The last day of Feb, May, Aug and Nov),MC (Quarterly-The last day of Mar, June, Sep and Dec),MM (Monthly Returns)",
+          "$ref": "#/definitions/stdReturnPeriodType"
+        },
+        "nonStdTaxPeriods": {
+          "description": "Return Periods object",
+          "$ref": "#/definitions/nonStdTaxPeriodsType"
+        }
+      },
+      "required": [
+        "formInformation"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

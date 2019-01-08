@@ -8,6 +8,7 @@ import play.api.http.HeaderNames
 import play.api.libs.concurrent.ExecutionContextProvider
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, Request, Result}
+import uk.gov.hmrc.agentsexternalstubs.connectors.AgentAccessControlConnector
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
@@ -18,6 +19,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class AuthStubController @Inject()(
   authenticationService: AuthenticationService,
   usersService: UsersService,
+  agentAccessControlConnector: AgentAccessControlConnector,
   ecp: ExecutionContextProvider)
     extends BaseController {
 
@@ -40,7 +42,11 @@ class AuthStubController @Inject()(
                                result <- Future(maybeUser match {
                                           case Some(user) =>
                                             Authorise.prepareAuthoriseResponse(
-                                              FullAuthoriseContext(user, authenticatedSession, authoriseRequest))
+                                              FullAuthoriseContext(
+                                                user,
+                                                authenticatedSession,
+                                                authoriseRequest,
+                                                agentAccessControlConnector))
                                           case None =>
                                             Left("SessionRecordNotFound")
                                         }) map (_.fold(
