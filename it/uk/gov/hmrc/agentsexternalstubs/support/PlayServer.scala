@@ -20,6 +20,7 @@ object PlayServer {
   private val lock: Lock = new ReentrantLock()
 
   lazy val port: Int = Port.randomAvailable
+  lazy val wireMockPort: Int = Port.randomAvailable
 
   lazy val app: Application = appBuilder.build()
 
@@ -32,6 +33,7 @@ object PlayServer {
         "microservice.services.enrolment-store-proxy.port" -> Port.randomAvailable,
         "microservice.services.tax-enrolments.port"        -> Port.randomAvailable,
         "microservice.services.des.port"                   -> Port.randomAvailable,
+        "microservice.services.agent-access-control.port"  -> wireMockPort,
         "metrics.enabled"                                  -> false,
         "auditing.enabled"                                 -> false,
         "mongodb.uri"                                      -> MongoDB.uri,

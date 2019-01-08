@@ -17,6 +17,7 @@ abstract class ServerBaseISpec
 
   override lazy val app: Application = PlayServer.app
   val port: Int = PlayServer.port
+  val wireMockPort: Int = PlayServer.wireMockPort
 
   import scala.concurrent.duration._
   override implicit val defaultTimeout: FiniteDuration = 30.seconds

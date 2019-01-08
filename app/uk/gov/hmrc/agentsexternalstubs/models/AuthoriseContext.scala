@@ -1,7 +1,12 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.joda.time.LocalDate
+import uk.gov.hmrc.agentsexternalstubs.connectors.AgentAccessControlConnector
 import uk.gov.hmrc.domain.Nino
+import uk.gov.hmrc.http.HeaderCarrier
+
+import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.duration._
 
 trait AuthoriseContext {
 
@@ -22,9 +27,15 @@ trait AuthoriseContext {
   def agentFriendlyName: Option[String]
   def agentId: Option[String]
   def planetId: Option[String]
+
+  def hasDelegatedAuth(rule: String, identifiers: Seq[Identifier]): Boolean
 }
 
-case class FullAuthoriseContext(user: User, authenticatedSession: AuthenticatedSession, request: AuthoriseRequest)
+case class FullAuthoriseContext(
+  user: User,
+  authenticatedSession: AuthenticatedSession,
+  request: AuthoriseRequest,
+  agentAccessControlConnector: AgentAccessControlConnector)(implicit ec: ExecutionContext, hc: HeaderCarrier)
     extends AuthoriseContext {
 
   override def userId: String = user.userId
@@ -63,7 +74,45 @@ case class FullAuthoriseContext(user: User, authenticatedSession: AuthenticatedS
   override def planetId: Option[String] = Some(authenticatedSession.planetId)
 
   override lazy val authorisedServices: Set[String] = request.authorise.collect {
-    case EnrolmentPredicate(service, _) => service
+    case EnrolmentPredicate(service, _, _) => service
   }.toSet
+
+  val timeout: Duration = 30 seconds
+
+  def hasDelegatedAuth(rule: String, identifiers: Seq[Identifier]): Boolean =
+    rule match {
+      case "epaye-auth" =>
+        (for {
+          ac          <- agentCode
+          taxOfficeNo <- identifiers.find(_.key == "TaxOfficeNumber").map(_.value)
+          employerRef <- identifiers.find(_.key == "TaxOfficeReference").map(_.value)
+        } yield
+          Await.result(agentAccessControlConnector.isAuthorisedForPaye(ac, s"$taxOfficeNo/$employerRef"), timeout))
+          .getOrElse(false)
+      case "sa-auth" =>
+        (for {
+          ac    <- agentCode
+          saUtr <- identifiers.find(_.key == "UTR").map(_.value)
+        } yield Await.result(agentAccessControlConnector.isAuthorisedForSa(ac, saUtr), timeout))
+          .getOrElse(false)
+      case "mtd-it-auth" =>
+        (for {
+          ac      <- agentCode
+          mtdItId <- identifiers.find(_.key == "MTDITID").map(_.value)
+        } yield Await.result(agentAccessControlConnector.isAuthorisedForMtdIt(ac, mtdItId), timeout))
+          .getOrElse(false)
+      case "mtd-vat-auth" =>
+        (for {
+          ac  <- agentCode
+          vrn <- identifiers.find(_.key == "VRN").map(_.value)
+        } yield Await.result(agentAccessControlConnector.isAuthorisedForMtdVat(ac, vrn), timeout))
+          .getOrElse(false)
+      case "afi-auth" =>
+        (for {
+          ac   <- agentCode
+          nino <- identifiers.headOption.map(_.value)
+        } yield Await.result(agentAccessControlConnector.isAuthorisedForAfi(ac, nino), timeout))
+          .getOrElse(false)
+    }
 
 }

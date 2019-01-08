@@ -50,6 +50,7 @@ class MicroserviceModule(val environment: Environment, val configuration: Config
     bindBaseUrl("tax-enrolments")
     bindBaseUrl("des")
     bindBaseUrl("auth-login-api")
+    bindBaseUrl("agent-access-control")
 
     bind(classOf[TcpProxies]).asEagerSingleton()
   }
