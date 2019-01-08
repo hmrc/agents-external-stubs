@@ -46,6 +46,14 @@ This app SHOULD NOT be run on QA nor Production environment.
 - auth and other services drop-in replacement
 - generic proxy with pre-defined responses (special cases)
 
+## Data Model
+Every stubbed user and other data types live in some test sandbox (planet). 
+You have to declare existing or a new planet whenever you sign-in. 
+Each authenticated session have planetId information. 
+Stubbed and custom UIs will consider only users and data assigned to the current planet.
+
+User authentication expires after 15 minutes and so does the bearer token.
+
 ## How requests are handled?
 
 We handle local requests gracefully and do not require existing applications to reconfigure, i.e. we provide necessary TCP proxies:
@@ -60,13 +68,16 @@ We handle local requests gracefully and do not require existing applications to 
 
 You can switch this behaviour off by setting `proxies.start` config property to `false`.
 
-## Data Model
-Every stubbed user and other data live in some test sandbox (planet). 
-You have to declare existing or a new planet whenever you sign-in. Each authenticated session have planetId information. 
-Stubbed and custom UIs will consider only users and data assigned to the current planet.
+## How to configure generic proxy and stub pre-defined responses
 
-User authentication expires after 15 minutes and so does the bearer token.
-All users and other data on each planet are removed after 12h unless marked as permanent.
+This service can handle arbitrary requests and proxy them to the target service if possible or return pre-defined response. 
+Target service name is determined based on the URL path prefix and its location looked up in the configuration:
+
+- protocol: `microservice.services.{service-name}.protocol`
+- host: `microservice.services.{service-name}.host`
+- port: `microservice.services.{service-name}.port`
+
+Any stubbed or proxied APIs request can return pre-defined response defined using [Special Cases](#custom_api_special_case).
 
 ## Stubbed APIs <a name="stubbed_api"></a>
 
