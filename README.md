@@ -3,7 +3,7 @@
 [ ![Download](https://api.bintray.com/packages/hmrc/releases/agents-external-stubs/images/download.svg) ](https://bintray.com/hmrc/releases/agents-external-stubs/_latestVersion)
 
 Agents External Stubs is the primary stub you need to run and test Agent Services locally and in other stubbed environments. 
-It replaces gg-stubs and agents-stubs together with auth, company-auth-frontend, enrolment-store-proxy, tax-enrolments, users-groups-search, citizen-details, DES and even datastream. 
+It replaces gg-stubs and agents-stubs together with auth, company-auth-frontend, enrolment-store-proxy, tax-enrolments, users-groups-search, citizen-details, DES and datastream. 
 
 You will have to run [UI stubs](https://github.com/hmrc/agents-external-stubs-frontend) as well in order to be able to sign-in seamlessly into your application.
 
@@ -38,6 +38,13 @@ This app SHOULD NOT be run on QA nor Production environment.
     * [Known Facts](#custom_api_known_facts)
     * [Special Cases (Exceptions)](#custom_api_special_case)
     * [Test Planets](#custom_api_planets)
+    
+## Features
+
+- user and enrolment model
+- ETMP/DES records model
+- auth and other services drop-in replacement
+- generic proxy with pre-defined responses (special cases)
 
 ## How requests are handled?
 
