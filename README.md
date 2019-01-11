@@ -167,8 +167,9 @@ Endpoint | Description
 
 Endpoint | Description
 ---|---
-`POST /ni-exemption-registration/ni-businesses/:utr` | 
+`POST /ni-exemption-registration/ni-businesses/:utr` | payload: `{"postcode":"AA1 1AA"}`
 
+This endpoint checks UTR and postcode against Business Partner Record and eventually return EORI if defined there.
 
 ## Custom API <a name="custom_api"></a>
 
