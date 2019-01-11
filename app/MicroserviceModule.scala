@@ -42,6 +42,7 @@ class MicroserviceModule(val environment: Environment, val configuration: Config
     bindServiceConfigProperty[Int]("enrolment-store-proxy.port")
     bindServiceConfigProperty[Int]("tax-enrolments.port")
     bindServiceConfigProperty[Int]("des.port")
+    bindServiceConfigProperty[Int]("ni-exemption-registration.port")
 
     bindBaseUrl("auth")
     bindBaseUrl("citizen-details")
@@ -49,6 +50,7 @@ class MicroserviceModule(val environment: Environment, val configuration: Config
     bindBaseUrl("enrolment-store-proxy")
     bindBaseUrl("tax-enrolments")
     bindBaseUrl("des")
+    bindBaseUrl("ni-exemption-registration")
     bindBaseUrl("auth-login-api")
     bindBaseUrl("agent-access-control")
 

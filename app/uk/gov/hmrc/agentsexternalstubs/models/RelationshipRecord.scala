@@ -50,14 +50,16 @@ object RelationshipRecord extends RecordUtils[RelationshipRecord] {
     s"ACK/$arn/$idType/$refNumber"
 
   override val gen: Gen[RelationshipRecord] = for {
-    regime <- Gen.oneOf("ITSA", "VATC")
+    regime <- Gen.oneOf("ITSA", "VATC", "NI")
     arn    <- Generator.arnGen
     idType <- regime match {
                case "VATC" => Gen.const("vrn")
+               case "NI"   => Gen.const("eori")
                case _      => Gen.const("mtdbsa")
              }
     refNumber <- regime match {
                   case "VATC" => Generator.vrnGen
+                  case "NI"   => Generator.eoriGen
                   case _      => Generator.mtdbsaGen
                 }
     active <- Generator.booleanGen

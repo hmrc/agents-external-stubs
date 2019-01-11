@@ -1,5 +1,9 @@
 # microservice specific routes
 
+#------------------------------------------------------
+# STUBBED APIs
+#------------------------------------------------------
+
 # Auth stubs
 POST        /auth/authorise                                                  @uk.gov.hmrc.agentsexternalstubs.controllers.AuthStubController.authorise
 GET         /auth/authority                                                  @uk.gov.hmrc.agentsexternalstubs.controllers.AuthStubController.getAuthority
@@ -51,6 +55,13 @@ GET         /sa/agents/:agentref/client/:utr                                 @uk
 # Datastream
 POST        /write/audit                                                     @uk.gov.hmrc.agentsexternalstubs.controllers.DataStreamStubController.writeEvent
 POST        /write/audit/merged                                              @uk.gov.hmrc.agentsexternalstubs.controllers.DataStreamStubController.writeEvent
+
+# NI Exemption Registration
+POST        /ni-exemption-registration/ni-businesses/:utr                    @uk.gov.hmrc.agentsexternalstubs.controllers.NiExemptionRegistrationStubController.niBusinesses(utr: String)
+
+#------------------------------------------------------
+# CUSTOM APIs
+#------------------------------------------------------ś
 
 # Authentication
 POST        /agents-external-stubs/sign-in                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.signIn
@@ -104,7 +115,7 @@ GET         /agents-external-stubs/config/services                           @uk
 # Planets management
 DELETE      /agents-external-stubs/planets/:planetId                         @uk.gov.hmrc.agentsexternalstubs.controllers.PlanetsController.destroy(planetId: String)
 
-# General drive through
+# Generic proxy
 GET         /*path                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.ProxyController.proxyPassTo(path: String)
 POST        /*path                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.ProxyController.proxyPassTo(path: String)
 PUT         /*path                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.ProxyController.proxyPassTo(path: String)

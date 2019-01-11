@@ -57,6 +57,12 @@ trait HttpHelpers {
   def notFound(code: String, message: String = null): Result =
     Results.NotFound(errorMessage(code, Option(message)))
 
+  def conflictF(code: String, message: String = null): Future[Result] =
+    success(conflict(code, message))
+
+  def conflict(code: String, message: String = null): Result =
+    Results.Conflict(errorMessage(code, Option(message)))
+
   def internalServerErrorF(code: String, message: String = null): Future[Result] =
     success(internalServerError(code, message))
 

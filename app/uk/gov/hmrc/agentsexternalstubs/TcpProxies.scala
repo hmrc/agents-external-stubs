@@ -19,6 +19,7 @@ case class TcpProxiesConfig @Inject()(
   @Named("users-groups-search.port") usersGroupsSearchPort: Int,
   @Named("enrolment-store-proxy.port") enrolmentStoreProxyPort: Int,
   @Named("tax-enrolments.port") taxEnrolmentsPort: Int,
+  @Named("ni-exemption-registration.port") niExemptionRegistrationPort: Int,
   @Named("des.port") desPort: Int,
   @Named("auditing.consumer.baseUri.port") dataStreamPort: String) {
 
@@ -57,6 +58,7 @@ class TcpProxies @Inject()(tcpProxiesConfig: TcpProxiesConfig, @Named("http.port
     startProxy(tcpProxiesConfig.usersGroupsSearchPort, "users-groups-search")
     startProxy(tcpProxiesConfig.enrolmentStoreProxyPort, "enrolment-store-proxy")
     startProxy(tcpProxiesConfig.taxEnrolmentsPort, "tax-enrolments")
+    startProxy(tcpProxiesConfig.niExemptionRegistrationPort, "ni-exemption-registration")
     startProxy(tcpProxiesConfig.desPort, "des")
     startProxy(tcpProxiesConfig.dataStreamPort.toInt, "datastream")
 

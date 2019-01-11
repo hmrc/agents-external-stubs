@@ -63,6 +63,7 @@ We handle local requests gracefully and do not require existing applications to 
 - listening on 9337 for citizen-details requests
 - listening on 9984 for users-groups-search requests
 - listening on 7775 for enrolment-store-proxy requests
+- listening on 9111 for ni-exemption-registration requests
 - listening on 9904 for des requests
 - listening on 8100 for datastream events
 
@@ -161,6 +162,12 @@ Endpoint | Description
 ---|---
 `POST /write/audit` | write audit event
 `POST /write/audit/merged` | write audit event
+
+### [NiExemptionRegistration](https://github.com/hmrc/ni-exemption-registration) <a name="stubbed_api_ni-exemption-registration"></a>
+
+Endpoint | Description
+---|---
+`POST /ni-exemption-registration/ni-businesses/:utr` | 
 
 
 ## Custom API <a name="custom_api"></a>

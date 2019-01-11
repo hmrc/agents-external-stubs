@@ -22,7 +22,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
   lazy val authenticationService = app.injector.instanceOf[AuthenticationService]
   lazy val httpPost = app.injector.instanceOf[HttpPost]
   lazy val authConnector = new MicroserviceAuthConnector(wireMockBaseUrl, httpPost)
-  lazy val tcpProxiesConfig = TcpProxiesConfig("false", 0, 0, 0, 0, 0, 0, 0, "0")
+  lazy val tcpProxiesConfig = TcpProxiesConfig("false", 0, 0, 0, 0, 0, 0, 0, 0, "0")
   lazy val underTest =
     new ExternalAuthorisationService(usersService, tcpProxiesConfig, httpPost, wireMockBaseUrl)
 

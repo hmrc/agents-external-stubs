@@ -394,13 +394,17 @@ trait TestRequests extends ScalaFutures {
   }
 
   object DataStreamStubs {
-
     def writeAudit(event: String)(implicit authContext: AuthContext): WSResponse =
       post("/write/audit", event)
 
     def writeAuditMerged(event: String)(implicit authContext: AuthContext): WSResponse =
       post("/write/audit/merged", event)
 
+  }
+
+  object NiExemptionRegistrationStubs {
+    def niBusinesses[T: Writeable](utr: String, payload: T)(implicit authContext: AuthContext): WSResponse =
+      post(s"/ni-exemption-registration/ni-businesses/$utr", payload)
   }
 
   object Records {
@@ -480,9 +484,11 @@ trait TestRequests extends ScalaFutures {
         .get
         .futureValue
 
-    def createBusinessPartnerRecord[T: Writeable](payload: T)(implicit authContext: AuthContext): WSResponse =
+    def createBusinessPartnerRecord[T: Writeable](payload: T, autoFill: Boolean = true)(
+      implicit authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/business-partner-record")
+        .withQueryString(("autoFill", autoFill.toString))
         .withHeaders(authContext.headers: _*)
         .post[T](payload)
         .futureValue

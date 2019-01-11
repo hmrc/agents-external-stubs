@@ -27,17 +27,18 @@ object PlayServer {
   protected def appBuilder: GuiceApplicationBuilder =
     new GuiceApplicationBuilder()
       .configure(
-        "microservice.services.auth.port"                  -> Port.randomAvailable,
-        "microservice.services.citizen-details.port"       -> Port.randomAvailable,
-        "microservice.services.users-groups-search.port"   -> Port.randomAvailable,
-        "microservice.services.enrolment-store-proxy.port" -> Port.randomAvailable,
-        "microservice.services.tax-enrolments.port"        -> Port.randomAvailable,
-        "microservice.services.des.port"                   -> Port.randomAvailable,
-        "microservice.services.agent-access-control.port"  -> wireMockPort,
-        "metrics.enabled"                                  -> false,
-        "auditing.enabled"                                 -> false,
-        "mongodb.uri"                                      -> MongoDB.uri,
-        "http.port"                                        -> PlayServer.port
+        "microservice.services.auth.port"                      -> Port.randomAvailable,
+        "microservice.services.citizen-details.port"           -> Port.randomAvailable,
+        "microservice.services.users-groups-search.port"       -> Port.randomAvailable,
+        "microservice.services.enrolment-store-proxy.port"     -> Port.randomAvailable,
+        "microservice.services.tax-enrolments.port"            -> Port.randomAvailable,
+        "microservice.services.des.port"                       -> Port.randomAvailable,
+        "microservice.services.ni-exemption-registration.port" -> Port.randomAvailable,
+        "microservice.services.agent-access-control.port"      -> wireMockPort,
+        "metrics.enabled"                                      -> false,
+        "auditing.enabled"                                     -> false,
+        "mongodb.uri"                                          -> MongoDB.uri,
+        "http.port"                                            -> PlayServer.port
       )
       .disable[GraphiteMetricsModule]
       .overrides(bind[MetricsFilter].to[DisabledMetricsFilter])
