@@ -15,4 +15,9 @@ trait RecordsService {
     key: String,
     planetId: String)(implicit ec: ExecutionContext, recordType: RecordMetaData[T], reads: Reads[T]): Future[List[T]] =
     recordsRepository.cursor[T](key, planetId).collect[List](1000)
+
+  protected def findByKeys[T <: Record](
+    keys: Seq[String],
+    planetId: String)(implicit ec: ExecutionContext, recordType: RecordMetaData[T], reads: Reads[T]): Future[List[T]] =
+    recordsRepository.cursor[T](keys, planetId).collect[List](1000)
 }

@@ -115,14 +115,14 @@ object User {
   }
 
   object Matches {
-    def apply(affinityGroup: String, serviceName: String): MatchesAffinityGroupAndEnrolment =
-      MatchesAffinityGroupAndEnrolment(affinityGroup, serviceName)
+    def apply(affinityGroupMatches: String => Boolean, serviceName: String): MatchesAffinityGroupAndEnrolment =
+      MatchesAffinityGroupAndEnrolment(affinityGroupMatches, serviceName)
   }
 
-  case class MatchesAffinityGroupAndEnrolment(affinityGroup: String, serviceName: String) {
+  case class MatchesAffinityGroupAndEnrolment(affinityGroupMatches: String => Boolean, serviceName: String) {
     def unapply(user: User): Option[(User, String)] =
       user.affinityGroup
-        .flatMap(ag => if (ag == affinityGroup) Some(user) else None)
+        .flatMap(ag => if (affinityGroupMatches(ag)) Some(user) else None)
         .flatMap(_.principalEnrolments.find(_.key == serviceName))
         .flatMap(_.identifiers)
         .flatMap(_.map(_.value).headOption)

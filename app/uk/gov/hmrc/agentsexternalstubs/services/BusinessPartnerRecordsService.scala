@@ -42,4 +42,10 @@ class BusinessPartnerRecordsService @Inject()(val recordsRepository: RecordsRepo
     implicit ec: ExecutionContext): Future[Option[BusinessPartnerRecord]] =
     findByKey[BusinessPartnerRecord](BusinessPartnerRecord.eoriKey(eori), planetId).map(_.headOption)
 
+  def getBusinessPartnerRecordByEoriOrUtr(eori: String, utr: String, planetId: String)(
+    implicit ec: ExecutionContext): Future[Option[BusinessPartnerRecord]] =
+    findByKeys[BusinessPartnerRecord](
+      Seq(BusinessPartnerRecord.eoriKey(eori), BusinessPartnerRecord.utrKey(utr)),
+      planetId).map(_.headOption)
+
 }

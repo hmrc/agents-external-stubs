@@ -43,6 +43,10 @@ trait RecordsRepository {
     key: String,
     planetId: String)(implicit reads: Reads[T], ec: ExecutionContext, recordType: RecordMetaData[T]): Cursor[T]
 
+  def cursor[T <: Record](
+    keys: Seq[String],
+    planetId: String)(implicit reads: Reads[T], ec: ExecutionContext, recordType: RecordMetaData[T]): Cursor[T]
+
   def findById[T <: Record](id: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[T]]
 
   def findByPlanetId(planetId: String)(implicit ec: ExecutionContext): Cursor[Record]
@@ -121,6 +125,19 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
     collection
       .find(
         JsObject(Seq(KEYS -> JsString(keyOf(key, planetId, recordType.typeName)))),
+        Json.obj(recordType.fieldNames.map(option => option -> toJsFieldJsValueWrapper(JsNumber(1))): _*)
+      )
+      .cursor[T](ReadPreference.primaryPreferred)(
+        implicitly[collection.pack.Reader[Record]].map(_.asInstanceOf[T]),
+        ec,
+        implicitly[CursorProducer[T]])
+
+  override def cursor[T <: Record](
+    keys: Seq[String],
+    planetId: String)(implicit reads: Reads[T], ec: ExecutionContext, recordType: RecordMetaData[T]): Cursor[T] =
+    collection
+      .find(
+        JsObject(Seq(KEYS -> JsArray(keys.map(key => JsString(keyOf(key, planetId, recordType.typeName)))))),
         Json.obj(recordType.fieldNames.map(option => option -> toJsFieldJsValueWrapper(JsNumber(1))): _*)
       )
       .cursor[T](ReadPreference.primaryPreferred)(

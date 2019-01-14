@@ -4,7 +4,7 @@ import java.time.format.DateTimeFormatter
 
 import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Utr}
-import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{AgencyDetails, Individual}
+import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{AgencyDetails, Individual, Organisation}
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, IndividualName}
 import uk.gov.hmrc.agentsexternalstubs.models.{User, _}
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
@@ -29,7 +29,8 @@ class UserToRecordsSyncService @Inject()(
     Sync.vatCustomerInformationForMtdVatIndividual,
     Sync.vatCustomerInformationForMtdVatOrganisation,
     Sync.businessPartnerRecordForAnAgent,
-    Sync.legacySaAgentRecord
+    Sync.legacySaAgentRecord,
+    Sync.businessPartnerRecordForHMRCNIORGUser
   )
 
   final val syncUserToRecords: SaveRecordId => Option[User] => Future[Unit] = saveRecordId => {
@@ -52,7 +53,7 @@ class UserToRecordsSyncService @Inject()(
     private val dateFormatddMMyy = DateTimeFormatter.ofPattern("dd/MM/yy")
     private val dateFormatyyyyMMdd = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
-    final val MtdItIndividualMatch = User.Matches(User.AG.Individual, "HMRC-MTD-IT")
+    final val MtdItIndividualMatch = User.Matches(_ == User.AG.Individual, "HMRC-MTD-IT")
 
     val businessDetailsForMtdItIndividual: UserRecordsSync = saveRecordId => {
       case MtdItIndividualMatch(user, mtdbsa) => {
@@ -116,7 +117,7 @@ class UserToRecordsSyncService @Inject()(
       }
     }
 
-    final val MtdVatIndividualMatch = User.Matches(User.AG.Individual, "HMRC-MTD-VAT")
+    final val MtdVatIndividualMatch = User.Matches(_ == User.AG.Individual, "HMRC-MTD-VAT")
 
     val vatCustomerInformationForMtdVatIndividual: UserRecordsSync = saveRecordId => {
       case MtdVatIndividualMatch(user, vrn) => {
@@ -188,7 +189,7 @@ class UserToRecordsSyncService @Inject()(
       }
     }
 
-    final val MtdVatOrganisationMatch = User.Matches(User.AG.Organisation, "HMRC-MTD-VAT")
+    final val MtdVatOrganisationMatch = User.Matches(_ == User.AG.Organisation, "HMRC-MTD-VAT")
 
     val vatCustomerInformationForMtdVatOrganisation: UserRecordsSync = saveRecordId => {
       case MtdVatOrganisationMatch(user, vrn) => {
@@ -363,7 +364,73 @@ class UserToRecordsSyncService @Inject()(
       }
     }
 
-    final val SaAgentMatch = User.Matches(User.AG.Agent, "IR-SA-AGENT")
+    final val NiOrgOrganisationMatch = User.Matches(_ == User.AG.Organisation, "HMRC-NI-ORG")
+    final val NiOrgIndividualMatch = User.Matches(_ == User.AG.Individual, "HMRC-NI-ORG")
+
+    val businessPartnerRecordForHMRCNIORGUser: UserRecordsSync = saveRecordId => {
+      case NiOrgOrganisationMatch(user, eori) => {
+        val utr = user
+          .findIdentifierValue("IR-SA", "UTR")
+          .orElse(user.findIdentifierValue("IR-CT", "UTR"))
+          .getOrElse(Generator.utr(user.userId))
+        val record = BusinessPartnerRecord
+          .generate(user.userId)
+          .withEori(Some(eori))
+          .withUtr(Some(utr))
+          .withBusinessPartnerExists(true)
+          .withIsAnOrganisation(true)
+          .withIsAnIndividual(false)
+          .withIsAnAgent(false)
+          .withIsAnASAgent(false)
+          .withOrganisation(Some(
+            Organisation
+              .generate(user.userId)
+          ))
+        BusinessPartnerRecordsService
+          .getBusinessPartnerRecordByEoriOrUtr(eori, utr, user.planetId.get)
+          .map {
+            case Some(existingRecord) => record.withId(existingRecord.id)
+            case None                 => record
+          }
+          .flatMap(
+            entity =>
+              BusinessPartnerRecordsService
+                .store(entity, autoFill = false, user.planetId.get)
+                .flatMap(saveRecordId))
+      }
+      case NiOrgIndividualMatch(user, eori) => {
+        val utr = user
+          .findIdentifierValue("IR-SA", "UTR")
+          .orElse(user.findIdentifierValue("IR-CT", "UTR"))
+          .getOrElse(Generator.utr(user.userId))
+        val record = BusinessPartnerRecord
+          .generate(user.userId)
+          .withEori(Some(eori))
+          .withUtr(Some(utr))
+          .withBusinessPartnerExists(true)
+          .withIsAnOrganisation(false)
+          .withIsAnIndividual(true)
+          .withIsAnAgent(false)
+          .withIsAnASAgent(false)
+          .withIndividual(Some(
+            Individual
+              .generate(user.userId)
+          ))
+        BusinessPartnerRecordsService
+          .getBusinessPartnerRecordByEoriOrUtr(eori, utr, user.planetId.get)
+          .map {
+            case Some(existingRecord) => record.withId(existingRecord.id)
+            case None                 => record
+          }
+          .flatMap(
+            entity =>
+              BusinessPartnerRecordsService
+                .store(entity, autoFill = false, user.planetId.get)
+                .flatMap(saveRecordId))
+      }
+    }
+
+    final val SaAgentMatch = User.Matches(_ == User.AG.Agent, "IR-SA-AGENT")
 
     val legacySaAgentRecord: UserRecordsSync = saveRecordId => {
       case SaAgentMatch(user, saAgentRef) =>

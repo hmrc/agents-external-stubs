@@ -208,5 +208,45 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
       relationship.agentId shouldBe saAgentReference
       relationship.utr shouldBe Some(utr)
     }
+
+    "sync hmrc-ni-org organisation to business partner records" in {
+      val planetId = UUID.randomUUID().toString
+      val user = UserGenerator
+        .organisation("foo")
+        .withPrincipalEnrolment("HMRC-NI-ORG", "NIEORI", "EI126236092234")
+
+      val theUser = await(usersService.createUser(user, planetId))
+
+      val result = await(businessPartnerRecordsService.getBusinessPartnerRecordByEori("EI126236092234", planetId))
+      result.flatMap(_.eori) shouldBe Some("EI126236092234")
+      result.map(_.utr) shouldBe defined
+      result.map(_.isAnOrganisation) shouldBe Some(true)
+      result.map(_.isAnIndividual) shouldBe Some(false)
+      result.map(_.isAnAgent) shouldBe Some(false)
+      result.map(_.isAnASAgent) shouldBe Some(false)
+
+      val userWithRecordId = await(usersService.findByUserId(user.userId, planetId))
+      userWithRecordId.map(_.recordIds).get should not be empty
+    }
+
+    "sync hmrc-ni-org individual to business partner records" in {
+      val planetId = UUID.randomUUID().toString
+      val user = UserGenerator
+        .individual("foo")
+        .withPrincipalEnrolment("HMRC-NI-ORG", "NIEORI", "EI126236092234")
+
+      val theUser = await(usersService.createUser(user, planetId))
+
+      val result = await(businessPartnerRecordsService.getBusinessPartnerRecordByEori("EI126236092234", planetId))
+      result.flatMap(_.eori) shouldBe Some("EI126236092234")
+      result.map(_.utr) shouldBe defined
+      result.map(_.isAnOrganisation) shouldBe Some(false)
+      result.map(_.isAnIndividual) shouldBe Some(true)
+      result.map(_.isAnAgent) shouldBe Some(false)
+      result.map(_.isAnASAgent) shouldBe Some(false)
+
+      val userWithRecordId = await(usersService.findByUserId(user.userId, planetId))
+      userWithRecordId.map(_.recordIds).get should not be empty
+    }
   }
 }
