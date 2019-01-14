@@ -28,8 +28,7 @@ class KnownFactsControllerISpec extends ServerBaseISpec with MongoDB with TestRe
               "verifiers",
               eachElement(haveProperty[String]("key") and haveProperty[String]("value"))) and
             haveProperty[JsObject]("user", haveProperty[String]("userId", be("foo1"))) and
-            haveProperty[Seq[JsObject]]("agents", have(size(1))) and
-            haveProperty[JsArray]("_links")
+            haveProperty[Seq[JsObject]]("agents", have(size(1)))
         )
       }
     }

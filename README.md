@@ -29,6 +29,7 @@ This app SHOULD NOT be run on QA nor Production environment.
     * [User Groups Search](#stubbed_api_users_groups_search)
     * [Enrolment Store Proxy](#stubbed_api_enrolment_store_proxy)
     * [Tax Enrolments](#stubbed_api_tax_enrolments)
+    * [NI Exemption Registration](#stubbed_api_ni_exemption_registration)
     * [DES](#stubbed_api_des)
     * [Datastream](#stubbed_api_datastream)
 * [Custom API](#custom_api)
@@ -163,7 +164,7 @@ Endpoint | Description
 `POST /write/audit` | write audit event
 `POST /write/audit/merged` | write audit event
 
-### [NiExemptionRegistration](https://github.com/hmrc/ni-exemption-registration) <a name="stubbed_api_ni-exemption-registration"></a>
+### [NiExemptionRegistration](https://github.com/hmrc/ni-exemption-registration) <a name="stubbed_api_ni_exemption_registration"></a>
 
 Endpoint | Description
 ---|---
