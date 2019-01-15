@@ -177,14 +177,9 @@ class UserToRecordsSyncService @Inject()(
                     }
                     .withDeregistration(None)
                 ))
-            for {
-              entity <- vatCustomerInformationRecordsService.getCustomerInformation(vrn, user.planetId.get).map {
-                         case Some(existing) => record.withId(existing.id)
-                         case None           => record
-                       }
-              recordId <- vatCustomerInformationRecordsService.store(entity, autoFill = false, user.planetId.get)
-              _        <- saveRecordId(recordId)
-            } yield ()
+            vatCustomerInformationRecordsService
+              .store(record, autoFill = false, user.planetId.get)
+              .flatMap(saveRecordId)
           })
       }
     }
@@ -248,16 +243,8 @@ class UserToRecordsSyncService @Inject()(
                     .withDeregistration(None)
                 ))
             vatCustomerInformationRecordsService
-              .getCustomerInformation(vrn, user.planetId.get)
-              .map {
-                case Some(existing) => record.withId(existing.id)
-                case None           => record
-              }
-              .flatMap(
-                entity =>
-                  vatCustomerInformationRecordsService
-                    .store(entity, autoFill = false, user.planetId.get)
-                    .flatMap(saveRecordId))
+              .store(record, autoFill = false, user.planetId.get)
+              .flatMap(saveRecordId)
           })
       }
     }
@@ -329,16 +316,8 @@ class UserToRecordsSyncService @Inject()(
                       ad.modifyPostalCode { case pc => postcodeOpt.getOrElse(pc) }
                   }
                 BusinessPartnerRecordsService
-                  .getBusinessPartnerRecord(Arn(arn), user.planetId.get)
-                  .map {
-                    case Some(existingRecord) => ar.withId(existingRecord.id)
-                    case None                 => ar
-                  }
-                  .flatMap(
-                    entity =>
-                      BusinessPartnerRecordsService
-                        .store(entity, autoFill = false, user.planetId.get)
-                        .flatMap(saveRecordId))
+                  .store(ar, autoFill = false, user.planetId.get)
+                  .flatMap(saveRecordId)
               })
 
           case None if user.principalEnrolments.isEmpty =>
@@ -347,16 +326,8 @@ class UserToRecordsSyncService @Inject()(
               .withIsAnAgent(false)
               .withIsAnASAgent(false)
             BusinessPartnerRecordsService
-              .getBusinessPartnerRecord(Utr(utr), user.planetId.get)
-              .map {
-                case Some(existingRecord) => ar.withId(existingRecord.id)
-                case None                 => ar
-              }
-              .flatMap(
-                entity =>
-                  BusinessPartnerRecordsService
-                    .store(entity, autoFill = false, user.planetId.get)
-                    .flatMap(saveRecordId))
+              .store(ar, autoFill = false, user.planetId.get)
+              .flatMap(saveRecordId)
 
           case _ =>
             Future.successful(())
@@ -387,18 +358,8 @@ class UserToRecordsSyncService @Inject()(
               .generate(user.userId)
           ))
         BusinessPartnerRecordsService
-          .getBusinessPartnerRecordByEoriOrUtr(eori, utr, user.planetId.get)
-          .map {
-            case Some(existingRecord) =>
-              record.withId(existingRecord.id)
-            case None =>
-              record
-          }
-          .flatMap(
-            entity =>
-              BusinessPartnerRecordsService
-                .store(entity, autoFill = false, user.planetId.get)
-                .flatMap(saveRecordId))
+          .store(record, autoFill = false, user.planetId.get)
+          .flatMap(saveRecordId)
       }
       case NiOrgIndividualMatch(user, eori) => {
         val utr = user
@@ -419,16 +380,8 @@ class UserToRecordsSyncService @Inject()(
               .generate(user.userId)
           ))
         BusinessPartnerRecordsService
-          .getBusinessPartnerRecordByEoriOrUtr(eori, utr, user.planetId.get)
-          .map {
-            case Some(existingRecord) => record.withId(existingRecord.id)
-            case None                 => record
-          }
-          .flatMap(
-            entity =>
-              BusinessPartnerRecordsService
-                .store(entity, autoFill = false, user.planetId.get)
-                .flatMap(saveRecordId))
+          .store(record, autoFill = false, user.planetId.get)
+          .flatMap(saveRecordId)
       }
     }
 
