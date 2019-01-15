@@ -23,21 +23,20 @@ import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.api.{Cursor, CursorProducer, ReadPreference}
-import reactivemongo.bson.{BSONDocument, BSONLong, BSONObjectID}
+import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers
 import uk.gov.hmrc.agentsexternalstubs.models.Record.TYPE
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.syntax.|>
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.reflect.ClassTag
-import uk.gov.hmrc.agentsexternalstubs.syntax.|>
 
 @ImplementedBy(classOf[RecordsRepositoryMongo])
 trait RecordsRepository {
 
-  def store[T <: Record](entity: T, planetId: String)(implicit ec: ExecutionContext): Future[String]
+  def store[T <: Record](entity: T, planetId: String)(implicit reads: Reads[T], ec: ExecutionContext): Future[String]
 
   def cursor[T <: Record](
     key: String,
@@ -73,16 +72,12 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
   override def indexes =
     Seq(
       Index(Seq(KEYS       -> Ascending), Some("Keys")),
-      Index(Seq(UNIQUE_KEY -> Ascending), Some("UniqueKey"), unique = true, sparse = true),
-      Index(
-        Seq(PLANET_ID -> Ascending),
-        Some("TTL"),
-        sparse = true,
-        options = BSONDocument("expireAfterSeconds" -> BSONLong(2592000)) // 30 days
-      )
+      Index(Seq(UNIQUE_KEY -> Ascending), Some("UniqueKey"), unique = true, sparse = true)
     )
 
-  override def store[T <: Record](entity: T, planetId: String)(implicit ec: ExecutionContext): Future[String] = {
+  override def store[T <: Record](entity: T, planetId: String)(
+    implicit reads: Reads[T],
+    ec: ExecutionContext): Future[String] = {
     val typeName = Record.typeOf(entity)
     val json = Json
       .toJson[Record](entity)
@@ -108,13 +103,19 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
       case (Some(id), _) =>
         collection.update(Json.obj(Record.ID -> Json.obj("$oid" -> JsString(id))), json, upsert = true).map((_, id))
       case (None, Some(uniqueKey)) =>
-        val newId = BSONObjectID.generate().stringify
         collection
-          .update(
-            Json.obj(UNIQUE_KEY -> JsString(keyOf(uniqueKey, planetId, typeName))),
-            json + (Record.ID -> Json.obj("$oid" -> JsString(newId))),
-            upsert = true)
-          .map((_, newId))
+          .find(Json.obj(UNIQUE_KEY -> JsString(keyOf(uniqueKey, planetId, typeName))))
+          .one[JsObject]
+          .map(recordOpt =>
+            recordOpt.flatMap(r => (r \ "_id" \ "$oid").asOpt[String]).getOrElse(BSONObjectID.generate().stringify))
+          .flatMap(
+            recordId =>
+              collection
+                .update(
+                  Json.obj(Record.ID -> Json.obj("$oid" -> JsString(recordId))),
+                  json.+(Record.ID   -> Json.obj("$oid" -> JsString(recordId))),
+                  upsert = true)
+                .map((_, recordId)))
     }).flatMap(MongoHelper.interpretWriteResult)
 
   }

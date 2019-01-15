@@ -389,8 +389,10 @@ class UserToRecordsSyncService @Inject()(
         BusinessPartnerRecordsService
           .getBusinessPartnerRecordByEoriOrUtr(eori, utr, user.planetId.get)
           .map {
-            case Some(existingRecord) => record.withId(existingRecord.id)
-            case None                 => record
+            case Some(existingRecord) =>
+              record.withId(existingRecord.id)
+            case None =>
+              record
           }
           .flatMap(
             entity =>

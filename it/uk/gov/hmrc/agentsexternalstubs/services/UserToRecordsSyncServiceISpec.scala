@@ -10,8 +10,11 @@ import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.agentsexternalstubs.support._
 import uk.gov.hmrc.domain.Nino
+import scala.concurrent.duration._
 
 class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
+
+  override implicit val defaultTimeout = 60.seconds
 
   lazy val usersService = app.injector.instanceOf[UsersService]
   lazy val userRecordsService = app.injector.instanceOf[UserToRecordsSyncService]
@@ -218,12 +221,18 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
       val theUser = await(usersService.createUser(user, planetId))
 
       val result = await(businessPartnerRecordsService.getBusinessPartnerRecordByEori("EI126236092234", planetId))
+      val id = result.flatMap(_.id)
       result.flatMap(_.eori) shouldBe Some("EI126236092234")
       result.map(_.utr) shouldBe defined
       result.map(_.isAnOrganisation) shouldBe Some(true)
       result.map(_.isAnIndividual) shouldBe Some(false)
       result.map(_.isAnAgent) shouldBe Some(false)
       result.map(_.isAnASAgent) shouldBe Some(false)
+
+      await(usersService.updateUser(user.userId, planetId, user => user.copy(name = Some("foobar"))))
+      val result2 = await(businessPartnerRecordsService.getBusinessPartnerRecordByEori("EI126236092234", planetId))
+      val id2 = result2.flatMap(_.id)
+      id2 shouldBe id
 
       val userWithRecordId = await(usersService.findByUserId(user.userId, planetId))
       userWithRecordId.map(_.recordIds).get should not be empty
@@ -238,12 +247,18 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
       val theUser = await(usersService.createUser(user, planetId))
 
       val result = await(businessPartnerRecordsService.getBusinessPartnerRecordByEori("EI126236092234", planetId))
+      val id = result.flatMap(_.id)
       result.flatMap(_.eori) shouldBe Some("EI126236092234")
       result.map(_.utr) shouldBe defined
       result.map(_.isAnOrganisation) shouldBe Some(false)
       result.map(_.isAnIndividual) shouldBe Some(true)
       result.map(_.isAnAgent) shouldBe Some(false)
       result.map(_.isAnASAgent) shouldBe Some(false)
+
+      await(usersService.updateUser(user.userId, planetId, user => user.copy(name = Some("foobar"))))
+      val result2 = await(businessPartnerRecordsService.getBusinessPartnerRecordByEori("EI126236092234", planetId))
+      val id2 = result2.flatMap(_.id)
+      id2 shouldBe id
 
       val userWithRecordId = await(usersService.findByUserId(user.userId, planetId))
       userWithRecordId.map(_.recordIds).get should not be empty
