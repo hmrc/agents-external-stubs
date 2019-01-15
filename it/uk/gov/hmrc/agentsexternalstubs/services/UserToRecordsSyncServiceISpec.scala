@@ -4,12 +4,13 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
-import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId}
+import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Utr}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.UkAddress
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.agentsexternalstubs.support._
 import uk.gov.hmrc.domain.Nino
+
 import scala.concurrent.duration._
 
 class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
@@ -215,6 +216,32 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
       relationship.utr shouldBe Some(utr)
     }
 
+    "sync ir-ct organisation to business partner records" in {
+      val planetId = UUID.randomUUID().toString
+      val user = UserGenerator
+        .organisation("foo")
+        .withPrincipalEnrolment("IR-CT", "UTR", "7355748439")
+
+      val theUser = await(usersService.createUser(user, planetId))
+
+      val result = await(businessPartnerRecordsService.getBusinessPartnerRecord(Utr("7355748439"), planetId))
+      val id = result.flatMap(_.id)
+      result.flatMap(_.eori) shouldBe None
+      result.flatMap(_.utr) shouldBe Some("7355748439")
+      result.map(_.isAnOrganisation) shouldBe Some(true)
+      result.map(_.isAnIndividual) shouldBe Some(false)
+      result.map(_.isAnAgent) shouldBe Some(false)
+      result.map(_.isAnASAgent) shouldBe Some(false)
+
+      await(usersService.updateUser(user.userId, planetId, user => user.copy(name = Some("foobar"))))
+      val result2 = await(businessPartnerRecordsService.getBusinessPartnerRecord(Utr("7355748439"), planetId))
+      val id2 = result2.flatMap(_.id)
+      id2 shouldBe id
+
+      val userWithRecordId = await(usersService.findByUserId(user.userId, planetId))
+      userWithRecordId.map(_.recordIds).get should not be empty
+    }
+
     "sync hmrc-ni-org organisation to business partner records" in {
       val planetId = UUID.randomUUID().toString
       val user = UserGenerator
@@ -226,7 +253,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
       val result = await(businessPartnerRecordsService.getBusinessPartnerRecordByEori("EI126236092234", planetId))
       val id = result.flatMap(_.id)
       result.flatMap(_.eori) shouldBe Some("EI126236092234")
-      result.map(_.utr) shouldBe defined
+      result.flatMap(_.utr) shouldBe defined
       result.map(_.isAnOrganisation) shouldBe Some(true)
       result.map(_.isAnIndividual) shouldBe Some(false)
       result.map(_.isAnAgent) shouldBe Some(false)
@@ -252,7 +279,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
       val result = await(businessPartnerRecordsService.getBusinessPartnerRecordByEori("EI126236092234", planetId))
       val id = result.flatMap(_.id)
       result.flatMap(_.eori) shouldBe Some("EI126236092234")
-      result.map(_.utr) shouldBe defined
+      result.flatMap(_.utr) shouldBe defined
       result.map(_.isAnOrganisation) shouldBe Some(false)
       result.map(_.isAnIndividual) shouldBe Some(true)
       result.map(_.isAnAgent) shouldBe Some(false)

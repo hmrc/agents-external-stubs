@@ -30,6 +30,7 @@ class UserToRecordsSyncService @Inject()(
     Sync.vatCustomerInformationForMtdVatOrganisation,
     Sync.businessPartnerRecordForAnAgent,
     Sync.legacySaAgentRecord,
+    Sync.businessPartnerRecordForIRCTOrganisation,
     Sync.businessPartnerRecordForHMRCNIORGUser
   )
 
@@ -335,53 +336,99 @@ class UserToRecordsSyncService @Inject()(
       }
     }
 
+    final val IRCTOrganisationMatch = User.Matches(_ == User.AG.Organisation, "IR-CT")
+
+    val businessPartnerRecordForIRCTOrganisation: UserRecordsSync = saveRecordId => {
+      case IRCTOrganisationMatch(user, utr) => {
+        knownFactsRepository
+          .findByEnrolmentKey(EnrolmentKey.from("IR-CT", "UTR" -> utr), user.planetId.get)
+          .map(_.flatMap(_.getVerifierValue("Postcode")))
+          .flatMap(postcode => {
+            val record = BusinessPartnerRecord
+              .generate(user.userId)
+              .withEori(None)
+              .withUtr(Some(utr))
+              .modifyAddressDetails {
+                case address: BusinessPartnerRecord.UkAddress =>
+                  address.withPostalCode(postcode.getOrElse(address.postalCode))
+                case address: BusinessPartnerRecord.ForeignAddress =>
+                  address.withPostalCode(postcode.orElse(address.postalCode))
+              }
+              .withBusinessPartnerExists(true)
+              .withIsAnOrganisation(true)
+              .withIsAnIndividual(false)
+              .withIsAnAgent(false)
+              .withIsAnASAgent(false)
+              .withOrganisation(Some(
+                Organisation
+                  .generate(user.userId)
+              ))
+            BusinessPartnerRecordsService
+              .store(record, autoFill = false, user.planetId.get)
+              .flatMap(saveRecordId)
+          })
+      }
+    }
+
     final val NiOrgOrganisationMatch = User.Matches(_ == User.AG.Organisation, "HMRC-NI-ORG")
     final val NiOrgIndividualMatch = User.Matches(_ == User.AG.Individual, "HMRC-NI-ORG")
 
     val businessPartnerRecordForHMRCNIORGUser: UserRecordsSync = saveRecordId => {
       case NiOrgOrganisationMatch(user, eori) => {
-        val utr = user
-          .findIdentifierValue("IR-SA", "UTR")
-          .orElse(user.findIdentifierValue("IR-CT", "UTR"))
-          .getOrElse(Generator.utr(user.userId))
-        val record = BusinessPartnerRecord
-          .generate(user.userId)
-          .withEori(Some(eori))
-          .withUtr(Some(utr))
-          .withBusinessPartnerExists(true)
-          .withIsAnOrganisation(true)
-          .withIsAnIndividual(false)
-          .withIsAnAgent(false)
-          .withIsAnASAgent(false)
-          .withOrganisation(Some(
-            Organisation
+        knownFactsRepository
+          .findByEnrolmentKey(EnrolmentKey.from("HMRC-NI-ORG", "NIEORI" -> eori), user.planetId.get)
+          .map(_.flatMap(i => i.getVerifierValue("CTUTR").orElse(i.getVerifierValue("SAUTR"))))
+          .flatMap(knownFactUtr => {
+            val utr = user
+              .findIdentifierValue("IR-SA", "UTR")
+              .orElse(user.findIdentifierValue("IR-CT", "UTR"))
+              .orElse(knownFactUtr)
+              .getOrElse(Generator.utr(user.userId))
+            val record = BusinessPartnerRecord
               .generate(user.userId)
-          ))
-        BusinessPartnerRecordsService
-          .store(record, autoFill = false, user.planetId.get)
-          .flatMap(saveRecordId)
+              .withEori(Some(eori))
+              .withUtr(Some(utr))
+              .withBusinessPartnerExists(true)
+              .withIsAnOrganisation(true)
+              .withIsAnIndividual(false)
+              .withIsAnAgent(false)
+              .withIsAnASAgent(false)
+              .withOrganisation(Some(
+                Organisation
+                  .generate(user.userId)
+              ))
+            BusinessPartnerRecordsService
+              .store(record, autoFill = false, user.planetId.get)
+              .flatMap(saveRecordId)
+          })
       }
       case NiOrgIndividualMatch(user, eori) => {
-        val utr = user
-          .findIdentifierValue("IR-SA", "UTR")
-          .orElse(user.findIdentifierValue("IR-CT", "UTR"))
-          .getOrElse(Generator.utr(user.userId))
-        val record = BusinessPartnerRecord
-          .generate(user.userId)
-          .withEori(Some(eori))
-          .withUtr(Some(utr))
-          .withBusinessPartnerExists(true)
-          .withIsAnOrganisation(false)
-          .withIsAnIndividual(true)
-          .withIsAnAgent(false)
-          .withIsAnASAgent(false)
-          .withIndividual(Some(
-            Individual
+        knownFactsRepository
+          .findByEnrolmentKey(EnrolmentKey.from("HMRC-NI-ORG", "NIEORI" -> eori), user.planetId.get)
+          .map(_.flatMap(i => i.getVerifierValue("CTUTR").orElse(i.getVerifierValue("SAUTR"))))
+          .flatMap(knownFactUtr => {
+            val utr = user
+              .findIdentifierValue("IR-SA", "UTR")
+              .orElse(user.findIdentifierValue("IR-CT", "UTR"))
+              .orElse(knownFactUtr)
+              .getOrElse(Generator.utr(user.userId))
+            val record = BusinessPartnerRecord
               .generate(user.userId)
-          ))
-        BusinessPartnerRecordsService
-          .store(record, autoFill = false, user.planetId.get)
-          .flatMap(saveRecordId)
+              .withEori(Some(eori))
+              .withUtr(Some(utr))
+              .withBusinessPartnerExists(true)
+              .withIsAnOrganisation(false)
+              .withIsAnIndividual(true)
+              .withIsAnAgent(false)
+              .withIsAnASAgent(false)
+              .withIndividual(Some(
+                Individual
+                  .generate(user.userId)
+              ))
+            BusinessPartnerRecordsService
+              .store(record, autoFill = false, user.planetId.get)
+              .flatMap(saveRecordId)
+          })
       }
     }
 
