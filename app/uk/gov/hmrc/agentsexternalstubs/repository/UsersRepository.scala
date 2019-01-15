@@ -104,7 +104,14 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
       Seq("agentCode" -> Ascending, PLANET_ID -> Ascending, "credentialRole" -> Ascending),
       Some("AgentCodesWithCredentialRole"),
       sparse = true),
-    Index(Seq("agentCode" -> Ascending, PLANET_ID -> Ascending), Some("AgentCodes"), sparse = true)
+    Index(Seq("agentCode" -> Ascending, PLANET_ID -> Ascending), Some("AgentCodes"), sparse = true),
+    // TTL indexes
+    Index(
+      Seq(User.ttl_index_key -> Ascending),
+      Some("TTL"),
+      sparse = true,
+      options = BSONDocument("expireAfterSeconds" -> 43200)
+    )
   )
 
   override def findByUserId(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
