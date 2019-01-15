@@ -155,11 +155,14 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
       postcodeOpt shouldBe theUser.address.flatMap(_.postcode)
 
       val result = await(businessPartnerRecordsService.getBusinessPartnerRecord(Arn("XARN0001230"), planetId))
+      val id = result.flatMap(_.id)
       result.flatMap(_.agencyDetails.flatMap(_.agencyName)) shouldBe Some("ABC123")
       result.flatMap(_.agencyDetails.flatMap(_.agencyAddress.map(_.asInstanceOf[UkAddress].postalCode))) shouldBe postcodeOpt
       result.map(_.addressDetails.asInstanceOf[UkAddress].postalCode) shouldBe postcodeOpt
 
       await(usersService.updateUser(user.userId, planetId, user => user.copy(agentFriendlyName = Some("foobar"))))
+      val id2 = result.flatMap(_.id)
+      id shouldBe id2
       val result2 = await(businessPartnerRecordsService.getBusinessPartnerRecord(Arn("XARN0001230"), planetId))
       result2.flatMap(_.agencyDetails.flatMap(_.agencyName)) shouldBe Some("foobar")
       result2.flatMap(_.agencyDetails.flatMap(_.agencyAddress.map(_.asInstanceOf[UkAddress].postalCode))) shouldBe postcodeOpt
