@@ -62,8 +62,14 @@ class UsersController @Inject()(
               Accepted(s"User ${theUser.userId} has been updated")
                 .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url))
             .recover {
-              case DuplicateUserException(msg) => Conflict(msg)
-              case e: NotFoundException        => notFound("USER_NOT_FOUND", e.getMessage)
+              case DuplicateUserException(msg, userIdOpt, _, _) =>
+                userIdOpt match {
+                  case Some(duplicatedUserId) =>
+                    Conflict(msg).withHeaders(
+                      HeaderNames.LOCATION -> routes.UsersController.getUser(duplicatedUserId).url)
+                  case None => Conflict(msg)
+                }
+              case e: NotFoundException => notFound("USER_NOT_FOUND", e.getMessage)
           })
     }(SessionRecordNotFound)
   }
@@ -78,7 +84,14 @@ class UsersController @Inject()(
               Created(s"User ${theUser.userId} has been created.")
                 .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url))
             .recover {
-              case DuplicateUserException(msg) => Conflict(msg)
+              case DuplicateUserException(msg, userIdOpt, _, _) =>
+                userIdOpt match {
+                  case Some(duplicatedUserId) =>
+                    Conflict(msg).withHeaders(
+                      HeaderNames.LOCATION -> routes.UsersController.getUser(duplicatedUserId).url)
+                  case None => Conflict(msg)
+                }
+
           })
     }(SessionRecordNotFound)
   }
@@ -103,7 +116,7 @@ class UsersController @Inject()(
               Created(s"API Platform test user ${theUser.userId} has been created on the planet $planetId")
                 .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url))
             .recover {
-              case DuplicateUserException(msg) => Conflict(msg)
+              case DuplicateUserException(msg, _, _, _) => Conflict(msg)
           })
     }
   }

@@ -33,7 +33,12 @@ import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
 import scala.concurrent.{ExecutionContext, Future}
 
-case class DuplicateUserException(msg: String) extends IllegalStateException(msg)
+case class DuplicateUserException(
+  msg: String,
+  userId: Option[String] = None,
+  index: Option[String] = None,
+  key: Option[String] = None)
+    extends IllegalStateException(msg)
 
 @ImplementedBy(classOf[UsersRepositoryMongo])
 trait UsersRepository {
@@ -112,7 +117,7 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
       option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*).map {
       case Nil      => None
       case x :: Nil => Some(x)
-      case _ :: _   => throw DuplicateUserException(s"Duplicated userId $userId for $planetId")
+      case _ :: _   => throw DuplicateUserException(s"Duplicated userId $userId for $planetId", Some(userId))
     }
 
   override def findByNino(nino: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
@@ -212,10 +217,12 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
       .cursor[T](ReadPreference.primaryPreferred)(reader, ec, implicitly[CursorProducer[T]])
 
   override def create(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
-    insert(user.copy(planetId = Some(planetId), isPermanent = explicitFlag(user.isPermanent))).map(_ => ()).recover {
-      case e: DatabaseException if e.code.contains(11000) =>
-        throw DuplicateUserException(transformMessage(e.getMessage(), user, planetId))
-    }
+    insert(user.copy(planetId = Some(planetId), isPermanent = explicitFlag(user.isPermanent)))
+      .map(_ => ())
+      .recoverWith {
+        case e: DatabaseException if e.code.contains(11000) =>
+          throwDuplicatedException(e, user, planetId)
+      }
 
   override def update(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     (User.formats.writes(user.copy(planetId = Some(planetId), isPermanent = explicitFlag(user.isPermanent))) match {
@@ -223,24 +230,52 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
         collection.update(Json.obj(User.user_index_key -> User.userIndexKey(user.userId, planetId)), u, upsert = true)
       case _ =>
         Future.failed[WriteResult](new Exception("Cannot update User"))
-    }).map(_ => ()).recover {
+    }).map(_ => ()).recoverWith {
       case e: DatabaseException if e.code.contains(11000) =>
-        throw DuplicateUserException(transformMessage(e.getMessage(), user, planetId))
+        throwDuplicatedException(e, user, planetId)
     }
 
   override def delete(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[WriteResult] =
     remove(User.user_index_key -> Option(User.userIndexKey(userId, planetId)))
 
-  private val indexNameRegex = """\sindex\:\s(\w*?)\s""".r
+  private final val indexNameRegex = """\sindex\:\s(\w*?)\s""".r
+  private final val keyValueRegex = """\skey\:\s\{\s\:\s\"(.*?)\"\s\}""".r
 
-  private def transformMessage(msg: String, user: User, planetId: String): String =
-    if (msg.contains("11000")) {
-      indexNameRegex
-        .findFirstMatchIn(msg)
-        .map(_.group(1))
-        .flatMap(i => duplicatedUserMessageByIndex.get(i).map(_(user)(planetId)))
-        .getOrElse(s"Duplicated user setup on $planetId")
-    } else msg
+  private def extractIndexAndKey(msg: String): Option[(String, String)] =
+    if (msg.contains("11000")) for {
+      index <- indexNameRegex
+                .findFirstMatchIn(msg)
+                .map(_.group(1))
+      key <- keyValueRegex
+              .findFirstMatchIn(msg)
+              .map(_.group(1))
+    } yield (index, key)
+    else None
+
+  private def throwDuplicatedException(e: DatabaseException, user: User, planetId: String)(
+    implicit ec: ExecutionContext): Future[Unit] =
+    (extractIndexAndKey(e.getMessage()) match {
+      case Some((index, key)) =>
+        val message = duplicatedUserMessageByIndex
+          .get(index)
+          .map(_(user)(planetId))
+          .getOrElse(s"Duplicated user key $key in index $index")
+        (if (key.isEmpty) Future.successful(None)
+         else {
+           val keyName = index match {
+             case UsersIndexName                  => User.user_index_key
+             case NinosIndexName                  => User.nino_index_key
+             case GroupIdsIndexName               => User.group_id_index_key
+             case AgentCodesIndexName             => User.agent_code_index_key
+             case PrincipalEnrolmentKeysIndexName => User.principal_enrolment_keys
+           }
+           cursor(Seq(keyName -> Option(key)))(User.formats).headOption
+         })
+          .map(userId => DuplicateUserException(message, userId.map(_.userId), Some(index), Some(key)))
+
+      case None =>
+        Future.successful(DuplicateUserException(e.getMessage()))
+    }).map(e => throw e)
 
   private val duplicatedUserMessageByIndex: Map[String, User => String => String] = Map(
     UsersIndexName -> (u => p => s"Duplicated userId ${u.userId} on $p"),
