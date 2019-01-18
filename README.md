@@ -411,7 +411,18 @@ Response | Description
 ---|---
 201| new known facts created
 202| known facts updated
+
+#### PUT /agents-external-stubs/known-facts/:enrolmentKey/verifier
+Upserts single known fact verifier
+
+Response | Description
+---|---
+202| known facts updated
 404| enrolmentKey not found
+
+Payload: KnownFact 
+
+    { "key": "NINO", "value": "AB087054B" }
 
 #### DELETE /agents-external-stubs/known-facts/:enrolmentKey
 Remove known facts (enrolment), do not removes users allocations and assignments

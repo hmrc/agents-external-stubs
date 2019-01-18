@@ -61,7 +61,7 @@ class KnownFactsControllerISpec extends ServerBaseISpec with MongoDB with TestRe
     }
 
     "PUT /agents-external-stubs/known-facts/:enrolmentKey" should {
-      "sanitize and update known fact and return 201" in {
+      "sanitize and update known fact and return 202" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val enrolmentKey = "HMRC-MTD-IT~MTDITID~XAAA12345678901"
         Users.create(UserGenerator.individual("foo1").withPrincipalEnrolment(enrolmentKey))
@@ -77,6 +77,31 @@ class KnownFactsControllerISpec extends ServerBaseISpec with MongoDB with TestRe
                         |   }
                         |  ]
                         |} """.stripMargin)
+        )
+        result should haveStatus(202)
+
+        val feedback = KnownFacts.getKnownFacts(enrolmentKey)
+        feedback should haveStatus(200)
+        feedback should haveValidJsonBody(
+          haveProperty[String]("enrolmentKey", be(enrolmentKey)) and
+            haveProperty[Seq[JsObject]](
+              "verifiers",
+              eachElement(haveProperty[String]("key") and
+                haveProperty[String]("value"))))
+        feedback.json.as[uk.gov.hmrc.agentsexternalstubs.models.KnownFacts].getVerifierValue("NINO") shouldBe Some(
+          "AB087054B")
+      }
+    }
+
+    "PUT /agents-external-stubs/known-facts/:enrolmentKey/verifier" should {
+      "update single known fact verifier and return 202" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val enrolmentKey = "HMRC-MTD-IT~MTDITID~XAAA12345678901"
+        Users.create(UserGenerator.individual("foo1").withPrincipalEnrolment(enrolmentKey))
+
+        val result = KnownFacts.upsertKnownFactVerifier(
+          enrolmentKey,
+          Json.parse(s"""{"key": "NINO", "value": "AB087054B"}""")
         )
         result should haveStatus(202)
 

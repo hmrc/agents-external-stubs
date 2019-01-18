@@ -79,6 +79,30 @@ class KnownFactsController @Inject()(
       }(SessionRecordNotFound)
   }
 
+  def upsertKnownFactVerifier(enrolmentKey: EnrolmentKey): Action[JsValue] = Action.async(parse.tolerantJson) {
+    implicit request =>
+      withCurrentSession { session =>
+        withPayload[KnownFact](knownFact =>
+          knownFactsRepository
+            .findByEnrolmentKey(enrolmentKey, session.planetId)
+            .flatMap {
+              case None =>
+                notFoundF("KNOWN_FACTS_NOT_FOUND", s"Could not found known facts $enrolmentKey")
+              case Some(knownFacts) =>
+                knownFactsRepository
+                  .upsert(
+                    KnownFacts.sanitize(enrolmentKey.tag)(knownFacts.copy(
+                      enrolmentKey = enrolmentKey,
+                      verifiers = KnownFactsController.addVerifier(knownFacts.verifiers, knownFact))),
+                    session.planetId
+                  )
+                  .map(_ =>
+                    Accepted(s"Known facts ${knownFacts.enrolmentKey.tag} verifiers has been updated.")
+                      .withHeaders(HeaderNames.LOCATION -> routes.KnownFactsController.getKnownFacts(enrolmentKey).url))
+          })
+      }(SessionRecordNotFound)
+  }
+
   def deleteKnownFacts(enrolmentKey: EnrolmentKey): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       knownFactsRepository
@@ -99,4 +123,7 @@ object KnownFactsController {
   object EnrolmentInfo {
     implicit val writes: OWrites[EnrolmentInfo] = Json.writes[EnrolmentInfo]
   }
+
+  def addVerifier(verifiers: Seq[KnownFact], knownFact: KnownFact): Seq[KnownFact] =
+    verifiers.filterNot(_.key == knownFact.key) :+ knownFact
 }

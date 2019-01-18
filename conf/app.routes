@@ -100,6 +100,7 @@ GET         /agents-external-stubs/records/relationship/generate             @uk
 POST        /agents-external-stubs/known-facts                               @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.createKnownFacts
 GET         /agents-external-stubs/known-facts/:enrolmentKey                 @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.getKnownFacts(enrolmentKey: EnrolmentKey)
 PUT         /agents-external-stubs/known-facts/:enrolmentKey                 @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.upsertKnownFacts(enrolmentKey: EnrolmentKey)
+PUT         /agents-external-stubs/known-facts/:enrolmentKey/verifier        @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.upsertKnownFactVerifier(enrolmentKey: EnrolmentKey)
 DELETE      /agents-external-stubs/known-facts/:enrolmentKey                 @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.deleteKnownFacts(enrolmentKey: EnrolmentKey)
 
 # Special cases management

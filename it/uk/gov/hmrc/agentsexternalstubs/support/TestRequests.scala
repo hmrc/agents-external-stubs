@@ -528,6 +528,10 @@ trait TestRequests extends ScalaFutures {
       implicit authContext: AuthContext): WSResponse =
       put(s"/agents-external-stubs/known-facts/$enrolmentKey", payload)
 
+    def upsertKnownFactVerifier[T: Writeable](enrolmentKey: String, payload: T)(
+      implicit authContext: AuthContext): WSResponse =
+      put(s"/agents-external-stubs/known-facts/$enrolmentKey/verifier", payload)
+
     def deleteKnownFacts(enrolmentKey: String)(implicit authContext: AuthContext): WSResponse =
       delete(s"/agents-external-stubs/known-facts/$enrolmentKey")
   }
