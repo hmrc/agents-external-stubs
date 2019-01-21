@@ -256,39 +256,63 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
     implicit ec: ExecutionContext): Future[Unit] =
     (extractIndexAndKey(e.getMessage()) match {
       case Some((index, key)) =>
-        val message = duplicatedUserMessageByIndex
-          .get(index)
-          .map(_(user)(planetId))
-          .getOrElse(s"Duplicated user key $key in index $index")
-        (if (key.isEmpty) Future.successful(None)
-         else {
-           val keyName = index match {
-             case UsersIndexName                  => User.user_index_key
-             case NinosIndexName                  => User.nino_index_key
-             case GroupIdsIndexName               => User.group_id_index_key
-             case AgentCodesIndexName             => User.agent_code_index_key
-             case PrincipalEnrolmentKeysIndexName => User.principal_enrolment_keys
-           }
-           cursor(Seq(keyName -> Option(key)))(User.formats).headOption
-         })
-          .map(userId => DuplicateUserException(message, userId.map(_.userId), Some(index), Some(key)))
-
+        for {
+          existingUser <- findUserByIndexAndKey(index, key)
+        } yield {
+          val message = duplicatedUserMessageByIndex
+            .get(index)
+            .map(_(existingUser, key, planetId))
+            .getOrElse(
+              s"Duplicated key $key in index $index, already exists for user ${existingUser.map(_.userId).getOrElse("")}.")
+          DuplicateUserException(message, existingUser.map(_.userId), Some(index), Some(key))
+        }
       case None =>
         Future.successful(DuplicateUserException(e.getMessage()))
     }).map(e => throw e)
 
-  private val duplicatedUserMessageByIndex: Map[String, User => String => String] = Map(
-    UsersIndexName -> (u => p => s"Duplicated userId ${u.userId} on $p"),
-    NinosIndexName -> (u => p => s"Duplicated NINO ${u.nino.get} on $p"),
-    GroupIdsIndexName -> (u =>
-      p => s"Duplicated groupId ${u.groupId.get} on $p. Two Admin users cannot share the same groupId."),
-    AgentCodesIndexName -> (u =>
-      p => s"Duplicated agentCode ${u.agentCode.get} on $p. Two Admin agents cannot share the same agentCode."),
-    PrincipalEnrolmentKeysIndexName -> (u =>
-      p =>
-        s"Duplicated principal${if (u.principalEnrolments.size > 1) " enrolment, one of" else ""} ${u.principalEnrolments
-          .map(_.description)
-          .mkString(", ")} on $p")
+  private def findUserByIndexAndKey(index: String, key: String)(implicit ec: ExecutionContext): Future[Option[User]] =
+    if (key.isEmpty) Future.successful(None)
+    else {
+      val keyName = index match {
+        case UsersIndexName                  => User.user_index_key
+        case NinosIndexName                  => User.nino_index_key
+        case GroupIdsIndexName               => User.group_id_index_key
+        case AgentCodesIndexName             => User.agent_code_index_key
+        case PrincipalEnrolmentKeysIndexName => User.principal_enrolment_keys
+      }
+      cursor(Seq(keyName -> Option(key)))(User.formats).headOption
+    }
+
+  private val duplicatedUserMessageByIndex: Map[String, (Option[User], String, String) => String] = Map(
+    UsersIndexName -> (
+      (
+        u: Option[User],
+        k: String,
+        p: String) => s"Duplicated userId ${u.map(_.userId).getOrElse("")} in $p"),
+    NinosIndexName -> (
+      (
+        u: Option[User],
+        k: String,
+        p: String) =>
+        s"Existing user ${u.map(_.userId).getOrElse("")} already has this NINO ${u.flatMap(_.nino).getOrElse("")}. Two individuals cannot have the same NINO on the same $p planet."),
+    GroupIdsIndexName -> (
+      (
+        u: Option[User],
+        k: String,
+        p: String) =>
+        s"Existing admin user ${u.map(_.userId).getOrElse("")} already has this groupId ${u.map(_.groupId).getOrElse("")}. Two Admin users cannot share the same groupId on the same $p planet."),
+    AgentCodesIndexName -> (
+      (
+        u: Option[User],
+        k: String,
+        p: String) =>
+        s"Existing agent user ${u.map(_.userId).getOrElse("")} already has this agentCode ${u.flatMap(_.agentCode).getOrElse("")}. Two Admin agents cannot share the same agentCode on the same $p planet."),
+    PrincipalEnrolmentKeysIndexName -> (
+      (
+        u: Option[User],
+        k: String,
+        p: String) =>
+        s"Existing user ${u.map(_.userId).getOrElse("")} already has similar enrolment $k. Two users cannot have the same principal identifier on the same $p planet.")
   )
 
   private def explicitFlag(flag: Option[Boolean]): Option[Boolean] = flag match {

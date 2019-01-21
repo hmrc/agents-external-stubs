@@ -69,7 +69,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
         await(repo.create(User("foo2", principalEnrolments = Seq(Enrolment("something", Some(Seq(Identifier("B","2")))), Enrolment("foobar", Some(Seq(Identifier("A","1")))))), planetId))
       }
 
-      e.getMessage should include("Duplicated principal enrolment")
+      e.getMessage should include("Existing user 1foo already has similar enrolment foobar")
     }
 
     "allow users with the same principal enrolment on a different planets" in {
@@ -168,7 +168,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
         await(repo.create(User("foo"), planetId))
       }
 
-      e.getMessage should include(s"Duplicated userId foo on $planetId")
+      e.getMessage should include(s"Duplicated userId foo in $planetId")
     }
 
     "allow duplicate users with same nino to be created for different planetIds" in {
@@ -214,7 +214,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
         await(repo.create(User("boo", nino = Some(Nino("HW827856C"))), planetId))
       }
 
-      e.getMessage should include(s"Duplicated NINO HW827856C on $planetId")
+      e.getMessage should include(s"Existing user foo already has this NINO HW 82 78 56 C.")
     }
   }
 
