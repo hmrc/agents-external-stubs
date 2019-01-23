@@ -4,11 +4,19 @@ import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.domain.{EmpRef, Nino}
 
 object ApiPlatform {
+  /*
+  val individualDetails: IndividualDetails
+  val saUtr: Option[SaUtr]
+  val nino: Option[Nino]
+  val mtdItId: Option[MtdItId]
+  val vrn: Option[Vrn]
+  val vatRegistrationDate: Option[LocalDate]
+  val eoriNumber: Option[EoriNumber]
+   */
 
   case class TestUser(
     userId: String,
     userFullName: String,
-    services: Seq[String],
     emailAddress: Option[String] = None,
     password: Option[String] = None,
     individualDetails: Option[IndividualDetails] = None,
@@ -26,10 +34,26 @@ object ApiPlatform {
     secureElectronicTransferReferenceNumber: Option[String] = None,
     pensionSchemeAdministratorIdentifier: Option[String] = None
   ) {
+
     val affinityGroup: String =
       if (individualDetails.isDefined) User.AG.Individual
       else if (organisationDetails.isDefined) User.AG.Organisation
       else User.AG.Agent
+
+    val services: Seq[String] = Seq(
+      nino.map(_ => "national-insurance"),
+      ctUtr.map(_ => "corporation-tax"),
+      empRef.map(_ => "paye-for-employers"),
+      saUtr.map(_ => "self-assessment"),
+      vrn.map(_ => "submit-vat-returns"),
+      vrn.map(_ => "mtd-vat"),
+      mtdItId.map(_ => "mtd-income-tax"),
+      arn.map(_ => "agent-services"),
+      lisaManRefNum.map(_ => "lisa"),
+      secureElectronicTransferReferenceNumber.map(_ => "secure-electronic-transfer"),
+      pensionSchemeAdministratorIdentifier.map(_ => "relief-at-source"),
+      eoriNumber.map(_ => "customs-services")
+    ).collect { case Some(x) => x }
   }
 
   case class Address(line1: String, line2: String, postcode: String)

@@ -45,6 +45,7 @@ class MicroserviceModule(val environment: Environment, val configuration: Config
     bindServiceConfigProperty[Int]("des.port")
     bindServiceConfigProperty[Int]("ni-exemption-registration.port")
 
+    // External services we stub
     bindBaseUrl("auth")
     bindBaseUrl("citizen-details")
     bindBaseUrl("users-groups-search")
@@ -52,8 +53,11 @@ class MicroserviceModule(val environment: Environment, val configuration: Config
     bindBaseUrl("tax-enrolments")
     bindBaseUrl("des")
     bindBaseUrl("ni-exemption-registration")
+
+    // External services we connect to
     bindBaseUrl("auth-login-api")
     bindBaseUrl("agent-access-control")
+    bindBaseUrl("api-platform-test-user")
 
     bind(classOf[TcpProxies]).asEagerSingleton()
   }
