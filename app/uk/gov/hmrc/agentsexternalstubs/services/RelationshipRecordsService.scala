@@ -56,7 +56,7 @@ class RelationshipRecordsService @Inject()(recordsRepository: RecordsRepository)
         .map(r => recordsRepository.store[RelationshipRecord](r, planetId)))
 
   def findByKey(key: String, planetId: String)(implicit ec: ExecutionContext): Future[List[RelationshipRecord]] =
-    recordsRepository.cursor[RelationshipRecord](key, planetId).collect[List](MAX_DOCS)
+    recordsRepository.cursor[RelationshipRecord](key, planetId).collect[List](MAX_DOCS, Cursor.FailOnError())
 
   def findByQuery(query: RelationshipRecordQuery, planetId: String)(
     implicit ec: ExecutionContext): Future[List[RelationshipRecord]] = {

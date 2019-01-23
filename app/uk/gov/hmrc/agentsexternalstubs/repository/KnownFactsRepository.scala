@@ -77,7 +77,6 @@ class KnownFactsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent
       )
       .cursor[KnownFacts](ReadPreference.primaryPreferred)(
         implicitly[collection.pack.Reader[KnownFacts]],
-        ec,
         implicitly[CursorProducer[KnownFacts]])
       .headOption
 
@@ -89,7 +88,6 @@ class KnownFactsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent
       )
       .cursor[KnownFacts](ReadPreference.primaryPreferred)(
         implicitly[collection.pack.Reader[KnownFacts]],
-        ec,
         implicitly[CursorProducer[KnownFacts]])
       .headOption
 

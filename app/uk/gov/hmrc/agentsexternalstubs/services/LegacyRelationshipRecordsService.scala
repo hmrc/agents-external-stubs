@@ -97,6 +97,6 @@ class LegacyRelationshipRecordsService @Inject()(recordsRepository: RecordsRepos
 
   private def findRelationshipsByKey(key: String, planetId: String)(
     implicit ec: ExecutionContext): Future[List[LegacyRelationshipRecord]] =
-    recordsRepository.cursor[LegacyRelationshipRecord](key, planetId).collect[List](1000)
+    recordsRepository.cursor[LegacyRelationshipRecord](key, planetId).collect[List](1000, Cursor.FailOnError())
 
 }

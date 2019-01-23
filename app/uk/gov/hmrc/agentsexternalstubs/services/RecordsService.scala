@@ -14,10 +14,10 @@ trait RecordsService {
   protected def findByKey[T <: Record](
     key: String,
     planetId: String)(implicit ec: ExecutionContext, recordType: RecordMetaData[T], reads: Reads[T]): Future[List[T]] =
-    recordsRepository.cursor[T](key, planetId).collect[List](1000)
+    recordsRepository.cursor[T](key, planetId).collect[List](1000, Cursor.FailOnError())
 
   protected def findByKeys[T <: Record](
     keys: Seq[String],
     planetId: String)(implicit ec: ExecutionContext, recordType: RecordMetaData[T], reads: Reads[T]): Future[List[T]] =
-    recordsRepository.cursor[T](keys, planetId).collect[List](1000)
+    recordsRepository.cursor[T](keys, planetId).collect[List](1000, Cursor.FailOnError())
 }

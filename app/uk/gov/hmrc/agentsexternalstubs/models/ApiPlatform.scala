@@ -20,6 +20,7 @@ object ApiPlatform {
     empRef: Option[EmpRef] = None,
     ctUtr: Option[String] = None,
     vrn: Option[String] = None,
+    vatRegistrationDate: Option[LocalDate] = None,
     arn: Option[String] = None,
     lisaManRefNum: Option[String] = None,
     secureElectronicTransferReferenceNumber: Option[String] = None,
