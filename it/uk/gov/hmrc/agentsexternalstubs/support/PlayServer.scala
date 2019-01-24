@@ -35,6 +35,7 @@ object PlayServer {
         "microservice.services.des.port"                       -> Port.randomAvailable,
         "microservice.services.ni-exemption-registration.port" -> Port.randomAvailable,
         "microservice.services.agent-access-control.port"      -> wireMockPort,
+        "microservice.services.api-platform-test-user.port"    -> wireMockPort,
         "metrics.enabled"                                      -> false,
         "auditing.enabled"                                     -> false,
         "mongodb.uri"                                          -> MongoDB.uri,

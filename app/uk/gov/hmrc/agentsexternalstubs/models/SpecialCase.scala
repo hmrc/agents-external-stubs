@@ -80,7 +80,7 @@ object SpecialCase {
     type Transformer = JsObject => JsObject
 
     private def planetIdOf(json: JsObject): String =
-      (json \ "planetId").asOpt[String].getOrElse("hmrc")
+      (json \ "planetId").asOpt[String].getOrElse(Planet.DEFAULT)
 
     private final val addUniqueKey: Transformer = json => {
       val key = (json \ "requestMatch").as[RequestMatch].toKey

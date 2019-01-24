@@ -1,16 +1,22 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
+import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, urlEqualTo}
 import org.joda.time.LocalDate
 import play.api.libs.json._
 import play.api.libs.ws.WSClient
+import uk.gov.hmrc.agentmtdidentifiers.model.Utr
+import uk.gov.hmrc.agentsexternalstubs.connectors.ExampleApiPlatformTestUserResponses
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.Individual
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, BusinessPartnerRecord, RelationshipRecord}
+import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
+import uk.gov.hmrc.domain.{Nino, Vrn}
 
 class DesStubControllerISpec
-    extends ServerBaseISpec with MongoDB with TestRequests with TestStubs with ExampleDesPayloads {
+    extends ServerBaseISpec with MongoDB with TestRequests with TestStubs with ExampleDesPayloads with WireMockSupport
+    with ExampleApiPlatformTestUserResponses {
 
   val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
@@ -39,7 +45,7 @@ class DesStubControllerISpec
       }
 
       "respond 200 when authorising for ITSA through API gateway" in {
-        SignIn.signInAndGetSession(planetId = "hmrc")
+        SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
         implicit val apiAuthContext: AuthContext = AuthContext.fromHeaders("X-Client-ID" -> "foo123")
 
         val result = DesStub.authoriseOrDeAuthoriseRelationship(
@@ -186,11 +192,49 @@ class DesStubControllerISpec
         result should haveStatus(200)
         result.json
           .as[JsObject] should (haveProperty[String]("safeId") and haveProperty[String]("safeId") and haveProperty[
-          String]("nino") and haveProperty[String]("mtdbsa"))
+          String]("nino", be("AA123456A")) and haveProperty[String]("mtdbsa"))
+      }
+
+      "return 200 response if record not found but user pulled from external source" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+        val nino = Generator.ninoNoSpacesGen.sample.get
+        WireMock.stubFor(
+          WireMock
+            .get(urlEqualTo(s"/individuals/nino/$nino"))
+            .willReturn(aResponse()
+              .withStatus(200)
+              .withBody(testIndividualResponse(Nino(nino)))))
+        val result = DesStub.getBusinessDetails("nino", nino)
+        result should haveStatus(200)
+        result.json
+          .as[JsObject] should (haveProperty[String]("safeId") and haveProperty[String]("safeId") and haveProperty[
+          String]("nino", be(nino)) and haveProperty[String]("mtdbsa"))
       }
 
       "return 404 response if record not found" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val result = DesStub.getBusinessDetails("nino", "HW827856C")
+        result should haveStatus(404)
+      }
+
+      "return 404 response if record not found on planet hmrc and api-platform-test-user is not available" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+        WireMock.stubFor(
+          WireMock
+            .get(urlEqualTo(s"/individuals/nino/HW827856C"))
+            .willReturn(aResponse()
+              .withStatus(502)))
+        val result = DesStub.getBusinessDetails("nino", "HW827856C")
+        result should haveStatus(404)
+      }
+
+      "return 404 response if record not found on planet hmrc and api-platform-test-user returns 404" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+        WireMock.stubFor(
+          WireMock
+            .get(urlEqualTo(s"/individuals/nino/HW827856C"))
+            .willReturn(aResponse()
+              .withStatus(404)))
         val result = DesStub.getBusinessDetails("nino", "HW827856C")
         result should haveStatus(404)
       }
@@ -228,9 +272,87 @@ class DesStubControllerISpec
         json.as[JsObject] should haveProperty[String]("vrn")
       }
 
-      "return 404 response if record not found" in {
+      "return 200 response if record not found but organisation pulled from external source" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+        val vrn = Generator.vrnGen.sample.get
+        WireMock.stubFor(
+          WireMock
+            .get(urlEqualTo(s"/organisations/vrn/$vrn"))
+            .willReturn(aResponse()
+              .withStatus(200)
+              .withBody(testOrganisationResponse(Vrn(vrn)))))
+        WireMock.stubFor(
+          WireMock
+            .get(urlEqualTo(s"/individuals/vrn/$vrn"))
+            .willReturn(aResponse()
+              .withStatus(404)))
+
+        val result = DesStub.getVatCustomerInformation(vrn)
+        result should haveStatus(200)
+        val json = result.json
+        json.as[JsObject] should haveProperty[String]("vrn", be(vrn))
+      }
+
+      "return 200 response if record not found but individual pulled from external source" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+        val vrn = Generator.vrnGen.sample.get
+        WireMock.stubFor(
+          WireMock
+            .get(urlEqualTo(s"/organisations/vrn/$vrn"))
+            .willReturn(aResponse()
+              .withStatus(404)))
+        WireMock.stubFor(
+          WireMock
+            .get(urlEqualTo(s"/individuals/vrn/$vrn"))
+            .willReturn(aResponse()
+              .withStatus(200)
+              .withBody(testIndividualResponse(vrn = Vrn(vrn)))))
+
+        val result = DesStub.getVatCustomerInformation(vrn)
+        result should haveStatus(200)
+        val json = result.json
+        json.as[JsObject] should haveProperty[String]("vrn", be(vrn))
+      }
+
+      "return 200 response if record not found" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val result = DesStub.getVatCustomerInformation("999999999")
+        result should haveStatus(200)
+      }
+
+      "return 200 response if record not found on planet hmrc and api-platform-test-user is not available" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+        val vrn = Generator.vrnGen.sample.get
+        WireMock.stubFor(
+          WireMock
+            .get(urlEqualTo(s"/organisations/vrn/$vrn"))
+            .willReturn(aResponse()
+              .withStatus(502)))
+        WireMock.stubFor(
+          WireMock
+            .get(urlEqualTo(s"/individuals/vrn/$vrn"))
+            .willReturn(aResponse()
+              .withStatus(502)))
+
+        val result = DesStub.getVatCustomerInformation(vrn)
+        result should haveStatus(200)
+      }
+
+      "return 200 response if record not found on planet hmrc and api-platform-test-user returns 404" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+        val vrn = Generator.vrnGen.sample.get
+        WireMock.stubFor(
+          WireMock
+            .get(urlEqualTo(s"/organisations/vrn/$vrn"))
+            .willReturn(aResponse()
+              .withStatus(404)))
+        WireMock.stubFor(
+          WireMock
+            .get(urlEqualTo(s"/individuals/vrn/$vrn"))
+            .willReturn(aResponse()
+              .withStatus(404)))
+
+        val result = DesStub.getVatCustomerInformation(vrn)
         result should haveStatus(200)
       }
     }

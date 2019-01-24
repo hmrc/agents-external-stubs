@@ -1,14 +1,20 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
+import com.google.inject.Provider
 import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
+import uk.gov.hmrc.domain.Vrn
 import uk.gov.hmrc.http.BadRequestException
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class VatCustomerInformationRecordsService @Inject()(val recordsRepository: RecordsRepository) extends RecordsService {
+class VatCustomerInformationRecordsService @Inject()(
+  val recordsRepository: RecordsRepository,
+  externalUserService: ExternalUserService,
+  usersServiceProvider: Provider[UsersService])
+    extends RecordsService {
 
   def store(record: VatCustomerInformationRecord, autoFill: Boolean, planetId: String)(
     implicit ec: ExecutionContext): Future[String] = {
@@ -25,5 +31,8 @@ class VatCustomerInformationRecordsService @Inject()(val recordsRepository: Reco
 
   def getCustomerInformation(vrn: String, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[VatCustomerInformationRecord]] =
-    findByKey[VatCustomerInformationRecord](VatCustomerInformationRecord.uniqueKey(vrn), planetId).map(_.headOption)
+    externalUserService.tryLookupExternalUserIfMissing(Vrn(vrn), planetId, usersServiceProvider.get.createUser(_, _))(
+      id =>
+        findByKey[VatCustomerInformationRecord](VatCustomerInformationRecord.uniqueKey(id.value), planetId)
+          .map(_.headOption))
 }

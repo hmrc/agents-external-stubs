@@ -1,5 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
+import com.google.inject.Provider
 import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.agentmtdidentifiers.model.MtdItId
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord
@@ -10,7 +11,11 @@ import uk.gov.hmrc.http.BadRequestException
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class BusinessDetailsRecordsService @Inject()(val recordsRepository: RecordsRepository) extends RecordsService {
+class BusinessDetailsRecordsService @Inject()(
+  val recordsRepository: RecordsRepository,
+  externalUserService: ExternalUserService,
+  usersServiceProvider: Provider[UsersService])
+    extends RecordsService {
 
   def store(record: BusinessDetailsRecord, autoFill: Boolean, planetId: String)(
     implicit ec: ExecutionContext): Future[String] = {
@@ -27,7 +32,8 @@ class BusinessDetailsRecordsService @Inject()(val recordsRepository: RecordsRepo
 
   def getBusinessDetails(nino: Nino, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[BusinessDetailsRecord]] =
-    findByKey[BusinessDetailsRecord](BusinessDetailsRecord.ninoKey(nino.value), planetId).map(_.headOption)
+    externalUserService.tryLookupExternalUserIfMissing(nino, planetId, usersServiceProvider.get.createUser(_, _))(id =>
+      findByKey[BusinessDetailsRecord](BusinessDetailsRecord.ninoKey(id.value), planetId).map(_.headOption))
 
   def getBusinessDetails(mtdbsa: MtdItId, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[BusinessDetailsRecord]] =

@@ -3,9 +3,8 @@ package uk.gov.hmrc.agentsexternalstubs.services
 import java.util.UUID
 
 import javax.inject.{Inject, Singleton}
-import play.api.Logger
 import play.api.mvc.Request
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticateRequest, AuthenticatedSession}
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticateRequest, AuthenticatedSession, Planet}
 import uk.gov.hmrc.agentsexternalstubs.repository.AuthenticatedSessionsRepository
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -24,7 +23,7 @@ class AuthenticationService @Inject()(
     authSessionRepository.findByAuthToken(authToken).flatMap {
       case Some(session) => Future.successful(Some(session))
       case None =>
-        val planetId = "hmrc"
+        val planetId = Planet.DEFAULT
         externalAuthorisationService.maybeExternalSession(planetId, this.authenticate)
     }
 

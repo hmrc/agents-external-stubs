@@ -44,6 +44,7 @@ class MicroserviceModule(val environment: Environment, val configuration: Config
     bindServiceConfigProperty[Int]("tax-enrolments.port")
     bindServiceConfigProperty[Int]("des.port")
     bindServiceConfigProperty[Int]("ni-exemption-registration.port")
+    bindServiceConfigProperty[Boolean]("api-platform-test-user.sync-users-all-planets")
 
     // External services we stub
     bindBaseUrl("auth")

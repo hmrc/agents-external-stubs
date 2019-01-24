@@ -46,6 +46,8 @@ This app SHOULD NOT be run on QA nor Production environment.
 - ETMP/DES records model
 - auth and other services drop-in replacement
 - generic proxy with pre-defined responses (special cases)
+- agent-access-control support
+- external auth and api-platform-test-user link
 
 ## Data Model
 Every stubbed user and other data types live in some test sandbox (planet). 

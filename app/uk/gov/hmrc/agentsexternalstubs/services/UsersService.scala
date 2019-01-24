@@ -2,10 +2,10 @@ package uk.gov.hmrc.agentsexternalstubs.services
 
 import cats.data.Validated.{Invalid, Valid}
 import javax.inject.{Inject, Singleton}
-import play.api.mvc.Result
 import uk.gov.hmrc.agentsexternalstubs.models.{User, _}
 import uk.gov.hmrc.agentsexternalstubs.repository.{KnownFactsRepository, UsersRepository}
 import uk.gov.hmrc.auth.core.UnsupportedCredentialRole
+import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{BadRequestException, NotFoundException}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -15,13 +15,15 @@ import scala.util.{Failure, Success, Try}
 class UsersService @Inject()(
   usersRepository: UsersRepository,
   userRecordsService: UserToRecordsSyncService,
-  knownFactsRepository: KnownFactsRepository) {
+  knownFactsRepository: KnownFactsRepository,
+  externalUserService: ExternalUserService) {
 
   def findByUserId(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
     usersRepository.findByUserId(userId, planetId)
 
   def findByNino(nino: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
-    usersRepository.findByNino(nino, planetId)
+    externalUserService.tryLookupExternalUserIfMissing(Nino(nino), planetId, createUser)(id =>
+      usersRepository.findByNino(id.value, planetId))
 
   def findByPlanetId(planetId: String, affinityGroup: Option[String])(limit: Int)(
     implicit ec: ExecutionContext): Future[Seq[User]] = {

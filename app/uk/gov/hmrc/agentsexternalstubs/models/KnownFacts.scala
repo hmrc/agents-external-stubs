@@ -20,7 +20,7 @@ object KnownFacts {
   def verifierKey(knownFact: KnownFact, planetId: String): String = s"$knownFact@$planetId"
 
   private def planetIdOf(json: JsObject): String =
-    (json \ "planetId").asOpt[String].getOrElse("hmrc")
+    (json \ "planetId").asOpt[String].getOrElse(Planet.DEFAULT)
 
   private final val addUniqueKey: Transformer = json => {
     val enrolmentKey = (json \ "enrolmentKey").as[String]

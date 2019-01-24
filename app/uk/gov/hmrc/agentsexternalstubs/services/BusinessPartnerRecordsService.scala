@@ -1,5 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
+import com.google.inject.Provider
 import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, Utr}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord
@@ -10,7 +11,11 @@ import uk.gov.hmrc.http.BadRequestException
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class BusinessPartnerRecordsService @Inject()(val recordsRepository: RecordsRepository) extends RecordsService {
+class BusinessPartnerRecordsService @Inject()(
+  val recordsRepository: RecordsRepository,
+  externalUserService: ExternalUserService,
+  usersServiceProvider: Provider[UsersService])
+    extends RecordsService {
 
   def store(record: BusinessPartnerRecord, autoFill: Boolean, planetId: String)(
     implicit ec: ExecutionContext): Future[String] = {
@@ -32,11 +37,13 @@ class BusinessPartnerRecordsService @Inject()(val recordsRepository: RecordsRepo
 
   def getBusinessPartnerRecord(utr: Utr, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[BusinessPartnerRecord]] =
-    findByKey[BusinessPartnerRecord](BusinessPartnerRecord.utrKey(utr.value), planetId).map(_.headOption)
+    externalUserService.tryLookupExternalUserIfMissing(utr, planetId, usersServiceProvider.get.createUser(_, _))(id =>
+      findByKey[BusinessPartnerRecord](BusinessPartnerRecord.utrKey(id.value), planetId).map(_.headOption))
 
   def getBusinessPartnerRecord(nino: Nino, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[BusinessPartnerRecord]] =
-    findByKey[BusinessPartnerRecord](BusinessPartnerRecord.ninoKey(nino.value), planetId).map(_.headOption)
+    externalUserService.tryLookupExternalUserIfMissing(nino, planetId, usersServiceProvider.get.createUser(_, _))(id =>
+      findByKey[BusinessPartnerRecord](BusinessPartnerRecord.ninoKey(id.value), planetId).map(_.headOption))
 
   def getBusinessPartnerRecordByEori(eori: String, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[BusinessPartnerRecord]] =
@@ -44,8 +51,10 @@ class BusinessPartnerRecordsService @Inject()(val recordsRepository: RecordsRepo
 
   def getBusinessPartnerRecordByEoriOrUtr(eori: String, utr: String, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[BusinessPartnerRecord]] =
-    findByKeys[BusinessPartnerRecord](
-      Seq(BusinessPartnerRecord.eoriKey(eori), BusinessPartnerRecord.utrKey(utr)),
-      planetId).map(_.headOption)
+    externalUserService.tryLookupExternalUserIfMissing(Utr(utr), planetId, usersServiceProvider.get.createUser(_, _))(
+      n =>
+        findByKeys[BusinessPartnerRecord](
+          Seq(BusinessPartnerRecord.eoriKey(eori), BusinessPartnerRecord.utrKey(utr)),
+          planetId).map(_.headOption))
 
 }

@@ -173,7 +173,7 @@ object User {
   def agentCodeIndexKey(agentCode: String, planetId: String): String = s"$agentCode@$planetId"
 
   private def planetIdOf(json: JsObject): String =
-    (json \ "planetId").asOpt[String].getOrElse("hmrc")
+    (json \ "planetId").asOpt[String].getOrElse(Planet.DEFAULT)
 
   private final val addNormalizedUserIndexKey: Transformer = json => {
     val userId = (json \ "userId").as[String]

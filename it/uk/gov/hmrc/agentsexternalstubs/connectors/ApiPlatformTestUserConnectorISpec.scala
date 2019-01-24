@@ -3,14 +3,17 @@ package uk.gov.hmrc.agentsexternalstubs.connectors
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import play.api.libs.ws.WSClient
+import uk.gov.hmrc.agentmtdidentifiers.model.Utr
 import uk.gov.hmrc.agentsexternalstubs.models.ApiPlatform.TestUser
+import uk.gov.hmrc.agentsexternalstubs.models.Generator
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{MongoDB, ServerBaseISpec, TestRequests, WireMockSupport}
-import uk.gov.hmrc.domain.Nino
+import uk.gov.hmrc.domain.{Nino, Vrn}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpGet}
 
 class ApiPlatformTestUserConnectorISpec
-    extends ServerBaseISpec with MongoDB with TestRequests with TestStubs with WireMockSupport {
+    extends ServerBaseISpec with MongoDB with TestRequests with TestStubs with WireMockSupport
+    with ExampleApiPlatformTestUserResponses {
 
   val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
@@ -28,7 +31,7 @@ class ApiPlatformTestUserConnectorISpec
             .get(urlEqualTo("/individuals/nino/PE938808A"))
             .willReturn(aResponse()
               .withStatus(200)
-              .withBody(testIndividualResponse)))
+              .withBody(testIndividualResponse(nino = Nino("PE938808A"), vrn = Vrn("666119668")))))
 
         val result: Option[TestUser] = await(connector.getIndividualUserByNino("PE938808A"))
 
@@ -39,14 +42,12 @@ class ApiPlatformTestUserConnectorISpec
         result.flatMap(_.organisationDetails) shouldBe None
 
         val user = result.map(TestUser.asUser).get
-        user.userId shouldBe "945350439195"
         user.firstName shouldBe Some("Ida")
         user.lastName shouldBe Some("Newton")
         user.nino shouldBe Some(Nino("PE938808A"))
         user.principalEnrolments.find(_.key == "HMRC-MTD-VAT").flatMap(_.identifierValueOf("VRN")) shouldBe Some(
           "666119668")
-        user.principalEnrolments.find(_.key == "HMRC-MTD-IT").flatMap(_.identifierValueOf("MTDITID")) shouldBe Some(
-          "XJIT00000328268")
+        user.principalEnrolments.find(_.key == "HMRC-MTD-IT").flatMap(_.identifierValueOf("MTDITID")) shouldBe defined
         user.affinityGroup shouldBe Some("Individual")
       }
 
@@ -70,7 +71,7 @@ class ApiPlatformTestUserConnectorISpec
             .get(urlEqualTo("/individuals/vrn/666119668"))
             .willReturn(aResponse()
               .withStatus(200)
-              .withBody(testIndividualResponse)))
+              .withBody(testIndividualResponse(nino = Nino("PE938808A"), vrn = Vrn("666119668")))))
 
         val result: Option[TestUser] = await(connector.getIndividualUserByVrn("666119668"))
 
@@ -81,14 +82,12 @@ class ApiPlatformTestUserConnectorISpec
         result.flatMap(_.organisationDetails) shouldBe None
 
         val user = result.map(TestUser.asUser).get
-        user.userId shouldBe "945350439195"
         user.firstName shouldBe Some("Ida")
         user.lastName shouldBe Some("Newton")
         user.nino shouldBe Some(Nino("PE938808A"))
         user.principalEnrolments.find(_.key == "HMRC-MTD-VAT").flatMap(_.identifierValueOf("VRN")) shouldBe Some(
           "666119668")
-        user.principalEnrolments.find(_.key == "HMRC-MTD-IT").flatMap(_.identifierValueOf("MTDITID")) shouldBe Some(
-          "XJIT00000328268")
+        user.principalEnrolments.find(_.key == "HMRC-MTD-IT").flatMap(_.identifierValueOf("MTDITID")) shouldBe defined
         user.affinityGroup shouldBe Some("Individual")
       }
 
@@ -112,7 +111,7 @@ class ApiPlatformTestUserConnectorISpec
             .get(urlEqualTo("/organisations/vrn/666119668"))
             .willReturn(aResponse()
               .withStatus(200)
-              .withBody(testOrganisationResponse)))
+              .withBody(testOrganisationResponse(Vrn("666119668")))))
 
         val result: Option[TestUser] = await(connector.getOrganisationUserByVrn("666119668"))
 
@@ -123,7 +122,6 @@ class ApiPlatformTestUserConnectorISpec
         result.flatMap(_.individualDetails) shouldBe None
 
         val user = result.map(TestUser.asUser).get
-        user.userId shouldBe "085603622877"
         user.name shouldBe Some("Company ABF123")
         user.affinityGroup shouldBe Some("Organisation")
         user.principalEnrolments.find(_.key == "HMRC-MTD-VAT").flatMap(_.identifierValueOf("VRN")) shouldBe Some(
@@ -144,11 +142,17 @@ class ApiPlatformTestUserConnectorISpec
       }
     }
   }
+}
 
-  val testIndividualResponse =
+trait ExampleApiPlatformTestUserResponses {
+
+  def testIndividualResponse(
+    nino: Nino = Generator.ninoNoSpacesGen.sample.map(Nino.apply).get,
+    utr: Utr = Generator.utrGen.sample.map(Utr.apply).get,
+    vrn: Vrn = Generator.vrnGen.sample.map(Vrn.apply).get): String =
     s"""
        |{
-       |  "userId":"945350439195",
+       |  "userId":"${Generator.userID.sample.get}",
        |  "password":"bLohysg8utsa",
        |  "userFullName": "Ida Newton",
        |  "emailAddress": "ida.newton@example.com",
@@ -162,19 +166,21 @@ class ApiPlatformTestUserConnectorISpec
        |      "postcode": "TS1 1PA"
        |    }
        |  },
-       |  "saUtr":"1000057161",
-       |  "nino":"PE938808A",
-       |  "mtdItId":"XJIT00000328268",
-       |  "vrn":"666119668",
+       |  "saUtr":"${utr.value}",
+       |  "nino":"${nino.value}",
+       |  "mtdItId":"${Generator.mtdbsaGen.sample.get}",
+       |  "vrn":"${vrn.value}",
        |  "vatRegistrationDate":"2001-11-02",
-       |  "eoriNumber":"GB1234567890"
+       |  "eoriNumber":"${Generator.eoriGen.sample.get}"
        |}
                  """.stripMargin
 
-  val testOrganisationResponse =
+  def testOrganisationResponse(
+    vrn: Vrn = Generator.vrnGen.sample.map(Vrn.apply).get,
+    utr: Utr = Generator.utrGen.sample.map(Utr.apply).get): String =
     s"""
        |{
-       |  "userId":"085603622877",
+       |  "userId":"${Generator.userID.sample.get}",
        |  "password":"nyezgdfrlsmc",
        |  "userFullName": "Ida Newton",
        |  "emailAddress": "ida.newton@example.com",
@@ -186,15 +192,15 @@ class ApiPlatformTestUserConnectorISpec
        |      "postcode": "TS1 1PA"
        |    }
        |  },
-       |  "saUtr":"8000083480",
+       |  "saUtr":"${utr.value}",
        |  "empRef":"538/EMKXYNSVTH",
-       |  "ctUtr":"4000082459",
-       |  "vrn":"666119668",
+       |  "ctUtr":"${utr.value}",
+       |  "vrn":"${vrn.value}",
        |  "vatRegistrationDate":"2001-11-02",
        |  "lisaManagerReferenceNumber":"Z123456",
        |  "secureElectronicTransferReferenceNumber":"123456789012",
        |  "pensionSchemeAdministratorIdentifier":"A1234567",
-       |  "eoriNumber":"GB1234567890"
+       |  "eoriNumber":"${Generator.eoriGen.sample.get}"
        |}
      """.stripMargin
 }
