@@ -31,8 +31,9 @@ class VatCustomerInformationRecordsService @Inject()(
 
   def getCustomerInformation(vrn: String, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[VatCustomerInformationRecord]] =
-    externalUserService.tryLookupExternalUserIfMissing(Vrn(vrn), planetId, usersServiceProvider.get.createUser(_, _))(
-      id =>
-        findByKey[VatCustomerInformationRecord](VatCustomerInformationRecord.uniqueKey(id.value), planetId)
-          .map(_.headOption))
+    externalUserService
+      .tryLookupExternalUserIfMissingForIdentifier(Vrn(vrn), planetId, usersServiceProvider.get.createUser(_, _))(
+        id =>
+          findByKey[VatCustomerInformationRecord](VatCustomerInformationRecord.uniqueKey(id.value), planetId)
+            .map(_.headOption))
 }

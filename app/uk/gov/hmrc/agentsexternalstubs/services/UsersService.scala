@@ -22,7 +22,7 @@ class UsersService @Inject()(
     usersRepository.findByUserId(userId, planetId)
 
   def findByNino(nino: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
-    externalUserService.tryLookupExternalUserIfMissing(Nino(nino), planetId, createUser)(id =>
+    externalUserService.tryLookupExternalUserIfMissingForIdentifier(Nino(nino), planetId, createUser)(id =>
       usersRepository.findByNino(id.value, planetId))
 
   def findByPlanetId(planetId: String, affinityGroup: Option[String])(limit: Int)(
@@ -46,7 +46,9 @@ class UsersService @Inject()(
 
   def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[User]] =
-    usersRepository.findByPrincipalEnrolmentKey(enrolmentKey, planetId)
+    externalUserService.tryLookupExternalUserIfMissingForEnrolmentKey(enrolmentKey, planetId, createUser) {
+      usersRepository.findByPrincipalEnrolmentKey(enrolmentKey, planetId)
+    }
 
   def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(
     implicit ec: ExecutionContext): Future[Seq[User]] =

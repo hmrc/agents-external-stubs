@@ -37,13 +37,15 @@ class BusinessPartnerRecordsService @Inject()(
 
   def getBusinessPartnerRecord(utr: Utr, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[BusinessPartnerRecord]] =
-    externalUserService.tryLookupExternalUserIfMissing(utr, planetId, usersServiceProvider.get.createUser(_, _))(id =>
-      findByKey[BusinessPartnerRecord](BusinessPartnerRecord.utrKey(id.value), planetId).map(_.headOption))
+    externalUserService
+      .tryLookupExternalUserIfMissingForIdentifier(utr, planetId, usersServiceProvider.get.createUser(_, _))(id =>
+        findByKey[BusinessPartnerRecord](BusinessPartnerRecord.utrKey(id.value), planetId).map(_.headOption))
 
   def getBusinessPartnerRecord(nino: Nino, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[BusinessPartnerRecord]] =
-    externalUserService.tryLookupExternalUserIfMissing(nino, planetId, usersServiceProvider.get.createUser(_, _))(id =>
-      findByKey[BusinessPartnerRecord](BusinessPartnerRecord.ninoKey(id.value), planetId).map(_.headOption))
+    externalUserService
+      .tryLookupExternalUserIfMissingForIdentifier(nino, planetId, usersServiceProvider.get.createUser(_, _))(id =>
+        findByKey[BusinessPartnerRecord](BusinessPartnerRecord.ninoKey(id.value), planetId).map(_.headOption))
 
   def getBusinessPartnerRecordByEori(eori: String, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[BusinessPartnerRecord]] =
@@ -51,10 +53,11 @@ class BusinessPartnerRecordsService @Inject()(
 
   def getBusinessPartnerRecordByEoriOrUtr(eori: String, utr: String, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[BusinessPartnerRecord]] =
-    externalUserService.tryLookupExternalUserIfMissing(Utr(utr), planetId, usersServiceProvider.get.createUser(_, _))(
-      n =>
-        findByKeys[BusinessPartnerRecord](
-          Seq(BusinessPartnerRecord.eoriKey(eori), BusinessPartnerRecord.utrKey(utr)),
-          planetId).map(_.headOption))
+    externalUserService
+      .tryLookupExternalUserIfMissingForIdentifier(Utr(utr), planetId, usersServiceProvider.get.createUser(_, _))(
+        n =>
+          findByKeys[BusinessPartnerRecord](
+            Seq(BusinessPartnerRecord.eoriKey(eori), BusinessPartnerRecord.utrKey(utr)),
+            planetId).map(_.headOption))
 
 }

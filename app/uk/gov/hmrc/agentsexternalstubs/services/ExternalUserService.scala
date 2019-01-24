@@ -5,7 +5,7 @@ import play.api.Logger
 import uk.gov.hmrc.agentmtdidentifiers.model.Utr
 import uk.gov.hmrc.agentsexternalstubs.connectors.ApiPlatformTestUserConnector
 import uk.gov.hmrc.agentsexternalstubs.models.ApiPlatform.TestUser
-import uk.gov.hmrc.agentsexternalstubs.models.{Planet, User}
+import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, Planet, User}
 import uk.gov.hmrc.domain.{Nino, SaUtr, Vrn}
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -52,7 +52,7 @@ class ExternalUserService @Inject()(
           None
       }
 
-  def tryLookupExternalUserIfMissing[S, T](
+  def tryLookupExternalUserIfMissingForIdentifier[S, T](
     userIdentifier: S,
     planetId: String,
     createUser: (User, String) => Future[User])(maybeResult: S => Future[Option[T]])(
@@ -68,6 +68,33 @@ class ExternalUserService @Inject()(
 
       case result => Future.successful(result)
     }
+  }
+
+  def tryLookupExternalUserIfMissingForEnrolmentKey[T](
+    enrolmentKey: EnrolmentKey,
+    planetId: String,
+    createUser: (User, String) => Future[User])(maybeResult: => Future[Option[T]])(
+    implicit ec: ExecutionContext): Future[Option[T]] = {
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+    maybeResult.flatMap {
+      case None if syncUsersAllPlanets || planetId == Planet.DEFAULT =>
+        identifierFor(enrolmentKey) match {
+          case None => Future.successful(None)
+          case Some(userIdentifier) =>
+            maybeSyncExternalUserIdentifiedBy(userIdentifier, planetId, createUser)
+              .flatMap(_.map(_ => maybeResult) match {
+                case Some(f) => f
+                case None    => Future.successful(None)
+              })
+        }
+      case result => Future.successful(result)
+    }
+  }
+
+  private def identifierFor(enrolmentKey: EnrolmentKey): Option[AnyRef] = enrolmentKey.service match {
+    case "HMRC-NI"      => enrolmentKey.identifiers.headOption.map(i => Nino(i.value))
+    case "HMRC-MTD-VAT" => enrolmentKey.identifiers.headOption.map(i => Vrn(i.value))
+    case _              => None
   }
 
 }

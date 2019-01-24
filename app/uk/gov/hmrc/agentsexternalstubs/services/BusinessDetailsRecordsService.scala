@@ -32,8 +32,9 @@ class BusinessDetailsRecordsService @Inject()(
 
   def getBusinessDetails(nino: Nino, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[BusinessDetailsRecord]] =
-    externalUserService.tryLookupExternalUserIfMissing(nino, planetId, usersServiceProvider.get.createUser(_, _))(id =>
-      findByKey[BusinessDetailsRecord](BusinessDetailsRecord.ninoKey(id.value), planetId).map(_.headOption))
+    externalUserService
+      .tryLookupExternalUserIfMissingForIdentifier(nino, planetId, usersServiceProvider.get.createUser(_, _))(id =>
+        findByKey[BusinessDetailsRecord](BusinessDetailsRecord.ninoKey(id.value), planetId).map(_.headOption))
 
   def getBusinessDetails(mtdbsa: MtdItId, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[BusinessDetailsRecord]] =
