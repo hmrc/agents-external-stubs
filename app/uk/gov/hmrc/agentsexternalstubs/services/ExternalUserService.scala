@@ -42,8 +42,15 @@ class ExternalUserService @Inject()(
           new IllegalArgumentException(s"Unknown identifier $userIdentifier, expected one of: nino, utr, vrn"))
     }).flatMap(apiUserOpt => {
         apiUserOpt.map(TestUser.asUser).map(user => createUser(user, planetId)) match {
-          case Some(f) => f.map(Some.apply)
-          case None    => Future.successful(None)
+          case Some(f) =>
+            f.map { user =>
+              Logger(getClass).info(
+                s"External user id=name=${user.userId} ${user.name.getOrElse("")} definition successfully imported.")
+              Option(user)
+            }
+          case None =>
+            Logger(getClass).warn(s"External user definition not found for $userIdentifier.")
+            Future.successful(None)
         }
       })
       .recover {
