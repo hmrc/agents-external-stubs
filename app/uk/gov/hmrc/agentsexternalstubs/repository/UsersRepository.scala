@@ -217,7 +217,7 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
       .cursor[T](ReadPreference.primaryPreferred)(reader, implicitly[CursorProducer[T]])
 
   override def create(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
-    insert(user.copy(planetId = Some(planetId), isPermanent = explicitFlag(user.isPermanent)))
+    insert(user.copy(planetId = Some(planetId)))
       .map(_ => ())
       .recoverWith {
         case e: DatabaseException if e.code.contains(11000) =>
@@ -225,7 +225,7 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
       }
 
   override def update(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
-    (User.formats.writes(user.copy(planetId = Some(planetId), isPermanent = explicitFlag(user.isPermanent))) match {
+    (User.formats.writes(user.copy(planetId = Some(planetId))) match {
       case u @ JsObject(_) =>
         collection.update(Json.obj(User.user_index_key -> User.userIndexKey(user.userId, planetId)), u, upsert = true)
       case _ =>

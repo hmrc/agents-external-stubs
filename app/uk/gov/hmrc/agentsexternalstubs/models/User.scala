@@ -3,6 +3,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import cats.data.Validated.{Invalid, Valid}
 import org.joda.time.LocalDate
 import play.api.libs.json._
+import uk.gov.hmrc.agentsexternalstubs.models.User.AdditionalInformation
 import uk.gov.hmrc.domain.Nino
 
 import scala.util.Random
@@ -25,9 +26,9 @@ case class User(
   planetId: Option[String] = None,
   isNonCompliant: Option[Boolean] = None,
   complianceIssues: Option[Seq[String]] = None,
-  isPermanent: Option[Boolean] = None,
   recordIds: Seq[String] = Seq.empty,
-  address: Option[User.Address] = None
+  address: Option[User.Address] = None,
+  additionalInformation: Option[AdditionalInformation] = None
 ) {
 
   def isIndividual: Boolean = affinityGroup.contains(User.AG.Individual)
@@ -81,6 +82,12 @@ object User {
 
   object Address {
     implicit lazy val formats: Format[Address] = Json.format[Address]
+  }
+
+  case class AdditionalInformation(vatRegistrationDate: Option[LocalDate] = None)
+
+  object AdditionalInformation {
+    implicit lazy val formats: Format[AdditionalInformation] = Json.format[AdditionalInformation]
   }
 
   object AG {
@@ -274,9 +281,9 @@ object User {
       (JsPath \ "planetId").readNullable[String] and
       (JsPath \ "isNonCompliant").readNullable[Boolean] and
       (JsPath \ "complianceIssues").readNullable[Seq[String]] and
-      (JsPath \ "isPermanent").readNullable[Boolean] and
       (JsPath \ "recordIds").readNullable[Seq[String]].map(_.map(_.distinct).getOrElse(Seq.empty)) and
-      (JsPath \ "address").readNullable[Address]
+      (JsPath \ "address").readNullable[Address] and
+      (JsPath \ "additionalInformation").readNullable[AdditionalInformation]
   )(User.apply _)
 
   val plainWrites: OWrites[User] = Json.writes[User]
@@ -289,6 +296,27 @@ object User {
     val at = credId.indexOf('@')
     if (at >= 0) (credId.substring(0, at), credId.substring(at + 1))
     else (credId, defaultPlanetId)
+  }
+
+  def knownFactsOf(user: User): Map[String, String] = {
+    val postcodeOpt = user.address.flatMap(_.postcode)
+    val vatRegDateOpt = user.additionalInformation
+      .flatMap(_.vatRegistrationDate.map(_.toString("dd/MM/yy")))
+    Seq(
+      "PostCode"            -> postcodeOpt,
+      "BusinessPostcode"    -> postcodeOpt,
+      "businesspostcode"    -> postcodeOpt,
+      "Postcode"            -> postcodeOpt,
+      "POSTCODE"            -> postcodeOpt,
+      "AgencyPostcode"      -> postcodeOpt,
+      "IRAgentPostcode"     -> postcodeOpt,
+      "IRPCODE"             -> postcodeOpt,
+      "IREFFREGDATE"        -> vatRegDateOpt,
+      "VATRegistrationDate" -> vatRegDateOpt
+    ).collect {
+        case (a, Some(b)) => (a, b)
+      }
+      .toMap[String, String]
   }
 
 }

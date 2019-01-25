@@ -149,11 +149,10 @@ class UsersService @Inject()(
 
   private def updateKnownFacts(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     Future
-      .sequence(
-        user.principalEnrolments
-          .map(_.toEnrolmentKey.flatMap(ek => KnownFacts.generate(ek, user.userId, user.facts)))
-          .collect { case Some(x) => x }
-          .map(knownFacts => knownFactsRepository.upsert(knownFacts, planetId)))
+      .sequence(user.principalEnrolments
+        .map(_.toEnrolmentKey.flatMap(ek => KnownFacts.generate(ek, user.userId, user.facts)))
+        .collect { case Some(x) => x }
+        .map(knownFacts => knownFactsRepository.upsert(knownFacts.applyProperties(User.knownFactsOf(user)), planetId)))
       .map(_ => ())
 
   private def deleteKnownFacts(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =

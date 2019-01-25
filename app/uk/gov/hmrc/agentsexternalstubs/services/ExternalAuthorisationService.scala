@@ -134,7 +134,6 @@ class ExternalAuthorisationService @Inject()(
     agentFriendlyName = first.agentFriendlyName.orElse(second.agentFriendlyName),
     agentId = first.agentId.orElse(second.agentId),
     recordIds = (first.recordIds ++ second.recordIds).distinct,
-    isPermanent = first.isPermanent,
     isNonCompliant = first.isNonCompliant,
     planetId = first.planetId
   )

@@ -1,6 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 import org.joda.time.LocalDate
 import play.api.libs.json.{Format, Json}
+import uk.gov.hmrc.agentsexternalstubs.models.User.AdditionalInformation
 import uk.gov.hmrc.domain.{EmpRef, Nino}
 
 object ApiPlatform {
@@ -92,7 +93,9 @@ object ApiPlatform {
             line1 = Option(a.line1),
             line2 = Option(a.line2),
             postcode = Option(a.postcode),
-            countryCode = Some("GB")))
+            countryCode = Some("GB"))),
+      additionalInformation =
+        testUser.vatRegistrationDate.map(date => AdditionalInformation(vatRegistrationDate = Some(date)))
     )
 
     def mapServicesToEnrolments(testUser: ApiPlatform.TestUser): Seq[Enrolment] =
