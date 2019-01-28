@@ -28,6 +28,7 @@ object Generator extends Names with Temporal with Companies with Addresses {
 
   def pattern(pattern: String): Gen[String] =
     knownPatterns.getOrElse(pattern, PatternContext(StringContext(pattern)).pattern())
+  def patternValue(pat: String, seed: String): String = pattern(pat).seeded(seed).get
 
   def regex(regex: String): Gen[String] =
     knownRegex.getOrElse(regex, RegexpGen.from(regex).retryUntil(s => s.matches(regex)))

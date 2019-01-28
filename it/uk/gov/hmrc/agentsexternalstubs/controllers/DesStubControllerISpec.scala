@@ -5,7 +5,6 @@ import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, urlEqualTo}
 import org.joda.time.LocalDate
 import play.api.libs.json._
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentmtdidentifiers.model.Utr
 import uk.gov.hmrc.agentsexternalstubs.connectors.ExampleApiPlatformTestUserResponses
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.Individual
 import uk.gov.hmrc.agentsexternalstubs.models._
@@ -544,6 +543,60 @@ class DesStubControllerISpec
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val result = DesStub.getSAAgentClientAuthorisationFlags("SA6012", "1234567890")
         result should haveStatus(404)
+      }
+    }
+
+    "POST /registration/02.00.00/individual" should {
+      "register a new individual BPR" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = DesStub.registerIndividualWithoutID(Json.parse(validIndividualWithoutIDSubmission))
+        result should haveStatus(200)
+        result should haveValidJsonBody(
+          haveProperty[String]("safeId") and haveProperty[String]("sapNumber") and haveProperty[String](
+            "processingDate")
+        )
+      }
+
+      "return 400 if payload is for organisation" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = DesStub.registerIndividualWithoutID(Json.parse(validOrganisationWithoutIDSubmission))
+        result should haveStatus(400)
+      }
+
+      "return 400 if payload is invalid" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = DesStub.registerIndividualWithoutID(Json.parse(invalidWithoutIDSubmission))
+        result should haveStatus(400)
+      }
+    }
+
+    "POST /registration/02.00.00/organisation" should {
+      "register a new organisation BPR" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = DesStub.registerOrganisationWithoutID(Json.parse(validOrganisationWithoutIDSubmission))
+        result should haveStatus(200)
+        result should haveValidJsonBody(
+          haveProperty[String]("safeId") and haveProperty[String]("sapNumber") and haveProperty[String](
+            "processingDate")
+        )
+      }
+
+      "return 400 if payload is for individual" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = DesStub.registerOrganisationWithoutID(Json.parse(validIndividualWithoutIDSubmission))
+        result should haveStatus(400)
+      }
+
+      "return 400 if payload is invalid" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = DesStub.registerIndividualWithoutID(Json.parse(invalidWithoutIDSubmission))
+        result should haveStatus(400)
       }
     }
   }

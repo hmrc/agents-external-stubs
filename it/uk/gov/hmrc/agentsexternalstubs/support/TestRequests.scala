@@ -391,6 +391,12 @@ trait TestRequests extends ScalaFutures {
     def getSAAgentClientAuthorisationFlags(agentref: String, utr: String)(
       implicit authContext: AuthContext): WSResponse =
       get(s"/sa/agents/$agentref/client/$utr")
+
+    def registerIndividualWithoutID[T: Writeable](payload: T)(implicit authContext: AuthContext): WSResponse =
+      post(s"/registration/02.00.00/individual", payload)
+
+    def registerOrganisationWithoutID[T: Writeable](payload: T)(implicit authContext: AuthContext): WSResponse =
+      post(s"/registration/02.00.00/organisation", payload)
   }
 
   object DataStreamStubs {

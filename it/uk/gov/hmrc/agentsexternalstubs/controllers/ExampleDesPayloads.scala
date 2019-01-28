@@ -432,4 +432,60 @@ trait ExampleDesPayloads {
       |  "startDate" : "1992-05-14"
       |}""".stripMargin
 
+  val validIndividualWithoutIDSubmission =
+    """
+      |{
+      |    "regime":"AGSV",
+      |    "acknowledgementReference":"8bc4feee-be04-4e84-ba0f-djgg11",
+      |    "isAnAgent":false,
+      |    "isAGroup":false,
+      |    "individual": {
+      |      "firstName": "Stephen",
+      |      "lastName": "Wood",
+      |      "dateOfBirth": "1990-04-03"
+      |    },
+      |    "address":{
+      |        "addressLine1":"Mandatory Address Line 1",
+      |        "addressLine2":"Mandatory Address Line 2",
+      |        "addressLine3":"Optional Address Line 3",
+      |        "addressLine4":"Optional Address Line 4",
+      |        "countryCode":"IE"
+      |    },
+      |    "contactDetails":{
+      |        "phoneNumber":"12345678"
+      |    }
+      |}
+    """.stripMargin
+
+  val invalidWithoutIDSubmission =
+    """
+      |{
+      |    "regime":"AGSV",
+      |    "acknowledgementReference":"8bc4feee-be04-4e84-ba0f-djgg11",
+      |    "isAnAgent":false,
+      |    "isAGroup":false
+      |}
+    """.stripMargin
+
+  val validOrganisationWithoutIDSubmission =
+    """
+      |{
+      |    "regime":"AGSV",
+      |    "acknowledgementReference":"8bc4feee-be04-4e84-ba0f-djgg11",
+      |    "isAnAgent":false,
+      |    "isAGroup":false,
+      |    "organisation":{"organisationName":"Test Organisation Name"},
+      |    "address":{
+      |        "addressLine1":"Mandatory Address Line 1",
+      |        "addressLine2":"Mandatory Address Line 2",
+      |        "addressLine3":"Optional Address Line 3",
+      |        "addressLine4":"Optional Address Line 4",
+      |        "countryCode":"IE"
+      |    },
+      |    "contactDetails":{
+      |        "phoneNumber":"12345678"
+      |    }
+      |}
+    """.stripMargin
+
 }

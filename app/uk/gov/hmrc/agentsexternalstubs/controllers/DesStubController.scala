@@ -239,6 +239,42 @@ class DesStubController @Inject()(
       }(SessionRecordNotFound)
   }
 
+  def registerIndividualWithoutID: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+    withCurrentSession { session =>
+      withPayload[RegistrationWithoutIdPayload] { payload =>
+        if (payload.individual.isDefined) {
+          businessPartnerRecordsService
+            .store(RegistrationWithoutId.toBusinessPartnerRecord(payload), autoFill = false, session.planetId)
+            .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, session.planetId))
+            .map {
+              case Some(record) =>
+                ok(RegistrationWithoutId.responseFrom(record))
+              case _ =>
+                internalServerError("SERVER_ERROR", "BusinessPartnerRecord creation failed silently.")
+            }
+        } else badRequestF("INVALID_PAYLOAD", "Expected individual but missing.")
+      }
+    }(SessionRecordNotFound)
+  }
+
+  def registerOrganisationWithoutID: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+    withCurrentSession { session =>
+      withPayload[RegistrationWithoutIdPayload] { payload =>
+        if (payload.organisation.isDefined) {
+          businessPartnerRecordsService
+            .store(RegistrationWithoutId.toBusinessPartnerRecord(payload), autoFill = false, session.planetId)
+            .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, session.planetId))
+            .map {
+              case Some(record) =>
+                ok(RegistrationWithoutId.responseFrom(record))
+              case _ =>
+                internalServerError("SERVER_ERROR", "BusinessPartnerRecord creation failed silently.")
+            }
+        } else badRequestF("INVALID_PAYLOAD", "Expected organisation but missing.")
+      }
+    }(SessionRecordNotFound)
+  }
+
   private def getOrCreateBusinessPartnerRecord[T <: Record](
     payload: RegistrationPayload,
     idType: String,
@@ -527,6 +563,50 @@ object DesStubController {
         }
       case other => other
     }
+
+  }
+
+  object RegistrationWithoutId {
+
+    def toBusinessPartnerRecord(payload: RegistrationWithoutIdPayload): BusinessPartnerRecord = {
+      val seed = payload.identification.map(_.idNumber).getOrElse(payload.acknowledgementReference)
+      BusinessPartnerRecord
+        .seed(seed)
+        .withNino(None)
+        .withUtr(None)
+        .withEori(None)
+        .withIsAnIndividual(payload.individual.isDefined)
+        .withIsAnOrganisation(payload.organisation.isDefined)
+        .withIsAnAgent(payload.isAnAgent)
+        .withIsAnASAgent(false)
+        .withIndividual(
+          payload.individual.map(
+            i =>
+              BusinessPartnerRecord.Individual
+                .seed(seed)
+                .withFirstName(i.firstName)
+                .withLastName(i.lastName)
+                .withDateOfBirth(i.dateOfBirth)
+          )
+        )
+        .withOrganisation(
+          payload.organisation.map(
+            o =>
+              BusinessPartnerRecord.Organisation
+                .seed(seed)
+                .withOrganisationName(o.organisationName)
+                .withIsAGroup(payload.isAGroup)
+                .withOrganisationType("0000")))
+    }
+
+    case class Response(processingDate: Instant = Instant.now(), sapNumber: String, safeId: String)
+
+    object Response {
+      implicit val formats: Format[Response] = Json.format[Response]
+    }
+
+    def responseFrom(record: BusinessPartnerRecord): Response =
+      Response(sapNumber = Generator.patternValue("9999999999", record.safeId), safeId = record.safeId)
 
   }
 

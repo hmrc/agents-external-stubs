@@ -156,6 +156,8 @@ Endpoint | Description
 `GET  /registration/individual/:idType/:idNumber` | Provides the ability for a Taxpayer (Business or Individual) to register on the master system. In order to utilise this API, the taxpayer must have a valid NINO, UTR or EORI..
 `GET  /registration/organisation/:idType/:idNumber` | Provides the ability for a Taxpayer (Business or Individual) to register on the master system. In order to utilise this API, the taxpayer must have a valid NINO, UTR or EORI..
 `GET  /sa/agents/:agentref/client/:utr` | Retrieves Agent-Client authorization flag from Data Cache
+`POST /registration/02.00.00/individual` | Provides the ability for an individual who is not in possession of a UTR to register on ETMP
+`POST /registration/02.00.00/organisation` | Provides the ability for an organisation who is not in possession of a UTR to register on ETMP
 
 ### [Datastream](https://github.com/hmrc/datastream) <a name="stubbed_api_datastream"></a>
 

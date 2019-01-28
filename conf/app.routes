@@ -51,6 +51,9 @@ POST        /registration/agents/utr/:utr                                    @uk
 POST        /registration/individual/:idType/:idNumber                       @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.register(idType: String, idNumber: String)
 POST        /registration/organisation/:idType/:idNumber                     @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.register(idType: String, idNumber: String)
 GET         /sa/agents/:agentref/client/:utr                                 @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.agentClientAuthorisationFlags(agentref: String, utr: String)
+POST        /registration/02.00.00/individual                                @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.registerIndividualWithoutID
+POST        /registration/02.00.00/organisation                              @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.registerOrganisationWithoutID
+
 
 # Datastream
 POST        /write/audit                                                     @uk.gov.hmrc.agentsexternalstubs.controllers.DataStreamStubController.writeEvent
