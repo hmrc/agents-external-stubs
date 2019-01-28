@@ -152,9 +152,10 @@ Endpoint | Description
 `GET  /vat/customer/vrn/:vrn/information` | Provides the ability for a taxpayer (Business or Individual) to retrieve a customer data record from the master system for the VAT tax regime.
 `GET  /registration/personal-details/arn/:arn` | Provides the ability to request the Agent Record Details (business partner record) associated with the Register Once Number or Agent Register Once Number
 `GET  /registration/personal-details/utr/:utr` | ^^ as above
-`GET  /registration/agents/utr/:utr` | Provides the ability for an Agent to be subscribed into Agents Services, generating the agent reference number.
-`GET  /registration/individual/:idType/:idNumber` | Provides the ability for a Taxpayer (Business or Individual) to register on the master system. In order to utilise this API, the taxpayer must have a valid NINO, UTR or EORI..
-`GET  /registration/organisation/:idType/:idNumber` | Provides the ability for a Taxpayer (Business or Individual) to register on the master system. In order to utilise this API, the taxpayer must have a valid NINO, UTR or EORI..
+`POST /registration/agents/utr/:utr` | Provides the ability for an Agent to be subscribed into Agents Services, generating the agent reference number.
+`POST /registration/agents/safeId/:safeId` | Provides the ability for an Agent to be subscribed into Agents Services, generating the agent reference number.
+`POST /registration/individual/:idType/:idNumber` | Provides the ability for a Taxpayer (Business or Individual) to register on the master system. In order to utilise this API, the taxpayer must have a valid NINO, UTR or EORI..
+`POST /registration/organisation/:idType/:idNumber` | Provides the ability for a Taxpayer (Business or Individual) to register on the master system. In order to utilise this API, the taxpayer must have a valid NINO, UTR or EORI..
 `GET  /sa/agents/:agentref/client/:utr` | Retrieves Agent-Client authorization flag from Data Cache
 `POST /registration/02.00.00/individual` | Provides the ability for an individual who is not in possession of a UTR to register on ETMP
 `POST /registration/02.00.00/organisation` | Provides the ability for an organisation who is not in possession of a UTR to register on ETMP

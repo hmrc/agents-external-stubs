@@ -377,8 +377,13 @@ trait TestRequests extends ScalaFutures {
     def getBusinessPartnerRecord(idType: String, idNumber: String)(implicit authContext: AuthContext): WSResponse =
       get(s"/registration/personal-details/$idType/$idNumber")
 
-    def subscribeToAgentServices[T: Writeable](utr: String, payload: T)(implicit authContext: AuthContext): WSResponse =
+    def subscribeToAgentServicesWithUtr[T: Writeable](utr: String, payload: T)(
+      implicit authContext: AuthContext): WSResponse =
       post(s"/registration/agents/utr/$utr", payload)
+
+    def subscribeToAgentServicesWithSafeId[T: Writeable](safeId: String, payload: T)(
+      implicit authContext: AuthContext): WSResponse =
+      post(s"/registration/agents/safeId/$safeId", payload)
 
     def registerIndividual[T: Writeable](idType: String, idNumber: String, payload: T)(
       implicit authContext: AuthContext): WSResponse =

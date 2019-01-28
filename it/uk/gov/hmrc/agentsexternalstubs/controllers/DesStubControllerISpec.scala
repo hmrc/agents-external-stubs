@@ -404,7 +404,7 @@ class DesStubControllerISpec
             .withIndividual(Some(Individual.seed("foo"))))
         createResult should haveStatus(201)
 
-        val result = DesStub.subscribeToAgentServices("0123456789", Json.parse(validAgentSubmission))
+        val result = DesStub.subscribeToAgentServicesWithUtr("0123456789", Json.parse(validAgentSubmission))
         result should haveStatus(200)
         result should haveValidJsonBody(
           haveProperty[String]("safeId") and haveProperty[String]("agentRegistrationNumber")
@@ -414,14 +414,46 @@ class DesStubControllerISpec
       "return 400 if utr not valid" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
-        val result = DesStub.subscribeToAgentServices("foo", Json.parse(validAgentSubmission))
+        val result = DesStub.subscribeToAgentServicesWithUtr("foo", Json.parse(validAgentSubmission))
         result should haveStatus(400)
       }
 
       "return 400 if utr not found" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
-        val result = DesStub.subscribeToAgentServices("0123456789", Json.parse(validAgentSubmission))
+        val result = DesStub.subscribeToAgentServicesWithUtr("0123456789", Json.parse(validAgentSubmission))
+        result should haveStatus(400)
+      }
+    }
+
+    "POST /registration/agents/safeId/:safeId" should {
+      "subscribe agent to AgentServices and return ARN" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val createResult = Records.createBusinessPartnerRecord(
+          BusinessPartnerRecord
+            .seed("foo")
+            .withSafeId("XE0001234567890")
+            .withIndividual(Some(Individual.seed("foo"))))
+        createResult should haveStatus(201)
+
+        val result = DesStub.subscribeToAgentServicesWithSafeId("XE0001234567890", Json.parse(validAgentSubmission))
+        result should haveStatus(200)
+        result should haveValidJsonBody(
+          haveProperty[String]("safeId", be("XE0001234567890")) and haveProperty[String]("agentRegistrationNumber")
+        )
+      }
+
+      "return 400 if safeId not valid" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = DesStub.subscribeToAgentServicesWithSafeId("foo", Json.parse(validAgentSubmission))
+        result should haveStatus(400)
+      }
+
+      "return 400 if safeId not found" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = DesStub.subscribeToAgentServicesWithSafeId("XE0001234567890", Json.parse(validAgentSubmission))
         result should haveStatus(400)
       }
     }

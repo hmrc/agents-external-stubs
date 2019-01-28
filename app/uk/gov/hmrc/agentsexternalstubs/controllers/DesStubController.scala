@@ -163,40 +163,82 @@ class DesStubController @Inject()(
     }(SessionRecordNotFound)
   }
 
-  def subscribeAgentServices(utr: String): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
-    withCurrentSession { session =>
-      RegexPatterns
-        .validUtr(utr)
-        .fold(
-          error => badRequestF("INVALID_UTR", error),
-          _ =>
-            withPayload[SubscribeAgentServicesPayload] { payload =>
-              SubscribeAgentServicesPayload
-                .validate(payload)
-                .fold(
-                  error => badRequestF("INVALID_PAYLOAD", error.mkString(", ")),
-                  _ =>
-                    businessPartnerRecordsService.getBusinessPartnerRecord(Utr(utr), session.planetId).flatMap {
-                      case None => badRequestF("NOT_FOUND")
-                      case Some(existingRecord) =>
-                        businessPartnerRecordsService
-                          .store(
-                            SubscribeAgentServices.toBusinessPartnerRecord(payload, existingRecord),
-                            autoFill = false,
-                            session.planetId)
-                          .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, session.planetId))
-                          .map {
-                            case Some(record) =>
-                              ok(SubscribeAgentServices.Response(record.safeId, record.agentReferenceNumber.get))
-                            case None =>
-                              internalServerError("SERVER_ERROR", "BusinessPartnerRecord creation failed silently.")
-                          }
-                  }
-                )
-          }
-        )
+  def subscribeAgentServicesWithUtr(identifier: String): Action[JsValue] = Action.async(parse.tolerantJson) {
+    implicit request =>
+      withCurrentSession { session =>
+        RegexPatterns
+          .validUtr(identifier)
+          .fold(
+            error => badRequestF("INVALID_UTR", error),
+            _ =>
+              withPayload[SubscribeAgentServicesPayload] { payload =>
+                SubscribeAgentServicesPayload
+                  .validate(payload)
+                  .fold(
+                    error => badRequestF("INVALID_PAYLOAD", error.mkString(", ")),
+                    _ =>
+                      businessPartnerRecordsService
+                        .getBusinessPartnerRecord(Utr(identifier), session.planetId)
+                        .flatMap {
+                          case None => badRequestF("NOT_FOUND")
+                          case Some(existingRecord) =>
+                            businessPartnerRecordsService
+                              .store(
+                                SubscribeAgentServices.toBusinessPartnerRecord(payload, existingRecord),
+                                autoFill = false,
+                                session.planetId)
+                              .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, session.planetId))
+                              .map {
+                                case Some(record) =>
+                                  ok(SubscribeAgentServices.Response(record.safeId, record.agentReferenceNumber.get))
+                                case None =>
+                                  internalServerError("SERVER_ERROR", "BusinessPartnerRecord creation failed silently.")
+                              }
+                      }
+                  )
+            }
+          )
 
-    }(SessionRecordNotFound)
+      }(SessionRecordNotFound)
+  }
+
+  def subscribeAgentServicesWithSafeId(identifier: String): Action[JsValue] = Action.async(parse.tolerantJson) {
+    implicit request =>
+      withCurrentSession { session =>
+        RegexPatterns
+          .validSafeId(identifier)
+          .fold(
+            error => badRequestF("INVALID_SAFEID", error),
+            _ =>
+              withPayload[SubscribeAgentServicesPayload] { payload =>
+                SubscribeAgentServicesPayload
+                  .validate(payload)
+                  .fold(
+                    error => badRequestF("INVALID_PAYLOAD", error.mkString(", ")),
+                    _ =>
+                      businessPartnerRecordsService
+                        .getBusinessPartnerRecordBySafeId(identifier, session.planetId)
+                        .flatMap {
+                          case None => badRequestF("NOT_FOUND")
+                          case Some(existingRecord) =>
+                            businessPartnerRecordsService
+                              .store(
+                                SubscribeAgentServices.toBusinessPartnerRecord(payload, existingRecord),
+                                autoFill = false,
+                                session.planetId)
+                              .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, session.planetId))
+                              .map {
+                                case Some(record) =>
+                                  ok(SubscribeAgentServices.Response(record.safeId, record.agentReferenceNumber.get))
+                                case None =>
+                                  internalServerError("SERVER_ERROR", "BusinessPartnerRecord creation failed silently.")
+                              }
+                      }
+                  )
+            }
+          )
+
+      }(SessionRecordNotFound)
   }
 
   def register(idType: String, idNumber: String): Action[JsValue] = Action.async(parse.tolerantJson) {
@@ -307,6 +349,7 @@ class DesStubController @Inject()(
       case "arn"    => validateIdentifier(RegexPatterns.validArn, "INVALID_ARN", idType, idNumber)(pf)
       case "vrn"    => validateIdentifier(RegexPatterns.validVrn, "INVALID_VRN", idType, idNumber)(pf)
       case "eori"   => validateIdentifier(RegexPatterns.validEori, "INVALID_EORI", idType, idNumber)(pf)
+      case "safeId" => validateIdentifier(RegexPatterns.validSafeId, "INVALID_SAFEID", idType, idNumber)(pf)
       case _        => badRequestF("INVALID_IDTYPE")
     }
 

@@ -60,4 +60,8 @@ class BusinessPartnerRecordsService @Inject()(
             Seq(BusinessPartnerRecord.eoriKey(eori), BusinessPartnerRecord.utrKey(utr)),
             planetId).map(_.headOption))
 
+  def getBusinessPartnerRecordBySafeId(safeId: String, planetId: String)(
+    implicit ec: ExecutionContext): Future[Option[BusinessPartnerRecord]] =
+    findByKey[BusinessPartnerRecord](BusinessPartnerRecord.uniqueKey(safeId), planetId).map(_.headOption)
+
 }
