@@ -179,6 +179,8 @@ object Generator extends Names with Temporal with Companies with Addresses {
   lazy val dateDDMMYYYYGen: Gen[String] = date(1970, 2017).map(_.format(`date_dd/MM/yyyy`))
   lazy val dateYYYYMMDDGen: Gen[String] = date(1970, 2017).map(_.format(`date_yyyy-MM-dd`))
   lazy val shortMonthNameGen: Gen[String] = date(1970, 2017).map(_.format(`date_MMM`).toUpperCase)
+  lazy val countryCodeGen: Gen[String] =
+    Gen.frequency(95 -> Gen.const("GB"), 5 -> Gen.oneOf(Seq("IE", "DE", "FR", "CA", "AU", "ES", "PL", "NL", "BB")))
 
   lazy val knownPatterns: Map[String, Gen[String]] = Map(
     "arn"             -> arnGen,
@@ -194,7 +196,8 @@ object Generator extends Names with Temporal with Companies with Addresses {
     "date:dd/MM/yy"   -> dateDDMMYYGen,
     "date:yyyy-MM-dd" -> dateYYYYMMDDGen,
     "date:MMM"        -> shortMonthNameGen,
-    "date:dd/MM/yyyy" -> dateDDMMYYYYGen
+    "date:dd/MM/yyyy" -> dateDDMMYYYYGen,
+    "countrycode"     -> countryCodeGen
   )
 
   lazy val knownRegex: Map[String, Gen[String]] = Map(

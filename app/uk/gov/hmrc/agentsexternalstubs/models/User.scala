@@ -312,7 +312,8 @@ object User {
       "IRAgentPostcode"     -> postcodeOpt,
       "IRPCODE"             -> postcodeOpt,
       "IREFFREGDATE"        -> vatRegDateOpt,
-      "VATRegistrationDate" -> vatRegDateOpt
+      "VATRegistrationDate" -> vatRegDateOpt,
+      "CountryCode"         -> user.address.flatMap(_.countryCode)
     ).collect {
         case (a, Some(b)) => (a, b)
       }
