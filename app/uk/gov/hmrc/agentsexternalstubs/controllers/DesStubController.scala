@@ -538,7 +538,7 @@ object DesStubController {
       }
       existingRecord
         .modifyAgentReferenceNumber {
-          case None => Some(Generator.arn(existingRecord.utr.get).value)
+          case None => Some(Generator.arn(existingRecord.utr.getOrElse(existingRecord.safeId)).value)
         }
         .withAgencyDetails(
           Some(

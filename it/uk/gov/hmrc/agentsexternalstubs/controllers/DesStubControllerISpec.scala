@@ -401,7 +401,10 @@ class DesStubControllerISpec
           BusinessPartnerRecord
             .seed("foo")
             .withUtr(Some("0123456789"))
-            .withIndividual(Some(Individual.seed("foo"))))
+            .withAgentReferenceNumber(None)
+            .withIndividual(Some(Individual.seed("foo"))),
+          autoFill = false
+        )
         createResult should haveStatus(201)
 
         val result = DesStub.subscribeToAgentServicesWithUtr("0123456789", Json.parse(validAgentSubmission))
@@ -433,7 +436,11 @@ class DesStubControllerISpec
           BusinessPartnerRecord
             .seed("foo")
             .withSafeId("XE0001234567890")
-            .withIndividual(Some(Individual.seed("foo"))))
+            .withUtr(None)
+            .withAgentReferenceNumber(None)
+            .withIndividual(Some(Individual.seed("foo"))),
+          autoFill = false
+        )
         createResult should haveStatus(201)
 
         val result = DesStub.subscribeToAgentServicesWithSafeId("XE0001234567890", Json.parse(validAgentSubmission))
