@@ -129,3 +129,12 @@ Agents External Stubs let you define, authenticate and authorise test users usin
         },
         "planetId" : "Alpha"
     }
+    
+### Stride user example:
+    
+    {
+        "userId" : "User003",
+        "strideRoles" : ["FOO"],
+        "planetId" : "Alpha"
+      
+    }

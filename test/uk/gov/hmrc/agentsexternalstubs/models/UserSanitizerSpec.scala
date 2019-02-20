@@ -129,6 +129,27 @@ class UserSanitizerSpec extends UnitSpec {
         .flatMap(_.identifiers.get.map(_.key)) should contain.only("AgentReferenceNumber")
     }
 
+    "remove affinity group, principal and delegated enrolments and other data if STRIDE role present" in {
+      val sanitized = UserSanitizer
+        .sanitize(
+          User(
+            "foo",
+            affinityGroup = Some(User.AG.Individual),
+            principalEnrolments = Seq(Enrolment("HMRC-AS-AGENT")),
+            delegatedEnrolments = Seq(Enrolment("HMRC-MTD-IT")),
+            strideRoles = Seq("FOO")
+          )
+        )
+      sanitized.principalEnrolments shouldBe empty
+      sanitized.delegatedEnrolments shouldBe empty
+      sanitized.strideRoles shouldBe Seq("FOO")
+      sanitized.affinityGroup shouldBe None
+      sanitized.nino shouldBe None
+      sanitized.credentialRole shouldBe None
+      sanitized.credentialStrength shouldBe None
+      sanitized.confidenceLevel shouldBe None
+    }
+
     "remove redundant dangling principal enrolment keys" in {
       UserSanitizer
         .sanitize(

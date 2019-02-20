@@ -53,6 +53,13 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/yuwyquhh")
       }
 
+      "store a new STRIDE user" in {
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        val result = Users.create(User("stride").withStrideRole("FOO"))
+        result should haveStatus(201)
+        result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/stride")
+      }
+
       "fail if trying to store user with duplicated userId on the same planet" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         val result1 = Users.create(User("yuwyquhh"))

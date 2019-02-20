@@ -14,6 +14,7 @@ trait AuthoriseContext {
   def providerType: String
   def principalEnrolments: Seq[Enrolment]
   def delegatedEnrolments: Seq[Enrolment]
+  def strideRoles: Seq[String]
   def affinityGroup: Option[String]
   def confidenceLevel: Option[Int]
   def credentialStrength: Option[String]
@@ -48,6 +49,8 @@ case class FullAuthoriseContext(
     else user.principalEnrolments
 
   override def delegatedEnrolments: Seq[Enrolment] = user.delegatedEnrolments
+
+  def strideRoles: Seq[String] = user.strideRoles
 
   override def affinityGroup: Option[String] = user.affinityGroup
 

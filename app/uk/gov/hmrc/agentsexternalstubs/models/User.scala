@@ -28,7 +28,8 @@ case class User(
   complianceIssues: Option[Seq[String]] = None,
   recordIds: Seq[String] = Seq.empty,
   address: Option[User.Address] = None,
-  additionalInformation: Option[AdditionalInformation] = None
+  additionalInformation: Option[AdditionalInformation] = None,
+  strideRoles: Seq[String] = Seq.empty
 ) {
 
   def isIndividual: Boolean = affinityGroup.contains(User.AG.Individual)
@@ -151,6 +152,8 @@ object User {
     def withPrincipalEnrolment(enrolmentKey: String): User =
       withPrincipalEnrolment(
         Enrolment.from(EnrolmentKey.parse(enrolmentKey).fold(e => throw new Exception(e), identity)))
+
+    def withStrideRole(role: String): User = user.copy(strideRoles = user.strideRoles :+ role)
 
     def withDelegatedEnrolment(enrolment: Enrolment): User =
       user.copy(delegatedEnrolments = user.delegatedEnrolments :+ enrolment)
@@ -283,7 +286,8 @@ object User {
       (JsPath \ "complianceIssues").readNullable[Seq[String]] and
       (JsPath \ "recordIds").readNullable[Seq[String]].map(_.map(_.distinct).getOrElse(Seq.empty)) and
       (JsPath \ "address").readNullable[Address] and
-      (JsPath \ "additionalInformation").readNullable[AdditionalInformation]
+      (JsPath \ "additionalInformation").readNullable[AdditionalInformation] and
+      (JsPath \ "strideRoles").readNullable[Seq[String]].map(_.getOrElse(Seq.empty))
   )(User.apply _)
 
   val plainWrites: OWrites[User] = Json.writes[User]

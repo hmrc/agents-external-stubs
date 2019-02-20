@@ -95,11 +95,31 @@ class AuthStubControllerISpec
         creds.providerType shouldBe "GovernmentGateway"
       }
 
-      "authorise if user authenticated with the expected provider" in {
+      "authorise if user authenticated with the OneTimeLogin provider" in {
         val authToken = givenAnAuthenticatedUser(User(randomId), providerType = "OneTimeLogin")
         await(
           authConnector
             .authorise[Unit](AuthProviders(AuthProvider.OneTimeLogin), EmptyRetrieval)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global))
+      }
+
+      "authorise if user authenticated with the PrivilegedApplication provider" in {
+        val authToken = givenAnAuthenticatedUser(User(randomId), providerType = "PrivilegedApplication")
+        await(
+          authConnector
+            .authorise[Unit](AuthProviders(AuthProvider.PrivilegedApplication), EmptyRetrieval)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global))
+      }
+
+      "authorise if user has a STRIDE enrolment" in {
+        val authToken = givenAnAuthenticatedUser(
+          UserGenerator.individual(randomId).withStrideRole(role = "FOO"),
+          providerType = "PrivilegedApplication")
+        await(
+          authConnector
+            .authorise[Unit](AuthProviders(AuthProvider.PrivilegedApplication) and Enrolment("FOO"), EmptyRetrieval)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global))
       }

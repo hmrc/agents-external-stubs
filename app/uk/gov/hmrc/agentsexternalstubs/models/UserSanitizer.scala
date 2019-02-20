@@ -20,6 +20,24 @@ object UserSanitizer extends RecordUtils[User] {
           case None    => user
         } else user
 
+  private val ensureStrideUserHaveNoGatewayEnrolmentsNorAffinityGroupNorOtherData: Update = seed =>
+    user =>
+      if (user.strideRoles.nonEmpty)
+        user.copy(
+          principalEnrolments = Seq.empty,
+          delegatedEnrolments = Seq.empty,
+          affinityGroup = None,
+          agentCode = None,
+          agentId = None,
+          nino = None,
+          additionalInformation = None,
+          address = None,
+          confidenceLevel = None,
+          credentialStrength = None,
+          credentialRole = None
+        )
+      else user
+
   private val ensureIndividualUserHaveDateOfBirth: Update = seed =>
     user =>
       if (user.affinityGroup.contains(User.AG.Individual) && user.dateOfBirth.isEmpty)
@@ -187,6 +205,7 @@ object UserSanitizer extends RecordUtils[User] {
     Seq(
       ensureUserHaveGroupIdentifier,
       ensureUserHaveName,
+      ensureStrideUserHaveNoGatewayEnrolmentsNorAffinityGroupNorOtherData,
       ensureIndividualUserHaveDateOfBirth,
       ensureOnlyIndividualUserHaveNINO,
       ensureOnlyIndividualUserHaveConfidenceLevel,

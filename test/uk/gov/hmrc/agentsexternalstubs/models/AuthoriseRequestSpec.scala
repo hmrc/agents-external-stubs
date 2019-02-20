@@ -199,9 +199,18 @@ class AuthoriseRequestSpec extends UnitSpec {
       predicate.validate(context) shouldBe Right(())
     }
 
+    "accept if user has the expected stride role" in {
+      val context = mock(classOf[AuthoriseContext])
+      when(context.principalEnrolments).thenReturn(Seq.empty)
+      when(context.strideRoles).thenReturn(Seq("BAR"))
+      val predicate = EnrolmentPredicate("BAR")
+      predicate.validate(context) shouldBe Right(())
+    }
+
     "reject if user has the enrolment key expected but doesn't match" in {
       val context = mock(classOf[AuthoriseContext])
       when(context.principalEnrolments).thenReturn(Seq(Enrolment("bar")))
+      when(context.strideRoles).thenReturn(Seq.empty)
       val predicate = EnrolmentPredicate("foo")
       predicate.validate(context) shouldBe Left("InsufficientEnrolments")
     }
@@ -209,6 +218,7 @@ class AuthoriseRequestSpec extends UnitSpec {
     "reject if user has the enrolment key matches but identifiers key doesn't match" in {
       val context = mock(classOf[AuthoriseContext])
       when(context.principalEnrolments).thenReturn(Seq(Enrolment("foo", Some(Seq(Identifier("bar", "1234556789"))))))
+      when(context.strideRoles).thenReturn(Seq.empty)
       val predicate = EnrolmentPredicate("foo", Some(Seq(Identifier("rab", "1234556789"))))
       predicate.validate(context) shouldBe Left("InsufficientEnrolments")
     }
@@ -216,6 +226,7 @@ class AuthoriseRequestSpec extends UnitSpec {
     "reject if user has the enrolment and identifier keys match but identifiers value doesn't match" in {
       val context = mock(classOf[AuthoriseContext])
       when(context.principalEnrolments).thenReturn(Seq(Enrolment("foo", Some(Seq(Identifier("bar", "1234556789"))))))
+      when(context.strideRoles).thenReturn(Seq.empty)
       val predicate = EnrolmentPredicate("foo", Some(Seq(Identifier("bar", "987654321"))))
       predicate.validate(context) shouldBe Left("InsufficientEnrolments")
     }

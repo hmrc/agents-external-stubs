@@ -62,6 +62,8 @@ class TcpProxies @Inject()(tcpProxiesConfig: TcpProxiesConfig, @Named("http.port
     startProxy(tcpProxiesConfig.desPort, "des")
     startProxy(tcpProxiesConfig.dataStreamPort.toInt, "datastream")
 
+    Logger(getClass).info("All proxies started.")
+
   } else {
     Logger(getClass).info("TCP proxying feature is switched off")
   }
