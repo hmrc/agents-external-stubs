@@ -52,17 +52,20 @@ class TcpProxies @Inject()(tcpProxiesConfig: TcpProxiesConfig, @Named("http.port
             Logger(getClass).error(s"Could not start TCP proxy for $serviceName requests on $port because of $e")
         }
 
-    startProxy(tcpProxiesConfig.authPort, "auth")
-    startProxy(tcpProxiesConfig.citizenDetailsPort, "citizen-details")
-    startProxy(tcpProxiesConfig.userDetailsPort, "user-details")
-    startProxy(tcpProxiesConfig.usersGroupsSearchPort, "users-groups-search")
-    startProxy(tcpProxiesConfig.enrolmentStoreProxyPort, "enrolment-store-proxy")
-    startProxy(tcpProxiesConfig.taxEnrolmentsPort, "tax-enrolments")
-    startProxy(tcpProxiesConfig.niExemptionRegistrationPort, "ni-exemption-registration")
-    startProxy(tcpProxiesConfig.desPort, "des")
-    startProxy(tcpProxiesConfig.dataStreamPort.toInt, "datastream")
-
-    Logger(getClass).info("All proxies started.")
+    Future
+      .sequence(
+        Seq(
+          startProxy(tcpProxiesConfig.authPort, "auth"),
+          startProxy(tcpProxiesConfig.citizenDetailsPort, "citizen-details"),
+          startProxy(tcpProxiesConfig.userDetailsPort, "user-details"),
+          startProxy(tcpProxiesConfig.usersGroupsSearchPort, "users-groups-search"),
+          startProxy(tcpProxiesConfig.enrolmentStoreProxyPort, "enrolment-store-proxy"),
+          startProxy(tcpProxiesConfig.taxEnrolmentsPort, "tax-enrolments"),
+          startProxy(tcpProxiesConfig.niExemptionRegistrationPort, "ni-exemption-registration"),
+          startProxy(tcpProxiesConfig.desPort, "des"),
+          startProxy(tcpProxiesConfig.dataStreamPort.toInt, "datastream")
+        ))
+      .map(_ => Logger(getClass).info("All proxies have started."))
 
   } else {
     Logger(getClass).info("TCP proxying feature is switched off")
