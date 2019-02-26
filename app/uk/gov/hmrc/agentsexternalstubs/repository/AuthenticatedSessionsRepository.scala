@@ -69,4 +69,7 @@ class AuthenticatedSessionsRepository @Inject()(mongoComponent: ReactiveMongoCom
   def delete(sessionId: String)(implicit ec: ExecutionContext): Future[WriteResult] =
     remove("authToken" -> sessionId)
 
+  def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+    remove("planetId" -> Option(planetId)).map(_ => ())
+
 }
