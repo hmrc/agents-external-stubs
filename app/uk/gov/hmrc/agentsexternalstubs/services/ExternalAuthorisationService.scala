@@ -54,10 +54,10 @@ class ExternalAuthorisationService @Inject()(
         }
         .recover {
           case e: Upstream5xxResponse =>
-            Logger(getClass).warn(s"External authorization lookup failed with $e")
+            Logger(getClass).warn(s"External authorization lookup failed with $e for headers ${report(hc)}")
             None
           case e: Upstream4xxResponse /*if e.upstreamResponseCode != 401*/ =>
-            Logger(getClass).warn(s"External authorization lookup failed with $e")
+            Logger(getClass).warn(s"External authorization lookup failed with $e for headers ${report(hc)}")
             None
         }
         .flatMap {
@@ -104,7 +104,7 @@ class ExternalAuthorisationService @Inject()(
                               case _ =>
                                 Logger(getClass).info(
                                   s"Existing user '$userId' updated on the planet '$planetId' based on external authorisation ${Json
-                                    .prettyPrint(Json.toJson(response))} for headers: $hc")
+                                    .prettyPrint(Json.toJson(response))} for headers ${report(hc)}")
                             }
                         case None =>
                           for {
@@ -112,7 +112,7 @@ class ExternalAuthorisationService @Inject()(
                             user  <- usersService.createUser(fixed.copy(session.userId), session.planetId)
                             _ = Logger(getClass).info(
                               s"New user '$userId' created on the planet '$planetId' based external authorisation ${Json
-                                .prettyPrint(Json.toJson(response))} for headers: $hc")
+                                .prettyPrint(Json.toJson(response))} for headers ${report(hc)}")
                           } yield user
                       }
                     case _ =>
@@ -123,10 +123,12 @@ class ExternalAuthorisationService @Inject()(
         }
         .recover {
           case NonFatal(e) =>
-            Logger(getClass).warn(s"External authorization failed with $e")
+            Logger(getClass).warn(s"External user copy failed with $e for headers ${report(hc)}")
             None
         }
     }
+
+  def report(hc: HeaderCarrier): String = s"""Authorization:${hc.authorization} X-Session-ID:${hc.sessionId} [$hc]"""
 
   private def merge(first: User, second: User): User = User(
     userId = first.userId,
