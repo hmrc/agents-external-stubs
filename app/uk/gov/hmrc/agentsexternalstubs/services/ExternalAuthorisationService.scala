@@ -54,10 +54,13 @@ class ExternalAuthorisationService @Inject()(
         }
         .recover {
           case e: Upstream5xxResponse =>
-            Logger(getClass).warn(s"External authorization lookup failed with $e for headers ${report(hc)}")
+            Logger(getClass).warn(s"External authorization lookup failed with [$e] for headers ${report(hc)}")
             None
-          case e: Upstream4xxResponse /*if e.upstreamResponseCode != 401*/ =>
-            Logger(getClass).warn(s"External authorization lookup failed with $e for headers ${report(hc)}")
+          case e: Upstream4xxResponse if e.upstreamResponseCode != 401 =>
+            Logger(getClass).warn(s"External authorization lookup failed with [$e] for headers ${report(hc)}")
+            None
+          case e: Upstream4xxResponse if e.upstreamResponseCode == 401 =>
+            Logger(getClass).warn(s"External authorization not found for headers ${report(hc)}")
             None
         }
         .flatMap {
@@ -100,31 +103,46 @@ class ExternalAuthorisationService @Inject()(
                         case Some(_) =>
                           usersService
                             .updateUser(session.userId, session.planetId, existing => merge(existing, user))
+                            .recover {
+                              case NonFatal(e) =>
+                                Logger(getClass).warn(
+                                  s"Creating user '$userId' on the planet '$planetId' failed with [$e] for an external authorisation ${Json
+                                    .prettyPrint(Json.toJson(response))} and headers ${report(hc)}")
+                                None
+                            }
                             .andThen {
                               case _ =>
                                 Logger(getClass).info(
-                                  s"Existing user '$userId' updated on the planet '$planetId' based on external authorisation ${Json
+                                  s"Creating user '$userId' updated on the planet '$planetId' based on external authorisation ${Json
                                     .prettyPrint(Json.toJson(response))} for headers ${report(hc)}")
                             }
                         case None =>
-                          for {
+                          (for {
                             fixed <- usersService.checkAndFixUser(user, planetId)
                             user  <- usersService.createUser(fixed.copy(session.userId), session.planetId)
                             _ = Logger(getClass).info(
-                              s"New user '$userId' created on the planet '$planetId' based external authorisation ${Json
+                              s"Creating user '$userId' on the planet '$planetId' based on external authorisation ${Json
                                 .prettyPrint(Json.toJson(response))} for headers ${report(hc)}")
-                          } yield user
+                          } yield user)
+                            .recover {
+                              case NonFatal(e) =>
+                                Logger(getClass).warn(
+                                  s"Creating user '$userId' on the planet '$planetId' failed with [$e] for an external authorisation ${Json
+                                    .prettyPrint(Json.toJson(response))} and headers ${report(hc)}")
+                                None
+                            }
                       }
                     case _ =>
+                      Logger(getClass).warn(
+                        s"Creating user '$userId' on the planet '$planetId' failed for an external authorisation ${Json
+                          .prettyPrint(Json.toJson(response))} and headers ${report(hc)}")
                       Future.successful(None)
                   }
             } yield maybeSession
           case None => Future.successful(None)
         }
         .recover {
-          case NonFatal(e) =>
-            Logger(getClass).warn(s"External user copy failed with $e for headers ${report(hc)}")
-            None
+          case NonFatal(_) => None
         }
     }
 
