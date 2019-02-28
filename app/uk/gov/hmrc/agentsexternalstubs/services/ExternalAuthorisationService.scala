@@ -55,7 +55,7 @@ class ExternalAuthorisationService @Inject()(
           case e: Upstream5xxResponse =>
             Logger(getClass).warn(s"External authorization lookup failed with $e")
             None
-          case e: Upstream4xxResponse if e.upstreamResponseCode != 401 =>
+          case e: Upstream4xxResponse /*if e.upstreamResponseCode != 401*/ =>
             Logger(getClass).warn(s"External authorization lookup failed with $e")
             None
         }
