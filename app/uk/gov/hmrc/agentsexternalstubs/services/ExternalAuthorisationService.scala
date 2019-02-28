@@ -128,7 +128,9 @@ class ExternalAuthorisationService @Inject()(
         }
     }
 
-  def report(hc: HeaderCarrier): String = s"""Authorization:${hc.authorization} X-Session-ID:${hc.sessionId} [$hc]"""
+  def report(hc: HeaderCarrier): String =
+    s"""Authorization:${hc.authorization.getOrElse(None)} X-Session-ID:${hc.sessionId.getOrElse(None)} ForwardedFor:${hc.forwarded
+      .getOrElse(None)} RequestId:${hc.requestId.getOrElse(None)}"""
 
   private def merge(first: User, second: User): User = User(
     userId = first.userId,
