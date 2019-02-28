@@ -4,6 +4,7 @@ import java.util.UUID
 
 import javax.inject.{Inject, Named, Singleton}
 import play.api.Logger
+import play.api.libs.json.Json
 import uk.gov.hmrc.agentsexternalstubs.TcpProxiesConfig
 import uk.gov.hmrc.agentsexternalstubs.controllers.BearerToken
 import uk.gov.hmrc.agentsexternalstubs.models._
@@ -95,18 +96,27 @@ class ExternalAuthorisationService @Inject()(
                                ))
               _ <- maybeSession match {
                     case Some(session) =>
-                      Logger(getClass).info(
-                        s"New session '${session.sessionId}' created on planet '$planetId' from an external user '$userId' authorization.")
                       usersService.findByUserId(userId, planetId).flatMap {
                         case Some(_) =>
-                          usersService.updateUser(session.userId, session.planetId, existing => merge(existing, user))
+                          usersService
+                            .updateUser(session.userId, session.planetId, existing => merge(existing, user))
+                            .andThen {
+                              case _ =>
+                                Logger(getClass).info(
+                                  s"Existing user '$userId' updated on the planet '$planetId' based on external authorisation ${Json
+                                    .prettyPrint(Json.toJson(response))} for headers: $hc")
+                            }
                         case None =>
                           for {
                             fixed <- usersService.checkAndFixUser(user, planetId)
                             user  <- usersService.createUser(fixed.copy(session.userId), session.planetId)
+                            _ = Logger(getClass).info(
+                              s"New user '$userId' created on the planet '$planetId' based external authorisation ${Json
+                                .prettyPrint(Json.toJson(response))} for headers: $hc")
                           } yield user
                       }
-                    case _ => Future.successful(None)
+                    case _ =>
+                      Future.successful(None)
                   }
             } yield maybeSession
           case None => Future.successful(None)
