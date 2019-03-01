@@ -52,6 +52,28 @@ class UsersController @Inject()(
     }(SessionRecordNotFound)
   }
 
+  def updateCurrentUser: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+    withCurrentSession { session =>
+      withPayload[User](
+        updatedUser =>
+          usersService
+            .updateUser(session.userId, session.planetId, _ => updatedUser)
+            .map(theUser =>
+              Accepted(s"Current user ${theUser.userId} has been updated")
+                .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url))
+            .recover {
+              case DuplicateUserException(msg, userIdOpt, _, _) =>
+                userIdOpt match {
+                  case Some(duplicatedUserId) =>
+                    Conflict(msg).withHeaders(
+                      HeaderNames.LOCATION -> routes.UsersController.getUser(duplicatedUserId).url)
+                  case None => Conflict(msg)
+                }
+              case e: NotFoundException => notFound("USER_NOT_FOUND", e.getMessage)
+          })
+    }(SessionRecordNotFound)
+  }
+
   def updateUser(userId: String): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
       withPayload[User](

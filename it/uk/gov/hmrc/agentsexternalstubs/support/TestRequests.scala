@@ -175,6 +175,13 @@ trait TestRequests extends ScalaFutures {
         .get()
         .futureValue
 
+    def updateCurrent(user: User)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/users")
+        .withHeaders(authContext.headers: _*)
+        .put(Json.toJson(user))
+        .futureValue
+
     def update(user: User)(implicit authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/users/${user.userId}")

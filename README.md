@@ -284,6 +284,21 @@ Response | Description
 200| [User entity](docs/users.md)
 404| when userId not found
 
+#### PUT  /agents-external-stubs/users
+Update current authenticated user. (_requires valid bearer token_)
+
+**WARNING** Payload's `userId` field will not be used to find nor update!
+
+*Payload*
+
+[User entity](docs/users.md)
+     
+Response | Description
+---|---
+202| when user accepted, `Location` header contains link to get the entity
+400| when user payload has not passed validation
+409| when user cannot be updated because of a unique constraint violation
+
 #### PUT  /agents-external-stubs/users/:userId
 Update an existing user. (_requires valid bearer token_)
 

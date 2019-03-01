@@ -93,7 +93,7 @@ class UsersService @Inject()(
       maybeUser <- findByUserId(userId, planetId)
       updatedUser <- maybeUser match {
                       case Some(existingUser) =>
-                        val modified = modify(existingUser).copy(userId = userId)
+                        val modified = modify(existingUser).copy(userId = userId, planetId = Some(planetId))
                         if (modified != existingUser) for {
                           refined   <- refineAndValidateUser(modified, planetId)
                           _         <- usersRepository.update(refined, planetId)

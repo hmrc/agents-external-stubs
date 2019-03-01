@@ -92,6 +92,17 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
       }
     }
 
+    "PUT /agents-external-stubs/users" should {
+      "update current user" in {
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
+        val result = Users.updateCurrent(User("7728378273", principalEnrolments = Seq(Enrolment("foo"))))
+        result should haveStatus(202)
+        result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/7728378273")
+        val result2 = Users.get("7728378273")
+        result2.json.as[User].principalEnrolments should contain(Enrolment("foo"))
+      }
+    }
+
     "PUT /agents-external-stubs/users/:userId" should {
       "return 404 if userId not found" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
