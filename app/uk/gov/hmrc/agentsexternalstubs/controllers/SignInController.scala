@@ -31,7 +31,8 @@ class SignInController @Inject()(
               HeaderNames.LOCATION                    -> routes.SignInController.session(session.authToken).url,
               HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
               uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId,
-              "X-Planet-ID"                           -> session.planetId
+              "X-Planet-ID"                           -> session.planetId,
+              "X-User-ID"                             -> session.userId
             ))
         else createNewAuthentication(signInRequest)
       }(createNewAuthentication(signInRequest))
@@ -64,14 +65,16 @@ class SignInController @Inject()(
                            HeaderNames.LOCATION                    -> routes.SignInController.session(session.authToken).url,
                            HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
                            uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId,
-                           "X-Planet-ID"                           -> session.planetId
+                           "X-Planet-ID"                           -> session.planetId,
+                           "X-User-ID"                             -> session.userId
                          )
                        case Failure(_) =>
                          Accepted.withHeaders(
                            HeaderNames.LOCATION                    -> routes.SignInController.session(session.authToken).url,
                            HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
                            uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId,
-                           "X-Planet-ID"                           -> session.planetId
+                           "X-Planet-ID"                           -> session.planetId,
+                           "X-User-ID"                             -> session.userId
                          )
 
                      }
@@ -89,7 +92,8 @@ class SignInController @Inject()(
             .withHeaders(
               HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
               uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId,
-              "X-Planet-ID"                           -> session.planetId
+              "X-Planet-ID"                           -> session.planetId,
+              "X-User-ID"                             -> session.userId
             )
         case None => notFound("AUTH_SESSION_NOT_FOUND")
       }
