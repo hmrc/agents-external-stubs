@@ -30,7 +30,8 @@ class SignInController @Inject()(
             Ok.withHeaders(
               HeaderNames.LOCATION                    -> routes.SignInController.session(session.authToken).url,
               HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
-              uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId
+              uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId,
+              "X-Planet-ID"                           -> session.planetId
             ))
         else createNewAuthentication(signInRequest)
       }(createNewAuthentication(signInRequest))
@@ -62,13 +63,15 @@ class SignInController @Inject()(
                          Created.withHeaders(
                            HeaderNames.LOCATION                    -> routes.SignInController.session(session.authToken).url,
                            HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
-                           uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId
+                           uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId,
+                           "X-Planet-ID"                           -> session.planetId
                          )
                        case Failure(_) =>
                          Accepted.withHeaders(
                            HeaderNames.LOCATION                    -> routes.SignInController.session(session.authToken).url,
                            HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
-                           uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId
+                           uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId,
+                           "X-Planet-ID"                           -> session.planetId
                          )
 
                      }
@@ -85,7 +88,9 @@ class SignInController @Inject()(
           Ok(RestfulResponse(session, Link("delete", routes.SignInController.signOut().url)))
             .withHeaders(
               HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
-              uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId)
+              uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId,
+              "X-Planet-ID"                           -> session.planetId
+            )
         case None => notFound("AUTH_SESSION_NOT_FOUND")
       }
   }
