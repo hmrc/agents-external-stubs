@@ -60,7 +60,6 @@ class ExternalAuthorisationService @Inject()(
             Logger(getClass).warn(s"External authorization lookup failed with [$e] for headers ${report(hc)}")
             None
           case e: Upstream4xxResponse if e.upstreamResponseCode == 401 =>
-            Logger(getClass).warn(s"External authorization not found for headers ${report(hc)}")
             None
         }
         .flatMap {
