@@ -1,31 +1,26 @@
 package uk.gov.hmrc.agentsexternalstubs.services
-import java.net.URL
 import java.util.UUID
 
-import javax.inject.{Inject, Named, Singleton}
+import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.json.Json
-import uk.gov.hmrc.agentsexternalstubs.TcpProxiesConfig
 import uk.gov.hmrc.agentsexternalstubs.controllers.BearerToken
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.http.{HeaderCarrier, HttpPost, Upstream4xxResponse, Upstream5xxResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 @Singleton
-class ExternalAuthorisationService @Inject()(
-  usersService: UsersService,
-  tcpProxiesConfig: TcpProxiesConfig,
-  http: HttpPost,
-  @Named("auth-baseUrl") authBaseUrl: URL) {
+class ExternalAuthorisationService @Inject()(usersService: UsersService, http: HttpPost, appConfig: AppConfig) {
 
   final def maybeExternalSession(
     _planetId: String,
     createNewAuthentication: AuthenticateRequest => Future[Option[AuthenticatedSession]])(
     implicit ec: ExecutionContext,
     hc: HeaderCarrier): Future[Option[AuthenticatedSession]] =
-    if (tcpProxiesConfig.isProxyMode) {
+    if (appConfig.isProxyMode) {
       Future.successful(None)
     } else {
       val authRequest = AuthoriseRequest(
@@ -45,7 +40,7 @@ class ExternalAuthorisationService @Inject()(
         )
       )
       http
-        .POST(s"${authBaseUrl.toExternalForm}/auth/authorise", authRequest)
+        .POST(s"${appConfig.authUrl}/auth/authorise", authRequest)
         .map {
           _.json match {
             case null => None

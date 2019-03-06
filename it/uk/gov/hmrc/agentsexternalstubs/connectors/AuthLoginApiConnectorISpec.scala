@@ -15,7 +15,7 @@ class AuthLoginApiConnectorISpec
   val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
   lazy val httpPostWithGet = app.injector.instanceOf[HttpPost with HttpGet]
-  lazy val connector = new AuthLoginApiConnector(wireMockBaseUrl, httpPostWithGet)
+  lazy val connector = new AuthLoginApiConnector(TestAppConfig(wireMockBaseUrlAsString, wireMockPort), httpPostWithGet)
 
   "AuthLoginApiConnector" when {
 

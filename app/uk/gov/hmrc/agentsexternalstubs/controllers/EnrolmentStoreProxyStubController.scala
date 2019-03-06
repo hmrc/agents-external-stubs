@@ -3,15 +3,14 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import cats.data.Validated
 import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTime
-import play.api.libs.concurrent.ExecutionContextProvider
 import play.api.libs.json._
-import play.api.mvc.{Action, AnyContent}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.SetKnownFactsRequest.Legacy
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController._
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -20,10 +19,8 @@ import scala.util.control.NonFatal
 class EnrolmentStoreProxyStubController @Inject()(
   val authenticationService: AuthenticationService,
   knownFactsRepository: KnownFactsRepository,
-  ecp: ExecutionContextProvider)(implicit usersService: UsersService)
-    extends BaseController with CurrentSession {
-
-  implicit val ec: ExecutionContext = ecp.get()
+  cc: ControllerComponents)(implicit usersService: UsersService, executionContext: ExecutionContext)
+    extends BackendController(cc) with CurrentSession {
 
   def getUserIds(enrolmentKey: EnrolmentKey, `type`: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
@@ -296,6 +293,8 @@ object EnrolmentStoreProxyStubController {
       )
     }
 
+    import play.api.libs.json.JodaWrites._
+    import play.api.libs.json.JodaReads._
     implicit val writes1: Writes[Enrolment] = Json.writes[Enrolment]
     implicit val writes2: Writes[GetUserEnrolmentsResponse] = Json.writes[GetUserEnrolmentsResponse]
   }

@@ -7,15 +7,14 @@ import org.joda.time.LocalDate
 import play.api.data.Form
 import play.api.data.Forms._
 import play.api.data.validation.{Constraint, Constraints, Invalid, Valid}
-import play.api.libs.concurrent.ExecutionContextProvider
 import play.api.libs.json._
-import play.api.mvc.{Action, AnyContent, Result}
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Utr}
 import uk.gov.hmrc.agentsexternalstubs.models.{BusinessPartnerRecord, SubscribeAgentServicesPayload, _}
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.services._
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -28,13 +27,11 @@ class DesStubController @Inject()(
   vatCustomerInformationRecordsService: VatCustomerInformationRecordsService,
   businessPartnerRecordsService: BusinessPartnerRecordsService,
   recordsRepository: RecordsRepository,
-  ecp: ExecutionContextProvider
-)(implicit usersService: UsersService)
-    extends BaseController with DesCurrentSession {
+  cc: ControllerComponents
+)(implicit usersService: UsersService, executionContext: ExecutionContext)
+    extends BackendController(cc) with DesCurrentSession {
 
   import DesStubController._
-
-  implicit val ec: ExecutionContext = ecp.get()
 
   val authoriseOrDeAuthoriseRelationship: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
@@ -321,7 +318,7 @@ class DesStubController @Inject()(
     payload: RegistrationPayload,
     idType: String,
     idNumber: String,
-    planetId: String)(matches: T => Boolean)(implicit ec: ExecutionContext): Option[T] => Future[Result] = {
+    planetId: String)(matches: T => Boolean): Option[T] => Future[Result] = {
     case Some(record) =>
       if (matches(record)) okF(record, Registration.fixSchemaDifferences _)
       else notFoundF("NOT_FOUND", "BusinessPartnerRecord exists but fails match expectations.")
@@ -432,6 +429,9 @@ object DesStubController {
     )
 
     object Relationship {
+      import play.api.libs.json.JodaWrites._
+      import play.api.libs.json.JodaReads._
+
       implicit val writes1: Writes[Individual] = Json.writes[Individual]
       implicit val writes2: Writes[Organisation] = Json.writes[Organisation]
       implicit val writes3: Writes[Relationship] = Json.writes[Relationship]

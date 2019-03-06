@@ -18,7 +18,7 @@ class ApiPlatformTestUserConnectorISpec
   val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
   lazy val httpGet = app.injector.instanceOf[HttpGet]
-  lazy val connector = new ApiPlatformTestUserConnector(wireMockBaseUrl, httpGet)
+  lazy val connector = new ApiPlatformTestUserConnector(TestAppConfig(wireMockBaseUrlAsString, wireMockPort), httpGet)
 
   "ApiPlatformTestUserConnector" when {
 

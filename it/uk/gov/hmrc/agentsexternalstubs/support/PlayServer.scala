@@ -53,7 +53,7 @@ object PlayServer {
         server.start()
         val wsClient = app.injector.instanceOf[WSClient]
         import scala.concurrent.duration._
-        Await.result(wsClient.url(s"http://localhost:$port/").get(), 5.seconds)
+        Await.result(wsClient.url(s"http://localhost:$port/ping/ping").withRequestTimeout(5.seconds).get(), 5.seconds)
         testServer.set(server)
         Runtime.getRuntime.addShutdownHook(new Thread(new Runnable {
           override def run(): Unit =

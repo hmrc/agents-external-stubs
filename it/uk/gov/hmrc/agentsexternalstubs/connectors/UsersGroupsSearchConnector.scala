@@ -18,11 +18,10 @@ package uk.gov.hmrc.agentsexternalstubs.connectors
 
 import java.net.URL
 
-import com.codahale.metrics.MetricRegistry
 import com.kenshoo.play.metrics.Metrics
-import javax.inject.{Inject, Named, Singleton}
+import javax.inject.{Inject, Singleton}
 import play.api.libs.json._
-import uk.gov.hmrc.agent.kenshoo.monitoring.HttpAPIMonitor
+import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.domain.AgentCode
 import uk.gov.hmrc.http._
 
@@ -35,13 +34,10 @@ object GroupInfo {
 }
 
 @Singleton
-class UsersGroupsSearchConnector @Inject()(
-  @Named("users-groups-search-baseUrl") baseUrl: URL,
-  httpGet: HttpGet,
-  metrics: Metrics) {
+class UsersGroupsSearchConnector @Inject()(appConfig: AppConfig, httpGet: HttpGet, metrics: Metrics) {
 
   def getGroupInfo(groupId: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[GroupInfo] = {
-    val url = new URL(baseUrl, s"/users-groups-search/groups/$groupId")
+    val url = new URL(appConfig.usersGroupsSearchUrl + s"/users-groups-search/groups/$groupId")
     httpGet.GET[GroupInfo](url.toString)
   }
 }

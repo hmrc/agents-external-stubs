@@ -35,6 +35,9 @@ case class RelationshipRecord(
 
 object RelationshipRecord extends RecordUtils[RelationshipRecord] {
 
+  import play.api.libs.json.JodaWrites._
+  import play.api.libs.json.JodaReads._
+
   implicit val formats: Format[RelationshipRecord] = Json.format[RelationshipRecord]
   implicit val recordType: RecordMetaData[RelationshipRecord] = RecordMetaData[RelationshipRecord](RelationshipRecord)
 

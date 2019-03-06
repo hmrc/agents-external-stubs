@@ -4,39 +4,22 @@ import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Flow, Tcp}
 import akka.util.ByteString
-import javax.inject.{Inject, Named, Singleton}
+import javax.inject.{Inject, Singleton}
 import play.api.Logger
+import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 @Singleton
-case class TcpProxiesConfig @Inject()(
-  @Named("proxies.start") startProxies: String,
-  @Named("auth.port") authPort: Int,
-  @Named("user-details.port") userDetailsPort: Int,
-  @Named("citizen-details.port") citizenDetailsPort: Int,
-  @Named("users-groups-search.port") usersGroupsSearchPort: Int,
-  @Named("enrolment-store-proxy.port") enrolmentStoreProxyPort: Int,
-  @Named("tax-enrolments.port") taxEnrolmentsPort: Int,
-  @Named("ni-exemption-registration.port") niExemptionRegistrationPort: Int,
-  @Named("des.port") desPort: Int,
-  @Named("auditing.consumer.baseUri.port") dataStreamPort: String) {
+class TcpProxies @Inject()(appConfig: AppConfig)(implicit system: ActorSystem, materializer: Materializer) {
 
-  val isProxyMode: Boolean = startProxies == "true"
-}
-
-@Singleton
-class TcpProxies @Inject()(tcpProxiesConfig: TcpProxiesConfig, @Named("http.port") httpPort: String)(
-  implicit system: ActorSystem,
-  materializer: Materializer) {
-
-  if (tcpProxiesConfig.isProxyMode) {
+  if (appConfig.isProxyMode) {
     Logger(getClass).info("Starting local TCP proxies ...")
 
     implicit val ec: ExecutionContext = system.dispatcher
 
-    val agentsExternalStubsPort = Try(httpPort.toInt).toOption.getOrElse(9009)
+    val agentsExternalStubsPort = Try(appConfig.httpPort.toInt).toOption.getOrElse(9009)
 
     val tcpOutgoingConnection: Flow[ByteString, ByteString, Future[Tcp.OutgoingConnection]] =
       Tcp().outgoingConnection("localhost", agentsExternalStubsPort)
@@ -55,15 +38,15 @@ class TcpProxies @Inject()(tcpProxiesConfig: TcpProxiesConfig, @Named("http.port
     Future
       .sequence(
         Seq(
-          startProxy(tcpProxiesConfig.authPort, "auth"),
-          startProxy(tcpProxiesConfig.citizenDetailsPort, "citizen-details"),
-          startProxy(tcpProxiesConfig.userDetailsPort, "user-details"),
-          startProxy(tcpProxiesConfig.usersGroupsSearchPort, "users-groups-search"),
-          startProxy(tcpProxiesConfig.enrolmentStoreProxyPort, "enrolment-store-proxy"),
-          startProxy(tcpProxiesConfig.taxEnrolmentsPort, "tax-enrolments"),
-          startProxy(tcpProxiesConfig.niExemptionRegistrationPort, "ni-exemption-registration"),
-          startProxy(tcpProxiesConfig.desPort, "des"),
-          startProxy(tcpProxiesConfig.dataStreamPort.toInt, "datastream")
+          startProxy(appConfig.authPort, "auth"),
+          startProxy(appConfig.citizenDetailsPort, "citizen-details"),
+          startProxy(appConfig.userDetailsPort, "user-details"),
+          startProxy(appConfig.usersGroupsSearchPort, "users-groups-search"),
+          startProxy(appConfig.enrolmentStoreProxyPort, "enrolment-store-proxy"),
+          startProxy(appConfig.taxEnrolmentsPort, "tax-enrolments"),
+          startProxy(appConfig.niExemptionRegistrationPort, "ni-exemption-registration"),
+          startProxy(appConfig.desPort, "des"),
+          startProxy(appConfig.dataStreamPort, "datastream")
         ))
       .map(_ => Logger(getClass).info("All proxies have started."))
 

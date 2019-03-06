@@ -7,32 +7,32 @@ import javax.inject.{Inject, Singleton}
 import play.api.http.{ContentTypes, HttpEntity, MimeTypes, Writeable}
 import play.api.libs.concurrent.ExecutionContextProvider
 import play.api.libs.json.Json
-import play.api.libs.ws.{StreamedResponse, WSClient}
+import play.api.libs.ws.{BodyWritable, EmptyBody, InMemoryBody, WSClient}
 import play.api.mvc._
 import play.api.{Configuration, Logger}
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 @Singleton
-class ProxyController @Inject()(ecp: ExecutionContextProvider, ws: WSClient, config: Configuration)
-    extends BaseController {
+class ProxyController @Inject()(ws: WSClient, config: Configuration, cc: ControllerComponents)(
+  implicit executionContext: ExecutionContext)
+    extends BackendController(cc) {
 
-  implicit val ec: ExecutionContext = ecp.get()
-
-  implicit def writeableFor(implicit request: Request[AnyContent], codec: Codec): Writeable[AnyContent] =
+  implicit def writeableFor(implicit request: Request[AnyContent], codec: Codec): BodyWritable[AnyContent] =
     request.contentType match {
-      case None                    => Writeable(_ => ByteString.empty, None)
-      case Some(ContentTypes.JSON) => Writeable(a => codec.encode(Json.stringify(a.asJson.get)), request.contentType)
+      case None => BodyWritable(_ => EmptyBody, request.contentType.getOrElse(""))
+      case Some(ContentTypes.JSON) =>
+        BodyWritable(a => InMemoryBody(codec.encode(Json.stringify(a.asJson.get))), request.contentType.getOrElse(""))
       case Some(ct) if ct.startsWith(MimeTypes.XML) =>
-        Writeable(a => codec.encode(a.asXml.get.toString), request.contentType)
+        BodyWritable(a => InMemoryBody(codec.encode(a.asXml.get.toString)), request.contentType.getOrElse(""))
       case Some(ContentTypes.FORM) =>
-        Writeable(
+        BodyWritable(
           a =>
-            codec.encode((a.asFormUrlEncoded.get flatMap (item =>
-              item._2.map(c => s"""${item._1}=${URLEncoder.encode(c, "UTF-8")}"""))).mkString("&")),
-          request.contentType
+            InMemoryBody(codec.encode((a.asFormUrlEncoded.get flatMap (item =>
+              item._2.map(c => s"""${item._1}=${URLEncoder.encode(c, "UTF-8")}"""))).mkString("&"))),
+          request.contentType.getOrElse("")
         )
       case _ => throw new UnsupportedOperationException()
     }
@@ -51,16 +51,16 @@ class ProxyController @Inject()(ecp: ExecutionContextProvider, ws: WSClient, con
           .withBody(request.body)
         upstreamRequest
           .stream()
-          .map {
-            case StreamedResponse(response, body) =>
-              val responseContentType = response.headers.get("Content-Type").flatMap(_.headOption)
-              val length = response.headers.get("Content-Length").flatMap(_.headOption).map(_.toLong)
-              Logger.info("Got upstream response " + response.status)
-              Results
-                .Status(response.status)
-                .sendEntity(HttpEntity.Streamed(body, length, responseContentType))
-                .withHeaders(response.headers.toSeq.flatMap({ case (k, sv) => sv.map(v => (k, v)) }): _*)
+          .map { response =>
+            val responseContentType = response.headers.get("Content-Type").flatMap(_.headOption)
+            val length = response.headers.get("Content-Length").flatMap(_.headOption).map(_.toLong)
+            Logger.info("Got upstream response " + response.status)
+            Results
+              .Status(response.status)
+              .sendEntity(HttpEntity.Streamed(response.bodyAsSource, length, responseContentType))
+              .withHeaders(response.headers.toSeq.flatMap({ case (k, sv) => sv.map(v => (k, v)) }): _*)
           }
+        ???
       case None =>
         Future.successful(
           BadRequest(s"Could not construct target URL for ${request.path}, probably missing configuration."))

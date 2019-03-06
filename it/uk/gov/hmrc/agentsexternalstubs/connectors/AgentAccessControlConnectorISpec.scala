@@ -13,7 +13,7 @@ class AgentAccessControlConnectorISpec
   val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
   lazy val httpGet = app.injector.instanceOf[HttpGet]
-  lazy val connector = new AgentAccessControlConnector(wireMockBaseUrl, httpGet)
+  lazy val connector = new AgentAccessControlConnector(TestAppConfig(wireMockBaseUrlAsString, wireMockPort), httpGet)
 
   "AgentAccessControlConnector" when {
 

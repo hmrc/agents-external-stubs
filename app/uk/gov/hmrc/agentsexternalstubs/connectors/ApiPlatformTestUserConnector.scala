@@ -20,29 +20,30 @@ import java.net.URL
 
 import javax.inject.{Inject, Named, Singleton}
 import uk.gov.hmrc.agentsexternalstubs.models.ApiPlatform.TestUser
+import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.http._
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ApiPlatformTestUserConnector @Inject()(@Named("api-platform-test-user-baseUrl") baseUrl: URL, http: HttpGet) {
+class ApiPlatformTestUserConnector @Inject()(appConfig: AppConfig, http: HttpGet) {
 
   def getIndividualUserByNino(nino: String)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
-    getUser(new URL(baseUrl, s"/individuals/nino/$nino"))
+    getUser(new URL(appConfig.apiPlatformTestUserUrl + s"/individuals/nino/$nino"))
 
   def getIndividualUserBySaUtr(
     saUtr: String)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
-    getUser(new URL(baseUrl, s"/individuals/sautr/$saUtr"))
+    getUser(new URL(appConfig.apiPlatformTestUserUrl + s"/individuals/sautr/$saUtr"))
 
   def getIndividualUserByVrn(vrn: String)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
-    getUser(new URL(baseUrl, s"/individuals/vrn/$vrn"))
+    getUser(new URL(appConfig.apiPlatformTestUserUrl + s"/individuals/vrn/$vrn"))
 
   def getOrganisationUserByEmpRef(
     empRef: String)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
-    getUser(new URL(baseUrl, s"/organisations/empref/$empRef"))
+    getUser(new URL(appConfig.apiPlatformTestUserUrl + s"/organisations/empref/$empRef"))
 
   def getOrganisationUserByVrn(vrn: String)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
-    getUser(new URL(baseUrl, s"/organisations/vrn/$vrn"))
+    getUser(new URL(appConfig.apiPlatformTestUserUrl + s"/organisations/vrn/$vrn"))
 
   private def getUser(url: URL)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
     http.GET[TestUser](url.toString).map(Some.apply).recover {

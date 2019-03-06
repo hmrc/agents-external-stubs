@@ -18,14 +18,13 @@ package uk.gov.hmrc.agentsexternalstubs.connectors
 
 import java.net.URL
 
-import com.codahale.metrics.MetricRegistry
 import com.kenshoo.play.metrics.Metrics
 import javax.inject.{Inject, Named, Singleton}
 import play.api.Logger
 import play.api.http.Status
 import play.api.libs.json.Json
-import uk.gov.hmrc.agent.kenshoo.monitoring.HttpAPIMonitor
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Vrn}
+import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.domain.{AgentCode, Nino, TaxIdentifier}
 import uk.gov.hmrc.http._
 
@@ -45,12 +44,10 @@ object ES8Request {
 
 @Singleton
 class EnrolmentStoreProxyConnector @Inject()(
-  @Named("enrolment-store-proxy-baseUrl") espBaseUrl: URL,
-  @Named("tax-enrolments-baseUrl") teBaseUrl: URL,
+                                              appConfig: AppConfig,
   http: HttpGet with HttpPost with HttpDelete,
   metrics: Metrics)
-    extends TaxIdentifierSupport with HttpAPIMonitor {
-  override val kenshooRegistry: MetricRegistry = metrics.defaultRegistry
+    extends TaxIdentifierSupport {
 
   // ES0 - principal
   def getPrincipalUserIdFor(
@@ -58,10 +55,8 @@ class EnrolmentStoreProxyConnector @Inject()(
     val enrolmentKeyPrefix = enrolmentKeyPrefixFor(taxIdentifier)
     val enrolmentKey = enrolmentKeyPrefix + "~" + taxIdentifier.value
     val url =
-      new URL(espBaseUrl, s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/users?type=principal")
-    monitor(s"ConsumedAPI-ES-getPrincipalUserIdFor-${enrolmentKeyPrefix.replace("~", "_")}-GET") {
-      http.GET[HttpResponse](url.toString)
-    }.map { response =>
+      new URL(appConfig.enrolmentStoreProxyUrl + s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/users?type=principal")
+    http.GET[HttpResponse](url.toString).map { response =>
         if (response.status == 204) throw new Exception(s"UNKNOWN_${identifierNickname(taxIdentifier)}")
         else response.json
       }
@@ -84,10 +79,8 @@ class EnrolmentStoreProxyConnector @Inject()(
     val enrolmentKeyPrefix = enrolmentKeyPrefixFor(taxIdentifier)
     val enrolmentKey = enrolmentKeyPrefix + "~" + taxIdentifier.value
     val url =
-      new URL(espBaseUrl, s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/groups?type=principal")
-    monitor(s"ConsumedAPI-ES-getPrincipalGroupIdFor-${enrolmentKeyPrefix.replace("~", "_")}-GET") {
-      http.GET[HttpResponse](url.toString)
-    }.map { response =>
+      new URL(appConfig.enrolmentStoreProxyUrl +  s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/groups?type=principal")
+    http.GET[HttpResponse](url.toString).map { response =>
         if (response.status == 204) throw new Exception(s"UNKNOWN_${identifierNickname(taxIdentifier)}")
         else response.json
       }
@@ -118,10 +111,8 @@ class EnrolmentStoreProxyConnector @Inject()(
   protected def getDelegatedGroupIdsFor(
     enrolmentKey: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Set[String]] = {
     val url =
-      new URL(espBaseUrl, s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/groups?type=delegated")
-    monitor(s"ConsumedAPI-ES-getDelegatedGroupIdsFor-${enrolmentKey.split("~").take(2).mkString("_")}-GET") {
-      http.GET[HttpResponse](url.toString)
-    }.map { response =>
+      new URL(appConfig.enrolmentStoreProxyUrl +  s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/groups?type=delegated")
+    http.GET[HttpResponse](url.toString).map { response =>
       if (response.status == 204) Set.empty
       else (response.json \ "delegatedGroupIds").as[Seq[String]].toSet
     }
@@ -134,11 +125,9 @@ class EnrolmentStoreProxyConnector @Inject()(
     val enrolmentKeyPrefix = enrolmentKeyPrefixFor(taxIdentifier)
     val enrolmentKey = enrolmentKeyPrefix + "~" + taxIdentifier.value
     val url = new URL(
-      teBaseUrl,
-      s"/tax-enrolments/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=${agentCode.value}")
-    monitor(s"ConsumedAPI-TE-allocateEnrolmentToAgent-${enrolmentKeyPrefix.replace("~", "_")}-POST") {
-      http.POST[ES8Request, HttpResponse](url.toString, ES8Request(userId, "delegated"))
-    }.map(_ => ())
+      appConfig.taxEnrolmentsUrl +
+        s"/tax-enrolments/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=${agentCode.value}")
+    http.POST[ES8Request, HttpResponse](url.toString, ES8Request(userId, "delegated")).map(_ => ())
       .recover {
         case e: Upstream4xxResponse if e.upstreamResponseCode == Status.CONFLICT =>
           Logger(getClass).warn(
@@ -154,11 +143,9 @@ class EnrolmentStoreProxyConnector @Inject()(
     val enrolmentKeyPrefix = enrolmentKeyPrefixFor(taxIdentifier)
     val enrolmentKey = enrolmentKeyPrefix + "~" + taxIdentifier.value
     val url = new URL(
-      teBaseUrl,
+      appConfig.taxEnrolmentsUrl +
       s"/tax-enrolments/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=${agentCode.value}")
-    monitor(s"ConsumedAPI-TE-deallocateEnrolmentFromAgent-${enrolmentKeyPrefix.replace("~", "_")}-DELETE") {
-      http.DELETE[HttpResponse](url.toString)
-    }.map(_ => ())
+    http.DELETE[HttpResponse](url.toString).map(_ => ())
   }
 
 }

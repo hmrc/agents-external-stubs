@@ -4,11 +4,10 @@ import java.util.UUID
 
 import javax.inject.{Inject, Singleton}
 import play.api.http.HeaderNames
-import play.api.libs.concurrent.ExecutionContextProvider
-import play.api.mvc.{Action, AnyContent, Result}
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Random, Success}
@@ -17,10 +16,8 @@ import scala.util.{Failure, Random, Success}
 class SignInController @Inject()(
   val authenticationService: AuthenticationService,
   usersService: UsersService,
-  ecp: ExecutionContextProvider)
-    extends BaseController with CurrentSession {
-
-  implicit val ec: ExecutionContext = ecp.get()
+  cc: ControllerComponents)(implicit ec: ExecutionContext)
+    extends BackendController(cc) with CurrentSession {
 
   def signIn(): Action[AnyContent] = Action.async { implicit request =>
     withPayloadOrDefault[SignInRequest](SignInRequest(None, None, None, None)) { signInRequest =>

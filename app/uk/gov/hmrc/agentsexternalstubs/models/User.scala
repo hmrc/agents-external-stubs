@@ -69,6 +69,9 @@ case class User(
 
 object User {
 
+  import play.api.libs.json.JodaWrites._
+  import play.api.libs.json.JodaReads._
+
   case class Address(
     line1: Option[String] = None,
     line2: Option[String] = None,

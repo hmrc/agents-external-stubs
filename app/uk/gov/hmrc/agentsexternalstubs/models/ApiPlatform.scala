@@ -63,6 +63,9 @@ object ApiPlatform {
 
   object TestUser {
 
+    import play.api.libs.json.JodaWrites._
+    import play.api.libs.json.JodaReads._
+
     implicit lazy val formats1: Format[Address] = Json.format[Address]
     implicit lazy val formats2: Format[IndividualDetails] = Json.format[IndividualDetails]
     implicit lazy val formats3: Format[OrganisationDetails] = Json.format[OrganisationDetails]

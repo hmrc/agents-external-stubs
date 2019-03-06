@@ -5,13 +5,12 @@ import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.http.HeaderNames
-import play.api.libs.concurrent.ExecutionContextProvider
 import play.api.libs.json._
-import play.api.mvc.{Action, AnyContent, Request, Result}
+import play.api.mvc._
 import uk.gov.hmrc.agentsexternalstubs.connectors.AgentAccessControlConnector
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -20,12 +19,10 @@ class AuthStubController @Inject()(
   authenticationService: AuthenticationService,
   usersService: UsersService,
   agentAccessControlConnector: AgentAccessControlConnector,
-  ecp: ExecutionContextProvider)
-    extends BaseController {
+  cc: ControllerComponents)(implicit ec: ExecutionContext)
+    extends BackendController(cc) {
 
   import AuthStubController._
-
-  implicit val ec: ExecutionContext = ecp.get()
 
   val authorise: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     request.headers.get(HeaderNames.AUTHORIZATION) match {

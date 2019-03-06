@@ -1,11 +1,12 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
-import javax.inject.{Inject, Named, Singleton}
+import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import uk.gov.hmrc.agentmtdidentifiers.model.Utr
 import uk.gov.hmrc.agentsexternalstubs.connectors.ApiPlatformTestUserConnector
 import uk.gov.hmrc.agentsexternalstubs.models.ApiPlatform.TestUser
 import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, Planet, User}
+import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.domain.{Nino, SaUtr, Vrn}
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -13,9 +14,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 @Singleton
-class ExternalUserService @Inject()(
-  apiPlatformTestUserConnector: ApiPlatformTestUserConnector,
-  @Named("api-platform-test-user.sync-users-all-planets") syncUsersAllPlanets: Boolean) {
+class ExternalUserService @Inject()(apiPlatformTestUserConnector: ApiPlatformTestUserConnector, appConfig: AppConfig) {
 
   def maybeSyncExternalUserIdentifiedBy[S](
     userIdentifier: S,
@@ -66,7 +65,7 @@ class ExternalUserService @Inject()(
     implicit ec: ExecutionContext): Future[Option[T]] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
     maybeResult(userIdentifier).flatMap {
-      case None if syncUsersAllPlanets || planetId == Planet.DEFAULT =>
+      case None if appConfig.syncUsersAllPlanets || planetId == Planet.DEFAULT =>
         maybeSyncExternalUserIdentifiedBy(userIdentifier, planetId, createUser)
           .flatMap(_.map(_ => maybeResult(userIdentifier)) match {
             case Some(f) => f
@@ -84,7 +83,7 @@ class ExternalUserService @Inject()(
     implicit ec: ExecutionContext): Future[Option[T]] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
     maybeResult.flatMap {
-      case None if syncUsersAllPlanets || planetId == Planet.DEFAULT =>
+      case None if appConfig.syncUsersAllPlanets || planetId == Planet.DEFAULT =>
         identifierFor(enrolmentKey) match {
           case None => Future.successful(None)
           case Some(userIdentifier) =>

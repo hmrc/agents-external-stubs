@@ -1,24 +1,21 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import javax.inject.{Inject, Singleton}
-import play.api.libs.concurrent.ExecutionContextProvider
 import play.api.libs.json.{Json, Writes}
-import play.api.mvc.{Action, AnyContent}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, Generator, User}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.ExecutionContext
 @Singleton
 class UserDetailsStubController @Inject()(
   val authenticationService: AuthenticationService,
   usersService: UsersService,
-  ecp: ExecutionContextProvider)
-    extends BaseController with CurrentSession {
+  cc: ControllerComponents)(implicit ec: ExecutionContext)
+    extends BackendController(cc) with CurrentSession {
 
   import UserDetailsStubController._
-
-  implicit val ec: ExecutionContext = ecp.get()
 
   def getUser(id: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>

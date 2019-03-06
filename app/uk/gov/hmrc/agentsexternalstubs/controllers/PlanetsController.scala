@@ -2,9 +2,9 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
-import play.api.mvc.{Action, AnyContent}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.agentsexternalstubs.repository._
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -15,8 +15,9 @@ class PlanetsController @Inject()(
   usersRepository: UsersRepository,
   recordsRepository: RecordsRepository,
   specialCasesRepository: SpecialCasesRepository,
-  authSessionRepository: AuthenticatedSessionsRepository)(implicit ec: ExecutionContext)
-    extends BaseController {
+  authSessionRepository: AuthenticatedSessionsRepository,
+  cc: ControllerComponents)(implicit ec: ExecutionContext)
+    extends BackendController(cc) {
 
   def destroy(planetId: String): Action[AnyContent] = Action.async { implicit request =>
     Logger(getClass).info(s"About to start destroying test planet $planetId ..")

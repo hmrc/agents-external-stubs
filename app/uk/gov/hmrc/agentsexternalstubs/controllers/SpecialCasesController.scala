@@ -5,7 +5,6 @@ import java.net.URLDecoder
 import akka.stream.Materializer
 import akka.util.ByteString
 import javax.inject.{Inject, Singleton}
-import play.api.libs.concurrent.ExecutionContextProvider
 import play.api.libs.json.{JsValue, Reads, Writes}
 import play.api.libs.streams.Accumulator
 import play.api.mvc._
@@ -13,7 +12,7 @@ import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, Id, SpecialCase}
 import uk.gov.hmrc.agentsexternalstubs.repository.SpecialCasesRepository
 import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.ExecutionContext
 
@@ -21,10 +20,8 @@ import scala.concurrent.ExecutionContext
 class SpecialCasesController @Inject()(
   specialCasesRepository: SpecialCasesRepository,
   val authenticationService: AuthenticationService,
-  ecp: ExecutionContextProvider)(implicit materializer: Materializer)
-    extends BaseController with CurrentSession {
-
-  implicit val ec: ExecutionContext = ecp.get()
+  cc: ControllerComponents)(implicit materializer: Materializer, ec: ExecutionContext)
+    extends BackendController(cc) with CurrentSession {
 
   import SpecialCasesController._
 

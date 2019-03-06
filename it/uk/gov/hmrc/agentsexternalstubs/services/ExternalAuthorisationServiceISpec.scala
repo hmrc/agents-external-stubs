@@ -3,15 +3,14 @@ package uk.gov.hmrc.agentsexternalstubs.services
 import java.util.UUID
 
 import org.joda.time.LocalDate
-import uk.gov.hmrc.agentsexternalstubs.TcpProxiesConfig
-import uk.gov.hmrc.agentsexternalstubs.connectors.MicroserviceAuthConnector
+import uk.gov.hmrc.agentsexternalstubs.connectors.{MicroserviceAuthConnector, TestAppConfig}
 import uk.gov.hmrc.agentsexternalstubs.controllers.BearerToken
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.stubs.AuthStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.http.{HeaderCarrier, HttpPost}
 import uk.gov.hmrc.http.logging.{Authorization, SessionId}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpPost}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -21,10 +20,10 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
   lazy val usersService = app.injector.instanceOf[UsersService]
   lazy val authenticationService = app.injector.instanceOf[AuthenticationService]
   lazy val httpPost = app.injector.instanceOf[HttpPost]
-  lazy val authConnector = new MicroserviceAuthConnector(wireMockBaseUrl, httpPost)
-  lazy val tcpProxiesConfig = TcpProxiesConfig("false", 0, 0, 0, 0, 0, 0, 0, 0, "0")
+  lazy val appConfig = TestAppConfig(wireMockBaseUrlAsString, wireMockPort)
+  lazy val authConnector = new MicroserviceAuthConnector(appConfig, httpPost)
   lazy val underTest =
-    new ExternalAuthorisationService(usersService, tcpProxiesConfig, httpPost, wireMockBaseUrl)
+    new ExternalAuthorisationService(usersService, httpPost, appConfig)
 
   val authoriseRequest = AuthoriseRequest(
     Seq.empty,

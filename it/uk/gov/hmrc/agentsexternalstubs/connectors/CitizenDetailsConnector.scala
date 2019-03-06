@@ -18,13 +18,12 @@ package uk.gov.hmrc.agentsexternalstubs.connectors
 
 import java.net.URL
 
-import com.codahale.metrics.MetricRegistry
 import com.kenshoo.play.metrics.Metrics
 import javax.inject.{Inject, Named, Singleton}
 import org.joda.time.LocalDate
 import org.joda.time.format._
 import play.api.libs.json.{JsPath, Reads}
-import uk.gov.hmrc.agent.kenshoo.monitoring.HttpAPIMonitor
+import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http._
 
@@ -44,14 +43,11 @@ object CitizenDateOfBirth {
 }
 
 @Singleton
-class CitizenDetailsConnector @Inject()(
-  @Named("citizen-details-baseUrl") baseUrl: URL,
-  http: HttpGet with HttpDelete,
-  metrics: Metrics) {
+class CitizenDetailsConnector @Inject()(appConfig: AppConfig, http: HttpGet with HttpDelete, metrics: Metrics) {
 
   def getCitizenDateOfBirth(
     nino: Nino)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[CitizenDateOfBirth]] = {
-    val url = new URL(baseUrl, s"/citizen-details/nino/${nino.value}")
+    val url = new URL(appConfig.citizenDetailsUrl + s"/citizen-details/nino/${nino.value}")
     http.GET[Option[CitizenDateOfBirth]](url.toString).recover {
       case _ => None
     }
