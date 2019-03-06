@@ -1,6 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
 import cats.data.Validated.{Invalid, Valid}
+import com.github.blemale.scaffeine.Scaffeine
 import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.agentsexternalstubs.models.{User, _}
 import uk.gov.hmrc.agentsexternalstubs.repository.{KnownFactsRepository, UsersRepository}
@@ -62,31 +63,45 @@ class UsersService @Inject()(
     implicit ec: ExecutionContext): Future[Seq[Option[String]]] =
     usersRepository.findGroupIdsByDelegatedEnrolmentKey(enrolmentKey, planetId)(limit)
 
-  def createUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] =
+  val usersCache = Scaffeine().maximumSize(1000).build[Int, User]()
+
+  def createUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] = {
+    val userKey = user.copy(planetId = None, recordIds = Seq.empty).hashCode()
     for {
-      refined   <- refineAndValidateUser(user, planetId)
+      refined <- usersCache
+                  .getIfPresent(userKey)
+                  .map(u => Future.successful(u.copy(planetId = Some(planetId))))
+                  .getOrElse(refineAndValidateUser(user, planetId))
       _         <- usersRepository.create(refined, planetId)
+      _         <- Future.successful(usersCache.put(userKey, refined))
       maybeUser <- findByUserId(refined.userId, planetId)
       _         <- updateKnownFacts(refined, planetId)
       _         <- userRecordsService.syncUserToRecords(addRecordId(maybeUser, planetId))(maybeUser)
       newUser = maybeUser.getOrElse(throw new Exception(s"User $user creation failed."))
     } yield newUser
+  }
 
-  def tryCreateUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Try[User]] =
+  def tryCreateUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Try[User]] = {
+    val userKey = user.copy(planetId = None, recordIds = Seq.empty).hashCode()
     for {
       maybeUser <- findByUserId(user.userId, planetId)
       result <- maybeUser match {
                  case Some(_) => Future.successful(Failure(new Exception(s"User ${user.userId} already exists")))
                  case None =>
                    for {
-                     refined <- refineAndValidateUser(user, planetId)
+                     refined <- usersCache
+                                 .getIfPresent(userKey)
+                                 .map(u => Future.successful(u.copy(planetId = Some(planetId))))
+                                 .getOrElse(refineAndValidateUser(user, planetId))
                      _       <- usersRepository.create(refined, planetId)
+                     _       <- Future.successful(usersCache.put(userKey, refined))
                      newUser <- findByUserId(refined.userId, planetId)
                      _       <- updateKnownFacts(refined, planetId)
                      _       <- userRecordsService.syncUserToRecords(addRecordId(maybeUser, planetId))(newUser)
                    } yield newUser.map(Success.apply).getOrElse(Failure(new Exception(s"User $user creation failed")))
                }
     } yield result
+  }
 
   def updateUser(userId: String, planetId: String, modify: User => User)(implicit ec: ExecutionContext): Future[User] =
     for {
@@ -105,6 +120,15 @@ class UsersService @Inject()(
                       case None => Future.failed(new NotFoundException(s"User $userId not found"))
                     }
     } yield updatedUser
+
+  def copyUser(userId: String, planetId: String, targetPlanetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+    for {
+      maybeUser <- findByUserId(userId, planetId)
+      _ <- maybeUser match {
+            case Some(user) => usersRepository.create(user.copy(recordIds = Seq.empty), targetPlanetId)
+            case None       => Future.failed(new NotFoundException(s"User $userId not found"))
+          }
+    } yield ()
 
   def addRecordId(userOpt: Option[User], planetId: String)(recordId: String)(
     implicit ec: ExecutionContext): Future[Unit] =

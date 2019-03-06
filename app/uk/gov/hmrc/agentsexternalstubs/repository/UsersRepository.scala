@@ -315,11 +315,6 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
         s"Existing user ${u.map(_.userId).getOrElse("")} already has similar enrolment $k. Two users cannot have the same principal identifier on the same $p planet.")
   )
 
-  private def explicitFlag(flag: Option[Boolean]): Option[Boolean] = flag match {
-    case Some(true) => Some(true)
-    case _          => Some(false)
-  }
-
   def addRecordId(userId: String, recordId: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     collection
       .update(

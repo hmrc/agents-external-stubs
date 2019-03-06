@@ -1,4 +1,5 @@
 package uk.gov.hmrc.agentsexternalstubs.models
+import com.github.blemale.scaffeine.Scaffeine
 import org.scalacheck.Gen
 import uk.gov.hmrc.agentsexternalstubs.models.Validator.Validator
 
@@ -16,5 +17,7 @@ trait RecordUtils[T] {
 
   final def sanitize(s: String)(entity: T): T = sanitizers.foldLeft(entity)((u, fx) => fx(s)(u))
 
-  final def generate(s: String): T = sanitize(s)(seed(s))
+  private val recordCache = Scaffeine().maximumSize(1000).build[String, T]()
+
+  final def generate(s: String): T = recordCache.get(s, s => sanitize(s)(seed(s)))
 }
