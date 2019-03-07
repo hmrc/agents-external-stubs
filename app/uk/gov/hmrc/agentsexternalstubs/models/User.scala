@@ -270,7 +270,7 @@ object User {
   import play.api.libs.functional.syntax._
 
   implicit val reads: Reads[User] = (
-    (JsPath \ "userId").readNullable[String].map(_.getOrElse(Generator.userID(Random.nextString(8)))) and
+    (JsPath \ "userId").readNullable[String].map(_.getOrElse(UserIdGenerator.nextUserId)) and
       (JsPath \ "groupId").readNullable[String] and
       (JsPath \ "affinityGroup").readNullable[String] and
       (JsPath \ "confidenceLevel").readNullable[Int] and

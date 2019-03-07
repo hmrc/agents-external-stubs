@@ -3,6 +3,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import uk.gov.hmrc.agentsexternalstubs.models.UserIdGenerator
 import uk.gov.hmrc.agentsexternalstubs.repository._
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
@@ -29,9 +30,10 @@ class PlanetsController @Inject()(
         knownFactsRepository.destroyPlanet(planetId),
         specialCasesRepository.destroyPlanet(planetId)
       ))
-      .map(
-        _ => NoContent
-      )
+      .map { _ =>
+        UserIdGenerator.destroyPlanetId(planetId)
+        NoContent
+      }
       .recover {
         case NonFatal(e) =>
           Logger(getClass).warn(s"Attempted test planet destroy failed with $e")

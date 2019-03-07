@@ -42,15 +42,16 @@ class SignInController @Inject()(
     }(Future.successful(NoContent))
   }
 
-  private def createNewAuthentication(signInRequest: SignInRequest)(implicit ec: ExecutionContext): Future[Result] =
+  private def createNewAuthentication(signInRequest: SignInRequest)(implicit ec: ExecutionContext): Future[Result] = {
+    val planetId = signInRequest.planetId.getOrElse(Generator.planetID(Random.nextString(8)))
     for {
       maybeSession <- authenticationService.authenticate(
                        AuthenticateRequest(
                          sessionId = UUID.randomUUID().toString,
-                         userId = signInRequest.userId.getOrElse(Generator.userID(Random.nextString(8))),
+                         userId = signInRequest.userId.getOrElse(UserIdGenerator.nextUserIdFor(planetId)),
                          password = signInRequest.plainTextPassword.getOrElse("p@ssw0rd"),
                          providerType = signInRequest.providerType.getOrElse("GovernmentGateway"),
-                         planetId = signInRequest.planetId.getOrElse(Generator.planetID(Random.nextString(8)))
+                         planetId = planetId
                        ))
       result <- maybeSession match {
                  case Some(session) =>
@@ -78,6 +79,7 @@ class SignInController @Inject()(
                  case None => Future.successful(Unauthorized("SESSION_CREATE_FAILED"))
                }
     } yield result
+  }
 
   def session(authToken: String): Action[AnyContent] = Action.async { implicit request =>
     for {

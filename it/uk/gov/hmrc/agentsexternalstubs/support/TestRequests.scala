@@ -123,7 +123,7 @@ trait TestRequests extends ScalaFutures {
       get("/agents-external-stubs/session/current")
 
     def signInAndGetSession(
-      userId: String = "foobar",
+      userId: String = null,
       password: String = "p@ssw0rd",
       planetId: String = UUID.randomUUID().toString): AuthenticatedSession = {
       val signedIn = signIn(userId, password, planetId = planetId)
