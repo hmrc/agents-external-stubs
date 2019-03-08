@@ -60,7 +60,6 @@ class ProxyController @Inject()(ws: WSClient, config: Configuration, cc: Control
               .sendEntity(HttpEntity.Streamed(response.bodyAsSource, length, responseContentType))
               .withHeaders(response.headers.toSeq.flatMap({ case (k, sv) => sv.map(v => (k, v)) }): _*)
           }
-        ???
       case None =>
         Future.successful(
           BadRequest(s"Could not construct target URL for ${request.path}, probably missing configuration."))
