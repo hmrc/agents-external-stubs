@@ -72,5 +72,5 @@ class AppConfigImpl @Inject()(config: ServicesConfig) extends AppConfig {
   val taxEnrolmentsPort: Int = config.getConfInt("tax-enrolments.port", 0)
   val niExemptionRegistrationPort: Int = config.getConfInt("ni-exemption-registration.port", 0)
   val desPort: Int = config.getConfInt("des.port", 0)
-  val dataStreamPort: Int = config.getConfInt("auditing.consumer.baseUri.port", 0)
+  val dataStreamPort: Int = config.getInt("auditing.consumer.baseUri.port")
 }
