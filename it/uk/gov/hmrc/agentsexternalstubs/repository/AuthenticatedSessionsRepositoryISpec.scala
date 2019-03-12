@@ -20,8 +20,6 @@ import java.util.UUID
 import reactivemongo.core.errors.DatabaseException
 import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
 class AuthenticatedSessionsRepositoryISpec extends AppBaseISpec with MongoDB {
 
   lazy val repo: AuthenticatedSessionsRepository = app.injector.instanceOf[AuthenticatedSessionsRepository]

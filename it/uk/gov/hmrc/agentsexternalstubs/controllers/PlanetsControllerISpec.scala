@@ -3,9 +3,8 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
 import reactivemongo.api.Cursor
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, Record, User, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, Record, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.repository.{RecordsRepository, UsersRepository}
-import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
 
 class PlanetsControllerISpec extends ServerBaseISpec with MongoDB with TestRequests with ExampleDesPayloads {

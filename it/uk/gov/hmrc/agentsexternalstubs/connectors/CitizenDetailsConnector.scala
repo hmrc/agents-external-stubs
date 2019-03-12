@@ -19,7 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.connectors
 import java.net.URL
 
 import com.kenshoo.play.metrics.Metrics
-import javax.inject.{Inject, Named, Singleton}
+import javax.inject.{Inject, Singleton}
 import org.joda.time.LocalDate
 import org.joda.time.format._
 import play.api.libs.json.{JsPath, Reads}
