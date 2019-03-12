@@ -52,9 +52,9 @@ object KeyToPatternMappingFromRoutes {
               val name = p.substring(1)
               if (placeholders.contains(name)) s"{$name}" else ":"
             } else p)
-          .mkString("|")
+          .mkString("__")
         val pattern = r.replace("$", ":")
-        Logger(getClass).info(s"$key-$method -> $pattern")
+        if (Logger(getClass).isInfoEnabled) println(s""""$key-$method"""")
         (key, pattern)
       }
     }
