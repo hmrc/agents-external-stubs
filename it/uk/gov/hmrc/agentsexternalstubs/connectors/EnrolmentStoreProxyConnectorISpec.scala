@@ -2,12 +2,15 @@ package uk.gov.hmrc.agentsexternalstubs.connectors
 
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{Matchers, Suite}
+import org.scalatestplus.play.ServerProvider
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Vrn}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
-import uk.gov.hmrc.domain.{AgentCode, TaxIdentifier}
+import uk.gov.hmrc.domain.{AgentCode, Nino, TaxIdentifier}
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /*
 

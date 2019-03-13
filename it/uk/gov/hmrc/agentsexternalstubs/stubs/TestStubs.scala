@@ -3,12 +3,13 @@ package uk.gov.hmrc.agentsexternalstubs.stubs
 import java.util.UUID
 
 import org.scalatest.Suite
+import org.scalatestplus.play.ServerProvider
 import play.api.Application
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 
-import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.Duration
 
 trait TestStubs {
   this: Suite =>

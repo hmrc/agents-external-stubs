@@ -5,6 +5,8 @@ import uk.gov.hmrc.agentsexternalstubs.models.RelationshipRecord
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.support._
 
+import scala.concurrent.ExecutionContext.Implicits.global
+
 class RelationshipRecordsServiceISpec extends AppBaseISpec with MongoDB {
 
   lazy val repo = app.injector.instanceOf[RecordsRepository]

@@ -1,7 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.support
 import org.scalatest.matchers.{MatchResult, Matcher}
 import play.api.http.HeaderNames
-import play.api.libs.json.{JsArray, JsObject}
+import play.api.libs.json.{JsArray, JsObject, JsValue}
 import play.api.libs.ws.WSResponse
 
 import scala.util.{Failure, Success, Try}

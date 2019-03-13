@@ -22,7 +22,7 @@ abstract class ServerBaseISpec
   import scala.concurrent.duration._
   override implicit val defaultTimeout: FiniteDuration = 30.seconds
 
-  implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+  implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
   implicit override val patienceConfig: PatienceConfig =
     PatienceConfig(timeout = Span(5, Seconds), interval = Span(10, Milliseconds))

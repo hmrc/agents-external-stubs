@@ -13,6 +13,7 @@ import uk.gov.hmrc.http.logging.{Authorization, SessionId}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpPost}
 
 import scala.concurrent.ExecutionContext
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSupport with MongoDB with AuthStubs {
 
@@ -47,6 +48,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       val authToken = "Bearer " + UUID.randomUUID().toString
       val sessionId = UUID.randomUUID().toString
       val hc = HeaderCarrier(authorization = Some(Authorization(authToken)), sessionId = Some(SessionId(sessionId)))
+      val ec = ExecutionContext.Implicits.global
 
       givenAuthorisedFor(
         authoriseRequest,
@@ -65,7 +67,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
           agentInformation = Some(AgentInformation(Some("a"), Some("b"), Some("c")))
         )
       )
-      implicit val ec: ExecutionContext = ExecutionContext.global
+
       val sessionOpt =
         await(underTest.maybeExternalSession(planetId, authenticationService.authenticate)(ec, hc))
       sessionOpt shouldBe defined
@@ -99,7 +101,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       val authToken = "Bearer " + UUID.randomUUID().toString
       val sessionId = UUID.randomUUID().toString
       val hc = HeaderCarrier(authorization = Some(Authorization(authToken)), sessionId = Some(SessionId(sessionId)))
-      implicit val ec: ExecutionContext = ExecutionContext.global
+      val ec = ExecutionContext.Implicits.global
 
       givenAuthorisedFor(
         authoriseRequest,
@@ -149,7 +151,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
     "consult external auth service, and if session missing do nothing" in {
       val planetId = UUID.randomUUID().toString
       val hc = HeaderCarrier(authorization = Some(Authorization(UUID.randomUUID().toString)))
-      implicit val ec: ExecutionContext = ExecutionContext.global
+      val ec = ExecutionContext.Implicits.global
 
       givenUnauthorised
 
@@ -161,7 +163,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
     "consult external auth service, and if session exists recreate session and merge individual user" in {
       val planetId = UUID.randomUUID().toString
       val hc = HeaderCarrier(authorization = Some(Authorization("Bearer " + UUID.randomUUID().toString)))
-      implicit val ec: ExecutionContext = ExecutionContext.global
+      val ec = ExecutionContext.Implicits.global
 
       val existingUser = await(
         usersService.createUser(
@@ -218,7 +220,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       val authToken = "Bearer " + UUID.randomUUID().toString
       val sessionId = UUID.randomUUID().toString
       val hc = HeaderCarrier(authorization = Some(Authorization(authToken)), sessionId = Some(SessionId(sessionId)))
-      implicit val ec: ExecutionContext = ExecutionContext.global
+      val ec = ExecutionContext.Implicits.global
 
       givenAuthorisedFor(
         s"""

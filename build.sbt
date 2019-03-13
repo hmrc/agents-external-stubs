@@ -19,9 +19,9 @@ lazy val compileDeps = Seq(
   "uk.gov.hmrc" %% "bootstrap-play-26" % "0.37.0",
   "uk.gov.hmrc" %% "simple-reactivemongo" % "7.14.0-play-26",
   "uk.gov.hmrc" %% "auth-client" % "2.20.0-play-26",
-  "uk.gov.hmrc" %% "agent-mtd-identifiers" % "0.15.0-play-26",
-  "com.kenshoo" %% "metrics-play" % "2.6.2_0.6.6",
-  "uk.gov.hmrc" %% "domain" % "5.6.0--play-26",
+  "uk.gov.hmrc" %% "agent-mtd-identifiers" % "0.13.0",
+  "de.threedimensions" %% "metrics-play" % "2.5.13",
+  "uk.gov.hmrc" %% "domain" % "5.3.0",
   "com.github.blemale" %% "scaffeine" % "2.6.0",
   "org.typelevel" %% "cats-core" % "1.6.0",
   "uk.gov.hmrc" %% "stub-data-generator" % "0.5.3",
@@ -64,7 +64,7 @@ lazy val root = (project in file("."))
   .settings(
     name := "agents-external-stubs",
     organization := "uk.gov.hmrc",
-    scalaVersion := "2.12.8",
+    scalaVersion := "2.11.12",
     majorVersion := 0,
     PlayKeys.playDefaultPort := 9009,
     resolvers := Seq(

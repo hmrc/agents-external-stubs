@@ -1,8 +1,8 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsArray, JsObject, Json}
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, KnownFacts, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.support._
 
 class KnownFactsControllerISpec extends ServerBaseISpec with MongoDB with TestRequests {
