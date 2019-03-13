@@ -34,11 +34,12 @@ class PlanetsController @Inject()(
       .map { _ =>
         UserIdGenerator.destroyPlanetId(planetId)
         AuthorisationCache.destroyPlanet(planetId)
+        Logger(getClass).info(s"Test planet $planetId destroyed.")
         NoContent
       }
       .recover {
         case NonFatal(e) =>
-          Logger(getClass).warn(s"Attempted test planet destroy failed with $e")
+          Logger(getClass).warn(s"Attempted test planet $planetId destroy failed with $e")
           InternalServerError(e.getMessage)
       }
   }

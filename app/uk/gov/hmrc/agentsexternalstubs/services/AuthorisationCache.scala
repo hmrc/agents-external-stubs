@@ -16,7 +16,7 @@ object AuthorisationCache {
 
   private val authPlanetCache: AuthCache = Scaffeine()
     .maximumSize(1000)
-    .expireAfterAccess(10.seconds)
+    .expireAfterAccess(60.seconds)
     .build()
 
   private def isEligibleToCache(authoriseRequest: AuthoriseRequest): Boolean = !authoriseRequest.authorise.exists {
