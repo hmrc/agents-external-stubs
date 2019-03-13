@@ -60,13 +60,7 @@ class KnownFactsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent
 
   override def indexes = Seq(
     Index(Seq(KnownFacts.UNIQUE_KEY     -> Ascending), Some("KnownFactsByEnrolmentKey"), unique = true),
-    Index(Seq(KnownFacts.VERIFIERS_KEYS -> Ascending), Some("KnownFactsByVerifiers")),
-    // TTL indexes
-    Index(
-      Seq(PLANET_ID -> Ascending),
-      Some("TTL"),
-      options = BSONDocument("expireAfterSeconds" -> BSONLong(2592000))
-    )
+    Index(Seq(KnownFacts.VERIFIERS_KEYS -> Ascending), Some("KnownFactsByVerifiers"))
   )
 
   def findByEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
@@ -75,7 +69,7 @@ class KnownFactsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent
       .find(
         Json.obj(KnownFacts.UNIQUE_KEY -> KnownFacts.uniqueKey(enrolmentKey.tag, planetId))
       )
-      .cursor[KnownFacts](ReadPreference.primaryPreferred)(
+      .cursor[KnownFacts](ReadPreference.nearest)(
         implicitly[collection.pack.Reader[KnownFacts]],
         implicitly[CursorProducer[KnownFacts]])
       .headOption
@@ -86,7 +80,7 @@ class KnownFactsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent
       .find(
         Json.obj(KnownFacts.VERIFIERS_KEYS -> KnownFacts.verifierKey(knownFact, planetId))
       )
-      .cursor[KnownFacts](ReadPreference.primaryPreferred)(
+      .cursor[KnownFacts](ReadPreference.nearest)(
         implicitly[collection.pack.Reader[KnownFacts]],
         implicitly[CursorProducer[KnownFacts]])
       .headOption

@@ -10,6 +10,8 @@ import scala.concurrent.duration._
 
 trait AuthoriseContext {
 
+  def request: AuthoriseRequest
+
   def userId: String
   def providerType: String
   def principalEnrolments: Seq[Enrolment]
@@ -19,7 +21,6 @@ trait AuthoriseContext {
   def confidenceLevel: Option[Int]
   def credentialStrength: Option[String]
   def credentialRole: Option[String]
-  def authorisedServices: Set[String]
   def nino: Option[Nino]
   def groupId: Option[String]
   def name: Option[String]
@@ -30,18 +31,15 @@ trait AuthoriseContext {
   def planetId: Option[String]
 
   def hasDelegatedAuth(rule: String, identifiers: Seq[Identifier]): Boolean
+
+  lazy val authorisedServices: Set[String] = request.authorise.collect {
+    case EnrolmentPredicate(service, _, _) => service
+  }.toSet
 }
 
-case class FullAuthoriseContext(
-  user: User,
-  authenticatedSession: AuthenticatedSession,
-  request: AuthoriseRequest,
-  agentAccessControlConnector: AgentAccessControlConnector)(implicit ec: ExecutionContext, hc: HeaderCarrier)
-    extends AuthoriseContext {
+abstract class AuthoriseUserContext(user: User) extends AuthoriseContext {
 
   override def userId: String = user.userId
-
-  override def providerType: String = authenticatedSession.providerType
 
   override def principalEnrolments: Seq[Enrolment] =
     if (user.affinityGroup.contains(User.AG.Individual) && user.nino.isDefined)
@@ -74,11 +72,17 @@ case class FullAuthoriseContext(
 
   override def agentId: Option[String] = user.agentId
 
-  override def planetId: Option[String] = Some(authenticatedSession.planetId)
+}
 
-  override lazy val authorisedServices: Set[String] = request.authorise.collect {
-    case EnrolmentPredicate(service, _, _) => service
-  }.toSet
+case class FullAuthoriseContext(
+  user: User,
+  authenticatedSession: AuthenticatedSession,
+  request: AuthoriseRequest,
+  agentAccessControlConnector: AgentAccessControlConnector)(implicit ec: ExecutionContext, hc: HeaderCarrier)
+    extends AuthoriseUserContext(user) {
+
+  override def providerType: String = authenticatedSession.providerType
+  override def planetId: Option[String] = Some(authenticatedSession.planetId)
 
   val timeout: Duration = 30 seconds
 

@@ -115,6 +115,7 @@ class UsersService @Inject()(
                           maybeUser <- findByUserId(userId, planetId)
                           _         <- updateKnownFacts(refined, planetId)
                           _         <- userRecordsService.syncUserToRecords(addRecordId(maybeUser, planetId))(maybeUser)
+                          _ = AuthorisationCache.updateResultsFor(refined, planetId)
                         } yield maybeUser.getOrElse(throw new Exception)
                         else Future.successful(existingUser)
                       case None => Future.failed(new NotFoundException(s"User $userId not found"))

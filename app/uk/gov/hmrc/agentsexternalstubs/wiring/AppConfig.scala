@@ -37,6 +37,8 @@ trait AppConfig {
   val desPort: Int
   val dataStreamPort: Int
 
+  val authCacheEnabled: Boolean
+
 }
 
 @Singleton
@@ -73,4 +75,6 @@ class AppConfigImpl @Inject()(config: ServicesConfig) extends AppConfig {
   val niExemptionRegistrationPort: Int = config.getConfInt("ni-exemption-registration.port", 0)
   val desPort: Int = config.getConfInt("des.port", 0)
   val dataStreamPort: Int = config.getInt("auditing.consumer.baseUri.port")
+
+  val authCacheEnabled: Boolean = config.getBoolean("authCache.enabled")
 }

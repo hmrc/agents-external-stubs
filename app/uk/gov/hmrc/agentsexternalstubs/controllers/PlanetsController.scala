@@ -5,6 +5,7 @@ import play.api.Logger
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.agentsexternalstubs.models.UserIdGenerator
 import uk.gov.hmrc.agentsexternalstubs.repository._
+import uk.gov.hmrc.agentsexternalstubs.services.AuthorisationCache
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -32,6 +33,7 @@ class PlanetsController @Inject()(
       ))
       .map { _ =>
         UserIdGenerator.destroyPlanetId(planetId)
+        AuthorisationCache.destroyPlanet(planetId)
         NoContent
       }
       .recover {

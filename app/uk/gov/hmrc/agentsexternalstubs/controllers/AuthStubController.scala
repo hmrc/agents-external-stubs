@@ -9,7 +9,8 @@ import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.agentsexternalstubs.connectors.AgentAccessControlConnector
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
+import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, AuthorisationCache, UsersService}
+import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -19,10 +20,13 @@ class AuthStubController @Inject()(
   authenticationService: AuthenticationService,
   usersService: UsersService,
   agentAccessControlConnector: AgentAccessControlConnector,
+  appConfig: AppConfig,
   cc: ControllerComponents)(implicit ec: ExecutionContext)
     extends BackendController(cc) {
 
   import AuthStubController._
+
+  val authCacheFlag: Option[Unit] = if (appConfig.authCacheEnabled) Some(()) else None
 
   val authorise: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     request.headers.get(HeaderNames.AUTHORIZATION) match {
@@ -33,23 +37,37 @@ class AuthStubController @Inject()(
                        case JsSuccess(authoriseRequest, _) =>
                          maybeSession match {
                            case Some(authenticatedSession) =>
-                             for {
-                               maybeUser <- usersService
-                                             .findByUserId(authenticatedSession.userId, authenticatedSession.planetId)
-                               result <- Future(maybeUser match {
-                                          case Some(user) =>
-                                            Authorise.prepareAuthoriseResponse(
-                                              FullAuthoriseContext(
-                                                user,
-                                                authenticatedSession,
-                                                authoriseRequest,
-                                                agentAccessControlConnector))
-                                          case None =>
-                                            Left("SessionRecordNotFound")
-                                        }) map (_.fold(
-                                          error => unauthorized(error),
-                                          response => Ok(Json.toJson(response))))
-                             } yield result
+                             authCacheFlag.flatMap(_ => AuthorisationCache.get(authenticatedSession, authoriseRequest)) match {
+                               case Some(maybeResponse) =>
+                                 Future.successful(
+                                   maybeResponse
+                                     .fold(error => unauthorized(error), response => Ok(Json.toJson(response))))
+                               case None =>
+                                 for {
+                                   maybeUser <- usersService
+                                                 .findByUserId(
+                                                   authenticatedSession.userId,
+                                                   authenticatedSession.planetId)
+                                   result <- Future(maybeUser match {
+                                              case Some(user) =>
+                                                Authorise.prepareAuthoriseResponse(
+                                                  FullAuthoriseContext(
+                                                    user,
+                                                    authenticatedSession,
+                                                    authoriseRequest,
+                                                    agentAccessControlConnector))
+                                              case None =>
+                                                Left("SessionRecordNotFound")
+                                            }) map { maybeResponse =>
+                                              if (authCacheFlag.isDefined)
+                                                AuthorisationCache
+                                                  .put(authenticatedSession, authoriseRequest, maybeResponse)
+                                              maybeResponse.fold(
+                                                error => unauthorized(error),
+                                                response => Ok(Json.toJson(response)))
+                                            }
+                                 } yield result
+                             }
                            case None =>
                              unauthorizedF("SessionRecordNotFound")
                          }
@@ -126,15 +144,15 @@ object AuthStubController {
 
   object Authorise {
 
-    def prepareAuthoriseResponse(context: FullAuthoriseContext)(implicit ex: ExecutionContext): Retrieve.MaybeResponse =
+    def prepareAuthoriseResponse(context: AuthoriseContext)(implicit ex: ExecutionContext): Retrieve.MaybeResponse =
       checkPredicates(context).fold(error => Left(error), _ => retrieveDetails(context))
 
-    def checkPredicates(context: FullAuthoriseContext)(implicit ex: ExecutionContext): Either[String, Unit] =
+    def checkPredicates(context: AuthoriseContext)(implicit ex: ExecutionContext): Either[String, Unit] =
       context.request.authorise.foldLeft[Either[String, Unit]](Right(()))(
         (result, p: Predicate) => result.fold(error => Left(error), _ => p.validate(context))
       )
 
-    def retrieveDetails(context: FullAuthoriseContext)(implicit ex: ExecutionContext): Retrieve.MaybeResponse =
+    def retrieveDetails(context: AuthoriseContext)(implicit ex: ExecutionContext): Retrieve.MaybeResponse =
       context.request.retrieve.foldLeft[Retrieve.MaybeResponse](Right(AuthoriseResponse()))((result, r: String) =>
         result.fold(error => Left(error), response => addDetailToResponse(response, r, context)))
 
