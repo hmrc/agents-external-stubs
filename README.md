@@ -109,6 +109,7 @@ Endpoint | Description
 ---|---
 [`GET /citizen-details/:idName/:taxId`](https://github.com/hmrc/citizen-details#get-citizen-detailsidnametaxid) | citizen information
 [`GET /citizen-details/:nino/designatory-details`](https://github.com/hmrc/citizen-details#get-citizen-detailsninodesignatory-details)| 
+[`GET /citizen-details/:nino/designatory-details/basic`](https://github.com/hmrc/citizen-details#get-citizen-detailsninodesignatory-detailsbasic)| 
 
 ### [User Groups Search](https://github.com/hmrc/users-groups-search) <a name="stubbed_api_users_groups_search"></a>
 
