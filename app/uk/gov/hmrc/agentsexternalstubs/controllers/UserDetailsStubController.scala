@@ -1,7 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import javax.inject.{Inject, Singleton}
-import play.api.libs.json.{Json, Writes}
+import play.api.libs.json.{Json, OFormat, Writes}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, Generator, User}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
@@ -20,7 +20,7 @@ class UserDetailsStubController @Inject()(
   def getUser(id: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       usersService.findByUserId(id, session.planetId).map {
-        case None       => notFound("NOT_FOUND", s"User details are not found")
+        case None       => notFound("NOT_FOUND", s"User $id details are not found")
         case Some(user) => Ok(RestfulResponse(GetUserResponse.from(user, session)))
       }
     }(SessionRecordNotFound)

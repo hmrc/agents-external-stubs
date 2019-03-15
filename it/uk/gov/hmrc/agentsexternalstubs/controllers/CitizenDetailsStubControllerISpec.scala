@@ -1,5 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
+import play.api.libs.json.JsObject
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
@@ -14,9 +15,14 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with MongoDB wit
 
     "GET /citizen-details/nino/:nino" should {
       "respond 200 with citizen data if found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
-        Users.update(UserGenerator
-          .individual(userId = "foo", nino = "HW 82 78 56 C", name = "Alan Brian Foo-Foe", dateOfBirth = "1975-12-18"))
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        Users.update(
+          UserGenerator
+            .individual(
+              userId = session.userId,
+              nino = "HW 82 78 56 C",
+              name = "Alan Brian Foo-Foe",
+              dateOfBirth = "1975-12-18"))
 
         val result = CitizenDetailsStub.getCitizen("nino", "HW827856C")
 
@@ -29,9 +35,14 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with MongoDB wit
       }
 
       "respond 404 if not found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
-        Users.update(UserGenerator
-          .individual(userId = "foo", nino = "JH 59 92 01 D", name = "Alan Brian Foo-Foe", dateOfBirth = "1975-12-18"))
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        Users.update(
+          UserGenerator
+            .individual(
+              userId = session.userId,
+              nino = "JH 59 92 01 D",
+              name = "Alan Brian Foo-Foe",
+              dateOfBirth = "1975-12-18"))
 
         val result = CitizenDetailsStub.getCitizen("nino", "HW827856C")
 
@@ -39,7 +50,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with MongoDB wit
       }
 
       "respond 400 if nino not valid" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = CitizenDetailsStub.getCitizen("nino", "W82785C")
 
@@ -47,7 +58,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with MongoDB wit
       }
 
       "respond 400 if tax identifier type not supported" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = CitizenDetailsStub.getCitizen("foo", "HW827856C")
 
@@ -58,6 +69,30 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with MongoDB wit
         val result = CitizenDetailsStub.getCitizen("foo", "HW827856C")(NotAuthorized)
 
         result should haveStatus(401)
+      }
+    }
+
+    "GET /citizen-details/:nino/designatory-details" should {
+      "return user designatory detail" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val user = UserGenerator.individual(userId = session.userId)
+        Users.update(user)
+
+        val result = CitizenDetailsStub.getDesignatoryDetails(user.nino.get.value)
+
+        result should haveStatus(200)
+        result.json
+          .as[JsObject] should (haveProperty[String]("etag") and haveProperty[JsObject](
+          "person",
+          haveProperty[String]("firstName", be(user.firstName.get)) and haveProperty[String](
+            "lastName",
+            be(user.lastName.get)) and haveProperty[String]("nino", be(user.nino.get.value)) and haveProperty[String](
+            "sex") and haveProperty[Boolean]("deceased")
+        ) and haveProperty[JsObject](
+          "address",
+          haveProperty[String]("line1") and haveProperty[String]("postcode") and haveProperty[String]("country")
+        ))
       }
     }
   }

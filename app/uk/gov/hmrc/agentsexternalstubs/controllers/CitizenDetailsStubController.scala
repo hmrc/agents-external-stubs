@@ -1,16 +1,18 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import javax.inject.{Inject, Singleton}
-import play.api.libs.concurrent.ExecutionContextProvider
-import play.api.libs.json.{Format, Json}
+import org.joda.time.LocalDate
+import play.api.libs.json.{Format, Json, OFormat}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.agentsexternalstubs.controllers.CitizenDetailsStubController.GetCitizenResponse
-import uk.gov.hmrc.agentsexternalstubs.models.User
+import uk.gov.hmrc.agentsexternalstubs.controllers.CitizenDetailsStubController.{GetCitizenResponse, GetDesignatoryDetailsResponse}
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, User, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.play.bootstrap.controller.{BackendController, BaseController}
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.ExecutionContext
+import play.api.libs.json.JodaWrites._
+import play.api.libs.json.JodaReads._
 
 @Singleton
 class CitizenDetailsStubController @Inject()(
@@ -32,6 +34,19 @@ class CitizenDetailsStubController @Inject()(
               }
           }
         case _ => badRequestF("TAX_IDENTIFIER_NOT_SUPPORTED", s"tax identifier $idName not supported")
+      }
+    }(SessionRecordNotFound)
+  }
+
+  def getDesignatoryDetails(nino: String): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      Nino.isValid(nino) match {
+        case false => badRequestF("INVALID_NINO", s"Provided NINO $nino is not valid")
+        case true =>
+          usersService.findByNino(nino, session.planetId).map {
+            case None       => notFound("NOT_FOUND", s"Citizen details are not found for $nino")
+            case Some(user) => Ok(RestfulResponse(GetDesignatoryDetailsResponse.from(user, session)))
+          }
       }
     }(SessionRecordNotFound)
   }
@@ -88,6 +103,84 @@ object CitizenDetailsStubController {
         ids = Ids(nino = user.nino),
         dateOfBirth = user.dateOfBirth.map(_.toString("ddMMyyyy"))
       )
+
+  }
+
+  /**
+    * {
+    *   "etag" : "115",
+    *   "person" : {
+    *     "firstName" : "HIPPY",
+    *     "middleName" : "T",
+    *     "lastName" : "NEWYEAR",
+    *     "title" : "Mr",
+    *     "honours": "BSC",
+    *     "sex" : "M",
+    *     "dateOfBirth" : "1952-04-01",
+    *     "nino" : "TW189213B",
+    *     "deceased" : false
+    *   },
+    *   "address" : {
+    *     "line1" : "26 FARADAY DRIVE",
+    *     "line2" : "PO BOX 45",
+    *     "line3" : "LONDON",
+    *     "postcode" : "CT1 1RQ",
+    *     "startDate": "2009-08-29",
+    *     "country" : "GREAT BRITAIN",
+    *     "type" : "Residential"
+    *   }
+    * }
+    */
+  case class GetDesignatoryDetailsResponse(
+    etag: String,
+    person: Option[GetDesignatoryDetailsResponse.Person],
+    address: Option[GetDesignatoryDetailsResponse.Address])
+
+  object GetDesignatoryDetailsResponse {
+
+    def from(user: User, session: AuthenticatedSession): GetDesignatoryDetailsResponse =
+      GetDesignatoryDetailsResponse(
+        user.userId.reverse,
+        user.affinityGroup
+          .find(_ == User.AG.Individual)
+          .map(
+            _ =>
+              Person(
+                firstName = user.firstName,
+                lastName = user.lastName,
+                sex = Some(UserGenerator.sex(user.userId)),
+                nino = user.nino,
+                dateOfBirth = user.dateOfBirth)),
+        user.address.map(
+          a =>
+            Address(
+              line1 = a.line1,
+              line2 = a.line2,
+              line3 = a.line3,
+              postcode = a.postcode,
+              country = a.countryCode.map { case "GB" => "GREAT BRITAIN"; case cc => cc }))
+      )
+
+    case class Person(
+      firstName: Option[String] = None,
+      lastName: Option[String] = None,
+      sex: Option[String] = None,
+      nino: Option[Nino] = None,
+      dateOfBirth: Option[LocalDate],
+      deceased: Boolean = false)
+
+    case class Address(
+      line1: Option[String] = None,
+      line2: Option[String] = None,
+      line3: Option[String] = None,
+      postcode: Option[String] = None,
+      startDate: Option[String] = None,
+      country: Option[String] = None,
+      `type`: String = "Residential")
+
+    implicit val format1: OFormat[Person] = Json.format[Person]
+    implicit val format2: OFormat[Address] = Json.format[Address]
+    implicit val format3: OFormat[GetDesignatoryDetailsResponse] = Json.format[GetDesignatoryDetailsResponse]
 
   }
 }

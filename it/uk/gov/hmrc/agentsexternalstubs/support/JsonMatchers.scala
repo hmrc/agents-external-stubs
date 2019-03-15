@@ -22,13 +22,17 @@ trait JsonMatchers {
                 )
             } else MatchResult(true, "", s"JSON have property `$name`")
           case _ =>
-            MatchResult(
-              false,
+            val failureMessage =
               s"JSON should have property `$name` of type ${classTag.runtimeClass.getSimpleName}, but ${if (obj.fields.isEmpty) "was empty."
               else "had only"} ${obj.fields
                 .map(f => s"${f._1}:${f._2.getClass.getSimpleName}")
-                .mkString(", ")}",
-              "."
+                .mkString(", ")}"
+            MatchResult(
+              matches = false,
+              rawFailureMessage = failureMessage,
+              rawNegatedFailureMessage = ".",
+              rawMidSentenceFailureMessage = failureMessage,
+              rawMidSentenceNegatedFailureMessage = ""
             )
         }
     }

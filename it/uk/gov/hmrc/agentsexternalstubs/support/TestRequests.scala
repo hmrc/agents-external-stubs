@@ -213,6 +213,9 @@ trait TestRequests extends ScalaFutures {
   object CitizenDetailsStub {
     def getCitizen(idName: String, taxId: String)(implicit authContext: AuthContext): WSResponse =
       get(s"/citizen-details/$idName/$taxId")
+
+    def getDesignatoryDetails(nino: String)(implicit authContext: AuthContext): WSResponse =
+      get(s"/citizen-details/$nino/designatory-details")
   }
 
   object UsersGroupSearchStub {

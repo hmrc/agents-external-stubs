@@ -10,10 +10,11 @@ GET         /auth/authority                                                  @uk
 GET         /auth/_ids                                                       @uk.gov.hmrc.agentsexternalstubs.controllers.AuthStubController.getIds
 GET         /auth/_enrolments                                                @uk.gov.hmrc.agentsexternalstubs.controllers.AuthStubController.getEnrolments
 
-# Citizen details stubs
+# User details stubs
 GET         /user-details/id/:id                                             @uk.gov.hmrc.agentsexternalstubs.controllers.UserDetailsStubController.getUser(id: String)
 
 # Citizen details stubs
+GET         /citizen-details/:nino/designatory-details                       @uk.gov.hmrc.agentsexternalstubs.controllers.CitizenDetailsStubController.getDesignatoryDetails(nino: String)
 GET         /citizen-details/:idName/:taxId                                  @uk.gov.hmrc.agentsexternalstubs.controllers.CitizenDetailsStubController.getCitizen(idName: String, taxId: String)
 
 # Users Groups Search stubs
@@ -67,7 +68,7 @@ GET         /sso/validate/domain/:domain                                     @uk
 
 #------------------------------------------------------
 # CUSTOM APIs
-#------------------------------------------------------ś
+#------------------------------------------------------
 
 # Authentication
 POST        /agents-external-stubs/sign-in                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.signIn

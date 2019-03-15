@@ -41,6 +41,8 @@ object UserGenerator {
   private final val agentIdGen = pattern"999999".gen
   def agentId(userId: String): String = agentIdGen.seeded(userId).get
 
+  def sex(userId: String): String = Gen.oneOf("M", "F").seeded(userId).get
+
   val agencyNameGen: Gen[String] = for {
     ln <- surname
     suffix <- Gen.oneOf(
