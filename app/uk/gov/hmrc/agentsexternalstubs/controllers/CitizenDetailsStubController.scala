@@ -4,7 +4,7 @@ import javax.inject.{Inject, Singleton}
 import org.joda.time.LocalDate
 import play.api.libs.json.{Format, Json, OFormat}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.agentsexternalstubs.controllers.CitizenDetailsStubController.{GetCitizenResponse, GetDesignatoryDetailsResponse}
+import uk.gov.hmrc.agentsexternalstubs.controllers.CitizenDetailsStubController.{GetCitizenResponse, GetDesignatoryDetailsBasicResponse, GetDesignatoryDetailsResponse}
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, User, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.domain.Nino
@@ -13,6 +13,7 @@ import uk.gov.hmrc.play.bootstrap.controller.BackendController
 import scala.concurrent.ExecutionContext
 import play.api.libs.json.JodaWrites._
 import play.api.libs.json.JodaReads._
+import uk.gov.hmrc.agentsexternalstubs.controllers.CitizenDetailsStubController.GetDesignatoryDetailsResponse.Person
 
 @Singleton
 class CitizenDetailsStubController @Inject()(
@@ -46,6 +47,19 @@ class CitizenDetailsStubController @Inject()(
           usersService.findByNino(nino, session.planetId).map {
             case None       => notFound("NOT_FOUND", s"Citizen details are not found for $nino")
             case Some(user) => Ok(RestfulResponse(GetDesignatoryDetailsResponse.from(user, session)))
+          }
+      }
+    }(SessionRecordNotFound)
+  }
+
+  def getDesignatoryDetailsBasic(nino: String): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      Nino.isValid(nino) match {
+        case false => badRequestF("INVALID_NINO", s"Provided NINO $nino is not valid")
+        case true =>
+          usersService.findByNino(nino, session.planetId).map {
+            case None       => notFound("NOT_FOUND", s"Citizen details are not found for $nino")
+            case Some(user) => Ok(RestfulResponse(GetDesignatoryDetailsBasicResponse.from(user, session)))
           }
       }
     }(SessionRecordNotFound)
@@ -181,6 +195,34 @@ object CitizenDetailsStubController {
     implicit val format1: OFormat[Person] = Json.format[Person]
     implicit val format2: OFormat[Address] = Json.format[Address]
     implicit val format3: OFormat[GetDesignatoryDetailsResponse] = Json.format[GetDesignatoryDetailsResponse]
+  }
 
+  /**
+    *{
+    *   "etag" : "115",
+    *   "firstName" : "HIPPY",
+    *   "lastName" : "NEWYEAR",
+    *   "title" : "Mr",
+    *   "nino" : "TW189213B",
+    *   "deceased" : false
+    * }
+    */
+  case class GetDesignatoryDetailsBasicResponse(
+    etag: String,
+    firstName: Option[String] = None,
+    lastName: Option[String] = None,
+    nino: Option[Nino] = None,
+    deceased: Boolean = false
+  )
+
+  object GetDesignatoryDetailsBasicResponse {
+    def from(user: User, session: AuthenticatedSession): GetDesignatoryDetailsBasicResponse =
+      GetDesignatoryDetailsBasicResponse(
+        etag = user.userId.reverse,
+        firstName = user.firstName,
+        lastName = user.lastName,
+        nino = user.nino)
+
+    implicit val format1: OFormat[GetDesignatoryDetailsBasicResponse] = Json.format[GetDesignatoryDetailsBasicResponse]
   }
 }

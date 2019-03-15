@@ -14,6 +14,7 @@ GET         /auth/_enrolments                                                @uk
 GET         /user-details/id/:id                                             @uk.gov.hmrc.agentsexternalstubs.controllers.UserDetailsStubController.getUser(id: String)
 
 # Citizen details stubs
+GET         /citizen-details/:nino/designatory-details/basic                 @uk.gov.hmrc.agentsexternalstubs.controllers.CitizenDetailsStubController.getDesignatoryDetailsBasic(nino: String)
 GET         /citizen-details/:nino/designatory-details                       @uk.gov.hmrc.agentsexternalstubs.controllers.CitizenDetailsStubController.getDesignatoryDetails(nino: String)
 GET         /citizen-details/:idName/:taxId                                  @uk.gov.hmrc.agentsexternalstubs.controllers.CitizenDetailsStubController.getCitizen(idName: String, taxId: String)
 
