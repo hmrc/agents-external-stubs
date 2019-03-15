@@ -424,6 +424,11 @@ trait TestRequests extends ScalaFutures {
       post(s"/ni-exemption-registration/ni-businesses/$utr", payload)
   }
 
+  object SsoValidateDomain {
+    def validate(domain: String): WSResponse =
+      get(s"/sso/validate/domain/$domain")(NotAuthorized)
+  }
+
   object Records {
     def getRecords()(implicit authContext: AuthContext): WSResponse =
       get(s"/agents-external-stubs/records")

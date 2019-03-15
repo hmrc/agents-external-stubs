@@ -63,6 +63,8 @@ POST        /write/audit/merged                                              @uk
 # NI Exemption Registration
 POST        /ni-exemption-registration/ni-businesses/:utr                    @uk.gov.hmrc.agentsexternalstubs.controllers.NiExemptionRegistrationStubController.niBusinesses(utr: String)
 
+GET         /sso/validate/domain/:domain                                     @uk.gov.hmrc.agentsexternalstubs.controllers.SsoValidateDomainController.validate(domain: String)
+
 #------------------------------------------------------
 # CUSTOM APIs
 #------------------------------------------------------ś
