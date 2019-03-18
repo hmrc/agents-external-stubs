@@ -9,6 +9,8 @@ POST        /auth/authorise                                                  @uk
 GET         /auth/authority                                                  @uk.gov.hmrc.agentsexternalstubs.controllers.AuthStubController.getAuthority
 GET         /auth/_ids                                                       @uk.gov.hmrc.agentsexternalstubs.controllers.AuthStubController.getIds
 GET         /auth/_enrolments                                                @uk.gov.hmrc.agentsexternalstubs.controllers.AuthStubController.getEnrolments
+GET         /auth/oid/:oid                                                   @uk.gov.hmrc.agentsexternalstubs.controllers.AuthStubController.getUserByOid(oid:String)
+GET         /auth/oid/:oid/enrolments                                        @uk.gov.hmrc.agentsexternalstubs.controllers.AuthStubController.getEnrolmentsByOid(oid:String)
 
 # User details stubs
 GET         /user-details/id/:id                                             @uk.gov.hmrc.agentsexternalstubs.controllers.UserDetailsStubController.getUser(id: String)
@@ -57,7 +59,6 @@ GET         /sa/agents/:agentref/client/:utr                                 @uk
 POST        /registration/02.00.00/individual                                @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.registerIndividualWithoutID
 POST        /registration/02.00.00/organisation                              @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.registerOrganisationWithoutID
 
-
 # Datastream
 POST        /write/audit                                                     @uk.gov.hmrc.agentsexternalstubs.controllers.DataStreamStubController.writeEvent
 POST        /write/audit/merged                                              @uk.gov.hmrc.agentsexternalstubs.controllers.DataStreamStubController.writeEvent
@@ -65,7 +66,9 @@ POST        /write/audit/merged                                              @uk
 # NI Exemption Registration
 POST        /ni-exemption-registration/ni-businesses/:utr                    @uk.gov.hmrc.agentsexternalstubs.controllers.NiExemptionRegistrationStubController.niBusinesses(utr: String)
 
+# SSO
 GET         /sso/validate/domain/:domain                                     @uk.gov.hmrc.agentsexternalstubs.controllers.SsoValidateDomainController.validate(domain: String)
+POST        /sso/digital-flag/:flag                                          @uk.gov.hmrc.agentsexternalstubs.controllers.SsoValidateDomainController.digitalFlag(flag: String)
 
 #------------------------------------------------------
 # CUSTOM APIs

@@ -17,12 +17,12 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class AuthStubController @Inject()(
-  authenticationService: AuthenticationService,
+  val authenticationService: AuthenticationService,
   usersService: UsersService,
   agentAccessControlConnector: AgentAccessControlConnector,
   appConfig: AppConfig,
   cc: ControllerComponents)(implicit ec: ExecutionContext)
-    extends BackendController(cc) {
+    extends BackendController(cc) with CurrentSession {
 
   import AuthStubController._
 
@@ -132,10 +132,28 @@ class AuthStubController @Inject()(
     }
   }
 
-  private def unauthorizedF(reason: String): Future[Result] =
+  def getUserByOid(oid: String): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      usersService.findByUserId(oid, session.planetId).map {
+        case Some(user) => ok(Authority.prepareAuthorityResponse(user, session))
+        case None       => notFound(s"User $oid not found on a planet ${session.planetId}")
+      }
+    }(SessionRecordNotFound)
+  }
+
+  def getEnrolmentsByOid(oid: String): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      usersService.findByUserId(oid, session.planetId).map {
+        case Some(user) => ok(Authority.prepareEnrolmentsResponse(user))
+        case None       => notFound(s"User $oid not found on a planet ${session.planetId}")
+      }
+    }(SessionRecordNotFound)
+  }
+
+  override def unauthorizedF(reason: String): Future[Result] =
     Future.successful(unauthorized(reason))
 
-  private def unauthorized(reason: String): Result =
+  override def unauthorized(reason: String): Result =
     Unauthorized("")
       .withHeaders("WWW-Authenticate" -> s"""MDTP detail="$reason"""")
 }
@@ -211,14 +229,31 @@ object AuthStubController {
     object Accounts {
 
       def from(user: User): Option[Accounts] = user.affinityGroup match {
-        case Some(User.AG.Agent) => Some(Accounts(user.credentialRole.map(AgentAccount.apply)))
-        case _                   => None
+        case Some(User.AG.Agent) =>
+          Some(
+            Accounts(
+              Some(AgentAccount(
+                agentUserRole = user.credentialRole
+                  .map { case User.CR.Admin | User.CR.User => "admin"; case User.CR.Assistant => "assistant" }
+                  .getOrElse("undefined"),
+                agentUserId = user.agentId.getOrElse("undefined"),
+                agentCode = user.agentCode.getOrElse("undefined"),
+                link = "undefined",
+                payeReference = user.findIdentifierValue("IR-PAYE-AGENT", "IRAgentReference")
+              )))
+          )
+        case _ => None
       }
 
       implicit val writes: Writes[Accounts] = Json.writes[Accounts]
     }
 
-    case class AgentAccount(agentUserRole: String)
+    case class AgentAccount(
+      agentUserRole: String,
+      agentUserId: String,
+      agentCode: String,
+      link: String,
+      payeReference: Option[String] = None)
 
     object AgentAccount {
       implicit val writes: Writes[AgentAccount] = Json.writes[AgentAccount]

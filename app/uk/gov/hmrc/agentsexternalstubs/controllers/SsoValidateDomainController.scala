@@ -13,4 +13,6 @@ class SsoValidateDomainController @Inject()(cc: MessagesControllerComponents)(im
     if (domain != "www.google.com") NoContent else BadRequest
   }
 
+  def digitalFlag(flag: String): Action[AnyContent] = Action { Ok }
+
 }

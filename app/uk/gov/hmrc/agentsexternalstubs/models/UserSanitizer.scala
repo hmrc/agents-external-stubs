@@ -95,12 +95,12 @@ object UserSanitizer extends RecordUtils[User] {
         case _ => user.copy(agentCode = None)
   }
 
-  private val ensureAgentHaveAgentId: Update = seed =>
+  private val ensureAgentHaveAgentId: Update = _ =>
     user =>
       user.affinityGroup match {
         case Some(User.AG.Agent) =>
           if (user.agentId.isEmpty)
-            user.copy(agentId = Some(UserGenerator.agentId(user.groupId.getOrElse(seed))))
+            user.copy(agentId = Some(user.userId))
           else user
         case _ => user.copy(agentId = None)
   }
