@@ -76,7 +76,7 @@ case object CredentialsRetrieve extends Retrieve {
   val key = "credentials"
   override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
     implicit ec: ExecutionContext): MaybeResponse =
-    Right(response.copy(credentials = Some(Credentials(context.userId, "GovernmentGateway", context.planetId))))
+    Right(response.copy(credentials = Some(Credentials(context.userId, context.providerType, context.planetId))))
 }
 
 case class GGCredId(ggCredId: String)
