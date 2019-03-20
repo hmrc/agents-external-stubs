@@ -57,4 +57,17 @@ trait TestStubs {
             Some(Seq(Identifier(identifierKey, identifierValue)))))
     )
 
+  def givenUserWithStrideRole(userId: String, planetId: String, role: String)(
+    implicit ec: ExecutionContext,
+    timeout: Duration): Unit =
+    await(addStrideRole(userId, planetId, role))
+
+  private def addStrideRole(userId: String, planetId: String, role: String)(
+    implicit ec: ExecutionContext): Future[User] =
+    userService.updateUser(
+      userId,
+      planetId,
+      user => user.copy(strideRoles = user.strideRoles :+ role)
+    )
+
 }

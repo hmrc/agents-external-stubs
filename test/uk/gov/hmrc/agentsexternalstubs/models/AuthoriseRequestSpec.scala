@@ -199,12 +199,22 @@ class AuthoriseRequestSpec extends UnitSpec {
       predicate.validate(context) shouldBe Right(())
     }
 
-    "accept if user has the expected stride role" in {
+    "accept if user has the expected stride role when PrivilegedApplication" in {
       val context = mock(classOf[AuthoriseContext])
+      when(context.providerType).thenReturn("PrivilegedApplication")
       when(context.principalEnrolments).thenReturn(Seq.empty)
       when(context.strideRoles).thenReturn(Seq("BAR"))
       val predicate = EnrolmentPredicate("BAR")
       predicate.validate(context) shouldBe Right(())
+    }
+
+    "accept if user has the expected stride role when GovernmentGateway" in {
+      val context = mock(classOf[AuthoriseContext])
+      when(context.providerType).thenReturn("GovernmentGateway")
+      when(context.principalEnrolments).thenReturn(Seq.empty)
+      when(context.strideRoles).thenReturn(Seq("BAR"))
+      val predicate = EnrolmentPredicate("BAR")
+      predicate.validate(context) shouldBe Left("InsufficientEnrolments")
     }
 
     "reject if user has the enrolment key expected but doesn't match" in {

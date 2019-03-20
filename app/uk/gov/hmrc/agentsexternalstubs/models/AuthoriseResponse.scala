@@ -95,15 +95,26 @@ case object AuthorisedEnrolmentsRetrieve extends Retrieve {
   val key = "authorisedEnrolments"
   override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
     implicit ec: ExecutionContext): MaybeResponse =
-    Right(response.copy(authorisedEnrolments = Some(context.principalEnrolments.filter(p =>
-      context.authorisedServices.contains(p.key)))))
+    if (context.providerType == "PrivilegedApplication")
+      Right(
+        response.copy(
+          authorisedEnrolments = Some(
+            context.strideRoles
+              .filter(context.authorisedServices.contains)
+              .map(Enrolment.apply(_)))))
+    else
+      Right(response.copy(authorisedEnrolments = Some(context.principalEnrolments.filter(p =>
+        context.authorisedServices.contains(p.key)))))
 }
 
 case object AllEnrolmentsRetrieve extends Retrieve {
   val key = "allEnrolments"
   override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
     implicit ec: ExecutionContext): MaybeResponse =
-    Right(response.copy(allEnrolments = Some(context.principalEnrolments)))
+    if (context.providerType == "PrivilegedApplication")
+      Right(response.copy(allEnrolments = Some(context.strideRoles.map(Enrolment.apply(_)))))
+    else
+      Right(response.copy(allEnrolments = Some(context.principalEnrolments)))
 }
 
 case object AffinityGroupRetrieve extends Retrieve {

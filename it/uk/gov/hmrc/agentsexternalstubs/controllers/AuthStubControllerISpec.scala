@@ -95,6 +95,18 @@ class AuthStubControllerISpec
         creds.providerType shouldBe "GovernmentGateway"
       }
 
+      "retrieve credentials if PrivilegedApplication" in {
+        val id = randomId
+        val authToken = givenAnAuthenticatedUser(User(id), providerType = "PrivilegedApplication")
+        val creds = await(
+          authConnector
+            .authorise[Credentials](EmptyPredicate, Retrievals.credentials)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global))
+        creds.providerId shouldBe id
+        creds.providerType shouldBe "PrivilegedApplication"
+      }
+
       "authorise if user authenticated with the OneTimeLogin provider" in {
         val authToken = givenAnAuthenticatedUser(User(randomId), providerType = "OneTimeLogin")
         await(
@@ -234,6 +246,21 @@ class AuthStubControllerISpec
         enrolments.getEnrolment("IR-SA") shouldBe None
       }
 
+      "retrieve authorisedEnrolments if PrivilegedApplication" in {
+        val id = randomId
+        val authToken = givenAnAuthenticatedUser(User(id), planetId = id, providerType = "PrivilegedApplication")
+        givenUserWithStrideRole(id, planetId = id, "FOO_ROLE")
+        givenUserEnrolledFor(id, planetId = id, "IR-SA", "UTR", "1234567890")
+
+        val enrolments = await(
+          authConnector
+            .authorise[Enrolments](Enrolment("FOO_ROLE"), Retrievals.authorisedEnrolments)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global))
+        enrolments.getEnrolment("FOO_ROLE") shouldBe Some(Enrolment("FOO_ROLE", Seq.empty, "Activated"))
+        enrolments.getEnrolment("IR-SA") shouldBe None
+      }
+
       "retrieve authorisedEnrolments with HMRC-NI" in {
         val id = randomId
         val user = UserGenerator.individual(id)
@@ -268,6 +295,22 @@ class AuthStubControllerISpec
           Enrolment("HMRC-MTD-IT", Seq(EnrolmentIdentifier("MTDITID", "236216873678126")), "Activated"))
         enrolments.getEnrolment("IR-SA") shouldBe Some(
           Enrolment("IR-SA", Seq(EnrolmentIdentifier("UTR", "1234567890")), "Activated"))
+      }
+
+      "retrieve allEnrolments if PrivilegedApplication" in {
+        val id = randomId
+        val authToken = givenAnAuthenticatedUser(User(id), planetId = id, providerType = "PrivilegedApplication")
+        givenUserWithStrideRole(id, planetId = id, "FOO_ROLE")
+        givenUserEnrolledFor(id, planetId = id, "IR-SA", "UTR", "1234567890")
+
+        val enrolments = await(
+          authConnector
+            .authorise[Enrolments](EmptyPredicate, Retrievals.allEnrolments)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global))
+        enrolments.getEnrolment("foo") shouldBe None
+        enrolments.getEnrolment("FOO_ROLE") shouldBe Some(Enrolment("FOO_ROLE", Seq.empty, "Activated"))
+        enrolments.getEnrolment("IR-SA") shouldBe None
       }
 
       "retrieve allEnrolments with HMRC-NI" in {

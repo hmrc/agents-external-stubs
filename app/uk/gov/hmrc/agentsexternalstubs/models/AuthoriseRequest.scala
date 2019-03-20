@@ -80,17 +80,17 @@ case class EnrolmentPredicate(
       case (Some(rule), None) =>
         Left(s"Missing predicate part: delegated $rule enrolment identifiers")
       case (None, _) =>
-        context.principalEnrolments
-          .collectFirst {
-            case Enrolment(`enrolment`, ii, state)
-                if ii.nonEmpty && identifiersMatches(identifiers, ii) && state == Enrolment.ACTIVATED =>
-            case Enrolment(`enrolment`, ii, state) if ii.isEmpty && state == Enrolment.ACTIVATED      =>
-          }
-          .orElse(
-            context.strideRoles.find(_ == enrolment)
-          )
-          .map(_ => ())
-          .toRight("InsufficientEnrolments")
+        if (context.providerType == "PrivilegedApplication")
+          context.strideRoles.find(_ == enrolment).map(_ => ()).toRight("InsufficientEnrolments")
+        else
+          context.principalEnrolments
+            .collectFirst {
+              case Enrolment(`enrolment`, ii, state)
+                  if ii.nonEmpty && identifiersMatches(identifiers, ii) && state == Enrolment.ACTIVATED =>
+              case Enrolment(`enrolment`, ii, state) if ii.isEmpty && state == Enrolment.ACTIVATED      =>
+            }
+            .map(_ => ())
+            .toRight("InsufficientEnrolments")
     }
 
   private def identifiersMatches(expected: Option[Seq[Identifier]], provided: Option[Seq[Identifier]]): Boolean =
