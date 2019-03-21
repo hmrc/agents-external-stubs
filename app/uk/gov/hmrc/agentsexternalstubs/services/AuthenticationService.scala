@@ -8,6 +8,7 @@ import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticateRequest, Authenticate
 import uk.gov.hmrc.agentsexternalstubs.repository.AuthenticatedSessionsRepository
 import uk.gov.hmrc.http.HeaderCarrier
 
+import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -16,19 +17,25 @@ class AuthenticationService @Inject()(
   externalAuthorisationService: ExternalAuthorisationService,
   userService: UsersService) {
 
+  private val authenticatedSessionCache =
+    new AsyncCache[String, AuthenticatedSession](maximumSize = 1000000, expireAfterWrite = Some(5.minutes))
+
   def findByAuthTokenOrLookupExternal(authToken: String)(
     implicit ec: ExecutionContext,
     hc: HeaderCarrier,
     request: Request[_]): Future[Option[AuthenticatedSession]] =
-    authSessionRepository.findByAuthToken(authToken).flatMap {
-      case Some(session) => Future.successful(Some(session))
-      case None =>
-        val planetId = Planet.DEFAULT
-        externalAuthorisationService.maybeExternalSession(planetId, this.authenticate)
-    }
+    authenticatedSessionCache.getOption(
+      authToken,
+      authSessionRepository.findByAuthToken(_).flatMap {
+        case Some(session) => Future.successful(Some(session))
+        case None =>
+          val planetId = Planet.DEFAULT
+          externalAuthorisationService.maybeExternalSession(planetId, this.authenticate)
+      }
+    )
 
   def findByAuthToken(authToken: String)(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
-    authSessionRepository.findByAuthToken(authToken)
+    authenticatedSessionCache.getOption(authToken, authSessionRepository.findByAuthToken)
 
   def findBySessionId(sessionId: String)(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
     authSessionRepository.findBySessionId(sessionId)
@@ -43,10 +50,14 @@ class AuthenticationService @Inject()(
       _ <- authSessionRepository
             .create(request.sessionId, request.userId, authToken, request.providerType, request.planetId)
       maybeSession <- authSessionRepository.findByAuthToken(authToken)
+      _            <- authenticatedSessionCache.put(authToken, maybeSession)
     } yield maybeSession
   }
 
   def removeAuthentication(authToken: String)(implicit ec: ExecutionContext): Future[Unit] =
-    authSessionRepository.delete(authToken).map(_ => ())
+    for {
+      _ <- authenticatedSessionCache.invalidate(authToken)
+      _ <- authSessionRepository.delete(authToken)
+    } yield ()
 
 }
