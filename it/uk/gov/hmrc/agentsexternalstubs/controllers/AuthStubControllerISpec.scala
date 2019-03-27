@@ -429,6 +429,19 @@ class AuthStubControllerISpec
         }
       }
 
+      "throw UnsupportedAffinityGroup if none of alternative affinityGroup does not match" in {
+        val authToken =
+          givenAnAuthenticatedUser(User(randomId, affinityGroup = Some(User.AG.Agent)))
+
+        an[UnsupportedAffinityGroup] shouldBe thrownBy {
+          await(
+            authConnector
+              .authorise[Unit](AffinityGroup.Organisation or AffinityGroup.Individual, EmptyRetrieval)(
+                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+                concurrent.ExecutionContext.Implicits.global))
+        }
+      }
+
       "retrieve affinityGroup" in {
         val authToken = givenAnAuthenticatedUser(User(randomId, affinityGroup = Some(User.AG.Agent)))
 

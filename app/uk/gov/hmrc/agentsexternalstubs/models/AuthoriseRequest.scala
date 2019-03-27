@@ -184,7 +184,6 @@ object CredentialRole extends PredicateFormat[CredentialRole]("credentialRole") 
 case class Alternative(`$or`: Seq[Predicate]) extends Predicate {
   override def validate(context: AuthoriseContext): Either[String, Unit] =
     `$or`.foldLeft[Either[String, Unit]](Left(""))((a, p) => a.fold(_ => p.validate(context), Right.apply))
-      .fold(_ => Left(s"None of ${`$or`.size} alternative predicates was fulfilled."), Right.apply)
 }
 
 object Alternative extends PredicateFormat[Alternative]("$or") {
