@@ -20,8 +20,6 @@ import java.util.UUID
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
 class KnownFactsRepositoryISpec extends AppBaseISpec with MongoDB {
 
   lazy val repo = app.injector.instanceOf[KnownFactsRepository]

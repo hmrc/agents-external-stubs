@@ -14,4 +14,4 @@ addSbtPlugin("uk.gov.hmrc" % "sbt-artifactory" % "0.14.0")
 
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.5.0")
 
-addSbtPlugin("com.lucidchart" % "sbt-scalafmt" % "1.15")
+addSbtPlugin("com.lucidchart" % "sbt-scalafmt" % "1.16")

@@ -21,8 +21,6 @@ import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
 import uk.gov.hmrc.domain.Nino
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
 class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
 
   lazy val repo = app.injector.instanceOf[UsersRepository]

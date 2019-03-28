@@ -21,8 +21,6 @@ import uk.gov.hmrc.agentsexternalstubs.models.SpecialCase.RequestMatch
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
 class SpecialCasesRepositoryISpec extends AppBaseISpec with MongoDB {
 
   lazy val repo = app.injector.instanceOf[SpecialCasesRepository]
