@@ -60,6 +60,17 @@ case class User(
       .flatMap(_.identifiers.flatMap(_.find(_.key == identifierName)))
       .map(_.value)
 
+  def findIdentifierValue(
+    serviceName: String,
+    identifierName1: String,
+    identifierName2: String,
+    join: (String, String) => String): Option[String] =
+    for {
+      enrolment <- principalEnrolments.find(_.key == serviceName)
+      part1     <- enrolment.identifierValueOf(identifierName1)
+      part2     <- enrolment.identifierValueOf(identifierName2)
+    } yield join(part1, part2)
+
   def findDelegatedIdentifierValues(serviceName: String, identifierName: String): Seq[String] =
     delegatedEnrolments
       .filter(_.key == serviceName)

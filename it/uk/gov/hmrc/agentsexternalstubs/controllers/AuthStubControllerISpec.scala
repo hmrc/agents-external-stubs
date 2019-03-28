@@ -808,26 +808,65 @@ class AuthStubControllerISpec
     }
 
     "GET /auth/authority" should {
-      "return current user authority record" in {
+      "return current individual user authority record" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
-        val user = UserGenerator.individual(authSession.userId)
+        val user = UserGenerator
+          .individual(authSession.userId)
+          .withPrincipalEnrolment("IR-SA~UTR~123456")
         Users.update(user)
         val result = AuthStub.getAuthority()
         result should haveStatus(200)
-        result should haveValidJsonBody(haveProperty[String]("uri") and haveProperty[Int](
-          "confidenceLevel",
-          be(user.confidenceLevel.getOrElse(50))) and haveProperty[String](
-          "credentialStrength",
-          be(user.credentialStrength.getOrElse("weak"))) and haveProperty[String](
-          "userDetailsLink",
-          be(s"/user-details/id/${user.userId}")) and haveProperty[String]("legacyOid") and haveProperty[String](
-          "ids",
-          be(s"/auth/_ids")) and haveProperty[String]("lastUpdated") and haveProperty[String]("loggedInAt") and haveProperty[
-          String]("enrolments", be(s"/auth/_enrolments")) and haveProperty[String](
-          "affinityGroup",
-          be(user.affinityGroup.getOrElse("none"))) and haveProperty[String]("correlationId") and haveProperty[String](
-          "credId",
-          be(user.userId)))
+        result should haveValidJsonBody(
+          haveProperty[String]("uri"),
+          haveProperty[Int]("confidenceLevel", be(user.confidenceLevel.getOrElse(50))),
+          haveProperty[String]("credentialStrength", be(user.credentialStrength.getOrElse("weak"))),
+          haveProperty[String]("userDetailsLink", be(s"/user-details/id/${user.userId}")),
+          haveProperty[String]("legacyOid"),
+          haveProperty[String]("ids", be(s"/auth/_ids")),
+          haveProperty[String]("lastUpdated"),
+          haveProperty[String]("loggedInAt"),
+          haveProperty[String]("enrolments", be(s"/auth/_enrolments")),
+          haveProperty[String]("affinityGroup", be(user.affinityGroup.getOrElse("none"))),
+          haveProperty[String]("correlationId"),
+          haveProperty[String]("credId", be(user.userId)),
+          haveProperty[JsObject](
+            "accounts",
+            haveProperty[JsObject]("paye", haveProperty[String]("nino", be(user.nino.get.value.replace(" ", "")))),
+            haveProperty[JsObject]("sa", haveProperty[String]("utr", be("123456")))
+          )
+        )
+      }
+
+      "return current agent user authority record" in {
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
+        val user =
+          UserGenerator.agent(authSession.userId).withPrincipalEnrolment("IR-PAYE-AGENT~IRAgentReference~123456")
+        Users.update(user)
+        val result = AuthStub.getAuthority()
+        result should haveStatus(200)
+        result should haveValidJsonBody(
+          haveProperty[String]("uri"),
+          haveProperty[Int]("confidenceLevel", be(user.confidenceLevel.getOrElse(50))),
+          haveProperty[String]("credentialStrength", be(user.credentialStrength.getOrElse("weak"))),
+          haveProperty[String]("userDetailsLink", be(s"/user-details/id/${user.userId}")),
+          haveProperty[String]("legacyOid"),
+          haveProperty[String]("ids", be(s"/auth/_ids")),
+          haveProperty[String]("lastUpdated"),
+          haveProperty[String]("loggedInAt"),
+          haveProperty[String]("enrolments", be(s"/auth/_enrolments")),
+          haveProperty[String]("affinityGroup", be(user.affinityGroup.getOrElse("none"))),
+          haveProperty[String]("correlationId"),
+          haveProperty[String]("credId", be(user.userId)),
+          haveProperty[JsObject](
+            "accounts",
+            haveProperty[JsObject](
+              "agent",
+              haveProperty[String]("agentCode", be(user.agentCode.get)),
+              haveProperty[String]("agentUserRole", be("admin")),
+              haveProperty[String]("payeReference", be("123456"))
+            )
+          )
+        )
       }
 
       "return 401 if auth token missing" in {
@@ -842,9 +881,8 @@ class AuthStubControllerISpec
         val result = AuthStub.getIds()
         result should haveStatus(200)
         result should haveValidJsonBody(
-          haveProperty[String]("internalId", be(authSession.userId)) and haveProperty[String](
-            "externalId",
-            be(authSession.userId)))
+          haveProperty[String]("internalId", be(authSession.userId)),
+          haveProperty[String]("externalId", be(authSession.userId)))
       }
 
       "return 401 if auth token missing" in {
@@ -862,10 +900,12 @@ class AuthStubControllerISpec
         result should haveStatus(200)
         result should haveValidJsonArrayBody(
           eachArrayElement[JsObject](
-            haveProperty[String]("key") and haveProperty[Seq[JsObject]](
+            haveProperty[String]("key"),
+            haveProperty[Seq[JsObject]](
               "identifiers",
-              eachElement[JsObject](haveProperty[String]("key") and haveProperty[String]("value"))) and haveProperty[
-              String]("state")))
+              eachElement[JsObject](haveProperty[String]("key"), haveProperty[String]("value"))),
+            haveProperty[String]("state")
+          ))
       }
 
       "return 401 if auth token missing" in {

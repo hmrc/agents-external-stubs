@@ -224,7 +224,14 @@ object AuthStubController {
       implicit val writes: Writes[Credentials] = Json.writes[Credentials]
     }
 
-    case class Accounts(agent: Option[AgentAccount])
+    case class Accounts(
+      paye: Option[Accounts.Paye] = None,
+      sa: Option[Accounts.Sa] = None,
+      ct: Option[Accounts.Ct] = None,
+      vat: Option[Accounts.Vat] = None,
+      epaye: Option[Accounts.Epaye] = None,
+      agent: Option[Accounts.Agent] = None
+    )
 
     object Accounts {
 
@@ -232,31 +239,83 @@ object AuthStubController {
         case Some(User.AG.Agent) =>
           Some(
             Accounts(
-              Some(AgentAccount(
-                agentUserRole = user.credentialRole
-                  .map { case User.CR.Admin | User.CR.User => "admin"; case User.CR.Assistant => "assistant" }
-                  .getOrElse("undefined"),
-                agentUserId = user.agentId.getOrElse("undefined"),
-                agentCode = user.agentCode.getOrElse("undefined"),
-                link = "undefined",
-                payeReference = user.findIdentifierValue("IR-PAYE-AGENT", "IRAgentReference")
-              )))
+              agent = Some(
+                Agent(
+                  agentUserRole = user.credentialRole
+                    .map { case User.CR.Admin | User.CR.User => "admin"; case User.CR.Assistant => "assistant" }
+                    .getOrElse("link"),
+                  agentUserId = user.agentId.getOrElse("link"),
+                  agentCode = user.agentCode.getOrElse("link"),
+                  link = "link",
+                  payeReference = user.findIdentifierValue("IR-PAYE-AGENT", "IRAgentReference")
+                )),
+              ct = user.findIdentifierValue("IR-CT", "UTR").map(Ct.apply("link", _)),
+              sa = user.findIdentifierValue("IR-SA", "UTR").map(Sa.apply("link", _)),
+              vat = user.findIdentifierValue("HMCE-VATDEC-ORG", "VRN").map(Vat.apply("link", _))
+            )
           )
+        case Some(User.AG.Individual) =>
+          Some(
+            Accounts(
+              sa = user.findIdentifierValue("IR-SA", "UTR").map(Sa.apply("link", _)),
+              paye = user.nino.map(nino => Paye.apply("link", nino.value.replace(" ", ""))),
+              vat = user.findIdentifierValue("HMCE-VATDEC-ORG", "VRN").map(Vat.apply("link", _))
+            ))
+        case Some(User.AG.Organisation) =>
+          Some(
+            Accounts(
+              sa = user.findIdentifierValue("IR-SA", "UTR").map(Sa.apply("link", _)),
+              ct = user.findIdentifierValue("IR-CT", "UTR").map(Ct.apply("link", _)),
+              vat = user.findIdentifierValue("HMCE-VATDEC-ORG", "VRN").map(Vat.apply("link", _)),
+              epaye = user
+                .findIdentifierValue("IR-PAYE", "TaxOfficeNumber", "TaxOfficeReference", _ + "/" + _)
+                .map(Epaye.apply("link", _))
+            ))
         case _ => None
       }
 
       implicit val writes: Writes[Accounts] = Json.writes[Accounts]
-    }
 
-    case class AgentAccount(
-      agentUserRole: String,
-      agentUserId: String,
-      agentCode: String,
-      link: String,
-      payeReference: Option[String] = None)
+      case class Agent(
+        agentUserRole: String,
+        agentUserId: String,
+        agentCode: String,
+        link: String,
+        payeReference: Option[String] = None)
 
-    object AgentAccount {
-      implicit val writes: Writes[AgentAccount] = Json.writes[AgentAccount]
+      object Agent {
+        implicit val writes: Writes[Agent] = Json.writes[Agent]
+      }
+
+      case class Ct(link: String, utr: String)
+
+      object Ct {
+        implicit val formats: Format[Ct] = Json.format[Ct]
+      }
+
+      case class Epaye(link: String, empRef: String)
+
+      object Epaye {
+        implicit val formats: Format[Epaye] = Json.format[Epaye]
+      }
+
+      case class Paye(link: String, nino: String)
+
+      object Paye {
+        implicit val formats: Format[Paye] = Json.format[Paye]
+      }
+
+      case class Sa(link: String, utr: String)
+
+      object Sa {
+        implicit val formats: Format[Sa] = Json.format[Sa]
+      }
+
+      case class Vat(link: String, vrn: String)
+
+      object Vat {
+        implicit val formats: Format[Vat] = Json.format[Vat]
+      }
     }
 
     case class Ids(internalId: String, externalId: String)
