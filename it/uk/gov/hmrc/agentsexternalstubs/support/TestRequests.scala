@@ -340,6 +340,7 @@ trait TestRequests extends ScalaFutures {
   }
 
   object DesStub {
+
     def authoriseOrDeAuthoriseRelationship[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/registration/relationship")
@@ -414,6 +415,14 @@ trait TestRequests extends ScalaFutures {
 
     def registerOrganisationWithoutID[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
       post(s"/registration/02.00.00/organisation", payload)
+
+    def retrieveLegacyAgentClientPayeInformation[T: BodyWritable](agentCode: String, payload: T)(
+      implicit authContext: AuthContext): WSResponse =
+      post(s"/agents/paye/$agentCode/clients/compare", payload)
+
+    def removeLegacyAgentClientPayeRelationship(agentCode: String, taxOfficeNumber: String, taxOfficeReference: String)(
+      implicit authContext: AuthContext): WSResponse =
+      delete(s"/agents/paye/$agentCode/clients/$taxOfficeNumber/$taxOfficeReference")
   }
 
   object DataStreamStubs {
@@ -539,6 +548,21 @@ trait TestRequests extends ScalaFutures {
     def generateRelationship(seed: String, minimal: Boolean)(implicit authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/relationship/generate")
+        .withQueryStringParameters("seed" -> seed, "minimal" -> minimal.toString)
+        .withHttpHeaders(authContext.headers: _*)
+        .get
+        .futureValue
+
+    def createEmployerAuths[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/records/employer-auths")
+        .withHttpHeaders(authContext.headers: _*)
+        .post[T](payload)
+        .futureValue
+
+    def generateEmployerAuths(seed: String, minimal: Boolean)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/records/employer-auths/generate")
         .withQueryStringParameters("seed" -> seed, "minimal" -> minimal.toString)
         .withHttpHeaders(authContext.headers: _*)
         .get

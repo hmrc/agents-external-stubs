@@ -22,6 +22,8 @@ object JsonSchema {
     val isRef: Boolean
 
     def isMandatory: Boolean
+    def shallBeValidated: Boolean
+
     val isPrimitive: Boolean = true
     val isBoolean: Boolean = false
 
@@ -55,7 +57,10 @@ object JsonSchema {
     description: Option[String] = None,
     isMandatory: Boolean,
     alternatives: Seq[Set[String]] = Seq.empty)
-      extends Definition { override val isPrimitive: Boolean = false }
+      extends Definition {
+    override val isPrimitive: Boolean = false
+    override def shallBeValidated: Boolean = true
+  }
 
   case class OneOfDefinition(
     name: String,
@@ -65,7 +70,9 @@ object JsonSchema {
     description: Option[String] = None,
     isMandatory: Boolean,
     alternatives: Seq[Set[String]] = Seq.empty)
-      extends Definition
+      extends Definition {
+    override def shallBeValidated: Boolean = variants.nonEmpty
+  }
 
   case class StringDefinition(
     name: String,
@@ -80,7 +87,10 @@ object JsonSchema {
     isKey: Boolean = false,
     customGenerator: Option[String] = None,
     isMandatory: Boolean
-  ) extends Definition
+  ) extends Definition {
+    override def shallBeValidated: Boolean =
+      pattern.isDefined || enum.isDefined || minLength.isDefined || maxLength.isDefined
+  }
 
   case class NumberDefinition(
     name: String,
@@ -92,7 +102,9 @@ object JsonSchema {
     minimum: Option[BigDecimal] = None,
     maximum: Option[BigDecimal] = None,
     multipleOf: Option[BigDecimal] = None
-  ) extends Definition
+  ) extends Definition {
+    override def shallBeValidated: Boolean = maximum.isDefined || minimum.isDefined || multipleOf.isDefined
+  }
 
   case class BooleanDefinition(
     name: String,
@@ -100,7 +112,10 @@ object JsonSchema {
     isRef: Boolean = false,
     description: Option[String] = None,
     isMandatory: Boolean)
-      extends Definition { override val isBoolean: Boolean = true }
+      extends Definition {
+    override val isBoolean: Boolean = true
+    override def shallBeValidated: Boolean = false
+  }
 
   case class ArrayDefinition(
     name: String,
@@ -108,8 +123,13 @@ object JsonSchema {
     item: Definition,
     isRef: Boolean = false,
     description: Option[String] = None,
-    isMandatory: Boolean)
-      extends Definition { override val isPrimitive: Boolean = false }
+    isMandatory: Boolean,
+    minItems: Option[Int] = None,
+    maxItems: Option[Int] = None)
+      extends Definition {
+    override val isPrimitive: Boolean = false
+    override def shallBeValidated: Boolean = item.shallBeValidated || minItems.isDefined || maxItems.isDefined
+  }
 
   private def readProperty(
     name: String,
@@ -119,34 +139,59 @@ object JsonSchema {
     isRef: Boolean = false,
     description: Option[String] = None,
     required: Seq[String]): Definition = {
+
     val desc = description.orElse((property \ "description").asOpt[String])
+
+    def read(valueType: String, isMandatory: Boolean): Definition = valueType match {
+      case "object"  => readObject(name, path, property, schema, isRef, desc, isMandatory)
+      case "string"  => readString(name, path, property, schema, isRef, desc, isMandatory)
+      case "number"  => readNumber(name, path, property, schema, isRef, desc, isMandatory)
+      case "boolean" => BooleanDefinition(name, path, isRef, desc, isMandatory = true)
+      case "array"   => readArray(name, path, property, schema, isRef, desc, isMandatory)
+    }
+
     (property \ "type").asOpt[String] match {
       case Some(valueType) =>
         val isMandatory = required.contains(name)
-        valueType match {
-          case "object"  => readObject(name, path, property, schema, isRef, desc, isMandatory)
-          case "string"  => readString(name, path, property, schema, isRef, desc, isMandatory)
-          case "number"  => readNumber(name, path, property, schema, isRef, desc, isMandatory)
-          case "boolean" => BooleanDefinition(name, path, isRef, desc, isMandatory = true)
-          case "array"   => readArray(name, path, property, schema, isRef, desc, isMandatory)
-        }
+        read(valueType, isMandatory)
       case None =>
-        (property \ "$ref").asOpt[String] match {
-          case Some(ref) =>
-            if (ref.startsWith("#/")) {
-              val jsonLookup = ref.substring(2).split("/").foldLeft[JsLookup](schema)((s, p) => s \ p)
-              val r = readProperty(
-                name,
-                ref,
-                jsonLookup.result.as[JsObject],
-                schema,
-                isRef = true,
-                description = desc,
-                required)
-              r
-            } else throw new IllegalStateException(s"Reference format not supported, must start with #/: $ref")
+        (property \ "type").asOpt[Seq[String]] match {
+          case Some(types) =>
+            val types1 = types.filterNot(_ == "null").toSet
+            val isMandatory = !types.contains("null") && required.contains(name)
+            if (types1.size == 1) {
+              read(types1.head, isMandatory)
+            } else {
+              val variants = types1.map(read(_, isMandatory)).toSeq
+              OneOfDefinition(name, path, variants, isRef, description, isMandatory)
+            }
           case None =>
-            readOneOf(name, path, property, schema, isRef, description, required.contains(name), required, Seq.empty)
+            (property \ "$ref").asOpt[String] match {
+              case Some(ref) =>
+                if (ref.startsWith("#/")) {
+                  val jsonLookup = ref.substring(2).split("/").foldLeft[JsLookup](schema)((s, p) => s \ p)
+                  val r = readProperty(
+                    name,
+                    ref,
+                    jsonLookup.result.as[JsObject],
+                    schema,
+                    isRef = true,
+                    description = desc,
+                    required)
+                  r
+                } else throw new IllegalStateException(s"Reference format not supported, must start with #/: $ref")
+              case None =>
+                readOneOf(
+                  name,
+                  path,
+                  property,
+                  schema,
+                  isRef,
+                  description,
+                  required.contains(name),
+                  required,
+                  Seq.empty)
+            }
         }
     }
   }
@@ -285,7 +330,21 @@ object JsonSchema {
     isMandatory: Boolean): Definition = {
 
     val items = (property \ "items").as[JsObject]
-    val itemDefinition = readProperty(name, path, items, schema, required = Seq(name))
-    ArrayDefinition(name, path, itemDefinition, isRef = isRef, description = description, isMandatory = isMandatory)
+    val minItems = (property \ "minItems").asOpt[Int]
+    val maxItems = (property \ "maxItems").asOpt[Int]
+    val itemName =
+      if (name.endsWith("Array")) name.substring(0, name.length - 5)
+      else if (name.endsWith("List")) name.substring(0, name.length - 4)
+      else name
+    val itemDefinition = readProperty(itemName, path, items, schema, required = Seq(name))
+    ArrayDefinition(
+      name,
+      path,
+      itemDefinition,
+      isRef = isRef,
+      description = description,
+      isMandatory = isMandatory,
+      minItems = minItems,
+      maxItems = maxItems)
   }
 }

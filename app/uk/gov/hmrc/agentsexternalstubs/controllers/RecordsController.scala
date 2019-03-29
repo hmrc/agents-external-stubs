@@ -20,6 +20,7 @@ class RecordsController @Inject()(
   vatCustomerInformationRecordsService: VatCustomerInformationRecordsService,
   businessPartnerRecordsService: BusinessPartnerRecordsService,
   relationshipRecordsService: RelationshipRecordsService,
+  employerAuthRecordsService: EmployerAuthsRecordsService,
   recordsRepository: RecordsRepository,
   val authenticationService: AuthenticationService,
   cc: ControllerComponents)(implicit ec: ExecutionContext)
@@ -200,6 +201,16 @@ class RecordsController @Inject()(
     }(SessionRecordNotFound)
   }
 
+  def storeEmployerAuths(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+    withCurrentSession { session =>
+      withPayload[EmployerAuths](
+        record =>
+          employerAuthRecordsService
+            .store(record, autoFill, session.planetId)
+            .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url)))))
+    }(SessionRecordNotFound)
+  }
+
   def generateRelationship(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] = Action.async {
     implicit request =>
       withCurrentSession { session =>
@@ -208,6 +219,17 @@ class RecordsController @Inject()(
         val record = RelationshipRecord.seed(seed)
         val result = if (minimal) record else RelationshipRecord.sanitize(seed)(record)
         okF(result, Link("create", routes.RecordsController.storeRelationship(minimal).url))
+      }(SessionRecordNotFound)
+  }
+
+  def generateEmployerAuths(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] = Action.async {
+    implicit request =>
+      withCurrentSession { session =>
+        val seed = seedOpt.getOrElse(session.sessionId)
+        implicit val optionGenStrategy: Generator.OptionGenStrategy = Generator.AlwaysSome
+        val record = EmployerAuths.seed(seed)
+        val result = if (minimal) record else EmployerAuths.sanitize(seed)(record)
+        okF(result, Link("create", routes.RecordsController.storeEmployerAuths(minimal).url))
       }(SessionRecordNotFound)
   }
 

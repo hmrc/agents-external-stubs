@@ -517,7 +517,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
           })
 
         case b: BooleanDefinition => "Generator.booleanGen"
-        case a: ArrayDefinition   => s"Generator.nonEmptyListOfMaxN(1,${generateValueGenerator(a.item, context)})"
+        case a: ArrayDefinition   => s"Generator.nonEmptyListOfMaxN(1,${generateValueGenerator(a.item, context, false)})"
         case o: ObjectDefinition  => s"${o.typeName}.gen"
 
         case o: OneOfDefinition =>
@@ -614,12 +614,21 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
         }
 
       case a: ArrayDefinition =>
-        (a.item match {
+        val itemValidator: Option[String] = (a.item match {
           case o: ObjectDefinition => Some(s"""${o.typeName}.validate""")
           case x                   => generateValueValidator(x, context)
         }).map(vv =>
           if (property.isMandatory || isMandatory) s""" checkEach($propertyExtractor, $vv)"""
           else s"""  checkEachIfSome($propertyExtractor, $vv)""")
+        val minValidatorOpt = a.minItems.map(min =>
+          s"""   check(_.size >= $min,"Invalid array size, must be greater than or equal to $min")""")
+        val maxValidatorOpt = a.maxItems.map(max =>
+          s"""   check(_.size <= $max,"Invalid array size, must be lower than or equal to $max")""")
+        if (itemValidator.isDefined && (minValidatorOpt.isDefined || maxValidatorOpt.isDefined))
+          Some(s"""   Validator(${Seq(itemValidator, minValidatorOpt, maxValidatorOpt)
+            .collect { case Some(x) => x }
+            .mkString(",")})""")
+        else itemValidator
 
       case _: ObjectDefinition =>
         if (property.isMandatory || isMandatory)
@@ -648,8 +657,9 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
     context: Context,
     isMandatory: Boolean = false): Option[String] =
     property match {
-      case _: BooleanDefinition => None
-      case _                    => Some(s"""  checkProperty(_.${property.name}, ${property.name}Validator)""")
+      case d: Definition if d.shallBeValidated =>
+        Some(s"""  checkProperty(_.${property.name}, ${property.name}Validator)""")
+      case _ => None
     }
 
   private def generateSanitizerList(definition: ObjectDefinition): String = {
@@ -690,9 +700,17 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
          """.stripMargin
         } else {
           if (prop.isPrimitive)
-            s"""  val ${prop.name}Sanitizer: Update = seed => entity =>
-               |    entity.copy(${prop.name} = ${prop.name}Validator(entity.${prop.name}).fold(_ => None, _ => entity.${prop.name})
-               |      .orElse(Generator.get(${generateValueGenerator(prop, context, wrapOption = false)})(seed)))
+            if (prop.shallBeValidated)
+              s"""  val ${prop.name}Sanitizer: Update = seed => entity =>
+                 |    entity.copy(${prop.name} = ${prop.name}Validator(entity.${prop.name}).fold(_ => None, _ => entity.${prop.name})
+                 |      .orElse(Generator.get(${generateValueGenerator(prop, context, wrapOption = false)})(seed)))
+           """.stripMargin
+            else
+              s"""  val ${prop.name}Sanitizer: Update = seed => entity =>
+                 |    entity.copy(${prop.name} = Generator.get(${generateValueGenerator(
+                   prop,
+                   context,
+                   wrapOption = false)})(seed))
            """.stripMargin
           else
             s"""  val ${prop.name}Sanitizer: Update = seed => entity =>

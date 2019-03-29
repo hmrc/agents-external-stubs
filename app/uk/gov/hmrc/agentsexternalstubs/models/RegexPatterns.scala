@@ -17,6 +17,9 @@ object RegexPatterns {
   val validVrn: Matcher = validate("^[0-9]{1,9}$".r)
   val validEori: Matcher = validate("^[A-Z]{2}[0-9]{12}$".r)
   val validSafeId: Matcher = validate("^[A-Za-z0-9 \\-,.&'\\/]{1,15}$".r)
+  val validAgentCode: Matcher = validate("^[A-Z0-9]{1,12}$".r)
+  val validTaxOfficeNumber: Matcher = validate("^\\d{1,3}$".r)
+  val validTaxOfficeReference: Matcher = validate("^[A-Z0-9]{1,10}$".r)
 
   val validDate: Matcher =
     validate(

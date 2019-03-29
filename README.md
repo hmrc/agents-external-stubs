@@ -69,6 +69,7 @@ We handle local requests gracefully and do not require existing applications to 
 - listening on 9111 for ni-exemption-registration requests
 - listening on 9904 for des requests
 - listening on 8100 for datastream events
+- listening on 9974 for sso requests
 
 You can switch this behaviour off by setting `proxies.start` config property to `false`.
 
@@ -161,6 +162,8 @@ Endpoint | Description
 `GET  /sa/agents/:agentref/client/:utr` | Retrieves Agent-Client authorization flag from Data Cache
 `POST /registration/02.00.00/individual` | Provides the ability for an individual who is not in possession of a UTR to register on ETMP
 `POST /registration/02.00.00/organisation` | Provides the ability for an organisation who is not in possession of a UTR to register on ETMP
+`POST /agents/paye/:agentCode/clients/compare` | Returns agent-client authorisations for epaye
+`DELETE /agents/paye/:agentCode/clients/:taxOfficeNumber/:taxOfficeReference` | Removes given agent-client authorisation for epaye
 
 ### [Datastream](https://github.com/hmrc/datastream) <a name="stubbed_api_datastream"></a>
 
@@ -399,6 +402,9 @@ Removes the record
 
 #### POST /agents-external-stubs/records/legacy-relationship
 #### GET /agents-external-stubs/records/legacy-relationship/generate
+
+#### POST /agents-external-stubs/records/employer-auths
+#### GET /agents-external-stubs/records/employer-auths/generate
 
 ### Test Known Facts Management <a name="custom_api_known_facts"></a>
 

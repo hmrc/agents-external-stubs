@@ -20,6 +20,15 @@ object Validator {
       constraints
         .foldLeft[Validated[List[String], Unit]](Valid(()))((v, fx) => v.orElse(fx(entity)))
 
+  def product[A, B](constraintA: Validator[A], constraintB: Validator[B]): Validator[(A, B)] =
+    (entity: (A, B)) => constraintA(entity._1).combine(constraintB(entity._2))
+
+  def product[A, B, C](
+    constraintA: Validator[A],
+    constraintB: Validator[B],
+    constraintC: Validator[C]): Validator[(A, B, C)] =
+    (entity: (A, B, C)) => constraintA(entity._1).combine(constraintB(entity._2)).combine(constraintC(entity._3))
+
   private type SimpleValidator[T] = T => Validated[String, Unit]
   def validate[T](constraints: SimpleValidator[T]*): Validator[T] =
     (entity: T) =>
@@ -28,6 +37,12 @@ object Validator {
 
   def check[T](test: T => Boolean, error: String): Validator[T] =
     (entity: T) => Validated.cond(test(entity), (), error :: Nil)
+
+  def checkFromEither[T](test: T => Either[String, Any], error: String): Validator[T] =
+    (entity: T) => Validated.fromEither(test(entity).map(_ => ()).left.map(_ :: Nil))
+
+  def checkFromOption[T](test: T => Option[Any], error: String): Validator[T] =
+    (entity: T) => Validated.fromOption(test(entity).map(_ => ()), "Some expected but got None" :: Nil)
 
   def checkObject[T, E](element: T => E, validator: Validator[E]): Validator[T] =
     (entity: T) => validator(element(entity))

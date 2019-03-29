@@ -46,7 +46,8 @@ class TcpProxies @Inject()(appConfig: AppConfig)(implicit system: ActorSystem, m
           startProxy(appConfig.taxEnrolmentsPort, "tax-enrolments"),
           startProxy(appConfig.niExemptionRegistrationPort, "ni-exemption-registration"),
           startProxy(appConfig.desPort, "des"),
-          startProxy(appConfig.dataStreamPort, "datastream")
+          startProxy(appConfig.dataStreamPort, "datastream"),
+          startProxy(appConfig.ssoPort, "sso")
         ))
       .map(_ => Logger(getClass).info("All proxies have started."))
 

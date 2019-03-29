@@ -14,6 +14,7 @@ import uk.gov.hmrc.agentsexternalstubs.models.{BusinessPartnerRecord, SubscribeA
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.services._
 import uk.gov.hmrc.domain.Nino
+import uk.gov.hmrc.http.BadRequestException
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -27,6 +28,7 @@ class DesStubController @Inject()(
   vatCustomerInformationRecordsService: VatCustomerInformationRecordsService,
   businessPartnerRecordsService: BusinessPartnerRecordsService,
   recordsRepository: RecordsRepository,
+  employerAuthsRecordsService: EmployerAuthsRecordsService,
   cc: ControllerComponents
 )(implicit usersService: UsersService, executionContext: ExecutionContext)
     extends BackendController(cc) with DesCurrentSession {
@@ -311,6 +313,63 @@ class DesStubController @Inject()(
             }
         } else badRequestF("INVALID_PAYLOAD", "Expected organisation but missing.")
       }
+    }(SessionRecordNotFound)
+  }
+
+  def retrieveLegacyAgentClientPayeInformation(agentCode: String): Action[JsValue] = Action.async(parse.tolerantJson) {
+    implicit request =>
+      withCurrentSession { session =>
+        RegexPatterns
+          .validAgentCode(agentCode)
+          .fold(
+            _ => badRequestF("Invalid AgentRef"),
+            _ =>
+              withPayload[EmployerAuthsPayload] { payload =>
+                employerAuthsRecordsService.getEmployerAuthsByAgentCode(agentCode, session.planetId).map {
+                  case None => notFound("AgentRef not found")
+                  case Some(record) =>
+                    LegacyAgentClientPayeRelationship
+                      .retrieve(payload, record) match {
+                      case Some(r) => ok(r)
+                      case None    => NoContent
+                    }
+                }
+            }
+          )
+      }(SessionRecordNotFound)
+  }
+
+  def removeLegacyAgentClientPayeRelationship(
+    agentCode: String,
+    taxOfficeNumber: String,
+    taxOfficeReference: String): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      Validator
+        .product(
+          Validator.checkFromEither(RegexPatterns.validAgentCode, "Invalid AgentRef"),
+          Validator.checkFromEither(RegexPatterns.validTaxOfficeNumber, "Invalid TaxOfficeNumber"),
+          Validator.checkFromEither(RegexPatterns.validTaxOfficeReference, "Invalid TaxOfficeReference")
+        )((agentCode, taxOfficeNumber, taxOfficeReference))
+        .fold(
+          error => badRequestF(error.mkString(", ")),
+          _ =>
+            employerAuthsRecordsService
+              .getEmployerAuthsByAgentCode(agentCode, session.planetId)
+              .flatMap {
+                case None => notFoundF("Relationship not found")
+                case Some(record) =>
+                  val newEmployerAuths =
+                    LegacyAgentClientPayeRelationship.remove(record, taxOfficeNumber, taxOfficeReference)
+                  if (newEmployerAuths.empAuthList.nonEmpty)
+                    employerAuthsRecordsService
+                      .store(newEmployerAuths, false, session.planetId)
+                      .map(_ => Ok)
+                  else
+                    employerAuthsRecordsService
+                      .delete(agentCode, session.planetId)
+                      .map(_ => Ok)
+            }
+        )
     }(SessionRecordNotFound)
   }
 
@@ -665,6 +724,20 @@ object DesStubController {
       implicit val formats: Format[Response] = Json.format[Response]
     }
 
+  }
+
+  object LegacyAgentClientPayeRelationship {
+
+    def remove(record: EmployerAuths, taxOfficeNumber: String, taxOfficeReference: String): EmployerAuths =
+      record.copy(empAuthList = record.empAuthList.filterNot(e =>
+        e.empRef.districtNumber == taxOfficeNumber && e.empRef.reference == taxOfficeReference))
+
+    def retrieve(payload: EmployerAuthsPayload, record: EmployerAuths): Option[EmployerAuths] = {
+      val filtered = record.copy(empAuthList = record.empAuthList.filter(e1 =>
+        payload.empRefList.exists(e2 =>
+          e2.districtNumber == e1.empRef.districtNumber && e2.reference == e1.empRef.reference)))
+      if (filtered.empAuthList.isEmpty) None else Some(filtered)
+    }
   }
 
 }

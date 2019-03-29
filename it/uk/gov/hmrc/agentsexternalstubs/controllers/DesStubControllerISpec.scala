@@ -116,14 +116,14 @@ class DesStubControllerISpec
         result should haveStatus(200)
         result.json.as[JsObject] should haveProperty[Seq[JsObject]](
           "relationship",
-          have.size(1) and eachElement(
-            haveProperty[String]("referenceNumber") and
-              haveProperty[String]("agentReferenceNumber", be("ZARN1234567")) and
-              haveProperty[String]("dateFrom") and
-              haveProperty[String]("contractAccountCategory", be("33")) and (haveProperty[JsObject](
-              "individual",
-              haveProperty[String]("firstName") and haveProperty[String]("lastName")) or
-              haveProperty[JsObject]("organisation", haveProperty[String]("organisationName")))
+          have.size(1),
+          eachElement(
+            haveProperty[String]("referenceNumber"),
+            haveProperty[String]("agentReferenceNumber", be("ZARN1234567")),
+            haveProperty[String]("dateFrom") and
+              haveProperty[String]("contractAccountCategory", be("33")),
+            haveProperty[JsObject]("individual", haveProperty[String]("firstName"), haveProperty[String]("lastName")) or
+              haveProperty[JsObject]("organisation", haveProperty[String]("organisationName"))
           )
         )
       }
@@ -141,9 +141,15 @@ class DesStubControllerISpec
         result should haveStatus(200)
         result.json.as[JsObject] should haveProperty[Seq[JsObject]](
           "agents",
-          have.size(1) and eachElement(
-            haveProperty[String]("id") and haveProperty[String]("agentId") and haveProperty[String]("agentName") and haveProperty[
-              String]("address1") and haveProperty[String]("address2") and haveProperty[Boolean]("isAgentAbroad"))
+          have.size(1),
+          eachElement(
+            haveProperty[String]("id"),
+            haveProperty[String]("agentId"),
+            haveProperty[String]("agentName"),
+            haveProperty[String]("address1"),
+            haveProperty[String]("address2"),
+            haveProperty[Boolean]("isAgentAbroad")
+          )
         )
       }
 
@@ -165,12 +171,19 @@ class DesStubControllerISpec
 
         val result = DesStub.getLegacyRelationshipsByUtr("1234567890")
         result should haveStatus(200)
-        result.json.as[JsObject] should haveProperty[Seq[JsObject]](
-          "agents",
-          have.size(1) and eachElement(
-            haveProperty[String]("id") and haveProperty[String]("agentId") and haveProperty[String]("agentName") and haveProperty[
-              String]("address1") and haveProperty[String]("address2") and haveProperty[Boolean]("isAgentAbroad"))
-        )
+        result should haveValidJsonBody(
+          haveProperty[Seq[JsObject]](
+            "agents",
+            have.size(1),
+            eachElement(
+              haveProperty[String]("id"),
+              haveProperty[String]("agentId"),
+              haveProperty[String]("agentName"),
+              haveProperty[String]("address1"),
+              haveProperty[String]("address2"),
+              haveProperty[Boolean]("isAgentAbroad")
+            )
+          ))
       }
 
       "return 200 response if relationship does not exist" in {
@@ -189,9 +202,11 @@ class DesStubControllerISpec
 
         val result = DesStub.getBusinessDetails("nino", "AA123456A")
         result should haveStatus(200)
-        result.json
-          .as[JsObject] should (haveProperty[String]("safeId") and haveProperty[String]("safeId") and haveProperty[
-          String]("nino", be("AA123456A")) and haveProperty[String]("mtdbsa"))
+        result should haveValidJsonBody(
+          haveProperty[String]("safeId"),
+          haveProperty[String]("safeId"),
+          haveProperty[String]("nino", be("AA123456A")),
+          haveProperty[String]("mtdbsa"))
       }
 
       "return 200 response if record not found but user pulled from external source" in {
@@ -205,9 +220,11 @@ class DesStubControllerISpec
               .withBody(testIndividualResponse(Nino(nino)))))
         val result = DesStub.getBusinessDetails("nino", nino)
         result should haveStatus(200)
-        result.json
-          .as[JsObject] should (haveProperty[String]("safeId") and haveProperty[String]("safeId") and haveProperty[
-          String]("nino", be(nino)) and haveProperty[String]("mtdbsa"))
+        result should haveValidJsonBody(
+          haveProperty[String]("safeId"),
+          haveProperty[String]("safeId"),
+          haveProperty[String]("nino", be(nino)),
+          haveProperty[String]("mtdbsa"))
       }
 
       "return 404 response if record not found" in {
@@ -247,9 +264,11 @@ class DesStubControllerISpec
 
         val result = DesStub.getBusinessDetails("mtdbsa", "123456789012345")
         result should haveStatus(200)
-        result.json
-          .as[JsObject] should (haveProperty[String]("safeId") and haveProperty[String]("safeId") and haveProperty[
-          String]("nino") and haveProperty[String]("mtdbsa"))
+        result should haveValidJsonBody(
+          haveProperty[String]("safeId"),
+          haveProperty[String]("safeId"),
+          haveProperty[String]("nino"),
+          haveProperty[String]("mtdbsa"))
       }
 
       "return 404 response if record not found" in {
@@ -384,7 +403,8 @@ class DesStubControllerISpec
         val result = DesStub.getBusinessPartnerRecord("utr", "0123456789")
         result should haveStatus(200)
         result should haveValidJsonBody(
-          haveProperty[String]("agentReferenceNumber") and haveProperty[JsObject]("addressDetails"))
+          haveProperty[String]("agentReferenceNumber"),
+          haveProperty[JsObject]("addressDetails"))
       }
 
       "return 404 response if record not found" in {
@@ -410,7 +430,8 @@ class DesStubControllerISpec
         val result = DesStub.subscribeToAgentServicesWithUtr("0123456789", Json.parse(validAgentSubmission))
         result should haveStatus(200)
         result should haveValidJsonBody(
-          haveProperty[String]("safeId") and haveProperty[String]("agentRegistrationNumber")
+          haveProperty[String]("safeId"),
+          haveProperty[String]("agentRegistrationNumber")
         )
       }
 
@@ -446,7 +467,8 @@ class DesStubControllerISpec
         val result = DesStub.subscribeToAgentServicesWithSafeId("XE0001234567890", Json.parse(validAgentSubmission))
         result should haveStatus(200)
         result should haveValidJsonBody(
-          haveProperty[String]("safeId", be("XE0001234567890")) and haveProperty[String]("agentRegistrationNumber")
+          haveProperty[String]("safeId", be("XE0001234567890")),
+          haveProperty[String]("agentRegistrationNumber")
         )
       }
 
@@ -472,9 +494,12 @@ class DesStubControllerISpec
         val result = DesStub.registerIndividual("utr", "0123456789", Json.parse(validIndividualSubmission))
         result should haveStatus(200)
         result should haveValidJsonBody(
-          haveProperty[String]("safeId") and haveProperty[String]("utr", be("0123456789")) and haveProperty[JsObject](
-            "individual") and notHaveProperty("organisation") and haveProperty[Boolean]("isAnAgent", be(false)) and haveProperty[
-            Boolean]("isAnASAgent", be(false)) and haveProperty[JsObject]("address")
+          haveProperty[String]("safeId"),
+          haveProperty[String]("utr", be("0123456789")),
+          haveProperty[JsObject]("individual") and notHaveProperty("organisation"),
+          haveProperty[Boolean]("isAnAgent", be(false)),
+          haveProperty[Boolean]("isAnASAgent", be(false)),
+          haveProperty[JsObject]("address")
         )
       }
 
@@ -484,9 +509,12 @@ class DesStubControllerISpec
         val result = DesStub.registerIndividual("nino", "HW827856C", Json.parse(validIndividualSubmission))
         result should haveStatus(200)
         result should haveValidJsonBody(
-          haveProperty[String]("safeId") and haveProperty[String]("nino", be("HW827856C")) and haveProperty[JsObject](
-            "individual") and notHaveProperty("organisation") and haveProperty[Boolean]("isAnAgent", be(false)) and haveProperty[
-            Boolean]("isAnASAgent", be(false)) and haveProperty[JsObject]("address")
+          haveProperty[String]("safeId"),
+          haveProperty[String]("nino", be("HW827856C")),
+          haveProperty[JsObject]("individual") and notHaveProperty("organisation"),
+          haveProperty[Boolean]("isAnAgent", be(false)),
+          haveProperty[Boolean]("isAnASAgent", be(false)),
+          haveProperty[JsObject]("address")
         )
       }
 
@@ -508,10 +536,11 @@ class DesStubControllerISpec
         val result = DesStub.registerIndividual("utr", "0123456789", Json.parse(validIndividualSubmission))
         result should haveStatus(200)
         result should haveValidJsonBody(
-          haveProperty[String]("safeId", be("XA0000000000001")) and haveProperty[String]("utr", be("0123456789")) and haveProperty[
-            JsObject]("individual") and notHaveProperty("organisation") and haveProperty[Boolean](
-            "isAnAgent",
-            be(false)) and haveProperty[Boolean]("isAnASAgent", be(false))
+          haveProperty[String]("safeId", be("XA0000000000001")),
+          haveProperty[String]("utr", be("0123456789")),
+          haveProperty[JsObject]("individual") and notHaveProperty("organisation"),
+          haveProperty[Boolean]("isAnAgent", be(false)),
+          haveProperty[Boolean]("isAnASAgent", be(false))
         )
       }
 
@@ -533,10 +562,11 @@ class DesStubControllerISpec
         val result = DesStub.registerIndividual("nino", "HW827856C", Json.parse(validIndividualSubmission))
         result should haveStatus(200)
         result should haveValidJsonBody(
-          haveProperty[String]("safeId", be("XA0000000000001")) and haveProperty[String]("nino", be("HW827856C")) and haveProperty[
-            JsObject]("individual") and notHaveProperty("organisation") and haveProperty[Boolean](
-            "isAnAgent",
-            be(false)) and haveProperty[Boolean]("isAnASAgent", be(false))
+          haveProperty[String]("safeId", be("XA0000000000001")),
+          haveProperty[String]("nino", be("HW827856C")),
+          haveProperty[JsObject]("individual") and notHaveProperty("organisation"),
+          haveProperty[Boolean]("isAnAgent", be(false)),
+          haveProperty[Boolean]("isAnASAgent", be(false))
         )
       }
 
@@ -558,9 +588,11 @@ class DesStubControllerISpec
         val result = DesStub.registerIndividual("nino", "HW827856C", Json.parse(validIndividualSubmission))
         result should haveStatus(200)
         result should haveValidJsonBody(
-          haveProperty[String]("safeId", be("XA0000000000001")) and haveProperty[String]("nino", be("HW827856C")) and haveProperty[
-            JsObject]("individual") and notHaveProperty("organisation") and haveProperty[Boolean]("isAnAgent", be(true)) and haveProperty[
-            Boolean]("isAnASAgent", be(false))
+          haveProperty[String]("safeId", be("XA0000000000001")),
+          haveProperty[String]("nino", be("HW827856C")),
+          haveProperty[JsObject]("individual") and notHaveProperty("organisation"),
+          haveProperty[Boolean]("isAnAgent", be(true)),
+          haveProperty[Boolean]("isAnASAgent", be(false))
         )
       }
     }
@@ -575,7 +607,7 @@ class DesStubControllerISpec
 
         val result = DesStub.getSAAgentClientAuthorisationFlags("SA6012", "1234567890")
         result should haveStatus(200)
-        result should haveValidJsonBody(haveProperty[Boolean]("Auth_64-8") and haveProperty[Boolean]("Auth_i64-8"))
+        result should haveValidJsonBody(haveProperty[Boolean]("Auth_64-8"), haveProperty[Boolean]("Auth_i64-8"))
       }
 
       "return 200 response if relationship does not exist" in {
@@ -592,8 +624,9 @@ class DesStubControllerISpec
         val result = DesStub.registerIndividualWithoutID(Json.parse(validIndividualWithoutIDSubmission))
         result should haveStatus(200)
         result should haveValidJsonBody(
-          haveProperty[String]("safeId") and haveProperty[String]("sapNumber") and haveProperty[String](
-            "processingDate")
+          haveProperty[String]("safeId"),
+          haveProperty[String]("sapNumber"),
+          haveProperty[String]("processingDate")
         )
       }
 
@@ -619,8 +652,9 @@ class DesStubControllerISpec
         val result = DesStub.registerOrganisationWithoutID(Json.parse(validOrganisationWithoutIDSubmission))
         result should haveStatus(200)
         result should haveValidJsonBody(
-          haveProperty[String]("safeId") and haveProperty[String]("sapNumber") and haveProperty[String](
-            "processingDate")
+          haveProperty[String]("safeId"),
+          haveProperty[String]("sapNumber"),
+          haveProperty[String]("processingDate")
         )
       }
 
@@ -636,6 +670,155 @@ class DesStubControllerISpec
 
         val result = DesStub.registerIndividualWithoutID(Json.parse(invalidWithoutIDSubmission))
         result should haveStatus(400)
+      }
+    }
+
+    "POST /agents/paye/:agentCode/clients/compare" should {
+      "return 200 with agent's epaye client information (employers) for given empRefs" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val agent = UserGenerator.agent()
+        Users.updateCurrent(agent).status shouldBe 202
+        val agentCode = agent.agentCode.get
+        val employerAuths = EmployerAuths.generate(agentCode).withAgentCode(agentCode)
+        Records.createEmployerAuths(employerAuths).status shouldBe 201
+
+        val payload = EmployerAuthsPayload(
+          employerAuths.empAuthList.map(e => EmployerAuthsPayload.EmpRef(e.empRef.districtNumber, e.empRef.reference)))
+        val result = DesStub.retrieveLegacyAgentClientPayeInformation(agentCode, payload)
+
+        result should haveStatus(200)
+        result should haveValidJsonBody(
+          havePropertyArrayOf[JsObject](
+            "empAuthList",
+            haveProperty[JsObject]("empRef", haveProperty[String]("districtNumber"), haveProperty[String]("reference")),
+            haveProperty[JsObject](
+              "aoRef",
+              haveProperty[String]("districtNumber"),
+              haveProperty[String]("reference"),
+              haveProperty[String]("payType"),
+              haveProperty[String]("checkCode")),
+            haveProperty[Boolean]("Auth_64-8"),
+            haveProperty[Boolean]("Auth_OAA")
+          )
+        )
+      }
+
+      "return 204 if agent data exists but no matching empRefs found" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val agent = UserGenerator.agent()
+        Users.updateCurrent(agent).status shouldBe 202
+        val agentCode = agent.agentCode.get
+        val employerAuths = EmployerAuths.generate(agentCode).withAgentCode(agentCode)
+        Records.createEmployerAuths(employerAuths).status shouldBe 201
+
+        val payload = EmployerAuthsPayload(Seq(EmployerAuthsPayload.EmpRef("ABC", "1234567890")))
+        val result = DesStub.retrieveLegacyAgentClientPayeInformation(agentCode, payload)
+
+        result should haveStatus(204)
+      }
+
+      "return 404 if no agent data is not found" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val payload = EmployerAuthsPayload(Seq(EmployerAuthsPayload.EmpRef("ABC", "1234567890")))
+
+        val result = DesStub.retrieveLegacyAgentClientPayeInformation("FOO123456", payload)
+        result should haveStatus(404)
+      }
+    }
+
+    "DELETE /agents/paye/:agentCode/clients/:taxOfficeNumber/:taxOfficeReference" should {
+      "return 200 after removing given employer auth from agent's data" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val agent = UserGenerator.agent()
+        Users.updateCurrent(agent).status shouldBe 202
+        val agentCode = agent.agentCode.get
+        val employerAuths = EmployerAuths(
+          agentCode = agentCode,
+          empAuthList = Seq(
+            EmployerAuths.EmpAuth(
+              empRef = EmployerAuths.EmpAuth.EmpRef("123", "111"),
+              aoRef = EmployerAuths.EmpAuth.AoRef("123", "A", "1", "111"),
+              `Auth_64-8` = true,
+              Auth_OAA = false
+            ),
+            EmployerAuths.EmpAuth(
+              empRef = EmployerAuths.EmpAuth.EmpRef("567", "222"),
+              aoRef = EmployerAuths.EmpAuth.AoRef("567", "B", "2", "222"),
+              `Auth_64-8` = false,
+              Auth_OAA = true
+            )
+          )
+        )
+        val createRecordResult = Records.createEmployerAuths(employerAuths)
+        createRecordResult.status shouldBe 201
+        val recordUrl = createRecordResult.json.as[Links].self.get
+        val recordResultBefore = get(recordUrl)
+        recordResultBefore.status shouldBe 200
+
+        val empRefToRemove = recordResultBefore.json.as[EmployerAuths].empAuthList.head.empRef
+
+        val result = DesStub
+          .removeLegacyAgentClientPayeRelationship(agentCode, empRefToRemove.districtNumber, empRefToRemove.reference)
+        result.status shouldBe 200
+
+        val recordResultAfter = get(recordUrl)
+        recordResultAfter.status shouldBe 200
+
+        recordResultAfter.json.as[EmployerAuths].empAuthList.find(_.empRef == empRefToRemove) shouldBe None
+      }
+
+      "return 200 after removing the only employer auth from agent's data" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val agent = UserGenerator.agent()
+        Users.updateCurrent(agent).status shouldBe 202
+        val agentCode = agent.agentCode.get
+        val employerAuths = EmployerAuths(
+          agentCode = agentCode,
+          empAuthList = Seq(
+            EmployerAuths.EmpAuth(
+              empRef = EmployerAuths.EmpAuth.EmpRef("123", "111"),
+              aoRef = EmployerAuths.EmpAuth.AoRef("123", "A", "1", "111"),
+              `Auth_64-8` = true,
+              Auth_OAA = false
+            )
+          )
+        )
+        val createRecordResult = Records.createEmployerAuths(employerAuths)
+        createRecordResult.status shouldBe 201
+        val recordUrl = createRecordResult.json.as[Links].self.get
+        val recordResultBefore = get(recordUrl)
+        recordResultBefore.status shouldBe 200
+
+        val result = DesStub
+          .removeLegacyAgentClientPayeRelationship(agentCode, "123", "111")
+        result.status shouldBe 200
+
+        val recordResultAfter = get(recordUrl)
+        recordResultAfter.status shouldBe 404
+      }
+
+      "return 404 if could not find agent's data" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = DesStub
+          .removeLegacyAgentClientPayeRelationship("ABC123456789", "123", "111")
+        result.status shouldBe 404
+      }
+
+      "return 400 if invalid agentCode or empRef" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result1 = DesStub
+          .removeLegacyAgentClientPayeRelationship("jdhjshdjshjadhsahjdh", "123", "111")
+        result1.status shouldBe 400
+
+        val result2 = DesStub
+          .removeLegacyAgentClientPayeRelationship("ABC123456789", "aaa", "111")
+        result2.status shouldBe 400
+
+        val result3 = DesStub
+          .removeLegacyAgentClientPayeRelationship("ABC123456789", "123", "hhahdjhasjdhjh")
+        result3.status shouldBe 400
       }
     }
   }

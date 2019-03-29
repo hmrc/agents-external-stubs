@@ -91,4 +91,13 @@ class RecordSpec extends UnitSpec with PropertyChecks with ValidatedMatchers {
     }
   }
 
+  "EmployerAuths" should {
+    "generate valid entity from seed" in {
+      Inspectors.forAll(seeds) { seed: String =>
+        val entity = EmployerAuths.generate(seed)
+        EmployerAuths.validate(entity) should beValid
+      }
+    }
+  }
+
 }

@@ -21,7 +21,10 @@ object RestfulResponse {
 }
 
 case class Links(`_links`: Seq[Link]) {
+
   def rel(rel: String): Option[String] = `_links`.find(_.rel == rel).map(_.href)
+
+  def self: Option[String] = rel("self")
 }
 
 object Links {
