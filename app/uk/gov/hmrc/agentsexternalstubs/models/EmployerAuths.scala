@@ -106,9 +106,23 @@ object EmployerAuths extends RecordUtils[EmployerAuths] {
 
     val empRefValidator: Validator[EmpRef] = checkProperty(identity, EmpRef.validate)
     val aoRefValidator: Validator[AoRef] = checkProperty(identity, AoRef.validate)
+    val agentClientRefValidator: Validator[Option[String]] = check(
+      _.matches(Common.agentClientRefPattern),
+      s"""Invalid agentClientRef, does not matches regex ${Common.agentClientRefPattern}""")
+    val employerName1Validator: Validator[Option[String]] = check(
+      _.matches(Common.employerNamePattern),
+      s"""Invalid employerName1, does not matches regex ${Common.employerNamePattern}""")
+    val employerName2Validator: Validator[Option[String]] = check(
+      _.matches(Common.employerNamePattern),
+      s"""Invalid employerName2, does not matches regex ${Common.employerNamePattern}""")
 
-    override val validate: Validator[EmpAuth] =
-      Validator(checkProperty(_.empRef, empRefValidator), checkProperty(_.aoRef, aoRefValidator))
+    override val validate: Validator[EmpAuth] = Validator(
+      checkProperty(_.empRef, empRefValidator),
+      checkProperty(_.aoRef, aoRefValidator),
+      checkProperty(_.agentClientRef, agentClientRefValidator),
+      checkProperty(_.employerName1, employerName1Validator),
+      checkProperty(_.employerName2, employerName2Validator)
+    )
 
     override val gen: Gen[EmpAuth] = for {
       empRef    <- EmpRef.gen
@@ -128,13 +142,25 @@ object EmployerAuths extends RecordUtils[EmployerAuths] {
     val aoRefSanitizer: Update = seed => entity => entity.copy(aoRef = AoRef.sanitize(seed)(entity.aoRef))
 
     val agentClientRefSanitizer: Update = seed =>
-      entity => entity.copy(agentClientRef = Generator.get(Generator.stringMaxN(256))(seed))
+      entity =>
+        entity.copy(
+          agentClientRef = agentClientRefValidator(entity.agentClientRef)
+            .fold(_ => None, _ => entity.agentClientRef)
+            .orElse(Generator.get(Generator.regex(Common.agentClientRefPattern))(seed)))
 
     val employerName1Sanitizer: Update = seed =>
-      entity => entity.copy(employerName1 = Generator.get(Generator.stringMaxN(256))(seed))
+      entity =>
+        entity.copy(
+          employerName1 = employerName1Validator(entity.employerName1)
+            .fold(_ => None, _ => entity.employerName1)
+            .orElse(Generator.get(Generator.regex(Common.employerNamePattern))(seed)))
 
     val employerName2Sanitizer: Update = seed =>
-      entity => entity.copy(employerName2 = Generator.get(Generator.stringMaxN(256))(seed))
+      entity =>
+        entity.copy(
+          employerName2 = employerName2Validator(entity.employerName2)
+            .fold(_ => None, _ => entity.employerName2)
+            .orElse(Generator.get(Generator.regex(Common.employerNamePattern))(seed)))
 
     override val sanitizers: Seq[Update] =
       Seq(empRefSanitizer, aoRefSanitizer, agentClientRefSanitizer, employerName1Sanitizer, employerName2Sanitizer)
@@ -200,18 +226,26 @@ object EmployerAuths extends RecordUtils[EmployerAuths] {
       val districtNumberValidator: Validator[String] = check(
         _.matches(Common.districtNumberPattern),
         s"""Invalid districtNumber, does not matches regex ${Common.districtNumberPattern}""")
+      val payTypeValidator: Validator[String] =
+        check(_.matches(Common.payTypePattern), s"""Invalid payType, does not matches regex ${Common.payTypePattern}""")
+      val checkCodeValidator: Validator[String] = check(
+        _.matches(Common.payTypePattern),
+        s"""Invalid checkCode, does not matches regex ${Common.payTypePattern}""")
       val referenceValidator: Validator[String] = check(
         _.matches(Common.referencePattern),
         s"""Invalid reference, does not matches regex ${Common.referencePattern}""")
 
       override val validate: Validator[AoRef] = Validator(
         checkProperty(_.districtNumber, districtNumberValidator),
-        checkProperty(_.reference, referenceValidator))
+        checkProperty(_.payType, payTypeValidator),
+        checkProperty(_.checkCode, checkCodeValidator),
+        checkProperty(_.reference, referenceValidator)
+      )
 
       override val gen: Gen[AoRef] = for {
         districtNumber <- Generator.regex(Common.districtNumberPattern)
-        payType        <- Generator.stringMaxN(256)
-        checkCode      <- Generator.stringMaxN(256)
+        payType        <- Generator.regex(Common.payTypePattern)
+        checkCode      <- Generator.regex(Common.payTypePattern)
         reference      <- Generator.regex(Common.referencePattern)
       } yield
         AoRef(
@@ -230,8 +264,11 @@ object EmployerAuths extends RecordUtils[EmployerAuths] {
   }
 
   object Common {
-    val districtNumberPattern = """^\d{1,3}$"""
+    val employerNamePattern = """^\w{1,64}$"""
     val agentCodePattern = """^[A-Z0-9]{1,12}$"""
+    val payTypePattern = """^\w{1,6}$"""
     val referencePattern = """^[A-Z0-9]{1,10}$"""
+    val districtNumberPattern = """^\d{1,3}$"""
+    val agentClientRefPattern = """^\w{1,12}$"""
   }
 }
