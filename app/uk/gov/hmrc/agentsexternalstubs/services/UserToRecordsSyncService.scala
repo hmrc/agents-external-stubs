@@ -3,7 +3,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 import javax.inject.{Inject, Singleton}
-import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Utr}
+import uk.gov.hmrc.agentmtdidentifiers.model.MtdItId
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{AgencyDetails, Individual, Organisation}
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, IndividualName}
 import uk.gov.hmrc.agentsexternalstubs.models.{User, _}
@@ -19,7 +19,8 @@ class UserToRecordsSyncService @Inject()(
   vatCustomerInformationRecordsService: VatCustomerInformationRecordsService,
   BusinessPartnerRecordsService: BusinessPartnerRecordsService,
   knownFactsRepository: KnownFactsRepository,
-  legacyRelationshipRecordsService: LegacyRelationshipRecordsService) {
+  legacyRelationshipRecordsService: LegacyRelationshipRecordsService,
+  employerAuthsRecordsService: EmployerAuthsRecordsService) {
 
   type SaveRecordId = String => Future[Unit]
   type UserRecordsSync = SaveRecordId => PartialFunction[User, Future[Unit]]
@@ -31,7 +32,7 @@ class UserToRecordsSyncService @Inject()(
     Sync.businessPartnerRecordForAnAgent,
     Sync.legacySaAgentRecord,
     Sync.businessPartnerRecordForIRCTOrganisation,
-    Sync.businessPartnerRecordForHMRCNIORGUser
+    Sync.legacyPayeAgentInformation
   )
 
   final val syncUserToRecords: SaveRecordId => Option[User] => Future[Unit] = saveRecordId => {
@@ -486,6 +487,62 @@ class UserToRecordsSyncService @Inject()(
         } yield ()
     }
 
+    final val PayeAgentMatch = User.Matches(_ == User.AG.Agent, "IR-PAYE-AGENT")
+
+    val legacyPayeAgentInformation: UserRecordsSync = saveRecordId => {
+      case PayeAgentMatch(user, agentReference) =>
+        val delegatedEmpRefs: Set[EmployerAuths.EmpAuth.EmpRef] = user
+          .findDelegatedIdentifierValues("IR-PAYE")
+          .map(s => EmployerAuths.EmpAuth.EmpRef(s(0), s(1)))
+          .toSet
+        user.agentCode match {
+          case None => Future.successful(())
+          case Some(agentCode) =>
+            for {
+              recordOpt <- employerAuthsRecordsService.getEmployerAuthsByAgentCode(agentCode, user.planetId.get)
+              _ <- recordOpt match {
+                    case Some(existing) =>
+                      val recordEmpRefs: Set[EmployerAuths.EmpAuth.EmpRef] = existing.empAuthList.map(_.empRef).toSet
+                      val empAuthsToAdd = (delegatedEmpRefs -- recordEmpRefs)
+                        .map(
+                          empRef =>
+                            EmployerAuths.EmpAuth(
+                              empRef = empRef,
+                              aoRef = EmployerAuths.EmpAuth.AoRef(empRef.districtNumber, "0", "0", empRef.reference),
+                              true,
+                              true,
+                              agentClientRef = Some(agentReference)))
+                        .toSeq
+                      val record = existing.copy(empAuthList = existing.empAuthList ++ empAuthsToAdd)
+                      if (record.empAuthList.nonEmpty)
+                        employerAuthsRecordsService
+                          .store(record, false, user.planetId.get)
+                          .flatMap(saveRecordId)
+                      else
+                        employerAuthsRecordsService
+                          .delete(agentCode, user.planetId.get)
+                          .flatMap(_ => saveRecordId("--" + record.id.get))
+                    case None =>
+                      val empAuthList = delegatedEmpRefs
+                        .map(
+                          empRef =>
+                            EmployerAuths.EmpAuth(
+                              empRef = empRef,
+                              aoRef = EmployerAuths.EmpAuth.AoRef(empRef.districtNumber, "0", "0", empRef.reference),
+                              true,
+                              true,
+                              agentClientRef = Some(agentReference)))
+                        .toSeq
+                      val record = EmployerAuths(agentCode = agentCode, empAuthList = empAuthList)
+                      if (record.empAuthList.nonEmpty)
+                        employerAuthsRecordsService
+                          .store(record, false, user.planetId.get)
+                          .flatMap(saveRecordId)
+                      else Future.successful("")
+                  }
+            } yield ()
+        }
+    }
   }
 
 }

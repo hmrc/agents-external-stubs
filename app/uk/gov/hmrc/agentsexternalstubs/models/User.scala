@@ -76,6 +76,11 @@ case class User(
       .filter(_.key == serviceName)
       .flatMap(_.identifiers.flatMap(_.find(_.key == identifierName)))
       .map(_.value)
+
+  def findDelegatedIdentifierValues(serviceName: String): Seq[Seq[String]] =
+    delegatedEnrolments
+      .filter(_.key == serviceName)
+      .flatMap(_.identifiers.map(_.map(_.value)))
 }
 
 object User {

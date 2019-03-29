@@ -62,7 +62,7 @@ trait UsersRepository {
   def create(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
   def update(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
   def delete(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[WriteResult]
-  def addRecordId(userId: String, recordId: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
+  def syncRecordId(userId: String, recordId: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
 
   def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit]
 }
@@ -315,12 +315,22 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
         s"Existing user ${u.map(_.userId).getOrElse("")} already has similar enrolment $k. Two users cannot have the same principal identifier on the same $p planet.")
   )
 
-  def addRecordId(userId: String, recordId: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
-    collection
-      .update(
-        Json.obj(User.user_index_key -> User.userIndexKey(userId, planetId)),
-        Json.obj("$push"             -> Json.obj("recordIds" -> recordId)))
-      .flatMap(MongoHelper.interpretWriteResultUnit)
+  def syncRecordId(userId: String, recordId: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+    if (recordId.nonEmpty) {
+      if (recordId.startsWith("--")) {
+        collection
+          .update(
+            Json.obj(User.user_index_key -> User.userIndexKey(userId, planetId)),
+            Json.obj("pull"              -> Json.obj("recordIds" -> recordId.substring(2))))
+          .flatMap(MongoHelper.interpretWriteResultUnit)
+      } else {
+        collection
+          .update(
+            Json.obj(User.user_index_key -> User.userIndexKey(userId, planetId)),
+            Json.obj("$push"             -> Json.obj("recordIds" -> recordId)))
+          .flatMap(MongoHelper.interpretWriteResultUnit)
+      }
+    } else Future.failed(new Exception("Empty recordId"))
 
   def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     remove(PLANET_ID -> Option(planetId)).map(_ => ())

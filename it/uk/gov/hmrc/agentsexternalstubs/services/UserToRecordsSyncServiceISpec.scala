@@ -23,6 +23,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
   lazy val vatCustomerInformationRecordsService = app.injector.instanceOf[VatCustomerInformationRecordsService]
   lazy val businessPartnerRecordsService = app.injector.instanceOf[BusinessPartnerRecordsService]
   lazy val legacyRelationshipRecordsService = app.injector.instanceOf[LegacyRelationshipRecordsService]
+  lazy val employerAuthsRecordsService = app.injector.instanceOf[EmployerAuthsRecordsService]
   lazy val knownFactsRepository = app.injector.instanceOf[KnownFactsRepository]
 
   private val formatter1 = DateTimeFormatter.ofPattern("dd/MM/yy")
@@ -242,56 +243,89 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
       userWithRecordId.map(_.recordIds).get should not be empty
     }
 
-    "sync hmrc-ni-org organisation to business partner records" in {
+    "sync ir-paye-agent agent to records when record does not exist" in {
       val planetId = UUID.randomUUID().toString
       val user = UserGenerator
-        .organisation("foo")
-        .withPrincipalEnrolment("HMRC-NI-ORG", "NIEORI", "EI126236092234")
+        .agent("foo", agentFriendlyName = "ABC123")
+        .withPrincipalEnrolment(Enrolment("IR-PAYE-AGENT"))
+        .withDelegatedEnrolment("IR-PAYE~TaxOfficeNumber~123~TaxOfficeReference~123456789")
+        .withDelegatedEnrolment("IR-PAYE~TaxOfficeNumber~321~TaxOfficeReference~987654321")
 
       val theUser = await(usersService.createUser(user, planetId))
 
-      val result = await(businessPartnerRecordsService.getBusinessPartnerRecordByEori("EI126236092234", planetId))
-      val id = result.flatMap(_.id)
-      result.flatMap(_.eori) shouldBe Some("EI126236092234")
-      result.flatMap(_.utr) shouldBe defined
-      result.map(_.isAnOrganisation) shouldBe Some(true)
-      result.map(_.isAnIndividual) shouldBe Some(false)
-      result.map(_.isAnAgent) shouldBe Some(false)
-      result.map(_.isAnASAgent) shouldBe Some(false)
-
-      await(usersService.updateUser(user.userId, planetId, user => user.copy(name = Some("foobar"))))
-      val result2 = await(businessPartnerRecordsService.getBusinessPartnerRecordByEori("EI126236092234", planetId))
-      val id2 = result2.flatMap(_.id)
-      id2 shouldBe id
-
-      val userWithRecordId = await(usersService.findByUserId(user.userId, planetId))
-      userWithRecordId.map(_.recordIds).get should not be empty
+      val result = await(employerAuthsRecordsService.getEmployerAuthsByAgentCode(theUser.agentCode.get, planetId)).get
+      result.empAuthList should have size (2)
     }
 
-    "sync hmrc-ni-org individual to business partner records" in {
+    "do not sync ir-paye-agent agent to records when record does not exist and no delegated enrolments" in {
       val planetId = UUID.randomUUID().toString
       val user = UserGenerator
-        .individual("foo")
-        .withPrincipalEnrolment("HMRC-NI-ORG", "NIEORI", "EI126236092234")
+        .agent("foo", agentFriendlyName = "ABC123")
+        .withPrincipalEnrolment(Enrolment("IR-PAYE-AGENT"))
 
       val theUser = await(usersService.createUser(user, planetId))
 
-      val result = await(businessPartnerRecordsService.getBusinessPartnerRecordByEori("EI126236092234", planetId))
-      val id = result.flatMap(_.id)
-      result.flatMap(_.eori) shouldBe Some("EI126236092234")
-      result.flatMap(_.utr) shouldBe defined
-      result.map(_.isAnOrganisation) shouldBe Some(false)
-      result.map(_.isAnIndividual) shouldBe Some(true)
-      result.map(_.isAnAgent) shouldBe Some(false)
-      result.map(_.isAnASAgent) shouldBe Some(false)
+      await(employerAuthsRecordsService.getEmployerAuthsByAgentCode(theUser.agentCode.get, planetId)) shouldBe None
+    }
 
-      await(usersService.updateUser(user.userId, planetId, user => user.copy(name = Some("foobar"))))
-      val result2 = await(businessPartnerRecordsService.getBusinessPartnerRecordByEori("EI126236092234", planetId))
-      val id2 = result2.flatMap(_.id)
-      id2 shouldBe id
+    "sync ir-paye-agent agent to records when record exists" in {
+      val planetId = UUID.randomUUID().toString
+      val user = UserGenerator
+        .agent("foo", agentFriendlyName = "ABC123")
+        .withPrincipalEnrolment(Enrolment("IR-PAYE-AGENT"))
+        .withDelegatedEnrolment("IR-PAYE~TaxOfficeNumber~123~TaxOfficeReference~123456789")
+        .withDelegatedEnrolment("IR-PAYE~TaxOfficeNumber~321~TaxOfficeReference~987654321")
 
-      val userWithRecordId = await(usersService.findByUserId(user.userId, planetId))
-      userWithRecordId.map(_.recordIds).get should not be empty
+      await(
+        employerAuthsRecordsService
+          .store(
+            EmployerAuths(
+              agentCode = user.agentCode.get,
+              empAuthList = Seq(
+                EmployerAuths.EmpAuth(
+                  empRef = EmployerAuths.EmpAuth.EmpRef("456", "123456789"),
+                  aoRef = EmployerAuths.EmpAuth.AoRef("456", "1", "2", "123456789"),
+                  true,
+                  false))
+            ),
+            false,
+            planetId
+          ))
+
+      val theUser = await(usersService.createUser(user, planetId))
+
+      val result = await(employerAuthsRecordsService.getEmployerAuthsByAgentCode(theUser.agentCode.get, planetId)).get
+      result.empAuthList should have size (3)
+    }
+
+    "sync ir-paye-agent agent to records when record exists and no delegated enrolments" in {
+      val planetId = UUID.randomUUID().toString
+      val user = UserGenerator
+        .agent("foo", agentFriendlyName = "ABC123")
+        .withPrincipalEnrolment(Enrolment("IR-PAYE-AGENT"))
+
+      val empAuthList = Seq(
+        EmployerAuths.EmpAuth(
+          empRef = EmployerAuths.EmpAuth.EmpRef("456", "123456789"),
+          aoRef = EmployerAuths.EmpAuth.AoRef("456", "1", "2", "123456789"),
+          true,
+          false))
+
+      await(
+        employerAuthsRecordsService
+          .store(
+            EmployerAuths(
+              agentCode = user.agentCode.get,
+              empAuthList = empAuthList
+            ),
+            false,
+            planetId
+          ))
+
+      val theUser = await(usersService.createUser(user, planetId))
+
+      val result = await(employerAuthsRecordsService.getEmployerAuthsByAgentCode(theUser.agentCode.get, planetId)).get
+      result.empAuthList shouldBe empAuthList
     }
   }
 }

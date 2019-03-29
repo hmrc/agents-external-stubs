@@ -183,8 +183,8 @@ object EmployerAuths extends RecordUtils[EmployerAuths] {
         _.matches(Common.districtNumberPattern),
         s"""Invalid districtNumber, does not matches regex ${Common.districtNumberPattern}""")
       val referenceValidator: Validator[String] = check(
-        _.matches(Common.referencePattern),
-        s"""Invalid reference, does not matches regex ${Common.referencePattern}""")
+        _.matches(Common.referencePattern0),
+        s"""Invalid reference, does not matches regex ${Common.referencePattern0}""")
 
       override val validate: Validator[EmpRef] = Validator(
         checkProperty(_.districtNumber, districtNumberValidator),
@@ -192,7 +192,7 @@ object EmployerAuths extends RecordUtils[EmployerAuths] {
 
       override val gen: Gen[EmpRef] = for {
         districtNumber <- Generator.regex(Common.districtNumberPattern)
-        reference      <- Generator.regex(Common.referencePattern)
+        reference      <- Generator.regex(Common.referencePattern0)
       } yield
         EmpRef(
           districtNumber = districtNumber,
@@ -232,8 +232,8 @@ object EmployerAuths extends RecordUtils[EmployerAuths] {
         _.matches(Common.payTypePattern),
         s"""Invalid checkCode, does not matches regex ${Common.payTypePattern}""")
       val referenceValidator: Validator[String] = check(
-        _.matches(Common.referencePattern),
-        s"""Invalid reference, does not matches regex ${Common.referencePattern}""")
+        _.matches(Common.referencePattern1),
+        s"""Invalid reference, does not matches regex ${Common.referencePattern1}""")
 
       override val validate: Validator[AoRef] = Validator(
         checkProperty(_.districtNumber, districtNumberValidator),
@@ -246,7 +246,7 @@ object EmployerAuths extends RecordUtils[EmployerAuths] {
         districtNumber <- Generator.regex(Common.districtNumberPattern)
         payType        <- Generator.regex(Common.payTypePattern)
         checkCode      <- Generator.regex(Common.payTypePattern)
-        reference      <- Generator.regex(Common.referencePattern)
+        reference      <- Generator.regex(Common.referencePattern1)
       } yield
         AoRef(
           districtNumber = districtNumber,
@@ -265,10 +265,11 @@ object EmployerAuths extends RecordUtils[EmployerAuths] {
 
   object Common {
     val employerNamePattern = """^\w{1,64}$"""
+    val referencePattern0 = """^[A-Za-z0-9 ]{1,10}$"""
     val agentCodePattern = """^[A-Z0-9]{1,12}$"""
     val payTypePattern = """^\w{1,6}$"""
-    val referencePattern = """^[A-Z0-9]{1,10}$"""
     val districtNumberPattern = """^\d{1,3}$"""
+    val referencePattern1 = """^[A-Za-z0-9 ]{1,13}$"""
     val agentClientRefPattern = """^\w{1,12}$"""
   }
 }
