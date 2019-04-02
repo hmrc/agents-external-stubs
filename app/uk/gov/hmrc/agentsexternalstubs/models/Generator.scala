@@ -110,6 +110,9 @@ object Generator extends Names with Temporal with Companies with Addresses {
   lazy val eoriGen: Gen[String] = pattern"ZZ999999999999".gen
   def eori(seed: String): String = eoriGen.seeded(seed).get
 
+  lazy val crnGen: Gen[String] = pattern"ZZ999999".gen
+  def crn(seed: String): String = crnGen.seeded(seed).get
+
   def chooseBigDecimal(min: Double, max: Double, multipleOf: Option[Double]): Gen[BigDecimal] =
     Gen
       .chooseNum[Double](min.toDouble, max.toDouble)

@@ -164,6 +164,7 @@ Endpoint | Description
 `POST /registration/02.00.00/organisation` | Provides the ability for an organisation who is not in possession of a UTR to register on ETMP
 `POST /agents/paye/:agentCode/clients/compare` | Returns agent-client authorisations for epaye
 `DELETE /agents/paye/:agentCode/clients/:taxOfficeNumber/:taxOfficeReference` | Removes given agent-client authorisation for epaye
+`GET /corporation-tax/identifiers/:idType/:idValue` | Provides the ability for a Taxpayer to retrieve the Corporation Tax Unique Taxpayer Reference (CTUTR) given a Company Registration Number (CRN) identifier
 
 ### [Datastream](https://github.com/hmrc/datastream) <a name="stubbed_api_datastream"></a>
 

@@ -354,6 +354,7 @@ trait ExampleDesPayloads {
       |  "safeId": "XE0001234567890",
       |  "agentReferenceNumber": "AARN1234567",
       |  "utr": "0123456789",
+      |  "crn": "AA123456",
       |  "isAnAgent": true,
       |  "isAnASAgent": true,
       |  "isAnIndividual": true,

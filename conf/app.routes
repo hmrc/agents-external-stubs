@@ -60,6 +60,7 @@ POST        /registration/02.00.00/individual                                @uk
 POST        /registration/02.00.00/organisation                              @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.registerOrganisationWithoutID
 POST        /agents/paye/:agentCode/clients/compare                                 @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.retrieveLegacyAgentClientPayeInformation(agentCode: String)
 DELETE      /agents/paye/:agentCode/clients/:taxOfficeNumber/:taxOfficeReference    @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.removeLegacyAgentClientPayeRelationship(agentCode: String, taxOfficeNumber: String, taxOfficeReference: String)
+GET         /corporation-tax/identifiers/:idType/:idValue                    @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getCtReference(idType: String, idValue: String)
 
 # Datastream
 POST        /write/audit                                                     @uk.gov.hmrc.agentsexternalstubs.controllers.DataStreamStubController.writeEvent
@@ -111,7 +112,6 @@ POST        /agents-external-stubs/records/relationship                      @uk
 GET         /agents-external-stubs/records/relationship/generate             @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generateRelationship(seed: Option[String] ?= None, minimal: Boolean ?= false)
 POST        /agents-external-stubs/records/employer-auths                    @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.storeEmployerAuths(autoFill: Boolean ?= true)
 GET         /agents-external-stubs/records/employer-auths/generate           @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generateEmployerAuths(seed: Option[String] ?= None, minimal: Boolean ?= false)
-
 
 # Known facts management
 POST        /agents-external-stubs/known-facts                               @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.createKnownFacts

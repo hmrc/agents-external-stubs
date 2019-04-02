@@ -51,6 +51,10 @@ class BusinessPartnerRecordsService @Inject()(
     implicit ec: ExecutionContext): Future[Option[BusinessPartnerRecord]] =
     findByKey[BusinessPartnerRecord](BusinessPartnerRecord.eoriKey(eori), planetId).map(_.headOption)
 
+  def getBusinessPartnerRecordByCrn(crn: String, planetId: String)(
+    implicit ec: ExecutionContext): Future[Option[BusinessPartnerRecord]] =
+    findByKey[BusinessPartnerRecord](BusinessPartnerRecord.crnKey(crn), planetId).map(_.headOption)
+
   def getBusinessPartnerRecordByEoriOrUtr(eori: String, utr: String, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[BusinessPartnerRecord]] =
     externalUserService

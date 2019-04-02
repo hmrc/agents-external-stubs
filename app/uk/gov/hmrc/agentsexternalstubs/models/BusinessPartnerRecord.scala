@@ -28,6 +28,7 @@ case class BusinessPartnerRecord(
   utr: Option[String] = None,
   nino: Option[String] = None,
   eori: Option[String] = None,
+  crn: Option[String] = None,
   isAnAgent: Boolean = false,
   isAnASAgent: Boolean = false,
   isAnIndividual: Boolean = false,
@@ -46,7 +47,8 @@ case class BusinessPartnerRecord(
       agentReferenceNumber.map(BusinessPartnerRecord.agentReferenceNumberKey),
       utr.map(BusinessPartnerRecord.utrKey),
       nino.map(BusinessPartnerRecord.ninoKey),
-      eori.map(BusinessPartnerRecord.eoriKey)
+      eori.map(BusinessPartnerRecord.eoriKey),
+      crn.map(BusinessPartnerRecord.crnKey)
     ).collect { case Some(x) => x }
   override def withId(id: Option[String]): BusinessPartnerRecord = copy(id = id)
 
@@ -70,6 +72,9 @@ case class BusinessPartnerRecord(
   def withEori(eori: Option[String]): BusinessPartnerRecord = copy(eori = eori)
   def modifyEori(pf: PartialFunction[Option[String], Option[String]]): BusinessPartnerRecord =
     if (pf.isDefinedAt(eori)) copy(eori = pf(eori)) else this
+  def withCrn(crn: Option[String]): BusinessPartnerRecord = copy(crn = crn)
+  def modifyCrn(pf: PartialFunction[Option[String], Option[String]]): BusinessPartnerRecord =
+    if (pf.isDefinedAt(crn)) copy(crn = pf(crn)) else this
   def withIsAnAgent(isAnAgent: Boolean): BusinessPartnerRecord = copy(isAnAgent = isAnAgent)
   def modifyIsAnAgent(pf: PartialFunction[Boolean, Boolean]): BusinessPartnerRecord =
     if (pf.isDefinedAt(isAnAgent)) copy(isAnAgent = pf(isAnAgent)) else this
@@ -111,6 +116,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
   def utrKey(key: String): String = s"""utr:${key.toUpperCase}"""
   def ninoKey(key: String): String = s"""nino:${key.toUpperCase}"""
   def eoriKey(key: String): String = s"""eori:${key.toUpperCase}"""
+  def crnKey(key: String): String = s"""crn:${key.toUpperCase}"""
 
   import Validator._
   import Generator.GenOps._
@@ -126,6 +132,8 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     check(_.matches(Common.ninoPattern), s"""Invalid nino, does not matches regex ${Common.ninoPattern}""")
   val eoriValidator: Validator[Option[String]] =
     check(_.matches(Common.eoriPattern), s"""Invalid eori, does not matches regex ${Common.eoriPattern}""")
+  val crnValidator: Validator[Option[String]] =
+    check(_.matches(Common.crnPattern), s"""Invalid crn, does not matches regex ${Common.crnPattern}""")
   val individualValidator: Validator[Option[Individual]] = checkIfSome(identity, Individual.validate)
   val organisationValidator: Validator[Option[Organisation]] = checkIfSome(identity, Organisation.validate)
   val addressDetailsValidator: Validator[AddressDetails] = checkProperty(identity, AddressDetails.validate)
@@ -138,6 +146,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     checkProperty(_.utr, utrValidator),
     checkProperty(_.nino, ninoValidator),
     checkProperty(_.eori, eoriValidator),
+    checkProperty(_.crn, crnValidator),
     checkProperty(_.individual, individualValidator),
     checkProperty(_.organisation, organisationValidator),
     checkProperty(_.addressDetails, addressDetailsValidator),
@@ -196,6 +205,13 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
           .fold(_ => None, _ => entity.eori)
           .orElse(Generator.get(Generator.eoriGen)(seed)))
 
+  val crnSanitizer: Update = seed =>
+    entity =>
+      entity.copy(
+        crn = crnValidator(entity.crn)
+          .fold(_ => None, _ => entity.crn)
+          .orElse(Generator.get(Generator.crnGen)(seed)))
+
   val individualSanitizer: Update = seed =>
     entity =>
       entity.copy(
@@ -227,10 +243,10 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
   val isAnIndividualAndIndividualCompoundSanitizer: Update = seed =>
     entity =>
       entity.copy(
-        isAnIndividual = true,
         individual = entity.individual.orElse(Generator.get(Individual.gen)(seed)).map(Individual.sanitize(seed)),
-        isAnOrganisation = false,
-        organisation = None
+        isAnIndividual = true,
+        organisation = None,
+        isAnOrganisation = false
   )
 
   val isAnOrganisationAndOrganisationCompoundSanitizer: Update = seed =>
@@ -239,8 +255,8 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
         isAnOrganisation = true,
         organisation =
           entity.organisation.orElse(Generator.get(Organisation.gen)(seed)).map(Organisation.sanitize(seed)),
-        isAnIndividual = false,
-        individual = None
+        individual = None,
+        isAnIndividual = false
   )
 
   val isAnIndividualOrIsAnOrganisationAlternativeSanitizer: Update = seed =>
@@ -258,6 +274,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     utrSanitizer,
     ninoSanitizer,
     eoriSanitizer,
+    crnSanitizer,
     contactDetailsSanitizer,
     agencyDetailsSanitizer,
     isAnIndividualOrIsAnOrganisationAlternativeSanitizer
@@ -1083,6 +1100,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     val countryCodeEnum1 = Seq("GB")
     val safeIdPattern = """^X[A-Z]000[0-9]{10}$"""
     val utrPattern = """^[0-9]{1,10}$"""
+    val crnPattern = """^([A-Za-z0-9]{0,2})?([0-9]{1,6})$"""
     val agentReferenceNumberPattern = """^[A-Z](ARN)[0-9]{7}$"""
   }
 }

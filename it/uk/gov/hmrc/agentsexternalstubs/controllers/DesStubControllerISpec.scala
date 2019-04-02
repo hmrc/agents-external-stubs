@@ -821,5 +821,33 @@ class DesStubControllerISpec
         result3.status shouldBe 400
       }
     }
+
+    "GET /corporation-tax/identifiers/:idType/:idValue" should {
+      "return 200 response if record found" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val createResult = Records.createBusinessPartnerRecord(Json.parse(validBusinessPartnerRecordPayload))
+        createResult should haveStatus(201)
+
+        val result = DesStub.getCtReference("crn", "AA123456")
+        result should haveStatus(200)
+        result should haveValidJsonBody(haveProperty[String]("CTUTR", be("0123456789")))
+      }
+
+      "return 404 response if record not found" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val result = DesStub.getCtReference("crn", "AA111111")
+        result should haveStatus(404)
+      }
+
+      "return 400 response if invalid CRN" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val result1 = DesStub.getCtReference("crn", "11AAAAAA")
+        result1 should haveStatus(400)
+        val result2 = DesStub.getCtReference("crn", "AAA11111")
+        result2 should haveStatus(400)
+        val result3 = DesStub.getCtReference("crn", "AA1111111")
+        result3 should haveStatus(400)
+      }
+    }
   }
 }

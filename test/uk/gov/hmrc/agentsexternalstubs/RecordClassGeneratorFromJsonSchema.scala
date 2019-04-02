@@ -829,6 +829,7 @@ trait KnownFieldGenerators {
       case "vrn"                  => "Generator.vrnGen"
       case "utr"                  => "Generator.utrGen"
       case "eori"                 => "Generator.eoriGen"
+      case "crn"                  => "Generator.crnGen"
       case date(a, b)             => s"Generator.dateYYYYMMDDGen${withPerturb(a, b)}"
       case phoneNumber(a, b) =>
         s"Generator.ukPhoneNumber${withPerturb(a, b)}"

@@ -423,6 +423,9 @@ trait TestRequests extends ScalaFutures {
     def removeLegacyAgentClientPayeRelationship(agentCode: String, taxOfficeNumber: String, taxOfficeReference: String)(
       implicit authContext: AuthContext): WSResponse =
       delete(s"/agents/paye/$agentCode/clients/$taxOfficeNumber/$taxOfficeReference")
+
+    def getCtReference(idType: String, idValue: String)(implicit authContext: AuthContext): WSResponse =
+      get(s"/corporation-tax/identifiers/$idType/$idValue")
   }
 
   object DataStreamStubs {

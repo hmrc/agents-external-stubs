@@ -10,6 +10,7 @@ import play.api.data.validation.{Constraint, Constraints, Invalid, Valid}
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Utr}
+import uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.SAAgentClientAuthorisation.Response
 import uk.gov.hmrc.agentsexternalstubs.models.{BusinessPartnerRecord, SubscribeAgentServicesPayload, _}
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.services._
@@ -373,6 +374,21 @@ class DesStubController @Inject()(
     }(SessionRecordNotFound)
   }
 
+  def getCtReference(idType: String, idValue: String): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      withValidIdentifier(idType, idValue) {
+        case ("crn", crn) =>
+          businessPartnerRecordsService
+            .getBusinessPartnerRecordByCrn(crn, session.planetId)
+            .map(_.flatMap(GetCtReference.Response.from))
+            .map {
+              case None     => notFound("NOT_FOUND", "The back end has indicated that CT UTR cannot be returned.")
+              case response => ok(response)
+            }
+      }
+    }(SessionRecordNotFound)
+  }
+
   private def getOrCreateBusinessPartnerRecord[T <: Record](
     payload: RegistrationPayload,
     idType: String,
@@ -405,6 +421,7 @@ class DesStubController @Inject()(
       case "arn"    => validateIdentifier(RegexPatterns.validArn, "INVALID_ARN", idType, idNumber)(pf)
       case "vrn"    => validateIdentifier(RegexPatterns.validVrn, "INVALID_VRN", idType, idNumber)(pf)
       case "eori"   => validateIdentifier(RegexPatterns.validEori, "INVALID_EORI", idType, idNumber)(pf)
+      case "crn"    => validateIdentifier(RegexPatterns.validCrn, "INVALID_CRN", idType, idNumber)(pf)
       case "safeId" => validateIdentifier(RegexPatterns.validSafeId, "INVALID_SAFEID", idType, idNumber)(pf)
       case _        => badRequestF("INVALID_IDTYPE")
     }
@@ -738,6 +755,18 @@ object DesStubController {
           e2.districtNumber == e1.empRef.districtNumber && e2.reference == e1.empRef.reference)))
       if (filtered.empAuthList.isEmpty) None else Some(filtered)
     }
+  }
+
+  object GetCtReference {
+
+    case class Response(CTUTR: String)
+
+    object Response {
+      def from(record: BusinessPartnerRecord): Option[Response] = record.utr.map(Response.apply)
+
+      implicit val formats: Format[Response] = Json.format[Response]
+    }
+
   }
 
 }
