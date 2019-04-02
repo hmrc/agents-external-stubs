@@ -295,6 +295,7 @@ class UserToRecordsSyncService @Inject()(
                 .withAgencyName(user.agentFriendlyName.map(_.take(40)))))
           .withAddressDetails(address)
         val utr = Generator.utr(user.userId)
+        val crn = Generator.crn(user.userId)
         user
           .findIdentifierValue("HMRC-AS-AGENT", "AgentReferenceNumber") match {
           case Some(arn) =>
@@ -304,6 +305,7 @@ class UserToRecordsSyncService @Inject()(
               .flatMap(postcodeOpt => {
                 val ar = record
                   .withAgentReferenceNumber(Option(arn))
+                  .withCrn(Option(crn))
                   .withIsAnAgent(true)
                   .withIsAnASAgent(true)
                   .modifyAgencyDetails {
@@ -325,6 +327,7 @@ class UserToRecordsSyncService @Inject()(
           case None if user.principalEnrolments.isEmpty =>
             val ar = record
               .withUtr(Option(utr))
+              .withCrn(Option(crn))
               .withIsAnAgent(false)
               .withIsAnASAgent(false)
             BusinessPartnerRecordsService
