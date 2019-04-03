@@ -7,7 +7,8 @@ import scala.concurrent.duration._
 class AsyncCache[K, V](
   maximumSize: Int,
   expireAfterWrite: Option[Duration] = None,
-  expireAfterAccess: Option[Duration] = None) {
+  expireAfterAccess: Option[Duration] = None,
+  keys: V => Seq[K]) {
 
   private val cache = {
     val s = Scaffeine().maximumSize(maximumSize)
@@ -16,40 +17,42 @@ class AsyncCache[K, V](
     s2.build[K, V]()
   }
 
-  def get(key: K, load: K => Future[V])(implicit ec: ExecutionContext): Future[V] =
+  def get(key: K, load: Future[V])(implicit ec: ExecutionContext): Future[V] =
     cache.getIfPresent(key) match {
       case Some(value) => Future.successful(value)
       case None =>
-        load(key).map(value => {
-          cache.put(key, value)
+        load.map(value => {
+          keys(value).foreach(cache.put(_, value))
           value
         })
     }
 
-  def getOption(key: K, load: K => Future[Option[V]])(implicit ec: ExecutionContext): Future[Option[V]] =
+  def getOption(key: K, load: => Future[Option[V]])(implicit ec: ExecutionContext): Future[Option[V]] =
     cache.getIfPresent(key) match {
       case Some(value) => Future.successful(Some(value))
       case None =>
-        load(key).map {
+        load.map {
           _.map(value => {
-            cache.put(key, value)
+            keys(value).foreach(cache.put(_, value))
             value
           })
         }
     }
 
-  def put(key: K, value: V): Future[Unit] = {
-    cache.put(key, value)
+  def put(value: V): Future[Unit] = {
+    keys(value).foreach(cache.put(_, value))
     Future.successful(())
   }
 
-  def put(key: K, value: Option[V]): Future[Unit] = {
-    value.foreach(v => cache.put(key, v))
+  def put(value: Option[V]): Future[Unit] = {
+    value.foreach(v => keys(v).foreach(cache.put(_, v)))
     Future.successful(())
   }
 
   def invalidate(key: K): Future[Unit] = {
-    cache.invalidate(key)
+    cache
+      .getIfPresent(key)
+      .foreach(v => keys(v).foreach(cache.invalidate))
     Future.successful(())
   }
 }

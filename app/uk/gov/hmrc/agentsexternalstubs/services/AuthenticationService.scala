@@ -18,7 +18,10 @@ class AuthenticationService @Inject()(
   userService: UsersService) {
 
   private val authenticatedSessionCache =
-    new AsyncCache[String, AuthenticatedSession](maximumSize = 1000000, expireAfterWrite = Some(5.minutes))
+    new AsyncCache[String, AuthenticatedSession](
+      maximumSize = 1000000,
+      expireAfterWrite = Some(5.minutes),
+      keys = as => Seq(as.authToken, as.sessionId))
 
   def findByAuthTokenOrLookupExternal(authToken: String)(
     implicit ec: ExecutionContext,
@@ -26,7 +29,7 @@ class AuthenticationService @Inject()(
     request: Request[_]): Future[Option[AuthenticatedSession]] =
     authenticatedSessionCache.getOption(
       authToken,
-      authSessionRepository.findByAuthToken(_).flatMap {
+      authSessionRepository.findByAuthToken(authToken).flatMap {
         case Some(session) => Future.successful(Some(session))
         case None =>
           val planetId = Planet.DEFAULT
@@ -35,10 +38,10 @@ class AuthenticationService @Inject()(
     )
 
   def findByAuthToken(authToken: String)(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
-    authenticatedSessionCache.getOption(authToken, authSessionRepository.findByAuthToken)
+    authenticatedSessionCache.getOption(authToken, authSessionRepository.findByAuthToken(authToken))
 
   def findBySessionId(sessionId: String)(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
-    authSessionRepository.findBySessionId(sessionId)
+    authenticatedSessionCache.getOption(sessionId, authSessionRepository.findBySessionId(sessionId))
 
   def findByPlanetId(planetId: String)(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
     authSessionRepository.findByPlanetId(planetId)
@@ -50,7 +53,7 @@ class AuthenticationService @Inject()(
       _ <- authSessionRepository
             .create(request.sessionId, request.userId, authToken, request.providerType, request.planetId)
       maybeSession <- authSessionRepository.findByAuthToken(authToken)
-      _            <- authenticatedSessionCache.put(authToken, maybeSession)
+      _            <- authenticatedSessionCache.put(maybeSession)
     } yield maybeSession
   }
 
