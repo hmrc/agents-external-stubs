@@ -36,8 +36,6 @@ trait KnownFactsRepository {
   def findByEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[KnownFacts]]
 
-  def findByVerifier(knownFact: KnownFact, planetId: String)(implicit ec: ExecutionContext): Future[Option[KnownFacts]]
-
   def upsert(knownFacts: KnownFacts, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
 
   def delete(enrolmentKey: EnrolmentKey, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
@@ -59,8 +57,7 @@ class KnownFactsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent
   private final val PLANET_ID = "planetId"
 
   override def indexes = Seq(
-    Index(Seq(KnownFacts.UNIQUE_KEY     -> Ascending), Some("KnownFactsByEnrolmentKey"), unique = true),
-    Index(Seq(KnownFacts.VERIFIERS_KEYS -> Ascending), Some("KnownFactsByVerifiers"))
+    Index(Seq(KnownFacts.UNIQUE_KEY -> Ascending), Some("KnownFactsByEnrolmentKey"), unique = true)
   )
 
   def findByEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
@@ -68,17 +65,6 @@ class KnownFactsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent
     collection
       .find(
         Json.obj(KnownFacts.UNIQUE_KEY -> KnownFacts.uniqueKey(enrolmentKey.tag, planetId))
-      )
-      .cursor[KnownFacts](ReadPreference.nearest)(
-        implicitly[collection.pack.Reader[KnownFacts]],
-        implicitly[CursorProducer[KnownFacts]])
-      .headOption
-
-  def findByVerifier(knownFact: KnownFact, planetId: String)(
-    implicit ec: ExecutionContext): Future[Option[KnownFacts]] =
-    collection
-      .find(
-        Json.obj(KnownFacts.VERIFIERS_KEYS -> KnownFacts.verifierKey(knownFact, planetId))
       )
       .cursor[KnownFacts](ReadPreference.nearest)(
         implicitly[collection.pack.Reader[KnownFacts]],
