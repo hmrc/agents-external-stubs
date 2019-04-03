@@ -23,6 +23,8 @@ class PlanetsController @Inject()(
 
   def destroy(planetId: String): Action[AnyContent] = Action.async { implicit request =>
     Logger(getClass).info(s"About to start destroying test planet $planetId ..")
+    UserIdGenerator.destroyPlanetId(planetId)
+    AuthorisationCache.destroyPlanet(planetId)
     Future
       .sequence(Seq(
         authSessionRepository.destroyPlanet(planetId),
@@ -32,16 +34,13 @@ class PlanetsController @Inject()(
         specialCasesRepository.destroyPlanet(planetId)
       ))
       .map { _ =>
-        UserIdGenerator.destroyPlanetId(planetId)
-        AuthorisationCache.destroyPlanet(planetId)
         Logger(getClass).info(s"Test planet $planetId destroyed.")
-        NoContent
       }
       .recover {
         case NonFatal(e) =>
           Logger(getClass).warn(s"Attempted test planet $planetId destroy failed with $e")
-          InternalServerError(e.getMessage)
       }
+    Future.successful(NoContent)
   }
 
 }
