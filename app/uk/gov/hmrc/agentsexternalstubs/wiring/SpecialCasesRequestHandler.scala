@@ -11,14 +11,15 @@ class SpecialCasesRequestHandler @Inject()(
   errorHandler: HttpErrorHandler,
   configuration: HttpConfiguration,
   filters: HttpFilters,
-  specialCasesController: SpecialCasesController)
+  specialCasesController: SpecialCasesController,
+  appConfig: AppConfig)
     extends uk.gov.hmrc.play.bootstrap.http.RequestHandler(router, errorHandler, configuration, filters) {
 
   val context = "/agents-external-stubs"
   val health = "/ping"
 
   override def handlerForRequest(request: RequestHeader): (RequestHeader, Handler) =
-    if (request.path.startsWith(context) || request.path.startsWith(health)) {
+    if (appConfig.specialCasesDisabled || request.path.startsWith(context) || request.path.startsWith(health)) {
       super.handlerForRequest(request)
     } else {
       val (requestHeader, handler) = super.handlerForRequest(request)

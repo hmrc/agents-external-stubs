@@ -39,6 +39,7 @@ trait AppConfig {
   val ssoPort: Int
 
   val authCacheEnabled: Boolean
+  val specialCasesDisabled: Boolean
 
 }
 
@@ -79,4 +80,5 @@ class AppConfigImpl @Inject()(config: ServicesConfig) extends AppConfig {
   val ssoPort: Int = config.getConfInt("sso.port", 0)
 
   val authCacheEnabled: Boolean = config.getBoolean("authCache.enabled")
+  val specialCasesDisabled: Boolean = !config.getBoolean("specialCases.enabled")
 }
