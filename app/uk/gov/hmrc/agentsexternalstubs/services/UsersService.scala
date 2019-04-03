@@ -72,13 +72,12 @@ class UsersService @Inject()(
                   .getIfPresent(userKey)
                   .map(u => Future.successful(u.copy(planetId = Some(planetId))))
                   .getOrElse(refineAndValidateUser(user, planetId))
-      _         <- usersRepository.create(refined, planetId)
-      _         <- Future.successful(usersCache.put(userKey, refined))
-      maybeUser <- findByUserId(refined.userId, planetId)
-      _         <- updateKnownFacts(refined, planetId)
-      _         <- userRecordsService.syncUserToRecords(syncRecordId(maybeUser, planetId))(maybeUser)
-      newUser = maybeUser.getOrElse(throw new Exception(s"User $user creation failed."))
-    } yield newUser
+                  .map(u => u.copy(planetId = Some(planetId)))
+      _ <- usersRepository.create(refined, planetId)
+      _ <- Future.successful(usersCache.put(userKey, refined))
+      _ <- updateKnownFacts(refined, planetId)
+      _ <- userRecordsService.syncUserToRecords(syncRecordId(refined, planetId))(refined)
+    } yield refined
   }
 
   def tryCreateUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Try[User]] = {
@@ -93,12 +92,12 @@ class UsersService @Inject()(
                                  .getIfPresent(userKey)
                                  .map(u => Future.successful(u.copy(planetId = Some(planetId))))
                                  .getOrElse(refineAndValidateUser(user, planetId))
-                     _       <- usersRepository.create(refined, planetId)
-                     _       <- Future.successful(usersCache.put(userKey, refined))
-                     newUser <- findByUserId(refined.userId, planetId)
-                     _       <- updateKnownFacts(refined, planetId)
-                     _       <- userRecordsService.syncUserToRecords(syncRecordId(maybeUser, planetId))(newUser)
-                   } yield newUser.map(Success.apply).getOrElse(Failure(new Exception(s"User $user creation failed")))
+                                 .map(u => u.copy(planetId = Some(planetId)))
+                     _ <- usersRepository.create(refined, planetId)
+                     _ <- Future.successful(usersCache.put(userKey, refined))
+                     _ <- updateKnownFacts(refined, planetId)
+                     _ <- userRecordsService.syncUserToRecords(syncRecordId(refined, planetId))(refined)
+                   } yield Success.apply(refined)
                }
     } yield result
   }
@@ -110,13 +109,12 @@ class UsersService @Inject()(
                       case Some(existingUser) =>
                         val modified = modify(existingUser).copy(userId = userId, planetId = Some(planetId))
                         if (modified != existingUser) for {
-                          refined   <- refineAndValidateUser(modified, planetId)
-                          _         <- usersRepository.update(refined, planetId)
-                          maybeUser <- findByUserId(userId, planetId)
-                          _         <- updateKnownFacts(refined, planetId)
-                          _         <- userRecordsService.syncUserToRecords(syncRecordId(maybeUser, planetId))(maybeUser)
+                          refined <- refineAndValidateUser(modified, planetId)
+                          _       <- usersRepository.update(refined, planetId)
+                          _       <- updateKnownFacts(refined, planetId)
+                          _       <- userRecordsService.syncUserToRecords(syncRecordId(refined, planetId))(refined)
                           _ = AuthorisationCache.updateResultsFor(refined, planetId)
-                        } yield maybeUser.getOrElse(throw new Exception)
+                        } yield refined
                         else Future.successful(existingUser)
                       case None => Future.failed(new NotFoundException(s"User $userId not found"))
                     }
@@ -131,12 +129,8 @@ class UsersService @Inject()(
           }
     } yield ()
 
-  def syncRecordId(userOpt: Option[User], planetId: String)(recordId: String)(
-    implicit ec: ExecutionContext): Future[Unit] =
-    userOpt match {
-      case Some(user) => usersRepository.syncRecordId(user.userId, recordId, planetId).map(_ => ())
-      case None       => Future.successful(())
-    }
+  def syncRecordId(user: User, planetId: String)(recordId: String)(implicit ec: ExecutionContext): Future[Unit] =
+    usersRepository.syncRecordId(user.userId, recordId, planetId).map(_ => ())
 
   def deleteUser(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     for {

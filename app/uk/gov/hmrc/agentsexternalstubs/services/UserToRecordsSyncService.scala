@@ -35,14 +35,12 @@ class UserToRecordsSyncService @Inject()(
     Sync.legacyPayeAgentInformation
   )
 
-  final val syncUserToRecords: SaveRecordId => Option[User] => Future[Unit] = saveRecordId => {
-    case Some(user) if user.isNonCompliant.forall(_ == false) =>
-      Future
-        .sequence(
-          userRecordsSyncOperations
-            .map(f => if (f(saveRecordId).isDefinedAt(user)) f(saveRecordId)(user) else Future.successful(())))
-        .map(_.reduce((_, _) => ()))
-    case _ => Future.successful(())
+  final val syncUserToRecords: SaveRecordId => User => Future[Unit] = saveRecordId => { user: User =>
+    Future
+      .sequence(
+        userRecordsSyncOperations
+          .map(f => if (f(saveRecordId).isDefinedAt(user)) f(saveRecordId)(user) else Future.successful(())))
+      .map(_.reduce((_, _) => ()))
   }
 
   final val syncAfterUserRemoved: User => Future[Unit] =

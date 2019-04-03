@@ -321,7 +321,7 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
         collection
           .update(
             Json.obj(User.user_index_key -> User.userIndexKey(userId, planetId)),
-            Json.obj("pull"              -> Json.obj("recordIds" -> recordId.substring(2))))
+            Json.obj("$pull"             -> Json.obj("recordIds" -> recordId.substring(2))))
           .flatMap(MongoHelper.interpretWriteResultUnit)
       } else {
         collection
