@@ -298,29 +298,42 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
   def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     remove(KEYS -> Option(planetIdKey(planetId))).map(_ => ())
 
+  private val userAndPlanetIdReads = new Reads[(String, String)] {
+    override def reads(json: JsValue): JsResult[(String, String)] =
+      JsSuccess(((json \ "userId").as[String], (json \ "planetId").as[String]))
+  }
+
   def reindexAllUsers(implicit ec: ExecutionContext): Future[String] = {
     val logger = Logger("uk.gov.hmrc.agentsexternalstubs.re-indexing")
-    cursor(Seq())(User.formats)
-      .collect[Seq](maxDocs = 1000000, err = Cursor.FailOnError[Seq[User]]())
+    cursor(Seq(), Seq("userId" -> 1, "planetId" -> 1))(userAndPlanetIdReads)
+      .collect[Seq](maxDocs = 1000000, err = Cursor.FailOnError())
       .flatMap(
-        users =>
+        userAndPlanetIds =>
           collection.indexesManager
             .dropAll()
             .flatMap(ic => {
               logger.info(s"Existing $ic indexes has been dropped.")
-              ensureIndexes.flatMap(_ => Future
-                .sequence(
-                  users.map(user =>
-                    update(user, user.planetId.get)
-                      .map(_ => 1)
-                      .recover {
-                        case NonFatal(e) =>
-                          logger.warn(s"User ${user.userId}@${user.planetId.get} re-indexing failed: ${e.getMessage}")
-                          0
-                    })))
+              ensureIndexes.flatMap(_ =>
+                Future
+                  .sequence(userAndPlanetIds.map {
+                    case (userId, planetId) =>
+                      findByUserId(userId, planetId).flatMap {
+                        case Some(user) =>
+                          update(user, planetId)
+                            .map(_ => 1)
+                            .recover {
+                              case NonFatal(e) =>
+                                logger.warn(
+                                  s"User ${user.userId}@${user.planetId.get} re-indexing failed: ${e.getMessage}")
+                                0
+                            }
+                        case None => Future.successful(0)
+                      }
+
+                  }))
             })
             .map(l => {
-              val msg = s"${l.sum} out of ${users.size} users has been re-indexed"
+              val msg = s"${l.sum} out of ${userAndPlanetIds.size} users has been re-indexed"
               logger.info(msg)
               msg
             }))
