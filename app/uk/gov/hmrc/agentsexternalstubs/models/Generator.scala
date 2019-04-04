@@ -204,8 +204,11 @@ object Generator extends Names with Temporal with Companies with Addresses {
   )
 
   lazy val knownRegex: Map[String, Gen[String]] = Map(
-    ".{0,1}"              -> Gen.oneOf("y", "n"),
-    "^[A-Za-z0-9]{0,12}$" -> pattern"Zzz00099900Z"
+    ".{0,1}"               -> Gen.oneOf("y", "n"),
+    "^[A-Za-z0-9]{0,12}$"  -> pattern"Zzz00099900Z",
+    "^\\d{3}$"             -> pattern"999",
+    "^[A-Za-z0-9 ]{1,10}$" -> pattern"ZZ9999999Z",
+    "^[A-Za-z0-9]{6}$"     -> pattern"ZZ999Z"
   )
 
   object GenOps {
