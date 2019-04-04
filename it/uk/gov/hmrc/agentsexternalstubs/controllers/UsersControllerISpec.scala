@@ -314,4 +314,13 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
       }
     }
   }
+
+  "POST /agents-external-stubs/users/re-index" should {
+    "re-index all existing users" in {
+      implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
+      val result = Users.reindexAllUsers
+      result.status shouldBe 200
+      result.body should include("users has been re-indexed")
+    }
+  }
 }

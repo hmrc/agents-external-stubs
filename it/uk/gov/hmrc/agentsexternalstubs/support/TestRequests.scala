@@ -88,6 +88,13 @@ trait TestRequests extends ScalaFutures {
       .post[T](payload)
       .futureValue
 
+  def post(path: String)(implicit authContext: AuthContext): WSResponse =
+    wsClient
+      .url(s"$url$path")
+      .withHttpHeaders(authContext.headers: _*)
+      .post("")
+      .futureValue
+
   def put[T: BodyWritable](path: String, payload: T)(implicit authContext: AuthContext): WSResponse =
     wsClient
       .url(s"$url$path")
@@ -203,6 +210,9 @@ trait TestRequests extends ScalaFutures {
 
     def createApiPlatformTestUser[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
       post("/agents-external-stubs/users/api-platform", payload)
+
+    def reindexAllUsers(implicit authContext: AuthContext): WSResponse =
+      post("/agents-external-stubs/users/re-index")
   }
 
   object UserDetailsStub {

@@ -337,4 +337,6 @@ class UsersService @Inject()(
 
   }
 
+  def reindexAllUsers(implicit ec: ExecutionContext): Future[String] = usersRepository.reindexAllUsers
+
 }

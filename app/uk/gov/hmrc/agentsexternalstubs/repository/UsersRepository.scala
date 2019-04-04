@@ -32,13 +32,9 @@ import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
-case class DuplicateUserException(
-  msg: String,
-  userId: Option[String] = None,
-  index: Option[String] = None,
-  key: Option[String] = None)
-    extends IllegalStateException(msg)
+case class DuplicateUserException(msg: String, key: Option[String] = None) extends IllegalStateException(msg)
 
 @ImplementedBy(classOf[UsersRepositoryMongo])
 trait UsersRepository {
@@ -65,6 +61,7 @@ trait UsersRepository {
   def syncRecordId(userId: String, recordId: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
 
   def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit]
+  def reindexAllUsers(implicit ec: ExecutionContext): Future[String]
 }
 
 @Singleton
@@ -77,43 +74,18 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
 
   import ImplicitBSONHandlers._
 
-  private final val PLANET_ID = "planetId"
+  private final val UNIQUE_KEYS = "_uniqueKeys"
+  private final val KEYS = "_keys"
 
-  private final val UsersIndexName = "Users"
-  private final val NinosIndexName = "Ninos"
-  private final val PrincipalEnrolmentKeysIndexName = "PrincipalEnrolmentKeys"
-  private final val AgentCodesIndexName = "UniqueAgentCodes"
-  private final val GroupIdsIndexName = "UniqueGroupIds"
+  private def keyOf(key: String, planetId: String): String = s"${key.replace(" ", "").toLowerCase}@$planetId"
 
   override def indexes = Seq(
-    // Unique indexes
-    Index(Seq(User.user_index_key       -> Ascending), Some(UsersIndexName), unique = true),
-    Index(Seq(User.nino_index_key       -> Ascending), Some(NinosIndexName), unique = true, sparse = true),
-    Index(Seq(User.agent_code_index_key -> Ascending), Some(AgentCodesIndexName), unique = true, sparse = true),
-    Index(Seq(User.group_id_index_key   -> Ascending), Some(GroupIdsIndexName), unique = true, sparse = true),
-    Index(
-      Seq(User.principal_enrolment_keys -> Ascending),
-      Some(PrincipalEnrolmentKeysIndexName),
-      unique = true,
-      sparse = true),
-    // Lookup indexes
-    Index(Seq(User.delegated_enrolment_keys -> Ascending), Some("DelegatedEnrolmentKeys"), sparse = true),
-    Index(Seq(PLANET_ID                     -> Ascending), Some("Planets")),
-    Index(Seq(PLANET_ID                     -> Ascending, "affinityGroup" -> Ascending), Some("PlanetsWithAffinityGroup")),
-    Index(Seq("groupId"                     -> Ascending, PLANET_ID -> Ascending), Some("Groups"), sparse = true),
-    Index(
-      Seq("groupId" -> Ascending, PLANET_ID -> Ascending, "credentialRole" -> Ascending),
-      Some("GroupsWithCredentialRole"),
-      sparse = true),
-    Index(
-      Seq("agentCode" -> Ascending, PLANET_ID -> Ascending, "credentialRole" -> Ascending),
-      Some("AgentCodesWithCredentialRole"),
-      sparse = true),
-    Index(Seq("agentCode" -> Ascending, PLANET_ID -> Ascending), Some("AgentCodes"), sparse = true)
+    Index(Seq(KEYS        -> Ascending), Some("Keys")),
+    Index(Seq(UNIQUE_KEYS -> Ascending), Some("UniqueKeys"), unique = true, sparse = true)
   )
 
   override def findByUserId(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
-    find(Seq(User.user_index_key -> Option(User.userIndexKey(userId, planetId))).map(option =>
+    find(Seq(UNIQUE_KEYS -> Option(keyOf(User.userIdKey(userId), planetId))).map(option =>
       option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*).map {
       case Nil      => None
       case x :: Nil => Some(x)
@@ -121,7 +93,7 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
     }
 
   override def findByNino(nino: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
-    find(Seq(User.nino_index_key -> Option(User.ninoIndexKey(nino, planetId))).map(option =>
+    find(Seq(UNIQUE_KEYS -> Option(keyOf(User.ninoIndexKey(nino), planetId))).map(option =>
       option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*).map {
       case Nil      => None
       case x :: Nil => Some(x)
@@ -130,20 +102,24 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
 
   override def findByPlanetId(planetId: String, affinityGroup: Option[String])(limit: Int)(
     implicit ec: ExecutionContext): Future[Seq[User]] =
-    cursor(Seq(PLANET_ID -> Option(planetId), "affinityGroup" -> affinityGroup))(User.formats)
+    cursor(
+      Seq(
+        KEYS -> affinityGroup
+          .map(ag => keyOf(User.affinityGroupKey(ag), planetId))
+          .orElse(Some(planetIdKey(planetId)))))(User.formats)
       .collect[Seq](maxDocs = limit, err = Cursor.ContOnError[Seq[User]]())
 
   override def findByGroupId(groupId: String, planetId: String)(limit: Int)(
     implicit ec: ExecutionContext): Future[Seq[User]] =
     cursor(
-      Seq("groupId" -> Option(groupId), PLANET_ID -> Option(planetId))
+      Seq(KEYS -> Option(keyOf(User.groupIdIndexKey(groupId), planetId)))
     )(User.formats)
       .collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[User]]())
 
   override def findAdminByGroupId(groupId: String, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[User]] =
     cursor(
-      Seq("groupId" -> Option(groupId), "credentialRole" -> Option(User.CR.Admin), PLANET_ID -> Option(planetId))
+      Seq(KEYS -> Option(keyOf(User.groupIdWithCredentialRoleKey(groupId, User.CR.Admin), planetId)))
     )(User.formats)
       .collect[Seq](maxDocs = 1, err = Cursor.FailOnError[Seq[User]]())
       .map(_.headOption)
@@ -151,14 +127,14 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
   override def findByAgentCode(agentCode: String, planetId: String)(limit: Int)(
     implicit ec: ExecutionContext): Future[Seq[User]] =
     cursor(
-      Seq("agentCode" -> Option(agentCode), PLANET_ID -> Option(planetId))
+      Seq(KEYS -> Option(keyOf(User.agentCodeIndexKey(agentCode), planetId)))
     )(User.formats)
       .collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[User]]())
 
   override def findAdminByAgentCode(agentCode: String, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[User]] =
     cursor(
-      Seq("agentCode" -> Option(agentCode), "credentialRole" -> Option(User.CR.Admin), PLANET_ID -> Option(planetId))
+      Seq(KEYS -> Option(keyOf(User.agentCodeWithCredentialRoleKey(agentCode, User.CR.Admin), planetId)))
     )(User.formats)
       .collect[Seq](maxDocs = 1, err = Cursor.FailOnError[Seq[User]]())
       .map(_.headOption)
@@ -166,7 +142,7 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
   override def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[User]] =
     find(
-      Seq(User.principal_enrolment_keys -> Option(User.enrolmentIndexKey(enrolmentKey.toString, planetId)))
+      Seq(UNIQUE_KEYS -> Option(keyOf(User.enrolmentIndexKey(enrolmentKey.toString), planetId)))
         .map(option => option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*).map {
       case Nil      => None
       case x :: Nil => Some(x)
@@ -176,7 +152,7 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
   override def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(
     implicit ec: ExecutionContext): Future[Seq[User]] =
     cursor(
-      Seq(User.delegated_enrolment_keys -> Option(User.enrolmentIndexKey(enrolmentKey.toString, planetId)))
+      Seq(KEYS -> Option(keyOf(User.enrolmentIndexKey(enrolmentKey.toString), planetId)))
     )(User.formats)
       .collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[User]]())
 
@@ -187,8 +163,8 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
   override def findUserIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(
     implicit ec: ExecutionContext): Future[Seq[String]] =
     cursor(
-      Seq(User.delegated_enrolment_keys -> Option(User.enrolmentIndexKey(enrolmentKey.toString, planetId))),
-      Seq("userId"                      -> 1)
+      Seq(KEYS     -> Option(keyOf(User.enrolmentIndexKey(enrolmentKey.toString), planetId))),
+      Seq("userId" -> 1)
     )(userIdReads).collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[String]]())
 
   private val groupIdReads = new Reads[Option[String]] {
@@ -198,8 +174,8 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
   override def findGroupIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(
     implicit ec: ExecutionContext): Future[Seq[Option[String]]] =
     cursor(
-      Seq(User.delegated_enrolment_keys -> Option(User.enrolmentIndexKey(enrolmentKey.toString, planetId))),
-      Seq("groupId"                     -> 1)
+      Seq(KEYS      -> Option(keyOf(User.enrolmentIndexKey(enrolmentKey.toString), planetId))),
+      Seq("groupId" -> 1)
     )(groupIdReads)
       .collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[Option[String]]]())
 
@@ -216,8 +192,20 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
       )
       .cursor[T](ReadPreference.nearest)(reader, implicitly[CursorProducer[T]])
 
+  private def planetIdKey(planetId: String): String = s"planet:$planetId"
+
+  private def serializeUser(user: User, planetId: String): JsObject = {
+    val json = Json
+      .toJson[User](user.copy(planetId = Some(planetId)))
+      .as[JsObject]
+      .+(KEYS -> JsArray(user.lookupKeys.map(key => JsString(keyOf(key, planetId))) :+ JsString(planetIdKey(planetId))))
+      .+(UNIQUE_KEYS -> JsArray(user.uniqueKeys.map(key => JsString(keyOf(key, planetId)))))
+    json
+  }
+
   override def create(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
-    insert(user.copy(planetId = Some(planetId)))
+    collection
+      .insert(serializeUser(user, planetId))
       .map(_ => ())
       .recoverWith {
         case e: DatabaseException if e.code.contains(11000) =>
@@ -225,94 +213,68 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
       }
 
   override def update(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
-    (User.formats.writes(user.copy(planetId = Some(planetId))) match {
-      case u @ JsObject(_) =>
-        collection.update(Json.obj(User.user_index_key -> User.userIndexKey(user.userId, planetId)), u, upsert = true)
-      case _ =>
-        Future.failed[WriteResult](new Exception("Cannot update User"))
-    }).map(_ => ()).recoverWith {
-      case e: DatabaseException if e.code.contains(11000) =>
-        throwDuplicatedException(e, user, planetId)
-    }
+    collection
+      .update(
+        Json.obj(UNIQUE_KEYS -> keyOf(User.userIdKey(user.userId), planetId)),
+        serializeUser(user, planetId),
+        upsert = true)
+      .map(_ => ())
+      .recoverWith {
+        case e: DatabaseException if e.code.contains(11000) =>
+          throwDuplicatedException(e, user, planetId)
+      }
 
   override def delete(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[WriteResult] =
-    remove(User.user_index_key -> Option(User.userIndexKey(userId, planetId)))
+    remove(UNIQUE_KEYS -> keyOf(User.userIdKey(userId), planetId))
 
-  private final val indexNameRegex = """\sindex\:\s(\w*?)\s""".r
   private final val keyValueRegex = """\skey\:\s\{\s\:\s\"(.*?)\"\s\}""".r
 
-  private def extractIndexAndKey(msg: String): Option[(String, String)] =
-    if (msg.contains("11000")) for {
-      index <- indexNameRegex
-                .findFirstMatchIn(msg)
-                .map(_.group(1))
-      key <- keyValueRegex
-              .findFirstMatchIn(msg)
-              .map(_.group(1))
-    } yield (index, key)
+  private def extractKey(msg: String): Option[String] =
+    if (msg.contains("11000"))
+      keyValueRegex
+        .findFirstMatchIn(msg)
+        .map(_.group(1))
     else None
 
   private def throwDuplicatedException(e: DatabaseException, user: User, planetId: String)(
     implicit ec: ExecutionContext): Future[Unit] =
-    (extractIndexAndKey(e.getMessage()) match {
-      case Some((index, key)) =>
-        for {
-          existingUser <- findUserByIndexAndKey(index, key)
-        } yield {
-          val message = duplicatedUserMessageByIndex
-            .get(index)
-            .map(_(existingUser, key, planetId))
-            .getOrElse(
-              s"Duplicated key $key in index $index, already exists for user ${existingUser.map(_.userId).getOrElse("")}.")
-          DuplicateUserException(message, existingUser.map(_.userId), Some(index), Some(key))
-        }
+    throw extractKey(e.getMessage()) match {
+      case Some(key) =>
+        val prefix = key.takeWhile(_ != ':')
+        val value = key.dropWhile(_ != ':').drop(1).takeWhile(_ != '@')
+        DuplicateUserException(
+          duplicatedUserMessageByKeyPrefix
+            .get(prefix)
+            .map(_(value, planetId))
+            .getOrElse(s"Duplicated key $key already exists on $planetId"),
+          Some(key)
+        )
       case None =>
-        Future.successful(DuplicateUserException(e.getMessage()))
-    }).map(e => throw e)
-
-  private def findUserByIndexAndKey(index: String, key: String)(implicit ec: ExecutionContext): Future[Option[User]] =
-    if (key.isEmpty) Future.successful(None)
-    else {
-      val keyName = index match {
-        case UsersIndexName                  => User.user_index_key
-        case NinosIndexName                  => User.nino_index_key
-        case GroupIdsIndexName               => User.group_id_index_key
-        case AgentCodesIndexName             => User.agent_code_index_key
-        case PrincipalEnrolmentKeysIndexName => User.principal_enrolment_keys
-      }
-      cursor(Seq(keyName -> Option(key)))(User.formats).headOption
+        DuplicateUserException(e.getMessage())
     }
 
-  private val duplicatedUserMessageByIndex: Map[String, (Option[User], String, String) => String] = Map(
-    UsersIndexName -> (
+  private val duplicatedUserMessageByKeyPrefix: Map[String, (String, String) => String] = Map(
+    "uid" -> ((k: String, p: String) => s"Duplicated user $k on $p"),
+    "nino" -> (
       (
-        u: Option[User],
-        k: String,
-        p: String) => s"Duplicated userId ${u.map(_.userId).getOrElse("")} in $p"),
-    NinosIndexName -> (
-      (
-        u: Option[User],
         k: String,
         p: String) =>
-        s"Existing user ${u.map(_.userId).getOrElse("")} already has this NINO ${u.flatMap(_.nino).getOrElse("")}. Two individuals cannot have the same NINO on the same $p planet."),
-    GroupIdsIndexName -> (
+        s"Existing user already has this NINO ${k.toUpperCase}. Two individuals cannot have the same NINO on the same $p planet."),
+    "gid" -> (
       (
-        u: Option[User],
         k: String,
         p: String) =>
-        s"Existing admin user ${u.map(_.userId).getOrElse("")} already has this groupId ${u.map(_.groupId).getOrElse("")}. Two Admin users cannot share the same groupId on the same $p planet."),
-    AgentCodesIndexName -> (
+        s"Existing admin user already has this groupId $k. Two Admin users cannot share the same groupId on the same $p planet."),
+    "ac" -> (
       (
-        u: Option[User],
         k: String,
         p: String) =>
-        s"Existing agent user ${u.map(_.userId).getOrElse("")} already has this agentCode ${u.flatMap(_.agentCode).getOrElse("")}. Two Admin agents cannot share the same agentCode on the same $p planet."),
-    PrincipalEnrolmentKeysIndexName -> (
+        s"Existing agent user already has this agentCode $k. Two Admin agents cannot share the same agentCode on the same $p planet."),
+    "enr" -> (
       (
-        u: Option[User],
         k: String,
         p: String) =>
-        s"Existing user ${u.map(_.userId).getOrElse("")} already has similar enrolment $k. Two users cannot have the same principal identifier on the same $p planet.")
+        s"Existing user already has similar enrolment ${k.toUpperCase()}. Two users cannot have the same principal identifier on the same $p planet.")
   )
 
   def syncRecordId(userId: String, recordId: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
@@ -320,19 +282,40 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
       if (recordId.startsWith("--")) {
         collection
           .update(
-            Json.obj(User.user_index_key -> User.userIndexKey(userId, planetId)),
-            Json.obj("$pull"             -> Json.obj("recordIds" -> recordId.substring(2))))
+            Json.obj(UNIQUE_KEYS -> keyOf(User.userIdKey(userId), planetId)),
+            Json.obj("$pull"     -> Json.obj("recordIds" -> recordId.substring(2))))
           .flatMap(MongoHelper.interpretWriteResultUnit)
       } else {
         collection
           .update(
-            Json.obj(User.user_index_key -> User.userIndexKey(userId, planetId)),
-            Json.obj("$push"             -> Json.obj("recordIds" -> recordId)))
+            Json.obj(UNIQUE_KEYS -> keyOf(User.userIdKey(userId), planetId)),
+            Json.obj("$push"     -> Json.obj("recordIds" -> recordId)))
           .flatMap(MongoHelper.interpretWriteResultUnit)
       }
     } else Future.failed(new Exception("Empty recordId"))
 
   def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
-    remove(PLANET_ID -> Option(planetId)).map(_ => ())
+    remove(KEYS -> Option(planetIdKey(planetId))).map(_ => ())
+
+  def reindexAllUsers(implicit ec: ExecutionContext): Future[String] =
+    cursor(Seq())(User.formats)
+      .collect[Seq](maxDocs = 1000000, err = Cursor.FailOnError[Seq[User]]())
+      .flatMap(
+        users =>
+          Future
+            .sequence(
+              users.map(user =>
+                update(user, user.planetId.get)
+                  .map(_ => 1)
+                  .recover {
+                    case NonFatal(e) =>
+                      logger.warn("User re-indexing failed", e.getMessage)
+                      0
+                }))
+            .map(l => {
+              val msg = s"${l.sum} out of ${users.size} users has been re-indexed"
+              logger.info(msg)
+              msg
+            }))
 
 }

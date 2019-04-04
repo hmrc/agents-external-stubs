@@ -6,8 +6,6 @@ import play.api.libs.json._
 import uk.gov.hmrc.agentsexternalstubs.models.User.AdditionalInformation
 import uk.gov.hmrc.domain.Nino
 
-import scala.util.Random
-
 case class User(
   userId: String,
   groupId: Option[String] = None,
@@ -31,6 +29,31 @@ case class User(
   additionalInformation: Option[AdditionalInformation] = None,
   strideRoles: Seq[String] = Seq.empty
 ) {
+
+  def uniqueKeys: Seq[String] =
+    Seq(
+      Some(User.userIdKey(userId)),
+      nino.map(n => User.ninoIndexKey(n.value)),
+      credentialRole.find(_ == User.CR.Admin).flatMap(_ => agentCode.map(User.agentCodeIndexKey)),
+      credentialRole.find(_ == User.CR.Admin).flatMap(_ => groupId.map(User.groupIdIndexKey))
+    ).collect {
+      case Some(x)                                                             => x
+    } ++ principalEnrolments.map(_.toEnrolmentKeyTag).collect { case Some(key) => User.enrolmentIndexKey(key) }
+
+  def lookupKeys: Seq[String] =
+    Seq(
+      groupId.map(User.groupIdIndexKey),
+      affinityGroup.map(User.affinityGroupKey),
+      agentCode.map(User.agentCodeIndexKey),
+      agentCode
+        .flatMap(ac => credentialRole.map(cr => (ac, cr)))
+        .map(accr => User.agentCodeWithCredentialRoleKey(accr._1, accr._2)),
+      groupId
+        .flatMap(gid => credentialRole.map(cr => (gid, cr)))
+        .map(gidcr => User.groupIdWithCredentialRoleKey(gidcr._1, gidcr._2))
+    ).collect { case Some(x) => x } ++ delegatedEnrolments
+      .map(_.toEnrolmentKeyTag)
+      .collect { case Some(key) => User.enrolmentIndexKey(key) }
 
   def isIndividual: Boolean = affinityGroup.contains(User.AG.Individual)
   def isOrganisation: Boolean = affinityGroup.contains(User.AG.Organisation)
@@ -185,103 +208,16 @@ object User {
         Enrolment.from(EnrolmentKey.parse(enrolmentKey).fold(e => throw new Exception(e), identity)))
   }
 
-  type Transformer = JsObject => JsObject
-
-  val user_index_key = "_user_index_key"
-  val nino_index_key = "_nino_index_key"
-  val ttl_index_key = "_ttl_index_key"
-  val principal_enrolment_keys = "_principal_enrolment_keys"
-  val delegated_enrolment_keys = "_delegated_enrolment_keys"
-  val group_id_index_key = "_group_id_index_key"
-  val agent_code_index_key = "_agent_code_index_key"
-
-  def userIndexKey(userId: String, planetId: String): String = s"$userId@$planetId"
-  def ninoIndexKey(nino: String, planetId: String): String = s"${nino.replace(" ", "")}@$planetId"
-  def enrolmentIndexKey(key: String, planetId: String): String = s"$key@$planetId"
-  def groupIdIndexKey(groupId: String, planetId: String): String = s"$groupId@$planetId"
-  def agentCodeIndexKey(agentCode: String, planetId: String): String = s"$agentCode@$planetId"
-
-  private def planetIdOf(json: JsObject): String =
-    (json \ "planetId").asOpt[String].getOrElse(Planet.DEFAULT)
-
-  private final val addNormalizedUserIndexKey: Transformer = json => {
-    val userId = (json \ "userId").as[String]
-    val planetId = planetIdOf(json)
-    json + ((user_index_key, JsString(userIndexKey(userId, planetId))))
-  }
-
-  private final val addNormalizedNinoIndexKey: Transformer = json =>
-    (json \ "nino")
-      .asOpt[String]
-      .map(nino => {
-        val planetId = planetIdOf(json)
-        json + ((nino_index_key, JsString(ninoIndexKey(nino, planetId))))
-      })
-      .getOrElse(json)
-
-  private final val addTTLIndexKey: Transformer = json =>
-    (json \ "isPermanent")
-      .asOpt[Boolean] match {
-      case None | Some(false) =>
-        val planetId = planetIdOf(json)
-        json + ((ttl_index_key, JsString(planetId)))
-      case _ => json
-  }
-
-  private final val addPrincipalEnrolmentKeys: Transformer = json => {
-    val enrolments = (json \ "principalEnrolments").as[Seq[Enrolment]]
-    if (enrolments.isEmpty) json
-    else {
-      val planetId = planetIdOf(json)
-      val keys =
-        enrolments.map(_.toEnrolmentKeyTag).collect { case Some(key) => enrolmentIndexKey(key, planetId) }
-      if (keys.isEmpty) json else json + ((principal_enrolment_keys, JsArray(keys.map(JsString))))
-    }
-  }
-
-  private final val addDelegatedEnrolmentKeys: Transformer = json => {
-    val enrolments = (json \ "delegatedEnrolments").as[Seq[Enrolment]]
-    if (enrolments.isEmpty) json
-    else {
-      val planetId = planetIdOf(json)
-      val keys = enrolments.map(_.toEnrolmentKeyTag).collect { case Some(key) => enrolmentIndexKey(key, planetId) }
-      if (keys.isEmpty) json else json + ((delegated_enrolment_keys, JsArray(keys.map(JsString))))
-    }
-  }
-
-  private final val addAgentCodeIndexKey: Transformer = json =>
-    (json \ "credentialRole").asOpt[String] match {
-      case Some(User.CR.Admin) =>
-        (json \ "agentCode")
-          .asOpt[String]
-          .map(agentCode => {
-            val planetId = planetIdOf(json)
-            json + ((agent_code_index_key, JsString(agentCodeIndexKey(agentCode, planetId))))
-          })
-          .getOrElse(json)
-      case _ => json
-  }
-
-  private final val addGroupIdIndexKey: Transformer = json =>
-    (json \ "credentialRole").asOpt[String] match {
-      case Some(User.CR.Admin) =>
-        (json \ "groupId")
-          .asOpt[String]
-          .map(groupId => {
-            val planetId = planetIdOf(json)
-            json + ((group_id_index_key, JsString(groupIdIndexKey(groupId, planetId))))
-          })
-          .getOrElse(json)
-      case _ => json
-  }
-
-  private final val addIndexedFields: Transformer = addNormalizedUserIndexKey
-    .andThen(addNormalizedNinoIndexKey)
-    .andThen(addTTLIndexKey)
-    .andThen(addPrincipalEnrolmentKeys)
-    .andThen(addDelegatedEnrolmentKeys)
-    .andThen(addAgentCodeIndexKey)
-    .andThen(addGroupIdIndexKey)
+  def userIdKey(userId: String): String = s"uid:$userId"
+  def ninoIndexKey(nino: String): String = s"nino:${nino.replace(" ", "")}"
+  def enrolmentIndexKey(key: String): String = s"enr:$key"
+  def groupIdIndexKey(groupId: String): String = s"gid:$groupId"
+  def agentCodeIndexKey(agentCode: String): String = s"ac:$agentCode"
+  def affinityGroupKey(affinityGroup: String): String = s"ag:$affinityGroup"
+  def groupIdWithCredentialRoleKey(groupId: String, credentialRole: String): String =
+    s"gid+cr:${groupId}__$credentialRole"
+  def agentCodeWithCredentialRoleKey(agentCode: String, credentialRole: String): String =
+    s"ac+cr:${agentCode}__$credentialRole"
 
   import play.api.libs.functional.syntax._
 
@@ -309,9 +245,7 @@ object User {
       (JsPath \ "strideRoles").readNullable[Seq[String]].map(_.getOrElse(Seq.empty))
   )(User.apply _)
 
-  val plainWrites: OWrites[User] = Json.writes[User]
-
-  implicit val writes: Writes[User] = plainWrites.transform(addIndexedFields)
+  implicit val writes: Writes[User] = Json.writes[User]
 
   val formats = Format(reads, writes)
 
