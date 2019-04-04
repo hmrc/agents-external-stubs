@@ -209,15 +209,15 @@ object User {
   }
 
   def userIdKey(userId: String): String = s"uid:$userId"
-  def ninoIndexKey(nino: String): String = s"nino:${nino.replace(" ", "")}"
-  def enrolmentIndexKey(key: String): String = s"enr:$key"
+  def ninoIndexKey(nino: String): String = s"nino:${nino.replace(" ", "").toLowerCase}"
+  def enrolmentIndexKey(key: String): String = s"enr:${key.toLowerCase}"
   def groupIdIndexKey(groupId: String): String = s"gid:$groupId"
   def agentCodeIndexKey(agentCode: String): String = s"ac:$agentCode"
-  def affinityGroupKey(affinityGroup: String): String = s"ag:$affinityGroup"
+  def affinityGroupKey(affinityGroup: String): String = s"ag:${affinityGroup.toLowerCase}"
   def groupIdWithCredentialRoleKey(groupId: String, credentialRole: String): String =
-    s"gid+cr:${groupId}__$credentialRole"
+    s"gid+cr:${groupId}__${credentialRole.toLowerCase}"
   def agentCodeWithCredentialRoleKey(agentCode: String, credentialRole: String): String =
-    s"ac+cr:${agentCode}__$credentialRole"
+    s"ac+cr:${agentCode}__${credentialRole.toLowerCase}"
 
   import play.api.libs.functional.syntax._
 

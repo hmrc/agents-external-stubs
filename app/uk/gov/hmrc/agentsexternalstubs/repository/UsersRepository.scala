@@ -78,7 +78,7 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
   private final val UNIQUE_KEYS = "_uniqueKeys"
   private final val KEYS = "_keys"
 
-  private def keyOf(key: String, planetId: String): String = s"${key.replace(" ", "").toLowerCase}@$planetId"
+  private def keyOf(key: String, planetId: String): String = s"${key.replace(" ", "")}@$planetId"
 
   override def indexes = Seq(
     Index(Seq(KEYS        -> Ascending), Some("Keys")),
