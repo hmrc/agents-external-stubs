@@ -21,6 +21,7 @@ import play.api.Logger
 import play.api.libs.json.Json.toJsFieldJsValueWrapper
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
+import reactivemongo.api.Cursor.FailOnError
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
@@ -86,20 +87,10 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
   )
 
   override def findByUserId(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
-    find(Seq(UNIQUE_KEYS -> Option(keyOf(User.userIdKey(userId), planetId))).map(option =>
-      option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*).map {
-      case Nil      => None
-      case x :: Nil => Some(x)
-      case _ :: _   => throw DuplicateUserException(s"Duplicated userId $userId for $planetId", Some(userId))
-    }
+    one[User](Seq(UNIQUE_KEYS -> Option(keyOf(User.userIdKey(userId), planetId))))(User.formats)
 
   override def findByNino(nino: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
-    find(Seq(UNIQUE_KEYS -> Option(keyOf(User.ninoIndexKey(nino), planetId))).map(option =>
-      option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*).map {
-      case Nil      => None
-      case x :: Nil => Some(x)
-      case _ :: _   => throw DuplicateUserException(s"Duplicated nino $nino for $planetId")
-    }
+    one[User](Seq(UNIQUE_KEYS -> Option(keyOf(User.ninoIndexKey(nino), planetId))))(User.formats)
 
   override def findByPlanetId(planetId: String, affinityGroup: Option[String])(limit: Int)(
     implicit ec: ExecutionContext): Future[Seq[User]] =
@@ -142,13 +133,7 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
 
   override def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[User]] =
-    find(
-      Seq(UNIQUE_KEYS -> Option(keyOf(User.enrolmentIndexKey(enrolmentKey.toString), planetId)))
-        .map(option => option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*).map {
-      case Nil      => None
-      case x :: Nil => Some(x)
-      case _ :: _   => throw DuplicateUserException(s"Duplicated enrolment key $enrolmentKey for $planetId")
-    }
+    one[User](Seq(UNIQUE_KEYS -> Option(keyOf(User.enrolmentIndexKey(enrolmentKey.toString), planetId))))(User.formats)
 
   override def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(
     implicit ec: ExecutionContext): Future[Seq[User]] =
@@ -184,6 +169,15 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
     case (name, Some(value)) => name -> toJsFieldJsValueWrapper(value)
   }
 
+  private def one[T](query: Seq[(String, Option[String])], projection: Seq[(String, Int)] = Seq.empty)(
+    reader: collection.pack.Reader[T])(implicit ec: ExecutionContext): Future[Option[T]] =
+    collection
+      .find(
+        Json.obj(query.collect(toJsWrapper): _*),
+        Json.obj(projection.map(option => option._1 -> toJsFieldJsValueWrapper(option._2)): _*)
+      )
+      .one[T](reader, ec)
+
   private def cursor[T](query: Seq[(String, Option[String])], projection: Seq[(String, Int)] = Seq.empty)(
     reader: collection.pack.Reader[T])(implicit ec: ExecutionContext): Cursor[T] =
     collection
@@ -191,7 +185,7 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
         Json.obj(query.collect(toJsWrapper): _*),
         Json.obj(projection.map(option => option._1 -> toJsFieldJsValueWrapper(option._2)): _*)
       )
-      .cursor[T](ReadPreference.nearest)(reader, implicitly[CursorProducer[T]])
+      .cursor[T]()(reader, implicitly[CursorProducer[T]])
 
   private def planetIdKey(planetId: String): String = s"planet:$planetId"
 
