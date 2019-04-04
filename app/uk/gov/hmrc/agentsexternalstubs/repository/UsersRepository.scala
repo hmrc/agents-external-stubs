@@ -17,6 +17,7 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 
 import com.google.inject.ImplementedBy
 import javax.inject.{Inject, Singleton}
+import play.api.Logger
 import play.api.libs.json.Json.toJsFieldJsValueWrapper
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
@@ -297,25 +298,32 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
   def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     remove(KEYS -> Option(planetIdKey(planetId))).map(_ => ())
 
-  def reindexAllUsers(implicit ec: ExecutionContext): Future[String] =
+  def reindexAllUsers(implicit ec: ExecutionContext): Future[String] = {
+    val logger = Logger("uk.gov.hmrc.agentsexternalstubs.re-indexing")
     cursor(Seq())(User.formats)
       .collect[Seq](maxDocs = 1000000, err = Cursor.FailOnError[Seq[User]]())
       .flatMap(
         users =>
-          Future
-            .sequence(
-              users.map(user =>
-                update(user, user.planetId.get)
-                  .map(_ => 1)
-                  .recover {
-                    case NonFatal(e) =>
-                      logger.warn("User re-indexing failed: " + e.getMessage)
-                      0
-                }))
+          collection.indexesManager
+            .dropAll()
+            .flatMap(ic => {
+              logger.info(s"Existing $ic indexes has been dropped.")
+              ensureIndexes.flatMap(_ => Future
+                .sequence(
+                  users.map(user =>
+                    update(user, user.planetId.get)
+                      .map(_ => 1)
+                      .recover {
+                        case NonFatal(e) =>
+                          logger.warn(s"User ${user.userId}@${user.planetId.get} re-indexing failed: ${e.getMessage}")
+                          0
+                    })))
+            })
             .map(l => {
               val msg = s"${l.sum} out of ${users.size} users has been re-indexed"
               logger.info(msg)
               msg
             }))
+  }
 
 }
