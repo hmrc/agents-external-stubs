@@ -21,12 +21,11 @@ import play.api.Logger
 import play.api.libs.json.Json.toJsFieldJsValueWrapper
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.Cursor.FailOnError
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.api.{Cursor, CursorProducer, ReadPreference}
-import reactivemongo.bson.{BSONDocument, BSONObjectID}
+import reactivemongo.bson.BSONObjectID
 import reactivemongo.core.errors.DatabaseException
 import reactivemongo.play.json.ImplicitBSONHandlers
 import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, User}
@@ -174,18 +173,20 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
     collection
       .find(
         Json.obj(query.collect(toJsWrapper): _*),
-        Json.obj(projection.map(option => option._1 -> toJsFieldJsValueWrapper(option._2)): _*)
+        if (projection.isEmpty) None
+        else Some(Json.obj(projection.map(option => option._1 -> toJsFieldJsValueWrapper(option._2)): _*))
       )
-      .one[T](reader, ec)
+      .one[T](readPreference = ReadPreference.nearest)(reader, ec)
 
   private def cursor[T](query: Seq[(String, Option[String])], projection: Seq[(String, Int)] = Seq.empty)(
-    reader: collection.pack.Reader[T])(implicit ec: ExecutionContext): Cursor[T] =
+    reader: collection.pack.Reader[T]): Cursor[T] =
     collection
       .find(
         Json.obj(query.collect(toJsWrapper): _*),
-        Json.obj(projection.map(option => option._1 -> toJsFieldJsValueWrapper(option._2)): _*)
+        if (projection.isEmpty) None
+        else Some(Json.obj(projection.map(option => option._1 -> toJsFieldJsValueWrapper(option._2)): _*))
       )
-      .cursor[T]()(reader, implicitly[CursorProducer[T]])
+      .cursor[T](readPreference = ReadPreference.nearest)(reader, implicitly[CursorProducer[T]])
 
   private def planetIdKey(planetId: String): String = s"planet:$planetId"
 
@@ -292,45 +293,45 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
   def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     remove(KEYS -> Option(planetIdKey(planetId))).map(_ => ())
 
-  private val userAndPlanetIdReads = new Reads[(String, String)] {
-    override def reads(json: JsValue): JsResult[(String, String)] =
-      JsSuccess(((json \ "userId").as[String], (json \ "planetId").as[String]))
+  private val idReads = new Reads[String] {
+    override def reads(json: JsValue): JsResult[String] = JsSuccess((json \ "_id" \ "$oid").as[String])
   }
 
   def reindexAllUsers(implicit ec: ExecutionContext): Future[String] = {
     val logger = Logger("uk.gov.hmrc.agentsexternalstubs.re-indexing")
-    cursor(Seq(), Seq("userId" -> 1, "planetId" -> 1))(userAndPlanetIdReads)
-      .collect[Seq](maxDocs = 1000000, err = Cursor.FailOnError())
-      .flatMap(
-        userAndPlanetIds =>
-          collection.indexesManager
-            .dropAll()
-            .flatMap(ic => {
-              logger.info(s"Existing $ic indexes has been dropped.")
-              ensureIndexes.flatMap(_ =>
-                Future
-                  .sequence(userAndPlanetIds.map {
-                    case (userId, planetId) =>
-                      findByUserId(userId, planetId).flatMap {
-                        case Some(user) =>
-                          update(user, planetId)
-                            .map(_ => 1)
-                            .recover {
-                              case NonFatal(e) =>
-                                logger.warn(
-                                  s"User ${user.userId}@${user.planetId.get} re-indexing failed: ${e.getMessage}")
-                                0
-                            }
-                        case None => Future.successful(0)
-                      }
+    cursor(Seq(), Seq("_id" -> 1))(idReads)
+      .collect[Seq](maxDocs = -1, err = Cursor.FailOnError())
+      .flatMap(ids =>
+        collection.indexesManager
+          .dropAll()
+          .flatMap(ic => {
+            logger.info(s"Existing $ic indexes has been dropped.")
+            ensureIndexes.flatMap(_ =>
+              Future
+                .sequence(ids.map { id =>
+                  findById(BSONObjectID.parse(id).get).flatMap {
+                    case Some(user) =>
+                      collection
+                        .update(
+                          Json.obj("_id" -> Json.obj("$oid" -> JsString(id))),
+                          serializeUser(user, user.planetId.get),
+                          upsert = false)
+                        .map(_ => 1)
+                        .recover {
+                          case NonFatal(e) =>
+                            logger.warn(s"User ${user.userId}@${user.planetId.get} re-indexing failed: ${e.getMessage}")
+                            0
+                        }
+                    case None => Future.successful(0)
+                  }
 
-                  }))
-            })
-            .map(l => {
-              val msg = s"${l.sum} out of ${userAndPlanetIds.size} users has been re-indexed"
-              logger.info(msg)
-              msg
-            }))
+                }))
+          })
+          .map(l => {
+            val msg = s"${l.sum} out of ${ids.size} users has been re-indexed"
+            logger.info(msg)
+            msg
+          }))
   }
 
 }

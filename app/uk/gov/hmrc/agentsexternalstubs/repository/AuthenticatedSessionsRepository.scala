@@ -16,12 +16,15 @@
 package uk.gov.hmrc.agentsexternalstubs.repository
 
 import javax.inject.{Inject, Singleton}
+import play.api.libs.json.Json
 import play.api.libs.json.Json.toJsFieldJsValueWrapper
 import play.modules.reactivemongo.ReactiveMongoComponent
+import reactivemongo.api.{Cursor, CursorProducer, ReadPreference}
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
+import reactivemongo.play.json.ImplicitBSONHandlers
 import uk.gov.hmrc.agentsexternalstubs.models.AuthenticatedSession
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
@@ -37,20 +40,20 @@ class AuthenticatedSessionsRepository @Inject()(mongoComponent: ReactiveMongoCom
       AuthenticatedSession.formats,
       ReactiveMongoFormats.objectIdFormats) with StrictlyEnsureIndexes[AuthenticatedSession, BSONObjectID] {
 
+  import ImplicitBSONHandlers._
+
   def findByAuthToken(authToken: String)(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
-    find(Seq("authToken" -> Option(authToken)).map(option => option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*)
-      .map(_.headOption)
+    one[AuthenticatedSession](Seq("authToken" -> Option(authToken)))(AuthenticatedSession.formats)
 
   def findBySessionId(sessionId: String)(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
-    find(Seq("sessionId" -> Option(sessionId)).map(option => option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*)
-      .map(_.headOption)
+    one[AuthenticatedSession](Seq("sessionId" -> Option(sessionId)))(AuthenticatedSession.formats)
 
   def findByPlanetId(planetId: String)(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
-    find(Seq("planetId" -> Option(planetId)).map(option => option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*)
-      .map(_.headOption)
+    one[AuthenticatedSession](Seq("planetId" -> Option(planetId)))(AuthenticatedSession.formats)
 
   def findByUserId(userId: String)(implicit ec: ExecutionContext): Future[List[AuthenticatedSession]] =
-    find(Seq("userId" -> Option(userId)).map(option => option._1 -> toJsFieldJsValueWrapper(option._2.get)): _*)
+    cursor[AuthenticatedSession](Seq("userId" -> Option(userId)))(AuthenticatedSession.formats)
+      .collect[List](maxDocs = 1000, err = Cursor.FailOnError())
 
   override def indexes = Seq(
     Index(
@@ -71,5 +74,29 @@ class AuthenticatedSessionsRepository @Inject()(mongoComponent: ReactiveMongoCom
 
   def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     remove("planetId" -> Option(planetId)).map(_ => ())
+
+  private val toJsWrapper: PartialFunction[(String, Option[String]), (String, Json.JsValueWrapper)] = {
+    case (name, Some(value)) => name -> toJsFieldJsValueWrapper(value)
+  }
+
+  private def one[T](query: Seq[(String, Option[String])], projection: Seq[(String, Int)] = Seq.empty)(
+    reader: collection.pack.Reader[T])(implicit ec: ExecutionContext): Future[Option[T]] =
+    collection
+      .find(
+        Json.obj(query.collect(toJsWrapper): _*),
+        if (projection.isEmpty) None
+        else Some(Json.obj(projection.map(option => option._1 -> toJsFieldJsValueWrapper(option._2)): _*))
+      )
+      .one[T](readPreference = ReadPreference.nearest)(reader, ec)
+
+  private def cursor[T](query: Seq[(String, Option[String])], projection: Seq[(String, Int)] = Seq.empty)(
+    reader: collection.pack.Reader[T])(implicit ec: ExecutionContext): Cursor[T] =
+    collection
+      .find(
+        Json.obj(query.collect(toJsWrapper): _*),
+        if (projection.isEmpty) None
+        else Some(Json.obj(projection.map(option => option._1 -> toJsFieldJsValueWrapper(option._2)): _*))
+      )
+      .cursor[T](readPreference = ReadPreference.nearest)(reader, implicitly[CursorProducer[T]])
 
 }

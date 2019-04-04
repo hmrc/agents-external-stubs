@@ -4,15 +4,14 @@ import java.util.concurrent.locks.{Lock, ReentrantLock}
 
 import org.scalatest.{BeforeAndAfterAll, TestSuite}
 import play.api.Application
-import uk.gov.hmrc.agentsexternalstubs.repository.{AuthenticatedSessionsRepository, RecordsRepositoryMongo, UsersRepositoryMongo}
+import reactivemongo.api.FailoverStrategy
+import uk.gov.hmrc.agentsexternalstubs.repository._
 import uk.gov.hmrc.mongo.{Awaiting, MongoConnector}
 
-import scala.concurrent.duration.{Duration, _}
+import scala.concurrent.duration._
 
 trait MongoDB extends BeforeAndAfterAll {
   me: TestSuite =>
-
-  private implicit val timeout: Duration = 5.seconds
 
   def app: Application
 
@@ -34,11 +33,16 @@ object MongoDB extends Awaiting {
     if (lock.tryLock()) try {
       if (!initialized.get()) {
         print("Initializing MongoDB ... ")
-        val mongo = MongoConnector(uri).db()
+        val mongo = MongoConnector(
+          uri,
+          failoverStrategy = Some(FailoverStrategy.default),
+          dbTimeout = Some(FiniteDuration.apply(4000, "ms"))).db()
         await(mongo.drop())
         await(app.injector.instanceOf[AuthenticatedSessionsRepository].ensureIndexes)
         await(app.injector.instanceOf[UsersRepositoryMongo].ensureIndexes)
         await(app.injector.instanceOf[RecordsRepositoryMongo].ensureIndexes)
+        await(app.injector.instanceOf[KnownFactsRepositoryMongo].ensureIndexes)
+        await(app.injector.instanceOf[SpecialCasesRepositoryMongo].ensureIndexes)
         initialized.set(true)
         println("ready.")
       }

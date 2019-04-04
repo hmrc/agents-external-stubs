@@ -63,8 +63,9 @@ class KnownFactsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent
   def findByEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[KnownFacts]] =
     collection
-      .find(
-        Json.obj(KnownFacts.UNIQUE_KEY -> KnownFacts.uniqueKey(enrolmentKey.tag, planetId))
+      .find[JsObject, JsObject](
+        Json.obj(KnownFacts.UNIQUE_KEY -> KnownFacts.uniqueKey(enrolmentKey.tag, planetId)),
+        None
       )
       .cursor[KnownFacts](ReadPreference.nearest)(
         implicitly[collection.pack.Reader[KnownFacts]],

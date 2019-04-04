@@ -126,7 +126,7 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
     collection
       .find(
         JsObject(Seq(KEYS -> JsString(keyOf(key, planetId, recordType.typeName)))),
-        Json.obj(recordType.fieldNames.map(option => option -> toJsFieldJsValueWrapper(JsNumber(1))): _*)
+        Some(Json.obj(recordType.fieldNames.map(option => option -> toJsFieldJsValueWrapper(JsNumber(1))): _*))
       )
       .cursor[T](ReadPreference.nearest)(
         implicitly[collection.pack.Reader[Record]].map(_.asInstanceOf[T]),
@@ -138,7 +138,7 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
     collection
       .find(
         JsObject(Seq(KEYS -> JsArray(keys.map(key => JsString(keyOf(key, planetId, recordType.typeName)))))),
-        Json.obj(recordType.fieldNames.map(option => option -> toJsFieldJsValueWrapper(JsNumber(1))): _*)
+        Some(Json.obj(recordType.fieldNames.map(option => option -> toJsFieldJsValueWrapper(JsNumber(1))): _*))
       )
       .cursor[T](ReadPreference.nearest)(
         implicitly[collection.pack.Reader[Record]].map(_.asInstanceOf[T]),
@@ -146,8 +146,9 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
 
   override def findById[T <: Record](id: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[T]] =
     collection
-      .find(
-        Json.obj(Record.ID -> Json.obj("$oid" -> JsString(id)), PLANET_ID -> JsString(planetId))
+      .find[JsObject, JsObject](
+        Json.obj(Record.ID -> Json.obj("$oid" -> JsString(id)), PLANET_ID -> JsString(planetId)),
+        None
       )
       .cursor[T](ReadPreference.nearest)(
         implicitly[collection.pack.Reader[Record]].map(_.asInstanceOf[T]),
@@ -156,8 +157,9 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
 
   override def findByPlanetId(planetId: String)(implicit ec: ExecutionContext): Cursor[Record] =
     collection
-      .find(
-        JsObject(Seq(PLANET_ID -> JsString(planetId)))
+      .find[JsObject, JsObject](
+        JsObject(Seq(PLANET_ID -> JsString(planetId))),
+        None
       )
       .cursor[Record](ReadPreference.nearest)(
         implicitly[collection.pack.Reader[Record]],
