@@ -309,7 +309,7 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
                   .map(_ => 1)
                   .recover {
                     case NonFatal(e) =>
-                      logger.warn("User re-indexing failed", e.getMessage)
+                      logger.warn("User re-indexing failed: " + e.getMessage)
                       0
                 }))
             .map(l => {
