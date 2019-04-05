@@ -120,6 +120,7 @@ case class FullAuthoriseContext(
           nino <- identifiers.headOption.map(_.value)
         } yield Await.result(agentAccessControlConnector.isAuthorisedForAfi(ac, nino), timeout))
           .getOrElse(false)
+      case _ => true
     }
 
 }
