@@ -248,14 +248,18 @@ class UsersService @Inject()(
                   updateUser(
                     admin.userId,
                     planetId,
-                    u => u.copy(principalEnrolments = u.principalEnrolments :+ Enrolment.from(enrolmentKey)))
+                    u =>
+                      u.copy(
+                        principalEnrolments = appendEnrolment(u.principalEnrolments, Enrolment.from(enrolmentKey))))
                 else if (enrolmentType == "delegated" && admin.affinityGroup.contains(User.AG.Agent))
                   findByPrincipalEnrolmentKey(enrolmentKey, planetId).flatMap {
                     case Some(owner) if !owner.affinityGroup.contains(User.AG.Agent) =>
                       updateUser(
                         admin.userId,
                         planetId,
-                        u => u.copy(delegatedEnrolments = u.delegatedEnrolments :+ Enrolment.from(enrolmentKey)))
+                        u =>
+                          u.copy(
+                            delegatedEnrolments = appendEnrolment(u.delegatedEnrolments, Enrolment.from(enrolmentKey))))
                     case None =>
                       Future.failed(throw new BadRequestException("INVALID_QUERY_PARAMETERS"))
                   } else Future.failed(throw new BadRequestException("INVALID_QUERY_PARAMETERS"))
@@ -302,6 +306,11 @@ class UsersService @Inject()(
             case _ => Future.failed(throw new BadRequestException("INVALID_AGENT_FORMAT"))
           }
     }
+
+  private def appendEnrolment(enrolments: Seq[Enrolment], enrolment: Enrolment): Seq[Enrolment] =
+    if (enrolments.exists(
+          e => e.key == enrolment.key && e.identifiers.exists(ii => enrolment.identifiers.contains(ii)))) enrolments
+    else enrolments :+ enrolment
 
   private def removeEnrolment(enrolments: Seq[Enrolment], key: EnrolmentKey): Seq[Enrolment] =
     enrolments.filterNot(_.matches(key))
