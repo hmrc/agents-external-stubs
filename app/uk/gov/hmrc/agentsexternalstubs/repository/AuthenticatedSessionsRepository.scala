@@ -86,7 +86,7 @@ class AuthenticatedSessionsRepository @Inject()(mongoComponent: ReactiveMongoCom
         if (projection.isEmpty) None
         else Some(Json.obj(projection.map(option => option._1 -> toJsFieldJsValueWrapper(option._2)): _*))
       )
-      .one[T](readPreference = ReadPreference.nearest)(reader, ec)
+      .one[T](readPreference = ReadPreference.primary)(reader, ec)
 
   private def cursor[T](query: Seq[(String, Option[String])], projection: Seq[(String, Int)] = Seq.empty)(
     reader: collection.pack.Reader[T])(implicit ec: ExecutionContext): Cursor[T] =
@@ -96,6 +96,6 @@ class AuthenticatedSessionsRepository @Inject()(mongoComponent: ReactiveMongoCom
         if (projection.isEmpty) None
         else Some(Json.obj(projection.map(option => option._1 -> toJsFieldJsValueWrapper(option._2)): _*))
       )
-      .cursor[T](readPreference = ReadPreference.nearest)(reader, implicitly[CursorProducer[T]])
+      .cursor[T](readPreference = ReadPreference.primary)(reader, implicitly[CursorProducer[T]])
 
 }

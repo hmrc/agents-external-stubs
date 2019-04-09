@@ -128,7 +128,7 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
         JsObject(Seq(KEYS -> JsString(keyOf(key, planetId, recordType.typeName)))),
         Some(Json.obj(recordType.fieldNames.map(option => option -> toJsFieldJsValueWrapper(JsNumber(1))): _*))
       )
-      .cursor[T](ReadPreference.nearest)(
+      .cursor[T](ReadPreference.primary)(
         implicitly[collection.pack.Reader[Record]].map(_.asInstanceOf[T]),
         implicitly[CursorProducer[T]])
 
@@ -140,7 +140,7 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
         JsObject(Seq(KEYS -> JsArray(keys.map(key => JsString(keyOf(key, planetId, recordType.typeName)))))),
         Some(Json.obj(recordType.fieldNames.map(option => option -> toJsFieldJsValueWrapper(JsNumber(1))): _*))
       )
-      .cursor[T](ReadPreference.nearest)(
+      .cursor[T](ReadPreference.primary)(
         implicitly[collection.pack.Reader[Record]].map(_.asInstanceOf[T]),
         implicitly[CursorProducer[T]])
 
@@ -150,7 +150,7 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
         Json.obj(Record.ID -> Json.obj("$oid" -> JsString(id)), PLANET_ID -> JsString(planetId)),
         None
       )
-      .cursor[T](ReadPreference.nearest)(
+      .cursor[T](ReadPreference.primary)(
         implicitly[collection.pack.Reader[Record]].map(_.asInstanceOf[T]),
         implicitly[CursorProducer[T]])
       .headOption
@@ -161,7 +161,7 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
         JsObject(Seq(PLANET_ID -> JsString(planetId))),
         None
       )
-      .cursor[Record](ReadPreference.nearest)(
+      .cursor[Record](ReadPreference.primary)(
         implicitly[collection.pack.Reader[Record]],
         implicitly[CursorProducer[Record]])
 

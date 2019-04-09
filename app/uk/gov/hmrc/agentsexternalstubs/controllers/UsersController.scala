@@ -4,7 +4,7 @@ import javax.inject.{Inject, Singleton}
 import play.api.libs.json.JsValue
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import play.mvc.Http.HeaderNames
-import uk.gov.hmrc.agentsexternalstubs.models.{ApiPlatform, User, Users}
+import uk.gov.hmrc.agentsexternalstubs.models.{ApiPlatform, User, UserIdGenerator, Users}
 import uk.gov.hmrc.agentsexternalstubs.repository.DuplicateUserException
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.http.NotFoundException
@@ -67,17 +67,20 @@ class UsersController @Inject()(
 
   def updateUser(userId: String): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
-      withPayload[User](
-        updatedUser =>
-          usersService
-            .updateUser(userId, session.planetId, _ => updatedUser)
-            .map(theUser =>
-              Accepted(s"User ${theUser.userId} has been updated")
-                .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url))
-            .recover {
-              case DuplicateUserException(msg, _) => Conflict(msg)
-              case e: NotFoundException           => notFound("USER_NOT_FOUND", e.getMessage)
-          })
+      withPayload[User](updatedUser => {
+        val user = updatedUser.copy(
+          userId =
+            if (updatedUser.userId == null) UserIdGenerator.nextUserIdFor(session.planetId) else updatedUser.userId)
+        usersService
+          .updateUser(userId, session.planetId, _ => user)
+          .map(theUser =>
+            Accepted(s"User ${theUser.userId} has been updated")
+              .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url))
+          .recover {
+            case DuplicateUserException(msg, _) => Conflict(msg)
+            case e: NotFoundException           => notFound("USER_NOT_FOUND", e.getMessage)
+          }
+      })
     }(SessionRecordNotFound)
   }
 
@@ -86,7 +89,10 @@ class UsersController @Inject()(
       withPayload[User](
         newUser =>
           usersService
-            .createUser(newUser, session.planetId)
+            .createUser(
+              newUser.copy(userId =
+                if (newUser.userId == null) UserIdGenerator.nextUserIdFor(session.planetId) else newUser.userId),
+              session.planetId)
             .map(theUser =>
               Created(s"User ${theUser.userId} has been created.")
                 .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url))

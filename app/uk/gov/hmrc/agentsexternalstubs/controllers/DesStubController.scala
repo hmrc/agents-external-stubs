@@ -221,17 +221,16 @@ class DesStubController @Inject()(
                         .flatMap {
                           case None => badRequestF("NOT_FOUND")
                           case Some(existingRecord) =>
+                            val recordToCreate = SubscribeAgentServices.toBusinessPartnerRecord(payload, existingRecord)
                             businessPartnerRecordsService
-                              .store(
-                                SubscribeAgentServices.toBusinessPartnerRecord(payload, existingRecord),
-                                autoFill = false,
-                                session.planetId)
+                              .store(recordToCreate, autoFill = false, session.planetId)
                               .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, session.planetId))
                               .map {
                                 case Some(record) =>
                                   ok(SubscribeAgentServices.Response(record.safeId, record.agentReferenceNumber.get))
                                 case None =>
-                                  internalServerError("SERVER_ERROR", "BusinessPartnerRecord creation failed silently.")
+                                  ok(SubscribeAgentServices
+                                    .Response(recordToCreate.safeId, recordToCreate.agentReferenceNumber.get))
                               }
                       }
                   )
@@ -285,14 +284,15 @@ class DesStubController @Inject()(
     withCurrentSession { session =>
       withPayload[RegistrationWithoutIdPayload] { payload =>
         if (payload.individual.isDefined) {
+          val recordToCreate = RegistrationWithoutId.toBusinessPartnerRecord(payload)
           businessPartnerRecordsService
-            .store(RegistrationWithoutId.toBusinessPartnerRecord(payload), autoFill = false, session.planetId)
+            .store(recordToCreate, autoFill = false, session.planetId)
             .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, session.planetId))
             .map {
               case Some(record) =>
                 ok(RegistrationWithoutId.responseFrom(record))
               case _ =>
-                internalServerError("SERVER_ERROR", "BusinessPartnerRecord creation failed silently.")
+                ok(RegistrationWithoutId.responseFrom(recordToCreate))
             }
         } else badRequestF("INVALID_PAYLOAD", "Expected individual but missing.")
       }
@@ -303,14 +303,15 @@ class DesStubController @Inject()(
     withCurrentSession { session =>
       withPayload[RegistrationWithoutIdPayload] { payload =>
         if (payload.organisation.isDefined) {
+          val recordToCreate = RegistrationWithoutId.toBusinessPartnerRecord(payload)
           businessPartnerRecordsService
-            .store(RegistrationWithoutId.toBusinessPartnerRecord(payload), autoFill = false, session.planetId)
+            .store(recordToCreate, autoFill = false, session.planetId)
             .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, session.planetId))
             .map {
               case Some(record) =>
                 ok(RegistrationWithoutId.responseFrom(record))
               case _ =>
-                internalServerError("SERVER_ERROR", "BusinessPartnerRecord creation failed silently.")
+                ok(RegistrationWithoutId.responseFrom(recordToCreate))
             }
         } else badRequestF("INVALID_PAYLOAD", "Expected organisation but missing.")
       }

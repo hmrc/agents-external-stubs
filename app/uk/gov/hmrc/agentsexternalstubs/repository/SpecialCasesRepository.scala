@@ -73,7 +73,7 @@ class SpecialCasesRepositoryMongo @Inject()(mongoComponent: ReactiveMongoCompone
       .find(
         Json.obj(Id.ID -> Json.obj("$oid" -> JsString(id)), PLANET_ID -> JsString(planetId))
       )
-      .cursor[SpecialCase](ReadPreference.nearest)(
+      .cursor[SpecialCase](ReadPreference.primary)(
         implicitly[collection.pack.Reader[SpecialCase]],
         implicitly[CursorProducer[SpecialCase]])
       .headOption
@@ -83,7 +83,7 @@ class SpecialCasesRepositoryMongo @Inject()(mongoComponent: ReactiveMongoCompone
       .find(
         Json.obj(SpecialCase.UNIQUE_KEY -> SpecialCase.uniqueKey(key, planetId))
       )
-      .cursor[SpecialCase](ReadPreference.nearest)(
+      .cursor[SpecialCase](ReadPreference.primary)(
         implicitly[collection.pack.Reader[SpecialCase]],
         implicitly[CursorProducer[SpecialCase]])
       .headOption

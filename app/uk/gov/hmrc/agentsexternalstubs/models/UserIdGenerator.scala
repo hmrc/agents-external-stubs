@@ -52,7 +52,7 @@ object UserIdGenerator {
     "Dianna"
   )
 
-  def nextUserId: String = Generator.userID(Random.nextString(8))
+  private def nextUserId: String = Generator.userID(Random.nextString(8))
 
   def nextUserIdFor(planetId: String): String =
     Option(userIdSeries.get(planetId)) match {

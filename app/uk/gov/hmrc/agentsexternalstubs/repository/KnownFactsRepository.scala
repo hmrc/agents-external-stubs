@@ -67,7 +67,7 @@ class KnownFactsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent
         Json.obj(KnownFacts.UNIQUE_KEY -> KnownFacts.uniqueKey(enrolmentKey.tag, planetId)),
         None
       )
-      .cursor[KnownFacts](ReadPreference.nearest)(
+      .cursor[KnownFacts](ReadPreference.primary)(
         implicitly[collection.pack.Reader[KnownFacts]],
         implicitly[CursorProducer[KnownFacts]])
       .headOption
