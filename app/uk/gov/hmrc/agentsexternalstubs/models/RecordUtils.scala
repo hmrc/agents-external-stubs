@@ -18,7 +18,7 @@ trait RecordUtils[T] {
 
   final def seed(s: String): T =
     seededRecordCache
-      .get(s, s => Generator.get(gen)(s).getOrElse(throw new Exception(s"Could not seed record with $s")))
+      .get(s, s => Generator.get(gen)(s).getOrElse(seed(Generator.shake(s))))
 
   final def sanitize(s: String)(entity: T): T = sanitizers.foldLeft(entity)((u, fx) => fx(s)(u))
 
