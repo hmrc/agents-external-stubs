@@ -65,9 +65,8 @@ class AuthenticatedSessionsRepository @Inject()(mongoComponent: ReactiveMongoCom
     Index(Seq("userId"    -> Ascending), Some("AuthenticatedUsers"))
   )
 
-  def create(sessionId: String, userId: String, authToken: String, providerType: String, planetId: String)(
-    implicit ec: ExecutionContext): Future[Unit] =
-    insert(AuthenticatedSession(sessionId, userId, authToken, providerType, planetId)).map(_ => ())
+  def create(authenticatedSession: AuthenticatedSession)(implicit ec: ExecutionContext): Future[Unit] =
+    insert(authenticatedSession).map(_ => ())
 
   def delete(sessionId: String)(implicit ec: ExecutionContext): Future[WriteResult] =
     remove("authToken" -> sessionId)

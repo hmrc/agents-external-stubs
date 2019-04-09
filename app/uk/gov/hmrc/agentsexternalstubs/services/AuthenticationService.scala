@@ -3,6 +3,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 import java.util.UUID
 
 import javax.inject.{Inject, Singleton}
+import play.api.Logger
 import play.api.mvc.Request
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticateRequest, AuthenticatedSession, Planet}
 import uk.gov.hmrc.agentsexternalstubs.repository.AuthenticatedSessionsRepository
@@ -10,6 +11,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 @Singleton
 class AuthenticationService @Inject()(
@@ -49,12 +51,16 @@ class AuthenticationService @Inject()(
   def authenticate(request: AuthenticateRequest)(
     implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] = {
     val authToken = request.authTokenOpt.getOrElse(UUID.randomUUID().toString)
-    for {
-      _ <- authSessionRepository
-            .create(request.sessionId, request.userId, authToken, request.providerType, request.planetId)
-      maybeSession <- authSessionRepository.findByAuthToken(authToken)
-      _            <- authenticatedSessionCache.put(maybeSession)
-    } yield maybeSession
+    val authenticatedSession =
+      AuthenticatedSession(request.sessionId, request.userId, authToken, request.providerType, request.planetId)
+    (for {
+      _ <- authSessionRepository.create(authenticatedSession)
+      _ <- authenticatedSessionCache.put(authenticatedSession)
+    } yield Some(authenticatedSession)).recover {
+      case NonFatal(e) =>
+        Logger(getClass).warn(s"Could not create new authorised session ${e.getMessage}")
+        None
+    }
   }
 
   def removeAuthentication(authToken: String)(implicit ec: ExecutionContext): Future[Unit] =

@@ -18,6 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 import java.util.UUID
 
 import reactivemongo.core.errors.DatabaseException
+import uk.gov.hmrc.agentsexternalstubs.models.AuthenticatedSession
 import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
 
 class AuthenticatedSessionsRepositoryISpec extends AppBaseISpec with MongoDB {
@@ -29,7 +30,7 @@ class AuthenticatedSessionsRepositoryISpec extends AppBaseISpec with MongoDB {
       val planetId = UUID.randomUUID().toString
       val authToken = UUID.randomUUID().toString
 
-      await(repo.create(UUID.randomUUID().toString, "foobar", authToken, "bla", planetId))
+      await(repo.create(AuthenticatedSession(UUID.randomUUID().toString, "foobar", authToken, "bla", planetId)))
 
       val result = await(repo.find("planetId" -> planetId))
 
@@ -41,10 +42,10 @@ class AuthenticatedSessionsRepositoryISpec extends AppBaseISpec with MongoDB {
 
     "not allow duplicate sessions to be created for the same authToken" in {
       val planetId = UUID.randomUUID().toString
-      await(repo.create(UUID.randomUUID().toString, "foo", "bar", "bla", planetId))
+      await(repo.create(AuthenticatedSession(UUID.randomUUID().toString, "foo", "bar", "bla", planetId)))
 
       val e = intercept[DatabaseException] {
-        await(repo.create(UUID.randomUUID().toString, "foo", "bar", "ala", planetId))
+        await(repo.create(AuthenticatedSession(UUID.randomUUID().toString, "foo", "bar", "ala", planetId)))
       }
 
       e.getMessage() should include("E11000")
