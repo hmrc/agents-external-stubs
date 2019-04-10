@@ -29,6 +29,7 @@ class UserToRecordsSyncService @Inject()(
     Sync.businessDetailsForMtdItIndividual,
     Sync.vatCustomerInformationForMtdVatIndividual,
     Sync.vatCustomerInformationForMtdVatOrganisation,
+    Sync.vatCustomerInformationForMtdVatAgent,
     Sync.businessPartnerRecordForAnAgent,
     Sync.legacySaAgentRecord,
     Sync.businessPartnerRecordForIRCTOrganisation,
@@ -196,6 +197,73 @@ class UserToRecordsSyncService @Inject()(
           .map(
             _.flatMap(
               _.getVerifierValue("VATRegistrationDate")
+                .map(LocalDate.parse(_, dateFormatddMMyy))
+                .map(date => if (date.isAfter(LocalDate.now())) date.minusYears(100) else date)))
+          .flatMap(vatRegistrationDateOpt => {
+
+            val address = user.address
+              .map(
+                a =>
+                  if (a.isUKAddress)
+                    VatCustomerInformationRecord.UkAddress(
+                      line1 = a.line1.getOrElse("1 Kingdom Road"),
+                      line2 = a.line2.getOrElse("Brighton"),
+                      line3 = a.line3,
+                      line4 = a.line4,
+                      postCode = a.postcode.getOrElse(""),
+                      countryCode = a.countryCode.getOrElse("GB")
+                    )
+                  else
+                    VatCustomerInformationRecord.ForeignAddress(
+                      line1 = a.line1.getOrElse("2 Foreign Road"),
+                      line2 = a.line2.getOrElse("Cork"),
+                      line3 = a.line3,
+                      line4 = a.line4,
+                      postCode = a.postcode,
+                      countryCode = a.countryCode.getOrElse("IE")
+                  ))
+              .getOrElse(VatCustomerInformationRecord.UkAddress.generate(user.userId))
+
+            Future {
+              VatCustomerInformationRecord
+                .generate(user.userId)
+                .withVrn(vrn)
+                .withApprovedInformation(
+                  Some(
+                    ApprovedInformation
+                      .generate(user.userId)
+                      .withCustomerDetails(
+                        CustomerDetails
+                          .generate(user.userId)
+                          .withIndividual(None)
+                          .withDateOfBirth(None)
+                          .withOrganisationName(user.name)
+                          .modifyEffectiveRegistrationDate {
+                            case date => vatRegistrationDateOpt.map(_.format(dateFormatyyyyMMdd)).orElse(date)
+                          }
+                      )
+                      .modifyPPOB {
+                        case ppob => ppob.withAddress(address)
+                      }
+                      .withDeregistration(None)
+                  ))
+            }.flatMap(record =>
+              vatCustomerInformationRecordsService
+                .store(record, autoFill = false, user.planetId.get)
+                .flatMap(saveRecordId))
+          })
+      }
+    }
+
+    final val MtdVatAgentMatch = User.Matches(_ == User.AG.Agent, "HMCE-VAT-AGNT")
+
+    val vatCustomerInformationForMtdVatAgent: UserRecordsSync = saveRecordId => {
+      case MtdVatAgentMatch(user, vrn) => {
+        knownFactsRepository
+          .findByEnrolmentKey(EnrolmentKey.from("HMCE-VAT-AGNT", "AgentRefNo" -> vrn), user.planetId.get)
+          .map(
+            _.flatMap(
+              _.getVerifierValue("IREFFREGDATE")
                 .map(LocalDate.parse(_, dateFormatddMMyy))
                 .map(date => if (date.isAfter(LocalDate.now())) date.minusYears(100) else date)))
           .flatMap(vatRegistrationDateOpt => {

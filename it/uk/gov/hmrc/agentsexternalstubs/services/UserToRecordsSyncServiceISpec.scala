@@ -142,6 +142,50 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
       userWithRecordId.map(_.recordIds).get should not be empty
     }
 
+    "sync hmce-vat-agnt agent to vat customer information records" in {
+      val planetId = UUID.randomUUID().toString
+      val user = UserGenerator
+        .agent("foo", name = "ABC123 Corp.")
+        .withPrincipalEnrolment("HMCE-VAT-AGNT", "AgentRefNo", "923456788")
+      await(usersService.createUser(user, planetId))
+
+      val knownFacts = await(
+        knownFactsRepository
+          .findByEnrolmentKey(EnrolmentKey.from("HMCE-VAT-AGNT", "AgentRefNo" -> "923456788"), planetId))
+      val dateOpt = knownFacts.flatMap(
+        _.getVerifierValue("IREFFREGDATE")
+          .map(LocalDate.parse(_, formatter1))
+          .map(date => if (date.isAfter(LocalDate.now())) date.minusYears(100) else date))
+
+      val result = await(vatCustomerInformationRecordsService.getCustomerInformation("923456788", planetId))
+      result.flatMap(_.approvedInformation.flatMap(_.customerDetails.organisationName)) shouldBe Some("ABC123 Corp.")
+      result.flatMap(
+        _.approvedInformation
+          .flatMap(
+            _.customerDetails.effectiveRegistrationDate
+              .map(LocalDate.parse(_, formatter2))
+          )) shouldBe dateOpt
+
+      val theUser = await(usersService.updateUser(user.userId, planetId, user => user.copy(name = Some("Foo Bar"))))
+
+      val result2 = await(vatCustomerInformationRecordsService.getCustomerInformation("923456788", planetId))
+      result2.flatMap(_.approvedInformation.flatMap(_.customerDetails.organisationName)) shouldBe Some("Foo Bar")
+      result2.flatMap(
+        _.approvedInformation
+          .flatMap(
+            _.customerDetails.effectiveRegistrationDate
+              .map(LocalDate.parse(_, formatter2))
+          )) shouldBe dateOpt
+
+      result2.flatMap(
+        _.approvedInformation
+          .map(_.PPOB.address.asInstanceOf[VatCustomerInformationRecord.UkAddress].postCode)) shouldBe theUser.address
+        .flatMap(_.postcode)
+
+      val userWithRecordId = await(usersService.findByUserId(user.userId, planetId))
+      userWithRecordId.map(_.recordIds).get should not be empty
+    }
+
     "sync hmrc-as-agent agent to agent records" in {
       val planetId = UUID.randomUUID().toString
       val user = UserGenerator
