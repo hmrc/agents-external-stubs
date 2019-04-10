@@ -40,6 +40,7 @@ trait AppConfig {
 
   val authCacheEnabled: Boolean
   val specialCasesDisabled: Boolean
+  val preloadRecordsForDefaultUserIds: Boolean
 
 }
 
@@ -81,4 +82,5 @@ class AppConfigImpl @Inject()(config: ServicesConfig) extends AppConfig {
 
   val authCacheEnabled: Boolean = config.getBoolean("authCache.enabled")
   val specialCasesDisabled: Boolean = !config.getBoolean("specialCases.enabled")
+  val preloadRecordsForDefaultUserIds: Boolean = config.getBoolean("preloadRecordsForDefaultUserIds.enabled")
 }

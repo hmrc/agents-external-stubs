@@ -134,8 +134,7 @@ class RecordsControllerISpec
         val result = Records.generateVatCustomerInformation("foo", minimal = false)
         result should haveStatus(200)
         result should haveValidJsonBody(
-          haveProperty[String]("vrn") and haveProperty[JsObject]("approvedInformation") and haveProperty[JsObject](
-            "inFlightInformation")
+          haveProperty[String]("vrn") and haveProperty[JsObject]("approvedInformation")
         )
       }
     }
