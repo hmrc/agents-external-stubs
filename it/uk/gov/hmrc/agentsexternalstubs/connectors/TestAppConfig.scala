@@ -32,5 +32,5 @@ case class TestAppConfig(wireMockBaseUrl: String, wireMockPort: Int) extends App
   override val ssoPort: Int = wireMockPort
   override val authCacheEnabled: Boolean = true
   override val specialCasesDisabled: Boolean = false
-  override val preloadRecordsForDefaultUserIds: Boolean = true
+  override val preloadRecordsForDefaultUserIds: Boolean = false
 }
