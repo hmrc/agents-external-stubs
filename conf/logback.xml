@@ -57,7 +57,7 @@
 
     <logger name="uk.gov.hmrc.agentsexternalstubs.repository" level="ERROR"/>
 
-    <logger name="uk.gov.hmrc.agentsexternalstubs.wiring" level="ERROR"/>
+    <logger name="uk.gov.hmrc.agentsexternalstubs.wiring" level="INFO"/>
 
     <logger name="akka" level="ERROR"/>
 

@@ -1,6 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.wiring
 import com.google.inject.ImplementedBy
 import javax.inject.{Inject, Singleton}
+import play.api.Logger
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 @ImplementedBy(classOf[AppConfigImpl])

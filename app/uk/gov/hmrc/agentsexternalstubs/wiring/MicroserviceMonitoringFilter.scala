@@ -54,7 +54,7 @@ object KeyToPatternMappingFromRoutes {
             } else p)
           .mkString("__")
         val pattern = r.replace("$", ":")
-        if (Logger(getClass).isInfoEnabled) println(s""""$key-$method"""")
+        if (Logger(getClass).isDebugEnabled) println(s""""$key-$method"""")
         (key, pattern)
       }
     }
