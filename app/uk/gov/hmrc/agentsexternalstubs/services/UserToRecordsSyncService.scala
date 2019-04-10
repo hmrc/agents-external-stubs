@@ -84,36 +84,37 @@ class UserToRecordsSyncService @Inject()(
               ))
           .getOrElse(BusinessDetailsRecord.UkAddress.generate(user.userId))
 
-        val record = BusinessDetailsRecord
-          .generate(user.userId)
-          .withNino(nino)
-          .withMtdbsa(mtdbsa)
-          .modifyBusinessData {
-            case Some(businessData :: _) =>
-              Some(
-                Seq(
-                  businessData
-                    .withCessationDate(None)
-                    .withCessationReason(None)
-                    .withBusinessAddressDetails(Some(address))
-                ))
-          }
-        val maybeRecord1 = businessDetailsRecordsService.getBusinessDetails(Nino(nino), user.planetId.get)
-        val maybeRecord2 = businessDetailsRecordsService.getBusinessDetails(MtdItId(mtdbsa), user.planetId.get)
-        Future
-          .sequence(Seq(maybeRecord1, maybeRecord2))
-          .map(_.collect { case Some(x) => x })
-          .map(_.toList match {
-            case r1 :: r2 :: Nil if r1.id == r2.id => record.withId(r2.id)
-            case r :: Nil                          => record.withId(r.id)
-            case Nil                               => record
-          })
-          .flatMap(
-            entity =>
+        Future {
+          BusinessDetailsRecord
+            .generate(user.userId)
+            .withNino(nino)
+            .withMtdbsa(mtdbsa)
+            .modifyBusinessData {
+              case Some(businessData :: _) =>
+                Some(
+                  Seq(
+                    businessData
+                      .withCessationDate(None)
+                      .withCessationReason(None)
+                      .withBusinessAddressDetails(Some(address))
+                  ))
+            }
+        }.flatMap(record =>
+          Future
+            .sequence(Seq(
+              businessDetailsRecordsService.getBusinessDetails(Nino(nino), user.planetId.get),
+              businessDetailsRecordsService.getBusinessDetails(MtdItId(mtdbsa), user.planetId.get)
+            ))
+            .map(_.collect { case Some(x) => x })
+            .map(_.toList match {
+              case r1 :: r2 :: Nil if r1.id == r2.id => record.withId(r2.id)
+              case r :: Nil                          => record.withId(r.id)
+              case Nil                               => record
+            })
+            .flatMap(entity =>
               businessDetailsRecordsService
                 .store(entity, autoFill = false, user.planetId.get)
-                .flatMap(saveRecordId))
-
+                .flatMap(saveRecordId)))
       }
     }
 
@@ -153,33 +154,35 @@ class UserToRecordsSyncService @Inject()(
                   ))
               .getOrElse(VatCustomerInformationRecord.UkAddress.generate(user.userId))
 
-            val record = VatCustomerInformationRecord
-              .generate(user.userId)
-              .withVrn(vrn)
-              .withApprovedInformation(
-                Some(
-                  ApprovedInformation
-                    .generate(user.userId)
-                    .withCustomerDetails(
-                      CustomerDetails
-                        .generate(user.userId)
-                        .withOrganisationName(None)
-                        .withIndividual(Some(IndividualName()
-                          .withFirstName(user.firstName)
-                          .withLastName(user.lastName)))
-                        .withDateOfBirth(user.dateOfBirth.map(_.toString("yyyy-MM-dd")))
-                        .modifyEffectiveRegistrationDate {
-                          case date => vatRegistrationDateOpt.map(_.format(dateFormatyyyyMMdd)).orElse(date)
-                        }
-                    )
-                    .modifyPPOB {
-                      case ppob => ppob.withAddress(address)
-                    }
-                    .withDeregistration(None)
-                ))
-            vatCustomerInformationRecordsService
-              .store(record, autoFill = false, user.planetId.get)
-              .flatMap(saveRecordId)
+            Future {
+              VatCustomerInformationRecord
+                .generate(user.userId)
+                .withVrn(vrn)
+                .withApprovedInformation(
+                  Some(
+                    ApprovedInformation
+                      .generate(user.userId)
+                      .withCustomerDetails(
+                        CustomerDetails
+                          .generate(user.userId)
+                          .withOrganisationName(None)
+                          .withIndividual(Some(IndividualName()
+                            .withFirstName(user.firstName)
+                            .withLastName(user.lastName)))
+                          .withDateOfBirth(user.dateOfBirth.map(_.toString("yyyy-MM-dd")))
+                          .modifyEffectiveRegistrationDate {
+                            case date => vatRegistrationDateOpt.map(_.format(dateFormatyyyyMMdd)).orElse(date)
+                          }
+                      )
+                      .modifyPPOB {
+                        case ppob => ppob.withAddress(address)
+                      }
+                      .withDeregistration(None)
+                  ))
+            }.flatMap(record =>
+              vatCustomerInformationRecordsService
+                .store(record, autoFill = false, user.planetId.get)
+                .flatMap(saveRecordId))
           })
       }
     }
@@ -220,31 +223,33 @@ class UserToRecordsSyncService @Inject()(
                   ))
               .getOrElse(VatCustomerInformationRecord.UkAddress.generate(user.userId))
 
-            val record = VatCustomerInformationRecord
-              .generate(user.userId)
-              .withVrn(vrn)
-              .withApprovedInformation(
-                Some(
-                  ApprovedInformation
-                    .generate(user.userId)
-                    .withCustomerDetails(
-                      CustomerDetails
-                        .generate(user.userId)
-                        .withIndividual(None)
-                        .withDateOfBirth(None)
-                        .withOrganisationName(user.name)
-                        .modifyEffectiveRegistrationDate {
-                          case date => vatRegistrationDateOpt.map(_.format(dateFormatyyyyMMdd)).orElse(date)
-                        }
-                    )
-                    .modifyPPOB {
-                      case ppob => ppob.withAddress(address)
-                    }
-                    .withDeregistration(None)
-                ))
-            vatCustomerInformationRecordsService
-              .store(record, autoFill = false, user.planetId.get)
-              .flatMap(saveRecordId)
+            Future {
+              VatCustomerInformationRecord
+                .generate(user.userId)
+                .withVrn(vrn)
+                .withApprovedInformation(
+                  Some(
+                    ApprovedInformation
+                      .generate(user.userId)
+                      .withCustomerDetails(
+                        CustomerDetails
+                          .generate(user.userId)
+                          .withIndividual(None)
+                          .withDateOfBirth(None)
+                          .withOrganisationName(user.name)
+                          .modifyEffectiveRegistrationDate {
+                            case date => vatRegistrationDateOpt.map(_.format(dateFormatyyyyMMdd)).orElse(date)
+                          }
+                      )
+                      .modifyPPOB {
+                        case ppob => ppob.withAddress(address)
+                      }
+                      .withDeregistration(None)
+                  ))
+            }.flatMap(record =>
+              vatCustomerInformationRecordsService
+                .store(record, autoFill = false, user.planetId.get)
+                .flatMap(saveRecordId))
           })
       }
     }
@@ -273,68 +278,73 @@ class UserToRecordsSyncService @Inject()(
                   countryCode = a.countryCode.getOrElse("IE")
               ))
           .getOrElse(BusinessPartnerRecord.UkAddress.generate(user.userId))
-        val record = BusinessPartnerRecord
-          .generate(user.userId)
-          .withBusinessPartnerExists(true)
-          .withIsAnOrganisation(false)
-          .withIsAnIndividual(true)
-          .withIndividual(
-            Some(
-              Individual
-                .generate(user.userId)
-                .withFirstName(user.firstName.getOrElse("John"))
-                .withLastName(user.lastName.getOrElse("Smith"))
-            ))
-          .withAgencyDetails(
-            Some(
-              AgencyDetails
-                .generate(user.userId)
-                .withAgencyAddress(Some(address))
-                .withAgencyName(user.agentFriendlyName.map(_.take(40)))))
-          .withAddressDetails(address)
-        val utr = Generator.utr(user.userId)
-        val crn = Generator.crn(user.userId)
-        user
-          .findIdentifierValue("HMRC-AS-AGENT", "AgentReferenceNumber") match {
-          case Some(arn) =>
-            knownFactsRepository
-              .findByEnrolmentKey(EnrolmentKey.from("HMRC-AS-AGENT", "AgentReferenceNumber" -> arn), user.planetId.get)
-              .map(_.flatMap(_.getVerifierValue("AgencyPostcode")))
-              .flatMap(postcodeOpt => {
-                val ar = record
-                  .withAgentReferenceNumber(Option(arn))
-                  .withCrn(Option(crn))
-                  .withIsAnAgent(true)
-                  .withIsAnASAgent(true)
-                  .modifyAgencyDetails {
-                    case Some(ad) =>
-                      Some(ad.modifyAgencyAddress {
-                        case Some(aa: BusinessPartnerRecord.UkAddress) =>
-                          Some(aa.modifyPostalCode { case pc => postcodeOpt.getOrElse(pc) })
-                      })
-                  }
-                  .modifyAddressDetails {
-                    case ad: BusinessPartnerRecord.UkAddress =>
-                      ad.modifyPostalCode { case pc => postcodeOpt.getOrElse(pc) }
-                  }
-                BusinessPartnerRecordsService
-                  .store(ar, autoFill = false, user.planetId.get)
-                  .flatMap(saveRecordId)
-              })
+        Future {
+          BusinessPartnerRecord
+            .generate(user.userId)
+            .withBusinessPartnerExists(true)
+            .withIsAnOrganisation(false)
+            .withIsAnIndividual(true)
+            .withIndividual(
+              Some(
+                Individual
+                  .generate(user.userId)
+                  .withFirstName(user.firstName.getOrElse("John"))
+                  .withLastName(user.lastName.getOrElse("Smith"))
+              ))
+            .withAgencyDetails(
+              Some(
+                AgencyDetails
+                  .generate(user.userId)
+                  .withAgencyAddress(Some(address))
+                  .withAgencyName(user.agentFriendlyName.map(_.take(40)))))
+            .withAddressDetails(address)
+        }.flatMap(record => {
+          val utr = Generator.utr(user.userId)
+          val crn = Generator.crn(user.userId)
+          user
+            .findIdentifierValue("HMRC-AS-AGENT", "AgentReferenceNumber") match {
+            case Some(arn) =>
+              knownFactsRepository
+                .findByEnrolmentKey(
+                  EnrolmentKey.from("HMRC-AS-AGENT", "AgentReferenceNumber" -> arn),
+                  user.planetId.get)
+                .map(_.flatMap(_.getVerifierValue("AgencyPostcode")))
+                .flatMap(postcodeOpt => {
+                  val ar = record
+                    .withAgentReferenceNumber(Option(arn))
+                    .withCrn(Option(crn))
+                    .withIsAnAgent(true)
+                    .withIsAnASAgent(true)
+                    .modifyAgencyDetails {
+                      case Some(ad) =>
+                        Some(ad.modifyAgencyAddress {
+                          case Some(aa: BusinessPartnerRecord.UkAddress) =>
+                            Some(aa.modifyPostalCode { case pc => postcodeOpt.getOrElse(pc) })
+                        })
+                    }
+                    .modifyAddressDetails {
+                      case ad: BusinessPartnerRecord.UkAddress =>
+                        ad.modifyPostalCode { case pc => postcodeOpt.getOrElse(pc) }
+                    }
+                  BusinessPartnerRecordsService
+                    .store(ar, autoFill = false, user.planetId.get)
+                    .flatMap(saveRecordId)
+                })
 
-          case None if user.principalEnrolments.isEmpty =>
-            val ar = record
-              .withUtr(Option(utr))
-              .withCrn(Option(crn))
-              .withIsAnAgent(false)
-              .withIsAnASAgent(false)
-            BusinessPartnerRecordsService
-              .store(ar, autoFill = false, user.planetId.get)
-              .flatMap(saveRecordId)
+            case None if user.principalEnrolments.isEmpty =>
+              val ar = record
+                .withUtr(Option(utr))
+                .withCrn(Option(crn))
+                .withIsAnAgent(false)
+                .withIsAnASAgent(false)
+              BusinessPartnerRecordsService
+                .store(ar, autoFill = false, user.planetId.get)
+                .flatMap(saveRecordId)
 
-          case _ =>
-            Future.successful(())
-        }
+            case _ =>
+              Future.successful(())
+          }
+        })
       }
     }
 
@@ -346,90 +356,30 @@ class UserToRecordsSyncService @Inject()(
           .findByEnrolmentKey(EnrolmentKey.from("IR-CT", "UTR" -> utr), user.planetId.get)
           .map(_.flatMap(_.getVerifierValue("Postcode")))
           .flatMap(postcode => {
-            val record = BusinessPartnerRecord
-              .generate(user.userId)
-              .withEori(None)
-              .withUtr(Some(utr))
-              .modifyAddressDetails {
-                case address: BusinessPartnerRecord.UkAddress =>
-                  address.withPostalCode(postcode.getOrElse(address.postalCode))
-                case address: BusinessPartnerRecord.ForeignAddress =>
-                  address.withPostalCode(postcode.orElse(address.postalCode))
-              }
-              .withBusinessPartnerExists(true)
-              .withIsAnOrganisation(true)
-              .withIsAnIndividual(false)
-              .withIsAnAgent(false)
-              .withIsAnASAgent(false)
-              .withOrganisation(Some(
-                Organisation
-                  .generate(user.userId)
-              ))
-            BusinessPartnerRecordsService
-              .store(record, autoFill = false, user.planetId.get)
-              .flatMap(saveRecordId)
-          })
-      }
-    }
-
-    final val NiOrgOrganisationMatch = User.Matches(_ == User.AG.Organisation, "HMRC-NI-ORG")
-    final val NiOrgIndividualMatch = User.Matches(_ == User.AG.Individual, "HMRC-NI-ORG")
-
-    val businessPartnerRecordForHMRCNIORGUser: UserRecordsSync = saveRecordId => {
-      case NiOrgOrganisationMatch(user, eori) => {
-        knownFactsRepository
-          .findByEnrolmentKey(EnrolmentKey.from("HMRC-NI-ORG", "NIEORI" -> eori), user.planetId.get)
-          .map(_.flatMap(i => i.getVerifierValue("CTUTR").orElse(i.getVerifierValue("SAUTR"))))
-          .flatMap(knownFactUtr => {
-            val utr = user
-              .findIdentifierValue("IR-SA", "UTR")
-              .orElse(user.findIdentifierValue("IR-CT", "UTR"))
-              .orElse(knownFactUtr)
-              .getOrElse(Generator.utr(user.userId))
-            val record = BusinessPartnerRecord
-              .generate(user.userId)
-              .withEori(Some(eori))
-              .withUtr(Some(utr))
-              .withBusinessPartnerExists(true)
-              .withIsAnOrganisation(true)
-              .withIsAnIndividual(false)
-              .withIsAnAgent(false)
-              .withIsAnASAgent(false)
-              .withOrganisation(Some(
-                Organisation
-                  .generate(user.userId)
-              ))
-            BusinessPartnerRecordsService
-              .store(record, autoFill = false, user.planetId.get)
-              .flatMap(saveRecordId)
-          })
-      }
-      case NiOrgIndividualMatch(user, eori) => {
-        knownFactsRepository
-          .findByEnrolmentKey(EnrolmentKey.from("HMRC-NI-ORG", "NIEORI" -> eori), user.planetId.get)
-          .map(_.flatMap(i => i.getVerifierValue("CTUTR").orElse(i.getVerifierValue("SAUTR"))))
-          .flatMap(knownFactUtr => {
-            val utr = user
-              .findIdentifierValue("IR-SA", "UTR")
-              .orElse(user.findIdentifierValue("IR-CT", "UTR"))
-              .orElse(knownFactUtr)
-              .getOrElse(Generator.utr(user.userId))
-            val record = BusinessPartnerRecord
-              .generate(user.userId)
-              .withEori(Some(eori))
-              .withUtr(Some(utr))
-              .withBusinessPartnerExists(true)
-              .withIsAnOrganisation(false)
-              .withIsAnIndividual(true)
-              .withIsAnAgent(false)
-              .withIsAnASAgent(false)
-              .withIndividual(Some(
-                Individual
-                  .generate(user.userId)
-              ))
-            BusinessPartnerRecordsService
-              .store(record, autoFill = false, user.planetId.get)
-              .flatMap(saveRecordId)
+            Future {
+              BusinessPartnerRecord
+                .generate(user.userId)
+                .withEori(None)
+                .withUtr(Some(utr))
+                .modifyAddressDetails {
+                  case address: BusinessPartnerRecord.UkAddress =>
+                    address.withPostalCode(postcode.getOrElse(address.postalCode))
+                  case address: BusinessPartnerRecord.ForeignAddress =>
+                    address.withPostalCode(postcode.orElse(address.postalCode))
+                }
+                .withBusinessPartnerExists(true)
+                .withIsAnOrganisation(true)
+                .withIsAnIndividual(false)
+                .withIsAnAgent(false)
+                .withIsAnASAgent(false)
+                .withOrganisation(Some(
+                  Organisation
+                    .generate(user.userId)
+                ))
+            }.flatMap(record =>
+              BusinessPartnerRecordsService
+                .store(record, autoFill = false, user.planetId.get)
+                .flatMap(saveRecordId))
           })
       }
     }
