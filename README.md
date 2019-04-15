@@ -96,7 +96,7 @@ Endpoint | Description
 Feature | What's implemented
 -----------|-------------------------- 
 predicates | `enrolment`, `authProviders`, `affinityGroup`, `confidenceLevel`, `credentialStrength`, `nino`, `credentialRole`, `$or`
-retrievals | `authProviderId`, `credentials`, `authorisedEnrolments`, `allEnrolments`,`affinityGroup`,`confidenceLevel`,`credentialStrength`, `credentialRole`, `nino`, `groupIdentifier`, `name`, `dateOfBirth`, `agentCode`, `agentInformation`
+retrievals | `authProviderId`, `credentials`, `optionalCredentials`, `authorisedEnrolments`, `allEnrolments`,`affinityGroup`,`confidenceLevel`,`credentialStrength`, `credentialRole`, `nino`, `groupIdentifier`, `name`, `optionalName`, `dateOfBirth`, `agentCode`, `agentInformation`
 
 ### [User Details](https://github.com/hmrc/user-details) <a name="stubbed_api_user_details"></a>
 

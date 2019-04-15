@@ -8,6 +8,7 @@ import scala.concurrent.ExecutionContext
 
 case class AuthoriseResponse(
   credentials: Option[Credentials] = None,
+  optionalCredentials: Option[Credentials] = None,
   authProviderId: Option[GGCredId] = None,
   authorisedEnrolments: Option[Seq[Enrolment]] = None,
   allEnrolments: Option[Seq[Enrolment]] = None,
@@ -18,6 +19,7 @@ case class AuthoriseResponse(
   nino: Option[Nino] = None,
   groupIdentifier: Option[String] = None,
   name: Option[Name] = None,
+  optionalName: Option[Name] = None,
   dateOfBirth: Option[LocalDate] = None,
   agentCode: Option[String] = None,
   agentInformation: Option[AgentInformation] = None
@@ -42,6 +44,7 @@ object Retrieve {
   val supportedRetrievals: Set[Retrieve] =
     Set(
       CredentialsRetrieve,
+      OptionalCredentialsRetrieve,
       AuthProviderIdRetrieve,
       AuthorisedEnrolmentsRetrieve,
       AllEnrolmentsRetrieve,
@@ -52,6 +55,7 @@ object Retrieve {
       CredentialRoleRetrieve,
       GroupIdentifierRetrieve,
       NameRetrieve,
+      OptionalNameRetrieve,
       DateOfBirthRetrieve,
       AgentCodeRetrieve,
       AgentInformationRetrieve
@@ -77,6 +81,14 @@ case object CredentialsRetrieve extends Retrieve {
   override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
     implicit ec: ExecutionContext): MaybeResponse =
     Right(response.copy(credentials = Some(Credentials(context.userId, context.providerType, context.planetId))))
+}
+
+case object OptionalCredentialsRetrieve extends Retrieve {
+  val key = "optionalCredentials"
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
+    implicit ec: ExecutionContext): MaybeResponse =
+    Right(
+      response.copy(optionalCredentials = Some(Credentials(context.userId, context.providerType, context.planetId))))
 }
 
 case class GGCredId(ggCredId: String)
@@ -182,13 +194,21 @@ object Name {
 case object NameRetrieve extends Retrieve {
   val key = "name"
   override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
-    implicit ec: ExecutionContext): MaybeResponse = {
-    val name = context.affinityGroup match {
+    implicit ec: ExecutionContext): MaybeResponse =
+    Right(response.copy(name = nameFromContext(context)))
+
+  protected[models] def nameFromContext(context: AuthoriseContext): Some[Name] =
+    context.affinityGroup match {
       case Some(User.AG.Individual | User.AG.Agent) => Some(Name.parse(context.name))
       case _                                        => Some(Name(name = context.name))
     }
-    Right(response.copy(name = name))
-  }
+}
+
+case object OptionalNameRetrieve extends Retrieve {
+  val key = "optionalName"
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
+    implicit ec: ExecutionContext): MaybeResponse =
+    Right(response.copy(optionalName = NameRetrieve.nameFromContext(context)))
 }
 
 case object DateOfBirthRetrieve extends Retrieve {
