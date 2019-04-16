@@ -107,6 +107,30 @@ class AuthStubControllerISpec
         creds.providerType shouldBe "PrivilegedApplication"
       }
 
+      "retrieve optionalCredentials (v2) if GovernmentGateway" in {
+        val id = randomId
+        val authToken = givenAnAuthenticatedUser(User(id))
+        val creds = await(
+          authConnector
+            .authorise[Option[Credentials]](EmptyPredicate, v2.Retrievals.credentials)(
+            HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+            concurrent.ExecutionContext.Implicits.global))
+        creds.map(_.providerId) shouldBe Some(id)
+        creds.map(_.providerType) shouldBe Some("GovernmentGateway")
+      }
+
+      "retrieve optionalCredentials (v2) if PrivilegedApplication" in {
+        val id = randomId
+        val authToken = givenAnAuthenticatedUser(User(id), providerType = "PrivilegedApplication")
+        val creds = await(
+          authConnector
+            .authorise[Option[Credentials]](EmptyPredicate, v2.Retrievals.credentials)(
+            HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+            concurrent.ExecutionContext.Implicits.global))
+        creds.map(_.providerId) shouldBe Some(id)
+        creds.map(_.providerType) shouldBe Some("PrivilegedApplication")
+      }
+
       "authorise if user authenticated with the OneTimeLogin provider" in {
         val authToken = givenAnAuthenticatedUser(User(randomId), providerType = "OneTimeLogin")
         await(
@@ -539,6 +563,17 @@ class AuthStubControllerISpec
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global))
         nameOpt shouldBe Name(Some("Foo"), Some("Boo"))
+      }
+
+      "retrieve optionalName (v2)" in {
+        val authToken = givenAnAuthenticatedUser(UserGenerator.individual(name = "Foo Boo"))
+
+        val nameOpt = await(
+          authConnector
+            .authorise[Option[Name]](EmptyPredicate, v2.Retrievals.name)(
+            HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+            concurrent.ExecutionContext.Implicits.global))
+        nameOpt shouldBe Some(Name(Some("Foo"), Some("Boo")))
       }
 
       "retrieve dateOfBirth" in {
