@@ -11,6 +11,7 @@ import uk.gov.hmrc.http.{BadRequestException, NotFoundException}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
+import scala.concurrent.duration._
 
 @Singleton
 class UsersService @Inject()(
@@ -63,7 +64,7 @@ class UsersService @Inject()(
     implicit ec: ExecutionContext): Future[Seq[Option[String]]] =
     usersRepository.findGroupIdsByDelegatedEnrolmentKey(enrolmentKey, planetId)(limit)
 
-  val usersCache = Scaffeine().maximumSize(1000).build[Int, User]()
+  val usersCache = Scaffeine().maximumSize(1000).expireAfterWrite(10.minutes).build[Int, User]()
 
   def createUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] = {
     val userKey = user.copy(planetId = None, recordIds = Seq.empty).hashCode()
