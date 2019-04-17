@@ -116,7 +116,7 @@ trait TestRequests extends ScalaFutures {
       providerType: String = null,
       planetId: String = null): WSResponse =
       wsClient
-        .url(s"$url/agents-external-stubs/sign-in")
+        .url(s"$url/agents-external-stubs/sign-in?userIdFromPool")
         .post(SignInRequest(Option(userId), Option(password), Option(providerType), Option(planetId)))
         .futureValue
 
@@ -189,14 +189,14 @@ trait TestRequests extends ScalaFutures {
 
     def update(user: User)(implicit authContext: AuthContext): WSResponse =
       wsClient
-        .url(s"$url/agents-external-stubs/users/${user.userId}")
+        .url(s"$url/agents-external-stubs/users/${user.userId}?userIdFromPool")
         .withHttpHeaders(authContext.headers: _*)
         .put(Json.toJson(user))
         .futureValue
 
     def create(user: User)(implicit authContext: AuthContext): WSResponse =
       wsClient
-        .url(s"$url/agents-external-stubs/users")
+        .url(s"$url/agents-external-stubs/users?userIdFromPool")
         .withHttpHeaders(authContext.headers: _*)
         .post(Json.toJson(user))
         .futureValue

@@ -20,6 +20,7 @@ class SignInController @Inject()(
     extends BackendController(cc) with CurrentSession {
 
   def signIn(): Action[AnyContent] = Action.async { implicit request =>
+    val userIdFromPool = request.getQueryString("userIdFromPool").isDefined
     withPayloadOrDefault[SignInRequest](SignInRequest(None, None, None, None)) { signInRequest =>
       withCurrentSession { session =>
         if (signInRequest.userId.contains(session.userId))
@@ -31,8 +32,8 @@ class SignInController @Inject()(
               "X-Planet-ID"                           -> session.planetId,
               "X-User-ID"                             -> session.userId
             ))
-        else createNewAuthentication(signInRequest)
-      }(createNewAuthentication(signInRequest))
+        else createNewAuthentication(signInRequest, userIdFromPool)
+      }(createNewAuthentication(signInRequest, userIdFromPool))
     }
   }
 
@@ -42,13 +43,15 @@ class SignInController @Inject()(
     }(Future.successful(NoContent))
   }
 
-  private def createNewAuthentication(signInRequest: SignInRequest)(implicit ec: ExecutionContext): Future[Result] = {
+  private def createNewAuthentication(signInRequest: SignInRequest, userIdFromPool: Boolean)(
+    implicit ec: ExecutionContext): Future[Result] = {
     val planetId = signInRequest.planetId.getOrElse(Generator.planetID(Random.nextString(8)))
     for {
       maybeSession <- authenticationService.authenticate(
                        AuthenticateRequest(
                          sessionId = UUID.randomUUID().toString,
-                         userId = signInRequest.userId.getOrElse(UserIdGenerator.nextUserIdFor(planetId)),
+                         userId =
+                           signInRequest.userId.getOrElse(UserIdGenerator.nextUserIdFor(planetId, userIdFromPool)),
                          password = signInRequest.plainTextPassword.getOrElse("p@ssw0rd"),
                          providerType = signInRequest.providerType.getOrElse("GovernmentGateway"),
                          planetId = planetId

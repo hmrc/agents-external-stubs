@@ -19,6 +19,8 @@ class UsersController @Inject()(
   cc: ControllerComponents)(implicit ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
+  val userIdFromPool = "userIdFromPool"
+
   def getUsers(affinityGroup: Option[String], limit: Option[Int], agentCode: Option[String]): Action[AnyContent] =
     Action.async { implicit request =>
       withCurrentSession { session =>
@@ -68,11 +70,8 @@ class UsersController @Inject()(
   def updateUser(userId: String): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
       withPayload[User](updatedUser => {
-        val user = updatedUser.copy(
-          userId =
-            if (updatedUser.userId == null) UserIdGenerator.nextUserIdFor(session.planetId) else updatedUser.userId)
         usersService
-          .updateUser(userId, session.planetId, _ => user)
+          .updateUser(userId, session.planetId, _ => updatedUser)
           .map(theUser =>
             Accepted(s"User ${theUser.userId} has been updated")
               .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url))
@@ -90,9 +89,13 @@ class UsersController @Inject()(
         newUser =>
           usersService
             .createUser(
-              newUser.copy(userId =
-                if (newUser.userId == null) UserIdGenerator.nextUserIdFor(session.planetId) else newUser.userId),
-              session.planetId)
+              newUser.copy(
+                userId =
+                  if (newUser.userId == null)
+                    UserIdGenerator.nextUserIdFor(session.planetId, request.getQueryString(userIdFromPool).isDefined)
+                  else newUser.userId),
+              session.planetId
+            )
             .map(theUser =>
               Created(s"User ${theUser.userId} has been created.")
                 .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url))
