@@ -7,6 +7,8 @@ object UserIdGenerator {
 
   val userIdSeries = new ConcurrentHashMap[String, Iterator[String]]
 
+  val suffixPattern = Generator.pattern("ZZZZZZ")
+
   val defaultUserIds: Seq[String] = Seq(
     "John",
     "Marianne",
@@ -50,7 +52,7 @@ object UserIdGenerator {
     "Annie",
     "Charlie",
     "Dianna"
-  )
+  ).map(_ + "_" + suffixPattern.sample.getOrElse(Random.nextString(6)))
 
   private def nextUserId: String = Generator.userID(Random.nextString(8))
 
