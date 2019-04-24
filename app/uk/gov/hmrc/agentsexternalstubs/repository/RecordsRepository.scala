@@ -53,6 +53,8 @@ trait RecordsRepository {
   def remove(id: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
 
   def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit]
+
+  def deleteAll(createdBefore: Long)(implicit ec: ExecutionContext): Future[Int]
 }
 
 @Singleton
@@ -61,13 +63,15 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
       "records",
       mongoComponent.mongoConnector.db,
       Record.formats,
-      ReactiveMongoFormats.objectIdFormats) with StrictlyEnsureIndexes[Record, BSONObjectID] with RecordsRepository {
+      ReactiveMongoFormats.objectIdFormats) with StrictlyEnsureIndexes[Record, BSONObjectID] with RecordsRepository
+    with DeleteAll[Record] {
+
+  final val PLANET_ID = "_planetId"
+  final val UNIQUE_KEY = "_uniqueKey"
+  final val KEYS = "_keys"
+  final val UPDATED = "_last_updated_at"
 
   import ImplicitBSONHandlers._
-
-  private final val PLANET_ID = "_planetId"
-  private final val UNIQUE_KEY = "_uniqueKey"
-  private final val KEYS = "_keys"
 
   override def indexes =
     Seq(
@@ -99,23 +103,33 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
     ((entity.id, entity.uniqueKey) match {
       case (None, None) =>
         val newId = BSONObjectID.generate().stringify
-        collection.insert(json + (Record.ID -> Json.obj("$oid" -> JsString(newId)))).map((_, newId))
+        collection
+          .insert(json + (Record.ID -> Json.obj("$oid" -> JsString(newId))) + (UPDATED -> JsNumber(
+            System.currentTimeMillis())))
+          .map((_, newId))
       case (Some(id), _) =>
-        collection.update(Json.obj(Record.ID -> Json.obj("$oid" -> JsString(id))), json, upsert = true).map((_, id))
+        collection
+          .update(
+            Json.obj(Record.ID -> Json.obj("$oid" -> JsString(id))),
+            json + (UPDATED -> JsNumber(System.currentTimeMillis())),
+            upsert = true)
+          .map((_, id))
       case (None, Some(uniqueKey)) =>
         collection
           .find(Json.obj(UNIQUE_KEY -> JsString(keyOf(uniqueKey, planetId, typeName))))
           .one[JsObject]
           .map(recordOpt =>
             recordOpt.flatMap(r => (r \ "_id" \ "$oid").asOpt[String]).getOrElse(BSONObjectID.generate().stringify))
-          .flatMap(
-            recordId =>
-              collection
-                .update(
-                  Json.obj(Record.ID -> Json.obj("$oid" -> JsString(recordId))),
-                  json.+(Record.ID   -> Json.obj("$oid" -> JsString(recordId))),
-                  upsert = true)
-                .map((_, recordId)))
+          .flatMap(recordId =>
+            collection
+              .update(
+                Json.obj(Record.ID -> Json.obj("$oid" -> JsString(recordId))),
+                json
+                  .+(Record.ID -> Json.obj("$oid" -> JsString(recordId)))
+                  .+(UPDATED -> JsNumber(System.currentTimeMillis())),
+                upsert = true
+              )
+              .map((_, recordId)))
     }).flatMap(MongoHelper.interpretWriteResult)
 
   }

@@ -19,10 +19,10 @@ import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json
 import play.api.libs.json.Json.toJsFieldJsValueWrapper
 import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.{Cursor, CursorProducer, ReadPreference}
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
+import reactivemongo.api.{Cursor, CursorProducer, ReadPreference}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers
 import uk.gov.hmrc.agentsexternalstubs.models.AuthenticatedSession
@@ -38,7 +38,10 @@ class AuthenticatedSessionsRepository @Inject()(mongoComponent: ReactiveMongoCom
       "authenticated-sessions",
       mongoComponent.mongoConnector.db,
       AuthenticatedSession.formats,
-      ReactiveMongoFormats.objectIdFormats) with StrictlyEnsureIndexes[AuthenticatedSession, BSONObjectID] {
+      ReactiveMongoFormats.objectIdFormats) with StrictlyEnsureIndexes[AuthenticatedSession, BSONObjectID]
+    with DeleteAll[AuthenticatedSession] {
+
+  final val UPDATED = "createdAt"
 
   import ImplicitBSONHandlers._
 

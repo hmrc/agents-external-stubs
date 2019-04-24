@@ -71,7 +71,7 @@ We handle local requests gracefully and do not require existing applications to 
 - listening on 8100 for datastream events
 - listening on 9974 for sso requests
 
-You can switch this behaviour off by setting `proxies.start` config property to `false`.
+You can switch this behaviour off by setting `features.proxies` config property to `false`.
 
 ## How to configure generic proxy and stub pre-defined responses
 
@@ -83,6 +83,13 @@ Target service name is determined based on the URL path prefix and its location 
 - port: `microservice.services.{service-name}.port`
 
 Any stubbed or proxied APIs request can return pre-defined response defined using [Special Cases](#custom_api_special_case).
+
+## Testing performance with stubs
+
+To achieve high volume throughput and low latency required for performance testing you may consider deploy only *single* stubs instance and switch on few optimisations options:
+* `features.authCache` - to aggressively cache all auth authorisations in memory,
+* `features.preloadRecordsForDefaultUserIds` - to preload record template caches with entities generated for the default user ids pool, this will work well with `userIdFromPool` query parameter attached to the sign-in and create user requests,
+* `features.clearOldMongoDbDocumentsDaily` - to clear stubs database daily at 12:30 am.
 
 ## Stubbed APIs <a name="stubbed_api"></a>
 
@@ -199,6 +206,8 @@ and `X-Session-ID` header containing session ID.
     {"userId": "your_test_user", "providerType": "GovernmentGateway", "planetId":"your_test_planet"}
     
 All parameters are optional. Sensible random values will be generated if missing.
+
+Add `?userIdFromPool` query parameter to automatically select user id from the default pool
 
 Response | Description
 ---|---
@@ -323,6 +332,8 @@ Response | Description
 
 #### POST /agents-external-stubs/users/
 Create a new user. (_requires valid bearer token_)
+
+Add `?userIdFromPool` query parameter to automatically select user id from the default pool
 
 *Payload*
 

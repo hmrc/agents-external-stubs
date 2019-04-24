@@ -267,6 +267,43 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
     }
   }
 
+  "deleteAll" should {
+    "remove all users from the database" in {
+      val planetId = UUID.randomUUID().toString
+      val planetId2 = UUID.randomUUID().toString
+
+      await(repo.create(User("boo"), planetId))
+      await(repo.create(User("foo"), planetId))
+      await(repo.create(User("foo"), planetId2))
+      await(repo.create(User("zoo"), planetId2))
+      await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 2
+      await(repo.findByPlanetId(planetId2, None)(100)).size shouldBe 2
+
+      await(repo.deleteAll(System.currentTimeMillis()))
+      await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 0
+      await(repo.findByPlanetId(planetId2, None)(100)).size shouldBe 0
+    }
+
+    "remove all users created more than some timestamp" in {
+      val planetId = UUID.randomUUID().toString
+      val planetId2 = UUID.randomUUID().toString
+
+      await(repo.create(User("boo"), planetId))
+      await(repo.create(User("foo"), planetId))
+      await(repo.create(User("foo"), planetId2))
+      val t0 = System.currentTimeMillis()
+      Thread.sleep(100)
+      await(repo.create(User("zoo"), planetId2))
+      await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 2
+      await(repo.findByPlanetId(planetId2, None)(100)).size shouldBe 2
+
+      await(repo.deleteAll(t0)) should be >= 3
+
+      await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 0
+      await(repo.findByPlanetId(planetId2, None)(100)).size shouldBe 1
+    }
+  }
+
   "findByPlanetId" should {
     "return id and affinity of users having provided planetId" in {
       val planetId = UUID.randomUUID().toString

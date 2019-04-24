@@ -21,6 +21,9 @@ import reactivemongo.core.errors.DatabaseException
 import uk.gov.hmrc.agentsexternalstubs.models.AuthenticatedSession
 import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
 
+import scala.concurrent.Future
+import scala.util.Random
+
 class AuthenticatedSessionsRepositoryISpec extends AppBaseISpec with MongoDB {
 
   lazy val repo: AuthenticatedSessionsRepository = app.injector.instanceOf[AuthenticatedSessionsRepository]
@@ -49,6 +52,39 @@ class AuthenticatedSessionsRepositoryISpec extends AppBaseISpec with MongoDB {
       }
 
       e.getMessage() should include("E11000")
+    }
+
+    "delete all sessions" in {
+      await(Future.sequence(Stream
+        .continually(Random.nextString(32))
+        .take(100)
+        .map(seed =>
+          repo.create(AuthenticatedSession(UUID.randomUUID().toString, seed, UUID.randomUUID().toString, seed, seed)))))
+
+      await(repo.count) should be >= 100
+      await(repo.deleteAll(System.currentTimeMillis()))
+      await(repo.count) shouldBe 0
+    }
+
+    "delete all sessions created before some datetime" in {
+      def fixture: Future[Unit] =
+        Future
+          .sequence(
+            Stream
+              .continually(Random.nextString(32))
+              .take(50)
+              .map(seed =>
+                repo.create(
+                  AuthenticatedSession(UUID.randomUUID().toString, seed, UUID.randomUUID().toString, seed, seed))))
+          .map(_.reduce((_, _) => ()))
+
+      await(fixture)
+      val t0 = System.currentTimeMillis()
+      await(fixture)
+
+      await(repo.count) should be >= 100
+      await(repo.deleteAll(t0)) should be >= 50
+      await(repo.count) shouldBe 50
     }
   }
 }

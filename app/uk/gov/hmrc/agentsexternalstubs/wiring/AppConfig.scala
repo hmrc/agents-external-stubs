@@ -42,6 +42,7 @@ trait AppConfig {
   val authCacheEnabled: Boolean
   val specialCasesDisabled: Boolean
   val preloadRecordsForDefaultUserIds: Boolean
+  val clearOldMongoDbDocumentsDaily: Boolean
 
 }
 
@@ -66,8 +67,6 @@ class AppConfigImpl @Inject()(config: ServicesConfig) extends AppConfig {
   val apiPlatformTestUserUrl: String = config.baseUrl("api-platform-test-user")
 
   // Proxies config
-
-  val isProxyMode: Boolean = config.getBoolean("proxies.start")
   val httpPort: Int = config.getInt("http.port")
 
   val authPort: Int = config.getConfInt("auth.port", 0)
@@ -81,7 +80,9 @@ class AppConfigImpl @Inject()(config: ServicesConfig) extends AppConfig {
   val dataStreamPort: Int = config.getInt("auditing.consumer.baseUri.port")
   val ssoPort: Int = config.getConfInt("sso.port", 0)
 
-  val authCacheEnabled: Boolean = config.getBoolean("authCache.enabled")
-  val specialCasesDisabled: Boolean = !config.getBoolean("specialCases.enabled")
-  val preloadRecordsForDefaultUserIds: Boolean = config.getBoolean("preloadRecordsForDefaultUserIds.enabled")
+  val isProxyMode: Boolean = config.getBoolean("features.proxies")
+  val authCacheEnabled: Boolean = config.getBoolean("features.authCache")
+  val specialCasesDisabled: Boolean = !config.getBoolean("features.specialCases")
+  val preloadRecordsForDefaultUserIds: Boolean = config.getBoolean("features.preloadRecordsForDefaultUserIds")
+  val clearOldMongoDbDocumentsDaily: Boolean = config.getBoolean("features.clearOldMongoDbDocumentsDaily")
 }

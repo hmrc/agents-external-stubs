@@ -136,5 +136,31 @@ class RecordsRepositoryISpec extends AppBaseISpec with MongoDB {
       val record2 = await(repo.findById(recordId, planetId))
       record2 shouldBe None
     }
+
+    "remove all records from the database" in {
+      val planetId1 = UUID.randomUUID().toString
+      val planetId2 = UUID.randomUUID().toString
+      val planetId3 = UUID.randomUUID().toString
+
+      import BusinessDetailsRecord._
+
+      val businessDetails = BusinessDetailsRecord.generate("foo")
+
+      await(repo.store(businessDetails, planetId1))
+      await(repo.store(businessDetails, planetId2))
+      await(repo.store(businessDetails, planetId3))
+
+      await(repo.findByPlanetId(planetId1).headOption) shouldBe defined
+      await(repo.findByPlanetId(planetId2).headOption) shouldBe defined
+      await(repo.findByPlanetId(planetId3).headOption) shouldBe defined
+
+      Thread.sleep(100)
+
+      await(repo.deleteAll(System.currentTimeMillis())) should be >= 3
+
+      await(repo.findByPlanetId(planetId1).headOption) shouldBe None
+      await(repo.findByPlanetId(planetId2).headOption) shouldBe None
+      await(repo.findByPlanetId(planetId3).headOption) shouldBe None
+    }
   }
 }

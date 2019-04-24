@@ -1,7 +1,7 @@
 import com.google.inject.AbstractModule
 import play.api.{Configuration, Environment, Logger}
 import uk.gov.hmrc.agentsexternalstubs.TcpProxies
-import uk.gov.hmrc.agentsexternalstubs.wiring.PreloadData
+import uk.gov.hmrc.agentsexternalstubs.wiring.{ClearDatabase, PreloadData}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
@@ -15,5 +15,6 @@ class MicroserviceModule(environment: Environment, configuration: Configuration)
 
     bind(classOf[TcpProxies]).asEagerSingleton()
     bind(classOf[PreloadData]).asEagerSingleton()
+    bind(classOf[ClearDatabase]).asEagerSingleton()
   }
 }

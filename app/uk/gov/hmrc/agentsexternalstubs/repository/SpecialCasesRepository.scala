@@ -17,20 +17,20 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 
 import com.google.inject.ImplementedBy
 import javax.inject.{Inject, Singleton}
-import play.api.libs.json._
 import play.api.libs.json.Json.toJsFieldJsValueWrapper
+import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.api.{Cursor, CursorProducer, ReadPreference}
 import reactivemongo.bson.BSONObjectID
-import reactivemongo.core.errors.DatabaseException
 import reactivemongo.play.json.ImplicitBSONHandlers
 import uk.gov.hmrc.agentsexternalstubs.models.SpecialCase.internal
 import uk.gov.hmrc.agentsexternalstubs.models.{Id, SpecialCase}
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
+import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[SpecialCasesRepositoryMongo])
 trait SpecialCasesRepository {
@@ -46,6 +46,8 @@ trait SpecialCasesRepository {
   def delete(id: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
 
   def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit]
+
+  def deleteAll(createdBefore: Long)(implicit ec: ExecutionContext): Future[Int]
 }
 
 @Singleton
@@ -55,9 +57,10 @@ class SpecialCasesRepositoryMongo @Inject()(mongoComponent: ReactiveMongoCompone
       mongoComponent.mongoConnector.db,
       Format(internal.reads, internal.writes),
       ReactiveMongoFormats.objectIdFormats) with StrictlyEnsureIndexes[SpecialCase, BSONObjectID]
-    with SpecialCasesRepository {
+    with SpecialCasesRepository with DeleteAll[SpecialCase] {
 
   private final val PLANET_ID = "planetId"
+  final val UPDATED = "_last_updated_at"
 
   override def indexes = Seq(
     Index(Seq(SpecialCase.UNIQUE_KEY -> Ascending), Some("SpecialCasesByKey"), unique = true),
@@ -105,7 +108,10 @@ class SpecialCasesRepositoryMongo @Inject()(mongoComponent: ReactiveMongoCompone
               collection
                 .update(
                   Json.obj(Id.ID -> Json.obj("$oid" -> JsString(id.value)), PLANET_ID -> JsString(planetId)),
-                  specialCase.copy(planetId = Some(planetId)),
+                  Json
+                    .toJson(specialCase.copy(planetId = Some(planetId)))
+                    .as[JsObject]
+                    .+(UPDATED -> JsNumber(System.currentTimeMillis())),
                   upsert = false
                 )
                 .map((_, id.value))
@@ -125,7 +131,10 @@ class SpecialCasesRepositoryMongo @Inject()(mongoComponent: ReactiveMongoCompone
                         Json.obj(
                           Id.ID     -> Json.obj("$oid" -> JsString(sc.id.map(_.value).get)),
                           PLANET_ID -> JsString(planetId)),
-                        specialCase.copy(planetId = Some(planetId)),
+                        Json
+                          .toJson(specialCase.copy(planetId = Some(planetId)))
+                          .as[JsObject]
+                          .+(UPDATED -> JsNumber(System.currentTimeMillis())),
                         upsert = false
                       )
                       .map((_, sc.id.map(_.value).get))
@@ -133,7 +142,10 @@ class SpecialCasesRepositoryMongo @Inject()(mongoComponent: ReactiveMongoCompone
                   case None =>
                     collection
                       .insert(
-                        specialCase.copy(planetId = Some(planetId), id = Some(Id(newId)))
+                        Json
+                          .toJson(specialCase.copy(planetId = Some(planetId), id = Some(Id(newId))))
+                          .as[JsObject]
+                          .+(UPDATED -> JsNumber(System.currentTimeMillis()))
                       )
                       .map((_, newId))
                       .flatMap(MongoHelper.interpretWriteResult)

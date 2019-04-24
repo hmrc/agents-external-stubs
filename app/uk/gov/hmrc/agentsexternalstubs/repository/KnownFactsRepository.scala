@@ -41,6 +41,8 @@ trait KnownFactsRepository {
   def delete(enrolmentKey: EnrolmentKey, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
 
   def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit]
+
+  def deleteAll(createdBefore: Long)(implicit ec: ExecutionContext): Future[Int]
 }
 
 @Singleton
@@ -50,11 +52,12 @@ class KnownFactsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent
       mongoComponent.mongoConnector.db,
       KnownFacts.formats,
       ReactiveMongoFormats.objectIdFormats) with StrictlyEnsureIndexes[KnownFacts, BSONObjectID]
-    with KnownFactsRepository {
+    with KnownFactsRepository with DeleteAll[KnownFacts] {
 
   import ImplicitBSONHandlers._
 
   private final val PLANET_ID = "planetId"
+  final val UPDATED = "_last_updated_at"
 
   override def indexes = Seq(
     Index(Seq(KnownFacts.UNIQUE_KEY -> Ascending), Some("KnownFactsByEnrolmentKey"), unique = true)
@@ -81,7 +84,10 @@ class KnownFactsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent
           collection
             .update(
               Json.obj(KnownFacts.UNIQUE_KEY -> KnownFacts.uniqueKey(knownFacts.enrolmentKey.tag, planetId)),
-              knownFacts.copy(planetId = Some(planetId)),
+              Json
+                .toJson(knownFacts.copy(planetId = Some(planetId)))
+                .as[JsObject]
+                .+(UPDATED -> JsNumber(System.currentTimeMillis())),
               upsert = true
             )
             .flatMap(MongoHelper.interpretWriteResultUnit)

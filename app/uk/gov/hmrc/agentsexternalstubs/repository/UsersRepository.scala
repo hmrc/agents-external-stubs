@@ -63,6 +63,7 @@ trait UsersRepository {
 
   def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit]
   def reindexAllUsers(implicit ec: ExecutionContext): Future[String]
+  def deleteAll(createdBefore: Long)(implicit ec: ExecutionContext): Future[Int]
 }
 
 @Singleton
@@ -71,12 +72,14 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
       "users",
       mongoComponent.mongoConnector.db,
       User.formats,
-      ReactiveMongoFormats.objectIdFormats) with StrictlyEnsureIndexes[User, BSONObjectID] with UsersRepository {
+      ReactiveMongoFormats.objectIdFormats) with StrictlyEnsureIndexes[User, BSONObjectID] with UsersRepository
+    with DeleteAll[User] {
 
   import ImplicitBSONHandlers._
 
   private final val UNIQUE_KEYS = "_uniqueKeys"
   private final val KEYS = "_keys"
+  final val UPDATED = "_last_updated_at"
 
   private def keyOf(key: String, planetId: String): String = s"${key.replace(" ", "")}@$planetId"
 
@@ -201,7 +204,7 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
 
   override def create(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     collection
-      .insert(serializeUser(user, planetId))
+      .insert(serializeUser(user, planetId).+(UPDATED -> JsNumber(System.currentTimeMillis())))
       .map(_ => ())
       .recoverWith {
         case e: DatabaseException if e.code.contains(11000) =>
@@ -211,9 +214,10 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
   override def update(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     collection
       .update(
-        Json.obj(UNIQUE_KEYS -> keyOf(User.userIdKey(user.userId), planetId)),
-        serializeUser(user, planetId),
-        upsert = true)
+        Json.obj(UNIQUE_KEYS                    -> keyOf(User.userIdKey(user.userId), planetId)),
+        serializeUser(user, planetId).+(UPDATED -> JsNumber(System.currentTimeMillis())),
+        upsert = true
+      )
       .map(_ => ())
       .recoverWith {
         case e: DatabaseException if e.code.contains(11000) =>
@@ -297,7 +301,7 @@ class UsersRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
     override def reads(json: JsValue): JsResult[String] = JsSuccess((json \ "_id" \ "$oid").as[String])
   }
 
-  def reindexAllUsers(implicit ec: ExecutionContext): Future[String] = {
+  override def reindexAllUsers(implicit ec: ExecutionContext): Future[String] = {
     val logger = Logger("uk.gov.hmrc.agentsexternalstubs.re-indexing")
     cursor(Seq(), Seq("_id" -> 1))(idReads)
       .collect[Seq](maxDocs = -1, err = Cursor.FailOnError())
