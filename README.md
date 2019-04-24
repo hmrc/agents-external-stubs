@@ -89,7 +89,7 @@ Any stubbed or proxied APIs request can return pre-defined response defined usin
 To achieve high volume throughput and low latency required for performance testing you may consider deploy only *single* stubs instance and switch on few optimisations options:
 * `features.authCache` - to aggressively cache all auth authorisations in memory,
 * `features.preloadRecordsForDefaultUserIds` - to preload record template caches with entities generated for the default user ids pool, this will work well with `userIdFromPool` query parameter attached to the sign-in and create user requests,
-* `features.clearOldMongoDbDocumentsDaily` - to clear stubs database daily at 12:30 am.
+* `features.clearOldMongoDbDocumentsDaily` - to clear stubs database daily at 12:30 AM UTC.
 
 ## Stubbed APIs <a name="stubbed_api"></a>
 

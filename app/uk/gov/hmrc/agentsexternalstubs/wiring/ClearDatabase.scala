@@ -2,7 +2,7 @@ package uk.gov.hmrc.agentsexternalstubs.wiring
 
 import akka.actor.{Actor, ActorSystem, Props}
 import javax.inject.{Inject, Singleton}
-import org.joda.time.{DateTime, Interval}
+import org.joda.time.{DateTime, DateTimeZone, Interval}
 import play.api.Logger
 import uk.gov.hmrc.agentsexternalstubs.repository._
 
@@ -21,8 +21,8 @@ class ClearDatabase @Inject()(
   actorSystem: ActorSystem)(implicit ec: ExecutionContext) {
 
   val interval = Duration(24, "h")
-  val now = DateTime.now
-  val taskDateTime = DateTime.now.withTimeAtStartOfDay().withHourOfDay(12).withMinuteOfHour(30)
+  val now = DateTime.now(DateTimeZone.UTC)
+  val taskDateTime = now.withTimeAtStartOfDay().withHourOfDay(12).withMinuteOfHour(30)
   val initialDelay =
     FiniteDuration(
       (if (now.isBefore(taskDateTime)) new Interval(now, taskDateTime) else new Interval(now, taskDateTime.plusDays(1))).toDurationMillis,
@@ -40,7 +40,7 @@ class ClearDatabase @Inject()(
 
   if (appConfig.clearOldMongoDbDocumentsDaily) {
     Logger(getClass).info(
-      s"Clear database task will start in ${initialDelay.toMinutes} minutes and will run every ${interval.toHours}")
+      s"Clear database task will start in ${initialDelay.toMinutes} minutes and will run every ${interval.toHours} hours.")
     actorSystem.scheduler.schedule(initialDelay, interval, taskActorRef, "clear")
   } else {
     Logger(getClass).info("Clear database daily task is switched off.")
