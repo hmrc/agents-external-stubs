@@ -127,6 +127,11 @@ GET         /agents-external-stubs/special-cases/:id                         @uk
 PUT         /agents-external-stubs/special-cases/:id                         @uk.gov.hmrc.agentsexternalstubs.controllers.SpecialCasesController.updateSpecialCase(id: String)
 DELETE      /agents-external-stubs/special-cases/:id                         @uk.gov.hmrc.agentsexternalstubs.controllers.SpecialCasesController.deleteSpecialCase(id: String)
 
+#File Upload urls
+POST        /file-upload/envelopes                                           @uk.gov.hmrc.agentsexternalstubs.controllers.FileUploadController.createEnvelope()
+POST        /file-routing/requests                                           @uk.gov.hmrc.agentsexternalstubs.controllers.FileUploadController.routeEnvelope()
+POST        /file-upload/upload/envelopes/:envelopeId/files/:fileId          @uk.gov.hmrc.agentsexternalstubs.controllers.FileUploadController.uploadFile(envelopeId: String, fileId: String)
+
 # Config management
 GET         /agents-external-stubs/config/services                           @uk.gov.hmrc.agentsexternalstubs.controllers.ConfigController.getServices
 

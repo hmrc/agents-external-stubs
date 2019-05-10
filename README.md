@@ -32,6 +32,7 @@ This app SHOULD NOT be run on QA nor Production environment.
     * [NI Exemption Registration](#stubbed_api_ni_exemption_registration)
     * [DES](#stubbed_api_des)
     * [Datastream](#stubbed_api_datastream)
+    * [File Upload](#stubbed_api_file-upload)
 * [Custom API](#custom_api)
     * [Authentication](#custom_api_authentication)
     * [Users Management](#custom_api_users)
@@ -70,6 +71,7 @@ We handle local requests gracefully and do not require existing applications to 
 - listening on 9904 for des requests
 - listening on 8100 for datastream events
 - listening on 9974 for sso requests
+- listening on 8898 for file-upload requests
 
 You can switch this behaviour off by setting `features.proxies` config property to `false`.
 
@@ -189,6 +191,17 @@ Endpoint | Description
 `POST /ni-exemption-registration/ni-businesses/:utr` | payload: `{"postcode":"AA1 1AA"}`
 
 This endpoint checks UTR and postcode against Business Partner Record and eventually return EORI if defined there.
+
+
+### [File Upload](https://github.com/hmrc/file-upload) <a name="stubbed_api_fileupload"></a>
+
+Creates an envelope and routes and envelope.
+
+Endpoint | Description
+---|---
+`POST /file-upload/envelopes` | Creates an envelope
+`POST /file-routing/requests` | Routes an envelope
+`POST /file-upload/upload/envelopes/:envelopeId/files/:fileId` | Uploads a file
 
 ## Custom API <a name="custom_api"></a>
 

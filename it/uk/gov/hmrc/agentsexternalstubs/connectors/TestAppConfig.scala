@@ -30,6 +30,8 @@ case class TestAppConfig(wireMockBaseUrl: String, wireMockPort: Int) extends App
   override val desPort: Int = wireMockPort
   override val dataStreamPort: Int = wireMockPort
   override val ssoPort: Int = wireMockPort
+  override val fileUploadFrontendPort: Int = wireMockPort
+  override val fileUploadPort: Int = wireMockPort
   override val authCacheEnabled: Boolean = true
   override val specialCasesDisabled: Boolean = false
   override val preloadRecordsForDefaultUserIds: Boolean = false

@@ -38,6 +38,8 @@ trait AppConfig {
   val desPort: Int
   val dataStreamPort: Int
   val ssoPort: Int
+  val fileUploadPort: Int
+  val fileUploadFrontendPort: Int
 
   val authCacheEnabled: Boolean
   val specialCasesDisabled: Boolean
@@ -79,6 +81,8 @@ class AppConfigImpl @Inject()(config: ServicesConfig) extends AppConfig {
   val desPort: Int = config.getConfInt("des.port", 0)
   val dataStreamPort: Int = config.getInt("auditing.consumer.baseUri.port")
   val ssoPort: Int = config.getConfInt("sso.port", 0)
+  val fileUploadPort: Int = config.getConfInt("file-upload.port", 0)
+  val fileUploadFrontendPort: Int = config.getConfInt("file-upload-frontend.port", 0)
 
   val isProxyMode: Boolean = config.getBoolean("features.proxies")
   val authCacheEnabled: Boolean = config.getBoolean("features.authCache")
