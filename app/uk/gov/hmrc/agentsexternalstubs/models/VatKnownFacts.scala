@@ -14,6 +14,6 @@ object VatKnownFacts {
       VatKnownFacts(
         vrn = vatCustomerInformationRecord.vrn,
         dateOfReg =
-          vatCustomerInformationRecord.approvedInformation.map(_.customerDetails).map(_.effectiveRegistrationDate).get
+          vatCustomerInformationRecord.approvedInformation.map(_.customerDetails).flatMap(_.effectiveRegistrationDate)
       ))
 }

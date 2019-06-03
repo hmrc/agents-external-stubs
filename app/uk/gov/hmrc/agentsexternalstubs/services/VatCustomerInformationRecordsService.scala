@@ -38,5 +38,6 @@ class VatCustomerInformationRecordsService @Inject()(
             .map(_.headOption))
 
   def getVatKnownFacts(vrn: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[VatKnownFacts]] =
-    getCustomerInformation(vrn, planetId).map(record => VatKnownFacts.fromVatCustomerInformationRecord(record.get))
+    getCustomerInformation(vrn, planetId).map(record =>
+      VatKnownFacts.fromVatCustomerInformationRecord(record.get).orElse(None))
 }
