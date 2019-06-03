@@ -2,7 +2,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 
 import com.google.inject.Provider
 import javax.inject.{Inject, Singleton}
-import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord
+import uk.gov.hmrc.agentsexternalstubs.models.{VatCustomerInformationRecord, VatKnownFacts}
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.domain.Vrn
 import uk.gov.hmrc.http.BadRequestException
@@ -36,4 +36,8 @@ class VatCustomerInformationRecordsService @Inject()(
         id =>
           findByKey[VatCustomerInformationRecord](VatCustomerInformationRecord.uniqueKey(id.value), planetId)
             .map(_.headOption))
+
+  def getVatKnownFacts(vrn: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[VatKnownFacts]] =
+    getCustomerInformation(vrn, planetId).map(VatKnownFacts.fromVatCustomerInformationRecord(vrn, _))
+
 }
