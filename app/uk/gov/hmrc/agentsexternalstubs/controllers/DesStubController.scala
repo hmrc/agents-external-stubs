@@ -390,6 +390,21 @@ class DesStubController @Inject()(
     }(SessionRecordNotFound)
   }
 
+  def getVatKnownFacts(vrn: String) = Action.async { implicit request =>
+    withCurrentSession { session =>
+      RegexPatterns
+        .validVrn(vrn)
+        .fold(
+          error => badRequestF("INVALID_VRN", error),
+          _ =>
+            vatCustomerInformationRecordsService.getVatKnownFacts(vrn, session.planetId).map {
+              case Some(record) => Ok(Json.toJson(record))
+              case None         => Ok(Json.obj())
+          }
+        )
+    }(SessionRecordNotFound)
+  }
+
   private def getOrCreateBusinessPartnerRecord[T <: Record](
     payload: RegistrationPayload,
     idType: String,
