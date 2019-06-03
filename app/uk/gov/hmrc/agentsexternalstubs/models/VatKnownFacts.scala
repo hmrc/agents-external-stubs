@@ -8,9 +8,11 @@ object VatKnownFacts {
 
   implicit val format = Json.format[VatKnownFacts]
 
-  def fromVatCustomerInformationRecord( vrn: String,
+  def fromVatCustomerInformationRecord(
+    vrn: String,
     vatRecord: Option[VatCustomerInformationRecord]): Option[VatKnownFacts] =
-    vatRecord.flatMap(_.approvedInformation)
+    vatRecord
+      .flatMap(_.approvedInformation)
       .map(_.customerDetails)
       .flatMap(_.effectiveRegistrationDate)
       .map(VatKnownFacts(vrn, _))
