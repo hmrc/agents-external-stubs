@@ -375,6 +375,31 @@ class DesStubControllerISpec
       }
     }
 
+    "GET /vat/known-facts/control-list/:vrn" should {
+      "return 200 response if record found" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val createResult = Records.createVatCustomerInformation(Json.parse(validVatCustomerInformationPayload))
+        createResult should haveStatus(201)
+
+        val result = DesStub.getVatKnownFacts("999999999")
+        result should haveStatus(404)
+      }
+
+      "return 404 response if record not found" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val createResult = Records.createVatCustomerInformation(Json.parse(validVatCustomerInformationPayload))
+        createResult should haveStatus(201)
+
+        val result = DesStub.getVatKnownFacts("123456789")
+        result should haveStatus(200)
+        val json = result.json.as[JsObject]
+        json should haveProperty[String]("vrn")
+        json should haveProperty[String]("dateOfReg")
+      }
+
+
+    }
+
     "GET /registration/personal-details/arn/:arn" should {
       "return 200 response if record found" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()

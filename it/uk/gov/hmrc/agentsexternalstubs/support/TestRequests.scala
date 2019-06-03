@@ -397,6 +397,9 @@ trait TestRequests extends ScalaFutures {
     def getVatCustomerInformation(vrn: String)(implicit authContext: AuthContext): WSResponse =
       get(s"/vat/customer/vrn/$vrn/information")
 
+    def getVatKnownFacts(vrn: String)(implicit authContext: AuthContext): WSResponse =
+      get(s"/vat/known-facts/control-list/$vrn")
+
     def getBusinessPartnerRecord(idType: String, idNumber: String)(implicit authContext: AuthContext): WSResponse =
       get(s"/registration/personal-details/$idType/$idNumber")
 
