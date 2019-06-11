@@ -70,8 +70,9 @@ POST        /write/audit/merged                                              @uk
 POST        /ni-exemption-registration/ni-businesses/:utr                    @uk.gov.hmrc.agentsexternalstubs.controllers.NiExemptionRegistrationStubController.niBusinesses(utr: String)
 
 # SSO
-GET         /sso/validate/domain/:domain                                     @uk.gov.hmrc.agentsexternalstubs.controllers.SsoValidateDomainController.validate(domain: String)
-POST        /sso/digital-flag/:flag                                          @uk.gov.hmrc.agentsexternalstubs.controllers.SsoValidateDomainController.digitalFlag(flag: String)
+GET         /sso/validate/domain/:domain                                     @uk.gov.hmrc.agentsexternalstubs.controllers.SsoDomainController.validate(domain: String)
+GET         /sso/domains                                                     @uk.gov.hmrc.agentsexternalstubs.controllers.SsoDomainController.getDomains
+POST        /sso/digital-flag/:flag                                          @uk.gov.hmrc.agentsexternalstubs.controllers.SsoDomainController.digitalFlag(flag: String)
 
 #------------------------------------------------------
 # CUSTOM APIs

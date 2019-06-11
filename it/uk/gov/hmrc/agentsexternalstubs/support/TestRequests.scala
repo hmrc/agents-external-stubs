@@ -460,6 +460,11 @@ trait TestRequests extends ScalaFutures {
       get(s"/sso/validate/domain/$domain")(NotAuthorized)
   }
 
+  object SsoGetDomains {
+    def getDomains: WSResponse =
+      get(s"/sso/domains")(NotAuthorized)
+  }
+
   object Records {
     def getRecords()(implicit authContext: AuthContext): WSResponse =
       get(s"/agents-external-stubs/records")
