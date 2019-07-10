@@ -96,30 +96,42 @@ case class FullAuthoriseContext(
         } yield
           Await.result(agentAccessControlConnector.isAuthorisedForPaye(ac, s"$taxOfficeNo/$employerRef"), timeout))
           .getOrElse(false)
+
       case "sa-auth" =>
         (for {
           ac    <- agentCode
           saUtr <- identifiers.find(_.key == "UTR").map(_.value)
         } yield Await.result(agentAccessControlConnector.isAuthorisedForSa(ac, saUtr), timeout))
           .getOrElse(false)
+
       case "mtd-it-auth" =>
         (for {
           ac      <- agentCode
           mtdItId <- identifiers.find(_.key == "MTDITID").map(_.value)
         } yield Await.result(agentAccessControlConnector.isAuthorisedForMtdIt(ac, mtdItId), timeout))
           .getOrElse(false)
+
       case "mtd-vat-auth" =>
         (for {
           ac  <- agentCode
           vrn <- identifiers.find(_.key == "VRN").map(_.value)
         } yield Await.result(agentAccessControlConnector.isAuthorisedForMtdVat(ac, vrn), timeout))
           .getOrElse(false)
+
       case "afi-auth" =>
         (for {
           ac   <- agentCode
           nino <- identifiers.headOption.map(_.value)
         } yield Await.result(agentAccessControlConnector.isAuthorisedForAfi(ac, nino), timeout))
           .getOrElse(false)
+
+      case "trust-auth" =>
+        (for {
+          ac  <- agentCode
+          utr <- identifiers.headOption.map(_.value)
+        } yield Await.result(agentAccessControlConnector.isAuthorisedForTrust(ac, utr), timeout))
+          .getOrElse(false)
+
       case _ => true
     }
 

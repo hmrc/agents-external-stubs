@@ -840,6 +840,54 @@ class AuthStubControllerISpec
         }
       }
 
+
+      "authorize if trust delegated auth rule returns true" in new TestFixture {
+        val agent = UserGenerator.agent(randomId)
+        val authToken =
+          givenAnAuthenticatedUser(agent)
+
+        WireMock.stubFor(
+          WireMock
+            .get(urlEqualTo(s"/agent-access-control/trust-auth/agent/${agent.agentCode.get}/client/1234556"))
+            .willReturn(aResponse()
+              .withStatus(200)))
+
+        implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
+
+        val result: String =
+          await(
+            authorised(
+              Enrolment("HMRC-TERS-ORG")
+                .withIdentifier("UTR", "1234556")
+                .withDelegatedAuthRule("trust-auth")) {
+              "success"
+            })
+      }
+
+      "do not authorize if trust delegated auth rule returns false" in new TestFixture {
+        val agent = UserGenerator.agent(randomId)
+        val authToken =
+          givenAnAuthenticatedUser(agent)
+
+        WireMock.stubFor(
+          WireMock
+            .get(urlEqualTo(s"/agent-access-control/trust-auth/agent/${agent.agentCode.get}/client/1234556"))
+            .willReturn(aResponse()
+              .withStatus(401)))
+
+        implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
+
+        an[InternalError] shouldBe thrownBy {
+          await(
+            authorised(
+              Enrolment("HMRC-TERS-ORG")
+                .withIdentifier("UTR", "1234556")
+                .withDelegatedAuthRule("trust-auth")) {
+              "success"
+            })
+        }
+      }
+
     }
 
     "GET /auth/authority" should {
