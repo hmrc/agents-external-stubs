@@ -421,7 +421,7 @@ class DesStubController @Inject()(
                   val trustDetails = TrustDetailsResponse(
                     TrustDetails(utr, record.name.getOrElse(""), TrustAddress(record.user.address), "TERS"))
                   Ok(Json.toJson(trustDetails))
-                case None => NotFound(Json.toJson("""{"code": "RESOURCE_NOT_FOUND", "reason": "RESOURCE_NOT_FOUND"}"""))
+                case None => notFound("RESOURCE_NOT_FOUND", "RESOURCE_NOT_FOUND")
             }
         )
     }(SessionRecordNotFound)
