@@ -1,6 +1,8 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import play.api.libs.json.{Format, Json}
+import play.api.mvc.Result
+import uk.gov.hmrc.agentsexternalstubs.controllers.HttpHelpers
 import uk.gov.hmrc.agentsexternalstubs.models.User.Address
 
 case class TrustAddress(
@@ -38,6 +40,23 @@ object TrustDetails {
 
 case class TrustDetailsResponse(trustDetails: TrustDetails)
 
-object TrustDetailsResponse {
+object TrustDetailsResponse extends HttpHelpers {
   implicit val format: Format[TrustDetailsResponse] = Json.format[TrustDetailsResponse]
+
+  def getErrorResponseFor(utr: String): Result =
+    if (utr == "3887997235") {
+      badRequest(
+        "INVALID_TRUST_STATE",
+        "The remote endpoint has indicated that the Trust/Estate is Closed and playback is not possible.")
+    } else if (utr == "5786221775") {
+      badRequest(
+        "INVALID_TRUST_STATE",
+        "The remote endpoint has indicated that there are Pending changes yet to be processed and playback is not yet possible.")
+    } else if (utr == "6028812143") {
+      badRequest("INVALID_REGIME", "The remote endpoint has indicated that the REGIME provided is invalid.")
+    } else {
+      notFound(
+        "RESOURCE_NOT_FOUND",
+        "The remote endpoint has indicated that no resource can be returned for the UTR provided and playback is not possible.")
+    }
 }
