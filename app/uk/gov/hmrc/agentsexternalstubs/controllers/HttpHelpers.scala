@@ -6,7 +6,7 @@ import uk.gov.hmrc.http.BadRequestException
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
-case class ErrorResponse(code: String, message: Option[String])
+case class ErrorResponse(code: String, reason: Option[String])
 
 object ErrorResponse {
   implicit val writes: Writes[ErrorResponse] = Json.writes[ErrorResponse]
@@ -28,8 +28,8 @@ trait HttpHelpers {
   def ok[T: Writes](entity: T, fix: JsValue => JsValue): Result =
     Results.Ok(fix(Json.toJson(entity)))
 
-  def errorMessage(code: String, message: Option[String]): JsValue =
-    Json.toJson(ErrorResponse(code, message))
+  def errorMessage(code: String, reason: Option[String]): JsValue =
+    Json.toJson(ErrorResponse(code, reason))
 
   def unauthorizedF(reason: String): Future[Result] =
     success(unauthorized(reason))
@@ -39,35 +39,35 @@ trait HttpHelpers {
       .Unauthorized("")
       .withHeaders("WWW-Authenticate" -> s"""MDTP detail="$reason"""")
 
-  def badRequestF(code: String, message: String = null): Future[Result] =
-    success(badRequest(code, message))
+  def badRequestF(code: String, reason: String = null): Future[Result] =
+    success(badRequest(code, reason))
 
-  def badRequest(code: String, message: String = null): Result =
-    Results.BadRequest(errorMessage(code, Option(message)))
+  def badRequest(code: String, reason: String = null): Result =
+    Results.BadRequest(errorMessage(code, Option(reason)))
 
-  def forbiddenF(code: String, message: String = null): Future[Result] =
-    success(forbidden(code, message))
+  def forbiddenF(code: String, reason: String = null): Future[Result] =
+    success(forbidden(code, reason))
 
-  def forbidden(code: String, message: String = null): Result =
-    Results.Forbidden(errorMessage(code, Option(message)))
+  def forbidden(code: String, reason: String = null): Result =
+    Results.Forbidden(errorMessage(code, Option(reason)))
 
-  def notFoundF(code: String, message: String = null): Future[Result] =
-    success(notFound(code, message))
+  def notFoundF(code: String, reason: String = null): Future[Result] =
+    success(notFound(code, reason))
 
-  def notFound(code: String, message: String = null): Result =
-    Results.NotFound(errorMessage(code, Option(message)))
+  def notFound(code: String, reason: String = null): Result =
+    Results.NotFound(errorMessage(code, Option(reason)))
 
-  def conflictF(code: String, message: String = null): Future[Result] =
-    success(conflict(code, message))
+  def conflictF(code: String, reason: String = null): Future[Result] =
+    success(conflict(code, reason))
 
-  def conflict(code: String, message: String = null): Result =
-    Results.Conflict(errorMessage(code, Option(message)))
+  def conflict(code: String, reason: String = null): Result =
+    Results.Conflict(errorMessage(code, Option(reason)))
 
-  def internalServerErrorF(code: String, message: String = null): Future[Result] =
-    success(internalServerError(code, message))
+  def internalServerErrorF(code: String, reason: String = null): Future[Result] =
+    success(internalServerError(code, reason))
 
-  def internalServerError(code: String, message: String = null): Result =
-    Results.InternalServerError(errorMessage(code, Option(message)))
+  def internalServerError(code: String, reason: String = null): Result =
+    Results.InternalServerError(errorMessage(code, Option(reason)))
 
   val SessionRecordNotFound: Future[Result] = unauthorizedF("SessionRecordNotFound")
 
@@ -111,8 +111,8 @@ object DesErrorResponse {
 
 trait DesHttpHelpers extends HttpHelpers {
 
-  override def errorMessage(code: String, message: Option[String]): JsValue =
-    Json.toJson(DesErrorResponse(code, message))
+  override def errorMessage(code: String, reason: Option[String]): JsValue =
+    Json.toJson(DesErrorResponse(code, reason))
 
   override def unauthorized(reason: String): Result =
     Results.Unauthorized(errorMessage("UNAUTHORIZED", Option(reason)))
