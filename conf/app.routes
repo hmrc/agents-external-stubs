@@ -76,6 +76,12 @@ GET         /sso/validate/domain/:domain                                     @uk
 GET         /sso/domains                                                     @uk.gov.hmrc.agentsexternalstubs.controllers.SsoDomainController.getDomains
 POST        /sso/digital-flag/:flag                                          @uk.gov.hmrc.agentsexternalstubs.controllers.SsoDomainController.digitalFlag(flag: String)
 
+
+# IV
+POST        /journey                                                         @uk.gov.hmrc.agentsexternalstubs.controllers.IdentityVerificationController.createJourney
+GET         /journey/:journeyId                                              @uk.gov.hmrc.agentsexternalstubs.controllers.IdentityVerificationController.getJourney(journeyId: String)
+DELETE      /journey/:journeyId                                              @uk.gov.hmrc.agentsexternalstubs.controllers.IdentityVerificationController.deleteJourney(journeyId: String)
+
 #------------------------------------------------------
 # CUSTOM APIs
 #------------------------------------------------------

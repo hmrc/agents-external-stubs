@@ -49,7 +49,8 @@ class TcpProxies @Inject()(appConfig: AppConfig)(implicit system: ActorSystem, m
           startProxy(appConfig.dataStreamPort, "datastream"),
           startProxy(appConfig.ssoPort, "sso"),
           startProxy(appConfig.fileUploadPort, "file-upload"),
-          startProxy(appConfig.fileUploadFrontendPort, "file-upload-frontend")
+          startProxy(appConfig.fileUploadFrontendPort, "file-upload-frontend"),
+          startProxy(appConfig.identityVerification, "identity-verification")
         ))
       .map(_ => Logger(getClass).info("All proxies have started."))
 

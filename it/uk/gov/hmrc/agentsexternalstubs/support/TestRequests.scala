@@ -7,6 +7,7 @@ import play.api.http.{HeaderNames, MimeTypes}
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.libs.ws.{BodyWritable, WSClient, WSCookie, WSResponse}
 import play.api.mvc.{Cookie, Cookies, Session}
+import uk.gov.hmrc.agentsexternalstubs.models.iv_models.JourneyCreation
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, SignInRequest, User}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.logging.Authorization
@@ -634,6 +635,23 @@ trait TestRequests extends ScalaFutures {
   object Planets {
     def destroy(planetId: String)(implicit authContext: AuthContext): WSResponse =
       delete(s"/agents-external-stubs/planets/$planetId")
+  }
+
+  object IvJourney {
+
+
+    def createJourneyId(payload: JourneyCreation)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/journey")
+        .withHttpHeaders(authContext.headers: _*)
+        .post(Json.toJson(payload))
+        .futureValue
+
+    def getJourneyId(journeyId: String)(implicit authContext: AuthContext): WSResponse =
+      get(s"/journey/$journeyId")
+
+    def deleteJourney(journeyId: String)(implicit authContext: AuthContext): WSResponse =
+      delete(s"/journey/$journeyId")
   }
 
 }

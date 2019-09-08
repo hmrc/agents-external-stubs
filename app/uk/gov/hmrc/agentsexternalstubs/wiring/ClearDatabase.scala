@@ -18,6 +18,7 @@ class ClearDatabase @Inject()(
   knownFactsRepository: KnownFactsRepository,
   authenticatedSessionsRepository: AuthenticatedSessionsRepository,
   specialCasesRepository: SpecialCasesRepository,
+  journeyIvRepository: JourneyIvRepository,
   actorSystem: ActorSystem)(implicit ec: ExecutionContext) {
 
   val interval = Duration(24, "h")
