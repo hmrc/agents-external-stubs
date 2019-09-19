@@ -18,6 +18,7 @@ case class User(
   delegatedEnrolments: Seq[Enrolment] = Seq.empty,
   name: Option[String] = None,
   dateOfBirth: Option[LocalDate] = None,
+  itmpDateOfBirth: Option[LocalDate] = None,
   agentCode: Option[String] = None,
   agentFriendlyName: Option[String] = None,
   agentId: Option[String] = None,
@@ -233,6 +234,7 @@ object User {
       (JsPath \ "delegatedEnrolments").readNullable[Seq[Enrolment]].map(_.getOrElse(Seq.empty)) and
       (JsPath \ "name").readNullable[String] and
       (JsPath \ "dateOfBirth").readNullable[LocalDate] and
+      (JsPath \ "itmpDateOfBirth").readNullable[LocalDate] and
       (JsPath \ "agentCode").readNullable[String] and
       (JsPath \ "agentFriendlyName").readNullable[String] and
       (JsPath \ "agentId").readNullable[String] and

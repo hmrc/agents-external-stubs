@@ -31,6 +31,17 @@ class UserSanitizerSpec extends UnitSpec {
       UserSanitizer.sanitize(User("boo", affinityGroup = Some(User.AG.Individual))).dateOfBirth.isDefined shouldBe true
     }
 
+    "add missing itmpDateOfBirth to the Individual" in {
+      UserSanitizer
+        .sanitize(User("foo", affinityGroup = Some(User.AG.Individual)))
+        .itmpDateOfBirth
+        .isDefined shouldBe true
+      UserSanitizer
+        .sanitize(User("boo", affinityGroup = Some(User.AG.Individual)))
+        .itmpDateOfBirth
+        .isDefined shouldBe true
+    }
+
     "add missing NINO to the Individual" in {
       UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Individual))).nino shouldBe Some(
         Nino("XC 93 60 45 D"))
@@ -88,6 +99,19 @@ class UserSanitizerSpec extends UnitSpec {
       UserSanitizer
         .sanitize(User("foo", affinityGroup = Some(User.AG.Agent), dateOfBirth = Some(now)))
         .dateOfBirth shouldBe None
+    }
+
+    "remove ItmpDateOfBirth if not Individual" in {
+      val now = LocalDate.now()
+      UserSanitizer
+        .sanitize(User("foo", affinityGroup = Some(User.AG.Individual), itmpDateOfBirth = Some(now)))
+        .itmpDateOfBirth shouldBe Some(now)
+      UserSanitizer
+        .sanitize(User("foo", affinityGroup = Some(User.AG.Organisation), itmpDateOfBirth = Some(now)))
+        .itmpDateOfBirth shouldBe None
+      UserSanitizer
+        .sanitize(User("foo", affinityGroup = Some(User.AG.Agent), itmpDateOfBirth = Some(now)))
+        .itmpDateOfBirth shouldBe None
     }
 
     "add missing GroupIdentifier" in {
