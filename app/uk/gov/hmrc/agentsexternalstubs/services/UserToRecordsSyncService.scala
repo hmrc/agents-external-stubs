@@ -3,6 +3,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 import javax.inject.{Inject, Singleton}
+import org.joda.time
 import uk.gov.hmrc.agentmtdidentifiers.model.MtdItId
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{AgencyDetails, Individual, Organisation}
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, IndividualName}
@@ -358,6 +359,7 @@ class UserToRecordsSyncService @Inject()(
                   .generate(user.userId)
                   .withFirstName(user.firstName.getOrElse("John"))
                   .withLastName(user.lastName.getOrElse("Smith"))
+                  .withItmpDateOfBirth(user.itmpDateOfBirth.map(_.toString).getOrElse("1985-01-01"))
               ))
             .withAgencyDetails(
               Some(

@@ -659,6 +659,9 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     def withItmpDateOfBirth(itmpDateOfBirth: String): Individual = copy(itmpDateOfBirth = itmpDateOfBirth)
     def modifyDateOfBirth(pf: PartialFunction[String, String]): Individual =
       if (pf.isDefinedAt(dateOfBirth)) copy(dateOfBirth = pf(dateOfBirth)) else this
+
+    def modifyItmpDateOfBirth(pf: PartialFunction[String, String]): Individual =
+      if (pf.isDefinedAt(itmpDateOfBirth)) copy(itmpDateOfBirth = pf(itmpDateOfBirth)) else this
   }
 
   object Individual extends RecordUtils[Individual] {
