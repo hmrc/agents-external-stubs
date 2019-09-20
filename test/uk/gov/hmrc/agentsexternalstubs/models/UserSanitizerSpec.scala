@@ -49,13 +49,16 @@ class UserSanitizerSpec extends UnitSpec {
         Nino("AB 61 73 12 C"))
     }
 
-    "remove NINO if not Individual" in {
+    "remove NINO for Business" in {
       UserSanitizer
         .sanitize(User("foo", affinityGroup = Some(User.AG.Organisation), nino = Some(Nino("XC 93 60 45 D"))))
         .nino shouldBe None
       UserSanitizer
         .sanitize(User("foo", affinityGroup = Some(User.AG.Agent), nino = Some(Nino("XC 93 60 45 D"))))
-        .nino shouldBe None
+        .nino shouldBe Some(Nino("XC 93 60 45 D"))
+      UserSanitizer
+        .sanitize(User("foo", affinityGroup = Some(User.AG.Individual), nino = Some(Nino("XC 93 60 45 D"))))
+        .nino shouldBe Some(Nino("XC 93 60 45 D"))
     }
 
     "add missing ConfidenceLevel to the Individual" in {
@@ -88,7 +91,7 @@ class UserSanitizerSpec extends UnitSpec {
         .credentialRole shouldBe None
     }
 
-    "remove DateOfBirth if not Individual" in {
+    "remove DateOfBirth for Business" in {
       val now = LocalDate.now()
       UserSanitizer
         .sanitize(User("foo", affinityGroup = Some(User.AG.Individual), dateOfBirth = Some(now)))
@@ -98,10 +101,10 @@ class UserSanitizerSpec extends UnitSpec {
         .dateOfBirth shouldBe None
       UserSanitizer
         .sanitize(User("foo", affinityGroup = Some(User.AG.Agent), dateOfBirth = Some(now)))
-        .dateOfBirth shouldBe None
+        .dateOfBirth shouldBe Some(now)
     }
 
-    "remove ItmpDateOfBirth if not Individual" in {
+    "remove ItmpDateOfBirth for Business" in {
       val now = LocalDate.now()
       UserSanitizer
         .sanitize(User("foo", affinityGroup = Some(User.AG.Individual), itmpDateOfBirth = Some(now)))
@@ -111,7 +114,7 @@ class UserSanitizerSpec extends UnitSpec {
         .itmpDateOfBirth shouldBe None
       UserSanitizer
         .sanitize(User("foo", affinityGroup = Some(User.AG.Agent), itmpDateOfBirth = Some(now)))
-        .itmpDateOfBirth shouldBe None
+        .itmpDateOfBirth shouldBe Some(now)
     }
 
     "add missing GroupIdentifier" in {

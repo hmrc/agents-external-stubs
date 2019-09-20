@@ -743,6 +743,7 @@ object DesStubController {
                 .withFirstName(i.firstName)
                 .withLastName(i.lastName)
                 .withDateOfBirth(i.dateOfBirth)
+                .withItmpDateOfBirth(i.itmpDateOfBirth)
           )
         )
         .withOrganisation(

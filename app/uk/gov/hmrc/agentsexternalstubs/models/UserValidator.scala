@@ -1,6 +1,8 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
+import uk.gov.hmrc.agentsexternalstubs.models.User.AG
+import uk.gov.hmrc.agentsexternalstubs.models.User.AG._
 
 object UserValidator {
 
@@ -10,7 +12,7 @@ object UserValidator {
 
   val validateAffinityGroup: UserConstraint = user =>
     user.affinityGroup match {
-      case Some(User.AG.Individual) | Some(User.AG.Organisation) | Some(User.AG.Agent) | None => Valid(())
+      case Some(Individual) | Some(User.AG.Organisation) | Some(User.AG.Agent) | None => Valid(())
       case _ =>
         Invalid("affinityGroup must be none, or one of [Individual, Organisation, Agent]")
   }
@@ -18,7 +20,7 @@ object UserValidator {
   val validateConfidenceLevel: UserConstraint = user =>
     user.confidenceLevel match {
       case Some(50) | Some(100) | Some(200) | Some(300)
-          if user.affinityGroup.contains(User.AG.Individual) && user.nino.isDefined =>
+          if user.affinityGroup.contains(Individual) && user.nino.isDefined =>
         Valid(())
       case None => Valid(())
       case _ =>
@@ -34,7 +36,7 @@ object UserValidator {
 
   val validateCredentialRole: UserConstraint = user =>
     user.affinityGroup match {
-      case Some(User.AG.Individual | User.AG.Agent) =>
+      case Some(Individual | User.AG.Agent) =>
         if (user.credentialRole.isEmpty || user.credentialRole.exists(User.CR.all)) Valid(())
         else
           Invalid("credentialRole must be none, or one of [Admin, User, Assistant] for Individual or Agent")
@@ -46,33 +48,33 @@ object UserValidator {
 
   val validateNino: UserConstraint = user =>
     user.nino match {
-      case Some(_) if user.affinityGroup.contains(User.AG.Individual) => Valid(())
-      case None                                                       => Valid(())
-      case _                                                          => Invalid("NINO can be only set for Individual")
+      case Some(_) if user.affinityGroup.contains(Individual) || user.affinityGroup.contains(Agent) => Valid(())
+      case None                                                                                     => Valid(())
+      case _                                                                                        => Invalid("NINO can be only set for Individual or Agent")
   }
 
   val validateConfidenceLevelAndNino: UserConstraint = user =>
     (user.affinityGroup, user.nino, user.confidenceLevel) match {
-      case (Some(User.AG.Individual), Some(_), Some(_)) => Valid(())
-      case (Some(User.AG.Individual), None, Some(_)) =>
+      case (Some(Individual), Some(_), Some(_)) => Valid(())
+      case (Some(Individual), None, Some(_)) =>
         Invalid("confidenceLevel must be accompanied by NINO")
-      case (Some(User.AG.Individual), Some(_), None) =>
+      case (Some(Individual), Some(_), None) =>
         Invalid("NINO must be accompanied by confidenceLevel")
       case _ => Valid(())
   }
 
   val validateDateOfBirth: UserConstraint = user =>
     user.dateOfBirth match {
-      case Some(_) if user.affinityGroup.contains(User.AG.Individual) => Valid(())
-      case None                                                       => Valid(())
-      case _                                                          => Invalid("dateOfBirth can be only set for Individual")
+      case Some(_) if user.affinityGroup.contains(Individual) || user.affinityGroup.contains(Agent) => Valid(())
+      case None                                                                                     => Valid(())
+      case _                                                                                        => Invalid("dateOfBirth can be only set for Individual or Agent")
   }
 
   val validateItmpDateOfBirth: UserConstraint = user =>
     user.itmpDateOfBirth match {
-      case Some(_) if user.affinityGroup.contains(User.AG.Individual) => Valid(())
-      case None                                                       => Valid(())
-      case _                                                          => Invalid("itmpDateOfBirth can be only set for Individual")
+      case Some(_) if user.affinityGroup.contains(Individual) || user.affinityGroup.contains(Agent) => Valid(())
+      case None                                                                                     => Valid(())
+      case _                                                                                        => Invalid("itmpDateOfBirth can be only set for Individual or Agent")
   }
 
   val validateAgentCode: UserConstraint = user =>
@@ -153,7 +155,7 @@ object UserValidator {
                 .cond(
                   Services(e.key)
                     .map(_.affinityGroups)
-                    .forall(ag => ag.contains(User.AG.Individual) || ag.contains(User.AG.Organisation)),
+                    .forall(ag => ag.contains(Individual) || ag.contains(User.AG.Organisation)),
                   (),
                   s"Enrolment for ${e.key} may not be delegated to an Agent."
                 )

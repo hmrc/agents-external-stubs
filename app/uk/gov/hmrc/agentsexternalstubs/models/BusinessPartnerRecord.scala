@@ -3,6 +3,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json._
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord._
+import uk.gov.hmrc.agentsexternalstubs.models.Validator.checkProperty
 
 /**
   * ----------------------------------------------------------------------------
@@ -638,7 +639,12 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
 
   }
 
-  case class Individual(firstName: String, middleName: Option[String] = None, lastName: String, dateOfBirth: String) {
+  case class Individual(
+    firstName: String,
+    middleName: Option[String] = None,
+    lastName: String,
+    dateOfBirth: String,
+    itmpDateOfBirth: String) {
 
     def withFirstName(firstName: String): Individual = copy(firstName = firstName)
     def modifyFirstName(pf: PartialFunction[String, String]): Individual =
@@ -650,6 +656,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     def modifyLastName(pf: PartialFunction[String, String]): Individual =
       if (pf.isDefinedAt(lastName)) copy(lastName = pf(lastName)) else this
     def withDateOfBirth(dateOfBirth: String): Individual = copy(dateOfBirth = dateOfBirth)
+    def withItmpDateOfBirth(itmpDateOfBirth: String): Individual = copy(itmpDateOfBirth = itmpDateOfBirth)
     def modifyDateOfBirth(pf: PartialFunction[String, String]): Individual =
       if (pf.isDefinedAt(dateOfBirth)) copy(dateOfBirth = pf(dateOfBirth)) else this
   }
@@ -670,18 +677,21 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
       checkProperty(_.firstName, firstNameValidator),
       checkProperty(_.middleName, middleNameValidator),
       checkProperty(_.lastName, lastNameValidator),
-      checkProperty(_.dateOfBirth, dateOfBirthValidator)
+      checkProperty(_.dateOfBirth, dateOfBirthValidator),
+      checkProperty(_.itmpDateOfBirth, dateOfBirthValidator)
     )
 
     override val gen: Gen[Individual] = for {
-      firstName   <- Generator.forename().suchThat(_.length >= 1).suchThat(_.length <= 35)
-      lastName    <- Generator.surname.suchThat(_.length >= 1).suchThat(_.length <= 35)
-      dateOfBirth <- Generator.dateYYYYMMDDGen.variant("ofbirth")
+      firstName       <- Generator.forename().suchThat(_.length >= 1).suchThat(_.length <= 35)
+      lastName        <- Generator.surname.suchThat(_.length >= 1).suchThat(_.length <= 35)
+      dateOfBirth     <- Generator.dateYYYYMMDDGen.variant("ofbirth")
+      itmpDateOfBirth <- Generator.dateYYYYMMDDGen.variant("ofbirth")
     } yield
       Individual(
         firstName = firstName,
         lastName = lastName,
-        dateOfBirth = dateOfBirth
+        dateOfBirth = dateOfBirth,
+        itmpDateOfBirth = itmpDateOfBirth
       )
 
     val middleNameSanitizer: Update = seed =>

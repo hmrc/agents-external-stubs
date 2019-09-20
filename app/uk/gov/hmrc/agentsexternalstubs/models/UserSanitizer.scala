@@ -1,6 +1,8 @@
 package uk.gov.hmrc.agentsexternalstubs.models
+
 import org.scalacheck.Gen
 import uk.gov.hmrc.agentsexternalstubs.models.Validator.Validator
+import uk.gov.hmrc.domain.Nino
 
 object UserSanitizer extends RecordUtils[User] {
 
@@ -38,18 +40,12 @@ object UserSanitizer extends RecordUtils[User] {
         )
       else user
 
-  private val ensureIndividualUserHaveDateOfBirth: Update = seed =>
-    user =>
-      if (user.affinityGroup.contains(User.AG.Individual) && user.dateOfBirth.isEmpty)
-        user.copy(dateOfBirth = Some(UserGenerator.dateOfBirth(seed)))
-      else user
-
-  private val ensureOnlyIndividualUserHaveNINO: Update = seed =>
+  private val ensureBusinessesDoNotHaveNINO: Update = seed =>
     user =>
       user.affinityGroup match {
-        case Some(User.AG.Individual) =>
-          if (user.nino.isEmpty) user.copy(nino = Some(Generator.ninoWithSpaces(seed))) else user
-        case _ => user.copy(nino = None)
+        case Some(User.AG.Organisation) => user.copy(nino = None)
+        case Some(_)                    => if (user.nino.isEmpty) user.copy(nino = Some(Generator.ninoWithSpaces(seed))) else user
+        case None                       => user.copy(nino = None)
   }
 
   private val ensureOnlyIndividualUserHaveConfidenceLevel: Update = seed =>
@@ -72,24 +68,24 @@ object UserSanitizer extends RecordUtils[User] {
         case _ => user.copy(credentialRole = None)
   }
 
-  private val ensureOnlyIndividualUserHaveDateOfBirth: Update = seed =>
+  private val ensureBusinessesDoNotHaveDob: Update = seed =>
     user =>
       user.affinityGroup match {
-        case Some(User.AG.Individual) =>
-          if (user.dateOfBirth.isEmpty)
-            user.copy(dateOfBirth = Some(UserGenerator.dateOfBirth(seed)))
-          else user
-        case _ => user.copy(dateOfBirth = None)
+        case Some(User.AG.Organisation) =>
+          user.copy(dateOfBirth = None)
+        case Some(_) =>
+          if (user.dateOfBirth.isEmpty) user.copy(dateOfBirth = Some(UserGenerator.dateOfBirth(seed))) else user
+        case None => user.copy(dateOfBirth = None)
   }
 
-  private val ensureOnlyIndividualUserHaveItmpDateOfBirth: Update = seed =>
+  private val ensureBusinessesDoNotHaveItmpDob: Update = seed =>
     user =>
       user.affinityGroup match {
-        case Some(User.AG.Individual) =>
-          if (user.itmpDateOfBirth.isEmpty)
-            user.copy(itmpDateOfBirth = Some(UserGenerator.dateOfBirth(seed)))
-          else user
-        case _ => user.copy(itmpDateOfBirth = None)
+        case Some(User.AG.Organisation) =>
+          user.copy(itmpDateOfBirth = None)
+        case Some(_) =>
+          if (user.itmpDateOfBirth.isEmpty) user.copy(itmpDateOfBirth = Some(UserGenerator.dateOfBirth(seed))) else user
+        case None => user.copy(itmpDateOfBirth = None)
   }
 
   private val ensureUserHaveGroupIdentifier: Update = seed =>
@@ -216,12 +212,11 @@ object UserSanitizer extends RecordUtils[User] {
       ensureUserHaveGroupIdentifier,
       ensureUserHaveName,
       ensureStrideUserHaveNoGatewayEnrolmentsNorAffinityGroupNorOtherData,
-      ensureIndividualUserHaveDateOfBirth,
-      ensureOnlyIndividualUserHaveNINO,
+      ensureBusinessesDoNotHaveNINO,
       ensureOnlyIndividualUserHaveConfidenceLevel,
       ensureUserHaveCredentialRole,
-      ensureOnlyIndividualUserHaveDateOfBirth,
-      ensureOnlyIndividualUserHaveItmpDateOfBirth,
+      ensureBusinessesDoNotHaveDob,
+      ensureBusinessesDoNotHaveItmpDob,
       ensureAgentHaveAgentCode,
       ensureAgentHaveAgentId,
       ensureAgentHaveFriendlyName,

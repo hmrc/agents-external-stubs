@@ -307,8 +307,8 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
         val user = Users.get(userId).json.as[User]
         user.affinityGroup shouldBe Some(User.AG.Agent)
-        user.nino shouldBe None
-        user.dateOfBirth shouldBe None
+        user.nino shouldBe Some(Nino("WZ 58 73 41 D"))
+        user.dateOfBirth shouldBe defined
         user.name shouldBe Some("API Test User")
         user.principalEnrolments should contain.only(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", arn))
       }
