@@ -64,17 +64,19 @@ class UserDetailsStubControllerISpec extends ServerBaseISpec with MongoDB with T
 
         result should haveStatus(200)
         result should haveValidJsonBody(
-          haveProperty[String]("authProviderId", be(user.userId)) and haveProperty[String](
-            "authProviderType",
-            be(session.providerType)) and haveProperty[String]("name", be(user.name.get)) and haveProperty[String](
-            "email") and haveProperty[String]("affinityGroup", be("Agent")) and haveProperty[String](
-            "credentialRole",
-            be("Admin")) and haveProperty[String]("description") and haveProperty[String](
-            "postCode",
-            be(user.address.get.postcode.get)) and haveProperty[String]("agentCode", be(user.agentCode.get)) and haveProperty[
-            String]("agentFriendlyName", be(user.agentFriendlyName.get)) and haveProperty[String](
-            "agentId",
-            be(user.agentId.get)) and notHaveProperty("dateOfBirth") and notHaveProperty("lastName")
+          haveProperty[String]("authProviderId", be(user.userId)) and
+            haveProperty[String]("authProviderType", be(session.providerType)) and
+            haveProperty[String]("name", be(user.name.get)) and
+            haveProperty[String]("email") and
+            haveProperty[String]("affinityGroup", be("Agent")) and
+            haveProperty[String]("credentialRole", be("Admin")) and
+            haveProperty[String]("description") and
+            haveProperty[String]("postCode", be(user.address.get.postcode.get)) and
+            haveProperty[String]("agentCode", be(user.agentCode.get)) and
+            haveProperty[String]("agentFriendlyName", be(user.agentFriendlyName.get)) and
+            haveProperty[String]("agentId", be(user.agentId.get)) and
+            haveProperty[String]("dateOfBirth", be(user.dateOfBirth.get.toString)) and
+            notHaveProperty("lastName")
         )
       }
 

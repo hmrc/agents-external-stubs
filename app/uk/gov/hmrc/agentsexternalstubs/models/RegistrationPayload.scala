@@ -57,18 +57,11 @@ object RegistrationPayload {
 
   implicit val formats: Format[RegistrationPayload] = Json.format[RegistrationPayload]
 
-  case class Individual(firstName: String, lastName: String, dateOfBirth: Option[String] = None) {
-
-    def withFirstName(firstName: String): Individual = copy(firstName = firstName)
-    def modifyFirstName(pf: PartialFunction[String, String]): Individual =
-      if (pf.isDefinedAt(firstName)) copy(firstName = pf(firstName)) else this
-    def withLastName(lastName: String): Individual = copy(lastName = lastName)
-    def modifyLastName(pf: PartialFunction[String, String]): Individual =
-      if (pf.isDefinedAt(lastName)) copy(lastName = pf(lastName)) else this
-    def withDateOfBirth(dateOfBirth: Option[String]): Individual = copy(dateOfBirth = dateOfBirth)
-    def modifyDateOfBirth(pf: PartialFunction[Option[String], Option[String]]): Individual =
-      if (pf.isDefinedAt(dateOfBirth)) copy(dateOfBirth = pf(dateOfBirth)) else this
-  }
+  case class Individual(
+    firstName: String,
+    lastName: String,
+    dateOfBirth: Option[String] = None,
+    itmpDateOfBirth: Option[String] = None)
 
   object Individual {
 
@@ -85,7 +78,9 @@ object RegistrationPayload {
     val validate: Validator[Individual] = Validator(
       checkProperty(_.firstName, firstNameValidator),
       checkProperty(_.lastName, lastNameValidator),
-      checkProperty(_.dateOfBirth, dateOfBirthValidator))
+      checkProperty(_.dateOfBirth, dateOfBirthValidator),
+      checkProperty(_.itmpDateOfBirth, dateOfBirthValidator)
+    )
 
     implicit val formats: Format[Individual] = Json.format[Individual]
 
