@@ -1,8 +1,8 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
-import uk.gov.hmrc.agentsexternalstubs.models.User.AG
 import uk.gov.hmrc.agentsexternalstubs.models.User.AG._
+import uk.gov.hmrc.agentsexternalstubs.models.User.CR.Admin
 
 object UserValidator {
 
@@ -12,7 +12,7 @@ object UserValidator {
 
   val validateAffinityGroup: UserConstraint = user =>
     user.affinityGroup match {
-      case Some(Individual) | Some(User.AG.Organisation) | Some(User.AG.Agent) | None => Valid(())
+      case Some(Individual) | Some(Organisation) | Some(Agent) | None => Valid(())
       case _ =>
         Invalid("affinityGroup must be none, or one of [Individual, Organisation, Agent]")
   }
@@ -36,12 +36,12 @@ object UserValidator {
 
   val validateCredentialRole: UserConstraint = user =>
     user.affinityGroup match {
-      case Some(Individual | User.AG.Agent) =>
+      case Some(Individual | Agent) =>
         if (user.credentialRole.isEmpty || user.credentialRole.exists(User.CR.all)) Valid(())
         else
           Invalid("credentialRole must be none, or one of [Admin, User, Assistant] for Individual or Agent")
-      case Some(User.AG.Organisation) =>
-        if (user.credentialRole.contains(User.CR.Admin)) Valid(())
+      case Some(Organisation) =>
+        if (user.credentialRole.contains(Admin)) Valid(())
         else Invalid("credentialRole must be Admin for Organisation")
       case _ => Valid(())
   }
@@ -79,8 +79,8 @@ object UserValidator {
 
   val validateAgentCode: UserConstraint = user =>
     user.agentCode match {
-      case Some(_) if user.affinityGroup.contains(User.AG.Agent) => Valid(())
-      case None if user.affinityGroup.contains(User.AG.Agent) =>
+      case Some(_) if user.affinityGroup.contains(Agent) => Valid(())
+      case None if user.affinityGroup.contains(Agent) =>
         Invalid("agentCode is required for Agent")
       case _ => Valid(())
   }
@@ -146,7 +146,7 @@ object UserValidator {
   val validateEachDelegatedEnrolment: UserConstraint = user =>
     user.delegatedEnrolments match {
       case s if s.isEmpty => Valid(())
-      case _ if user.affinityGroup.contains(User.AG.Agent) =>
+      case _ if user.affinityGroup.contains(Agent) =>
         import Validator.Implicits._
         user.delegatedEnrolments
           .map(
@@ -155,7 +155,7 @@ object UserValidator {
                 .cond(
                   Services(e.key)
                     .map(_.affinityGroups)
-                    .forall(ag => ag.contains(Individual) || ag.contains(User.AG.Organisation)),
+                    .forall(ag => ag.contains(Individual) || ag.contains(Organisation)),
                   (),
                   s"Enrolment for ${e.key} may not be delegated to an Agent."
                 )
