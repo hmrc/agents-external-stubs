@@ -10,7 +10,8 @@ import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, User, UserG
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
-
+import play.api.libs.json.JodaWrites._
+import play.api.libs.json.JodaReads._
 import scala.concurrent.ExecutionContext
 
 @Singleton
