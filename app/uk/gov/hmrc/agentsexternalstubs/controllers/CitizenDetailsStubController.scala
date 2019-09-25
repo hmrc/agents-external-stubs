@@ -5,15 +5,13 @@ import org.joda.time.LocalDate
 import play.api.libs.json.{Format, Json, OFormat}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.agentsexternalstubs.controllers.CitizenDetailsStubController.{GetCitizenResponse, GetDesignatoryDetailsBasicResponse, GetDesignatoryDetailsResponse}
+import uk.gov.hmrc.agentsexternalstubs.models.User.AG._
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, User, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.ExecutionContext
-import play.api.libs.json.JodaWrites._
-import play.api.libs.json.JodaReads._
-import uk.gov.hmrc.agentsexternalstubs.controllers.CitizenDetailsStubController.GetDesignatoryDetailsResponse.Person
 
 @Singleton
 class CitizenDetailsStubController @Inject()(
@@ -156,7 +154,7 @@ object CitizenDetailsStubController {
       GetDesignatoryDetailsResponse(
         user.userId.reverse,
         user.affinityGroup
-          .find(_ == User.AG.Individual)
+          .find(ag => ag == Individual || ag == Agent)
           .map(
             _ =>
               Person(
