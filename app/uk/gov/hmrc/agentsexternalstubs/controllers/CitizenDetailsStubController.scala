@@ -14,6 +14,8 @@ import scala.concurrent.ExecutionContext
 import play.api.libs.json.JodaWrites._
 import play.api.libs.json.JodaReads._
 import uk.gov.hmrc.agentsexternalstubs.controllers.CitizenDetailsStubController.GetDesignatoryDetailsResponse.Person
+import uk.gov.hmrc.agentsexternalstubs.models.User.AG
+import uk.gov.hmrc.agentsexternalstubs.models.User.AG._
 
 @Singleton
 class CitizenDetailsStubController @Inject()(
@@ -156,7 +158,7 @@ object CitizenDetailsStubController {
       GetDesignatoryDetailsResponse(
         user.userId.reverse,
         user.affinityGroup
-          .find(_ == User.AG.Individual)
+          .find(ag => ag == Individual || ag == Agent)
           .map(
             _ =>
               Person(

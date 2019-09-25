@@ -73,10 +73,32 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with MongoDB wit
     }
 
     "GET /citizen-details/:nino/designatory-details" should {
-      "return user designatory details" in {
+      "return user designatory details for Individuals" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val user = UserGenerator.individual(userId = session.userId)
+        Users.update(user)
+
+        val result = CitizenDetailsStub.getDesignatoryDetails(user.nino.get.value)
+
+        result should haveStatus(200)
+        result.json
+          .as[JsObject] should (haveProperty[String]("etag") and haveProperty[JsObject](
+          "person",
+          haveProperty[String]("firstName", be(user.firstName.get)) and haveProperty[String](
+            "lastName",
+            be(user.lastName.get)) and haveProperty[String]("nino", be(user.nino.get.value)) and haveProperty[String](
+            "sex") and haveProperty[Boolean]("deceased")
+        ) and haveProperty[JsObject](
+          "address",
+          haveProperty[String]("line1") and haveProperty[String]("postcode") and haveProperty[String]("country")
+        ))
+      }
+
+      "return user designatory details for Agents" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val user = UserGenerator.agent(userId = session.userId)
         Users.update(user)
 
         val result = CitizenDetailsStub.getDesignatoryDetails(user.nino.get.value)
