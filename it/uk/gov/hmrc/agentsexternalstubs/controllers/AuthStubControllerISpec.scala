@@ -587,17 +587,6 @@ class AuthStubControllerISpec
         dateOfBirthOpt shouldBe Some(LocalDate.parse("1985-09-17"))
       }
 
-      "retrieve itmpDateOfBirth" in {
-        val authToken = givenAnAuthenticatedUser(UserGenerator.individual(itmpDateOfBirth = "1985-09-17"))
-
-        val itmpDateOfBirthOpt = await(
-          authConnector
-            .authorise[Option[LocalDate]](EmptyPredicate, v2.Retrievals.itmpDateOfBirth)(
-            HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-            concurrent.ExecutionContext.Implicits.global))
-        itmpDateOfBirthOpt shouldBe Some(LocalDate.parse("1985-09-17"))
-      }
-
       "retrieve agentCode" in {
         val authToken = givenAnAuthenticatedUser(UserGenerator.agent(agentCode = "AAABBB1234567"))
 

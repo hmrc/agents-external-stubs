@@ -361,8 +361,7 @@ trait ExampleDesPayloads {
       |  "individual": {
       |    "firstName": "Stephen",
       |    "lastName": "Wood",
-      |    "dateOfBirth": "1990-04-03",
-      |    "itmpDateOfBirth": "1990-04-03"
+      |    "dateOfBirth": "1990-04-03"
       |  },
       |  "isAnOrganisation": false,
       |  "addressDetails": {
@@ -418,8 +417,7 @@ trait ExampleDesPayloads {
       |  "individual": {
       |    "firstName": "Stephen",
       |    "lastName": "Wood",
-      |    "dateOfBirth": "1990-04-03",
-      |    "itmpDateOfBirth": "1990-04-03"
+      |    "dateOfBirth": "1990-04-03"
       |  }
       |}""".stripMargin
 
@@ -445,8 +443,7 @@ trait ExampleDesPayloads {
       |    "individual": {
       |      "firstName": "Stephen",
       |      "lastName": "Wood",
-      |      "dateOfBirth": "1990-04-03",
-      |      "itmpDateOfBirth": "1990-04-03"
+      |      "dateOfBirth": "1990-04-03"
       |    },
       |    "address":{
       |        "addressLine1":"Mandatory Address Line 1",

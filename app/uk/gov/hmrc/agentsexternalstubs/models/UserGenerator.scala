@@ -67,7 +67,6 @@ object UserGenerator {
     nino: String = null,
     name: String = null,
     dateOfBirth: String = null,
-    itmpDateOfBirth: String = null,
     groupId: String = null): User =
     User(
       userId = userId,
@@ -77,9 +76,6 @@ object UserGenerator {
       nino = Option(nino).map(Nino.apply).orElse(Option(ninoWithSpaces(userId))),
       name = Option(name).orElse(Option(UserGenerator.nameForIndividual(userId))),
       dateOfBirth = Option(dateOfBirth)
-        .map(LocalDate.parse(_, ISODateTimeFormat.date()))
-        .orElse(Option(UserGenerator.dateOfBirth(userId))),
-      itmpDateOfBirth = Option(itmpDateOfBirth)
         .map(LocalDate.parse(_, ISODateTimeFormat.date()))
         .orElse(Option(UserGenerator.dateOfBirth(userId))),
       groupId = Option(groupId).orElse(Option(UserGenerator.groupId(userId)))

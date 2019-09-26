@@ -359,7 +359,6 @@ class UserToRecordsSyncService @Inject()(
                   .generate(user.userId)
                   .withFirstName(user.firstName.getOrElse("John"))
                   .withLastName(user.lastName.getOrElse("Smith"))
-                  .withItmpDateOfBirth(user.itmpDateOfBirth.map(_.toString).getOrElse("1985-01-01"))
               ))
             .withAgencyDetails(
               Some(

@@ -70,13 +70,6 @@ object UserValidator {
       case _                                                                                        => Invalid("dateOfBirth can be only set for Individual or Agent")
   }
 
-  val validateItmpDateOfBirth: UserConstraint = user =>
-    user.itmpDateOfBirth match {
-      case Some(_) if user.affinityGroup.contains(Individual) || user.affinityGroup.contains(Agent) => Valid(())
-      case None                                                                                     => Valid(())
-      case _                                                                                        => Invalid("itmpDateOfBirth can be only set for Individual or Agent")
-  }
-
   val validateAgentCode: UserConstraint = user =>
     user.agentCode match {
       case Some(_) if user.affinityGroup.contains(Agent) => Valid(())
@@ -192,7 +185,6 @@ object UserValidator {
     validateNino,
     validateConfidenceLevelAndNino,
     validateDateOfBirth,
-    validateItmpDateOfBirth,
     validateAgentCode,
     validateEachPrincipalEnrolment,
     validatePrincipalEnrolmentsAreDistinct,

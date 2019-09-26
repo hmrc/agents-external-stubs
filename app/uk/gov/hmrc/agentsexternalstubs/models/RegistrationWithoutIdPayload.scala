@@ -284,12 +284,7 @@ object RegistrationWithoutIdPayload {
 
   }
 
-  case class Individual(
-    firstName: String,
-    middleName: Option[String] = None,
-    lastName: String,
-    dateOfBirth: String,
-    itmpDateOfBirth: String) {
+  case class Individual(firstName: String, middleName: Option[String] = None, lastName: String, dateOfBirth: String) {
 
     def withFirstName(firstName: String): Individual = copy(firstName = firstName)
     def modifyFirstName(pf: PartialFunction[String, String]): Individual =
@@ -301,7 +296,6 @@ object RegistrationWithoutIdPayload {
     def modifyLastName(pf: PartialFunction[String, String]): Individual =
       if (pf.isDefinedAt(lastName)) copy(lastName = pf(lastName)) else this
     def withDateOfBirth(dateOfBirth: String): Individual = copy(dateOfBirth = dateOfBirth)
-    def withItmpDateOfBirth(itmpDateOfBirth: String): Individual = copy(itmpDateOfBirth = itmpDateOfBirth)
     def modifyDateOfBirth(pf: PartialFunction[String, String]): Individual =
       if (pf.isDefinedAt(dateOfBirth)) copy(dateOfBirth = pf(dateOfBirth)) else this
   }
@@ -326,7 +320,6 @@ object RegistrationWithoutIdPayload {
       checkProperty(_.middleName, middleNameValidator),
       checkProperty(_.lastName, lastNameValidator),
       checkProperty(_.dateOfBirth, dateOfBirthValidator),
-      checkProperty(_.itmpDateOfBirth, dateOfBirthValidator),
     )
 
     implicit val formats: Format[Individual] = Json.format[Individual]

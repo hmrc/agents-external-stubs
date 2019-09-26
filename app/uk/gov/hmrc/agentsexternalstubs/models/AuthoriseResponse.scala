@@ -21,7 +21,6 @@ case class AuthoriseResponse(
   name: Option[Name] = None,
   optionalName: Option[Name] = None,
   dateOfBirth: Option[LocalDate] = None,
-  itmpDateOfBirth: Option[LocalDate] = None,
   agentCode: Option[String] = None,
   agentInformation: Option[AgentInformation] = None
 )
@@ -58,7 +57,6 @@ object Retrieve {
       NameRetrieve,
       OptionalNameRetrieve,
       DateOfBirthRetrieve,
-      ItmpDateOfBirthRetrieve,
       AgentCodeRetrieve,
       AgentInformationRetrieve
     )
@@ -218,13 +216,6 @@ case object DateOfBirthRetrieve extends Retrieve {
   override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
     implicit ec: ExecutionContext): MaybeResponse =
     Right(response.copy(dateOfBirth = context.dateOfBirth))
-}
-
-case object ItmpDateOfBirthRetrieve extends Retrieve {
-  val key = "itmpDateOfBirth"
-  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(
-    implicit ec: ExecutionContext): MaybeResponse =
-    Right(response.copy(itmpDateOfBirth = context.itmpDateOfBirth))
 }
 
 case object AgentCodeRetrieve extends Retrieve {

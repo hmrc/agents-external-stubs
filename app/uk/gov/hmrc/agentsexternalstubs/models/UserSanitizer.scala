@@ -78,16 +78,6 @@ object UserSanitizer extends RecordUtils[User] {
         case None => user.copy(dateOfBirth = None)
   }
 
-  private val ensureBusinessesDoNotHaveItmpDob: Update = seed =>
-    user =>
-      user.affinityGroup match {
-        case Some(Organisation) =>
-          user.copy(itmpDateOfBirth = None)
-        case Some(_) =>
-          if (user.itmpDateOfBirth.isEmpty) user.copy(itmpDateOfBirth = Some(UserGenerator.dateOfBirth(seed))) else user
-        case None => user.copy(itmpDateOfBirth = None)
-  }
-
   private val ensureUserHaveGroupIdentifier: Update = seed =>
     user => if (user.groupId.isEmpty) user.copy(groupId = Some(UserGenerator.groupId(seed))) else user
 
@@ -216,7 +206,6 @@ object UserSanitizer extends RecordUtils[User] {
       ensureOnlyIndividualUserHaveConfidenceLevel,
       ensureUserHaveCredentialRole,
       ensureBusinessesDoNotHaveDob,
-      ensureBusinessesDoNotHaveItmpDob,
       ensureAgentHaveAgentCode,
       ensureAgentHaveAgentId,
       ensureAgentHaveFriendlyName,

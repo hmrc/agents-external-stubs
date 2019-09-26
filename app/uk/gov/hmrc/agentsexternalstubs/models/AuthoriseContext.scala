@@ -25,7 +25,6 @@ trait AuthoriseContext {
   def groupId: Option[String]
   def name: Option[String]
   def dateOfBirth: Option[LocalDate]
-  def itmpDateOfBirth: Option[LocalDate]
   def agentCode: Option[String]
   def agentFriendlyName: Option[String]
   def agentId: Option[String]
@@ -72,8 +71,6 @@ abstract class AuthoriseUserContext(user: User) extends AuthoriseContext {
   override def agentFriendlyName: Option[String] = user.agentFriendlyName
 
   override def agentId: Option[String] = user.agentId
-
-  override def itmpDateOfBirth: Option[LocalDate] = user.itmpDateOfBirth
 
 }
 

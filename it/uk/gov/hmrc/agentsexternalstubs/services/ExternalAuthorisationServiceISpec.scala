@@ -89,7 +89,6 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       user.groupId shouldBe Some("foo-group-1")
       user.name shouldBe Some("Foo Bar")
       user.dateOfBirth shouldBe defined
-      user.itmpDateOfBirth shouldBe defined
       user.agentCode shouldBe Some("a")
       user.agentFriendlyName shouldBe Some("b")
       user.agentId shouldBe Some("c")

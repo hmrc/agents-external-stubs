@@ -700,7 +700,6 @@ object DesStubController {
                 .withFirstName(i.firstName)
                 .withLastName(i.lastName)
                 .modifyDateOfBirth { case dob => i.dateOfBirth.getOrElse(dob) }
-                .modifyItmpDateOfBirth { case dob => i.itmpDateOfBirth.getOrElse(dob) }
           )
         )
         .withOrganisation(
@@ -744,7 +743,6 @@ object DesStubController {
                 .withFirstName(i.firstName)
                 .withLastName(i.lastName)
                 .withDateOfBirth(i.dateOfBirth)
-                .withItmpDateOfBirth(i.itmpDateOfBirth)
           )
         )
         .withOrganisation(

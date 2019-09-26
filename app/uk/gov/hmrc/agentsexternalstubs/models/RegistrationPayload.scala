@@ -57,11 +57,7 @@ object RegistrationPayload {
 
   implicit val formats: Format[RegistrationPayload] = Json.format[RegistrationPayload]
 
-  case class Individual(
-    firstName: String,
-    lastName: String,
-    dateOfBirth: Option[String] = None,
-    itmpDateOfBirth: Option[String] = None)
+  case class Individual(firstName: String, lastName: String, dateOfBirth: Option[String] = None)
 
   object Individual {
 
@@ -78,8 +74,7 @@ object RegistrationPayload {
     val validate: Validator[Individual] = Validator(
       checkProperty(_.firstName, firstNameValidator),
       checkProperty(_.lastName, lastNameValidator),
-      checkProperty(_.dateOfBirth, dateOfBirthValidator),
-      checkProperty(_.itmpDateOfBirth, dateOfBirthValidator)
+      checkProperty(_.dateOfBirth, dateOfBirthValidator)
     )
 
     implicit val formats: Format[Individual] = Json.format[Individual]

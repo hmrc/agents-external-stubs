@@ -162,17 +162,6 @@ class UserValidatorSpec extends UnitSpec with ValidatedMatchers {
         .isValid shouldBe false
     }
 
-    "validate only when itmpDateOfBirth is none or set for an Individual" in {
-      val now = LocalDate.now()
-      UserValidator
-        .validate(UserGenerator.individual(userId = "foo", itmpDateOfBirth = "1975-03-29"))
-        .isValid shouldBe true
-
-      UserValidator
-        .validate(User("foo", affinityGroup = Some(User.AG.Organisation), itmpDateOfBirth = Some(now)))
-        .isValid shouldBe false
-    }
-
     "validate only when agentCode is none or set for an Agent" in {
       UserValidator.validate(UserGenerator.agent(userId = "foo", agentCode = "LMNOPQ234568")).isValid shouldBe true
 
