@@ -3,8 +3,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 import javax.inject.{Inject, Singleton}
-import org.joda.time
-import uk.gov.hmrc.agentmtdidentifiers.model.MtdItId
+import uk.gov.hmrc.agentmtdidentifiers.model.{CgtRef, MtdItId}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{AgencyDetails, Individual, Organisation}
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, IndividualName}
 import uk.gov.hmrc.agentsexternalstubs.models.{User, _}
@@ -29,6 +28,7 @@ class UserToRecordsSyncService @Inject()(
   final val userRecordsSyncOperations: Seq[UserRecordsSync] = Seq(
     Sync.businessDetailsForMtdItIndividual,
     Sync.vatCustomerInformationForMtdVatIndividual,
+    Sync.businessDetailsForCgt,
     Sync.vatCustomerInformationForMtdVatOrganisation,
     Sync.vatCustomerInformationForMtdVatAgent,
     Sync.businessPartnerRecordForAnAgent,
@@ -106,6 +106,71 @@ class UserToRecordsSyncService @Inject()(
             .sequence(Seq(
               businessDetailsRecordsService.getBusinessDetails(Nino(nino), user.planetId.get),
               businessDetailsRecordsService.getBusinessDetails(MtdItId(mtdbsa), user.planetId.get)
+            ))
+            .map(_.collect { case Some(x) => x })
+            .map(_.toList match {
+              case r1 :: r2 :: Nil if r1.id == r2.id => record.withId(r2.id)
+              case r :: Nil                          => record.withId(r.id)
+              case Nil                               => record
+            })
+            .flatMap(entity =>
+              businessDetailsRecordsService
+                .store(entity, autoFill = false, user.planetId.get)
+                .flatMap(saveRecordId)))
+      }
+    }
+
+    final val CgtMatch = User.Matches(ag => ag == User.AG.Individual || ag == User.AG.Organisation, "HMRC-CGT-PD")
+
+    val businessDetailsForCgt: UserRecordsSync = saveRecordId => {
+      case CgtMatch(user, cgtRef) => {
+        val nino = user.nino
+          .map(_.value.replace(" ", ""))
+          .getOrElse(Generator.ninoNoSpaces(user.userId).value)
+
+        val address = user.address
+          .map(
+            a =>
+              if (a.isUKAddress)
+                BusinessDetailsRecord.UkAddress(
+                  addressLine1 = a.line1.getOrElse("1 Kingdom Road"),
+                  addressLine2 = a.line2,
+                  addressLine3 = a.line3,
+                  addressLine4 = a.line4,
+                  postalCode = a.postcode.getOrElse(""),
+                  countryCode = a.countryCode.getOrElse("GB")
+                )
+              else
+                BusinessDetailsRecord.ForeignAddress(
+                  addressLine1 = a.line1.getOrElse("2 Foreign Road"),
+                  addressLine2 = a.line2,
+                  addressLine3 = a.line3,
+                  addressLine4 = a.line4,
+                  postalCode = a.postcode,
+                  countryCode = a.countryCode.getOrElse("IE")
+              ))
+          .getOrElse(BusinessDetailsRecord.UkAddress.generate(user.userId))
+
+        Future {
+          BusinessDetailsRecord
+            .generate(user.userId)
+            .withNino(nino)
+            .withCgtPdRef(Some(cgtRef))
+            .modifyBusinessData {
+              case Some(businessData :: _) =>
+                Some(
+                  Seq(
+                    businessData
+                      .withCessationDate(None)
+                      .withCessationReason(None)
+                      .withBusinessAddressDetails(Some(address))
+                  ))
+            }
+        }.flatMap(record =>
+          Future
+            .sequence(Seq(
+              businessDetailsRecordsService.getBusinessDetails(Nino(nino), user.planetId.get),
+              businessDetailsRecordsService.getBusinessDetails(CgtRef(cgtRef), user.planetId.get)
             ))
             .map(_.collect { case Some(x) => x })
             .map(_.toList match {

@@ -426,6 +426,49 @@ class DesStubController @Inject()(
     }(SessionRecordNotFound)
   }
 
+  def getCgtKnownFacts(regime: String, id: String): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      RegexPatterns
+        .validCgtRef(id)
+        .fold(
+          _ => badRequestF("INVALID_IDVALUE", "Submission has not passed validation. Invalid parameter idValue."),
+          _ =>
+            if (regime != "CGT") {
+              badRequestF("INVALID_REGIME", "Submission has not passed validation. Invalid parameter regimeValue.")
+            } else {
+              usersService
+                .findByPrincipalEnrolmentKey(
+                  EnrolmentKey("HMRC-CGT-PD", Seq(Identifier("CGTPDRef", id))),
+                  session.planetId)
+                .map {
+                  case Some(record) =>
+                    val tpd = record.affinityGroup match {
+                      case Some("Individual") =>
+                        TypeOfPersonDetails(
+                          "Individual",
+                          Left(IndividualName(record.firstName.getOrElse(""), record.lastName.getOrElse(""))))
+                      case _ => TypeOfPersonDetails("Trustee", Right(OrganisationName(record.name.getOrElse(""))))
+                    }
+
+                    val addressDetails = CgtAddressDetails(
+                      record.address.flatMap(_.line1).getOrElse(""),
+                      record.address.flatMap(_.line2),
+                      record.address.flatMap(_.line3),
+                      record.address.flatMap(_.line4),
+                      record.address.flatMap(_.countryCode).getOrElse(""),
+                      record.address.flatMap(_.postcode),
+                    )
+
+                    val cgtSubscription: CgtSubscription =
+                      CgtSubscription("CGT", SubscriptionDetails(tpd, addressDetails))
+                    Ok(Json.toJson(cgtSubscription))
+                  case None => getErrorResponseFor(id)
+                }
+          }
+        )
+    }(SessionRecordNotFound)
+  }
+
   private def getOrCreateBusinessPartnerRecord[T <: Record](
     payload: RegistrationPayload,
     idType: String,

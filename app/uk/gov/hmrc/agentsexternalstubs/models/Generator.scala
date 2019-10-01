@@ -113,6 +113,10 @@ object Generator extends Names with Temporal with Companies with Addresses {
   lazy val crnGen: Gen[String] = pattern"ZZ999999".gen
   def crn(seed: String): String = crnGen.seeded(seed).get
 
+  lazy val cgtPdRefGen: Gen[String] = pattern"999999999".gen.map("XMCGTP" + _)
+
+  def cgtPdRef(seed: String): String = cgtPdRefGen.seeded(seed).get
+
   def chooseBigDecimal(min: Double, max: Double, multipleOf: Option[Double]): Gen[BigDecimal] =
     Gen
       .chooseNum[Double](min.toDouble, max.toDouble)
@@ -188,6 +192,7 @@ object Generator extends Names with Temporal with Companies with Addresses {
   lazy val knownPatterns: Map[String, Gen[String]] = Map(
     "arn"             -> arnGen,
     "utr"             -> utrGen,
+    "cgtPdRef"        -> cgtPdRefGen,
     "mtditid"         -> mtdbsaGen,
     "vrn"             -> vrnGen,
     "eori"            -> eoriGen,
@@ -208,7 +213,8 @@ object Generator extends Names with Temporal with Companies with Addresses {
     "^[A-Za-z0-9]{0,12}$"  -> pattern"Zzz00099900Z",
     "^\\d{3}$"             -> pattern"999",
     "^[A-Za-z0-9 ]{1,10}$" -> pattern"ZZ9999999Z",
-    "^[A-Za-z0-9]{6}$"     -> pattern"ZZ999Z"
+    "^[A-Za-z0-9]{6}$"     -> pattern"ZZ999Z",
+    "^X[A-Z]CGTP[0-9]{9}$" -> pattern"ZZZZZZ999999999"
   )
 
   object GenOps {
