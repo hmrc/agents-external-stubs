@@ -8,7 +8,7 @@ lazy val scoverageSettings = {
     // Semicolon-separated list of regexs matching classes to exclude
     ScoverageKeys.coverageExcludedPackages := """uk\.gov\.hmrc\.BuildInfo;.*\.Routes;.*\.RoutesPrefix;.*Filters?;MicroserviceAuditConnector;Module;GraphiteStartUp;.*\.Reverse[^.]*""",
     ScoverageKeys.coverageMinimum := 80.00,
-    ScoverageKeys.coverageFailOnMinimum := false,
+    ScoverageKeys.coverageFailOnMinimum := true,
     ScoverageKeys.coverageHighlighting := true,
     parallelExecution in Test := false
   )
@@ -17,7 +17,7 @@ lazy val scoverageSettings = {
 lazy val compileDeps = Seq(
   ws,
   "uk.gov.hmrc" %% "bootstrap-play-26" % "0.37.0",
-  "uk.gov.hmrc" %% "simple-reactivemongo" % "7.16.0-play-26",
+  "uk.gov.hmrc" %% "simple-reactivemongo" % "7.20.0-play-26",
   "uk.gov.hmrc" %% "auth-client" % "2.20.0-play-26",
   "uk.gov.hmrc" %% "agent-mtd-identifiers" % "0.15.0-play-26",
   "com.kenshoo" %% "metrics-play" % "2.6.19_0.7.0",
@@ -60,6 +60,11 @@ val jettyOverrides = Set(
   "org.eclipse.jetty.websocket" % "websocket-client" % jettyVersion % IntegrationTest
 )
 
+def tmpMacWorkaround(): Seq[ModuleID] =
+  if (sys.props.get("os.name").fold(false)(_.toLowerCase.contains("mac")))
+    Seq("org.reactivemongo" % "reactivemongo-shaded-native" % "0.16.1-osx-x86-64" % "runtime,test,it")
+  else Seq()
+
 lazy val root = (project in file("."))
   .settings(
     name := "agents-external-stubs",
@@ -74,7 +79,7 @@ lazy val root = (project in file("."))
       Resolver.jcenterRepo,
       Resolver.bintrayRepo("wolfendale", "maven")
     ),
-    libraryDependencies ++= compileDeps ++ testDeps("test") ++ testDeps("it"),
+    libraryDependencies ++= tmpMacWorkaround() ++ compileDeps ++ testDeps("test") ++ testDeps("it"),
     dependencyOverrides ++= jettyOverrides,
     publishingSettings,
     scoverageSettings,
@@ -94,9 +99,3 @@ lazy val root = (project in file("."))
   .enablePlugins(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin, SbtArtifactory)
 
 inConfig(IntegrationTest)(scalafmtCoreSettings)
-
-def oneForkedJvmPerTest(tests: Seq[TestDefinition]) = {
-  tests.map { test =>
-    new Group(test.name, Seq(test), SubProcess(ForkOptions(runJVMOptions = Seq(s"-Dtest.name=${test.name}"))))
-  }
-}
