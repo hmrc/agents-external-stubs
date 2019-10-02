@@ -26,12 +26,16 @@ case class BusinessDetailsRecord(
   propertyIncome: Boolean = false,
   businessData: Option[Seq[BusinessData]] = None,
   propertyData: Option[PropertyData] = None,
-  id: Option[String] = None
+  id: Option[String] = None,
+  cgtPdRef: Option[String] = None
 ) extends Record {
 
   override def uniqueKey: Option[String] = Option(safeId).map(BusinessDetailsRecord.uniqueKey)
   override def lookupKeys: Seq[String] =
-    Seq(Option(nino).map(BusinessDetailsRecord.ninoKey), Option(mtdbsa).map(BusinessDetailsRecord.mtdbsaKey)).collect {
+    Seq(
+      Option(nino).map(BusinessDetailsRecord.ninoKey),
+      Option(mtdbsa).map(BusinessDetailsRecord.mtdbsaKey),
+      cgtPdRef.map(BusinessDetailsRecord.cgtPdRefKey)).collect {
       case Some(x) => x
     }
   override def withId(id: Option[String]): BusinessDetailsRecord = copy(id = id)
@@ -42,6 +46,9 @@ case class BusinessDetailsRecord(
   def withNino(nino: String): BusinessDetailsRecord = copy(nino = nino)
   def modifyNino(pf: PartialFunction[String, String]): BusinessDetailsRecord =
     if (pf.isDefinedAt(nino)) copy(nino = pf(nino)) else this
+
+  def withCgtPdRef(cgtPdRef: Option[String]): BusinessDetailsRecord = copy(cgtPdRef = cgtPdRef)
+
   def withMtdbsa(mtdbsa: String): BusinessDetailsRecord = copy(mtdbsa = mtdbsa)
   def modifyMtdbsa(pf: PartialFunction[String, String]): BusinessDetailsRecord =
     if (pf.isDefinedAt(mtdbsa)) copy(mtdbsa = pf(mtdbsa)) else this
@@ -67,6 +74,8 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
   def ninoKey(key: String): String = s"""nino:${key.toUpperCase}"""
   def mtdbsaKey(key: String): String = s"""mtdbsa:${key.toUpperCase}"""
 
+  def cgtPdRefKey(key: String): String = s"""cgtPdRef:${key.toUpperCase}"""
+
   import Validator._
   import Generator.GenOps._
 
@@ -91,13 +100,15 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     safeId         <- Generator.safeIdGen.suchThat(_.length >= 1).suchThat(_.length <= 16)
     nino           <- Generator.ninoNoSpacesGen
     mtdbsa         <- Generator.mtdbsaGen.suchThat(_.length >= 15).suchThat(_.length <= 16)
+    cgtPdRef       <- Generator.cgtPdRefGen
     propertyIncome <- Generator.booleanGen
   } yield
     BusinessDetailsRecord(
       safeId = safeId,
       nino = nino,
       mtdbsa = mtdbsa,
-      propertyIncome = propertyIncome
+      propertyIncome = propertyIncome,
+      cgtPdRef = Some(cgtPdRef)
     )
 
   val businessDataSanitizer: Update = seed =>

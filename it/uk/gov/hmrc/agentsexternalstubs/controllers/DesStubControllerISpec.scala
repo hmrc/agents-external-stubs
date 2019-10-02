@@ -5,6 +5,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, urlEqualTo}
 import org.joda.time.LocalDate
 import play.api.libs.json._
 import play.api.libs.ws.WSClient
+import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.connectors.ExampleApiPlatformTestUserResponses
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.Individual
 import uk.gov.hmrc.agentsexternalstubs.models._
@@ -872,6 +873,23 @@ class DesStubControllerISpec
         result2 should haveStatus(400)
         val result3 = DesStub.getCtReference("crn", "AA1111111")
         result3 should haveStatus(400)
+      }
+    }
+
+    "GET /subscriptions?regime=CGT&id=XMCGTP707663428" should {
+      "return CGT subscription details as expected" in {
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
+        val result = Users.update(User("7728378273", principalEnrolments = Seq(Enrolment("HMRC-CGT-PD", Some(Seq(Identifier("CGTPDRef", "XMCGTP707663428")))))))
+        result should haveStatus(202)
+        result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/7728378273")
+        val result2 = get("/subscriptions?regime=CGT&id=XMCGTP707663428")
+
+        result2 should haveStatus(200)
+        result2 should haveValidJsonBody(haveProperty[String]("regime", be("CGT")))
+        result2 should haveValidJsonBody(haveProperty[JsObject](
+          "subscriptionDetails",
+          haveProperty[JsObject]("typeOfPersonDetails"),
+          haveProperty[JsObject]("addressDetails")))
       }
     }
   }
