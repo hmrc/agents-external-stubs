@@ -132,6 +132,13 @@ case class FullAuthoriseContext(
         } yield Await.result(agentAccessControlConnector.isAuthorisedForTrust(ac, utr), timeout))
           .getOrElse(false)
 
+      case "cgt-auth" =>
+        (for {
+          ac     <- agentCode
+          cgtRef <- identifiers.headOption.map(_.value)
+        } yield Await.result(agentAccessControlConnector.isAuthorisedForCgt(ac, cgtRef), timeout))
+          .getOrElse(false)
+
       case _ => true
     }
 

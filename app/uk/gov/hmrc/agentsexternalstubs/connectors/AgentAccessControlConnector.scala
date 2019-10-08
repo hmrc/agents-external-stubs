@@ -59,6 +59,11 @@ class AgentAccessControlConnector @Inject()(appConfig: AppConfig, http: HttpGet)
     ec: ExecutionContext): Future[Boolean] =
     check(new URL(appConfig.agentAccessControlUrl + s"/agent-access-control/trust-auth/agent/$agentCode/client/$utr"))
 
+  def isAuthorisedForCgt(agentCode: String, cgtRef: String)(
+    implicit c: HeaderCarrier,
+    ec: ExecutionContext): Future[Boolean] =
+    check(new URL(appConfig.agentAccessControlUrl + s"/agent-access-control/cgt-auth/agent/$agentCode/client/$cgtRef"))
+
   private def check(url: URL)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Boolean] =
     http
       .GET[HttpResponse](url.toString)
