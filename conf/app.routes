@@ -64,7 +64,7 @@ GET         /corporation-tax/identifiers/:idType/:idValue                    @uk
 
 GET         /trusts/agent-known-fact-check/:utr                              @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getTrustKnownFacts(utr: String)
 
-GET         /subscriptions                                                   @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getCgtKnownFacts(regime: String, id: String)
+GET         /subscriptions/:regime/:idType/:cgtRef                           @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getCgtSubscription(regime: String, idType: String, cgtRef: String)
 
 # Datastream
 POST        /write/audit                                                     @uk.gov.hmrc.agentsexternalstubs.controllers.DataStreamStubController.writeEvent

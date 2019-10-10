@@ -1,6 +1,8 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 import java.util.regex.Pattern
 
+import uk.gov.hmrc.agentmtdidentifiers.model.CgtRef
+
 import scala.util.matching.Regex
 
 object RegexPatterns {
@@ -17,7 +19,7 @@ object RegexPatterns {
   val validVrn: Matcher = validate("^[0-9]{1,9}$".r)
   val validEori: Matcher = validate("^[A-Z]{2}[0-9]{12}$".r)
   val validCrn: Matcher = validate("^([A-Za-z0-9]{0,2})?([0-9]{1,6})$".r)
-  val validCgtRef: Matcher = validate("^X[A-Z]CGTP[0-9]{9}$".r)
+  val validCgtRef: Matcher = validate(CgtRef.cgtRegex.r)
   val validSafeId: Matcher = validate("^[A-Za-z0-9 \\-,.&'\\/]{1,15}$".r)
   val validAgentCode: Matcher = validate("^[A-Z0-9]{1,12}$".r)
   val validTaxOfficeNumber: Matcher = validate("^\\d{1,3}$".r)

@@ -876,13 +876,13 @@ class DesStubControllerISpec
       }
     }
 
-    "GET /subscriptions?regime=CGT&id=XMCGTP707663428" should {
+    "GET /subscriptions/:regime/:idType/:cgtRef" should {
       "return CGT subscription details as expected" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
         val result = Users.update(User("7728378273", principalEnrolments = Seq(Enrolment("HMRC-CGT-PD", Some(Seq(Identifier("CGTPDRef", "XMCGTP707663428")))))))
         result should haveStatus(202)
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/7728378273")
-        val result2 = get("/subscriptions?regime=CGT&id=XMCGTP707663428")
+        val result2 = get("/subscriptions/CGT/ZCGT/XMCGTP707663428")
 
         result2 should haveStatus(200)
         result2 should haveValidJsonBody(haveProperty[String]("regime", be("CGT")))
@@ -890,6 +890,39 @@ class DesStubControllerISpec
           "subscriptionDetails",
           haveProperty[JsObject]("typeOfPersonDetails"),
           haveProperty[JsObject]("addressDetails")))
+      }
+
+      "handle invalid regime" in {
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
+        val result = Users.update(User("7728378273", principalEnrolments = Seq(Enrolment("HMRC-CGT-PD", Some(Seq(Identifier("CGTPDRef", "XMCGTP707663428")))))))
+        result should haveStatus(202)
+        result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/7728378273")
+        val result2 = get("/subscriptions/xxx/ZCGT/XMCGTP707663428")
+
+        result2 should haveStatus(400)
+        result2 should haveValidJsonBody(haveProperty[String]("code", be("INVALID_REGIME")))
+      }
+
+      "handle invalid idType" in {
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
+        val result = Users.update(User("7728378273", principalEnrolments = Seq(Enrolment("HMRC-CGT-PD", Some(Seq(Identifier("CGTPDRef", "XMCGTP707663428")))))))
+        result should haveStatus(202)
+        result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/7728378273")
+        val result2 = get("/subscriptions/CGT/xxx/XMCGTP707663428")
+
+        result2 should haveStatus(400)
+        result2 should haveValidJsonBody(haveProperty[String]("code", be("INVALID_IDTYPE")))
+      }
+
+      "handle invalid regime and idType" in {
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
+        val result = Users.update(User("7728378273", principalEnrolments = Seq(Enrolment("HMRC-CGT-PD", Some(Seq(Identifier("CGTPDRef", "XMCGTP707663428")))))))
+        result should haveStatus(202)
+        result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/7728378273")
+        val result2 = get("/subscriptions/xxx/yyy/XMCGTP707663428")
+
+        result2 should haveStatus(400)
+        result2 should haveValidJsonBody(haveProperty[String]("code", be("INVALID_REQUEST")))
       }
     }
   }
