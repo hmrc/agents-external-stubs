@@ -78,6 +78,12 @@ GET         /sso/validate/domain/:domain                                     @uk
 GET         /sso/domains                                                     @uk.gov.hmrc.agentsexternalstubs.controllers.SsoDomainController.getDomains
 POST        /sso/digital-flag/:flag                                          @uk.gov.hmrc.agentsexternalstubs.controllers.SsoDomainController.digitalFlag(flag: String)
 
+# IV backend
+PUT         /nino/:credId                                                    @uk.gov.hmrc.agentsexternalstubs.controllers.IdentityVerificationController.storeNino(credId: String)
+
+# PDV (personal-details-validation) backend
+GET         /:id        uk.gov.hmrc.agentsexternalstubs.controllers.PersonalDetailsValidationController.get(id: String)
+
 #------------------------------------------------------
 # CUSTOM APIs
 #------------------------------------------------------
