@@ -36,4 +36,8 @@ case class TestAppConfig(wireMockBaseUrl: String, wireMockPort: Int) extends App
   override val specialCasesDisabled: Boolean = false
   override val preloadRecordsForDefaultUserIds: Boolean = false
   override val clearOldMongoDbDocumentsDaily: Boolean = false
+
+  override val identityVerification: Int = wireMockPort
+  override val personalDetailsValidation: Int = wireMockPort
+
 }

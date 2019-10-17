@@ -40,6 +40,8 @@ trait AppConfig {
   val ssoPort: Int
   val fileUploadPort: Int
   val fileUploadFrontendPort: Int
+  val identityVerification: Int
+  val personalDetailsValidation: Int
 
   val authCacheEnabled: Boolean
   val specialCasesDisabled: Boolean
@@ -83,6 +85,8 @@ class AppConfigImpl @Inject()(config: ServicesConfig) extends AppConfig {
   val ssoPort: Int = config.getConfInt("sso.port", 0)
   val fileUploadPort: Int = config.getConfInt("file-upload.port", 0)
   val fileUploadFrontendPort: Int = config.getConfInt("file-upload-frontend.port", 0)
+  val identityVerification: Int = config.getConfInt("identity-verification.port", 0)
+  val personalDetailsValidation: Int = config.getConfInt("personal-details-validation.port", 0)
 
   val isProxyMode: Boolean = config.getBoolean("features.proxies")
   val authCacheEnabled: Boolean = config.getBoolean("features.authCache")
