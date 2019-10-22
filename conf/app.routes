@@ -79,7 +79,7 @@ GET         /sso/domains                                                     @uk
 POST        /sso/digital-flag/:flag                                          @uk.gov.hmrc.agentsexternalstubs.controllers.SsoDomainController.digitalFlag(flag: String)
 
 # IV backend
-PUT         /nino/:credId                                                    @uk.gov.hmrc.agentsexternalstubs.controllers.IdentityVerificationController.storeNino(credId: String)
+PUT         /identity-verification/nino/:credId                              @uk.gov.hmrc.agentsexternalstubs.controllers.IdentityVerificationController.storeNino(credId: String)
 
 # PDV (personal-details-validation) backend
 GET         /personal-details-validation/:id                                 uk.gov.hmrc.agentsexternalstubs.controllers.PersonalDetailsValidationController.get(id: String)
