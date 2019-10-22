@@ -82,7 +82,7 @@ POST        /sso/digital-flag/:flag                                          @uk
 PUT         /nino/:credId                                                    @uk.gov.hmrc.agentsexternalstubs.controllers.IdentityVerificationController.storeNino(credId: String)
 
 # PDV (personal-details-validation) backend
-GET         /:id                                           uk.gov.hmrc.agentsexternalstubs.controllers.PersonalDetailsValidationController.get(id: String)
+GET         /personal-details-validation/:id                                 uk.gov.hmrc.agentsexternalstubs.controllers.PersonalDetailsValidationController.get(id: String)
 
 #------------------------------------------------------
 # CUSTOM APIs
