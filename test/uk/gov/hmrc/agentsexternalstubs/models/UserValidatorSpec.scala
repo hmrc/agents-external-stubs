@@ -357,11 +357,11 @@ class UserValidatorSpec extends UnitSpec with ValidatedMatchers {
     "validate only when suspended services are all valid services or empty" in {
       val user = UserGenerator.agent()
       UserValidator.validate(user.copy(suspendedServices = None)).isValid shouldBe true
-      UserValidator.validate(user.copy(suspendedServices = Some(Seq("HMRC-MTD-IT", "HMRC-MTD-VAT")))).isValid shouldBe true
+      UserValidator.validate(user.copy(suspendedServices = Some(Set("HMRC-MTD-IT", "HMRC-MTD-VAT")))).isValid shouldBe true
 
-      UserValidator.validate(user.copy(suspendedServices = Some(Seq("foo")))).isValid shouldBe false
+      UserValidator.validate(user.copy(suspendedServices = Some(Set("foo")))).isValid shouldBe false
       UserValidator
-        .validate(user.copy(suspendedServices = Some(Seq("HMRC-MTD-IT", "HMRC-MTD-VAT", "foo"))))
+        .validate(user.copy(suspendedServices = Some(Set("HMRC-MTD-IT", "HMRC-MTD-VAT", "foo"))))
         .isValid shouldBe false
     }
   }
