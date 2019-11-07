@@ -101,16 +101,17 @@ object UserValidator {
   }
 
   val validateSuspendedServices: UserConstraint = user =>
-    if (user.suspendedServices.isEmpty) Valid()
-    else {
-      import Validator.Implicits._
-      user.suspendedServices
-        .map(suspendedService =>
-          Services(suspendedService) match {
-            case Some(_) => Valid()
-            case None    => Invalid(s"suspended service $suspendedService not valid")
-        })
-        .reduce(_ combine _)
+    user.suspendedServices match {
+      case None => Valid()
+      case Some(services) =>
+        import Validator.Implicits._
+        services
+          .map(suspendedService =>
+            Services(suspendedService) match {
+              case Some(_) => Valid()
+              case None    => Invalid(s"suspended service $suspendedService not valid")
+          })
+          .reduce(_ combine _)
   }
 
   val validateEachPrincipalEnrolment: UserConstraint = user =>
