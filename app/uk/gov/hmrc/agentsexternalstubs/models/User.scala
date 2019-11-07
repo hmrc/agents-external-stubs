@@ -27,7 +27,8 @@ case class User(
   recordIds: Seq[String] = Seq.empty,
   address: Option[User.Address] = None,
   additionalInformation: Option[AdditionalInformation] = None,
-  strideRoles: Seq[String] = Seq.empty
+  strideRoles: Seq[String] = Seq.empty,
+  suspendedServices: Seq[String] = Seq.empty
 ) {
 
   def uniqueKeys: Seq[String] =
@@ -242,7 +243,8 @@ object User {
       (JsPath \ "recordIds").readNullable[Seq[String]].map(_.map(_.distinct).getOrElse(Seq.empty)) and
       (JsPath \ "address").readNullable[Address] and
       (JsPath \ "additionalInformation").readNullable[AdditionalInformation] and
-      (JsPath \ "strideRoles").readNullable[Seq[String]].map(_.getOrElse(Seq.empty))
+      (JsPath \ "strideRoles").readNullable[Seq[String]].map(_.getOrElse(Seq.empty)) and
+      (JsPath \ "suspendedServices").readNullable[Seq[String]].map(_.getOrElse(Seq.empty))
   )(User.apply _)
 
   implicit val writes: Writes[User] = Json.writes[User]
