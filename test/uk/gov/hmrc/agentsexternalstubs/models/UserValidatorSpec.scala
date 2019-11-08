@@ -353,6 +353,17 @@ class UserValidatorSpec extends UnitSpec with ValidatedMatchers {
       UserValidator.validate(user.copy(address = Some(User.Address(line4 = Some("a" * 36))))).isValid shouldBe false
       UserValidator.validate(user.copy(address = Some(User.Address(countryCode = Some(""))))).isValid shouldBe false
     }
+
+    "validate only when suspended services are all valid services or empty" in {
+      val user = UserGenerator.agent()
+      UserValidator.validate(user.copy(suspendedServices = None)).isValid shouldBe true
+      UserValidator.validate(user.copy(suspendedServices = Some(Set("HMRC-MTD-IT", "HMRC-MTD-VAT")))).isValid shouldBe true
+
+      UserValidator.validate(user.copy(suspendedServices = Some(Set("foo")))).isValid shouldBe false
+      UserValidator
+        .validate(user.copy(suspendedServices = Some(Set("HMRC-MTD-IT", "HMRC-MTD-VAT", "foo"))))
+        .isValid shouldBe false
+    }
   }
 
 }
