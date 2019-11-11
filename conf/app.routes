@@ -85,7 +85,7 @@ PUT           /nino/:credId                                                     
 GET           /personal-details-validation/:id                                                       uk.gov.hmrc.agentsexternalstubs.controllers.PersonalDetailsValidationController.get(id: String)
 
 # Agent suspension
-GET           /agent-suspension/status/arn                                                          uk.gov.hmrc.agentsexternalstubs.controllers.AgentSuspensionController.getSuspensionStatus
+GET           /agent-suspension/status/arn/:arn                                                          uk.gov.hmrc.agentsexternalstubs.controllers.AgentSuspensionController.getSuspensionStatus(arn: uk.gov.hmrc.agentmtdidentifiers.model.Arn)
 #------------------------------------------------------
 # CUSTOM APIs
 #------------------------------------------------------

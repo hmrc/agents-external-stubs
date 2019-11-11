@@ -7,6 +7,7 @@ import play.api.http.{HeaderNames, MimeTypes}
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.libs.ws.{BodyWritable, WSClient, WSCookie, WSResponse}
 import play.api.mvc.{Cookie, Cookies, Session}
+import uk.gov.hmrc.agentmtdidentifiers.model.Arn
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, SignInRequest, User}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.logging.Authorization
@@ -610,8 +611,8 @@ trait TestRequests extends ScalaFutures {
   }
 
   object AgentSuspensionStub {
-    def getSuspensionStatus()(implicit authContext: AuthContext): WSResponse =
-      get("/agent-suspension/status/arn")
+    def getSuspensionStatus(arn: Arn)(implicit authContext: AuthContext): WSResponse =
+      get(s"/agent-suspension/status/arn/${arn.value}")
   }
 
   object SpecialCases {
