@@ -27,7 +27,7 @@ class AgentSuspensionControllerISpec extends ServerBaseISpec with TestRequests {
         val result = AgentSuspensionStub.getSuspensionStatus(Arn("TARN0000001"))
 
         result.status shouldBe 200
-        result.json shouldBe Json.parse("""{"status": "NotSuspended"}""")
+        result.json shouldBe Json.parse("""{"services": []}""")
       }
 
       "return suspended status and list of suspended services when agent is suspended" in {
@@ -45,7 +45,7 @@ class AgentSuspensionControllerISpec extends ServerBaseISpec with TestRequests {
 
         result.status shouldBe 200
         result.json shouldBe Json.parse(
-          """{"status": "Suspended", "suspendedServices": ["HMRC-MTD-IT", "HMRC-MTD-VAT"]}""")
+          """{"services": ["HMRC-MTD-IT", "HMRC-MTD-VAT"]}""")
       }
 
       "return not found when user record cannot be found" in {

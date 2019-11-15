@@ -26,16 +26,16 @@ class AgentSuspensionController @Inject()(
           case None => Future successful notFound("USER_NOT_FOUND")
           case Some(user) =>
             user.suspendedServices match {
-              case None     => Future successful Ok(Json.toJson(AgentSuspensionResponse("NotSuspended")))
-              case Some(ss) => Future successful Ok(Json.toJson(AgentSuspensionResponse("Suspended", Some(ss))))
+              case None     => Future successful Ok(Json.toJson(SuspendedServices(Set.empty)))
+              case Some(ss) => Future successful Ok(Json.toJson(SuspendedServices(ss)))
             }
         }
     }(SessionRecordNotFound)
   }
 }
 
-case class AgentSuspensionResponse(status: String, suspendedServices: Option[Set[String]] = None)
+case class SuspendedServices(services: Set[String])
 
-object AgentSuspensionResponse {
-  implicit val formats: OFormat[AgentSuspensionResponse] = Json.format
+object SuspendedServices {
+  implicit val formats: OFormat[SuspendedServices] = Json.format
 }
