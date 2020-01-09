@@ -39,6 +39,7 @@ case class BusinessPartnerRecord(
   addressDetails: AddressDetails,
   contactDetails: Option[ContactDetails] = None,
   agencyDetails: Option[AgencyDetails] = None,
+  suspensionDetails: Option[SuspensionDetails] = None,
   id: Option[String] = None
 ) extends Record {
 
@@ -103,6 +104,8 @@ case class BusinessPartnerRecord(
     if (pf.isDefinedAt(contactDetails)) copy(contactDetails = pf(contactDetails)) else this
   def withAgencyDetails(agencyDetails: Option[AgencyDetails]): BusinessPartnerRecord =
     copy(agencyDetails = agencyDetails)
+  def withSuspensionDetails(suspensionDetails: SuspensionDetails): BusinessPartnerRecord =
+    copy(suspensionDetails = Some(suspensionDetails))
   def modifyAgencyDetails(pf: PartialFunction[Option[AgencyDetails], Option[AgencyDetails]]): BusinessPartnerRecord =
     if (pf.isDefinedAt(agencyDetails)) copy(agencyDetails = pf(agencyDetails)) else this
 }
@@ -241,6 +244,12 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
           .orElse(Generator.get(AgencyDetails.gen)(seed))
           .map(AgencyDetails.sanitize(seed)))
 
+  val suspensionDetailsSanitizer: Update = seed =>
+    entity =>
+      entity.copy(
+        suspensionDetails = Some(SuspensionDetails(suspensionStatus = false, None))
+  )
+
   val isAnIndividualAndIndividualCompoundSanitizer: Update = seed =>
     entity =>
       entity.copy(
@@ -278,6 +287,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     crnSanitizer,
     contactDetailsSanitizer,
     agencyDetailsSanitizer,
+    suspensionDetailsSanitizer,
     isAnIndividualOrIsAnOrganisationAlternativeSanitizer
   )
 

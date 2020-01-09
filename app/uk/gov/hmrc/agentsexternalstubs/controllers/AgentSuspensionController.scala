@@ -10,6 +10,7 @@ import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
+//TODO: remove this controller and use BPR to determine suspension status
 class AgentSuspensionController @Inject()(
   val authenticationService: AuthenticationService,
   usersService: UsersService,
@@ -25,17 +26,17 @@ class AgentSuspensionController @Inject()(
         .flatMap {
           case None => Future successful notFound("USER_NOT_FOUND")
           case Some(user) =>
-            user.suspendedServices match {
-              case None     => Future successful Ok(Json.toJson(SuspendedServices(Set.empty)))
-              case Some(ss) => Future successful Ok(Json.toJson(SuspendedServices(ss)))
+            user.suspendedRegimes match {
+              case None     => Future successful Ok(Json.toJson(SuspendedRegimes(Set.empty)))
+              case Some(ss) => Future successful Ok(Json.toJson(SuspendedRegimes(ss)))
             }
         }
     }(SessionRecordNotFound)
   }
 }
 
-case class SuspendedServices(services: Set[String])
+case class SuspendedRegimes(services: Set[String])
 
-object SuspendedServices {
-  implicit val formats: OFormat[SuspendedServices] = Json.format
+object SuspendedRegimes {
+  implicit val formats: OFormat[SuspendedRegimes] = Json.format
 }

@@ -30,13 +30,13 @@ class AgentSuspensionControllerISpec extends ServerBaseISpec with TestRequests {
         result.json shouldBe Json.parse("""{"services": []}""")
       }
 
-      "return suspended status and list of suspended services when agent is suspended" in {
+      "return suspended status and list of suspended regimes when agent is suspended" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val user = UserGenerator
           .agent()
           .copy(
             userId = session.userId,
-            suspendedServices = Some(Set("HMRC-MTD-IT", "HMRC-MTD-VAT")),
+            suspendedRegimes = Some(Set("ITSA", "VATC")),
             principalEnrolments =
               Seq(Enrolment("HMRC-AS-AGENT", Some(Seq(Identifier("AgentReferenceNumber", "TARN0000001")))))
           )
@@ -45,7 +45,7 @@ class AgentSuspensionControllerISpec extends ServerBaseISpec with TestRequests {
 
         result.status shouldBe 200
         result.json shouldBe Json.parse(
-          """{"services": ["HMRC-MTD-IT", "HMRC-MTD-VAT"]}""")
+          """{"services": ["ITSA", "VATC"]}""")
       }
 
       "return not found when user record cannot be found" in {

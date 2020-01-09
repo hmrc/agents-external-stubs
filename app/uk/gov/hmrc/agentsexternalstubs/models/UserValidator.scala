@@ -100,18 +100,16 @@ object UserValidator {
       case _             => Valid(())
   }
 
-  val validateSuspendedServices: UserConstraint = user =>
-    user.suspendedServices match {
+  val validateSuspendedRegimes: UserConstraint = user => {
+    val validRegimes = Set("ALL", "ITSA", "VATC", "TRS", "CGT")
+    user.suspendedRegimes match {
       case None => Valid()
-      case Some(services) =>
+      case Some(regimes) =>
         import Validator.Implicits._
-        services
-          .map(suspendedService =>
-            Services(suspendedService) match {
-              case Some(_) => Valid()
-              case None    => Invalid(s"suspended service $suspendedService not valid")
-          })
+        regimes
+          .map(regime => if (validRegimes.contains(regime)) Valid() else Invalid(s"suspended regime $regime not valid"))
           .reduce(_ combine _)
+    }
   }
 
   val validateEachPrincipalEnrolment: UserConstraint = user =>
@@ -205,7 +203,7 @@ object UserValidator {
     validateEachDelegatedEnrolment,
     validateDelegatedEnrolmentsValuesAreDistinct,
     validateAddress,
-    validateSuspendedServices
+    validateSuspendedRegimes
   )
 
   val validate: User => Validated[List[String], Unit] = Validator.validate(constraints: _*)
