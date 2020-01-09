@@ -431,6 +431,7 @@ class UserToRecordsSyncService @Inject()(
                   .generate(user.userId)
                   .withAgencyAddress(Some(address))
                   .withAgencyName(user.agentFriendlyName.map(_.take(40)))))
+            .withSuspensionDetails(SuspensionDetails(user.suspendedRegimes.nonEmpty, user.suspendedRegimes))
             .withAddressDetails(address)
         }.flatMap(record => {
           val utr = Generator.utr(user.userId)
