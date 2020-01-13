@@ -610,11 +610,6 @@ trait TestRequests extends ScalaFutures {
       delete(s"/agents-external-stubs/known-facts/$enrolmentKey")
   }
 
-  object AgentSuspensionStub {
-    def getSuspensionStatus(arn: Arn)(implicit authContext: AuthContext): WSResponse =
-      get(s"/agent-suspension/status/arn/${arn.value}")
-  }
-
   object SpecialCases {
     def getAllSpecialCases(implicit authContext: AuthContext): WSResponse =
       get(s"/agents-external-stubs/special-cases")
