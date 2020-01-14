@@ -7,6 +7,7 @@ import play.api.libs.json._
 import play.api.libs.ws.WSClient
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.connectors.ExampleApiPlatformTestUserResponses
+import uk.gov.hmrc.agentsexternalstubs.controllers.ErrorResponse._
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.Individual
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
@@ -128,6 +129,7 @@ class DesStubControllerISpec
           )
         )
       }
+
       "return 403 if the agent is suspended" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         await(userService.updateUser(session.userId, session.planetId, user => user.copy(suspendedRegimes = Some(Set("ITSA")))))
@@ -148,6 +150,9 @@ class DesStubControllerISpec
           DesStub.getRelationship(regime = "ITSA", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
 
         result should haveStatus(403)
+        val errorResponse = Json.parse(result.body).as[ErrorResponse]
+        errorResponse.code shouldBe "AGENT_SUSPENDED"
+        errorResponse.reason shouldBe Some("The remote endpoint has indicated that the agent is suspended")
       }
     }
 
