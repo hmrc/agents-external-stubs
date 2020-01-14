@@ -69,9 +69,22 @@ class DesStubController @Inject()(
       GetRelationships.form.bindFromRequest.fold(
         hasErrors => badRequestF("INVALID_SUBMISSION", hasErrors.errors.map(_.message).mkString(", ")),
         query =>
-          relationshipRecordsService
-            .findByQuery(query, session.planetId)
-            .map(records => Ok(Json.toJson(GetRelationships.Response.from(records))))
+          usersService.findByUserId(session.userId, session.planetId).flatMap {
+            case Some(user) =>
+              user.suspendedRegimes match {
+                case Some(sr) if sr.contains("ALL") || sr.contains(regime) =>
+                  Future successful forbidden(
+                    "AGENT_SUSPENDED",
+                    "The remote endpoint has indicated that the agent is suspended")
+                case _ =>
+                  relationshipRecordsService
+                    .findByQuery(query, session.planetId)
+                    .map(records => Ok(Json.toJson(GetRelationships.Response.from(records))))
+              }
+
+            case None =>
+              Future successful notFound("NOT_FOUND", "Data not found  for the provided Registration Number.")
+        }
       )
     }(SessionRecordNotFound)
   }

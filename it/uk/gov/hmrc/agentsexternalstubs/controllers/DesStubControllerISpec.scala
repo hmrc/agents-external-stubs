@@ -128,6 +128,27 @@ class DesStubControllerISpec
           )
         )
       }
+      "return 403 if the agent is suspended" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        await(userService.updateUser(session.userId, session.planetId, user => user.copy(suspendedRegimes = Some(Set("ITSA")))))
+
+        await(
+          repo.store(
+            RelationshipRecord(
+              regime = "ITSA",
+              arn = "ZARN1234567",
+              idType = "none",
+              refNumber = "012345678901234",
+              active = true,
+              startDate = Some(LocalDate.parse("2012-01-01"))),
+            session.planetId
+          ))
+
+        val result =
+          DesStub.getRelationship(regime = "ITSA", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
+
+        result should haveStatus(403)
+      }
     }
 
     "GET /registration/relationship/nino/:nino" should {
