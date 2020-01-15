@@ -7,6 +7,7 @@ import play.api.libs.json._
 import play.api.libs.ws.WSClient
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.connectors.ExampleApiPlatformTestUserResponses
+import uk.gov.hmrc.agentsexternalstubs.controllers.ErrorResponse._
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.Individual
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
@@ -86,6 +87,10 @@ class DesStubControllerISpec
     "GET /registration/relationship" should {
       "respond 200" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val user = UserGenerator
+          .agent("foo", agentFriendlyName = "ABC123")
+          .withPrincipalEnrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567")
+        await(userService.createUser(user, session.planetId))
 
         await(
           repo.store(
@@ -127,6 +132,34 @@ class DesStubControllerISpec
               haveProperty[JsObject]("organisation", haveProperty[String]("organisationName"))
           )
         )
+      }
+
+      "return 403 if the agent is suspended" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val user = UserGenerator
+          .agent("foo", agentFriendlyName = "ABC123")
+          .withPrincipalEnrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567")
+        await(userService.createUser(user.copy(suspendedRegimes = Some(Set("ITSA"))), session.planetId))
+
+        await(
+          repo.store(
+            RelationshipRecord(
+              regime = "ITSA",
+              arn = "ZARN1234567",
+              idType = "none",
+              refNumber = "012345678901234",
+              active = true,
+              startDate = Some(LocalDate.parse("2012-01-01"))),
+            session.planetId
+          ))
+
+        val result =
+          DesStub.getRelationship(regime = "ITSA", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
+
+        result should haveStatus(403)
+        val errorResponse = Json.parse(result.body).as[ErrorResponse]
+        errorResponse.code shouldBe "AGENT_SUSPENDED"
+        errorResponse.reason shouldBe Some("The remote endpoint has indicated that the agent is suspended")
       }
     }
 

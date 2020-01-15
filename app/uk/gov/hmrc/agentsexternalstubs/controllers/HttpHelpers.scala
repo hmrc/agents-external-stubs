@@ -9,7 +9,7 @@ import scala.util.{Failure, Success, Try}
 case class ErrorResponse(code: String, reason: Option[String])
 
 object ErrorResponse {
-  implicit val writes: Writes[ErrorResponse] = Json.writes[ErrorResponse]
+  implicit val formats = Json.format[ErrorResponse]
 }
 
 trait HttpHelpers {
