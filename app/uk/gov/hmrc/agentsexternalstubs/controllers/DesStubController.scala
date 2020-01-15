@@ -68,22 +68,32 @@ class DesStubController @Inject()(
     withCurrentSession { session =>
       GetRelationships.form.bindFromRequest.fold(
         hasErrors => badRequestF("INVALID_SUBMISSION", hasErrors.errors.map(_.message).mkString(", ")),
-        query =>
-          usersService.findByUserId(session.userId, session.planetId).flatMap {
-            case Some(user) =>
-              user.suspendedRegimes match {
-                case Some(sr) if sr.contains("ALL") || sr.contains(regime) =>
-                  Future successful forbidden(
-                    "AGENT_SUSPENDED",
-                    "The remote endpoint has indicated that the agent is suspended")
-                case _ =>
-                  relationshipRecordsService
-                    .findByQuery(query, session.planetId)
-                    .map(records => Ok(Json.toJson(GetRelationships.Response.from(records))))
-              }
+        query => {
+          relationshipRecordsService
+            .findByQuery(query, session.planetId)
+            .flatMap(records =>
+              records.headOption match {
+                case Some(r) =>
+                  businessPartnerRecordsService
+                    .getBusinessPartnerRecord(Arn(r.arn), session.planetId) map {
+                    case Some(bpr) =>
+                      bpr.suspensionDetails match {
+                        case Some(sd) =>
+                          if (sd.suspendedRegimes.contains(regime))
+                            forbidden(
+                              "AGENT_SUSPENDED",
+                              "The remote endpoint has indicated that the agent is suspended")
+                          else Ok(Json.toJson(GetRelationships.Response.from(records)))
 
-            case None =>
-              Future successful notFound("NOT_FOUND", "Data not found  for the provided Registration Number.")
+                        case None => Ok(Json.toJson(GetRelationships.Response.from(records)))
+                      }
+
+                    case None => notFound("NOT_FOUND")
+                  }
+
+                case None =>
+                  Future successful Ok(Json.toJson(GetRelationships.Response.from(records)))
+            })
         }
       )
     }(SessionRecordNotFound)

@@ -87,6 +87,10 @@ class DesStubControllerISpec
     "GET /registration/relationship" should {
       "respond 200" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val user = UserGenerator
+          .agent("foo", agentFriendlyName = "ABC123")
+          .withPrincipalEnrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567")
+        await(userService.createUser(user, session.planetId))
 
         await(
           repo.store(
@@ -132,7 +136,10 @@ class DesStubControllerISpec
 
       "return 403 if the agent is suspended" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-        await(userService.updateUser(session.userId, session.planetId, user => user.copy(suspendedRegimes = Some(Set("ITSA")))))
+        val user = UserGenerator
+          .agent("foo", agentFriendlyName = "ABC123")
+          .withPrincipalEnrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567")
+        await(userService.createUser(user.copy(suspendedRegimes = Some(Set("ITSA"))), session.planetId))
 
         await(
           repo.store(
