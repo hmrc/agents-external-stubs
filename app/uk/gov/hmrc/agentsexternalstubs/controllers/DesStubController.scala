@@ -71,28 +71,30 @@ class DesStubController @Inject()(
         query => {
           relationshipRecordsService
             .findByQuery(query, session.planetId)
-            .flatMap(records =>
+            .flatMap(records => {
+
+              def checkSuspension(arn: Arn): Future[Result] =
+                businessPartnerRecordsService.getBusinessPartnerRecord(arn, session.planetId) map {
+                  case Some(bpr) =>
+                    bpr.suspensionDetails match {
+                      case Some(sd) =>
+                        if (sd.suspendedRegimes.contains(regime))
+                          forbidden("AGENT_SUSPENDED", "The remote endpoint has indicated that the agent is suspended")
+                        else Ok(Json.toJson(GetRelationships.Response.from(records)))
+
+                      case None => Ok(Json.toJson(GetRelationships.Response.from(records)))
+                    }
+                }
+
               records.headOption match {
                 case Some(r) =>
-                  businessPartnerRecordsService
-                    .getBusinessPartnerRecord(Arn(r.arn), session.planetId) map {
-                    case Some(bpr) =>
-                      bpr.suspensionDetails match {
-                        case Some(sd) =>
-                          if (sd.suspendedRegimes.contains(regime))
-                            forbidden(
-                              "AGENT_SUSPENDED",
-                              "The remote endpoint has indicated that the agent is suspended")
-                          else Ok(Json.toJson(GetRelationships.Response.from(records)))
-
-                        case None => Ok(Json.toJson(GetRelationships.Response.from(records)))
-                      }
-
-                    case None => notFound("NOT_FOUND")
-                  }
+                  checkSuspension(Arn(r.arn))
 
                 case None =>
-                  Future successful Ok(Json.toJson(GetRelationships.Response.from(records)))
+                  if (agent) {
+                    checkSuspension(Arn(arn.getOrElse(throw new Exception("agent must have arn"))))
+                  } else Future successful Ok(Json.toJson(GetRelationships.Response.from(records)))
+              }
             })
         }
       )
