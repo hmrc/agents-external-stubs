@@ -64,7 +64,9 @@ class DesStubController @Inject()(
     `active-only`: Boolean,
     regime: String,
     from: Option[String],
-    to: Option[String]): Action[AnyContent] = Action.async { implicit request =>
+    to: Option[String],
+    relationship: Option[String],
+    `auth-profile`: Option[String]): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       GetRelationships.form.bindFromRequest.fold(
         hasErrors => badRequestF("INVALID_SUBMISSION", hasErrors.errors.map(_.message).mkString(", ")),
@@ -582,6 +584,10 @@ object DesStubController {
         else if (!q.agent && q.refNumber.isEmpty) Invalid("Missing ref-no")
         else if ((!q.activeOnly || q.to.isDefined) && q.from.isEmpty) Invalid("Missing from date")
         else if (!q.activeOnly && q.to.isEmpty) Invalid("Missing to date")
+        else if ((q.regime == "VATC" || q.regime == "CGT") && q.relationship.isEmpty)
+          Invalid(s"relationship type is mandatory for ${q.regime} regime")
+        else if ((q.regime == "VATC" || q.regime == "CGT") && q.authProfile.isEmpty)
+          Invalid(s"auth profile is mandatory for ${q.regime} regime")
         else Valid)
 
     val form: Form[RelationshipRecordQuery] = Form[RelationshipRecordQuery](
@@ -598,7 +604,9 @@ object DesStubController {
         "from" -> optional(nonEmptyText.verifying(MoreConstraints.pattern(RegexPatterns.validDate, "from")))
           .transform[Option[LocalDate]](_.map(LocalDate.parse), Option(_).map(_.toString)),
         "to" -> optional(nonEmptyText.verifying(MoreConstraints.pattern(RegexPatterns.validDate, "to")))
-          .transform[Option[LocalDate]](_.map(LocalDate.parse), Option(_).map(_.toString))
+          .transform[Option[LocalDate]](_.map(LocalDate.parse), Option(_).map(_.toString)),
+        "relationship" -> optional(nonEmptyText.verifying("invalid relationship type", _ == "ZA01")),
+        "auth-profile" -> optional(nonEmptyText.verifying("invalid auth profile", _ == "ALL00001"))
       )(RelationshipRecordQuery.apply)(RelationshipRecordQuery.unapply).verifying(queryConstraint))
 
     case class Individual(firstName: String, lastName: String)

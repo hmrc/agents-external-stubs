@@ -96,4 +96,6 @@ case class RelationshipRecordQuery(
   activeOnly: Boolean = true,
   agent: Boolean,
   from: Option[LocalDate] = None,
-  to: Option[LocalDate] = None)
+  to: Option[LocalDate] = None,
+  relationship: Option[String] = None,
+  authProfile: Option[String] = None)
