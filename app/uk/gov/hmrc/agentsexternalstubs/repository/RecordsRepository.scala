@@ -151,7 +151,8 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
     planetId: String)(implicit reads: Reads[T], ec: ExecutionContext, recordType: RecordMetaData[T]): Cursor[T] =
     collection
       .find(
-        JsObject(Seq(KEYS -> JsArray(keys.map(key => JsString(keyOf(key, planetId, recordType.typeName)))))),
+        JsObject(Seq(KEYS -> JsObject(Seq("$in" -> JsArray(keys.map(key =>
+          JsString(keyOf(key, planetId, recordType.typeName)))))))),
         Some(Json.obj(recordType.fieldNames.map(option => option -> toJsFieldJsValueWrapper(JsNumber(1))): _*))
       )
       .cursor[T](ReadPreference.primary)(

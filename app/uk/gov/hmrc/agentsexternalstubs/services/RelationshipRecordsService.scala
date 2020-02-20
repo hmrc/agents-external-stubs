@@ -58,6 +58,9 @@ class RelationshipRecordsService @Inject()(recordsRepository: RecordsRepository)
   def findByKey(key: String, planetId: String)(implicit ec: ExecutionContext): Future[List[RelationshipRecord]] =
     recordsRepository.cursor[RelationshipRecord](key, planetId).collect[List](MAX_DOCS, Cursor.FailOnError())
 
+  def findByKeys(keys: Seq[String], planetId: String)(implicit ec: ExecutionContext): Future[List[RelationshipRecord]] =
+    recordsRepository.cursor[RelationshipRecord](keys, planetId).collect[List](MAX_DOCS, Cursor.FailOnError())
+
   def findByQuery(query: RelationshipRecordQuery, planetId: String)(
     implicit ec: ExecutionContext): Future[List[RelationshipRecord]] = {
 
@@ -70,16 +73,24 @@ class RelationshipRecordsService @Inject()(recordsRepository: RecordsRepository)
     val maybeToDate: RelationshipRecord => Boolean = r =>
       if (query.activeOnly) true else query.to.forall(qt => r.startDate.forall(rt => !rt.isAfter(qt)))
 
-    val key =
-      if (query.agent)
-        RelationshipRecord.agentKey(query.regime, query.arn.getOrElse(throw new Exception("Missing arn parameter")))
-      else
-        RelationshipRecord.clientKey(
-          query.regime,
-          query.idType,
-          query.refNumber.getOrElse(throw new Exception("Missing refNumber parameter")))
+    val keys =
+      if (query.agent) {
+        if (!query.activeOnly && query.regime == "AGSV") { //AGSV to retrieve all types of inactive relationships
+          RelationshipRecord.agentKeys(query.arn.getOrElse(throw new Exception("Missing arn parameter")))
+        } else {
+          Seq(
+            RelationshipRecord
+              .agentKey(query.regime, query.arn.getOrElse(throw new Exception("Missing arn parameter"))))
+        }
+      } else {
+        Seq(
+          RelationshipRecord.clientKey(
+            query.regime,
+            query.idType,
+            query.refNumber.getOrElse(throw new Exception("Missing refNumber parameter"))))
+      }
 
-    findByKey(key, planetId)
+    findByKeys(keys, planetId)
       .map(
         _.filter(maybeActiveOnly)
           .filter(maybeFromDate)
