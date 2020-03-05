@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.connectors
 
-import java.net.URL
+import java.net.{URL, URLEncoder}
 
 import javax.inject.{Inject, Named, Singleton}
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
@@ -31,7 +31,8 @@ class AgentAccessControlConnector @Inject()(appConfig: AppConfig, http: HttpGet)
     implicit c: HeaderCarrier,
     ec: ExecutionContext): Future[Boolean] =
     check(
-      new URL(appConfig.agentAccessControlUrl + s"/agent-access-control/epaye-auth/agent/$agentCode/client/$empRef"))
+      new URL(appConfig.agentAccessControlUrl + s"/agent-access-control/epaye-auth/agent/$agentCode/client/${URLEncoder
+        .encode(empRef, "UTF-8")}"))
 
   def isAuthorisedForSa(agentCode: String, saUtr: String)(
     implicit c: HeaderCarrier,
