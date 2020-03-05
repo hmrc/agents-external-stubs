@@ -74,12 +74,12 @@ case class EnrolmentPredicate(
   delegatedAuthRule: Option[String] = None)
     extends Predicate {
   override def validate(context: AuthoriseContext): Either[String, Unit] =
-    (delegatedAuthRule, identifiers) match {
-      case (Some(rule), Some(identifierSeq)) =>
+    (delegatedAuthRule, identifiers, context.agentCode) match {
+      case (Some(rule), Some(identifierSeq), Some(_)) =>
         if (context.hasDelegatedAuth(rule, identifierSeq)) Right(()) else Left("Delegated auth not granted.")
-      case (Some(rule), None) =>
+      case (Some(rule), _, Some(_)) =>
         Left(s"Missing predicate part: delegated $rule enrolment identifiers")
-      case (None, _) =>
+      case (_, _, _) =>
         if (context.providerType == "PrivilegedApplication")
           context.strideRoles.find(_ == enrolment).map(_ => ()).toRight("InsufficientEnrolments")
         else
