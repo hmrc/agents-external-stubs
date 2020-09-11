@@ -16,28 +16,28 @@ lazy val scoverageSettings = {
 
 lazy val compileDeps = Seq(
   ws,
-  "uk.gov.hmrc" %% "bootstrap-play-26" % "0.37.0",
-  "uk.gov.hmrc" %% "simple-reactivemongo" % "7.22.0-play-26",
-  "uk.gov.hmrc" %% "auth-client" % "2.20.0-play-26",
-  "uk.gov.hmrc" %% "agent-mtd-identifiers" % "0.17.0-play-26",
-  "com.kenshoo" %% "metrics-play" % "2.6.19_0.7.0",
-  "uk.gov.hmrc" %% "domain" % "5.6.0-play-26",
-  "com.github.blemale" %% "scaffeine" % "2.6.0",
-  "org.typelevel" %% "cats-core" % "1.6.0",
+  "uk.gov.hmrc" %% "bootstrap-backend-play-27" % "2.24.0",
+  "uk.gov.hmrc" %% "simple-reactivemongo" % "7.30.0-play-27",
+  "uk.gov.hmrc" %% "auth-client" % "3.0.0-play-27",
+  "uk.gov.hmrc" %% "agent-mtd-identifiers" % "0.19.0-play-27",
+  "com.kenshoo" %% "metrics-play" % "2.7.3_0.8.2",
+  "uk.gov.hmrc" %% "domain" % "5.9.0-play-27",
+  "com.github.blemale" %% "scaffeine" % "4.0.1",
+  "org.typelevel" %% "cats-core" % "2.0.0",
   "uk.gov.hmrc" %% "stub-data-generator" % "0.5.3",
   "wolfendale" %% "scalacheck-gen-regexp" % "0.1.1",
-  "com.typesafe.play" %% "play-json" % "2.6.13",
-  "com.typesafe.play" %% "play-json-joda" % "2.6.13",
+  "com.typesafe.play" %% "play-json" % "2.7.0",
+  "com.typesafe.play" %% "play-json-joda" % "2.7.4",
   ws
 )
 
 def testDeps(scope: String) = Seq(
-  "uk.gov.hmrc" %% "hmrctest" % "3.6.0-play-26" % scope,
-  "org.scalatest" %% "scalatest" % "3.0.7" % scope,
+  "uk.gov.hmrc" %% "hmrctest" % "3.8.0-play-26" % scope,
+  "org.scalatest" %% "scalatest" % "3.0.8" % scope,
   "org.mockito" % "mockito-core" % "2.25.1" % scope,
-  "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.2" % scope,
-  "uk.gov.hmrc" %% "reactivemongo-test" % "4.10.0-play-26" % scope,
-  "com.github.tomakehurst" % "wiremock" % "2.22.0" % scope,
+  "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.3" % scope,
+  "uk.gov.hmrc" %% "reactivemongo-test" % "4.21.0-play-27" % scope,
+  "com.github.tomakehurst" % "wiremock-jre8" % "2.26.1" % scope,
   "com.github.pathikrit" %% "better-files" % "3.7.1" % scope
 )
 
@@ -69,7 +69,7 @@ lazy val root = (project in file("."))
   .settings(
     name := "agents-external-stubs",
     organization := "uk.gov.hmrc",
-    scalaVersion := "2.12.8",
+    scalaVersion := "2.12.10",
     majorVersion := 0,
     PlayKeys.playDefaultPort := 9009,
     resolvers := Seq(
@@ -80,7 +80,6 @@ lazy val root = (project in file("."))
       Resolver.bintrayRepo("wolfendale", "maven")
     ),
     libraryDependencies ++= tmpMacWorkaround() ++ compileDeps ++ testDeps("test") ++ testDeps("it"),
-    dependencyOverrides ++= jettyOverrides,
     publishingSettings,
     scoverageSettings,
     unmanagedResourceDirectories in Compile += baseDirectory.value / "resources",
