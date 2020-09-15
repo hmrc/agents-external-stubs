@@ -23,7 +23,13 @@ import uk.gov.hmrc.domain.Nino
 
 class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
 
-  lazy val repo = app.injector.instanceOf[UsersRepository]
+  lazy val repo = app.injector.instanceOf[UsersRepositoryMongo]
+
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    await(repo.drop)
+    await(repo.ensureIndexes)
+  }
 
   "store" should {
     "store a simple user" in {

@@ -31,6 +31,11 @@ class ClearDatabaseISpec extends AppBaseISpec with MongoDB with Eventually {
   lazy val recordsRepo = app.injector.instanceOf[RecordsRepositoryMongo]
   lazy val actorSystem = app.injector.instanceOf[ActorSystem]
 
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    await(usersRepo.drop)
+  }
+
   "clearDatabase" should {
     "remove all documents older than specified timestamp" in {
       val fixture = Stream
