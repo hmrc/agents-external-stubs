@@ -36,6 +36,12 @@ class RegexPatternsSpec extends UnitSpec {
       RegexPatterns.validUtr("99999999999").isLeft shouldBe true
     }
 
+    "validate urn" in {
+      RegexPatterns.validUrn("999999999999999").isRight shouldBe true
+      RegexPatterns.validUrn("").isLeft shouldBe true
+      RegexPatterns.validUrn("999999999999999").isLeft shouldBe true
+    }
+
     "validate mtdbsa" in {
       RegexPatterns.validMtdbsa("999999999999999").isRight shouldBe true
       RegexPatterns.validMtdbsa("").isLeft shouldBe true

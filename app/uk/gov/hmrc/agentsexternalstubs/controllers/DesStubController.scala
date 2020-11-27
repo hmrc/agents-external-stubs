@@ -447,7 +447,7 @@ class DesStubController @Inject()(
     }(SessionRecordNotFound)
   }
 
-  def getTrustKnownFacts(utr: String): Action[AnyContent] = Action.async { implicit request =>
+  def getTrustKnownFacts(utr: String, urn: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       RegexPatterns
         .validUtr(utr)
@@ -456,7 +456,7 @@ class DesStubController @Inject()(
           _ =>
             usersService
               .findByPrincipalEnrolmentKey(
-                EnrolmentKey("HMRC-TERS-ORG", Seq(Identifier("SAUTR", utr))),
+                EnrolmentKey("HMRC-TERSNT-ORG", Seq(Identifier("SAUTR", utr))),
                 session.planetId)
               .map {
                 case Some(record) =>
@@ -550,6 +550,7 @@ class DesStubController @Inject()(
       case "nino"   => validateIdentifier(RegexPatterns.validNinoNoSpaces, "INVALID_NINO", idType, idNumber)(pf)
       case "mtdbsa" => validateIdentifier(RegexPatterns.validMtdbsa, "INVALID_MTDBSA", idType, idNumber)(pf)
       case "utr"    => validateIdentifier(RegexPatterns.validUtr, "INVALID_UTR", idType, idNumber)(pf)
+      case "urn"    => validateIdentifier(RegexPatterns.validUrn, "INVALID_URN", idType, idNumber)(pf)
       case "arn"    => validateIdentifier(RegexPatterns.validArn, "INVALID_ARN", idType, idNumber)(pf)
       case "vrn"    => validateIdentifier(RegexPatterns.validVrn, "INVALID_VRN", idType, idNumber)(pf)
       case "eori"   => validateIdentifier(RegexPatterns.validEori, "INVALID_EORI", idType, idNumber)(pf)
