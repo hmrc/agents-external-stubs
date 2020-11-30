@@ -198,6 +198,6 @@ object CreateUpdateAgentRelationshipPayload {
     val agentReferenceNumberPattern = """^[A-Z](ARN)[0-9]{7}$"""
     val regimePattern = """^[A-Z]{2,10}$"""
     val actionEnum1 = Seq("Authorise")
-    val idTypePattern = """^([A-Z0-9]{1,15})$"""
+    val idTypePattern = """^[0-9A-Za-z]{1,6}$"""
   }
 }

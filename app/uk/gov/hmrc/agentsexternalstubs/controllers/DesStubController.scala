@@ -447,23 +447,30 @@ class DesStubController @Inject()(
     }(SessionRecordNotFound)
   }
 
-  def getTrustKnownFacts(utr: String, urn: String): Action[AnyContent] = Action.async { implicit request =>
+  def getTrustKnownFacts(trustTaxIdentifier: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
-      RegexPatterns
-        .validUtr(utr)
+      Validator
+        .alternatively(
+          Validator.checkFromEither(RegexPatterns.validUtr, "INVALID_UTR"),
+          Validator.checkFromEither(RegexPatterns.validUrn, "INVALID_URN"),
+        )((trustTaxIdentifier))
         .fold(
-          error => badRequestF("INVALID_UTR", error),
+          error => badRequestF(error.mkString(", ")),
           _ =>
             usersService
               .findByPrincipalEnrolmentKey(
-                EnrolmentKey("HMRC-TERSNT-ORG", Seq(Identifier("SAUTR", utr))),
+                EnrolmentKey("HMRC-TERS-ORG", Seq(Identifier("SAUTR", trustTaxIdentifier))),
                 session.planetId)
               .map {
                 case Some(record) =>
                   val trustDetails = TrustDetailsResponse(
-                    TrustDetails(utr, record.name.getOrElse(""), TrustAddress(record.user.address), "TERS"))
+                    TrustDetails(
+                      trustTaxIdentifier,
+                      record.name.getOrElse(""),
+                      TrustAddress(record.user.address),
+                      "TERS"))
                   Ok(Json.toJson(trustDetails))
-                case None => getErrorResponseFor(utr)
+                case None => getErrorResponseFor(trustTaxIdentifier)
             }
         )
     }(SessionRecordNotFound)
