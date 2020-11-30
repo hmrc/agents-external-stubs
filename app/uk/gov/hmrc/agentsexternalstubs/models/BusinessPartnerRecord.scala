@@ -139,7 +139,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
   def uniqueKey(key: String): String = s"""safeId:${key.toUpperCase}"""
   def agentReferenceNumberKey(key: String): String = s"""agentReferenceNumber:${key.toUpperCase}"""
   def utrKey(key: String): String = s"""utr:${key.toUpperCase}"""
-  def urnKey(key: String): String = s"""urs:${key.toUpperCase}"""
+  def urnKey(key: String): String = s"""urn:${key.toUpperCase}"""
   def ninoKey(key: String): String = s"""nino:${key.toUpperCase}"""
   def eoriKey(key: String): String = s"""eori:${key.toUpperCase}"""
   def crnKey(key: String): String = s"""crn:${key.toUpperCase}"""
