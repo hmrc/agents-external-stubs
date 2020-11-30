@@ -449,11 +449,8 @@ class DesStubController @Inject()(
 
   def getTrustKnownFacts(trustTaxIdentifier: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
-      Validator
-        .alternatively(
-          Validator.checkFromEither(RegexPatterns.validUtr, "INVALID_UTR"),
-          Validator.checkFromEither(RegexPatterns.validUrn, "INVALID_URN"),
-        )((trustTaxIdentifier))
+      RegexPatterns
+        .validUtrOrUrn(trustTaxIdentifier)
         .fold(
           error => badRequestF(error.mkString(", ")),
           _ =>
