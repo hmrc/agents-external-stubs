@@ -453,11 +453,13 @@ class DesStubController @Inject()(
         .validUtrOrUrn(trustTaxIdentifier)
         .fold(
           error => badRequestF(error.mkString(", ")),
-          _ =>
+          taxIdentifier => {
+            val enrolmentKey = taxIdentifier match {
+              case Utr(v) => EnrolmentKey("HMRC-TERS-ORG", Seq(Identifier("SAUTR", v)))
+              case Urn(v) => EnrolmentKey("HMRC-TERSNT-ORG", Seq(Identifier("URN", v)))
+            }
             usersService
-              .findByPrincipalEnrolmentKey(
-                EnrolmentKey("HMRC-TERS-ORG", Seq(Identifier("SAUTR", trustTaxIdentifier))),
-                session.planetId)
+              .findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
               .map {
                 case Some(record) =>
                   val trustDetails = TrustDetailsResponse(
@@ -468,7 +470,8 @@ class DesStubController @Inject()(
                       "TERS"))
                   Ok(Json.toJson(trustDetails))
                 case None => getErrorResponseFor(trustTaxIdentifier)
-            }
+              }
+          }
         )
     }(SessionRecordNotFound)
   }

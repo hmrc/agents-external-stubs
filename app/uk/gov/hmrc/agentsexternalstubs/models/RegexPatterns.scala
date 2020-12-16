@@ -17,7 +17,8 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 import java.util.regex.Pattern
 
-import uk.gov.hmrc.agentmtdidentifiers.model.CgtRef
+import uk.gov.hmrc.agentmtdidentifiers.model.{CgtRef, Utr}
+import uk.gov.hmrc.domain.TaxIdentifier
 
 import scala.util.matching.Regex
 
@@ -32,7 +33,7 @@ object RegexPatterns {
   val validArn: Matcher = validate("^[A-Z]ARN[0-9]{7}$".r)
   val validUtr: Matcher = validate("^[0-9]{10}$".r)
   val validUrn: Matcher = validate("^([A-Z0-9]{1,15})$".r)
-  val validUtrOrUrn: Matcher = validate("^[0-9]{10}$|^([A-Z0-9]{1,15})$")
+  val validUtrOrUrn = validateTrustTaxIdentifier("^[0-9]{10}$".r, "^([A-Z0-9]{1,15})$".r)
   val validMtdbsa: Matcher = validate("^[A-Z0-9]{1,15}$".r)
   val validVrn: Matcher = validate("^[0-9]{1,9}$".r)
   val validEori: Matcher = validate("^[A-Z]{2}[0-9]{12}$".r)
@@ -53,6 +54,12 @@ object RegexPatterns {
     value =>
       if (regex.pattern.matcher(value).matches()) Right(value)
       else Left(s"Supplied value $value does not match pattern ${regex.pattern.toString}")
+
+  def validateTrustTaxIdentifier(utrR: Regex, unrR: Regex): String => Either[String, TaxIdentifier] =
+    value =>
+      if (utrR.pattern.matcher(value).matches()) Right(Utr(value))
+      else if (unrR.pattern.matcher(value).matches()) Right(Urn(value))
+      else Left(s"Supplied value $value does not match either ${utrR.pattern.toString} or ${unrR.pattern.toString}")
 
   def validate(pattern: String): Matcher =
     value => {
