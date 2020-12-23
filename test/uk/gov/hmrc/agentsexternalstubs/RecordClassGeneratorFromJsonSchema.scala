@@ -844,6 +844,7 @@ trait KnownFieldGenerators {
       case "mtdbsa"               => "Generator.mtdbsaGen"
       case "vrn"                  => "Generator.vrnGen"
       case "utr"                  => "Generator.utrGen"
+      case "urn"                  => "Generator.urnGen"
       case "eori"                 => "Generator.eoriGen"
       case "crn"                  => "Generator.crnGen"
       case date(a, b)             => s"Generator.dateYYYYMMDDGen${withPerturb(a, b)}"
