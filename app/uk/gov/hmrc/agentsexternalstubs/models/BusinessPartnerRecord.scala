@@ -223,9 +223,9 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
   val urnSanitizer: Update = seed =>
     entity =>
       entity.copy(
-        utr = urnValidator(entity.utr)
-          .fold(_ => None, _ => entity.utr)
-          .orElse(Generator.get(Generator.utrGen)(seed)))
+        urn = urnValidator(entity.urn)
+          .fold(_ => None, _ => entity.urn)
+          .orElse(Generator.get(Generator.urnGen)(seed)))
 
   val ninoSanitizer: Update = seed =>
     entity =>
