@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,9 @@ package uk.gov.hmrc.agentsexternalstubs.services
 
 import com.google.inject.Provider
 import javax.inject.{Inject, Singleton}
-import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, Utr}
+import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, Urn, Utr}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord
+import uk.gov.hmrc.agentsexternalstubs.models.Generator.urn
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.BadRequestException
@@ -56,6 +57,12 @@ class BusinessPartnerRecordsService @Inject()(
     externalUserService
       .tryLookupExternalUserIfMissingForIdentifier(utr, planetId, usersServiceProvider.get.createUser(_, _))(id =>
         findByKey[BusinessPartnerRecord](BusinessPartnerRecord.utrKey(id.value), planetId).map(_.headOption))
+
+  def getBusinessPartnerRecord(urn: Urn, planetId: String)(
+    implicit ec: ExecutionContext): Future[Option[BusinessPartnerRecord]] =
+    externalUserService
+      .tryLookupExternalUserIfMissingForIdentifier(urn, planetId, usersServiceProvider.get.createUser(_, _))(id =>
+        findByKey[BusinessPartnerRecord](BusinessPartnerRecord.urnKey(id.value), planetId).map(_.headOption))
 
   def getBusinessPartnerRecord(nino: Nino, planetId: String)(
     implicit ec: ExecutionContext): Future[Option[BusinessPartnerRecord]] =
