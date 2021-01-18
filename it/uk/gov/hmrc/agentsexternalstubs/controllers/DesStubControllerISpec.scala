@@ -230,7 +230,7 @@ class DesStubControllerISpec
       }
     }
     "POST /registration/relationship" should {
-      "respond 200 when authorising for TRS" in {
+      "respond 200 when authorising for TRS with UTR" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = DesStub.authoriseOrDeAuthoriseRelationship(
@@ -250,7 +250,7 @@ class DesStubControllerISpec
         result should haveStatus(200)
       }
 
-      "respond 200 when authorising for TRS  through API gateway" in {
+      "respond 200 when authorising for TRS with UTR through API gateway" in {
         SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
         implicit val apiAuthContext: AuthContext = AuthContext.fromHeaders("X-Client-ID" -> "foo123")
 
@@ -258,7 +258,71 @@ class DesStubControllerISpec
           Json.parse("""
                        |{
                        |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+                       |   "refNumber": "2110118025",
+                       |   "agentReferenceNumber": "PARN0876123",
+                       |   "idType": "UTR"
+                       |   "regime": "TRS",
+                       |   "authorisation": {
+                       |     "action": "Authorise",
+                       |     "isExclusiveAgent": true
+                       |     }
+                       |
+                       |}
+                     """.stripMargin))
+        result should haveStatus(200)
+      }
+
+      "respond 200 when de-authorising an TRS relationship with UTR" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = DesStub.authoriseOrDeAuthoriseRelationship(
+          Json.parse("""
+                       |{
+                       |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+                       |   "refNumber": "2110118025",
+                       |   "agentReferenceNumber": "PARN0876123",
+                       |   "idType": "UTR"
+                       |   "regime": "TRS",
+                       |   "authorisation": {
+                       |     "action": "Authorise",
+                       |     "isExclusiveAgent": true
+                       |     }
+                       |
+                       |}
+                     """.stripMargin))
+        result should haveStatus(200)
+      }
+    }
+    "POST /registration/relationship" should {
+      "respond 200 when authorising for TRS with URN" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = DesStub.authoriseOrDeAuthoriseRelationship(
+          Json.parse("""
+                       |{
+                       |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
                        |   "refNumber": "XXTRUST80000001",
+                       |   "agentReferenceNumber": "PARN0876123",
+                       |   "idType": "URN"
+                       |   "regime": "TRS",
+                       |   "authorisation": {
+                       |     "action": "Authorise",
+                       |     "isExclusiveAgent": true
+                       |
+                       |}
+          """.stripMargin))
+        result should haveStatus(200)
+      }
+
+      "respond 200 when authorising for TRS with URN through API gateway" in {
+        SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+        implicit val apiAuthContext: AuthContext = AuthContext.fromHeaders("X-Client-ID" -> "foo123")
+
+        val result = DesStub.authoriseOrDeAuthoriseRelationship(
+          Json.parse("""
+                       |{
+                       |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+                       |   "refNumber": "2110118025",
                        |   "agentReferenceNumber": "PARN0876123",
                        |   "idType": "URN"
                        |   "regime": "TRS",
@@ -272,16 +336,16 @@ class DesStubControllerISpec
         result should haveStatus(200)
       }
 
-      "respond 200 when de-authorising an TRS relationship" in {
+      "respond 200 when de-authorising an TRS relationship with URN" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = DesStub.authoriseOrDeAuthoriseRelationship(
           Json.parse("""
                        |{
                        |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
-                       |   "refNumber": "2110118025",
+                       |   "refNumber": "XXTRUST80000001",
                        |   "agentReferenceNumber": "PARN0876123",
-                       |   "idType": "UTR"
+                       |   "idType": "URN"
                        |   "regime": "TRS",
                        |   "authorisation": {
                        |     "action": "Authorise",

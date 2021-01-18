@@ -120,7 +120,7 @@ object Generator extends Names with Temporal with Companies with Addresses {
     def apply(s: String) = s + calcCheckSum97(weightedTotal(s))
   }
 
-  lazy val urnGen: Gen[String] = pattern"AAAAA9999999999".gen
+  lazy val urnGen: Gen[String] = pattern"AAAAAAA99999999".gen
   def urn(seed: String): Urn = urnGen.map(Urn.apply).seeded(seed).get
 
   lazy val vrnGen: Gen[String] = pattern"9999999".gen.map(VrnChecksum.apply).retryUntil(Vrn.isValid)
@@ -235,7 +235,7 @@ object Generator extends Names with Temporal with Companies with Addresses {
     "^[A-Za-z0-9 ]{1,10}$" -> pattern"ZZ9999999Z",
     "^[A-Za-z0-9]{6}$"     -> pattern"ZZ999Z",
     "^X[A-Z]CGTP[0-9]{9}$" -> pattern"ZZZZZZ999999999",
-    "^([A-Z0-9]{1,15})$"   -> pattern"AAAAA9999999999"
+    "^([A-Z0-9]{1,15})$"   -> pattern"AAAAAAA99999999"
   )
 
   object GenOps {
