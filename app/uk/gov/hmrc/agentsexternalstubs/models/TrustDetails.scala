@@ -48,7 +48,7 @@ object TrustAddress {
 }
 
 //#API-1495
-case class TrustDetails(UtrOrUrn: String, trustName: String, address: TrustAddress, serviceName: String)
+case class TrustDetails(Utr: Option[String], Urn: Option[String], trustName: String, address: TrustAddress, serviceName: String)
 
 object TrustDetails {
   implicit val format: Format[TrustDetails] = Json.format[TrustDetails]

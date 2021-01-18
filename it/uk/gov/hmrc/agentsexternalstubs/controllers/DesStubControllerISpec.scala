@@ -3,7 +3,8 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, urlEqualTo}
 import org.joda.time.LocalDate
-import play.api.libs.json._
+import play.api.libs.json.{Json, _}
+import play.api.test.FakeRequest
 import play.api.libs.ws.WSClient
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.connectors.ExampleApiPlatformTestUserResponses
@@ -22,6 +23,7 @@ class DesStubControllerISpec
   val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
   lazy val repo = app.injector.instanceOf[RecordsRepository]
+  lazy val controller= app.injector.instanceOf[DesStubController]
 
   "DesController" when {
 
@@ -225,6 +227,107 @@ class DesStubControllerISpec
         val result = DesStub.getLegacyRelationshipsByUtr("1234567890")
         result should haveStatus(200)
         result.json.as[JsObject] should haveProperty[Seq[JsObject]]("agents", have.size(0))
+      }
+    }
+    "POST /registration/relationship" should {
+      "respond 200 when authorising for TRS" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = DesStub.authoriseOrDeAuthoriseRelationship(
+          Json.parse("""
+                       |{
+                       |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+                       |   "refNumber": "2110118025",
+                       |   "agentReferenceNumber": "PARN0876123",
+                       |   "idType": "UTR"
+                       |   "regime": "TRS",
+                       |   "authorisation": {
+                       |     "action": "Authorise",
+                       |     "isExclusiveAgent": true
+                       |
+                       |}
+          """.stripMargin))
+        result should haveStatus(200)
+      }
+
+      "respond 200 when authorising for TRS  through API gateway" in {
+        SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+        implicit val apiAuthContext: AuthContext = AuthContext.fromHeaders("X-Client-ID" -> "foo123")
+
+        val result = DesStub.authoriseOrDeAuthoriseRelationship(
+          Json.parse("""
+                       |{
+                       |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+                       |   "refNumber": "XXTRUST80000001",
+                       |   "agentReferenceNumber": "PARN0876123",
+                       |   "idType": "URN"
+                       |   "regime": "TRS",
+                       |   "authorisation": {
+                       |     "action": "Authorise",
+                       |     "isExclusiveAgent": true
+                       |     }
+                       |
+                       |}
+                     """.stripMargin))
+        result should haveStatus(200)
+      }
+
+      "respond 200 when de-authorising an TRS relationship" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = DesStub.authoriseOrDeAuthoriseRelationship(
+          Json.parse("""
+                       |{
+                       |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+                       |   "refNumber": "2110118025",
+                       |   "agentReferenceNumber": "PARN0876123",
+                       |   "idType": "UTR"
+                       |   "regime": "TRS",
+                       |   "authorisation": {
+                       |     "action": "Authorise",
+                       |     "isExclusiveAgent": true
+                       |     }
+                       |
+                       |}
+                     """.stripMargin))
+        result should haveStatus(200)
+      }
+    }
+
+
+    "GET /trusts/agent-known-fact-check/:utr"   should {
+        "respond 200 with trust details" in {
+          implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+          val enrolmentKey = "HMRC-TERS-ORG~SAUTR~0123456789"
+          Users.create(UserGenerator.organisation("foo1").withPrincipalEnrolment(enrolmentKey))
+          val trustTaxIdentifier = "0123456789"
+
+          val result = DesStub.getTrustKnownFactsUtr(trustTaxIdentifier)
+          result should haveStatus(200)
+
+          result should haveValidJsonBody(
+                haveProperty[String]("utr"),
+                haveProperty[String]("trustName"),
+                haveProperty[String]("serviceName")
+          )
+        }
+      }
+
+    "GET /trusts/agent-known-fact-check/:urn"   should {
+      "respond 200 with trust details" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val enrolmentKey = "HMRC-TERSNT-ORG~URN~0123456789"
+        Users.create(UserGenerator.organisation("foo1").withPrincipalEnrolment(enrolmentKey))
+        val trustTaxIdentifier = "AAAAA2642468661"
+
+        val result = DesStub.getTrustKnownFactsUrn(trustTaxIdentifier)
+        result should haveStatus(200)
+
+        result should haveValidJsonBody(
+          haveProperty[String]("urn"),
+          haveProperty[String]("trustName"),
+          haveProperty[String]("serviceName")
+        )
       }
     }
 

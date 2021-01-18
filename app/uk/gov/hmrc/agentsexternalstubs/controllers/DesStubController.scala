@@ -26,6 +26,7 @@ import play.api.data.validation.{Constraint, Constraints, Invalid, Valid}
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Urn, Utr}
+import uk.gov.hmrc.agentsexternalstubs.models.Generator.{urn, utr}
 import uk.gov.hmrc.agentsexternalstubs.models.TrustDetailsResponse.getErrorResponseFor
 import uk.gov.hmrc.agentsexternalstubs.models.{BusinessPartnerRecord, SubscribeAgentServicesPayload, _}
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
@@ -461,20 +462,26 @@ class DesStubController @Inject()(
             usersService
               .findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
               .map {
-                case Some(record) =>
+                case Some(record) => {
+                  val maybeUtr =
+                    extractEnrolmentValue("HMRC-TERS-ORG")(record)
+                  val maybeUrn =
+                    extractEnrolmentValue("HMRC-TERSNT-ORG")(record)
                   val trustDetails = TrustDetailsResponse(
-                    TrustDetails(
-                      trustTaxIdentifier,
-                      record.name.getOrElse(""),
-                      TrustAddress(record.user.address),
-                      "TERS"))
+                    TrustDetails(maybeUrn, maybeUrn, record.name.getOrElse(""), TrustAddress(record.user.address), "TERS"))
                   Ok(Json.toJson(trustDetails))
+                }
                 case None => getErrorResponseFor(trustTaxIdentifier)
               }
           }
         )
     }(SessionRecordNotFound)
   }
+    private def extractEnrolmentValue(serviceKey: String)(record: User) =
+      record.principalEnrolments
+        .find(_.key == serviceKey)
+        .flatMap(_.toEnrolmentKeyTag)
+        .map(_.split('~').takeRight(1).mkString)
 
   def getCgtSubscription(regime: String, idType: String, cgtRef: String): Action[AnyContent] = Action.async {
     implicit request =>

@@ -47,7 +47,6 @@ object LegacyRelationshipRecord extends RecordUtils[LegacyRelationshipRecord] {
   def utrKey(utr: String): String = s"utr:${utr.replace(" ", "")}"
 
   import Validator._
-
   val validate: Validator[LegacyRelationshipRecord] = Validator(
     check(_.agentId.lengthMinMaxInclusive(1, 6), "Invalid agentId"),
     check(_.nino.isRight(RegexPatterns.validNinoNoSpaces), "Invalid nino"),
