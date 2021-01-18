@@ -410,10 +410,6 @@ trait TestRequests extends ScalaFutures {
     def getBusinessPartnerRecord(idType: String, idNumber: String)(implicit authContext: AuthContext): WSResponse =
       get(s"/registration/personal-details/$idType/$idNumber")
 
-    def RelationshipsWithUtr[T: BodyWritable](utr: String, payload: T)(
-      implicit authContext: AuthContext): WSResponse =
-      post(s"/registration/relationship/utr/$utr", payload)
-
     def subscribeToAgentServicesWithUtr[T: BodyWritable](utr: String, payload: T)(
       implicit authContext: AuthContext): WSResponse =
       post(s"/registration/agents/utr/$utr", payload)
