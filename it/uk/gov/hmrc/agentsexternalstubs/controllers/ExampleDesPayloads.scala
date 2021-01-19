@@ -8,7 +8,7 @@ trait ExampleDesPayloads {
       |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
       |   "refNumber": "XXTRUST80000001",
       |   "agentReferenceNumber": "PARN0876123",
-      |   "idType": "UTR"
+      |   "idType": "URN"
       |   "regime": "TRS",
       |   "authorisation": {
       |     "action": "Authorise",

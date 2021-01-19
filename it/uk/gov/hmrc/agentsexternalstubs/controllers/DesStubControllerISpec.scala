@@ -360,7 +360,7 @@ class DesStubControllerISpec
 
 
     "GET /trusts/agent-known-fact-check/:utr"   should {
-        "respond 200 with trust details" in {
+        "respond 200 with trust details using UTR" in {
           implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
           val enrolmentKey = "HMRC-TERS-ORG~SAUTR~0123456789"
           Users.create(UserGenerator.organisation("foo1").withPrincipalEnrolment(enrolmentKey))
@@ -378,11 +378,11 @@ class DesStubControllerISpec
       }
 
     "GET /trusts/agent-known-fact-check/:urn"   should {
-      "respond 200 with trust details" in {
+      "respond 200 with trust details using URN" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-        val enrolmentKey = "HMRC-TERSNT-ORG~URN~0123456789"
+        val enrolmentKey = "HMRC-TERSNT-ORG~URN~XXTRUST80000001"
         Users.create(UserGenerator.organisation("foo1").withPrincipalEnrolment(enrolmentKey))
-        val trustTaxIdentifier = "AAAAA2642468661"
+        val trustTaxIdentifier = "XXTRUST80000001"
 
         val result = DesStub.getTrustKnownFactsUrn(trustTaxIdentifier)
         result should haveStatus(200)

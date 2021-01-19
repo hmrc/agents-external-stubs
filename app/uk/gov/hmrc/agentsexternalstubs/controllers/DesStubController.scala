@@ -468,7 +468,7 @@ class DesStubController @Inject()(
                   val maybeUrn =
                     extractEnrolmentValue("HMRC-TERSNT-ORG")(record)
                   val trustDetails = TrustDetailsResponse(
-                    TrustDetails(maybeUrn, maybeUrn, record.name.getOrElse(""), TrustAddress(record.user.address), "TERS"))
+                    TrustDetails(maybeUtr, maybeUrn, record.name.getOrElse(""), TrustAddress(record.user.address), "TERS"))
                   Ok(Json.toJson(trustDetails))
                 }
                 case None => getErrorResponseFor(trustTaxIdentifier)
@@ -477,11 +477,11 @@ class DesStubController @Inject()(
         )
     }(SessionRecordNotFound)
   }
-    private def extractEnrolmentValue(serviceKey: String)(record: User) =
-      record.principalEnrolments
-        .find(_.key == serviceKey)
-        .flatMap(_.toEnrolmentKeyTag)
-        .map(_.split('~').takeRight(1).mkString)
+  private def extractEnrolmentValue(serviceKey: String)(record: User) =
+    record.principalEnrolments
+      .find(_.key == serviceKey)
+      .flatMap(_.toEnrolmentKeyTag)
+      .map(_.split('~').takeRight(1).mkString)
 
   def getCgtSubscription(regime: String, idType: String, cgtRef: String): Action[AnyContent] = Action.async {
     implicit request =>
