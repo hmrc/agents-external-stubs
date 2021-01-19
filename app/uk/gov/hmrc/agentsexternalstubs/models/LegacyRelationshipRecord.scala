@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,7 +47,6 @@ object LegacyRelationshipRecord extends RecordUtils[LegacyRelationshipRecord] {
   def utrKey(utr: String): String = s"utr:${utr.replace(" ", "")}"
 
   import Validator._
-
   val validate: Validator[LegacyRelationshipRecord] = Validator(
     check(_.agentId.lengthMinMaxInclusive(1, 6), "Invalid agentId"),
     check(_.nino.isRight(RegexPatterns.validNinoNoSpaces), "Invalid nino"),

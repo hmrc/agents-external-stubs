@@ -392,6 +392,12 @@ trait TestRequests extends ScalaFutures {
     def getLegacyRelationshipsByUtr(utr: String)(implicit authContext: AuthContext): WSResponse =
       get(s"/registration/relationship/utr/$utr")
 
+    def getTrustKnownFactsUtr(utr: String)(implicit authContext: AuthContext): WSResponse =
+      get(s"/trusts/agent-known-fact-check/$utr")
+
+    def getTrustKnownFactsUrn(urn: String)(implicit authContext: AuthContext): WSResponse =
+      get(s"/trusts/agent-known-fact-check/$urn")
+
     def getBusinessDetails(idType: String, idNumber: String)(implicit authContext: AuthContext): WSResponse =
       get(s"/registration/business-details/$idType/$idNumber")
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,8 @@ import play.api.data.Forms._
 import play.api.data.validation.{Constraint, Constraints, Invalid, Valid}
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
-import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Utr}
+import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Urn, Utr}
+import uk.gov.hmrc.agentsexternalstubs.models.Generator.{urn, utr}
 import uk.gov.hmrc.agentsexternalstubs.models.TrustDetailsResponse.getErrorResponseFor
 import uk.gov.hmrc.agentsexternalstubs.models.{BusinessPartnerRecord, SubscribeAgentServicesPayload, _}
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
@@ -447,27 +448,45 @@ class DesStubController @Inject()(
     }(SessionRecordNotFound)
   }
 
-  def getTrustKnownFacts(utr: String): Action[AnyContent] = Action.async { implicit request =>
+  def getTrustKnownFacts(trustTaxIdentifier: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       RegexPatterns
-        .validUtr(utr)
+        .validUtrOrUrn(trustTaxIdentifier)
         .fold(
-          error => badRequestF("INVALID_UTR", error),
-          _ =>
-            usersService
-              .findByPrincipalEnrolmentKey(
-                EnrolmentKey("HMRC-TERS-ORG", Seq(Identifier("SAUTR", utr))),
-                session.planetId)
-              .map {
-                case Some(record) =>
-                  val trustDetails = TrustDetailsResponse(
-                    TrustDetails(utr, record.name.getOrElse(""), TrustAddress(record.user.address), "TERS"))
-                  Ok(Json.toJson(trustDetails))
-                case None => getErrorResponseFor(utr)
+          error => badRequestF(error.mkString(", ")),
+          taxIdentifier => {
+            val enrolmentKey = taxIdentifier match {
+              case Utr(v) => EnrolmentKey("HMRC-TERS-ORG", Seq(Identifier("SAUTR", v)))
+              case Urn(v) => EnrolmentKey("HMRC-TERSNT-ORG", Seq(Identifier("URN", v)))
             }
+            usersService
+              .findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
+              .map {
+                case Some(record) => {
+                  val maybeUtr =
+                    extractEnrolmentValue("HMRC-TERS-ORG")(record)
+                  val maybeUrn =
+                    extractEnrolmentValue("HMRC-TERSNT-ORG")(record)
+                  val trustDetails = TrustDetailsResponse(
+                    TrustDetails(
+                      maybeUtr,
+                      maybeUrn,
+                      record.name.getOrElse(""),
+                      TrustAddress(record.user.address),
+                      "TERS"))
+                  Ok(Json.toJson(trustDetails))
+                }
+                case None => getErrorResponseFor(trustTaxIdentifier)
+              }
+          }
         )
     }(SessionRecordNotFound)
   }
+  private def extractEnrolmentValue(serviceKey: String)(record: User) =
+    record.principalEnrolments
+      .find(_.key == serviceKey)
+      .flatMap(_.toEnrolmentKeyTag)
+      .map(_.split('~').takeRight(1).mkString)
 
   def getCgtSubscription(regime: String, idType: String, cgtRef: String): Action[AnyContent] = Action.async {
     implicit request =>
@@ -550,6 +569,7 @@ class DesStubController @Inject()(
       case "nino"   => validateIdentifier(RegexPatterns.validNinoNoSpaces, "INVALID_NINO", idType, idNumber)(pf)
       case "mtdbsa" => validateIdentifier(RegexPatterns.validMtdbsa, "INVALID_MTDBSA", idType, idNumber)(pf)
       case "utr"    => validateIdentifier(RegexPatterns.validUtr, "INVALID_UTR", idType, idNumber)(pf)
+      case "urn"    => validateIdentifier(RegexPatterns.validUrn, "INVALID_URN", idType, idNumber)(pf)
       case "arn"    => validateIdentifier(RegexPatterns.validArn, "INVALID_ARN", idType, idNumber)(pf)
       case "vrn"    => validateIdentifier(RegexPatterns.validVrn, "INVALID_VRN", idType, idNumber)(pf)
       case "eori"   => validateIdentifier(RegexPatterns.validEori, "INVALID_EORI", idType, idNumber)(pf)

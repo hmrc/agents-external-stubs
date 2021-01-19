@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,6 +43,7 @@ case class BusinessPartnerRecord(
   safeId: String,
   agentReferenceNumber: Option[String] = None,
   utr: Option[String] = None,
+  urn: Option[String] = None,
   nino: Option[String] = None,
   eori: Option[String] = None,
   crn: Option[String] = None,
@@ -64,6 +65,7 @@ case class BusinessPartnerRecord(
     Seq(
       agentReferenceNumber.map(BusinessPartnerRecord.agentReferenceNumberKey),
       utr.map(BusinessPartnerRecord.utrKey),
+      urn.map(BusinessPartnerRecord.urnKey),
       nino.map(BusinessPartnerRecord.ninoKey),
       eori.map(BusinessPartnerRecord.eoriKey),
       crn.map(BusinessPartnerRecord.crnKey)
@@ -84,6 +86,9 @@ case class BusinessPartnerRecord(
   def withUtr(utr: Option[String]): BusinessPartnerRecord = copy(utr = utr)
   def modifyUtr(pf: PartialFunction[Option[String], Option[String]]): BusinessPartnerRecord =
     if (pf.isDefinedAt(utr)) copy(utr = pf(utr)) else this
+  def withUrn(urn: Option[String]): BusinessPartnerRecord = copy(urn = urn)
+  def modifyUrn(pf: PartialFunction[Option[String], Option[String]]): BusinessPartnerRecord =
+    if (pf.isDefinedAt(urn)) copy(utr = pf(urn)) else this
   def withNino(nino: Option[String]): BusinessPartnerRecord = copy(nino = nino)
   def modifyNino(pf: PartialFunction[Option[String], Option[String]]): BusinessPartnerRecord =
     if (pf.isDefinedAt(nino)) copy(nino = pf(nino)) else this
@@ -134,6 +139,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
   def uniqueKey(key: String): String = s"""safeId:${key.toUpperCase}"""
   def agentReferenceNumberKey(key: String): String = s"""agentReferenceNumber:${key.toUpperCase}"""
   def utrKey(key: String): String = s"""utr:${key.toUpperCase}"""
+  def urnKey(key: String): String = s"""urn:${key.toUpperCase}"""
   def ninoKey(key: String): String = s"""nino:${key.toUpperCase}"""
   def eoriKey(key: String): String = s"""eori:${key.toUpperCase}"""
   def crnKey(key: String): String = s"""crn:${key.toUpperCase}"""
@@ -148,6 +154,8 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     s"""Invalid agentReferenceNumber, does not matches regex ${Common.agentReferenceNumberPattern}""")
   val utrValidator: Validator[Option[String]] =
     check(_.matches(Common.utrPattern), s"""Invalid utr, does not matches regex ${Common.utrPattern}""")
+  val urnValidator: Validator[Option[String]] =
+    check(_.matches(Common.urnPattern), s"""Invalid urn, does not matches regex ${Common.urnPattern}""")
   val ninoValidator: Validator[Option[String]] =
     check(_.matches(Common.ninoPattern), s"""Invalid nino, does not matches regex ${Common.ninoPattern}""")
   val eoriValidator: Validator[Option[String]] =
@@ -164,6 +172,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     checkProperty(_.safeId, safeIdValidator),
     checkProperty(_.agentReferenceNumber, agentReferenceNumberValidator),
     checkProperty(_.utr, utrValidator),
+    checkProperty(_.urn, urnValidator),
     checkProperty(_.nino, ninoValidator),
     checkProperty(_.eori, eoriValidator),
     checkProperty(_.crn, crnValidator),
@@ -210,6 +219,13 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
         utr = utrValidator(entity.utr)
           .fold(_ => None, _ => entity.utr)
           .orElse(Generator.get(Generator.utrGen)(seed)))
+
+  val urnSanitizer: Update = seed =>
+    entity =>
+      entity.copy(
+        urn = urnValidator(entity.urn)
+          .fold(_ => None, _ => entity.urn)
+          .orElse(Generator.get(Generator.urnGen)(seed)))
 
   val ninoSanitizer: Update = seed =>
     entity =>
@@ -298,6 +314,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
   override val sanitizers: Seq[Update] = Seq(
     agentReferenceNumberSanitizer,
     utrSanitizer,
+    urnSanitizer,
     ninoSanitizer,
     eoriSanitizer,
     crnSanitizer,
@@ -1127,6 +1144,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     val countryCodeEnum1 = Seq("GB")
     val safeIdPattern = """^X[A-Z]000[0-9]{10}$"""
     val utrPattern = """^[0-9]{1,10}$"""
+    val urnPattern = """^([A-Z0-9]{1,15})$"""
     val crnPattern = """^([A-Za-z0-9]{0,2})?([0-9]{1,6})$"""
     val agentReferenceNumberPattern = """^[A-Z](ARN)[0-9]{7}$"""
   }

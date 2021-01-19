@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 import java.util.regex.Pattern
 
-import uk.gov.hmrc.agentmtdidentifiers.model.CgtRef
+import uk.gov.hmrc.agentmtdidentifiers.model.{CgtRef, Urn, Utr}
+import uk.gov.hmrc.domain.TaxIdentifier
 
 import scala.util.matching.Regex
 
@@ -31,6 +32,8 @@ object RegexPatterns {
     "^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})\\s?\\d{2}\\s?\\d{2}\\s?\\d{2}\\s?[A-D]?$".r)
   val validArn: Matcher = validate("^[A-Z]ARN[0-9]{7}$".r)
   val validUtr: Matcher = validate("^[0-9]{10}$".r)
+  val validUrn: Matcher = validate("^([A-Z0-9]{1,15})$".r)
+  val validUtrOrUrn = validateTrustTaxIdentifier("^[0-9]{10}$".r, "^([A-Z0-9]{1,15})$".r)
   val validMtdbsa: Matcher = validate("^[A-Z0-9]{1,15}$".r)
   val validVrn: Matcher = validate("^[0-9]{1,9}$".r)
   val validEori: Matcher = validate("^[A-Z]{2}[0-9]{12}$".r)
@@ -51,6 +54,12 @@ object RegexPatterns {
     value =>
       if (regex.pattern.matcher(value).matches()) Right(value)
       else Left(s"Supplied value $value does not match pattern ${regex.pattern.toString}")
+
+  def validateTrustTaxIdentifier(utrR: Regex, urnR: Regex): String => Either[String, TaxIdentifier] =
+    value =>
+      if (utrR.pattern.matcher(value).matches()) Right(Utr(value))
+      else if (urnR.pattern.matcher(value).matches()) Right(Urn(value))
+      else Left(s"Supplied value $value does not match either ${utrR.pattern.toString} or ${urnR.pattern.toString}")
 
   def validate(pattern: String): Matcher =
     value => {

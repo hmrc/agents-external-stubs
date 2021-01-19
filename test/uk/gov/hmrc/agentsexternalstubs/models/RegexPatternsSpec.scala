@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,12 @@ class RegexPatternsSpec extends UnitSpec {
       RegexPatterns.validUtr("9999999999").isRight shouldBe true
       RegexPatterns.validUtr("").isLeft shouldBe true
       RegexPatterns.validUtr("99999999999").isLeft shouldBe true
+    }
+
+    "validate urn" in {
+      RegexPatterns.validUrn("XXTRUST80000001").isRight shouldBe true
+      RegexPatterns.validUrn("").isLeft shouldBe true
+      RegexPatterns.validUrn("XXTRUST800000101").isLeft shouldBe true
     }
 
     "validate mtdbsa" in {

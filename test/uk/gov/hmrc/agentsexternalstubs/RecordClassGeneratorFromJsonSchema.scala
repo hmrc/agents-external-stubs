@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -844,6 +844,7 @@ trait KnownFieldGenerators {
       case "mtdbsa"               => "Generator.mtdbsaGen"
       case "vrn"                  => "Generator.vrnGen"
       case "utr"                  => "Generator.utrGen"
+      case "urn"                  => "Generator.urnGen"
       case "eori"                 => "Generator.eoriGen"
       case "crn"                  => "Generator.crnGen"
       case date(a, b)             => s"Generator.dateYYYYMMDDGen${withPerturb(a, b)}"

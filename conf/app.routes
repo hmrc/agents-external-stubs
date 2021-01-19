@@ -62,7 +62,7 @@ POST          /agents/paye/:agentCode/clients/compare                           
 DELETE        /agents/paye/:agentCode/clients/:taxOfficeNumber/:taxOfficeReference                   @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.removeLegacyAgentClientPayeRelationship(agentCode: String, taxOfficeNumber: String, taxOfficeReference: String)
 GET           /corporation-tax/identifiers/:idType/:idValue                                          @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getCtReference(idType: String, idValue: String)
 
-GET           /trusts/agent-known-fact-check/:utr                                                    @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getTrustKnownFacts(utr: String)
+GET           /trusts/agent-known-fact-check/:trustTaxIdentifier                                     @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getTrustKnownFacts(trustTaxIdentifier: String)
 
 GET           /subscriptions/:regime/:idType/:cgtRef                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getCgtSubscription(regime: String, idType: String, cgtRef: String)
 

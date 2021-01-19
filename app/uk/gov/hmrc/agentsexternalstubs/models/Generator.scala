@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import java.time.format.DateTimeFormatter
 
 import org.scalacheck.Gen
-import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, UtrCheck, Vrn}
+import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Urn, UtrCheck, Vrn}
 import uk.gov.hmrc.domain.{Modulus11Check, Modulus23Check, Nino}
 import uk.gov.hmrc.smartstub.{Addresses, Companies, Names, Temporal, ToLong}
 import wolfendale.scalacheck.regexp.RegexpGen
@@ -120,6 +120,9 @@ object Generator extends Names with Temporal with Companies with Addresses {
     def apply(s: String) = s + calcCheckSum97(weightedTotal(s))
   }
 
+  lazy val urnGen: Gen[String] = pattern"ZZZZZZZ99999999".gen
+  def urn(seed: String): Urn = urnGen.map(Urn.apply).seeded(seed).get
+
   lazy val vrnGen: Gen[String] = pattern"9999999".gen.map(VrnChecksum.apply).retryUntil(Vrn.isValid)
   def vrn(seed: String): Vrn = vrnGen.map(Vrn.apply).seeded(seed).get
 
@@ -208,6 +211,7 @@ object Generator extends Names with Temporal with Companies with Addresses {
   lazy val knownPatterns: Map[String, Gen[String]] = Map(
     "arn"             -> arnGen,
     "utr"             -> utrGen,
+    "urn"             -> urnGen,
     "cgtPdRef"        -> cgtPdRefGen,
     "mtditid"         -> mtdbsaGen,
     "vrn"             -> vrnGen,
@@ -230,7 +234,8 @@ object Generator extends Names with Temporal with Companies with Addresses {
     "^\\d{3}$"             -> pattern"999",
     "^[A-Za-z0-9 ]{1,10}$" -> pattern"ZZ9999999Z",
     "^[A-Za-z0-9]{6}$"     -> pattern"ZZ999Z",
-    "^X[A-Z]CGTP[0-9]{9}$" -> pattern"ZZZZZZ999999999"
+    "^X[A-Z]CGTP[0-9]{9}$" -> pattern"ZZZZZZ999999999",
+    "^([A-Z0-9]{1,15})$"   -> pattern"ZZZZZZZ99999999"
   )
 
   object GenOps {
