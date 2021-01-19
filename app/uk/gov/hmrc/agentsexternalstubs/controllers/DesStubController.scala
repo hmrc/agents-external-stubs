@@ -468,7 +468,12 @@ class DesStubController @Inject()(
                   val maybeUrn =
                     extractEnrolmentValue("HMRC-TERSNT-ORG")(record)
                   val trustDetails = TrustDetailsResponse(
-                    TrustDetails(maybeUtr, maybeUrn, record.name.getOrElse(""), TrustAddress(record.user.address), "TERS"))
+                    TrustDetails(
+                      maybeUtr,
+                      maybeUrn,
+                      record.name.getOrElse(""),
+                      TrustAddress(record.user.address),
+                      "TERS"))
                   Ok(Json.toJson(trustDetails))
                 }
                 case None => getErrorResponseFor(trustTaxIdentifier)
