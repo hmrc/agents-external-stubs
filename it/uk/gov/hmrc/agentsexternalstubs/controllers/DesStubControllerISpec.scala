@@ -239,14 +239,14 @@ class DesStubControllerISpec
                        |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
                        |   "refNumber": "2110118025",
                        |   "agentReferenceNumber": "PARN0876123",
-                       |   "idType": "UTR"
+                       |   "idType": "UTR",
                        |   "regime": "TRS",
                        |   "authorisation": {
                        |     "action": "Authorise",
                        |     "isExclusiveAgent": true
-                       |
+                       |   }
                        |}
-          """.stripMargin))
+                     """.stripMargin))
         result should haveStatus(200)
       }
 
@@ -260,13 +260,12 @@ class DesStubControllerISpec
                        |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
                        |   "refNumber": "2110118025",
                        |   "agentReferenceNumber": "PARN0876123",
-                       |   "idType": "UTR"
+                       |   "idType": "UTR",
                        |   "regime": "TRS",
                        |   "authorisation": {
                        |     "action": "Authorise",
                        |     "isExclusiveAgent": true
-                       |     }
-                       |
+                       |   }
                        |}
                      """.stripMargin))
         result should haveStatus(200)
@@ -281,13 +280,11 @@ class DesStubControllerISpec
                        |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
                        |   "refNumber": "2110118025",
                        |   "agentReferenceNumber": "PARN0876123",
-                       |   "idType": "UTR"
+                       |   "idType": "UTR",
                        |   "regime": "TRS",
                        |   "authorisation": {
-                       |     "action": "Authorise",
-                       |     "isExclusiveAgent": true
+                       |     "action": "De-Authorise"
                        |     }
-                       |
                        |}
                      """.stripMargin))
         result should haveStatus(200)
@@ -303,12 +300,12 @@ class DesStubControllerISpec
                        |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
                        |   "refNumber": "XXTRUST80000001",
                        |   "agentReferenceNumber": "PARN0876123",
-                       |   "idType": "URN"
+                       |   "idType": "URN",
                        |   "regime": "TRS",
                        |   "authorisation": {
                        |     "action": "Authorise",
                        |     "isExclusiveAgent": true
-                       |
+                       |   }
                        |}
           """.stripMargin))
         result should haveStatus(200)
@@ -324,13 +321,12 @@ class DesStubControllerISpec
                        |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
                        |   "refNumber": "XXTRUST80000001",
                        |   "agentReferenceNumber": "PARN0876123",
-                       |   "idType": "URN"
+                       |   "idType": "URN",
                        |   "regime": "TRS",
                        |   "authorisation": {
                        |     "action": "Authorise",
                        |     "isExclusiveAgent": true
-                       |     }
-                       |
+                       |   }
                        |}
                      """.stripMargin))
         result should haveStatus(200)
@@ -345,13 +341,11 @@ class DesStubControllerISpec
                        |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
                        |   "refNumber": "XXTRUST80000001",
                        |   "agentReferenceNumber": "PARN0876123",
-                       |   "idType": "URN"
+                       |   "idType": "URN",
                        |   "regime": "TRS",
                        |   "authorisation": {
-                       |     "action": "Authorise",
-                       |     "isExclusiveAgent": true
+                       |     "action": "De-Authorise"
                        |     }
-                       |
                        |}
                      """.stripMargin))
         result should haveStatus(200)
@@ -382,11 +376,12 @@ class DesStubControllerISpec
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val enrolmentKey = "HMRC-TERSNT-ORG~URN~XXTRUST80000001"
         Users.create(UserGenerator.organisation("foo1").withPrincipalEnrolment(enrolmentKey))
-        val trustTaxIdentifier = "XXTRUST80000001"
+        Users.create(UserGenerator.agent("foo2").withDelegatedEnrolment(enrolmentKey))
 
-        val result = DesStub.getTrustKnownFactsUrn(trustTaxIdentifier)
+        val result = DesStub.getTrustKnownFactsUrn(enrolmentKey)
         result should haveStatus(200)
 
+        result should haveStatus(200)
         result should haveValidJsonBody(
           haveProperty[String]("urn"),
           haveProperty[String]("trustName"),
