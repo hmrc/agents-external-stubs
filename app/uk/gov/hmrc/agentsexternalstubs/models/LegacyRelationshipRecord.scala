@@ -22,7 +22,6 @@ case class LegacyRelationshipRecord(
   agentId: String,
   nino: Option[String] = None,
   utr: Option[String] = None,
-  urn: Option[String] = None,
   id: Option[String] = None,
   `Auth_64-8`: Option[Boolean] = None,
   `Auth_i64-8`: Option[Boolean] = None)
@@ -32,10 +31,8 @@ case class LegacyRelationshipRecord(
     Seq(
       nino.map(LegacyRelationshipRecord.ninoKey),
       utr.map(LegacyRelationshipRecord.utrKey),
-      urn.map(LegacyRelationshipRecord.urnKey),
       Option(LegacyRelationshipRecord.agentIdKey(agentId)),
       utr.map(LegacyRelationshipRecord.agentIdAndUtrKey(agentId, _)),
-      urn.map(LegacyRelationshipRecord.agentIdAndUrnKey(agentId, _))
     ).collect {
       case Some(x) => x
     }
@@ -49,14 +46,12 @@ object LegacyRelationshipRecord extends RecordUtils[LegacyRelationshipRecord] {
   def agentIdAndUrnKey(agentId: String, urn: String): String = s"agentId:$agentId;urn:${urn.replace(" ", "")}"
   def ninoKey(nino: String): String = s"nino:${nino.replace(" ", "")}"
   def utrKey(utr: String): String = s"utr:${utr.replace(" ", "")}"
-  def urnKey(urn: String): String = s"urn:${urn.replace(" ", "")}"
 
   import Validator._
   val validate: Validator[LegacyRelationshipRecord] = Validator(
     check(_.agentId.lengthMinMaxInclusive(1, 6), "Invalid agentId"),
     check(_.nino.isRight(RegexPatterns.validNinoNoSpaces), "Invalid nino"),
     check(_.utr.isRight(RegexPatterns.validUtr), "Invalid utr"),
-    check(_.urn.isRight(RegexPatterns.validUrn), "Invalid urn"),
     check(r => r.nino.isDefined || r.utr.isDefined, "Missing client identifier: nino or utr")
   )
 
@@ -67,7 +62,6 @@ object LegacyRelationshipRecord extends RecordUtils[LegacyRelationshipRecord] {
     ((JsPath \ "agentId").read[String] and
       (JsPath \ "nino").readNullable[String] and
       (JsPath \ "utr").readNullable[String] and
-      (JsPath \ "urn").readNullable[String] and
       (JsPath \ "id").readNullable[String] and
       (JsPath \ "Auth_64-8").readNullable[Boolean] and
       (JsPath \ "Auth_i64-8").readNullable[Boolean])(LegacyRelationshipRecord.apply _)
@@ -92,7 +86,6 @@ object LegacyRelationshipRecord extends RecordUtils[LegacyRelationshipRecord] {
 
   val ninoSanitizer: Update = seed => e => e.copy(nino = e.nino.orElse(Some(Generator.ninoNoSpaces(e.agentId).value)))
   val utrSanitizer: Update = seed => e => e.copy(utr = e.utr.orElse(Some(Generator.utr(e.agentId).value)))
-  val urnSanitizer: Update = seed => e => e.copy(urn = e.urn.orElse(Some(Generator.urn(e.agentId).value)))
 
   override val sanitizers: Seq[Update] = Seq(ninoSanitizer, utrSanitizer)
 }

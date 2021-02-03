@@ -134,20 +134,6 @@ class DesStubController @Inject()(
     }(SessionRecordNotFound)
   }
 
-  def getLegacyRelationshipsByUrn(urn: String): Action[AnyContent] = Action.async { implicit request =>
-    withCurrentSession { session =>
-      RegexPatterns
-        .validUtr(urn)
-        .fold(
-          error => badRequestF("INVALID_URN", error),
-          _ =>
-            legacyRelationshipRecordsService
-              .getLegacyRelationshipsByUtr(urn, session.planetId)
-              .map(ninoWithAgentList => Ok(Json.toJson(GetLegacyRelationships.Response.from(ninoWithAgentList))))
-        )
-    }(SessionRecordNotFound)
-  }
-
   def getLegacyRelationshipsByNino(nino: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       RegexPatterns
