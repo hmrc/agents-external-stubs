@@ -94,6 +94,10 @@ class EnrolmentStoreProxyStubController @Inject()(
     }(SessionRecordNotFound)
   }
 
+  def assignUser(userId: String, enrolmentKey: String): Action[AnyContent] = Action.async { implicit request =>
+    Future.successful(Created)
+  }
+
   def allocateGroupEnrolment(
     groupId: String,
     enrolmentKey: EnrolmentKey,

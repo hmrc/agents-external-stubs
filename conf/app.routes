@@ -38,9 +38,13 @@ GET           /enrolment-store-proxy/enrolment-store/groups/:groupId/enrolments 
 
 # Tax Enrolments stubs
 POST          /tax-enrolments/groups/:groupId/enrolments/:enrolmentKey                               @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.allocateGroupEnrolment(groupId: String, enrolmentKey: EnrolmentKey, `legacy-agentCode`: Option[String])
+## ES9 Call: via tax-enrolments deallocate an enrolment
 DELETE        /tax-enrolments/groups/:groupId/enrolments/:enrolmentKey                               @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.deallocateGroupEnrolment(groupId: String, enrolmentKey: EnrolmentKey, `legacy-agentCode`: Option[String], keepAgentAllocations: Option[String])
 PUT           /tax-enrolments/enrolments/:enrolmentKey                                               @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.setKnownFacts(enrolmentKey: EnrolmentKey)
+## ES7 Call via tax-enrolments delete an enrolment
 DELETE        /tax-enrolments/enrolments/:enrolmentKey                                               @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.removeKnownFacts(enrolmentKey: EnrolmentKey)
+## ES11 Call: via tax-enrolments assign a user to an enrolment
+POST          /tax-enrolments/users/:userId/enrolments/:enrolmentKey                                  @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.assignUser(userId: String, enrolmentKey: String)
 
 # DES stubs
 POST          /registration/relationship                                                             @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.authoriseOrDeAuthoriseRelationship
