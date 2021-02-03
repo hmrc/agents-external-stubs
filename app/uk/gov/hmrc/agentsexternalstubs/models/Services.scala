@@ -93,7 +93,14 @@ object Services {
     val json = Source
       .fromInputStream(Base64.getMimeDecoder.wrap(this.getClass.getResourceAsStream("/services.b64")), "utf-8")
       .mkString
-    Json.parse(json).as[Services].services
+    Json.parse(json).as[Services].services :+ Service(
+      "HMRC-TERSNT-ORG",
+      "un-taxable trusts",
+      Seq("Individual", "Organisation", "Agent"),
+      Seq(Service.Identifier("URN", "urn", """^[0-9A-Za-z]{1,15}$""", None)),
+      Seq(Service.KnownFact("URN1", "urn", """^[0-9A-Za-z]{1,15}$""", None)),
+      Service.Flags(true, false, false, false, false, true)
+    )
   }
 
   lazy val servicesByKey: Map[String, Service] = services.map(s => (s.name, s)).toMap

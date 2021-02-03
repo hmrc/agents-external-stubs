@@ -24,7 +24,7 @@ import uk.gov.hmrc.agentsexternalstubs.models.User
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class UsersGroupsSearchStubController @Inject()(
@@ -60,14 +60,18 @@ class UsersGroupsSearchStubController @Inject()(
 
   def getGroupUsers(groupId: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
-      usersService
-        .findByGroupId(groupId, session.planetId)(100)
-        .map {
-          case users if users.isEmpty =>
-            notFound("GROUP_NOT_FOUND")
-          case users =>
-            NonAuthoritativeInformation(RestfulResponse(users))
-        }
+      if (groupId == "wrongGroupId") {
+        Future.successful(notFound("GROUP_NOT_FOUND"))
+      } else {
+        usersService
+          .findByGroupId(groupId, session.planetId)(100)
+          .map {
+            case users if users.isEmpty =>
+              notFound("GROUP_NOT_FOUND")
+            case users =>
+              NonAuthoritativeInformation(RestfulResponse(users))
+          }
+      }
     }(SessionRecordNotFound)
   }
 
