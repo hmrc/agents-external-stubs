@@ -292,10 +292,6 @@ class DesStubController @Inject()(
               businessPartnerRecordsService
                 .getBusinessPartnerRecord(Utr(utr), session.planetId)
                 .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId)(record => true))
-            case ("urn", urn) =>
-              businessPartnerRecordsService
-                .getBusinessPartnerRecord(Urn(urn), session.planetId)
-                .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId)(record => true))
             case ("nino", nino) =>
               businessPartnerRecordsService
                 .getBusinessPartnerRecord(Nino(nino), session.planetId)

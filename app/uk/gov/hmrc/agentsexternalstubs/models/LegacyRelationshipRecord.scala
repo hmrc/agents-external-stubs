@@ -32,7 +32,7 @@ case class LegacyRelationshipRecord(
       nino.map(LegacyRelationshipRecord.ninoKey),
       utr.map(LegacyRelationshipRecord.utrKey),
       Option(LegacyRelationshipRecord.agentIdKey(agentId)),
-      utr.map(LegacyRelationshipRecord.agentIdAndUtrKey(agentId, _)),
+      utr.map(LegacyRelationshipRecord.agentIdAndUtrKey(agentId, _))
     ).collect {
       case Some(x) => x
     }
