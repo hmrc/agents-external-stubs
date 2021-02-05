@@ -43,7 +43,6 @@ object LegacyRelationshipRecord extends RecordUtils[LegacyRelationshipRecord] {
 
   def agentIdKey(agentId: String): String = s"agentId:$agentId"
   def agentIdAndUtrKey(agentId: String, utr: String): String = s"agentId:$agentId;utr:${utr.replace(" ", "")}"
-  def agentIdAndUrnKey(agentId: String, urn: String): String = s"agentId:$agentId;urn:${urn.replace(" ", "")}"
   def ninoKey(nino: String): String = s"nino:${nino.replace(" ", "")}"
   def utrKey(utr: String): String = s"utr:${utr.replace(" ", "")}"
 
