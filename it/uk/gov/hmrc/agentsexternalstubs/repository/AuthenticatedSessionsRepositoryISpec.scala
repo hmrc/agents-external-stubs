@@ -55,11 +55,18 @@ class AuthenticatedSessionsRepositoryISpec extends AppBaseISpec with MongoDB {
     }
 
     "delete all sessions" in {
-      await(Future.sequence(Stream
-        .continually(Random.nextString(32))
-        .take(100)
-        .map(seed =>
-          repo.create(AuthenticatedSession(UUID.randomUUID().toString, seed, UUID.randomUUID().toString, seed, seed)))))
+      await(
+        Future.sequence(
+          Stream
+            .continually(Random.nextString(32))
+            .take(100)
+            .map(seed =>
+              repo.create(
+                AuthenticatedSession(UUID.randomUUID().toString, seed, UUID.randomUUID().toString, seed, seed)
+              )
+            )
+        )
+      )
 
       await(repo.count) should be >= 100
       await(repo.deleteAll(System.currentTimeMillis()))
@@ -75,7 +82,10 @@ class AuthenticatedSessionsRepositoryISpec extends AppBaseISpec with MongoDB {
               .take(50)
               .map(seed =>
                 repo.create(
-                  AuthenticatedSession(UUID.randomUUID().toString, seed, UUID.randomUUID().toString, seed, seed))))
+                  AuthenticatedSession(UUID.randomUUID().toString, seed, UUID.randomUUID().toString, seed, seed)
+                )
+              )
+          )
           .map(_.reduce((_, _) => ()))
 
       await(fixture)

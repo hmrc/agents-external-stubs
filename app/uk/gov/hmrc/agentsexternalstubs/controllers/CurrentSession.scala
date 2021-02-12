@@ -41,48 +41,43 @@ trait CurrentSession extends HttpHelpers {
       internalServerError("SERVER_ERROR", e.getMessage)
   }
 
-  final def withMaybeCurrentSession[T, R](body: Option[AuthenticatedSession] => Future[R])(
-    implicit request: Request[T],
-    ec: ExecutionContext,
-    hc: HeaderCarrier): Future[R] =
+  final def withMaybeCurrentSession[T, R](
+    body: Option[AuthenticatedSession] => Future[R]
+  )(implicit request: Request[T], ec: ExecutionContext, hc: HeaderCarrier): Future[R] =
     AuthenticatedSession.fromRequest(request) match {
       case s @ Some(_) => body(s)
       case None =>
         for {
           maybeSession1 <- request.headers.get(HeaderNames.AUTHORIZATION) match {
-                            case Some(BearerToken(authToken)) =>
-                              authenticationService.findByAuthTokenOrLookupExternal(authToken)
-                            case _ =>
-                              Future.successful(None)
-                          }
+                             case Some(BearerToken(authToken)) =>
+                               authenticationService.findByAuthTokenOrLookupExternal(authToken)
+                             case _ =>
+                               Future.successful(None)
+                           }
           maybeSession2 <- maybeSession1 match {
-                            case None =>
-                              request.headers.get(uk.gov.hmrc.http.HeaderNames.xSessionId) match {
-                                case Some(sessionId) =>
-                                  authenticationService.findBySessionId(sessionId)
-                                case None =>
-                                  Future.successful(None)
-                              }
-                            case some => Future.successful(some)
-                          }
+                             case None =>
+                               request.headers.get(uk.gov.hmrc.http.HeaderNames.xSessionId) match {
+                                 case Some(sessionId) =>
+                                   authenticationService.findBySessionId(sessionId)
+                                 case None =>
+                                   Future.successful(None)
+                               }
+                             case some => Future.successful(some)
+                           }
           result <- body(maybeSession2)
         } yield result
     }
 
-  final def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(ifSessionNotFound: => Future[Result])(
-    implicit request: Request[T],
-    ec: ExecutionContext,
-    hc: HeaderCarrier): Future[Result] = withMaybeCurrentSession {
+  final def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(
+    ifSessionNotFound: => Future[Result]
+  )(implicit request: Request[T], ec: ExecutionContext, hc: HeaderCarrier): Future[Result] = withMaybeCurrentSession {
     case Some(session) => body(session)
     case None          => ifSessionNotFound
   }
 
   final def withCurrentUser[T](body: (User, AuthenticatedSession) => Future[Result])(
-    ifSessionNotFound: => Future[Result])(
-    implicit request: Request[T],
-    ec: ExecutionContext,
-    usersService: UsersService,
-    hc: HeaderCarrier): Future[Result] =
+    ifSessionNotFound: => Future[Result]
+  )(implicit request: Request[T], ec: ExecutionContext, usersService: UsersService, hc: HeaderCarrier): Future[Result] =
     withCurrentSession { session =>
       usersService.findByUserId(session.userId, session.planetId).flatMap {
         case None       => Future.successful(Results.NotFound("CURRENT_USER_NOT_FOUND"))
@@ -118,20 +113,22 @@ trait DesCurrentSession extends DesHttpHelpers {
   }
 
   final def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(
-    ifSessionNotFound: => Future[Result])(implicit request: Request[T], ec: ExecutionContext): Future[Result] =
+    ifSessionNotFound: => Future[Result]
+  )(implicit request: Request[T], ec: ExecutionContext): Future[Result] =
     // When DES request originates from an authenticated UI session
     request.headers.get(uk.gov.hmrc.http.HeaderNames.xSessionId) match {
       case Some(sessionId) =>
         (for {
           maybeSession <- authenticationService.findBySessionId(sessionId)
           result <- maybeSession match {
-                     case Some(session) =>
-                       body(session)
-                     case _ =>
-                       Logger(getClass).warn(
-                         s"AuthenticatedSession for sessionIs=$sessionId not found, cannot continue to DES stubs")
-                       ifSessionNotFound
-                   }
+                      case Some(session) =>
+                        body(session)
+                      case _ =>
+                        Logger(getClass).warn(
+                          s"AuthenticatedSession for sessionIs=$sessionId not found, cannot continue to DES stubs"
+                        )
+                        ifSessionNotFound
+                    }
         } yield result)
           .recover(errorHandler)
       case None =>
@@ -140,13 +137,14 @@ trait DesCurrentSession extends DesHttpHelpers {
         (for {
           maybeSession <- authenticationService.findByPlanetId(planetId)
           result <- maybeSession match {
-                     case Some(session) =>
-                       body(session)
-                     case _ =>
-                       Logger(getClass).warn(
-                         s"AuthenticatedSession for planetId=$planetId not found, cannot continue to DES stubs")
-                       ifSessionNotFound
-                   }
+                      case Some(session) =>
+                        body(session)
+                      case _ =>
+                        Logger(getClass).warn(
+                          s"AuthenticatedSession for planetId=$planetId not found, cannot continue to DES stubs"
+                        )
+                        ifSessionNotFound
+                    }
         } yield result)
           .recover(errorHandler)
 

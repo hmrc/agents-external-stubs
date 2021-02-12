@@ -30,7 +30,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class RecordsController @Inject()(
+class RecordsController @Inject() (
   businessDetailsRecordsService: BusinessDetailsRecordsService,
   legacyRelationshipRecordsService: LegacyRelationshipRecordsService,
   vatCustomerInformationRecordsService: VatCustomerInformationRecordsService,
@@ -39,7 +39,8 @@ class RecordsController @Inject()(
   employerAuthRecordsService: EmployerAuthsRecordsService,
   recordsRepository: RecordsRepository,
   val authenticationService: AuthenticationService,
-  cc: ControllerComponents)(implicit ec: ExecutionContext)
+  cc: ControllerComponents
+)(implicit ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
   val getRecords: Action[AnyContent] = Action.async { implicit request =>
@@ -92,13 +93,15 @@ class RecordsController @Inject()(
 
   def storeBusinessDetails(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
-      withPayload[BusinessDetailsRecord](
-        record =>
-          businessDetailsRecordsService
-            .store(record, autoFill, session.planetId)
-            .map(recordId =>
-              Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))).withHeaders(
-                HeaderNames.LOCATION -> routes.DesStubController.getBusinessDetails("mtdbsa", record.mtdbsa).url)))
+      withPayload[BusinessDetailsRecord](record =>
+        businessDetailsRecordsService
+          .store(record, autoFill, session.planetId)
+          .map(recordId =>
+            Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))).withHeaders(
+              HeaderNames.LOCATION -> routes.DesStubController.getBusinessDetails("mtdbsa", record.mtdbsa).url
+            )
+          )
+      )
     }(SessionRecordNotFound)
   }
 
@@ -115,11 +118,11 @@ class RecordsController @Inject()(
 
   def storeLegacyAgent(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
-      withPayload[LegacyAgentRecord](
-        record =>
-          legacyRelationshipRecordsService
-            .store(record, autoFill, session.planetId)
-            .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url)))))
+      withPayload[LegacyAgentRecord](record =>
+        legacyRelationshipRecordsService
+          .store(record, autoFill, session.planetId)
+          .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))))
+      )
     }(SessionRecordNotFound)
   }
 
@@ -137,17 +140,18 @@ class RecordsController @Inject()(
   def storeLegacyRelationship(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) {
     implicit request =>
       withCurrentSession { session =>
-        withPayload[LegacyRelationshipRecord](
-          record =>
-            legacyRelationshipRecordsService
-              .store(record, autoFill, session.planetId)
-              .map(
-                recordId =>
-                  Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))).withHeaders(
-                    HeaderNames.LOCATION -> record.nino
-                      .map(nino => routes.DesStubController.getLegacyRelationshipsByNino(nino).url)
-                      .orElse(record.utr.map(utr => routes.DesStubController.getLegacyRelationshipsByUtr(utr).url))
-                      .getOrElse(""))))
+        withPayload[LegacyRelationshipRecord](record =>
+          legacyRelationshipRecordsService
+            .store(record, autoFill, session.planetId)
+            .map(recordId =>
+              Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))).withHeaders(
+                HeaderNames.LOCATION -> record.nino
+                  .map(nino => routes.DesStubController.getLegacyRelationshipsByNino(nino).url)
+                  .orElse(record.utr.map(utr => routes.DesStubController.getLegacyRelationshipsByUtr(utr).url))
+                  .getOrElse("")
+              )
+            )
+        )
       }(SessionRecordNotFound)
   }
 
@@ -165,13 +169,14 @@ class RecordsController @Inject()(
   def storeVatCustomerInformation(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) {
     implicit request =>
       withCurrentSession { session =>
-        withPayload[VatCustomerInformationRecord](
-          record =>
-            vatCustomerInformationRecordsService
-              .store(record, autoFill, session.planetId)
-              .map(recordId =>
-                Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))).withHeaders(
-                  HeaderNames.LOCATION -> routes.DesStubController.getVatCustomerInformation(record.vrn).url)))
+        withPayload[VatCustomerInformationRecord](record =>
+          vatCustomerInformationRecordsService
+            .store(record, autoFill, session.planetId)
+            .map(recordId =>
+              Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url)))
+                .withHeaders(HeaderNames.LOCATION -> routes.DesStubController.getVatCustomerInformation(record.vrn).url)
+            )
+        )
       }(SessionRecordNotFound)
   }
 
@@ -192,7 +197,8 @@ class RecordsController @Inject()(
         withPayload[BusinessPartnerRecord](record =>
           businessPartnerRecordsService
             .store(record, autoFill, session.planetId)
-            .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url)))))
+            .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))))
+        )
       }(SessionRecordNotFound)
   }
 
@@ -209,21 +215,21 @@ class RecordsController @Inject()(
 
   def storeRelationship(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
-      withPayload[RelationshipRecord](
-        record =>
-          relationshipRecordsService
-            .store(record, autoFill, session.planetId)
-            .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url)))))
+      withPayload[RelationshipRecord](record =>
+        relationshipRecordsService
+          .store(record, autoFill, session.planetId)
+          .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))))
+      )
     }(SessionRecordNotFound)
   }
 
   def storeEmployerAuths(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
-      withPayload[EmployerAuths](
-        record =>
-          employerAuthRecordsService
-            .store(record, autoFill, session.planetId)
-            .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url)))))
+      withPayload[EmployerAuths](record =>
+        employerAuthRecordsService
+          .store(record, autoFill, session.planetId)
+          .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))))
+      )
     }(SessionRecordNotFound)
   }
 

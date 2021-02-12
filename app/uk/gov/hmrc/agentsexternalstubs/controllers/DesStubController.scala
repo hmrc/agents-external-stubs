@@ -37,7 +37,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class DesStubController @Inject()(
+class DesStubController @Inject() (
   val authenticationService: AuthenticationService,
   relationshipRecordsService: RelationshipRecordsService,
   legacyRelationshipRecordsService: LegacyRelationshipRecordsService,
@@ -83,26 +83,25 @@ class DesStubController @Inject()(
     from: Option[String],
     to: Option[String],
     relationship: Option[String],
-    `auth-profile`: Option[String]): Action[AnyContent] = Action.async { implicit request =>
+    `auth-profile`: Option[String]
+  ): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       GetRelationships.form.bindFromRequest.fold(
         hasErrors => badRequestF("INVALID_SUBMISSION", hasErrors.errors.map(_.message).mkString(", ")),
-        query => {
+        query =>
           relationshipRecordsService
             .findByQuery(query, session.planetId)
-            .flatMap(records => {
-
+            .flatMap { records =>
               def checkSuspension(arn: Arn): Future[Result] =
-                businessPartnerRecordsService.getBusinessPartnerRecord(arn, session.planetId) map {
-                  case Some(bpr) =>
-                    bpr.suspensionDetails match {
-                      case Some(sd) =>
-                        if (sd.suspendedRegimes.contains(regime))
-                          forbidden("AGENT_SUSPENDED", "The remote endpoint has indicated that the agent is suspended")
-                        else Ok(Json.toJson(GetRelationships.Response.from(records)))
+                businessPartnerRecordsService.getBusinessPartnerRecord(arn, session.planetId) map { case Some(bpr) =>
+                  bpr.suspensionDetails match {
+                    case Some(sd) =>
+                      if (sd.suspendedRegimes.contains(regime))
+                        forbidden("AGENT_SUSPENDED", "The remote endpoint has indicated that the agent is suspended")
+                      else Ok(Json.toJson(GetRelationships.Response.from(records)))
 
-                      case None => Ok(Json.toJson(GetRelationships.Response.from(records)))
-                    }
+                    case None => Ok(Json.toJson(GetRelationships.Response.from(records)))
+                  }
                 }
 
               records.headOption match {
@@ -114,8 +113,7 @@ class DesStubController @Inject()(
                     checkSuspension(Arn(arn.getOrElse(throw new Exception("agent must have arn"))))
                   } else Future successful Ok(Json.toJson(GetRelationships.Response.from(records)))
               }
-            })
-        }
+            }
       )
     }(SessionRecordNotFound)
   }
@@ -201,7 +199,7 @@ class DesStubController @Inject()(
             vatCustomerInformationRecordsService.getCustomerInformation(vrn, session.planetId).map {
               case Some(record) => Ok(Json.toJson(record))
               case None         => Ok(Json.obj())
-          }
+            }
         )
     }(SessionRecordNotFound)
   }
@@ -229,7 +227,8 @@ class DesStubController @Inject()(
                               .store(
                                 SubscribeAgentServices.toBusinessPartnerRecord(payload, existingRecord),
                                 autoFill = false,
-                                session.planetId)
+                                session.planetId
+                              )
                               .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, session.planetId))
                               .map {
                                 case Some(record) =>
@@ -237,9 +236,9 @@ class DesStubController @Inject()(
                                 case None =>
                                   internalServerError("SERVER_ERROR", "BusinessPartnerRecord creation failed silently.")
                               }
-                      }
+                        }
                   )
-            }
+              }
           )
 
       }(SessionRecordNotFound)
@@ -272,12 +271,14 @@ class DesStubController @Inject()(
                                 case Some(record) =>
                                   ok(SubscribeAgentServices.Response(record.safeId, record.agentReferenceNumber.get))
                                 case None =>
-                                  ok(SubscribeAgentServices
-                                    .Response(recordToCreate.safeId, recordToCreate.agentReferenceNumber.get))
+                                  ok(
+                                    SubscribeAgentServices
+                                      .Response(recordToCreate.safeId, recordToCreate.agentReferenceNumber.get)
+                                  )
                               }
-                      }
+                        }
                   )
-            }
+              }
           )
 
       }(SessionRecordNotFound)
@@ -318,7 +319,7 @@ class DesStubController @Inject()(
                 .map {
                   case Some(relationship) => ok(SAAgentClientAuthorisation.Response.from(relationship))
                   case None               => notFound("Resource not found")
-              }
+                }
           )
       }(SessionRecordNotFound)
   }
@@ -379,7 +380,7 @@ class DesStubController @Inject()(
                       case None    => NoContent
                     }
                 }
-            }
+              }
           )
       }(SessionRecordNotFound)
   }
@@ -387,7 +388,8 @@ class DesStubController @Inject()(
   def removeLegacyAgentClientPayeRelationship(
     agentCode: String,
     taxOfficeNumber: String,
-    taxOfficeReference: String): Action[AnyContent] = Action.async { implicit request =>
+    taxOfficeReference: String
+  ): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       Validator
         .product(
@@ -413,22 +415,21 @@ class DesStubController @Inject()(
                     employerAuthsRecordsService
                       .delete(agentCode, session.planetId)
                       .map(_ => Ok)
-            }
+              }
         )
     }(SessionRecordNotFound)
   }
 
   def getCtReference(idType: String, idValue: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
-      withValidIdentifier(idType, idValue) {
-        case ("crn", crn) =>
-          businessPartnerRecordsService
-            .getBusinessPartnerRecordByCrn(crn, session.planetId)
-            .map(_.flatMap(GetCtReference.Response.from))
-            .map {
-              case None     => notFound("NOT_FOUND", "The back end has indicated that CT UTR cannot be returned.")
-              case response => ok(response)
-            }
+      withValidIdentifier(idType, idValue) { case ("crn", crn) =>
+        businessPartnerRecordsService
+          .getBusinessPartnerRecordByCrn(crn, session.planetId)
+          .map(_.flatMap(GetCtReference.Response.from))
+          .map {
+            case None     => notFound("NOT_FOUND", "The back end has indicated that CT UTR cannot be returned.")
+            case response => ok(response)
+          }
       }
     }(SessionRecordNotFound)
   }
@@ -443,7 +444,7 @@ class DesStubController @Inject()(
             vatCustomerInformationRecordsService.getVatKnownFacts(vrn, session.planetId).map {
               case Some(record) => Ok(Json.toJson(record))
               case None         => NotFound
-          }
+            }
         )
     }(SessionRecordNotFound)
   }
@@ -462,7 +463,7 @@ class DesStubController @Inject()(
             usersService
               .findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
               .map {
-                case Some(record) => {
+                case Some(record) =>
                   val maybeUtr =
                     extractEnrolmentValue("HMRC-TERS-ORG")(record)
                   val maybeUrn =
@@ -473,9 +474,10 @@ class DesStubController @Inject()(
                       maybeUrn,
                       record.name.getOrElse(""),
                       TrustAddress(record.user.address),
-                      "TERS"))
+                      "TERS"
+                    )
+                  )
                   Ok(Json.toJson(trustDetails))
-                }
                 case None => getErrorResponseFor(trustTaxIdentifier)
               }
           }
@@ -501,14 +503,16 @@ class DesStubController @Inject()(
                   usersService
                     .findByPrincipalEnrolmentKey(
                       EnrolmentKey("HMRC-CGT-PD", Seq(Identifier("CGTPDRef", cgtRef))),
-                      session.planetId)
+                      session.planetId
+                    )
                     .map {
                       case Some(record) =>
                         val tpd = record.affinityGroup match {
                           case Some("Individual") =>
                             TypeOfPersonDetails(
                               "Individual",
-                              Left(IndividualName(record.firstName.getOrElse(""), record.lastName.getOrElse(""))))
+                              Left(IndividualName(record.firstName.getOrElse(""), record.lastName.getOrElse("")))
+                            )
                           case _ => TypeOfPersonDetails("Trustee", Right(OrganisationName(record.name.getOrElse(""))))
                         }
 
@@ -518,14 +522,14 @@ class DesStubController @Inject()(
                           record.address.flatMap(_.line3),
                           record.address.flatMap(_.line4),
                           record.address.flatMap(_.countryCode).getOrElse(""),
-                          record.address.flatMap(_.postcode),
+                          record.address.flatMap(_.postcode)
                         )
 
                         val cgtSubscription: CgtSubscription =
                           CgtSubscription("CGT", SubscriptionDetails(tpd, addressDetails))
                         Ok(Json.toJson(cgtSubscription))
                       case None => notFound("NOT_FOUND", "Data not found  for the provided Registration Number.")
-                  }
+                    }
               )
           case ("CGT", _) =>
             badRequestF("INVALID_IDTYPE", "Submission has not passed validation. Invalid parameter idType.")
@@ -534,7 +538,8 @@ class DesStubController @Inject()(
           case _ =>
             badRequestF(
               "INVALID_REQUEST",
-              "Submission has not passed validation. Request not implemented by the backend.")
+              "Submission has not passed validation. Request not implemented by the backend."
+            )
         }
 
       }(SessionRecordNotFound)
@@ -544,7 +549,8 @@ class DesStubController @Inject()(
     payload: RegistrationPayload,
     idType: String,
     idNumber: String,
-    planetId: String)(matches: T => Boolean): Option[T] => Future[Result] = {
+    planetId: String
+  )(matches: T => Boolean): Option[T] => Future[Result] = {
     case Some(record) =>
       if (matches(record)) okF(record, Registration.fixSchemaDifferences _)
       else notFoundF("NOT_FOUND", "BusinessPartnerRecord exists but fails match expectations.")
@@ -564,7 +570,8 @@ class DesStubController @Inject()(
   }
 
   private def withValidIdentifier(idType: String, idNumber: String)(
-    pf: PartialFunction[(String, String), Future[Result]])(implicit ec: ExecutionContext): Future[Result] =
+    pf: PartialFunction[(String, String), Future[Result]]
+  )(implicit ec: ExecutionContext): Future[Result] =
     idType match {
       case "nino"   => validateIdentifier(RegexPatterns.validNinoNoSpaces, "INVALID_NINO", idType, idNumber)(pf)
       case "mtdbsa" => validateIdentifier(RegexPatterns.validMtdbsa, "INVALID_MTDBSA", idType, idNumber)(pf)
@@ -579,7 +586,8 @@ class DesStubController @Inject()(
     }
 
   private def validateIdentifier(matcher: RegexPatterns.Matcher, errorCode: String, idType: String, idNumber: String)(
-    pf: PartialFunction[(String, String), Future[Result]]): Future[Result] =
+    pf: PartialFunction[(String, String), Future[Result]]
+  ): Future[Result] =
     matcher(idNumber).fold(
       error => badRequestF(errorCode, error),
       _ =>
@@ -614,17 +622,17 @@ object DesStubController {
 
   object GetRelationships {
 
-    private val queryConstraint: Constraint[RelationshipRecordQuery] = Constraint(
-      q =>
-        if (q.agent && q.arn.isEmpty) Invalid("Missing arn")
-        else if (!q.agent && q.refNumber.isEmpty) Invalid("Missing ref-no")
-        else if ((!q.activeOnly || q.to.isDefined) && q.from.isEmpty) Invalid("Missing from date")
-        else if (!q.activeOnly && q.to.isEmpty) Invalid("Missing to date")
-        else if ((q.regime == "VATC" || q.regime == "CGT") && q.relationship.isEmpty)
-          Invalid(s"relationship type is mandatory for ${q.regime} regime")
-        else if ((q.regime == "VATC" || q.regime == "CGT") && q.authProfile.isEmpty)
-          Invalid(s"auth profile is mandatory for ${q.regime} regime")
-        else Valid)
+    private val queryConstraint: Constraint[RelationshipRecordQuery] = Constraint(q =>
+      if (q.agent && q.arn.isEmpty) Invalid("Missing arn")
+      else if (!q.agent && q.refNumber.isEmpty) Invalid("Missing ref-no")
+      else if ((!q.activeOnly || q.to.isDefined) && q.from.isEmpty) Invalid("Missing from date")
+      else if (!q.activeOnly && q.to.isEmpty) Invalid("Missing to date")
+      else if ((q.regime == "VATC" || q.regime == "CGT") && q.relationship.isEmpty)
+        Invalid(s"relationship type is mandatory for ${q.regime} regime")
+      else if ((q.regime == "VATC" || q.regime == "CGT") && q.authProfile.isEmpty)
+        Invalid(s"auth profile is mandatory for ${q.regime} regime")
+      else Valid
+    )
 
     val form: Form[RelationshipRecordQuery] = Form[RelationshipRecordQuery](
       mapping(
@@ -632,9 +640,11 @@ object DesStubController {
         "arn"    -> optional(nonEmptyText.verifying(MoreConstraints.pattern(RegexPatterns.validArn, "arn"))),
         "idtype" -> default(
           nonEmptyText.verifying(Constraints.pattern("^[A-Z]{1,6}$".r, "idtype", "Invalid idtype")),
-          "none"),
+          "none"
+        ),
         "ref-no" -> optional(
-          nonEmptyText.verifying(Constraints.pattern("^[0-9A-Za-z]{1,15}$".r, "ref-no", "Invalid ref-no"))),
+          nonEmptyText.verifying(Constraints.pattern("^[0-9A-Za-z]{1,15}$".r, "ref-no", "Invalid ref-no"))
+        ),
         "active-only" -> boolean,
         "agent"       -> boolean,
         "from" -> optional(nonEmptyText.verifying(MoreConstraints.pattern(RegexPatterns.validDate, "from")))
@@ -643,7 +653,8 @@ object DesStubController {
           .transform[Option[LocalDate]](_.map(LocalDate.parse), Option(_).map(_.toString)),
         "relationship" -> optional(nonEmptyText.verifying("invalid relationship type", _ == "ZA01")),
         "auth-profile" -> optional(nonEmptyText.verifying("invalid auth profile", _ == "ALL00001"))
-      )(RelationshipRecordQuery.apply)(RelationshipRecordQuery.unapply).verifying(queryConstraint))
+      )(RelationshipRecordQuery.apply)(RelationshipRecordQuery.unapply).verifying(queryConstraint)
+    )
 
     case class Individual(firstName: String, lastName: String)
 
@@ -763,7 +774,8 @@ object DesStubController {
 
     def toBusinessPartnerRecord(
       payload: SubscribeAgentServicesPayload,
-      existingRecord: BusinessPartnerRecord): BusinessPartnerRecord = {
+      existingRecord: BusinessPartnerRecord
+    ): BusinessPartnerRecord = {
       val address = payload.agencyAddress match {
         case SubscribeAgentServicesPayload.UkAddress(l1, l2, l3, l4, pc, cc) =>
           BusinessPartnerRecord.UkAddress(l1, l2, l3, l4, pc, cc)
@@ -771,8 +783,8 @@ object DesStubController {
           BusinessPartnerRecord.ForeignAddress(l1, l2, l3, l4, pc, cc)
       }
       existingRecord
-        .modifyAgentReferenceNumber {
-          case None => Some(Generator.arn(existingRecord.utr.getOrElse(existingRecord.safeId)).value)
+        .modifyAgentReferenceNumber { case None =>
+          Some(Generator.arn(existingRecord.utr.getOrElse(existingRecord.safeId)).value)
         }
         .withAgencyDetails(
           Some(
@@ -780,14 +792,15 @@ object DesStubController {
               .AgencyDetails()
               .withAgencyName(Option(payload.agencyName))
               .withAgencyAddress(Some(address))
-              .withAgencyEmail(payload.agencyEmail)))
-        .modifyContactDetails {
-          case Some(contactDetails) =>
-            Some(
-              contactDetails
-                .withPhoneNumber(payload.telephoneNumber)
-                .withEmailAddress(payload.agencyEmail)
-            )
+              .withAgencyEmail(payload.agencyEmail)
+          )
+        )
+        .modifyContactDetails { case Some(contactDetails) =>
+          Some(
+            contactDetails
+              .withPhoneNumber(payload.telephoneNumber)
+              .withEmailAddress(payload.agencyEmail)
+          )
         }
         .withAddressDetails(address)
         .withIsAnAgent(true)
@@ -814,23 +827,23 @@ object DesStubController {
         .withIsAnAgent(payload.isAnAgent)
         .withIsAnASAgent(false)
         .withIndividual(
-          payload.individual.map(
-            i =>
-              BusinessPartnerRecord.Individual
-                .seed(idNumber)
-                .withFirstName(i.firstName)
-                .withLastName(i.lastName)
-                .modifyDateOfBirth { case dob => i.dateOfBirth.getOrElse(dob) }
+          payload.individual.map(i =>
+            BusinessPartnerRecord.Individual
+              .seed(idNumber)
+              .withFirstName(i.firstName)
+              .withLastName(i.lastName)
+              .modifyDateOfBirth { case dob => i.dateOfBirth.getOrElse(dob) }
           )
         )
         .withOrganisation(
-          payload.organisation.map(
-            o =>
-              BusinessPartnerRecord.Organisation
-                .seed(idNumber)
-                .withOrganisationName(o.organisationName)
-                .withIsAGroup(false)
-                .withOrganisationType(o.organisationType)))
+          payload.organisation.map(o =>
+            BusinessPartnerRecord.Organisation
+              .seed(idNumber)
+              .withOrganisationName(o.organisationName)
+              .withIsAGroup(false)
+              .withOrganisationType(o.organisationType)
+          )
+        )
 
     def fixSchemaDifferences(value: JsValue): JsValue = value match {
       case obj: JsObject =>
@@ -857,23 +870,23 @@ object DesStubController {
         .withIsAnAgent(payload.isAnAgent)
         .withIsAnASAgent(false)
         .withIndividual(
-          payload.individual.map(
-            i =>
-              BusinessPartnerRecord.Individual
-                .seed(seed)
-                .withFirstName(i.firstName)
-                .withLastName(i.lastName)
-                .withDateOfBirth(i.dateOfBirth)
+          payload.individual.map(i =>
+            BusinessPartnerRecord.Individual
+              .seed(seed)
+              .withFirstName(i.firstName)
+              .withLastName(i.lastName)
+              .withDateOfBirth(i.dateOfBirth)
           )
         )
         .withOrganisation(
-          payload.organisation.map(
-            o =>
-              BusinessPartnerRecord.Organisation
-                .seed(seed)
-                .withOrganisationName(o.organisationName)
-                .withIsAGroup(payload.isAGroup)
-                .withOrganisationType("0000")))
+          payload.organisation.map(o =>
+            BusinessPartnerRecord.Organisation
+              .seed(seed)
+              .withOrganisationName(o.organisationName)
+              .withIsAGroup(payload.isAGroup)
+              .withOrganisationType("0000")
+          )
+        )
     }
 
     case class Response(processingDate: Instant = Instant.now(), sapNumber: String, safeId: String)
@@ -904,13 +917,20 @@ object DesStubController {
   object LegacyAgentClientPayeRelationship {
 
     def remove(record: EmployerAuths, taxOfficeNumber: String, taxOfficeReference: String): EmployerAuths =
-      record.copy(empAuthList = record.empAuthList.filterNot(e =>
-        e.empRef.districtNumber == taxOfficeNumber && e.empRef.reference == taxOfficeReference))
+      record.copy(empAuthList =
+        record.empAuthList.filterNot(e =>
+          e.empRef.districtNumber == taxOfficeNumber && e.empRef.reference == taxOfficeReference
+        )
+      )
 
     def retrieve(payload: EmployerAuthsPayload, record: EmployerAuths): Option[EmployerAuths] = {
-      val filtered = record.copy(empAuthList = record.empAuthList.filter(e1 =>
-        payload.empRefList.exists(e2 =>
-          e2.districtNumber == e1.empRef.districtNumber && e2.reference == e1.empRef.reference)))
+      val filtered = record.copy(empAuthList =
+        record.empAuthList.filter(e1 =>
+          payload.empRefList.exists(e2 =>
+            e2.districtNumber == e1.empRef.districtNumber && e2.reference == e1.empRef.reference
+          )
+        )
+      )
       if (filtered.empAuthList.isEmpty) None else Some(filtered)
     }
   }

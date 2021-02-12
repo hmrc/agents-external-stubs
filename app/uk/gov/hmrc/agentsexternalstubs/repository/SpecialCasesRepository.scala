@@ -52,20 +52,20 @@ trait SpecialCasesRepository {
 }
 
 @Singleton
-class SpecialCasesRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
+class SpecialCasesRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
     extends ReactiveRepository[SpecialCase, BSONObjectID](
       "specialCases",
       mongoComponent.mongoConnector.db,
       Format(internal.reads, internal.writes),
-      ReactiveMongoFormats.objectIdFormats) with StrictlyEnsureIndexes[SpecialCase, BSONObjectID]
-    with SpecialCasesRepository with DeleteAll[SpecialCase] {
+      ReactiveMongoFormats.objectIdFormats
+    ) with StrictlyEnsureIndexes[SpecialCase, BSONObjectID] with SpecialCasesRepository with DeleteAll[SpecialCase] {
 
   private final val PLANET_ID = "planetId"
   final val UPDATED = "_last_updated_at"
 
   override def indexes = Seq(
     Index(Seq(SpecialCase.UNIQUE_KEY -> Ascending), Some("SpecialCasesByKey"), unique = true),
-    Index(Seq(Id.ID                  -> Ascending, PLANET_ID -> Ascending), Some("SpecialCaseId"), unique = true)
+    Index(Seq(Id.ID -> Ascending, PLANET_ID -> Ascending), Some("SpecialCaseId"), unique = true)
   )
 
   import ImplicitBSONHandlers._
@@ -79,7 +79,8 @@ class SpecialCasesRepositoryMongo @Inject()(mongoComponent: ReactiveMongoCompone
       )
       .cursor[SpecialCase](ReadPreference.primary)(
         implicitly[collection.pack.Reader[SpecialCase]],
-        implicitly[CursorProducer[SpecialCase]])
+        implicitly[CursorProducer[SpecialCase]]
+      )
       .headOption
 
   def findByMatchKey(key: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[SpecialCase]] =
@@ -89,7 +90,8 @@ class SpecialCasesRepositoryMongo @Inject()(mongoComponent: ReactiveMongoCompone
       )
       .cursor[SpecialCase](ReadPreference.primary)(
         implicitly[collection.pack.Reader[SpecialCase]],
-        implicitly[CursorProducer[SpecialCase]])
+        implicitly[CursorProducer[SpecialCase]]
+      )
       .headOption
 
   def findByPlanetId(planetId: String)(limit: Int)(implicit ec: ExecutionContext): Future[Seq[SpecialCase]] =
@@ -122,7 +124,8 @@ class SpecialCasesRepositoryMongo @Inject()(mongoComponent: ReactiveMongoCompone
               collection
                 .find(
                   Json.obj(
-                    SpecialCase.UNIQUE_KEY -> JsString(SpecialCase.uniqueKey(specialCase.requestMatch.toKey, planetId)))
+                    SpecialCase.UNIQUE_KEY -> JsString(SpecialCase.uniqueKey(specialCase.requestMatch.toKey, planetId))
+                  )
                 )
                 .one[SpecialCase]
                 .flatMap {
@@ -131,7 +134,8 @@ class SpecialCasesRepositoryMongo @Inject()(mongoComponent: ReactiveMongoCompone
                       .update(
                         Json.obj(
                           Id.ID     -> Json.obj("$oid" -> JsString(sc.id.map(_.value).get)),
-                          PLANET_ID -> JsString(planetId)),
+                          PLANET_ID -> JsString(planetId)
+                        ),
                         Json
                           .toJson(specialCase.copy(planetId = Some(planetId)))
                           .as[JsObject]
@@ -151,7 +155,7 @@ class SpecialCasesRepositoryMongo @Inject()(mongoComponent: ReactiveMongoCompone
                       .map((_, newId))
                       .flatMap(MongoHelper.interpretWriteResult)
                 }
-        }
+          }
       )
 
   def delete(id: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =

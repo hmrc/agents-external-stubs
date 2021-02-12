@@ -28,7 +28,7 @@ import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class PersonalDetailsValidationController @Inject()(cc: ControllerComponents)(implicit ec: ExecutionContext)
+class PersonalDetailsValidationController @Inject() (cc: ControllerComponents)(implicit ec: ExecutionContext)
     extends BackendController(cc) {
 
   import uk.gov.hmrc.agentsexternalstubs.models.PersonalDetailsValidationFormat._

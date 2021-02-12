@@ -17,7 +17,8 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with MongoDB 
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         Users.update(
           UserGenerator
-            .individual(userId = "foo1", name = "Alan Brian Foo-Foe", groupId = "foo-group-1"))
+            .individual(userId = "foo1", name = "Alan Brian Foo-Foe", groupId = "foo-group-1")
+        )
 
         val result = UsersGroupSearchStub.getUser("foo1")
 
@@ -45,7 +46,9 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with MongoDB 
               groupId = "foo-group-2",
               agentCode = "AAABBBCCCDDD",
               agentFriendlyName = "Foo-Foe Accountants",
-              agentId = "1234567"))
+              agentId = "1234567"
+            )
+        )
 
         val result = UsersGroupSearchStub.getUser("foo2")
 
@@ -77,7 +80,8 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with MongoDB 
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo3")
         Users.update(
           UserGenerator
-            .individual(userId = "foo3", name = "Alan Brian Foo-Foe", groupId = "foo-group-3"))
+            .individual(userId = "foo3", name = "Alan Brian Foo-Foe", groupId = "foo-group-3")
+        )
 
         val result = UsersGroupSearchStub.getGroup("foo-group-3")
 
@@ -101,7 +105,9 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with MongoDB 
               groupId = "foo-group-4",
               agentCode = "AAABBBCCCDDD",
               agentFriendlyName = "Foo-Foe Accountants",
-              agentId = "1234567"))
+              agentId = "1234567"
+            )
+        )
 
         val result = UsersGroupSearchStub.getGroup("foo-group-4")
 
@@ -135,7 +141,9 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with MongoDB 
               groupId = "foo-group-5",
               agentCode = "ABC123",
               agentFriendlyName = "Foo-Foe Accountants",
-              agentId = "1234567"))
+              agentId = "1234567"
+            )
+        )
 
         val result = UsersGroupSearchStub.getGroupByAgentCode("ABC123", "any")
 
@@ -164,15 +172,18 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with MongoDB 
       implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo6-1", planetId = "juniper")
       Users.update(
         UserGenerator
-          .individual(userId = "foo6-1", name = "A", groupId = "foo-group-6"))
+          .individual(userId = "foo6-1", name = "A", groupId = "foo-group-6")
+      )
       Users.create(
         UserGenerator
-          .individual(userId = "foo6-2", name = "B", groupId = "foo-group-6"))
+          .individual(userId = "foo6-2", name = "B", groupId = "foo-group-6")
+      )
 
       val session2: AuthenticatedSession = SignIn.signInAndGetSession("foo6-1", planetId = "saturn")
       Users.create(
         UserGenerator
-          .individual(userId = "foo6-3", name = "C", groupId = "foo-group-6"))(session2)
+          .individual(userId = "foo6-3", name = "C", groupId = "foo-group-6")
+      )(session2)
 
       val result = UsersGroupSearchStub.getGroupUsers("foo-group-6")
 
@@ -185,10 +196,12 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with MongoDB 
       implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo7-1", planetId = "juniper")
       Users.update(
         UserGenerator
-          .individual(userId = "foo7-1", name = "A", groupId = "foo-group-7"))
+          .individual(userId = "foo7-1", name = "A", groupId = "foo-group-7")
+      )
       Users.create(
         UserGenerator
-          .individual(userId = "foo7-2", name = "B", groupId = "foo-group-7"))
+          .individual(userId = "foo7-2", name = "B", groupId = "foo-group-7")
+      )
 
       val result = UsersGroupSearchStub.getGroupUsers("foo-group-7-x")
 

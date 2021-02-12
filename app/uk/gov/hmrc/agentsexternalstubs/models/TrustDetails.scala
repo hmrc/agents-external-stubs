@@ -27,7 +27,8 @@ case class TrustAddress(
   line3: Option[String] = None,
   line4: Option[String] = None,
   postcode: Option[String] = None,
-  country: String)
+  country: String
+)
 
 object TrustAddress {
   implicit val format: Format[TrustAddress] = Json.format[TrustAddress]
@@ -41,7 +42,8 @@ object TrustAddress {
           address.line3,
           address.line4,
           address.postcode,
-          address.countryCode.getOrElse(""))
+          address.countryCode.getOrElse("")
+        )
       case None => TrustAddress("", "", country = "")
     }
 
@@ -53,7 +55,8 @@ case class TrustDetails(
   urn: Option[String],
   trustName: String,
   address: TrustAddress,
-  serviceName: String)
+  serviceName: String
+)
 
 object TrustDetails {
   implicit val format: Format[TrustDetails] = Json.format[TrustDetails]
@@ -68,16 +71,19 @@ object TrustDetailsResponse extends HttpHelpers {
     if (UtrOrUrn == "3887997235") {
       badRequest(
         "INVALID_TRUST_STATE",
-        "The remote endpoint has indicated that the Trust/Estate is Closed and playback is not possible.")
+        "The remote endpoint has indicated that the Trust/Estate is Closed and playback is not possible."
+      )
     } else if (UtrOrUrn == "5786221775") {
       badRequest(
         "INVALID_TRUST_STATE",
-        "The remote endpoint has indicated that there are Pending changes yet to be processed and playback is not yet possible.")
+        "The remote endpoint has indicated that there are Pending changes yet to be processed and playback is not yet possible."
+      )
     } else if (UtrOrUrn == "6028812143") {
       badRequest("INVALID_REGIME", "The remote endpoint has indicated that the REGIME provided is invalid.")
     } else {
       notFound(
         "RESOURCE_NOT_FOUND",
-        "The remote endpoint has indicated that no resource can be returned for the UTR provided and playback is not possible.")
+        "The remote endpoint has indicated that no resource can be returned for the UTR provided and playback is not possible."
+      )
     }
 }

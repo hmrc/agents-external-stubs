@@ -12,8 +12,7 @@ trait WSResponseMatchers {
     override def apply(left: WSResponse): MatchResult =
       MatchResult(
         left.status == status,
-        s"Request returned ${statusType(left.status)} ${left.status} ${left.statusText} while we expected $status ${statusType(
-          status)}, details: ${details(left)}",
+        s"Request returned ${statusType(left.status)} ${left.status} ${left.statusText} while we expected $status ${statusType(status)}, details: ${details(left)}",
         s"Got ${statusType(left.status)} ${left.status} ${left.statusText} as expected"
       )
 

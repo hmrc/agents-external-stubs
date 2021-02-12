@@ -19,8 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import play.api.libs.json._
 import uk.gov.hmrc.agentsexternalstubs.models.RegistrationWithoutIdPayload._
 
-/**
-  * ----------------------------------------------------------------------------
+/** ----------------------------------------------------------------------------
   * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
   * How to regenerate? Run this command in the project root directory:
   * sbt "test:runMain uk.gov.hmrc.agentsexternalstubs.RecordClassGeneratorFromJsonSchema docs/schemas/DES2.json app/uk/gov/hmrc/agentsexternalstubs/models/RegistrationWithoutIdPayload.scala RegistrationWithoutIdPayload output:payload"
@@ -44,7 +43,8 @@ case class RegistrationWithoutIdPayload(
   individual: Option[Individual] = None,
   organisation: Option[Organisation] = None,
   address: Address,
-  contactDetails: ContactDetails) {
+  contactDetails: ContactDetails
+) {
 
   def withRegime(regime: String): RegistrationWithoutIdPayload = copy(regime = regime)
   def modifyRegime(pf: PartialFunction[String, String]): RegistrationWithoutIdPayload =
@@ -63,7 +63,8 @@ case class RegistrationWithoutIdPayload(
   def withIdentification(identification: Option[Identification]): RegistrationWithoutIdPayload =
     copy(identification = identification)
   def modifyIdentification(
-    pf: PartialFunction[Option[Identification], Option[Identification]]): RegistrationWithoutIdPayload =
+    pf: PartialFunction[Option[Identification], Option[Identification]]
+  ): RegistrationWithoutIdPayload =
     if (pf.isDefinedAt(identification)) copy(identification = pf(identification)) else this
   def withIndividual(individual: Option[Individual]): RegistrationWithoutIdPayload = copy(individual = individual)
   def modifyIndividual(pf: PartialFunction[Option[Individual], Option[Individual]]): RegistrationWithoutIdPayload =
@@ -71,7 +72,8 @@ case class RegistrationWithoutIdPayload(
   def withOrganisation(organisation: Option[Organisation]): RegistrationWithoutIdPayload =
     copy(organisation = organisation)
   def modifyOrganisation(
-    pf: PartialFunction[Option[Organisation], Option[Organisation]]): RegistrationWithoutIdPayload =
+    pf: PartialFunction[Option[Organisation], Option[Organisation]]
+  ): RegistrationWithoutIdPayload =
     if (pf.isDefinedAt(organisation)) copy(organisation = pf(organisation)) else this
   def withAddress(address: Address): RegistrationWithoutIdPayload = copy(address = address)
   def modifyAddress(pf: PartialFunction[Address, Address]): RegistrationWithoutIdPayload =
@@ -132,12 +134,15 @@ object RegistrationWithoutIdPayload {
           .reads(json)
           .flatMap(e => ForeignAddress.validate(e).fold(_ => JsError(), _ => JsSuccess(e)))
         val r1 = r0.orElse(
-          UkAddress.formats.reads(json).flatMap(e => UkAddress.validate(e).fold(_ => JsError(), _ => JsSuccess(e))))
+          UkAddress.formats.reads(json).flatMap(e => UkAddress.validate(e).fold(_ => JsError(), _ => JsSuccess(e)))
+        )
         r1.orElse(
           aggregateErrors(
             JsError("Could not match json object to any variant of Address, i.e. ForeignAddress, UkAddress"),
             r0,
-            r1))
+            r1
+          )
+        )
       }
 
       private def aggregateErrors[T](errors: JsResult[T]*): JsError =
@@ -145,7 +150,8 @@ object RegistrationWithoutIdPayload {
           r match {
             case e: JsError => JsError(a.errors ++ e.errors)
             case _          => a
-        })
+          }
+        )
     }
 
     implicit val writes: Writes[Address] = new Writes[Address] {
@@ -161,7 +167,8 @@ object RegistrationWithoutIdPayload {
     phoneNumber: Option[String] = None,
     mobileNumber: Option[String] = None,
     faxNumber: Option[String] = None,
-    emailAddress: Option[String] = None) {
+    emailAddress: Option[String] = None
+  ) {
 
     def withPhoneNumber(phoneNumber: Option[String]): ContactDetails = copy(phoneNumber = phoneNumber)
     def modifyPhoneNumber(pf: PartialFunction[Option[String], Option[String]]): ContactDetails =
@@ -181,13 +188,16 @@ object RegistrationWithoutIdPayload {
 
     val phoneNumberValidator: Validator[Option[String]] = check(
       _.matches(Common.phoneNumberPattern),
-      s"""Invalid phoneNumber, does not matches regex ${Common.phoneNumberPattern}""")
+      s"""Invalid phoneNumber, does not matches regex ${Common.phoneNumberPattern}"""
+    )
     val mobileNumberValidator: Validator[Option[String]] = check(
       _.matches(Common.phoneNumberPattern),
-      s"""Invalid mobileNumber, does not matches regex ${Common.phoneNumberPattern}""")
+      s"""Invalid mobileNumber, does not matches regex ${Common.phoneNumberPattern}"""
+    )
     val faxNumberValidator: Validator[Option[String]] = check(
       _.matches(Common.phoneNumberPattern),
-      s"""Invalid faxNumber, does not matches regex ${Common.phoneNumberPattern}""")
+      s"""Invalid faxNumber, does not matches regex ${Common.phoneNumberPattern}"""
+    )
     val emailAddressValidator: Validator[Option[String]] =
       check(_.lengthMax(132), "Invalid length of emailAddress, maximum length should be 132")
 
@@ -208,8 +218,8 @@ object RegistrationWithoutIdPayload {
     override val addressLine3: Option[String] = None,
     override val addressLine4: Option[String] = None,
     postalCode: Option[String] = None,
-    override val countryCode: String)
-      extends Address {
+    override val countryCode: String
+  ) extends Address {
 
     def withAddressLine1(addressLine1: String): ForeignAddress = copy(addressLine1 = addressLine1)
     def modifyAddressLine1(pf: PartialFunction[String, String]): ForeignAddress =
@@ -235,16 +245,20 @@ object RegistrationWithoutIdPayload {
 
     val addressLine1Validator: Validator[String] = check(
       _.matches(Common.addressLinePattern),
-      s"""Invalid addressLine1, does not matches regex ${Common.addressLinePattern}""")
+      s"""Invalid addressLine1, does not matches regex ${Common.addressLinePattern}"""
+    )
     val addressLine2Validator: Validator[String] = check(
       _.matches(Common.addressLinePattern),
-      s"""Invalid addressLine2, does not matches regex ${Common.addressLinePattern}""")
+      s"""Invalid addressLine2, does not matches regex ${Common.addressLinePattern}"""
+    )
     val addressLine3Validator: Validator[Option[String]] = check(
       _.matches(Common.addressLinePattern),
-      s"""Invalid addressLine3, does not matches regex ${Common.addressLinePattern}""")
+      s"""Invalid addressLine3, does not matches regex ${Common.addressLinePattern}"""
+    )
     val addressLine4Validator: Validator[Option[String]] = check(
       _.matches(Common.addressLinePattern),
-      s"""Invalid addressLine4, does not matches regex ${Common.addressLinePattern}""")
+      s"""Invalid addressLine4, does not matches regex ${Common.addressLinePattern}"""
+    )
     val postalCodeValidator: Validator[Option[String]] =
       check(_.lengthMinMaxInclusive(1, 10), "Invalid length of postalCode, should be between 1 and 10 inclusive")
     val countryCodeValidator: Validator[String] =
@@ -282,13 +296,16 @@ object RegistrationWithoutIdPayload {
 
     val idNumberValidator: Validator[String] = check(
       _.matches(Common.idNumberPattern),
-      s"""Invalid idNumber, does not matches regex ${Common.idNumberPattern}""")
+      s"""Invalid idNumber, does not matches regex ${Common.idNumberPattern}"""
+    )
     val issuingInstitutionValidator: Validator[String] = check(
       _.matches(Common.issuingInstitutionPattern),
-      s"""Invalid issuingInstitution, does not matches regex ${Common.issuingInstitutionPattern}""")
+      s"""Invalid issuingInstitution, does not matches regex ${Common.issuingInstitutionPattern}"""
+    )
     val issuingCountryCodeValidator: Validator[String] = check(
       _.matches(Common.issuingCountryCodePattern),
-      s"""Invalid issuingCountryCode, does not matches regex ${Common.issuingCountryCodePattern}""")
+      s"""Invalid issuingCountryCode, does not matches regex ${Common.issuingCountryCodePattern}"""
+    )
 
     val validate: Validator[Identification] = Validator(
       checkProperty(_.idNumber, idNumberValidator),
@@ -320,22 +337,26 @@ object RegistrationWithoutIdPayload {
 
     val firstNameValidator: Validator[String] = check(
       _.matches(Common.firstNamePattern),
-      s"""Invalid firstName, does not matches regex ${Common.firstNamePattern}""")
+      s"""Invalid firstName, does not matches regex ${Common.firstNamePattern}"""
+    )
     val middleNameValidator: Validator[Option[String]] = check(
       _.matches(Common.firstNamePattern),
-      s"""Invalid middleName, does not matches regex ${Common.firstNamePattern}""")
+      s"""Invalid middleName, does not matches regex ${Common.firstNamePattern}"""
+    )
     val lastNameValidator: Validator[String] = check(
       _.matches(Common.firstNamePattern),
-      s"""Invalid lastName, does not matches regex ${Common.firstNamePattern}""")
+      s"""Invalid lastName, does not matches regex ${Common.firstNamePattern}"""
+    )
     val dateOfBirthValidator: Validator[String] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid dateOfBirth, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid dateOfBirth, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
 
     val validate: Validator[Individual] = Validator(
       checkProperty(_.firstName, firstNameValidator),
       checkProperty(_.middleName, middleNameValidator),
       checkProperty(_.lastName, lastNameValidator),
-      checkProperty(_.dateOfBirth, dateOfBirthValidator),
+      checkProperty(_.dateOfBirth, dateOfBirthValidator)
     )
 
     implicit val formats: Format[Individual] = Json.format[Individual]
@@ -353,7 +374,8 @@ object RegistrationWithoutIdPayload {
 
     val organisationNameValidator: Validator[String] = check(
       _.matches(Common.organisationNamePattern),
-      s"""Invalid organisationName, does not matches regex ${Common.organisationNamePattern}""")
+      s"""Invalid organisationName, does not matches regex ${Common.organisationNamePattern}"""
+    )
 
     val validate: Validator[Organisation] = Validator(checkProperty(_.organisationName, organisationNameValidator))
 
@@ -367,8 +389,8 @@ object RegistrationWithoutIdPayload {
     override val addressLine3: Option[String] = None,
     override val addressLine4: Option[String] = None,
     postalCode: String,
-    override val countryCode: String)
-      extends Address {
+    override val countryCode: String
+  ) extends Address {
 
     def withAddressLine1(addressLine1: String): UkAddress = copy(addressLine1 = addressLine1)
     def modifyAddressLine1(pf: PartialFunction[String, String]): UkAddress =
@@ -394,19 +416,24 @@ object RegistrationWithoutIdPayload {
 
     val addressLine1Validator: Validator[String] = check(
       _.matches(Common.addressLinePattern),
-      s"""Invalid addressLine1, does not matches regex ${Common.addressLinePattern}""")
+      s"""Invalid addressLine1, does not matches regex ${Common.addressLinePattern}"""
+    )
     val addressLine2Validator: Validator[String] = check(
       _.matches(Common.addressLinePattern),
-      s"""Invalid addressLine2, does not matches regex ${Common.addressLinePattern}""")
+      s"""Invalid addressLine2, does not matches regex ${Common.addressLinePattern}"""
+    )
     val addressLine3Validator: Validator[Option[String]] = check(
       _.matches(Common.addressLinePattern),
-      s"""Invalid addressLine3, does not matches regex ${Common.addressLinePattern}""")
+      s"""Invalid addressLine3, does not matches regex ${Common.addressLinePattern}"""
+    )
     val addressLine4Validator: Validator[Option[String]] = check(
       _.matches(Common.addressLinePattern),
-      s"""Invalid addressLine4, does not matches regex ${Common.addressLinePattern}""")
+      s"""Invalid addressLine4, does not matches regex ${Common.addressLinePattern}"""
+    )
     val postalCodeValidator: Validator[String] = check(
       _.matches(Common.postalCodePattern),
-      s"""Invalid postalCode, does not matches regex ${Common.postalCodePattern}""")
+      s"""Invalid postalCode, does not matches regex ${Common.postalCodePattern}"""
+    )
     val countryCodeValidator: Validator[String] =
       check(_.isOneOf(Common.countryCodeEnum1), "Invalid countryCode, does not match allowed values")
 

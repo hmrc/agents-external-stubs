@@ -31,7 +31,7 @@ object UserValidator {
       case Some(Individual) | Some(Organisation) | Some(Agent) | None => Valid(())
       case _ =>
         Invalid("affinityGroup must be none, or one of [Individual, Organisation, Agent]")
-  }
+    }
 
   val validateConfidenceLevel: UserConstraint = user =>
     user.confidenceLevel match {
@@ -41,14 +41,14 @@ object UserValidator {
       case None => Valid(())
       case _ =>
         Invalid("confidenceLevel can only be set for Individuals and has to be one of [50, 100, 200, 300]")
-  }
+    }
 
   val validateCredentialStrength: UserConstraint = user =>
     user.credentialStrength match {
       case Some("weak") | Some("strong") | None => Valid(())
       case _ =>
         Invalid("credentialStrength must be none, or one of [weak, strong]")
-  }
+    }
 
   val validateCredentialRole: UserConstraint = user =>
     user.affinityGroup match {
@@ -60,14 +60,14 @@ object UserValidator {
         if (user.credentialRole.contains(Admin)) Valid(())
         else Invalid("credentialRole must be Admin for Organisation")
       case _ => Valid(())
-  }
+    }
 
   val validateNino: UserConstraint = user =>
     user.nino match {
       case Some(_) if user.affinityGroup.contains(Individual) || user.affinityGroup.contains(Agent) => Valid(())
       case None                                                                                     => Valid(())
       case _                                                                                        => Invalid("NINO can be only set for Individual or Agent")
-  }
+    }
 
   val validateConfidenceLevelAndNino: UserConstraint = user =>
     (user.affinityGroup, user.nino, user.confidenceLevel) match {
@@ -77,14 +77,14 @@ object UserValidator {
       case (Some(Individual), Some(_), None) =>
         Invalid("NINO must be accompanied by confidenceLevel")
       case _ => Valid(())
-  }
+    }
 
   val validateDateOfBirth: UserConstraint = user =>
     user.dateOfBirth match {
       case Some(_) if user.affinityGroup.contains(Individual) || user.affinityGroup.contains(Agent) => Valid(())
       case None                                                                                     => Valid(())
       case _                                                                                        => Invalid("dateOfBirth can be only set for Individual or Agent")
-  }
+    }
 
   val validateAgentCode: UserConstraint = user =>
     user.agentCode match {
@@ -92,7 +92,7 @@ object UserValidator {
       case None if user.affinityGroup.contains(Agent) =>
         Invalid("agentCode is required for Agent")
       case _ => Valid(())
-  }
+    }
 
   val addressLineOptValidator: Validator[Option[String]] =
     check(_.lengthMinMaxInclusive(1, 35), "Invalid length of address Line, should be between 1 and 35 inclusive")
@@ -114,7 +114,7 @@ object UserValidator {
     user.address match {
       case Some(address) => validateAddressFields(address).leftMap(_.mkString(", "))
       case _             => Valid(())
-  }
+    }
 
   val validateSuspendedRegimes: UserConstraint = user => {
     val validRegimes = Set("ALL", "ITSA", "VATC", "TRS", "CGT")
@@ -133,21 +133,22 @@ object UserValidator {
     else {
       import Validator.Implicits._
       user.principalEnrolments
-        .map(
-          e =>
-            Validated
-              .cond(
-                user.affinityGroup
-                  .forall(ag =>
-                    Services(e.key)
-                      .map(_.affinityGroups)
-                      .forall(_.contains(ag))),
-                (),
-                s"Service ${e.key} is not available for this user's affinity group"
-              )
-              .andThen(_ => Enrolment.validate(e)))
+        .map(e =>
+          Validated
+            .cond(
+              user.affinityGroup
+                .forall(ag =>
+                  Services(e.key)
+                    .map(_.affinityGroups)
+                    .forall(_.contains(ag))
+                ),
+              (),
+              s"Service ${e.key} is not available for this user's affinity group"
+            )
+            .andThen(_ => Enrolment.validate(e))
+        )
         .reduce(_ combine _)
-  }
+    }
 
   val validatePrincipalEnrolmentsAreDistinct: UserConstraint = user =>
     if (user.principalEnrolments.isEmpty) Valid(())
@@ -162,7 +163,7 @@ object UserValidator {
         }
         if (redundant.isEmpty) Valid(()) else Invalid(s"Repeated principal enrolments: ${redundant.mkString(", ")}")
       }
-  }
+    }
 
   val validateEachDelegatedEnrolment: UserConstraint = user =>
     user.delegatedEnrolments match {
@@ -170,20 +171,20 @@ object UserValidator {
       case _ if user.affinityGroup.contains(Agent) =>
         import Validator.Implicits._
         user.delegatedEnrolments
-          .map(
-            e =>
-              Validated
-                .cond(
-                  Services(e.key)
-                    .map(_.affinityGroups)
-                    .forall(ag => ag.contains(Individual) || ag.contains(Organisation)),
-                  (),
-                  s"Enrolment for ${e.key} may not be delegated to an Agent."
-                )
-                .andThen(_ => Enrolment.validate(e)))
+          .map(e =>
+            Validated
+              .cond(
+                Services(e.key)
+                  .map(_.affinityGroups)
+                  .forall(ag => ag.contains(Individual) || ag.contains(Organisation)),
+                (),
+                s"Enrolment for ${e.key} may not be delegated to an Agent."
+              )
+              .andThen(_ => Enrolment.validate(e))
+          )
           .reduce(_ combine _)
       case _ => Invalid("Only Agents can have delegated enrolments")
-  }
+    }
 
   val validateDelegatedEnrolmentsValuesAreDistinct: UserConstraint = user =>
     if (user.delegatedEnrolments.isEmpty) Valid(())
@@ -192,18 +193,17 @@ object UserValidator {
       val results = user.delegatedEnrolments
         .groupBy(_.key)
         .collect { case (key, es) if es.size > 1 => (key, es) }
-        .map {
-          case (key, es) =>
-            val keys = es.map(e => e.toEnrolmentKeyTag.getOrElse(e.key))
-            if (keys.size == keys.distinct.size) Valid(())
-            else Invalid(s", $key")
+        .map { case (key, es) =>
+          val keys = es.map(e => e.toEnrolmentKeyTag.getOrElse(e.key))
+          if (keys.size == keys.distinct.size) Valid(())
+          else Invalid(s", $key")
         }
       if (results.isEmpty) Valid(())
       else
         results
           .reduce(_ combine _)
           .leftMap(keys => s"Delegated enrolment values must be distinct$keys")
-  }
+    }
 
   private val constraints: Seq[UserConstraint] = Seq(
     validateAffinityGroup,

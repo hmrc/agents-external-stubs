@@ -17,8 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs
 import play.api.libs.json.{JsArray, JsLookup, JsObject}
 
-/**
-  * You might want to add some custom properties to the json schema in order to enable
+/** You might want to add some custom properties to the json schema in order to enable
   * custom record features, i.e. index keys and custom generators.
   *
   * "x_uniqueKey": true - this will mark string property as a unique key
@@ -72,8 +71,8 @@ object JsonSchema {
     isRef: Boolean = false,
     description: Option[String] = None,
     isMandatory: Boolean,
-    alternatives: Seq[Set[String]] = Seq.empty)
-      extends Definition {
+    alternatives: Seq[Set[String]] = Seq.empty
+  ) extends Definition {
     override val isPrimitive: Boolean = false
     override def shallBeValidated: Boolean = true
   }
@@ -85,8 +84,8 @@ object JsonSchema {
     isRef: Boolean = false,
     description: Option[String] = None,
     isMandatory: Boolean,
-    alternatives: Seq[Set[String]] = Seq.empty)
-      extends Definition {
+    alternatives: Seq[Set[String]] = Seq.empty
+  ) extends Definition {
     override def shallBeValidated: Boolean = variants.nonEmpty
   }
 
@@ -127,8 +126,8 @@ object JsonSchema {
     path: String,
     isRef: Boolean = false,
     description: Option[String] = None,
-    isMandatory: Boolean)
-      extends Definition {
+    isMandatory: Boolean
+  ) extends Definition {
     override val isBoolean: Boolean = true
     override def shallBeValidated: Boolean = false
   }
@@ -141,8 +140,8 @@ object JsonSchema {
     description: Option[String] = None,
     isMandatory: Boolean,
     minItems: Option[Int] = None,
-    maxItems: Option[Int] = None)
-      extends Definition {
+    maxItems: Option[Int] = None
+  ) extends Definition {
     override val isPrimitive: Boolean = false
     override def shallBeValidated: Boolean = item.shallBeValidated || minItems.isDefined || maxItems.isDefined
   }
@@ -154,7 +153,8 @@ object JsonSchema {
     schema: JsObject,
     isRef: Boolean = false,
     description: Option[String] = None,
-    required: Seq[String]): Definition = {
+    required: Seq[String]
+  ): Definition = {
 
     val desc = description.orElse((property \ "description").asOpt[String])
 
@@ -193,7 +193,8 @@ object JsonSchema {
                     schema,
                     isRef = true,
                     description = desc,
-                    required)
+                    required
+                  )
                   r
                 } else throw new IllegalStateException(s"Reference format not supported, must start with #/: $ref")
               case None =>
@@ -206,7 +207,8 @@ object JsonSchema {
                   description,
                   required.contains(name),
                   required,
-                  Seq.empty)
+                  Seq.empty
+                )
             }
         }
     }
@@ -219,7 +221,8 @@ object JsonSchema {
     schema: JsObject,
     isRef: Boolean,
     description: Option[String] = None,
-    isMandatory: Boolean): Definition = {
+    isMandatory: Boolean
+  ): Definition = {
 
     val pattern = (property \ "pattern").asOpt[String]
     val enum = (property \ "enum").asOpt[Seq[String]]
@@ -252,7 +255,8 @@ object JsonSchema {
     schema: JsObject,
     isRef: Boolean,
     description: Option[String] = None,
-    isMandatory: Boolean): Definition = {
+    isMandatory: Boolean
+  ): Definition = {
 
     val minimum = (property \ "minimum").asOpt[BigDecimal]
     val maximum = (property \ "maximum").asOpt[BigDecimal]
@@ -279,7 +283,8 @@ object JsonSchema {
     schema: JsObject,
     isRef: Boolean,
     description: Option[String] = None,
-    isMandatory: Boolean): Definition = {
+    isMandatory: Boolean
+  ): Definition = {
 
     val (required, alternatives) = readRequiredProperty(property)
     (property \ "properties").asOpt[JsObject] match {
@@ -288,7 +293,8 @@ object JsonSchema {
           .map(_._1)
           .distinct
           .map(p =>
-            readProperty(p, s"$path/$p", (property \ "properties" \ p).as[JsObject], schema, required = required))
+            readProperty(p, s"$path/$p", (property \ "properties" \ p).as[JsObject], schema, required = required)
+          )
         ObjectDefinition(
           name,
           path,
@@ -297,7 +303,8 @@ object JsonSchema {
           isRef = isRef,
           description = description,
           isMandatory,
-          alternatives = alternatives)
+          alternatives = alternatives
+        )
       case None =>
         readOneOf(name, path, property, schema, isRef, description, isMandatory, required, alternatives)
     }
@@ -310,12 +317,12 @@ object JsonSchema {
       .orElse(
         (property \ "oneOf")
           .asOpt[Seq[JsObject]]
-          .map(s => {
+          .map { s =>
             val names = s.map(o => (o \ "required").asOpt[Set[String]].getOrElse(Set.empty))
             val required = names.reduce(_ intersect _)
             val variants = names.map(_ -- required)
             (required.toSeq, variants)
-          })
+          }
       )
       .getOrElse((Seq.empty, Seq.empty))
 
@@ -328,7 +335,8 @@ object JsonSchema {
     description: Option[String] = None,
     isMandatory: Boolean,
     required: Seq[String],
-    alternatives: Seq[Set[String]]): Definition = (property \ "oneOf").asOpt[JsArray] match {
+    alternatives: Seq[Set[String]]
+  ): Definition = (property \ "oneOf").asOpt[JsArray] match {
     case Some(array) =>
       val props = array.value.map(p => readProperty(name, path, p.as[JsObject], schema, required = required))
       OneOfDefinition(name, path, variants = props, isRef = isRef, description = description, isMandatory, alternatives)
@@ -343,7 +351,8 @@ object JsonSchema {
     schema: JsObject,
     isRef: Boolean,
     description: Option[String] = None,
-    isMandatory: Boolean): Definition = {
+    isMandatory: Boolean
+  ): Definition = {
 
     val items = (property \ "items").as[JsObject]
     val minItems = (property \ "minItems").asOpt[Int]
@@ -361,6 +370,7 @@ object JsonSchema {
       description = description,
       isMandatory = isMandatory,
       minItems = minItems,
-      maxItems = maxItems)
+      maxItems = maxItems
+    )
   }
 }

@@ -76,7 +76,8 @@ class RecordsRepositoryISpec extends AppBaseISpec with MongoDB {
         utr = Some("U2"),
         agentId = "2",
         `Auth_i64-8` = Some(true),
-        `Auth_64-8` = Some(true))
+        `Auth_64-8` = Some(true)
+      )
       await(repo.store(registration2, planetId))
 
       val records = await(underlyingRepo.find("_planetId" -> planetId))
@@ -90,7 +91,8 @@ class RecordsRepositoryISpec extends AppBaseISpec with MongoDB {
       val relationshipOpt = await(
         app.injector
           .instanceOf[LegacyRelationshipRecordsService]
-          .getLegacyRelationshipByAgentIdAndUtr("2", "U2", planetId))
+          .getLegacyRelationshipByAgentIdAndUtr("2", "U2", planetId)
+      )
       relationshipOpt.flatMap(_.utr) shouldBe Some("U2")
       relationshipOpt.flatMap(_.`Auth_64-8`) shouldBe Some(true)
       relationshipOpt.flatMap(_.`Auth_i64-8`) shouldBe Some(true)

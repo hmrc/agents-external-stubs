@@ -28,7 +28,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 @Singleton
-class TcpProxies @Inject()(appConfig: AppConfig)(implicit system: ActorSystem, materializer: Materializer) {
+class TcpProxies @Inject() (appConfig: AppConfig)(implicit system: ActorSystem, materializer: Materializer) {
 
   if (appConfig.isProxyMode) {
     Logger(getClass).info("Starting local TCP proxies ...")
@@ -46,9 +46,8 @@ class TcpProxies @Inject()(appConfig: AppConfig)(implicit system: ActorSystem, m
       Tcp(system)
         .bindAndHandle(tcpProxy, interface = "localhost", port = port)
         .map(s => Logger(getClass).info(s"Listening for $serviceName requests on ${s.localAddress}"))
-        .recover {
-          case e: Exception =>
-            Logger(getClass).error(s"Could not start TCP proxy for $serviceName requests on $port because of $e")
+        .recover { case e: Exception =>
+          Logger(getClass).error(s"Could not start TCP proxy for $serviceName requests on $port because of $e")
         }
 
     Future
@@ -68,7 +67,8 @@ class TcpProxies @Inject()(appConfig: AppConfig)(implicit system: ActorSystem, m
           startProxy(appConfig.fileUploadFrontendPort, "file-upload-frontend"),
           startProxy(appConfig.identityVerification, "identity-verification"),
           startProxy(appConfig.personalDetailsValidation, "personal-details-validation")
-        ))
+        )
+      )
       .map(_ => Logger(getClass).info("All proxies have started."))
 
   } else {

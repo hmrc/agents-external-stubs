@@ -30,21 +30,24 @@ import scala.util.{Failure, Success, Try}
 import scala.concurrent.duration._
 
 @Singleton
-class UsersService @Inject()(
+class UsersService @Inject() (
   usersRepository: UsersRepository,
   userRecordsService: UserToRecordsSyncService,
   knownFactsRepository: KnownFactsRepository,
-  externalUserService: ExternalUserService) {
+  externalUserService: ExternalUserService
+) {
 
   def findByUserId(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
     usersRepository.findByUserId(userId, planetId)
 
   def findByNino(nino: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
     externalUserService.tryLookupExternalUserIfMissingForIdentifier(Nino(nino), planetId, createUser)(id =>
-      usersRepository.findByNino(id.value, planetId))
+      usersRepository.findByNino(id.value, planetId)
+    )
 
-  def findByPlanetId(planetId: String, affinityGroup: Option[String])(limit: Int)(
-    implicit ec: ExecutionContext): Future[Seq[User]] = {
+  def findByPlanetId(planetId: String, affinityGroup: Option[String])(
+    limit: Int
+  )(implicit ec: ExecutionContext): Future[Seq[User]] = {
     require(affinityGroup.isEmpty || affinityGroup.exists(User.AG.all))
     usersRepository.findByPlanetId(planetId, affinityGroup)(limit)
   }
@@ -55,29 +58,34 @@ class UsersService @Inject()(
   def findAdminByGroupId(groupId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
     usersRepository.findAdminByGroupId(groupId, planetId)
 
-  def findByAgentCode(agentCode: String, planetId: String)(limit: Int)(
-    implicit ec: ExecutionContext): Future[Seq[User]] =
+  def findByAgentCode(agentCode: String, planetId: String)(limit: Int)(implicit
+    ec: ExecutionContext
+  ): Future[Seq[User]] =
     usersRepository.findByAgentCode(agentCode, planetId)(limit)
 
   def findAdminByAgentCode(agentCode: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
     usersRepository.findAdminByAgentCode(agentCode, planetId)
 
-  def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
-    implicit ec: ExecutionContext): Future[Option[User]] =
+  def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[Option[User]] =
     externalUserService.tryLookupExternalUserIfMissingForEnrolmentKey(enrolmentKey, planetId, createUser) {
       usersRepository.findByPrincipalEnrolmentKey(enrolmentKey, planetId)
     }
 
-  def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(
-    implicit ec: ExecutionContext): Future[Seq[User]] =
+  def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(implicit
+    ec: ExecutionContext
+  ): Future[Seq[User]] =
     usersRepository.findByDelegatedEnrolmentKey(enrolmentKey, planetId)(limit)
 
-  def findUserIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(
-    implicit ec: ExecutionContext): Future[Seq[String]] =
+  def findUserIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(implicit
+    ec: ExecutionContext
+  ): Future[Seq[String]] =
     usersRepository.findUserIdsByDelegatedEnrolmentKey(enrolmentKey, planetId)(limit)
 
-  def findGroupIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(
-    implicit ec: ExecutionContext): Future[Seq[Option[String]]] =
+  def findGroupIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(implicit
+    ec: ExecutionContext
+  ): Future[Seq[Option[String]]] =
     usersRepository.findGroupIdsByDelegatedEnrolmentKey(enrolmentKey, planetId)(limit)
 
   val usersCache = Scaffeine().maximumSize(1000).expireAfterWrite(10.minutes).build[Int, User]()
@@ -86,10 +94,10 @@ class UsersService @Inject()(
     val userKey = user.copy(planetId = None, recordIds = Seq.empty).hashCode()
     for {
       refined <- usersCache
-                  .getIfPresent(userKey)
-                  .map(u => Future.successful(u.copy(planetId = Some(planetId))))
-                  .getOrElse(refineAndValidateUser(user, planetId))
-                  .map(u => u.copy(planetId = Some(planetId)))
+                   .getIfPresent(userKey)
+                   .map(u => Future.successful(u.copy(planetId = Some(planetId))))
+                   .getOrElse(refineAndValidateUser(user, planetId))
+                   .map(u => u.copy(planetId = Some(planetId)))
       _ <- usersRepository.create(refined, planetId)
       _ <- Future.successful(usersCache.put(userKey, refined))
       _ <- updateKnownFacts(refined, planetId)
@@ -102,20 +110,20 @@ class UsersService @Inject()(
     for {
       maybeUser <- findByUserId(user.userId, planetId)
       result <- maybeUser match {
-                 case Some(_) => Future.successful(Failure(new Exception(s"User ${user.userId} already exists")))
-                 case None =>
-                   for {
-                     refined <- usersCache
-                                 .getIfPresent(userKey)
-                                 .map(u => Future.successful(u.copy(planetId = Some(planetId))))
-                                 .getOrElse(refineAndValidateUser(user, planetId))
-                                 .map(u => u.copy(planetId = Some(planetId)))
-                     _ <- usersRepository.create(refined, planetId)
-                     _ <- Future.successful(usersCache.put(userKey, refined))
-                     _ <- updateKnownFacts(refined, planetId)
-                     _ <- userRecordsService.syncUserToRecords(syncRecordId(refined, planetId))(refined)
-                   } yield Success.apply(refined)
-               }
+                  case Some(_) => Future.successful(Failure(new Exception(s"User ${user.userId} already exists")))
+                  case None =>
+                    for {
+                      refined <- usersCache
+                                   .getIfPresent(userKey)
+                                   .map(u => Future.successful(u.copy(planetId = Some(planetId))))
+                                   .getOrElse(refineAndValidateUser(user, planetId))
+                                   .map(u => u.copy(planetId = Some(planetId)))
+                      _ <- usersRepository.create(refined, planetId)
+                      _ <- Future.successful(usersCache.put(userKey, refined))
+                      _ <- updateKnownFacts(refined, planetId)
+                      _ <- userRecordsService.syncUserToRecords(syncRecordId(refined, planetId))(refined)
+                    } yield Success.apply(refined)
+                }
     } yield result
   }
 
@@ -123,27 +131,27 @@ class UsersService @Inject()(
     for {
       maybeUser <- findByUserId(userId, planetId)
       updatedUser <- maybeUser match {
-                      case Some(existingUser) =>
-                        val modified = modify(existingUser).copy(userId = userId, planetId = Some(planetId))
-                        if (modified != existingUser) for {
-                          refined <- refineAndValidateUser(modified, planetId)
-                          _       <- usersRepository.update(refined, planetId)
-                          _       <- updateKnownFacts(refined, planetId)
-                          _       <- userRecordsService.syncUserToRecords(syncRecordId(refined, planetId))(refined)
-                          _ = AuthorisationCache.updateResultsFor(refined, planetId)
-                        } yield refined
-                        else Future.successful(existingUser)
-                      case None => Future.failed(new NotFoundException(s"User $userId not found"))
-                    }
+                       case Some(existingUser) =>
+                         val modified = modify(existingUser).copy(userId = userId, planetId = Some(planetId))
+                         if (modified != existingUser) for {
+                           refined <- refineAndValidateUser(modified, planetId)
+                           _       <- usersRepository.update(refined, planetId)
+                           _       <- updateKnownFacts(refined, planetId)
+                           _       <- userRecordsService.syncUserToRecords(syncRecordId(refined, planetId))(refined)
+                           _ = AuthorisationCache.updateResultsFor(refined, planetId)
+                         } yield refined
+                         else Future.successful(existingUser)
+                       case None => Future.failed(new NotFoundException(s"User $userId not found"))
+                     }
     } yield updatedUser
 
   def copyUser(userId: String, planetId: String, targetPlanetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     for {
       maybeUser <- findByUserId(userId, planetId)
       _ <- maybeUser match {
-            case Some(user) => usersRepository.create(user.copy(recordIds = Seq.empty), targetPlanetId)
-            case None       => Future.failed(new NotFoundException(s"User $userId not found"))
-          }
+             case Some(user) => usersRepository.create(user.copy(recordIds = Seq.empty), targetPlanetId)
+             case None       => Future.failed(new NotFoundException(s"User $userId not found"))
+           }
     } yield ()
 
   def syncRecordId(user: User, planetId: String)(recordId: String)(implicit ec: ExecutionContext): Future[Unit] =
@@ -153,15 +161,15 @@ class UsersService @Inject()(
     for {
       maybeUser <- findByUserId(userId, planetId)
       _ <- maybeUser match {
-            case Some(user) =>
-              for {
-                _ <- checkCanRemoveUser(user, planetId)
-                _ <- usersRepository.delete(user.userId, planetId)
-                _ <- deleteKnownFacts(user, planetId)
-                _ <- userRecordsService.syncAfterUserRemoved(user)
-              } yield ()
-            case None => Future.successful(())
-          }
+             case Some(user) =>
+               for {
+                 _ <- checkCanRemoveUser(user, planetId)
+                 _ <- usersRepository.delete(user.userId, planetId)
+                 _ <- deleteKnownFacts(user, planetId)
+                 _ <- userRecordsService.syncAfterUserRemoved(user)
+               } yield ()
+             case None => Future.successful(())
+           }
     } yield ()
 
   private def refineAndValidateUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] =
@@ -174,21 +182,24 @@ class UsersService @Inject()(
       for {
         sanitized <- Future(UserSanitizer.sanitize(user.userId)(user))
         validated <- User
-                      .validate(sanitized)
-                      .fold(errors => Future.failed(new BadRequestException(errors.mkString(", "))), Future.successful)
+                       .validate(sanitized)
+                       .fold(errors => Future.failed(new BadRequestException(errors.mkString(", "))), Future.successful)
         accepted <- checkCanAcceptUser(validated, planetId).flatMap(
-                     _.fold(
-                       errors => Future.failed(new BadRequestException(errors.mkString(", "))),
-                       user => Future.successful(user)
-                     ))
+                      _.fold(
+                        errors => Future.failed(new BadRequestException(errors.mkString(", "))),
+                        user => Future.successful(user)
+                      )
+                    )
       } yield accepted
 
   private def updateKnownFacts(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     Future
-      .sequence(user.principalEnrolments
-        .map(_.toEnrolmentKey.flatMap(ek => KnownFacts.generate(ek, user.userId, user.facts)))
-        .collect { case Some(x) => x }
-        .map(knownFacts => knownFactsRepository.upsert(knownFacts.applyProperties(User.knownFactsOf(user)), planetId)))
+      .sequence(
+        user.principalEnrolments
+          .map(_.toEnrolmentKey.flatMap(ek => KnownFacts.generate(ek, user.userId, user.facts)))
+          .collect { case Some(x) => x }
+          .map(knownFacts => knownFactsRepository.upsert(knownFacts.applyProperties(User.knownFactsOf(user)), planetId))
+      )
       .map(_ => ())
 
   private def deleteKnownFacts(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
@@ -197,20 +208,24 @@ class UsersService @Inject()(
         user.principalEnrolments
           .map(_.toEnrolmentKey)
           .collect { case Some(x) => x }
-          .map(enrolmentKey => knownFactsRepository.delete(enrolmentKey, planetId)))
+          .map(enrolmentKey => knownFactsRepository.delete(enrolmentKey, planetId))
+      )
       .map(_ => ())
 
-  private def checkCanAcceptUser(user: User, planetId: String)(
-    implicit ec: ExecutionContext): Future[Either[List[String], User]] =
+  private def checkCanAcceptUser(user: User, planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[Either[List[String], User]] =
     user.groupId match {
       case None => Future.successful(Right(user))
       case Some(groupId) =>
         findByGroupId(groupId, planetId)(101).map { users =>
           val maybeAdmin =
-            if (!user.credentialRole.contains(User.CR.Assistant) && (!users.exists(_.isAdmin) || users
-                  .find(_.isAdmin)
-                  .map(_.userId)
-                  .contains(user.userId)))
+            if (
+              !user.credentialRole.contains(User.CR.Assistant) && (!users.exists(_.isAdmin) || users
+                .find(_.isAdmin)
+                .map(_.userId)
+                .contains(user.userId))
+            )
               user.copy(credentialRole = Some(User.CR.Admin))
             else user
           GroupValidator
@@ -242,7 +257,8 @@ class UsersService @Inject()(
     enrolmentKey: EnrolmentKey,
     enrolmentType: String,
     agentCodeOpt: Option[String],
-    planetId: String)(implicit ec: ExecutionContext): Future[User] =
+    planetId: String
+  )(implicit ec: ExecutionContext): Future[User] =
     knownFactsRepository.findByEnrolmentKey(enrolmentKey, planetId).flatMap {
       case None => Future.failed(new NotFoundException("ALLOCATION_DOES_NOT_EXIST"))
       case Some(_) =>
@@ -266,8 +282,8 @@ class UsersService @Inject()(
                     admin.userId,
                     planetId,
                     u =>
-                      u.copy(
-                        principalEnrolments = appendEnrolment(u.principalEnrolments, Enrolment.from(enrolmentKey))))
+                      u.copy(principalEnrolments = appendEnrolment(u.principalEnrolments, Enrolment.from(enrolmentKey)))
+                  )
                 else if (enrolmentType == "delegated" && admin.affinityGroup.contains(User.AG.Agent))
                   findByPrincipalEnrolmentKey(enrolmentKey, planetId).flatMap {
                     case Some(owner) if !owner.affinityGroup.contains(User.AG.Agent) =>
@@ -276,10 +292,13 @@ class UsersService @Inject()(
                         planetId,
                         u =>
                           u.copy(
-                            delegatedEnrolments = appendEnrolment(u.delegatedEnrolments, Enrolment.from(enrolmentKey))))
+                            delegatedEnrolments = appendEnrolment(u.delegatedEnrolments, Enrolment.from(enrolmentKey))
+                          )
+                      )
                     case None =>
                       Future.failed(throw new BadRequestException("INVALID_QUERY_PARAMETERS"))
-                  } else Future.failed(throw new BadRequestException("INVALID_QUERY_PARAMETERS"))
+                  }
+                else Future.failed(throw new BadRequestException("INVALID_QUERY_PARAMETERS"))
               }
             case None => Future.failed(throw new BadRequestException("INVALID_JSON_BODY"))
           }
@@ -291,7 +310,8 @@ class UsersService @Inject()(
     enrolmentKey: EnrolmentKey,
     agentCodeOpt: Option[String],
     keepAgentAllocations: Option[String],
-    planetId: String)(implicit ec: ExecutionContext): Future[User] =
+    planetId: String
+  )(implicit ec: ExecutionContext): Future[User] =
     agentCodeOpt match {
       case None =>
         findAdminByGroupId(groupId, planetId)
@@ -302,12 +322,14 @@ class UsersService @Inject()(
                   updateUser(
                     admin.userId,
                     planetId,
-                    u => u.copy(delegatedEnrolments = removeEnrolment(u.delegatedEnrolments, enrolmentKey)))
+                    u => u.copy(delegatedEnrolments = removeEnrolment(u.delegatedEnrolments, enrolmentKey))
+                  )
                 case _ =>
                   updateUser(
                     admin.userId,
                     planetId,
-                    u => u.copy(principalEnrolments = removeEnrolment(u.principalEnrolments, enrolmentKey)))
+                    u => u.copy(principalEnrolments = removeEnrolment(u.principalEnrolments, enrolmentKey))
+                  )
               }
 
             case _ => Future.failed(throw new BadRequestException("INVALID_GROUP_ID"))
@@ -319,14 +341,16 @@ class UsersService @Inject()(
               updateUser(
                 admin.userId,
                 planetId,
-                u => u.copy(delegatedEnrolments = removeEnrolment(u.delegatedEnrolments, enrolmentKey)))
+                u => u.copy(delegatedEnrolments = removeEnrolment(u.delegatedEnrolments, enrolmentKey))
+              )
             case _ => Future.failed(throw new BadRequestException("INVALID_AGENT_FORMAT"))
           }
     }
 
   private def appendEnrolment(enrolments: Seq[Enrolment], enrolment: Enrolment): Seq[Enrolment] =
-    if (enrolments.exists(
-          e => e.key == enrolment.key && e.identifiers.exists(ii => enrolment.identifiers.contains(ii)))) enrolments
+    if (
+      enrolments.exists(e => e.key == enrolment.key && e.identifiers.exists(ii => enrolment.identifiers.contains(ii)))
+    ) enrolments
     else enrolments :+ enrolment
 
   private def removeEnrolment(enrolments: Seq[Enrolment], key: EnrolmentKey): Seq[Enrolment] =
@@ -350,7 +374,8 @@ class UsersService @Inject()(
         .map(ac =>
           for {
             duplicateAgentCode <- usersRepository.findByAgentCode(ac, planetId)(1).map(_.nonEmpty)
-          } yield if (duplicateAgentCode) user.copy(agentCode = Some(UserGenerator.agentCode(user.userId))) else user)
+          } yield if (duplicateAgentCode) user.copy(agentCode = Some(UserGenerator.agentCode(user.userId))) else user
+        )
         .getOrElse(Future.successful(user))
 
     def checkAndFixNino(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] =
@@ -358,7 +383,8 @@ class UsersService @Inject()(
         .map(nino =>
           for {
             duplicatedNino <- usersRepository.findByNino(nino.value, planetId).map(_.isDefined)
-          } yield if (duplicatedNino) user.copy(nino = Some(Generator.ninoNoSpaces(user.userId))) else user)
+          } yield if (duplicatedNino) user.copy(nino = Some(Generator.ninoNoSpaces(user.userId))) else user
+        )
         .getOrElse(Future.successful(user))
 
   }

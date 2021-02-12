@@ -30,7 +30,8 @@ class NiExemptionRegistrationStubControllerISpec extends ServerBaseISpec with Mo
           .withAddressDetails(address)
           .withIsAnIndividual(false)
           .withIsAnOrganisation(true)
-          .withOrganisation(Some(business)))
+          .withOrganisation(Some(business))
+      )
       createResult should haveStatus(201)
 
       val result =
@@ -40,7 +41,8 @@ class NiExemptionRegistrationStubControllerISpec extends ServerBaseISpec with Mo
       result should haveValidJsonBody(
         haveProperty[String]("name", be(business.organisationName)) and haveProperty[JsObject](
           "subscription",
-          haveProperty[String]("status", be("NI_SUBSCRIBED")) and haveProperty[String]("eori", be(eori)))
+          haveProperty[String]("status", be("NI_SUBSCRIBED")) and haveProperty[String]("eori", be(eori))
+        )
       )
     }
 
@@ -72,7 +74,8 @@ class NiExemptionRegistrationStubControllerISpec extends ServerBaseISpec with Mo
       result should haveValidJsonBody(
         haveProperty[String]("name", be(business.organisationName)) and haveProperty[JsObject](
           "subscription",
-          notHaveProperty("eori") and haveProperty[String]("status", be("NI_NOT_SUBSCRIBED")))
+          notHaveProperty("eori") and haveProperty[String]("status", be("NI_NOT_SUBSCRIBED"))
+        )
       )
     }
 

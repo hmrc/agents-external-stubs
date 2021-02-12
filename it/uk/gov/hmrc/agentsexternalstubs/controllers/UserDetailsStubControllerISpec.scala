@@ -24,13 +24,18 @@ class UserDetailsStubControllerISpec extends ServerBaseISpec with MongoDB with T
         result should haveValidJsonBody(
           haveProperty[String]("authProviderId", be(user.userId)) and haveProperty[String](
             "authProviderType",
-            be(session.providerType)) and haveProperty[String]("name") and haveProperty[String]("lastName") and haveProperty[
-            String]("email") and haveProperty[String]("affinityGroup", be("Individual")) and haveProperty[String](
+            be(session.providerType)
+          ) and haveProperty[String]("name") and haveProperty[String]("lastName") and haveProperty[String](
+            "email"
+          ) and haveProperty[String]("affinityGroup", be("Individual")) and haveProperty[String](
             "credentialRole",
-            be("Admin")) and haveProperty[String]("description") and haveProperty[String](
+            be("Admin")
+          ) and haveProperty[String]("description") and haveProperty[String](
             "postCode",
-            be(user.address.get.postcode.get)) and haveProperty[String]("dateOfBirth") and notHaveProperty("agentCode") and notHaveProperty(
-            "agentFriendlyName") and notHaveProperty("agentId")
+            be(user.address.get.postcode.get)
+          ) and haveProperty[String]("dateOfBirth") and notHaveProperty("agentCode") and notHaveProperty(
+            "agentFriendlyName"
+          ) and notHaveProperty("agentId")
         )
       }
 
@@ -45,13 +50,18 @@ class UserDetailsStubControllerISpec extends ServerBaseISpec with MongoDB with T
         result should haveValidJsonBody(
           haveProperty[String]("authProviderId", be(user.userId)) and haveProperty[String](
             "authProviderType",
-            be(session.providerType)) and haveProperty[String]("name", be(user.name.get)) and haveProperty[String](
-            "email") and haveProperty[String]("affinityGroup", be("Organisation")) and haveProperty[String](
+            be(session.providerType)
+          ) and haveProperty[String]("name", be(user.name.get)) and haveProperty[String]("email") and haveProperty[
+            String
+          ]("affinityGroup", be("Organisation")) and haveProperty[String](
             "credentialRole",
-            be("Admin")) and haveProperty[String]("description") and haveProperty[String](
+            be("Admin")
+          ) and haveProperty[String]("description") and haveProperty[String](
             "postCode",
-            be(user.address.get.postcode.get)) and notHaveProperty("agentCode") and notHaveProperty("agentFriendlyName") and notHaveProperty(
-            "agentId") and notHaveProperty("dateOfBirth") and notHaveProperty("lastName")
+            be(user.address.get.postcode.get)
+          ) and notHaveProperty("agentCode") and notHaveProperty("agentFriendlyName") and notHaveProperty(
+            "agentId"
+          ) and notHaveProperty("dateOfBirth") and notHaveProperty("lastName")
         )
       }
 

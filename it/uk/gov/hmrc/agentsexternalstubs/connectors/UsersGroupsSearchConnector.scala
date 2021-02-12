@@ -34,7 +34,7 @@ object GroupInfo {
 }
 
 @Singleton
-class UsersGroupsSearchConnector @Inject()(appConfig: AppConfig, httpGet: HttpGet, metrics: Metrics) {
+class UsersGroupsSearchConnector @Inject() (appConfig: AppConfig, httpGet: HttpGet, metrics: Metrics) {
 
   def getGroupInfo(groupId: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[GroupInfo] = {
     val url = new URL(appConfig.usersGroupsSearchUrl + s"/users-groups-search/groups/$groupId")

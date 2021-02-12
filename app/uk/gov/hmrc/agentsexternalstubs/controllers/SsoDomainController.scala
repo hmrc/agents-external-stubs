@@ -24,7 +24,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.Future.successful
 
 @Singleton
-class SsoDomainController @Inject()(cc: MessagesControllerComponents)(implicit val configuration: Configuration)
+class SsoDomainController @Inject() (cc: MessagesControllerComponents)(implicit val configuration: Configuration)
     extends BackendController(cc) {
 
   def validate(domain: String): Action[AnyContent] = Action {
@@ -42,15 +42,15 @@ class SsoDomainController @Inject()(cc: MessagesControllerComponents)(implicit v
   def domainsJson =
     s"""
        {
-       |   "internalDomains" : [
-       |      "localhost"
-       |   ],
-       |   "externalDomains" : [
-       |      "127.0.0.1",
-       |      "online-qa.ibt.hmrc.gov.uk",
-       |      "ibt.hmrc.gov.uk"
-       |   ]
-       |}
-       |
+      |   "internalDomains" : [
+      |      "localhost"
+      |   ],
+      |   "externalDomains" : [
+      |      "127.0.0.1",
+      |      "online-qa.ibt.hmrc.gov.uk",
+      |      "ibt.hmrc.gov.uk"
+      |   ]
+      |}
+      |
    """.stripMargin
 }

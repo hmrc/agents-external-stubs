@@ -50,7 +50,8 @@ class RecordClassGeneratorSpec extends UnitSpec with PropertyChecks with Validat
       knownFieldGenerators("addressLine3") shouldBe Some("Generator.address4Lines35Gen.map(_.line3)")
       knownFieldGenerators("addressLine4") shouldBe Some("Generator.address4Lines35Gen.map(_.line4)")
       knownFieldGenerators("secondaryAddressLine4") shouldBe Some(
-        "Generator.address4Lines35Gen.map(_.line4).variant(\"secondary\")")
+        "Generator.address4Lines35Gen.map(_.line4).variant(\"secondary\")"
+      )
       knownFieldGenerators("lastName") shouldBe Some("Generator.surname")
       knownFieldGenerators("firstName") shouldBe Some("Generator.forename()")
       knownFieldGenerators("middleName") shouldBe Some("Generator.forename().variant(\"middle\")")

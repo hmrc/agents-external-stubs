@@ -22,11 +22,12 @@ trait TestStubs {
   def givenAnAuthenticatedUser(
     user: User,
     providerType: String = "GovernmentGateway",
-    planetId: String = UUID.randomUUID().toString)(implicit ec: ExecutionContext, timeout: Duration): String =
+    planetId: String = UUID.randomUUID().toString
+  )(implicit ec: ExecutionContext, timeout: Duration): String =
     await(for {
-      authSession <- authenticationService
-                      .authenticate(
-                        AuthenticateRequest(UUID.randomUUID().toString, user.userId, "any", providerType, planetId))
+      authSession <-
+        authenticationService
+          .authenticate(AuthenticateRequest(UUID.randomUUID().toString, user.userId, "any", providerType, planetId))
       _ <- userService.tryCreateUser(user, planetId)
     } yield authSession)
       .getOrElse(throw new Exception("Could not sign in user"))
@@ -37,7 +38,8 @@ trait TestStubs {
     planetId: String,
     service: String,
     identifierKey: String,
-    identifierValue: String)(implicit ec: ExecutionContext, timeout: Duration): Unit =
+    identifierValue: String
+  )(implicit ec: ExecutionContext, timeout: Duration): Unit =
     await(addPrincipalEnrolment(userId, planetId, service, identifierKey, identifierValue))
 
   private def addPrincipalEnrolment(
@@ -45,24 +47,27 @@ trait TestStubs {
     planetId: String,
     service: String,
     identifierKey: String,
-    identifierValue: String)(implicit ec: ExecutionContext): Future[User] =
+    identifierValue: String
+  )(implicit ec: ExecutionContext): Future[User] =
     userService.updateUser(
       userId,
       planetId,
       user =>
         user.copy(
-          principalEnrolments = user.principalEnrolments :+ Enrolment(
-            service,
-            Some(Seq(Identifier(identifierKey, identifierValue)))))
+          principalEnrolments =
+            user.principalEnrolments :+ Enrolment(service, Some(Seq(Identifier(identifierKey, identifierValue))))
+        )
     )
 
-  def givenUserWithStrideRole(userId: String, planetId: String, role: String)(
-    implicit ec: ExecutionContext,
-    timeout: Duration): Unit =
+  def givenUserWithStrideRole(userId: String, planetId: String, role: String)(implicit
+    ec: ExecutionContext,
+    timeout: Duration
+  ): Unit =
     await(addStrideRole(userId, planetId, role))
 
-  private def addStrideRole(userId: String, planetId: String, role: String)(
-    implicit ec: ExecutionContext): Future[User] =
+  private def addStrideRole(userId: String, planetId: String, role: String)(implicit
+    ec: ExecutionContext
+  ): Future[User] =
     userService.updateUser(
       userId,
       planetId,

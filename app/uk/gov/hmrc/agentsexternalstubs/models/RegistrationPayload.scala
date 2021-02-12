@@ -19,8 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import play.api.libs.json._
 import uk.gov.hmrc.agentsexternalstubs.models.RegistrationPayload._
 
-/**
-  * ----------------------------------------------------------------------------
+/** ----------------------------------------------------------------------------
   * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
   * How to regenerate? Run this command in the project root directory:
   * sbt "test:runMain uk.gov.hmrc.agentsexternalstubs.RecordClassGeneratorFromJsonSchema docs/schemas/DES1163-64.json app/uk/gov/hmrc/agentsexternalstubs/models/RegistrationPayload.scala RegistrationPayload output:payload"
@@ -35,7 +34,8 @@ case class RegistrationPayload(
   requiresNameMatch: Boolean = false,
   isAnAgent: Boolean = false,
   individual: Option[Individual] = None,
-  organisation: Option[Organisation] = None) {
+  organisation: Option[Organisation] = None
+) {
 
   def withRegime(regime: String): RegistrationPayload = copy(regime = regime)
   def modifyRegime(pf: PartialFunction[String, String]): RegistrationPayload =
@@ -79,13 +79,16 @@ object RegistrationPayload {
 
     val firstNameValidator: Validator[String] = check(
       _.matches(Common.firstNamePattern),
-      s"""Invalid firstName, does not matches regex ${Common.firstNamePattern}""")
+      s"""Invalid firstName, does not matches regex ${Common.firstNamePattern}"""
+    )
     val lastNameValidator: Validator[String] = check(
       _.matches(Common.firstNamePattern),
-      s"""Invalid lastName, does not matches regex ${Common.firstNamePattern}""")
+      s"""Invalid lastName, does not matches regex ${Common.firstNamePattern}"""
+    )
     val dateOfBirthValidator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid dateOfBirth, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid dateOfBirth, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
 
     val validate: Validator[Individual] = Validator(
       checkProperty(_.firstName, firstNameValidator),
@@ -111,13 +114,15 @@ object RegistrationPayload {
 
     val organisationNameValidator: Validator[String] = check(
       _.matches(Common.organisationNamePattern),
-      s"""Invalid organisationName, does not matches regex ${Common.organisationNamePattern}""")
+      s"""Invalid organisationName, does not matches regex ${Common.organisationNamePattern}"""
+    )
     val organisationTypeValidator: Validator[String] =
       check(_.isOneOf(Common.organisationTypeEnum), "Invalid organisationType, does not match allowed values")
 
     val validate: Validator[Organisation] = Validator(
       checkProperty(_.organisationName, organisationNameValidator),
-      checkProperty(_.organisationType, organisationTypeValidator))
+      checkProperty(_.organisationType, organisationTypeValidator)
+    )
 
     implicit val formats: Format[Organisation] = Json.format[Organisation]
 

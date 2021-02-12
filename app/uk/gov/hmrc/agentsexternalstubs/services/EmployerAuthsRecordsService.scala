@@ -24,31 +24,31 @@ import uk.gov.hmrc.http.BadRequestException
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class EmployerAuthsRecordsService @Inject()(val recordsRepository: RecordsRepository) extends RecordsService {
+class EmployerAuthsRecordsService @Inject() (val recordsRepository: RecordsRepository) extends RecordsService {
 
-  def store(record: EmployerAuths, autoFill: Boolean, planetId: String)(
-    implicit ec: ExecutionContext): Future[String] = {
+  def store(record: EmployerAuths, autoFill: Boolean, planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[String] = {
     val entity = if (autoFill) EmployerAuths.sanitize(record.agentCode)(record) else record
     EmployerAuths
       .validate(entity)
       .fold(
         errors => Future.failed(new BadRequestException(errors.mkString(", "))),
-        _ => {
-          recordsRepository.store(entity, planetId)
-        }
+        _ => recordsRepository.store(entity, planetId)
       )
   }
 
-  def getEmployerAuthsByAgentCode(agentCode: String, planetId: String)(
-    implicit ec: ExecutionContext): Future[Option[EmployerAuths]] =
+  def getEmployerAuthsByAgentCode(agentCode: String, planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[Option[EmployerAuths]] =
     findByKey[EmployerAuths](EmployerAuths.uniqueKey(agentCode), planetId).map(_.headOption)
 
   def delete(agentCode: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     for {
       maybeRecord <- getEmployerAuthsByAgentCode(agentCode, planetId)
       result <- maybeRecord.flatMap(_.id) match {
-                 case Some(recordId) => recordsRepository.remove(recordId, planetId)
-                 case None           => Future.successful(())
-               }
+                  case Some(recordId) => recordsRepository.remove(recordId, planetId)
+                  case None           => Future.successful(())
+                }
     } yield result
 }

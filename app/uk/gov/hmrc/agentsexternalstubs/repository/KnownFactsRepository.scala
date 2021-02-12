@@ -34,8 +34,9 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[KnownFactsRepositoryMongo])
 trait KnownFactsRepository {
 
-  def findByEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
-    implicit ec: ExecutionContext): Future[Option[KnownFacts]]
+  def findByEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[Option[KnownFacts]]
 
   def upsert(knownFacts: KnownFacts, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
 
@@ -47,13 +48,13 @@ trait KnownFactsRepository {
 }
 
 @Singleton
-class KnownFactsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
+class KnownFactsRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
     extends ReactiveRepository[KnownFacts, BSONObjectID](
       "knownFacts",
       mongoComponent.mongoConnector.db,
       KnownFacts.formats,
-      ReactiveMongoFormats.objectIdFormats) with StrictlyEnsureIndexes[KnownFacts, BSONObjectID]
-    with KnownFactsRepository with DeleteAll[KnownFacts] {
+      ReactiveMongoFormats.objectIdFormats
+    ) with StrictlyEnsureIndexes[KnownFacts, BSONObjectID] with KnownFactsRepository with DeleteAll[KnownFacts] {
 
   import ImplicitBSONHandlers._
 
@@ -64,8 +65,9 @@ class KnownFactsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent
     Index(Seq(KnownFacts.UNIQUE_KEY -> Ascending), Some("KnownFactsByEnrolmentKey"), unique = true)
   )
 
-  def findByEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
-    implicit ec: ExecutionContext): Future[Option[KnownFacts]] =
+  def findByEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[Option[KnownFacts]] =
     collection
       .find[JsObject, JsObject](
         Json.obj(KnownFacts.UNIQUE_KEY -> KnownFacts.uniqueKey(enrolmentKey.tag, planetId)),
@@ -73,7 +75,8 @@ class KnownFactsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent
       )
       .cursor[KnownFacts](ReadPreference.primary)(
         implicitly[collection.pack.Reader[KnownFacts]],
-        implicitly[CursorProducer[KnownFacts]])
+        implicitly[CursorProducer[KnownFacts]]
+      )
       .headOption
 
   def upsert(knownFacts: KnownFacts, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =

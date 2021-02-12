@@ -26,50 +26,53 @@ import uk.gov.hmrc.http.BadRequestException
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class RelationshipRecordsService @Inject()(recordsRepository: RecordsRepository) {
+class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository) {
 
   private val MAX_DOCS = 1000
 
-  def store(record: RelationshipRecord, autoFill: Boolean, planetId: String)(
-    implicit ec: ExecutionContext): Future[String] = {
+  def store(record: RelationshipRecord, autoFill: Boolean, planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[String] = {
     val entity = if (autoFill) RelationshipRecord.sanitize(record.arn)(record) else record
     RelationshipRecord
       .validate(entity)
       .fold(
         errors => Future.failed(new BadRequestException(errors.mkString(", "))),
-        _ => {
-          recordsRepository.store(entity, planetId)
-        }
+        _ => recordsRepository.store(entity, planetId)
       )
   }
 
   def authorise(relationship: RelationshipRecord, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     for {
       existing <- findByKey(
-                   RelationshipRecord.clientKey(relationship.regime, relationship.idType, relationship.refNumber),
-                   planetId)
+                    RelationshipRecord.clientKey(relationship.regime, relationship.idType, relationship.refNumber),
+                    planetId
+                  )
       _ <- deActivate(existing, planetId)
       _ <- recordsRepository
-            .store[RelationshipRecord](relationship.copy(active = true, startDate = Some(LocalDate.now())), planetId)
+             .store[RelationshipRecord](relationship.copy(active = true, startDate = Some(LocalDate.now())), planetId)
     } yield ()
 
   def deAuthorise(relationship: RelationshipRecord, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     for {
       existing <- findByKey(
-                   RelationshipRecord
-                     .fullKey(relationship.regime, relationship.arn, relationship.idType, relationship.refNumber),
-                   planetId)
+                    RelationshipRecord
+                      .fullKey(relationship.regime, relationship.arn, relationship.idType, relationship.refNumber),
+                    planetId
+                  )
       _ <- deActivate(existing, planetId)
 
     } yield ()
 
-  private def deActivate(relationships: Seq[RelationshipRecord], planetId: String)(
-    implicit ec: ExecutionContext): Future[Seq[String]] =
+  private def deActivate(relationships: Seq[RelationshipRecord], planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[Seq[String]] =
     Future.sequence(
       relationships
         .filter(_.active)
         .map(r => r.copy(active = false, endDate = Some(LocalDate.now)))
-        .map(r => recordsRepository.store[RelationshipRecord](r, planetId)))
+        .map(r => recordsRepository.store[RelationshipRecord](r, planetId))
+    )
 
   def findByKey(key: String, planetId: String)(implicit ec: ExecutionContext): Future[List[RelationshipRecord]] =
     recordsRepository.cursor[RelationshipRecord](key, planetId).collect[List](MAX_DOCS, Cursor.FailOnError())
@@ -77,8 +80,9 @@ class RelationshipRecordsService @Inject()(recordsRepository: RecordsRepository)
   def findByKeys(keys: Seq[String], planetId: String)(implicit ec: ExecutionContext): Future[List[RelationshipRecord]] =
     recordsRepository.cursor[RelationshipRecord](keys, planetId).collect[List](MAX_DOCS, Cursor.FailOnError())
 
-  def findByQuery(query: RelationshipRecordQuery, planetId: String)(
-    implicit ec: ExecutionContext): Future[List[RelationshipRecord]] = {
+  def findByQuery(query: RelationshipRecordQuery, planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[List[RelationshipRecord]] = {
 
     val maybeActiveOnly: RelationshipRecord => Boolean = r => if (query.activeOnly) r.active else true
 
@@ -96,21 +100,25 @@ class RelationshipRecordsService @Inject()(recordsRepository: RecordsRepository)
         } else {
           Seq(
             RelationshipRecord
-              .agentKey(query.regime, query.arn.getOrElse(throw new Exception("Missing arn parameter"))))
+              .agentKey(query.regime, query.arn.getOrElse(throw new Exception("Missing arn parameter")))
+          )
         }
       } else {
         Seq(
           RelationshipRecord.clientKey(
             query.regime,
             query.idType,
-            query.refNumber.getOrElse(throw new Exception("Missing refNumber parameter"))))
+            query.refNumber.getOrElse(throw new Exception("Missing refNumber parameter"))
+          )
+        )
       }
 
     findByKeys(keys, planetId)
       .map(
         _.filter(maybeActiveOnly)
           .filter(maybeFromDate)
-          .filter(maybeToDate))
+          .filter(maybeToDate)
+      )
   }
 
 }
@@ -125,4 +133,5 @@ case class RelationshipRecordQuery(
   from: Option[LocalDate] = None,
   to: Option[LocalDate] = None,
   relationship: Option[String] = None,
-  authProfile: Option[String] = None)
+  authProfile: Option[String] = None
+)

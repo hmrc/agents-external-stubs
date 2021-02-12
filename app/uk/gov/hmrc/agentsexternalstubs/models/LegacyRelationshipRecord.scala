@@ -24,8 +24,8 @@ case class LegacyRelationshipRecord(
   utr: Option[String] = None,
   id: Option[String] = None,
   `Auth_64-8`: Option[Boolean] = None,
-  `Auth_i64-8`: Option[Boolean] = None)
-    extends Record {
+  `Auth_i64-8`: Option[Boolean] = None
+) extends Record {
 
   override def lookupKeys: Seq[String] =
     Seq(
@@ -33,8 +33,8 @@ case class LegacyRelationshipRecord(
       utr.map(LegacyRelationshipRecord.utrKey),
       Option(LegacyRelationshipRecord.agentIdKey(agentId)),
       utr.map(LegacyRelationshipRecord.agentIdAndUtrKey(agentId, _))
-    ).collect {
-      case Some(x) => x
+    ).collect { case Some(x) =>
+      x
     }
   override def withId(id: Option[String]): LegacyRelationshipRecord = copy(id = id)
 }
@@ -76,12 +76,11 @@ object LegacyRelationshipRecord extends RecordUtils[LegacyRelationshipRecord] {
       agentId    <- agentIdGen
       auth_64_8  <- Generator.biasedOptionGen(Generator.booleanGen)
       auth_i64_8 <- Generator.biasedOptionGen(Generator.booleanGen)
-    } yield
-      LegacyRelationshipRecord(
-        agentId = agentId,
-        `Auth_64-8` = auth_64_8,
-        `Auth_i64-8` = auth_i64_8
-      )
+    } yield LegacyRelationshipRecord(
+      agentId = agentId,
+      `Auth_64-8` = auth_64_8,
+      `Auth_i64-8` = auth_i64_8
+    )
 
   val ninoSanitizer: Update = seed => e => e.copy(nino = e.nino.orElse(Some(Generator.ninoNoSpaces(e.agentId).value)))
   val utrSanitizer: Update = seed => e => e.copy(utr = e.utr.orElse(Some(Generator.utr(e.agentId).value)))

@@ -20,8 +20,7 @@ import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json._
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord._
 
-/**
-  * ----------------------------------------------------------------------------
+/** ----------------------------------------------------------------------------
   * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
   * How to regenerate? Run this command in the project root directory:
   * sbt "test:runMain uk.gov.hmrc.agentsexternalstubs.RecordClassGeneratorFromJsonSchema docs/schemas/DES1136.json app/uk/gov/hmrc/agentsexternalstubs/models/VatCustomerInformationRecord.scala VatCustomerInformationRecord "
@@ -61,7 +60,8 @@ case class VatCustomerInformationRecord(
   def withApprovedInformation(approvedInformation: Option[ApprovedInformation]): VatCustomerInformationRecord =
     copy(approvedInformation = approvedInformation)
   def modifyApprovedInformation(
-    pf: PartialFunction[Option[ApprovedInformation], Option[ApprovedInformation]]): VatCustomerInformationRecord =
+    pf: PartialFunction[Option[ApprovedInformation], Option[ApprovedInformation]]
+  ): VatCustomerInformationRecord =
     if (pf.isDefinedAt(approvedInformation)) copy(approvedInformation = pf(approvedInformation)) else this
 }
 
@@ -86,17 +86,17 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
   override val gen: Gen[VatCustomerInformationRecord] = for {
     vrn <- Generator.vrnGen
-  } yield
-    VatCustomerInformationRecord(
-      vrn = vrn
-    )
+  } yield VatCustomerInformationRecord(
+    vrn = vrn
+  )
 
   val approvedInformationSanitizer: Update = seed =>
     entity =>
       entity.copy(
         approvedInformation = entity.approvedInformation
           .orElse(Generator.get(ApprovedInformation.gen)(seed))
-          .map(ApprovedInformation.sanitize(seed)))
+          .map(ApprovedInformation.sanitize(seed))
+      )
 
   override val sanitizers: Seq[Update] = Seq(approvedInformationSanitizer)
 
@@ -133,12 +133,15 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
         val r1 = r0.orElse(
           ForeignAddress.formats
             .reads(json)
-            .flatMap(e => ForeignAddress.validate(e).fold(_ => JsError(), _ => JsSuccess(e))))
+            .flatMap(e => ForeignAddress.validate(e).fold(_ => JsError(), _ => JsSuccess(e)))
+        )
         r1.orElse(
           aggregateErrors(
             JsError("Could not match json object to any variant of Address, i.e. UkAddress, ForeignAddress"),
             r0,
-            r1))
+            r1
+          )
+        )
       }
 
       private def aggregateErrors[T](errors: JsResult[T]*): JsError =
@@ -146,7 +149,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
           r match {
             case e: JsError => JsError(a.errors ++ e.errors)
             case _          => a
-        })
+          }
+        )
     }
 
     implicit val writes: Writes[Address] = new Writes[Address] {
@@ -167,7 +171,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     flatRateScheme: Option[FlatRateScheme] = None,
     deregistration: Option[Deregistration] = None,
     returnPeriod: Option[Period] = None,
-    groupOrPartnerMbrs: Option[Seq[GroupOrPartner]] = None) {
+    groupOrPartnerMbrs: Option[Seq[GroupOrPartner]] = None
+  ) {
 
     def withCustomerDetails(customerDetails: CustomerDetails): ApprovedInformation =
       copy(customerDetails = customerDetails)
@@ -177,11 +182,12 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     def modifyPPOB(pf: PartialFunction[PPOB, PPOB]): ApprovedInformation =
       if (pf.isDefinedAt(PPOB)) copy(PPOB = pf(PPOB)) else this
     def withCorrespondenceContactDetails(
-      correspondenceContactDetails: Option[CorrespondenceContactDetails]): ApprovedInformation =
+      correspondenceContactDetails: Option[CorrespondenceContactDetails]
+    ): ApprovedInformation =
       copy(correspondenceContactDetails = correspondenceContactDetails)
     def modifyCorrespondenceContactDetails(
-      pf: PartialFunction[Option[CorrespondenceContactDetails], Option[CorrespondenceContactDetails]])
-      : ApprovedInformation =
+      pf: PartialFunction[Option[CorrespondenceContactDetails], Option[CorrespondenceContactDetails]]
+    ): ApprovedInformation =
       if (pf.isDefinedAt(correspondenceContactDetails))
         copy(correspondenceContactDetails = pf(correspondenceContactDetails))
       else this
@@ -191,7 +197,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     def withBusinessActivities(businessActivities: Option[BusinessActivities]): ApprovedInformation =
       copy(businessActivities = businessActivities)
     def modifyBusinessActivities(
-      pf: PartialFunction[Option[BusinessActivities], Option[BusinessActivities]]): ApprovedInformation =
+      pf: PartialFunction[Option[BusinessActivities], Option[BusinessActivities]]
+    ): ApprovedInformation =
       if (pf.isDefinedAt(businessActivities)) copy(businessActivities = pf(businessActivities)) else this
     def withFlatRateScheme(flatRateScheme: Option[FlatRateScheme]): ApprovedInformation =
       copy(flatRateScheme = flatRateScheme)
@@ -207,7 +214,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     def withGroupOrPartnerMbrs(groupOrPartnerMbrs: Option[Seq[GroupOrPartner]]): ApprovedInformation =
       copy(groupOrPartnerMbrs = groupOrPartnerMbrs)
     def modifyGroupOrPartnerMbrs(
-      pf: PartialFunction[Option[Seq[GroupOrPartner]], Option[Seq[GroupOrPartner]]]): ApprovedInformation =
+      pf: PartialFunction[Option[Seq[GroupOrPartner]], Option[Seq[GroupOrPartner]]]
+    ): ApprovedInformation =
       if (pf.isDefinedAt(groupOrPartnerMbrs)) copy(groupOrPartnerMbrs = pf(groupOrPartnerMbrs)) else this
   }
 
@@ -225,7 +233,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     val returnPeriodValidator: Validator[Option[Period]] = checkIfSome(identity, Period.validate)
     val groupOrPartnerMbrsValidator: Validator[Option[Seq[GroupOrPartner]]] = Validator(
       checkEachIfSome(identity, GroupOrPartner.validate),
-      check(_.size >= 1, "Invalid array size, must be greater than or equal to 1"))
+      check(_.size >= 1, "Invalid array size, must be greater than or equal to 1")
+    )
 
     override val validate: Validator[ApprovedInformation] = Validator(
       checkProperty(_.customerDetails, customerDetailsValidator),
@@ -242,11 +251,10 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     override val gen: Gen[ApprovedInformation] = for {
       customerDetails <- CustomerDetails.gen
       ppob            <- PPOB.gen
-    } yield
-      ApprovedInformation(
-        customerDetails = customerDetails,
-        PPOB = ppob
-      )
+    } yield ApprovedInformation(
+      customerDetails = customerDetails,
+      PPOB = ppob
+    )
 
     val customerDetailsSanitizer: Update = seed =>
       entity => entity.copy(customerDetails = CustomerDetails.sanitize(seed)(entity.customerDetails))
@@ -258,49 +266,56 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
         entity.copy(
           correspondenceContactDetails = entity.correspondenceContactDetails
             .orElse(Generator.get(CorrespondenceContactDetails.gen)(seed))
-            .map(CorrespondenceContactDetails.sanitize(seed)))
+            .map(CorrespondenceContactDetails.sanitize(seed))
+        )
 
     val bankDetailsSanitizer: Update = seed =>
       entity =>
         entity.copy(
           bankDetails = entity.bankDetails
             .orElse(Generator.get(BankDetails.gen)(seed))
-            .map(BankDetails.sanitize(seed)))
+            .map(BankDetails.sanitize(seed))
+        )
 
     val businessActivitiesSanitizer: Update = seed =>
       entity =>
         entity.copy(
           businessActivities = entity.businessActivities
             .orElse(Generator.get(BusinessActivities.gen)(seed))
-            .map(BusinessActivities.sanitize(seed)))
+            .map(BusinessActivities.sanitize(seed))
+        )
 
     val flatRateSchemeSanitizer: Update = seed =>
       entity =>
         entity.copy(
           flatRateScheme = entity.flatRateScheme
             .orElse(Generator.get(FlatRateScheme.gen)(seed))
-            .map(FlatRateScheme.sanitize(seed)))
+            .map(FlatRateScheme.sanitize(seed))
+        )
 
     val deregistrationSanitizer: Update = seed =>
       entity =>
         entity.copy(
           deregistration = entity.deregistration
             .orElse(Generator.get(Deregistration.gen)(seed))
-            .map(Deregistration.sanitize(seed)))
+            .map(Deregistration.sanitize(seed))
+        )
 
     val returnPeriodSanitizer: Update = seed =>
       entity =>
         entity.copy(
           returnPeriod = entity.returnPeriod
             .orElse(Generator.get(Period.gen)(seed))
-            .map(Period.sanitize(seed)))
+            .map(Period.sanitize(seed))
+        )
 
     val groupOrPartnerMbrsSanitizer: Update = seed =>
       entity =>
         entity.copy(
           groupOrPartnerMbrs = entity.groupOrPartnerMbrs
             .orElse(Generator.get(Generator.nonEmptyListOfMaxN(1, GroupOrPartner.gen))(seed))
-            .map(_.map(GroupOrPartner.sanitize(seed))))
+            .map(_.map(GroupOrPartner.sanitize(seed)))
+        )
 
     override val sanitizers: Seq[Update] = Seq(
       customerDetailsSanitizer,
@@ -325,7 +340,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     bankAccountNumber: Option[String] = None,
     sortCode: Option[String] = None,
     buildingSocietyNumber: Option[String] = None,
-    bankBuildSocietyName: Option[String] = None) {
+    bankBuildSocietyName: Option[String] = None
+  ) {
 
     def withIBAN(IBAN: Option[String]): BankDetails = copy(IBAN = IBAN)
     def modifyIBAN(pf: PartialFunction[Option[String], Option[String]]): BankDetails =
@@ -364,16 +380,20 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       check(_.lengthMinMaxInclusive(1, 60), "Invalid length of accountHolderName, should be between 1 and 60 inclusive")
     val bankAccountNumberValidator: Validator[Option[String]] = check(
       _.matches(Common.bankAccountNumberPattern),
-      s"""Invalid bankAccountNumber, does not matches regex ${Common.bankAccountNumberPattern}""")
+      s"""Invalid bankAccountNumber, does not matches regex ${Common.bankAccountNumberPattern}"""
+    )
     val sortCodeValidator: Validator[Option[String]] = check(
       _.matches(Common.sortCodePattern),
-      s"""Invalid sortCode, does not matches regex ${Common.sortCodePattern}""")
+      s"""Invalid sortCode, does not matches regex ${Common.sortCodePattern}"""
+    )
     val buildingSocietyNumberValidator: Validator[Option[String]] = check(
       _.lengthMinMaxInclusive(1, 20),
-      "Invalid length of buildingSocietyNumber, should be between 1 and 20 inclusive")
+      "Invalid length of buildingSocietyNumber, should be between 1 and 20 inclusive"
+    )
     val bankBuildSocietyNameValidator: Validator[Option[String]] = check(
       _.lengthMinMaxInclusive(1, 40),
-      "Invalid length of bankBuildSocietyName, should be between 1 and 40 inclusive")
+      "Invalid length of bankBuildSocietyName, should be between 1 and 40 inclusive"
+    )
 
     override val validate: Validator[BankDetails] = Validator(
       checkProperty(_.IBAN, IBANValidator),
@@ -386,51 +406,73 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     )
 
     override val gen: Gen[BankDetails] = Gen const BankDetails(
-      )
+    )
 
     val IBANSanitizer: Update = seed =>
       entity =>
-        entity.copy(IBAN = IBANValidator(entity.IBAN)
-          .fold(_ => None, _ => entity.IBAN)
-          .orElse(Generator.get(Generator.stringMinMaxN(1, 34).suchThat(_.length >= 1).suchThat(_.length <= 34))(seed)))
+        entity.copy(IBAN =
+          IBANValidator(entity.IBAN)
+            .fold(_ => None, _ => entity.IBAN)
+            .orElse(
+              Generator.get(Generator.stringMinMaxN(1, 34).suchThat(_.length >= 1).suchThat(_.length <= 34))(seed)
+            )
+        )
 
     val BICSanitizer: Update = seed =>
       entity =>
-        entity.copy(BIC = BICValidator(entity.BIC)
-          .fold(_ => None, _ => entity.BIC)
-          .orElse(Generator.get(Generator.stringMinMaxN(1, 11).suchThat(_.length >= 1).suchThat(_.length <= 11))(seed)))
+        entity.copy(BIC =
+          BICValidator(entity.BIC)
+            .fold(_ => None, _ => entity.BIC)
+            .orElse(
+              Generator.get(Generator.stringMinMaxN(1, 11).suchThat(_.length >= 1).suchThat(_.length <= 11))(seed)
+            )
+        )
 
     val accountHolderNameSanitizer: Update = seed =>
       entity =>
-        entity.copy(accountHolderName = accountHolderNameValidator(entity.accountHolderName)
-          .fold(_ => None, _ => entity.accountHolderName)
-          .orElse(Generator.get(Generator.stringMinMaxN(1, 60).suchThat(_.length >= 1).suchThat(_.length <= 60))(seed)))
+        entity.copy(accountHolderName =
+          accountHolderNameValidator(entity.accountHolderName)
+            .fold(_ => None, _ => entity.accountHolderName)
+            .orElse(
+              Generator.get(Generator.stringMinMaxN(1, 60).suchThat(_.length >= 1).suchThat(_.length <= 60))(seed)
+            )
+        )
 
     val bankAccountNumberSanitizer: Update = seed =>
       entity =>
         entity.copy(
           bankAccountNumber = bankAccountNumberValidator(entity.bankAccountNumber)
             .fold(_ => None, _ => entity.bankAccountNumber)
-            .orElse(Generator.get(Generator.regex(Common.bankAccountNumberPattern))(seed)))
+            .orElse(Generator.get(Generator.regex(Common.bankAccountNumberPattern))(seed))
+        )
 
     val sortCodeSanitizer: Update = seed =>
       entity =>
         entity.copy(
           sortCode = sortCodeValidator(entity.sortCode)
             .fold(_ => None, _ => entity.sortCode)
-            .orElse(Generator.get(Generator.regex(Common.sortCodePattern))(seed)))
+            .orElse(Generator.get(Generator.regex(Common.sortCodePattern))(seed))
+        )
 
     val buildingSocietyNumberSanitizer: Update = seed =>
       entity =>
-        entity.copy(buildingSocietyNumber = buildingSocietyNumberValidator(entity.buildingSocietyNumber)
-          .fold(_ => None, _ => entity.buildingSocietyNumber)
-          .orElse(Generator.get(Generator.stringMinMaxN(1, 20).suchThat(_.length >= 1).suchThat(_.length <= 20))(seed)))
+        entity.copy(buildingSocietyNumber =
+          buildingSocietyNumberValidator(entity.buildingSocietyNumber)
+            .fold(_ => None, _ => entity.buildingSocietyNumber)
+            .orElse(
+              Generator.get(Generator.stringMinMaxN(1, 20).suchThat(_.length >= 1).suchThat(_.length <= 20))(seed)
+            )
+        )
 
     val bankBuildSocietyNameSanitizer: Update = seed =>
       entity =>
-        entity.copy(bankBuildSocietyName = bankBuildSocietyNameValidator(entity.bankBuildSocietyName)
-          .fold(_ => None, _ => entity.bankBuildSocietyName)
-          .orElse(Generator.get(Generator.stringMinMaxN(1, 40).suchThat(_.length >= 1).suchThat(_.length <= 40))(seed)))
+        entity.copy(bankBuildSocietyName =
+          bankBuildSocietyNameValidator(entity.bankBuildSocietyName)
+            .fold(_ => None, _ => entity.bankBuildSocietyName)
+            .orElse(
+              Generator.get(Generator.stringMinMaxN(1, 40).suchThat(_.length >= 1).suchThat(_.length <= 40))(seed)
+            )
+        )
 
     override val sanitizers: Seq[Update] = Seq(
       IBANSanitizer,
@@ -450,7 +492,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     primaryMainCode: String,
     mainCode2: Option[String] = None,
     mainCode3: Option[String] = None,
-    mainCode4: Option[String] = None) {
+    mainCode4: Option[String] = None
+  ) {
 
     def withPrimaryMainCode(primaryMainCode: String): BusinessActivities = copy(primaryMainCode = primaryMainCode)
     def modifyPrimaryMainCode(pf: PartialFunction[String, String]): BusinessActivities =
@@ -470,16 +513,20 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     val primaryMainCodeValidator: Validator[String] = check(
       _.matches(Common.primaryMainCodePattern),
-      s"""Invalid primaryMainCode, does not matches regex ${Common.primaryMainCodePattern}""")
+      s"""Invalid primaryMainCode, does not matches regex ${Common.primaryMainCodePattern}"""
+    )
     val mainCode2Validator: Validator[Option[String]] = check(
       _.matches(Common.primaryMainCodePattern),
-      s"""Invalid mainCode2, does not matches regex ${Common.primaryMainCodePattern}""")
+      s"""Invalid mainCode2, does not matches regex ${Common.primaryMainCodePattern}"""
+    )
     val mainCode3Validator: Validator[Option[String]] = check(
       _.matches(Common.primaryMainCodePattern),
-      s"""Invalid mainCode3, does not matches regex ${Common.primaryMainCodePattern}""")
+      s"""Invalid mainCode3, does not matches regex ${Common.primaryMainCodePattern}"""
+    )
     val mainCode4Validator: Validator[Option[String]] = check(
       _.matches(Common.primaryMainCodePattern),
-      s"""Invalid mainCode4, does not matches regex ${Common.primaryMainCodePattern}""")
+      s"""Invalid mainCode4, does not matches regex ${Common.primaryMainCodePattern}"""
+    )
 
     override val validate: Validator[BusinessActivities] = Validator(
       checkProperty(_.primaryMainCode, primaryMainCodeValidator),
@@ -490,31 +537,33 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     override val gen: Gen[BusinessActivities] = for {
       primaryMainCode <- Generator.regex(Common.primaryMainCodePattern)
-    } yield
-      BusinessActivities(
-        primaryMainCode = primaryMainCode
-      )
+    } yield BusinessActivities(
+      primaryMainCode = primaryMainCode
+    )
 
     val mainCode2Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           mainCode2 = mainCode2Validator(entity.mainCode2)
             .fold(_ => None, _ => entity.mainCode2)
-            .orElse(Generator.get(Generator.regex(Common.primaryMainCodePattern))(seed)))
+            .orElse(Generator.get(Generator.regex(Common.primaryMainCodePattern))(seed))
+        )
 
     val mainCode3Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           mainCode3 = mainCode3Validator(entity.mainCode3)
             .fold(_ => None, _ => entity.mainCode3)
-            .orElse(Generator.get(Generator.regex(Common.primaryMainCodePattern))(seed)))
+            .orElse(Generator.get(Generator.regex(Common.primaryMainCodePattern))(seed))
+        )
 
     val mainCode4Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           mainCode4 = mainCode4Validator(entity.mainCode4)
             .fold(_ => None, _ => entity.mainCode4)
-            .orElse(Generator.get(Generator.regex(Common.primaryMainCodePattern))(seed)))
+            .orElse(Generator.get(Generator.regex(Common.primaryMainCodePattern))(seed))
+        )
 
     override val sanitizers: Seq[Update] = Seq(mainCode2Sanitizer, mainCode3Sanitizer, mainCode4Sanitizer)
 
@@ -526,7 +575,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     primaryPhoneNumber: Option[String] = None,
     mobileNumber: Option[String] = None,
     faxNumber: Option[String] = None,
-    emailAddress: Option[String] = None) {
+    emailAddress: Option[String] = None
+  ) {
 
     def withPrimaryPhoneNumber(primaryPhoneNumber: Option[String]): ContactDetails =
       copy(primaryPhoneNumber = primaryPhoneNumber)
@@ -547,13 +597,16 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     val primaryPhoneNumberValidator: Validator[Option[String]] = check(
       _.matches(Common.primaryPhoneNumberPattern),
-      s"""Invalid primaryPhoneNumber, does not matches regex ${Common.primaryPhoneNumberPattern}""")
+      s"""Invalid primaryPhoneNumber, does not matches regex ${Common.primaryPhoneNumberPattern}"""
+    )
     val mobileNumberValidator: Validator[Option[String]] = check(
       _.matches(Common.primaryPhoneNumberPattern),
-      s"""Invalid mobileNumber, does not matches regex ${Common.primaryPhoneNumberPattern}""")
+      s"""Invalid mobileNumber, does not matches regex ${Common.primaryPhoneNumberPattern}"""
+    )
     val faxNumberValidator: Validator[Option[String]] = check(
       _.matches(Common.primaryPhoneNumberPattern),
-      s"""Invalid faxNumber, does not matches regex ${Common.primaryPhoneNumberPattern}""")
+      s"""Invalid faxNumber, does not matches regex ${Common.primaryPhoneNumberPattern}"""
+    )
     val emailAddressValidator: Validator[Option[String]] =
       check(_.lengthMinMaxInclusive(3, 132), "Invalid length of emailAddress, should be between 3 and 132 inclusive")
 
@@ -565,36 +618,43 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     )
 
     override val gen: Gen[ContactDetails] = Gen const ContactDetails(
-      )
+    )
 
     val primaryPhoneNumberSanitizer: Update = seed =>
       entity =>
         entity.copy(
           primaryPhoneNumber = primaryPhoneNumberValidator(entity.primaryPhoneNumber)
             .fold(_ => None, _ => entity.primaryPhoneNumber)
-            .orElse(Generator.get(
-              Generator.ukPhoneNumber.variant("primary").suchThat(_.length >= 1).suchThat(_.length <= 24))(seed)))
+            .orElse(
+              Generator.get(
+                Generator.ukPhoneNumber.variant("primary").suchThat(_.length >= 1).suchThat(_.length <= 24)
+              )(seed)
+            )
+        )
 
     val mobileNumberSanitizer: Update = seed =>
       entity =>
         entity.copy(
           mobileNumber = mobileNumberValidator(entity.mobileNumber)
             .fold(_ => None, _ => entity.mobileNumber)
-            .orElse(Generator.get(Generator.ukPhoneNumber.suchThat(_.length >= 1).suchThat(_.length <= 24))(seed)))
+            .orElse(Generator.get(Generator.ukPhoneNumber.suchThat(_.length >= 1).suchThat(_.length <= 24))(seed))
+        )
 
     val faxNumberSanitizer: Update = seed =>
       entity =>
         entity.copy(
           faxNumber = faxNumberValidator(entity.faxNumber)
             .fold(_ => None, _ => entity.faxNumber)
-            .orElse(Generator.get(Generator.ukPhoneNumber.suchThat(_.length >= 1).suchThat(_.length <= 24))(seed)))
+            .orElse(Generator.get(Generator.ukPhoneNumber.suchThat(_.length >= 1).suchThat(_.length <= 24))(seed))
+        )
 
     val emailAddressSanitizer: Update = seed =>
       entity =>
         entity.copy(
           emailAddress = emailAddressValidator(entity.emailAddress)
             .fold(_ => None, _ => entity.emailAddress)
-            .orElse(Generator.get(Generator.emailGen.suchThat(_.length >= 3).suchThat(_.length <= 132))(seed)))
+            .orElse(Generator.get(Generator.emailGen.suchThat(_.length >= 3).suchThat(_.length <= 132))(seed))
+        )
 
     override val sanitizers: Seq[Update] =
       Seq(primaryPhoneNumberSanitizer, mobileNumberSanitizer, faxNumberSanitizer, emailAddressSanitizer)
@@ -606,7 +666,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
   case class CorrespondenceContactDetails(
     address: Address,
     RLS: Option[String] = None,
-    contactDetails: Option[ContactDetails] = None) {
+    contactDetails: Option[ContactDetails] = None
+  ) {
 
     def withAddress(address: Address): CorrespondenceContactDetails = copy(address = address)
     def modifyAddress(pf: PartialFunction[Address, Address]): CorrespondenceContactDetails =
@@ -617,7 +678,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     def withContactDetails(contactDetails: Option[ContactDetails]): CorrespondenceContactDetails =
       copy(contactDetails = contactDetails)
     def modifyContactDetails(
-      pf: PartialFunction[Option[ContactDetails], Option[ContactDetails]]): CorrespondenceContactDetails =
+      pf: PartialFunction[Option[ContactDetails], Option[ContactDetails]]
+    ): CorrespondenceContactDetails =
       if (pf.isDefinedAt(contactDetails)) copy(contactDetails = pf(contactDetails)) else this
   }
 
@@ -631,28 +693,30 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     override val validate: Validator[CorrespondenceContactDetails] = Validator(
       checkProperty(_.address, addressValidator),
       checkProperty(_.RLS, RLSValidator),
-      checkProperty(_.contactDetails, contactDetailsValidator))
+      checkProperty(_.contactDetails, contactDetailsValidator)
+    )
 
     override val gen: Gen[CorrespondenceContactDetails] = for {
       address <- Address.gen
-    } yield
-      CorrespondenceContactDetails(
-        address = address
-      )
+    } yield CorrespondenceContactDetails(
+      address = address
+    )
 
     val RLSSanitizer: Update = seed =>
       entity =>
         entity.copy(
           RLS = RLSValidator(entity.RLS)
             .fold(_ => None, _ => entity.RLS)
-            .orElse(Generator.get(Gen.oneOf(Common.RLSEnum))(seed)))
+            .orElse(Generator.get(Gen.oneOf(Common.RLSEnum))(seed))
+        )
 
     val contactDetailsSanitizer: Update = seed =>
       entity =>
         entity.copy(
           contactDetails = entity.contactDetails
             .orElse(Generator.get(ContactDetails.gen)(seed))
-            .map(ContactDetails.sanitize(seed)))
+            .map(ContactDetails.sanitize(seed))
+        )
 
     override val sanitizers: Seq[Update] = Seq(RLSSanitizer, contactDetailsSanitizer)
 
@@ -668,7 +732,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     mandationStatus: String,
     registrationReason: Option[String] = None,
     effectiveRegistrationDate: Option[String] = None,
-    businessStartDate: Option[String] = None) {
+    businessStartDate: Option[String] = None
+  ) {
 
     def withOrganisationName(organisationName: Option[String]): CustomerDetails =
       copy(organisationName = organisationName)
@@ -705,11 +770,13 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     val organisationNameValidator: Validator[Option[String]] = check(
       _.lengthMinMaxInclusive(1, 105),
-      "Invalid length of organisationName, should be between 1 and 105 inclusive")
+      "Invalid length of organisationName, should be between 1 and 105 inclusive"
+    )
     val individualValidator: Validator[Option[IndividualName]] = checkIfSome(identity, IndividualName.validate)
     val dateOfBirthValidator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid dateOfBirth, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid dateOfBirth, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
     val tradingNameValidator: Validator[Option[String]] =
       check(_.lengthMinMaxInclusive(1, 160), "Invalid length of tradingName, should be between 1 and 160 inclusive")
     val mandationStatusValidator: Validator[String] =
@@ -718,10 +785,12 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       check(_.isOneOf(Common.registrationReasonEnum), "Invalid registrationReason, does not match allowed values")
     val effectiveRegistrationDateValidator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid effectiveRegistrationDate, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid effectiveRegistrationDate, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
     val businessStartDateValidator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid businessStartDate, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid businessStartDate, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
 
     override val validate: Validator[CustomerDetails] = Validator(
       checkProperty(_.organisationName, organisationNameValidator),
@@ -734,64 +803,71 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       checkProperty(_.businessStartDate, businessStartDateValidator),
       checkIfOnlyOneSetIsDefined(
         Seq(Set(_.individual, _.dateOfBirth), Set(_.organisationName)),
-        "[{individual,dateOfBirth},{organisationName}]")
+        "[{individual,dateOfBirth},{organisationName}]"
+      )
     )
 
     override val gen: Gen[CustomerDetails] = for {
       mandationStatus <- Gen.oneOf(Common.mandationStatusEnum)
-    } yield
-      CustomerDetails(
-        mandationStatus = mandationStatus
-      )
+    } yield CustomerDetails(
+      mandationStatus = mandationStatus
+    )
 
     val organisationNameSanitizer: Update = seed =>
       entity =>
         entity.copy(
           organisationName = organisationNameValidator(entity.organisationName)
             .fold(_ => None, _ => entity.organisationName)
-            .orElse(Generator.get(Generator.company.suchThat(_.length >= 1).suchThat(_.length <= 105))(seed)))
+            .orElse(Generator.get(Generator.company.suchThat(_.length >= 1).suchThat(_.length <= 105))(seed))
+        )
 
     val individualSanitizer: Update = seed =>
       entity =>
         entity.copy(
           individual = entity.individual
             .orElse(Generator.get(IndividualName.gen)(seed))
-            .map(IndividualName.sanitize(seed)))
+            .map(IndividualName.sanitize(seed))
+        )
 
     val dateOfBirthSanitizer: Update = seed =>
       entity =>
         entity.copy(
           dateOfBirth = dateOfBirthValidator(entity.dateOfBirth)
             .fold(_ => None, _ => entity.dateOfBirth)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("ofbirth"))(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("ofbirth"))(seed))
+        )
 
     val tradingNameSanitizer: Update = seed =>
       entity =>
         entity.copy(
           tradingName = tradingNameValidator(entity.tradingName)
             .fold(_ => None, _ => entity.tradingName)
-            .orElse(Generator.get(Generator.tradingNameGen.suchThat(_.length >= 1).suchThat(_.length <= 160))(seed)))
+            .orElse(Generator.get(Generator.tradingNameGen.suchThat(_.length >= 1).suchThat(_.length <= 160))(seed))
+        )
 
     val registrationReasonSanitizer: Update = seed =>
       entity =>
         entity.copy(
           registrationReason = registrationReasonValidator(entity.registrationReason)
             .fold(_ => None, _ => entity.registrationReason)
-            .orElse(Generator.get(Gen.oneOf(Common.registrationReasonEnum))(seed)))
+            .orElse(Generator.get(Gen.oneOf(Common.registrationReasonEnum))(seed))
+        )
 
     val effectiveRegistrationDateSanitizer: Update = seed =>
       entity =>
         entity.copy(
           effectiveRegistrationDate = effectiveRegistrationDateValidator(entity.effectiveRegistrationDate)
             .fold(_ => None, _ => entity.effectiveRegistrationDate)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("effectiveregistration"))(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("effectiveregistration"))(seed))
+        )
 
     val businessStartDateSanitizer: Update = seed =>
       entity =>
         entity.copy(
           businessStartDate = businessStartDateValidator(entity.businessStartDate)
             .fold(_ => None, _ => entity.businessStartDate)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("businessstart"))(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("businessstart"))(seed))
+        )
 
     val individualAndDateOfBirthCompoundSanitizer: Update = seed =>
       entity =>
@@ -800,16 +876,17 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
             entity.individual.orElse(Generator.get(IndividualName.gen)(seed)).map(IndividualName.sanitize(seed)),
           dateOfBirth = entity.dateOfBirth.orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("ofbirth"))(seed)),
           organisationName = None
-    )
+        )
 
     val organisationNameCompoundSanitizer: Update = seed =>
       entity =>
         entity.copy(
           organisationName = entity.organisationName.orElse(
-            Generator.get(Generator.company.suchThat(_.length >= 1).suchThat(_.length <= 105))(seed)),
+            Generator.get(Generator.company.suchThat(_.length >= 1).suchThat(_.length <= 105))(seed)
+          ),
           individual = None,
           dateOfBirth = None
-    )
+        )
 
     val individualOrOrganisationNameAlternativeSanitizer: Update = seed =>
       entity =>
@@ -819,7 +896,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
           Generator.get(Gen.chooseNum(0, 1))(seed) match {
             case Some(0) => individualAndDateOfBirthCompoundSanitizer(seed)(entity)
             case _       => organisationNameCompoundSanitizer(seed)(entity)
-      }
+          }
 
     override val sanitizers: Seq[Update] = Seq(
       tradingNameSanitizer,
@@ -836,7 +913,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
   case class Deregistration(
     deregistrationReason: Option[String] = None,
     effectDateOfCancellation: Option[String] = None,
-    lastReturnDueDate: Option[String] = None) {
+    lastReturnDueDate: Option[String] = None
+  ) {
 
     def withDeregistrationReason(deregistrationReason: Option[String]): Deregistration =
       copy(deregistrationReason = deregistrationReason)
@@ -859,10 +937,12 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       check(_.isOneOf(Common.deregistrationReasonEnum), "Invalid deregistrationReason, does not match allowed values")
     val effectDateOfCancellationValidator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid effectDateOfCancellation, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid effectDateOfCancellation, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
     val lastReturnDueDateValidator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid lastReturnDueDate, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid lastReturnDueDate, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
 
     override val validate: Validator[Deregistration] = Validator(
       checkProperty(_.deregistrationReason, deregistrationReasonValidator),
@@ -871,28 +951,31 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     )
 
     override val gen: Gen[Deregistration] = Gen const Deregistration(
-      )
+    )
 
     val deregistrationReasonSanitizer: Update = seed =>
       entity =>
         entity.copy(
           deregistrationReason = deregistrationReasonValidator(entity.deregistrationReason)
             .fold(_ => None, _ => entity.deregistrationReason)
-            .orElse(Generator.get(Gen.oneOf(Common.deregistrationReasonEnum))(seed)))
+            .orElse(Generator.get(Gen.oneOf(Common.deregistrationReasonEnum))(seed))
+        )
 
     val effectDateOfCancellationSanitizer: Update = seed =>
       entity =>
         entity.copy(
           effectDateOfCancellation = effectDateOfCancellationValidator(entity.effectDateOfCancellation)
             .fold(_ => None, _ => entity.effectDateOfCancellation)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("effect-ofcancellation"))(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("effect-ofcancellation"))(seed))
+        )
 
     val lastReturnDueDateSanitizer: Update = seed =>
       entity =>
         entity.copy(
           lastReturnDueDate = lastReturnDueDateValidator(entity.lastReturnDueDate)
             .fold(_ => None, _ => entity.lastReturnDueDate)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("lastreturndue"))(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("lastreturndue"))(seed))
+        )
 
     override val sanitizers: Seq[Update] =
       Seq(deregistrationReasonSanitizer, effectDateOfCancellationSanitizer, lastReturnDueDateSanitizer)
@@ -905,7 +988,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     FRSCategory: Option[String] = None,
     FRSPercentage: Option[BigDecimal] = None,
     startDate: Option[String] = None,
-    limitedCostTrader: Boolean = false) {
+    limitedCostTrader: Boolean = false
+  ) {
 
     def withFRSCategory(FRSCategory: Option[String]): FlatRateScheme = copy(FRSCategory = FRSCategory)
     def modifyFRSCategory(pf: PartialFunction[Option[String], Option[String]]): FlatRateScheme =
@@ -927,43 +1011,48 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       check(_.isOneOf(Common.FRSCategoryEnum), "Invalid FRSCategory, does not match allowed values")
     val FRSPercentageValidator: Validator[Option[BigDecimal]] = check(
       _.inRange(BigDecimal(0), BigDecimal(999.99), Some(BigDecimal(0.01))),
-      "Invalid number FRSPercentage, must be in range <0,999.99>")
+      "Invalid number FRSPercentage, must be in range <0,999.99>"
+    )
     val startDateValidator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid startDate, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid startDate, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
 
     override val validate: Validator[FlatRateScheme] = Validator(
       checkProperty(_.FRSCategory, FRSCategoryValidator),
       checkProperty(_.FRSPercentage, FRSPercentageValidator),
-      checkProperty(_.startDate, startDateValidator))
+      checkProperty(_.startDate, startDateValidator)
+    )
 
     override val gen: Gen[FlatRateScheme] = for {
       limitedCostTrader <- Generator.booleanGen
-    } yield
-      FlatRateScheme(
-        limitedCostTrader = limitedCostTrader
-      )
+    } yield FlatRateScheme(
+      limitedCostTrader = limitedCostTrader
+    )
 
     val FRSCategorySanitizer: Update = seed =>
       entity =>
         entity.copy(
           FRSCategory = FRSCategoryValidator(entity.FRSCategory)
             .fold(_ => None, _ => entity.FRSCategory)
-            .orElse(Generator.get(Gen.oneOf(Common.FRSCategoryEnum))(seed)))
+            .orElse(Generator.get(Gen.oneOf(Common.FRSCategoryEnum))(seed))
+        )
 
     val FRSPercentageSanitizer: Update = seed =>
       entity =>
         entity.copy(
           FRSPercentage = FRSPercentageValidator(entity.FRSPercentage)
             .fold(_ => None, _ => entity.FRSPercentage)
-            .orElse(Generator.get(Generator.chooseBigDecimal(0, 999.99, Some(0.01)))(seed)))
+            .orElse(Generator.get(Generator.chooseBigDecimal(0, 999.99, Some(0.01)))(seed))
+        )
 
     val startDateSanitizer: Update = seed =>
       entity =>
         entity.copy(
           startDate = startDateValidator(entity.startDate)
             .fold(_ => None, _ => entity.startDate)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("start"))(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("start"))(seed))
+        )
 
     override val sanitizers: Seq[Update] = Seq(FRSCategorySanitizer, FRSPercentageSanitizer, startDateSanitizer)
 
@@ -977,8 +1066,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     override val line3: Option[String] = None,
     override val line4: Option[String] = None,
     postCode: Option[String] = None,
-    override val countryCode: String)
-      extends Address {
+    override val countryCode: String
+  ) extends Address {
 
     def withLine1(line1: String): ForeignAddress = copy(line1 = line1)
     def modifyLine1(pf: PartialFunction[String, String]): ForeignAddress =
@@ -1012,7 +1101,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       check(_.matches(Common.linePattern), s"""Invalid line4, does not matches regex ${Common.linePattern}""")
     val postCodeValidator: Validator[Option[String]] = check(
       _.matches(Common.postCodePattern),
-      s"""Invalid postCode, does not matches regex ${Common.postCodePattern}""")
+      s"""Invalid postCode, does not matches regex ${Common.postCodePattern}"""
+    )
     val countryCodeValidator: Validator[String] =
       check(_.isOneOf(Common.countryCodeEnum0), "Invalid countryCode, does not match allowed values")
 
@@ -1029,33 +1119,35 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       line1       <- Generator.address4Lines35Gen.map(_.line1)
       line2       <- Generator.address4Lines35Gen.map(_.line2)
       countryCode <- Gen.oneOf(Common.countryCodeEnum0)
-    } yield
-      ForeignAddress(
-        line1 = line1,
-        line2 = line2,
-        countryCode = countryCode
-      )
+    } yield ForeignAddress(
+      line1 = line1,
+      line2 = line2,
+      countryCode = countryCode
+    )
 
     val line3Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           line3 = line3Validator(entity.line3)
             .fold(_ => None, _ => entity.line3)
-            .orElse(Generator.get(Generator.address4Lines35Gen.map(_.line3))(seed)))
+            .orElse(Generator.get(Generator.address4Lines35Gen.map(_.line3))(seed))
+        )
 
     val line4Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           line4 = line4Validator(entity.line4)
             .fold(_ => None, _ => entity.line4)
-            .orElse(Generator.get(Generator.address4Lines35Gen.map(_.line4))(seed)))
+            .orElse(Generator.get(Generator.address4Lines35Gen.map(_.line4))(seed))
+        )
 
     val postCodeSanitizer: Update = seed =>
       entity =>
         entity.copy(
           postCode = postCodeValidator(entity.postCode)
             .fold(_ => None, _ => entity.postCode)
-            .orElse(Generator.get(Generator.postcode)(seed)))
+            .orElse(Generator.get(Generator.postcode)(seed))
+        )
 
     override val sanitizers: Seq[Update] = Seq(line3Sanitizer, line4Sanitizer, postCodeSanitizer)
 
@@ -1067,7 +1159,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     typeOfRelationship: String,
     organisationName: Option[String] = None,
     individual: Option[IndividualName] = None,
-    SAP_Number: String) {
+    SAP_Number: String
+  ) {
 
     def withTypeOfRelationship(typeOfRelationship: String): GroupOrPartner =
       copy(typeOfRelationship = typeOfRelationship)
@@ -1091,11 +1184,13 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       check(_.isOneOf(Common.typeOfRelationshipEnum), "Invalid typeOfRelationship, does not match allowed values")
     val organisationNameValidator: Validator[Option[String]] = check(
       _.lengthMinMaxInclusive(1, 105),
-      "Invalid length of organisationName, should be between 1 and 105 inclusive")
+      "Invalid length of organisationName, should be between 1 and 105 inclusive"
+    )
     val individualValidator: Validator[Option[IndividualName]] = checkIfSome(identity, IndividualName.validate)
     val SAP_NumberValidator: Validator[String] = check(
       _.matches(Common.SAP_NumberPattern),
-      s"""Invalid SAP_Number, does not matches regex ${Common.SAP_NumberPattern}""")
+      s"""Invalid SAP_Number, does not matches regex ${Common.SAP_NumberPattern}"""
+    )
 
     override val validate: Validator[GroupOrPartner] = Validator(
       checkProperty(_.typeOfRelationship, typeOfRelationshipValidator),
@@ -1107,25 +1202,26 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     override val gen: Gen[GroupOrPartner] = for {
       typeOfRelationship <- Gen.oneOf(Common.typeOfRelationshipEnum)
       sap_number         <- Generator.regex(Common.SAP_NumberPattern)
-    } yield
-      GroupOrPartner(
-        typeOfRelationship = typeOfRelationship,
-        SAP_Number = sap_number
-      )
+    } yield GroupOrPartner(
+      typeOfRelationship = typeOfRelationship,
+      SAP_Number = sap_number
+    )
 
     val organisationNameSanitizer: Update = seed =>
       entity =>
         entity.copy(
           organisationName = organisationNameValidator(entity.organisationName)
             .fold(_ => None, _ => entity.organisationName)
-            .orElse(Generator.get(Generator.company.suchThat(_.length >= 1).suchThat(_.length <= 105))(seed)))
+            .orElse(Generator.get(Generator.company.suchThat(_.length >= 1).suchThat(_.length <= 105))(seed))
+        )
 
     val individualSanitizer: Update = seed =>
       entity =>
         entity.copy(
           individual = entity.individual
             .orElse(Generator.get(IndividualName.gen)(seed))
-            .map(IndividualName.sanitize(seed)))
+            .map(IndividualName.sanitize(seed))
+        )
 
     override val sanitizers: Seq[Update] = Seq(organisationNameSanitizer, individualSanitizer)
 
@@ -1137,7 +1233,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     title: Option[String] = None,
     firstName: Option[String] = None,
     middleName: Option[String] = None,
-    lastName: Option[String] = None) {
+    lastName: Option[String] = None
+  ) {
 
     def withTitle(title: Option[String]): IndividualName = copy(title = title)
     def modifyTitle(pf: PartialFunction[Option[String], Option[String]]): IndividualName =
@@ -1172,36 +1269,42 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     )
 
     override val gen: Gen[IndividualName] = Gen const IndividualName(
-      )
+    )
 
     val titleSanitizer: Update = seed =>
       entity =>
         entity.copy(
           title = titleValidator(entity.title)
             .fold(_ => None, _ => entity.title)
-            .orElse(Generator.get(Gen.oneOf(Common.titleEnum))(seed)))
+            .orElse(Generator.get(Gen.oneOf(Common.titleEnum))(seed))
+        )
 
     val firstNameSanitizer: Update = seed =>
       entity =>
         entity.copy(
           firstName = firstNameValidator(entity.firstName)
             .fold(_ => None, _ => entity.firstName)
-            .orElse(Generator.get(Generator.forename().suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
+            .orElse(Generator.get(Generator.forename().suchThat(_.length >= 1).suchThat(_.length <= 35))(seed))
+        )
 
     val middleNameSanitizer: Update = seed =>
       entity =>
         entity.copy(
           middleName = middleNameValidator(entity.middleName)
             .fold(_ => None, _ => entity.middleName)
-            .orElse(Generator.get(
-              Generator.forename().variant("middle").suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
+            .orElse(
+              Generator
+                .get(Generator.forename().variant("middle").suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)
+            )
+        )
 
     val lastNameSanitizer: Update = seed =>
       entity =>
         entity.copy(
           lastName = lastNameValidator(entity.lastName)
             .fold(_ => None, _ => entity.lastName)
-            .orElse(Generator.get(Generator.surname.suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
+            .orElse(Generator.get(Generator.surname.suchThat(_.length >= 1).suchThat(_.length <= 35))(seed))
+        )
 
     override val sanitizers: Seq[Update] =
       Seq(titleSanitizer, firstNameSanitizer, middleNameSanitizer, lastNameSanitizer)
@@ -1232,7 +1335,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     period19: Option[String] = None,
     period20: Option[String] = None,
     period21: Option[String] = None,
-    period22: Option[String] = None) {
+    period22: Option[String] = None
+  ) {
 
     def withPeriod01(period01: Option[String]): NonStdTaxPeriods = copy(period01 = period01)
     def modifyPeriod01(pf: PartialFunction[Option[String], Option[String]]): NonStdTaxPeriods =
@@ -1306,70 +1410,92 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     val period01Validator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid period01, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid period01, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
     val period02Validator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid period02, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid period02, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
     val period03Validator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid period03, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid period03, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
     val period04Validator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid period04, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid period04, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
     val period05Validator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid period05, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid period05, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
     val period06Validator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid period06, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid period06, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
     val period07Validator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid period07, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid period07, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
     val period08Validator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid period08, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid period08, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
     val period09Validator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid period09, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid period09, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
     val period10Validator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid period10, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid period10, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
     val period11Validator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid period11, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid period11, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
     val period12Validator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid period12, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid period12, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
     val period13Validator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid period13, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid period13, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
     val period14Validator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid period14, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid period14, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
     val period15Validator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid period15, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid period15, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
     val period16Validator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid period16, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid period16, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
     val period17Validator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid period17, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid period17, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
     val period18Validator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid period18, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid period18, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
     val period19Validator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid period19, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid period19, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
     val period20Validator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid period20, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid period20, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
     val period21Validator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid period21, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid period21, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
     val period22Validator: Validator[Option[String]] = check(
       _.matches(Common.dateOfBirthPattern),
-      s"""Invalid period22, does not matches regex ${Common.dateOfBirthPattern}""")
+      s"""Invalid period22, does not matches regex ${Common.dateOfBirthPattern}"""
+    )
 
     override val validate: Validator[NonStdTaxPeriods] = Validator(
       checkProperty(_.period01, period01Validator),
@@ -1397,161 +1523,183 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     )
 
     override val gen: Gen[NonStdTaxPeriods] = Gen const NonStdTaxPeriods(
-      )
+    )
 
     val period01Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           period01 = period01Validator(entity.period01)
             .fold(_ => None, _ => entity.period01)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed))
+        )
 
     val period02Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           period02 = period02Validator(entity.period02)
             .fold(_ => None, _ => entity.period02)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed))
+        )
 
     val period03Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           period03 = period03Validator(entity.period03)
             .fold(_ => None, _ => entity.period03)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed))
+        )
 
     val period04Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           period04 = period04Validator(entity.period04)
             .fold(_ => None, _ => entity.period04)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed))
+        )
 
     val period05Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           period05 = period05Validator(entity.period05)
             .fold(_ => None, _ => entity.period05)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed))
+        )
 
     val period06Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           period06 = period06Validator(entity.period06)
             .fold(_ => None, _ => entity.period06)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed))
+        )
 
     val period07Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           period07 = period07Validator(entity.period07)
             .fold(_ => None, _ => entity.period07)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed))
+        )
 
     val period08Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           period08 = period08Validator(entity.period08)
             .fold(_ => None, _ => entity.period08)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed))
+        )
 
     val period09Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           period09 = period09Validator(entity.period09)
             .fold(_ => None, _ => entity.period09)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed))
+        )
 
     val period10Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           period10 = period10Validator(entity.period10)
             .fold(_ => None, _ => entity.period10)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed))
+        )
 
     val period11Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           period11 = period11Validator(entity.period11)
             .fold(_ => None, _ => entity.period11)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed))
+        )
 
     val period12Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           period12 = period12Validator(entity.period12)
             .fold(_ => None, _ => entity.period12)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed))
+        )
 
     val period13Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           period13 = period13Validator(entity.period13)
             .fold(_ => None, _ => entity.period13)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed))
+        )
 
     val period14Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           period14 = period14Validator(entity.period14)
             .fold(_ => None, _ => entity.period14)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed))
+        )
 
     val period15Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           period15 = period15Validator(entity.period15)
             .fold(_ => None, _ => entity.period15)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed))
+        )
 
     val period16Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           period16 = period16Validator(entity.period16)
             .fold(_ => None, _ => entity.period16)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed))
+        )
 
     val period17Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           period17 = period17Validator(entity.period17)
             .fold(_ => None, _ => entity.period17)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed))
+        )
 
     val period18Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           period18 = period18Validator(entity.period18)
             .fold(_ => None, _ => entity.period18)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed))
+        )
 
     val period19Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           period19 = period19Validator(entity.period19)
             .fold(_ => None, _ => entity.period19)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed))
+        )
 
     val period20Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           period20 = period20Validator(entity.period20)
             .fold(_ => None, _ => entity.period20)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed))
+        )
 
     val period21Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           period21 = period21Validator(entity.period21)
             .fold(_ => None, _ => entity.period21)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed))
+        )
 
     val period22Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           period22 = period22Validator(entity.period22)
             .fold(_ => None, _ => entity.period22)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen)(seed))
+        )
 
     override val sanitizers: Seq[Update] = Seq(
       period01Sanitizer,
@@ -1586,7 +1734,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     address: Address,
     RLS: Option[String] = None,
     contactDetails: Option[ContactDetails] = None,
-    websiteAddress: Option[String] = None) {
+    websiteAddress: Option[String] = None
+  ) {
 
     def withAddress(address: Address): PPOB = copy(address = address)
     def modifyAddress(pf: PartialFunction[Address, Address]): PPOB =
@@ -1620,24 +1769,25 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     override val gen: Gen[PPOB] = for {
       address <- Address.gen
-    } yield
-      PPOB(
-        address = address
-      )
+    } yield PPOB(
+      address = address
+    )
 
     val RLSSanitizer: Update = seed =>
       entity =>
         entity.copy(
           RLS = RLSValidator(entity.RLS)
             .fold(_ => None, _ => entity.RLS)
-            .orElse(Generator.get(Gen.oneOf(Common.RLSEnum))(seed)))
+            .orElse(Generator.get(Gen.oneOf(Common.RLSEnum))(seed))
+        )
 
     val contactDetailsSanitizer: Update = seed =>
       entity =>
         entity.copy(
           contactDetails = entity.contactDetails
             .orElse(Generator.get(ContactDetails.gen)(seed))
-            .map(ContactDetails.sanitize(seed)))
+            .map(ContactDetails.sanitize(seed))
+        )
 
     val websiteAddressSanitizer: Update = seed =>
       entity =>
@@ -1645,7 +1795,9 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
           websiteAddress = websiteAddressValidator(entity.websiteAddress)
             .fold(_ => None, _ => entity.websiteAddress)
             .orElse(
-              Generator.get(Generator.stringMinMaxN(1, 132).suchThat(_.length >= 1).suchThat(_.length <= 132))(seed)))
+              Generator.get(Generator.stringMinMaxN(1, 132).suchThat(_.length >= 1).suchThat(_.length <= 132))(seed)
+            )
+        )
 
     override val sanitizers: Seq[Update] = Seq(RLSSanitizer, contactDetailsSanitizer, websiteAddressSanitizer)
 
@@ -1673,24 +1825,27 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     override val validate: Validator[Period] = Validator(
       checkProperty(_.stdReturnPeriod, stdReturnPeriodValidator),
-      checkProperty(_.nonStdTaxPeriods, nonStdTaxPeriodsValidator))
+      checkProperty(_.nonStdTaxPeriods, nonStdTaxPeriodsValidator)
+    )
 
     override val gen: Gen[Period] = Gen const Period(
-      )
+    )
 
     val stdReturnPeriodSanitizer: Update = seed =>
       entity =>
         entity.copy(
           stdReturnPeriod = stdReturnPeriodValidator(entity.stdReturnPeriod)
             .fold(_ => None, _ => entity.stdReturnPeriod)
-            .orElse(Generator.get(Gen.oneOf(Common.stdReturnPeriodEnum))(seed)))
+            .orElse(Generator.get(Gen.oneOf(Common.stdReturnPeriodEnum))(seed))
+        )
 
     val nonStdTaxPeriodsSanitizer: Update = seed =>
       entity =>
         entity.copy(
           nonStdTaxPeriods = entity.nonStdTaxPeriods
             .orElse(Generator.get(NonStdTaxPeriods.gen)(seed))
-            .map(NonStdTaxPeriods.sanitize(seed)))
+            .map(NonStdTaxPeriods.sanitize(seed))
+        )
 
     override val sanitizers: Seq[Update] = Seq(stdReturnPeriodSanitizer, nonStdTaxPeriodsSanitizer)
 
@@ -1704,8 +1859,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     override val line3: Option[String] = None,
     override val line4: Option[String] = None,
     postCode: String,
-    override val countryCode: String)
-      extends Address {
+    override val countryCode: String
+  ) extends Address {
 
     def withLine1(line1: String): UkAddress = copy(line1 = line1)
     def modifyLine1(pf: PartialFunction[String, String]): UkAddress =
@@ -1739,7 +1894,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       check(_.matches(Common.linePattern), s"""Invalid line4, does not matches regex ${Common.linePattern}""")
     val postCodeValidator: Validator[String] = check(
       _.matches(Common.postCodePattern),
-      s"""Invalid postCode, does not matches regex ${Common.postCodePattern}""")
+      s"""Invalid postCode, does not matches regex ${Common.postCodePattern}"""
+    )
     val countryCodeValidator: Validator[String] =
       check(_.isOneOf(Common.countryCodeEnum1), "Invalid countryCode, does not match allowed values")
 
@@ -1757,27 +1913,28 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       line2       <- Generator.address4Lines35Gen.map(_.line2)
       postCode    <- Generator.postcode
       countryCode <- Gen.const("GB")
-    } yield
-      UkAddress(
-        line1 = line1,
-        line2 = line2,
-        postCode = postCode,
-        countryCode = countryCode
-      )
+    } yield UkAddress(
+      line1 = line1,
+      line2 = line2,
+      postCode = postCode,
+      countryCode = countryCode
+    )
 
     val line3Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           line3 = line3Validator(entity.line3)
             .fold(_ => None, _ => entity.line3)
-            .orElse(Generator.get(Generator.address4Lines35Gen.map(_.line3))(seed)))
+            .orElse(Generator.get(Generator.address4Lines35Gen.map(_.line3))(seed))
+        )
 
     val line4Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           line4 = line4Validator(entity.line4)
             .fold(_ => None, _ => entity.line4)
-            .orElse(Generator.get(Generator.address4Lines35Gen.map(_.line4))(seed)))
+            .orElse(Generator.get(Generator.address4Lines35Gen.map(_.line4))(seed))
+        )
 
     override val sanitizers: Seq[Update] = Seq(line3Sanitizer, line4Sanitizer)
 
@@ -1805,7 +1962,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       "0011",
       "0012",
       "0013",
-      "0014")
+      "0014"
+    )
     val linePattern = """^[A-Za-z0-9 \-,.&'\/()!]{1,35}$"""
     val countryCodeEnum0 = Seq(
       "AD",

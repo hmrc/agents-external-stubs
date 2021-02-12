@@ -26,7 +26,8 @@ class KnownFactsControllerISpec extends ServerBaseISpec with MongoDB with TestRe
           haveProperty[String]("enrolmentKey", be(enrolmentKey)) and
             haveProperty[Seq[JsObject]](
               "verifiers",
-              eachElement(haveProperty[String]("key") and haveProperty[String]("value"))) and
+              eachElement(haveProperty[String]("key") and haveProperty[String]("value"))
+            ) and
             haveProperty[JsObject]("user", haveProperty[String]("userId", be("foo1"))) and
             haveProperty[Seq[JsObject]]("agents", have(size(1)))
         )
@@ -39,14 +40,14 @@ class KnownFactsControllerISpec extends ServerBaseISpec with MongoDB with TestRe
         val enrolmentKey = "HMRC-MTD-IT~MTDITID~XAAA12345678901"
 
         val result = KnownFacts.createKnownFacts(Json.parse(s"""
-                                                               |{ "enrolmentKey": "$enrolmentKey",
-                                                               | "verifiers": [
-                                                               |   {
-                                                               |     "key": "NINO",
-                                                               |     "value": ""
-                                                               |   }
-                                                               |  ]
-                                                               |} """.stripMargin))
+          |{ "enrolmentKey": "$enrolmentKey",
+          | "verifiers": [
+          |   {
+          |     "key": "NINO",
+          |     "value": ""
+          |   }
+          |  ]
+          |} """.stripMargin))
         result should haveStatus(201)
 
         val feedback = KnownFacts.getKnownFacts(enrolmentKey)
@@ -55,8 +56,12 @@ class KnownFactsControllerISpec extends ServerBaseISpec with MongoDB with TestRe
           haveProperty[String]("enrolmentKey", be(enrolmentKey)) and
             haveProperty[Seq[JsObject]](
               "verifiers",
-              eachElement(haveProperty[String]("key") and
-                haveProperty[String]("value"))))
+              eachElement(
+                haveProperty[String]("key") and
+                  haveProperty[String]("value")
+              )
+            )
+        )
       }
     }
 
@@ -69,14 +74,14 @@ class KnownFactsControllerISpec extends ServerBaseISpec with MongoDB with TestRe
         val result = KnownFacts.upsertKnownFacts(
           enrolmentKey,
           Json.parse(s"""
-                        |{ "enrolmentKey": "$enrolmentKey",
-                        | "verifiers": [
-                        |   {
-                        |     "key": "NINO",
-                        |     "value": "AB087054B"
-                        |   }
-                        |  ]
-                        |} """.stripMargin)
+            |{ "enrolmentKey": "$enrolmentKey",
+            | "verifiers": [
+            |   {
+            |     "key": "NINO",
+            |     "value": "AB087054B"
+            |   }
+            |  ]
+            |} """.stripMargin)
         )
         result should haveStatus(202)
 
@@ -86,10 +91,15 @@ class KnownFactsControllerISpec extends ServerBaseISpec with MongoDB with TestRe
           haveProperty[String]("enrolmentKey", be(enrolmentKey)) and
             haveProperty[Seq[JsObject]](
               "verifiers",
-              eachElement(haveProperty[String]("key") and
-                haveProperty[String]("value"))))
+              eachElement(
+                haveProperty[String]("key") and
+                  haveProperty[String]("value")
+              )
+            )
+        )
         feedback.json.as[uk.gov.hmrc.agentsexternalstubs.models.KnownFacts].getVerifierValue("NINO") shouldBe Some(
-          "AB087054B")
+          "AB087054B"
+        )
       }
     }
 
@@ -111,10 +121,15 @@ class KnownFactsControllerISpec extends ServerBaseISpec with MongoDB with TestRe
           haveProperty[String]("enrolmentKey", be(enrolmentKey)) and
             haveProperty[Seq[JsObject]](
               "verifiers",
-              eachElement(haveProperty[String]("key") and
-                haveProperty[String]("value"))))
+              eachElement(
+                haveProperty[String]("key") and
+                  haveProperty[String]("value")
+              )
+            )
+        )
         feedback.json.as[uk.gov.hmrc.agentsexternalstubs.models.KnownFacts].getVerifierValue("NINO") shouldBe Some(
-          "AB087054B")
+          "AB087054B"
+        )
       }
     }
 

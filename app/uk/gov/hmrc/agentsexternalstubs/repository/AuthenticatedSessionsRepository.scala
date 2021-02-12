@@ -34,13 +34,13 @@ import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class AuthenticatedSessionsRepository @Inject()(mongoComponent: ReactiveMongoComponent)
+class AuthenticatedSessionsRepository @Inject() (mongoComponent: ReactiveMongoComponent)
     extends ReactiveRepository[AuthenticatedSession, BSONObjectID](
       "authenticated-sessions",
       mongoComponent.mongoConnector.db,
       AuthenticatedSession.formats,
-      ReactiveMongoFormats.objectIdFormats) with StrictlyEnsureIndexes[AuthenticatedSession, BSONObjectID]
-    with DeleteAll[AuthenticatedSession] {
+      ReactiveMongoFormats.objectIdFormats
+    ) with StrictlyEnsureIndexes[AuthenticatedSession, BSONObjectID] with DeleteAll[AuthenticatedSession] {
 
   final val UPDATED = "createdAt"
 
@@ -64,9 +64,10 @@ class AuthenticatedSessionsRepository @Inject()(mongoComponent: ReactiveMongoCom
       Seq("authToken" -> Ascending),
       Some("AuthenticatedSessions"),
       unique = true,
-      options = BSONDocument("expireAfterSeconds" -> 900)),
+      options = BSONDocument("expireAfterSeconds" -> 900)
+    ),
     Index(Seq("sessionId" -> Ascending), Some("SessionIds"), unique = true),
-    Index(Seq("userId"    -> Ascending), Some("AuthenticatedUsers"))
+    Index(Seq("userId" -> Ascending), Some("AuthenticatedUsers"))
   )
 
   def create(authenticatedSession: AuthenticatedSession)(implicit ec: ExecutionContext): Future[Unit] =
@@ -83,7 +84,8 @@ class AuthenticatedSessionsRepository @Inject()(mongoComponent: ReactiveMongoCom
   }
 
   private def one[T](query: Seq[(String, Option[String])], projection: Seq[(String, Int)] = Seq.empty)(
-    reader: collection.pack.Reader[T])(implicit ec: ExecutionContext): Future[Option[T]] =
+    reader: collection.pack.Reader[T]
+  )(implicit ec: ExecutionContext): Future[Option[T]] =
     collection
       .find(
         Json.obj(query.collect(toJsWrapper): _*),
@@ -93,7 +95,8 @@ class AuthenticatedSessionsRepository @Inject()(mongoComponent: ReactiveMongoCom
       .one[T](readPreference = ReadPreference.primary)(reader, ec)
 
   private def cursor[T](query: Seq[(String, Option[String])], projection: Seq[(String, Int)] = Seq.empty)(
-    reader: collection.pack.Reader[T])(implicit ec: ExecutionContext): Cursor[T] =
+    reader: collection.pack.Reader[T]
+  )(implicit ec: ExecutionContext): Cursor[T] =
     collection
       .find(
         Json.obj(query.collect(toJsWrapper): _*),

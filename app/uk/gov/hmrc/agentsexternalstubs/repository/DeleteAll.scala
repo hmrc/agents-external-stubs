@@ -36,7 +36,8 @@ trait DeleteAll[E] {
       .element(
         q = BSONDocument(UPDATED -> BSONDocument("$lt" -> BSONLong(lastUpdatedBefore))),
         limit = None,
-        collation = None)
+        collation = None
+      )
       .flatMap(e => collection.delete(ordered = false).many(Seq(e)))
       .map(_.n)
 

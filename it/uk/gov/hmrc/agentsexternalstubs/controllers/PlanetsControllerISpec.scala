@@ -37,7 +37,8 @@ class PlanetsControllerISpec extends ServerBaseISpec with MongoDB with TestReque
         await(
           recordsRepository
             .findByPlanetId(session.planetId)
-            .collect[Seq](maxDocs = 100, err = Cursor.ContOnError[Seq[Record]]())).size shouldBe 0
+            .collect[Seq](maxDocs = 100, err = Cursor.ContOnError[Seq[Record]]())
+        ).size shouldBe 0
       }
     }
   }

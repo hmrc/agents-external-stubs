@@ -18,8 +18,10 @@ class CitizenDetailsConnectorISpec extends ServerBaseISpec with MongoDB with Tes
     "getCitizenDateOfBirth" should {
       "return dateOfBirth" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
-        Users.update(UserGenerator
-          .individual(userId = "foo", nino = "HW 82 78 56 C", name = "Alan Brian Foo-Foe", dateOfBirth = "1975-12-18"))
+        Users.update(
+          UserGenerator
+            .individual(userId = "foo", nino = "HW 82 78 56 C", name = "Alan Brian Foo-Foe", dateOfBirth = "1975-12-18")
+        )
 
         val result = await(connector.getCitizenDateOfBirth(Nino("HW827856C")))
         result.flatMap(_.dateOfBirth) shouldBe Some(LocalDate.parse("1975-12-18"))

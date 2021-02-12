@@ -35,41 +35,50 @@ class GroupValidatorSpec extends UnitSpec {
       GroupValidator.validate(Seq(UserGenerator.agent(credentialRole = "Admin"))) shouldBe Valid(())
       GroupValidator.validate(Seq(UserGenerator.agent(credentialRole = "Admin"), User("foo"))) shouldBe Valid(())
 
-      GroupValidator.validate(Seq(
-        UserGenerator.individual(credentialRole = "Admin"),
-        UserGenerator.individual(credentialRole = "User"))) shouldBe Valid(())
-      GroupValidator.validate(Seq(
-        UserGenerator.individual(credentialRole = "Admin"),
-        UserGenerator.individual(credentialRole = "Assistant"))) shouldBe Valid(())
+      GroupValidator.validate(
+        Seq(UserGenerator.individual(credentialRole = "Admin"), UserGenerator.individual(credentialRole = "User"))
+      ) shouldBe Valid(())
+      GroupValidator.validate(
+        Seq(UserGenerator.individual(credentialRole = "Admin"), UserGenerator.individual(credentialRole = "Assistant"))
+      ) shouldBe Valid(())
       GroupValidator.validate(
         Seq(
           UserGenerator.individual(credentialRole = "Admin"),
           UserGenerator.individual(credentialRole = "User"),
-          UserGenerator.individual(credentialRole = "Assistant"))) shouldBe Valid(())
+          UserGenerator.individual(credentialRole = "Assistant")
+        )
+      ) shouldBe Valid(())
 
       GroupValidator.validate(
         Seq(
           UserGenerator.agent(groupId = "A", credentialRole = "Admin"),
-          UserGenerator.agent(groupId = "A", credentialRole = "User"))) shouldBe Valid(())
+          UserGenerator.agent(groupId = "A", credentialRole = "User")
+        )
+      ) shouldBe Valid(())
       GroupValidator.validate(
         Seq(
           UserGenerator.agent(groupId = "A", credentialRole = "Admin"),
-          UserGenerator.agent(groupId = "A", credentialRole = "Assistant"))) shouldBe Valid(())
+          UserGenerator.agent(groupId = "A", credentialRole = "Assistant")
+        )
+      ) shouldBe Valid(())
       GroupValidator.validate(
         Seq(
           UserGenerator.agent(groupId = "A", credentialRole = "Admin"),
           UserGenerator.agent(groupId = "A", credentialRole = "User"),
           UserGenerator.agent(groupId = "A", credentialRole = "Assistant")
-        )) shouldBe Valid(())
+        )
+      ) shouldBe Valid(())
 
       GroupValidator.validate(Seq(UserGenerator.individual(credentialRole = "User"))).isInvalid shouldBe true
     }
     "validate only if group have at most one Organisation" in {
       GroupValidator.validate(Seq(UserGenerator.organisation())) shouldBe Valid(())
-      GroupValidator.validate(Seq(UserGenerator.organisation(), UserGenerator.individual(credentialRole = "User"))) shouldBe Valid(
-        ())
-      GroupValidator.validate(Seq(UserGenerator.organisation(), UserGenerator.individual(credentialRole = "Assistant"))) shouldBe Valid(
-        ())
+      GroupValidator.validate(
+        Seq(UserGenerator.organisation(), UserGenerator.individual(credentialRole = "User"))
+      ) shouldBe Valid(())
+      GroupValidator.validate(
+        Seq(UserGenerator.organisation(), UserGenerator.individual(credentialRole = "Assistant"))
+      ) shouldBe Valid(())
 
       GroupValidator.validate(Seq(UserGenerator.organisation(), UserGenerator.organisation())).isInvalid shouldBe true
       GroupValidator
@@ -77,11 +86,12 @@ class GroupValidatorSpec extends UnitSpec {
         .isInvalid shouldBe true
     }
     "validate only if group is not only consisting of Assistants" in {
-      GroupValidator.validate(Seq(
-        UserGenerator.individual(credentialRole = "Admin"),
-        UserGenerator.individual(credentialRole = "Assistant"))) shouldBe Valid(())
-      GroupValidator.validate(Seq(UserGenerator.organisation(), UserGenerator.individual(credentialRole = "Assistant"))) shouldBe Valid(
-        ())
+      GroupValidator.validate(
+        Seq(UserGenerator.individual(credentialRole = "Admin"), UserGenerator.individual(credentialRole = "Assistant"))
+      ) shouldBe Valid(())
+      GroupValidator.validate(
+        Seq(UserGenerator.organisation(), UserGenerator.individual(credentialRole = "Assistant"))
+      ) shouldBe Valid(())
 
       GroupValidator
         .validate(Seq(UserGenerator.individual(credentialRole = "Assistant")))
@@ -90,14 +100,16 @@ class GroupValidatorSpec extends UnitSpec {
         .validate(
           Seq(
             UserGenerator.individual(credentialRole = "Assistant"),
-            UserGenerator.individual(credentialRole = "Assistant")))
+            UserGenerator.individual(credentialRole = "Assistant")
+          )
+        )
         .isInvalid shouldBe true
     }
     "validate if agents are not in the group with Organisation and Individuals" in {
       GroupValidator.validate(Seq(UserGenerator.agent(groupId = "A", credentialRole = "Admin"))) shouldBe Valid(())
-      GroupValidator.validate(Seq(
-        UserGenerator.agent(groupId = "A", credentialRole = "Admin"),
-        UserGenerator.agent(groupId = "A"))) shouldBe Valid(())
+      GroupValidator.validate(
+        Seq(UserGenerator.agent(groupId = "A", credentialRole = "Admin"), UserGenerator.agent(groupId = "A"))
+      ) shouldBe Valid(())
       GroupValidator.validate(Seq(UserGenerator.agent(credentialRole = "Admin"), User("foo"))) shouldBe Valid(())
 
       GroupValidator
@@ -118,7 +130,9 @@ class GroupValidatorSpec extends UnitSpec {
       GroupValidator.validate(
         Seq(
           UserGenerator.agent(groupId = "A", credentialRole = "Admin", agentCode = "A"),
-          UserGenerator.agent(groupId = "A", credentialRole = "User", agentCode = "A"))) shouldBe Valid(())
+          UserGenerator.agent(groupId = "A", credentialRole = "User", agentCode = "A")
+        )
+      ) shouldBe Valid(())
     }
   }
 

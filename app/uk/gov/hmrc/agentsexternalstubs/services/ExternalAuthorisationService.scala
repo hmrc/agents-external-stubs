@@ -29,13 +29,12 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 @Singleton
-class ExternalAuthorisationService @Inject()(usersService: UsersService, http: HttpPost, appConfig: AppConfig) {
+class ExternalAuthorisationService @Inject() (usersService: UsersService, http: HttpPost, appConfig: AppConfig) {
 
   final def maybeExternalSession(
     _planetId: String,
-    createNewAuthentication: AuthenticateRequest => Future[Option[AuthenticatedSession]])(
-    implicit ec: ExecutionContext,
-    hc: HeaderCarrier): Future[Option[AuthenticatedSession]] =
+    createNewAuthentication: AuthenticateRequest => Future[Option[AuthenticatedSession]]
+  )(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[Option[AuthenticatedSession]] =
     if (appConfig.isProxyMode) {
       Future.successful(None)
     } else {
@@ -94,65 +93,72 @@ class ExternalAuthorisationService @Inject()(usersService: UsersService, http: H
             )
             for {
               maybeSession <- createNewAuthentication(
-                               AuthenticateRequest(
-                                 sessionId = hc.sessionId.map(_.value).getOrElse(UUID.randomUUID().toString),
-                                 userId = userId,
-                                 password = "p@ssw0rd",
-                                 providerType = creds.providerType,
-                                 planetId = planetId,
-                                 authTokenOpt = hc.authorization.map(
-                                   a =>
-                                     BearerToken
-                                       .unapply(a.value)
-                                       .getOrElse(throw new IllegalStateException(
-                                         s"Unsupported authorization token format ${a.value}")))
-                               ))
+                                AuthenticateRequest(
+                                  sessionId = hc.sessionId.map(_.value).getOrElse(UUID.randomUUID().toString),
+                                  userId = userId,
+                                  password = "p@ssw0rd",
+                                  providerType = creds.providerType,
+                                  planetId = planetId,
+                                  authTokenOpt = hc.authorization.map(a =>
+                                    BearerToken
+                                      .unapply(a.value)
+                                      .getOrElse(
+                                        throw new IllegalStateException(
+                                          s"Unsupported authorization token format ${a.value}"
+                                        )
+                                      )
+                                  )
+                                )
+                              )
               _ <- maybeSession match {
-                    case Some(session) =>
-                      usersService.findByUserId(userId, planetId).flatMap {
-                        case Some(_) =>
-                          usersService
-                            .updateUser(session.userId, session.planetId, existing => merge(existing, user))
-                            .recover {
-                              case NonFatal(e) =>
-                                Logger(getClass).warn(
-                                  s"Creating user '$userId' on the planet '$planetId' failed with [$e] for an external authorisation ${Json
-                                    .prettyPrint(Json.toJson(response))} and headers ${report(hc)}")
-                                None
-                            }
-                            .andThen {
-                              case _ =>
-                                Logger(getClass).info(
-                                  s"Creating user '$userId' updated on the planet '$planetId' based on external authorisation ${Json
-                                    .prettyPrint(Json.toJson(response))} for headers ${report(hc)}")
-                            }
-                        case None =>
-                          (for {
-                            fixed <- usersService.checkAndFixUser(user, planetId)
-                            user  <- usersService.createUser(fixed.copy(session.userId), session.planetId)
-                            _ = Logger(getClass).info(
-                              s"Creating user '$userId' on the planet '$planetId' based on external authorisation ${Json
-                                .prettyPrint(Json.toJson(response))} for headers ${report(hc)}")
-                          } yield user)
-                            .recover {
-                              case NonFatal(e) =>
-                                Logger(getClass).warn(
-                                  s"Creating user '$userId' on the planet '$planetId' failed with [$e] for an external authorisation ${Json
-                                    .prettyPrint(Json.toJson(response))} and headers ${report(hc)}")
-                                None
-                            }
-                      }
-                    case _ =>
-                      Logger(getClass).warn(
-                        s"Creating user '$userId' on the planet '$planetId' failed for an external authorisation ${Json
-                          .prettyPrint(Json.toJson(response))} and headers ${report(hc)}")
-                      Future.successful(None)
-                  }
+                     case Some(session) =>
+                       usersService.findByUserId(userId, planetId).flatMap {
+                         case Some(_) =>
+                           usersService
+                             .updateUser(session.userId, session.planetId, existing => merge(existing, user))
+                             .recover { case NonFatal(e) =>
+                               Logger(getClass).warn(
+                                 s"Creating user '$userId' on the planet '$planetId' failed with [$e] for an external authorisation ${Json
+                                   .prettyPrint(Json.toJson(response))} and headers ${report(hc)}"
+                               )
+                               None
+                             }
+                             .andThen { case _ =>
+                               Logger(getClass).info(
+                                 s"Creating user '$userId' updated on the planet '$planetId' based on external authorisation ${Json
+                                   .prettyPrint(Json.toJson(response))} for headers ${report(hc)}"
+                               )
+                             }
+                         case None =>
+                           (for {
+                             fixed <- usersService.checkAndFixUser(user, planetId)
+                             user  <- usersService.createUser(fixed.copy(session.userId), session.planetId)
+                             _ =
+                               Logger(getClass).info(
+                                 s"Creating user '$userId' on the planet '$planetId' based on external authorisation ${Json
+                                   .prettyPrint(Json.toJson(response))} for headers ${report(hc)}"
+                               )
+                           } yield user)
+                             .recover { case NonFatal(e) =>
+                               Logger(getClass).warn(
+                                 s"Creating user '$userId' on the planet '$planetId' failed with [$e] for an external authorisation ${Json
+                                   .prettyPrint(Json.toJson(response))} and headers ${report(hc)}"
+                               )
+                               None
+                             }
+                       }
+                     case _ =>
+                       Logger(getClass).warn(
+                         s"Creating user '$userId' on the planet '$planetId' failed for an external authorisation ${Json
+                           .prettyPrint(Json.toJson(response))} and headers ${report(hc)}"
+                       )
+                       Future.successful(None)
+                   }
             } yield maybeSession
           case None => Future.successful(None)
         }
-        .recover {
-          case NonFatal(_) => None
+        .recover { case NonFatal(_) =>
+          None
         }
     }
 

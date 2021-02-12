@@ -70,10 +70,10 @@ object Predicate {
   implicit val writes: Writes[Seq[Predicate]] = new Writes[Seq[Predicate]] {
     override def writes(predicates: Seq[Predicate]): JsValue = {
       val objects = predicates
-        .map(p => {
+        .map { p =>
           val pf = predicateFormatByClass.getOrElse(p.getClass, throw new Exception())
           pf.format.writes(p)
-        })
+        }
       JsArray(objects)
     }
   }
@@ -87,8 +87,8 @@ abstract class PredicateFormat[P <: Predicate](val key: String)(implicit val tag
 case class EnrolmentPredicate(
   enrolment: String,
   identifiers: Option[Seq[Identifier]] = None,
-  delegatedAuthRule: Option[String] = None)
-    extends Predicate {
+  delegatedAuthRule: Option[String] = None
+) extends Predicate {
   override def validate(context: AuthoriseContext): Either[String, Unit] =
     (delegatedAuthRule, identifiers) match {
       case (Some(rule), Some(identifierSeq)) =>
@@ -103,7 +103,7 @@ case class EnrolmentPredicate(
             .collectFirst {
               case Enrolment(`enrolment`, ii, state)
                   if ii.nonEmpty && identifiersMatches(identifiers, ii) && state == Enrolment.ACTIVATED =>
-              case Enrolment(`enrolment`, ii, state) if ii.isEmpty && state == Enrolment.ACTIVATED      =>
+              case Enrolment(`enrolment`, ii, state) if ii.isEmpty && state == Enrolment.ACTIVATED =>
             }
             .map(_ => ())
             .toRight("InsufficientEnrolments")

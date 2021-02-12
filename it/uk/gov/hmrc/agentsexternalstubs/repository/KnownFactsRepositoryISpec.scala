@@ -47,7 +47,8 @@ class KnownFactsRepositoryISpec extends AppBaseISpec with MongoDB {
         KnownFacts(
           enrolmentKey = EnrolmentKey("IR-SA~UTR~1234567890"),
           verifiers = Seq(KnownFact("NINO", "AB123654X")),
-          planetId = Some(planetId))
+          planetId = Some(planetId)
+        )
       await(repo.upsert(knownFacts2, planetId))
 
       val result2 =

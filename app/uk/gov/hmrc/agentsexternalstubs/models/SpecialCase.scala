@@ -27,7 +27,8 @@ case class SpecialCase(
   requestMatch: SpecialCase.RequestMatch,
   response: SpecialCase.Response,
   planetId: Option[String] = None,
-  id: Option[Id] = None)
+  id: Option[Id] = None
+)
 
 object SpecialCase {
 
@@ -37,7 +38,8 @@ object SpecialCase {
     path: String,
     method: String = "GET",
     body: Option[String] = None,
-    contentType: Option[String] = None) {
+    contentType: Option[String] = None
+  ) {
 
     val toKey = SpecialCase.matchKey(method, path)
   }
@@ -65,10 +67,12 @@ object SpecialCase {
   val validate: Validator[SpecialCase] = Validator(
     check(
       _.requestMatch.method.isOneOf(Seq("GET", "POST", "PUT", "DELETE")),
-      "Request match method must be one of GET, POST, PUT or DELETE"),
+      "Request match method must be one of GET, POST, PUT or DELETE"
+    ),
     check(
       _.requestMatch.contentType.isOneOf(Seq("json", "form", "text")),
-      "Request match contentType must be one of json, form, text")
+      "Request match contentType must be one of json, form, text"
+    )
   )
 
   import play.api.libs.functional.syntax._

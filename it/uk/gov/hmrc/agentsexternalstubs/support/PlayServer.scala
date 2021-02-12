@@ -46,22 +46,20 @@ object PlayServer {
       .overrides(bind[Metrics].to[TestMetrics])
 
   def run(): Unit =
-    if (lock.tryLock()) try {
-      if (testServer.get() == null) {
-        print(s"Initializing Play Server at $port ... ")
-        val server = TestServer(port, app)
-        server.start()
-        val wsClient = app.injector.instanceOf[WSClient]
-        import scala.concurrent.duration._
-        Await.result(wsClient.url(s"http://localhost:$port/ping/ping").withRequestTimeout(5.seconds).get(), 5.seconds)
-        testServer.set(server)
-        Runtime.getRuntime.addShutdownHook(new Thread(new Runnable {
-          override def run(): Unit =
-            stop()
-        }))
-        println("ready.")
-      }
-    } finally { lock.unlock() }
+    if (lock.tryLock()) try if (testServer.get() == null) {
+      print(s"Initializing Play Server at $port ... ")
+      val server = TestServer(port, app)
+      server.start()
+      val wsClient = app.injector.instanceOf[WSClient]
+      import scala.concurrent.duration._
+      Await.result(wsClient.url(s"http://localhost:$port/ping/ping").withRequestTimeout(5.seconds).get(), 5.seconds)
+      testServer.set(server)
+      Runtime.getRuntime.addShutdownHook(new Thread(new Runnable {
+        override def run(): Unit =
+          stop()
+      }))
+      println("ready.")
+    } finally lock.unlock()
 
   def stop(): Unit = {
     print("Stopping Play Server ...")

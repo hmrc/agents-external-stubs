@@ -33,10 +33,11 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class SpecialCasesController @Inject()(
+class SpecialCasesController @Inject() (
   specialCasesRepository: SpecialCasesRepository,
   val authenticationService: AuthenticationService,
-  cc: ControllerComponents)(implicit materializer: Materializer, ec: ExecutionContext)
+  cc: ControllerComponents
+)(implicit materializer: Materializer, ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
   import SpecialCasesController._
@@ -61,29 +62,29 @@ class SpecialCasesController @Inject()(
 
   def createSpecialCase: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
-      withPayload[SpecialCase](
-        specialCase =>
-          specialCasesRepository
-            .upsert(specialCase.copy(planetId = None), session.planetId)
-            .map(id =>
-              Created(s"Special case $id has been created.")
-                .withHeaders(HeaderNames.LOCATION -> routes.SpecialCasesController.getSpecialCase(id).url))
+      withPayload[SpecialCase](specialCase =>
+        specialCasesRepository
+          .upsert(specialCase.copy(planetId = None), session.planetId)
+          .map(id =>
+            Created(s"Special case $id has been created.")
+              .withHeaders(HeaderNames.LOCATION -> routes.SpecialCasesController.getSpecialCase(id).url)
+          )
       )
     }(SessionRecordNotFound)
   }
 
   def updateSpecialCase(id: String): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
-      withPayload[SpecialCase](
-        specialCase =>
-          specialCasesRepository.findById(id, session.planetId).flatMap {
-            case None => notFoundF("NOT_FOUND")
-            case Some(_) =>
-              specialCasesRepository
-                .upsert(specialCase.copy(id = Some(Id(id)), planetId = None), session.planetId)
-                .map(id =>
-                  Accepted(s"Special case $id has been updated.")
-                    .withHeaders(HeaderNames.LOCATION -> routes.SpecialCasesController.getSpecialCase(id).url))
+      withPayload[SpecialCase](specialCase =>
+        specialCasesRepository.findById(id, session.planetId).flatMap {
+          case None => notFoundF("NOT_FOUND")
+          case Some(_) =>
+            specialCasesRepository
+              .upsert(specialCase.copy(id = Some(Id(id)), planetId = None), session.planetId)
+              .map(id =>
+                Accepted(s"Special case $id has been updated.")
+                  .withHeaders(HeaderNames.LOCATION -> routes.SpecialCasesController.getSpecialCase(id).url)
+              )
 
         }
       )

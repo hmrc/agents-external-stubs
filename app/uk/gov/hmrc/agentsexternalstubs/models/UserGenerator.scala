@@ -35,8 +35,9 @@ object UserGenerator {
 
   def nameForAgent(seed: String): String = nameForAgent(seed, seed)
 
-  val nameForAgentGen
-    : Gen[String] = for { f <- forename().suchThat(_.length > 0); s <- surname.suchThat(_.length > 0) } yield s"$f $s"
+  val nameForAgentGen: Gen[String] = for {
+    f <- forename().suchThat(_.length > 0); s <- surname.suchThat(_.length > 0)
+  } yield s"$f $s"
   def nameForAgent(userId: String, groupId: String): String =
     s"${forename().suchThat(_.length > 0).seeded(userId).getOrElse("Agent")} ${surname.suchThat(_.length > 0).seeded(groupId).getOrElse("Cooper")}"
 
@@ -62,16 +63,16 @@ object UserGenerator {
   val agencyNameGen: Gen[String] = for {
     ln <- surname
     suffix <- Gen.oneOf(
-               " Accountants",
-               " and Company",
-               " & Co",
-               " Professional Services",
-               " Accountancy",
-               " Chartered Accountants & Business Advisers",
-               " Group of Accountants",
-               " Professional",
-               " & " + ln
-             )
+                " Accountants",
+                " and Company",
+                " & Co",
+                " Professional Services",
+                " Accountancy",
+                " Chartered Accountants & Business Advisers",
+                " Group of Accountants",
+                " Professional",
+                " & " + ln
+              )
   } yield s"$ln$suffix"
   def agentFriendlyName(userId: String): String =
     agencyNameGen.seeded(userId + "_agent").get
@@ -83,7 +84,8 @@ object UserGenerator {
     nino: String = null,
     name: String = null,
     dateOfBirth: String = null,
-    groupId: String = null): User =
+    groupId: String = null
+  ): User =
     User(
       userId = userId,
       affinityGroup = Some(User.AG.Individual),
@@ -106,7 +108,8 @@ object UserGenerator {
     agentFriendlyName: String = null,
     agentId: String = null,
     delegatedEnrolments: Seq[Enrolment] = Seq.empty,
-    groupId: String = null): User = {
+    groupId: String = null
+  ): User = {
     val gid = Option(groupId).getOrElse(UserGenerator.groupId(userId))
     User(
       userId = userId,

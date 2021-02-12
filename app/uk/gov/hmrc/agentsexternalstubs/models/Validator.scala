@@ -29,7 +29,8 @@ object Validator {
     (entity: T) =>
       constraints
         .foldLeft[Validated[List[String], Unit]](Valid(()))((v, fx) =>
-          v.combine(fx(entity).leftMap(le => le.map(e => if (e.contains(" in ")) e else s"$e in $entity"))))
+          v.combine(fx(entity).leftMap(le => le.map(e => if (e.contains(" in ")) e else s"$e in $entity")))
+        )
 
   def alternatively[T](constraints: Validator[T]*): Validator[T] =
     (entity: T) =>
@@ -42,7 +43,8 @@ object Validator {
   def product[A, B, C](
     constraintA: Validator[A],
     constraintB: Validator[B],
-    constraintC: Validator[C]): Validator[(A, B, C)] =
+    constraintC: Validator[C]
+  ): Validator[(A, B, C)] =
     (entity: (A, B, C)) => constraintA(entity._1).combine(constraintB(entity._2)).combine(constraintC(entity._3))
 
   private type SimpleValidator[T] = T => Validated[String, Unit]
@@ -69,7 +71,8 @@ object Validator {
   def checkObjectIfSome[T, E](
     element: T => Option[E],
     validator: Validator[E],
-    isValidIfNone: Boolean = true): Validator[T] =
+    isValidIfNone: Boolean = true
+  ): Validator[T] =
     (entity: T) =>
       element(entity)
         .map(validator)
@@ -87,12 +90,14 @@ object Validator {
   def checkEachIfSome[T, E](
     extract: T => Option[Seq[E]],
     validator: Validator[E],
-    isValidIfNone: Boolean = true): Validator[T] =
+    isValidIfNone: Boolean = true
+  ): Validator[T] =
     (entity: T) =>
       extract(entity)
         .map(
           _.map(validator)
-            .foldLeft[Validated[List[String], Unit]](Valid(()))((a, b) => a.combine(b)))
+            .foldLeft[Validated[List[String], Unit]](Valid(()))((a, b) => a.combine(b))
+        )
         .getOrElse(if (isValidIfNone) Valid(()) else Invalid(List("Some sequence expected but got None")))
 
   def checkIfAtLeastOneIsDefined[T](alternatives: Seq[T => Option[Any]], expectations: String): Validator[T] =

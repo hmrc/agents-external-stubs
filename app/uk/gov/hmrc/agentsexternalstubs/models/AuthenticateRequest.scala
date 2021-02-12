@@ -22,4 +22,5 @@ case class AuthenticateRequest(
   password: String,
   providerType: String,
   planetId: String,
-  authTokenOpt: Option[String] = None)
+  authTokenOpt: Option[String] = None
+)

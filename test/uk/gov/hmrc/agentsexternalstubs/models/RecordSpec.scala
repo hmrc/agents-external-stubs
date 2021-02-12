@@ -33,7 +33,8 @@ class RecordSpec extends UnitSpec with PropertyChecks with ValidatedMatchers {
       refNumber = "012345678901234",
       idType = "none",
       active = true,
-      id = Some("abc"))
+      id = Some("abc")
+    )
 
   implicit val optionGenStrategy: Generator.OptionGenStrategy = Generator.AlwaysSome
 
@@ -44,8 +45,9 @@ class RecordSpec extends UnitSpec with PropertyChecks with ValidatedMatchers {
     "have json writes for RelationshipRecord" in {
       Json
         .toJson[Record](registrationEntity)
-        .toString() should (include("regime") and include("arn") and include("idType") and include("refNumber") and include(
-        "active") and include(Record.ID))
+        .toString() should (include("regime") and include("arn") and include("idType") and include(
+        "refNumber"
+      ) and include("active") and include(Record.ID))
     }
 
     "have json reads for RelationshipRecord" in {

@@ -14,13 +14,16 @@ class RelationshipRecordsServiceISpec extends AppBaseISpec with MongoDB {
     "find relationships by key" in {
       await(
         repo
-          .store(RelationshipRecord(regime = "A", arn = "B1", refNumber = "C1", idType = "D", active = true), "saturn"))
+          .store(RelationshipRecord(regime = "A", arn = "B1", refNumber = "C1", idType = "D", active = true), "saturn")
+      )
       await(
         repo
-          .store(RelationshipRecord(regime = "A", arn = "B2", refNumber = "C2", idType = "D", active = true), "saturn"))
+          .store(RelationshipRecord(regime = "A", arn = "B2", refNumber = "C2", idType = "D", active = true), "saturn")
+      )
       await(
         repo
-          .store(RelationshipRecord(regime = "B", arn = "B1", refNumber = "C1", idType = "D", active = true), "saturn"))
+          .store(RelationshipRecord(regime = "B", arn = "B1", refNumber = "C1", idType = "D", active = true), "saturn")
+      )
 
       val result = await(service.findByKey("A", "saturn"))
       result.size shouldBe 2
@@ -100,25 +103,47 @@ class RelationshipRecordsServiceISpec extends AppBaseISpec with MongoDB {
       val allOfAgent = await(
         service.findByQuery(
           RelationshipRecordQuery(regime = "R1", agent = true, arn = Some("A1"), idType = "D", activeOnly = false),
-          "pluto"))
+          "pluto"
+        )
+      )
       allOfAgent.size shouldBe 3
 
       val activeOfAgent = await(
         service.findByQuery(
           RelationshipRecordQuery(regime = "R1", agent = true, arn = Some("A1"), idType = "D", activeOnly = true),
-          "pluto"))
+          "pluto"
+        )
+      )
       activeOfAgent.size shouldBe 2
       activeOfAgent.map(_.refNumber) should contain.only("C2", "C3")
 
-      val allOfClient = await(service.findByQuery(
-        RelationshipRecordQuery(regime = "R1", agent = false, refNumber = Some("C1"), idType = "D", activeOnly = false),
-        "pluto"))
+      val allOfClient = await(
+        service.findByQuery(
+          RelationshipRecordQuery(
+            regime = "R1",
+            agent = false,
+            refNumber = Some("C1"),
+            idType = "D",
+            activeOnly = false
+          ),
+          "pluto"
+        )
+      )
       allOfClient.size shouldBe 2
       allOfClient.map(_.arn) should contain.only("A1", "A2")
 
-      val activeOfClient = await(service.findByQuery(
-        RelationshipRecordQuery(regime = "R1", agent = false, refNumber = Some("C1"), idType = "D", activeOnly = true),
-        "pluto"))
+      val activeOfClient = await(
+        service.findByQuery(
+          RelationshipRecordQuery(
+            regime = "R1",
+            agent = false,
+            refNumber = Some("C1"),
+            idType = "D",
+            activeOnly = true
+          ),
+          "pluto"
+        )
+      )
       activeOfClient.size shouldBe 1
       activeOfClient.map(_.arn) should contain.only("A2")
     }
@@ -127,19 +152,27 @@ class RelationshipRecordsServiceISpec extends AppBaseISpec with MongoDB {
       await(
         repo.store(
           RelationshipRecord("R1", "A1", "E", "C1", active = true, startDate = Some(LocalDate.parse("2002-01-01"))),
-          "uranus"))
+          "uranus"
+        )
+      )
       await(
         repo.store(
           RelationshipRecord("R1", "A1", "E", "C2", active = true, startDate = Some(LocalDate.parse("2002-06-15"))),
-          "uranus"))
+          "uranus"
+        )
+      )
       await(
         repo.store(
           RelationshipRecord("R1", "A1", "E", "C3", active = false, startDate = Some(LocalDate.parse("2001-05-15"))),
-          "uranus"))
+          "uranus"
+        )
+      )
       await(
         repo.store(
           RelationshipRecord("R1", "A1", "E", "C4", active = true, startDate = Some(LocalDate.parse("2000-01-31"))),
-          "uranus"))
+          "uranus"
+        )
+      )
 
       val recordsAfter = await(
         service.findByQuery(
@@ -149,8 +182,11 @@ class RelationshipRecordsServiceISpec extends AppBaseISpec with MongoDB {
             arn = Some("A1"),
             idType = "E",
             activeOnly = false,
-            from = Some(LocalDate.parse("2002-01-02"))),
-          "uranus"))
+            from = Some(LocalDate.parse("2002-01-02"))
+          ),
+          "uranus"
+        )
+      )
       recordsAfter.size shouldBe 1
       recordsAfter.map(_.refNumber) should contain.only("C2")
 
@@ -163,9 +199,11 @@ class RelationshipRecordsServiceISpec extends AppBaseISpec with MongoDB {
             idType = "E",
             activeOnly = false,
             from = Some(LocalDate.parse("2001-05-15")),
-            to = Some(LocalDate.parse("2002-01-01"))),
+            to = Some(LocalDate.parse("2002-01-01"))
+          ),
           "uranus"
-        ))
+        )
+      )
       recordsBetween.size shouldBe 2
       recordsBetween.map(_.refNumber) should contain.only("C1", "C3")
 
@@ -178,9 +216,11 @@ class RelationshipRecordsServiceISpec extends AppBaseISpec with MongoDB {
             idType = "E",
             activeOnly = true,
             from = Some(LocalDate.parse("2001-05-15")),
-            to = Some(LocalDate.parse("2002-01-01"))),
+            to = Some(LocalDate.parse("2002-01-01"))
+          ),
           "uranus"
-        ))
+        )
+      )
       allActiveIgnoreDates.size shouldBe 3
       allActiveIgnoreDates.map(_.refNumber) should contain.only("C1", "C2", "C4")
     }

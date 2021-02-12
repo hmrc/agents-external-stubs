@@ -46,10 +46,10 @@ class ServicesSpec extends UnitSpec with ValidatedMatchers {
     "have knownFacts generator and validator" in {
       forAll(Seq("foo", "bar", "baz", "zoo", "zig", "zag", "doc", "dot", "abc", "xyz")) { seed: String =>
         Services.services.foreach { s =>
-          s.knownFacts.foreach(kf => {
+          s.knownFacts.foreach { kf =>
             val value = Generator.get(kf.valueGenerator)(seed).get
             kf.validate(value).isRight shouldBe true
-          })
+          }
         }
       }
     }

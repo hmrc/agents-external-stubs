@@ -53,8 +53,8 @@ case class User(
       nino.map(n => User.ninoIndexKey(n.value)),
       credentialRole.find(_ == User.CR.Admin).flatMap(_ => agentCode.map(User.agentCodeIndexKey)),
       credentialRole.find(_ == User.CR.Admin).flatMap(_ => groupId.map(User.groupIdIndexKey))
-    ).collect {
-      case Some(x)                                                             => x
+    ).collect { case Some(x) =>
+      x
     } ++ principalEnrolments.map(_.toEnrolmentKeyTag).collect { case Some(key) => User.enrolmentIndexKey(key) }
 
   def lookupKeys: Seq[String] =
@@ -104,7 +104,8 @@ case class User(
     serviceName: String,
     identifierName1: String,
     identifierName2: String,
-    join: (String, String) => String): Option[String] =
+    join: (String, String) => String
+  ): Option[String] =
     for {
       enrolment <- principalEnrolments.find(_.key == serviceName)
       part1     <- enrolment.identifierValueOf(identifierName1)
@@ -134,7 +135,8 @@ object User {
     line3: Option[String] = None,
     line4: Option[String] = None,
     postcode: Option[String] = None,
-    countryCode: Option[String] = None) {
+    countryCode: Option[String] = None
+  ) {
 
     def isUKAddress: Boolean = countryCode.contains("GB")
 
@@ -210,7 +212,8 @@ object User {
 
     def withPrincipalEnrolment(enrolmentKey: String): User =
       withPrincipalEnrolment(
-        Enrolment.from(EnrolmentKey.parse(enrolmentKey).fold(e => throw new Exception(e), identity)))
+        Enrolment.from(EnrolmentKey.parse(enrolmentKey).fold(e => throw new Exception(e), identity))
+      )
 
     def withStrideRole(role: String): User = user.copy(strideRoles = user.strideRoles :+ role)
 
@@ -222,7 +225,8 @@ object User {
 
     def withDelegatedEnrolment(enrolmentKey: String): User =
       withDelegatedEnrolment(
-        Enrolment.from(EnrolmentKey.parse(enrolmentKey).fold(e => throw new Exception(e), identity)))
+        Enrolment.from(EnrolmentKey.parse(enrolmentKey).fold(e => throw new Exception(e), identity))
+      )
   }
 
   def userIdKey(userId: String): String = s"uid:$userId"
@@ -289,10 +293,9 @@ object User {
       "IREFFREGDATE"        -> vatRegDateOpt,
       "VATRegistrationDate" -> vatRegDateOpt,
       "CountryCode"         -> user.address.flatMap(_.countryCode)
-    ).collect {
-        case (a, Some(b)) => (a, b)
-      }
-      .toMap[String, String]
+    ).collect { case (a, Some(b)) =>
+      (a, b)
+    }.toMap[String, String]
   }
 
 }

@@ -30,22 +30,21 @@ object MongoDB extends Awaiting {
   val uri: String = s"mongodb://127.0.0.1:27017/$databaseName"
 
   def initializeMongo(app: Application): Unit =
-    if (lock.tryLock()) try {
-      if (!initialized.get()) {
-        print("Initializing MongoDB ... ")
-        val mongo = MongoConnector(
-          uri,
-          failoverStrategy = Some(FailoverStrategy.default),
-          dbTimeout = Some(FiniteDuration.apply(4000, "ms"))).db()
-        await(mongo.drop())
-        await(app.injector.instanceOf[AuthenticatedSessionsRepository].ensureIndexes)
-        await(app.injector.instanceOf[UsersRepositoryMongo].ensureIndexes)
-        await(app.injector.instanceOf[RecordsRepositoryMongo].ensureIndexes)
-        await(app.injector.instanceOf[KnownFactsRepositoryMongo].ensureIndexes)
-        await(app.injector.instanceOf[SpecialCasesRepositoryMongo].ensureIndexes)
-        initialized.set(true)
-        println("ready.")
-      }
-    } finally { lock.unlock() }
+    if (lock.tryLock()) try if (!initialized.get()) {
+      print("Initializing MongoDB ... ")
+      val mongo = MongoConnector(
+        uri,
+        failoverStrategy = Some(FailoverStrategy.default),
+        dbTimeout = Some(FiniteDuration.apply(4000, "ms"))
+      ).db()
+      await(mongo.drop())
+      await(app.injector.instanceOf[AuthenticatedSessionsRepository].ensureIndexes)
+      await(app.injector.instanceOf[UsersRepositoryMongo].ensureIndexes)
+      await(app.injector.instanceOf[RecordsRepositoryMongo].ensureIndexes)
+      await(app.injector.instanceOf[KnownFactsRepositoryMongo].ensureIndexes)
+      await(app.injector.instanceOf[SpecialCasesRepositoryMongo].ensureIndexes)
+      initialized.set(true)
+      println("ready.")
+    } finally lock.unlock()
 
 }

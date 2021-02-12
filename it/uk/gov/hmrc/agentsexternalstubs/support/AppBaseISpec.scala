@@ -7,7 +7,8 @@ import play.api.Application
 
 import scala.concurrent.ExecutionContext
 
-abstract class AppBaseISpec extends BaseISpec with ScalaFutures with JsonMatchers with WSResponseMatchers with BeforeAndAfterEach {
+abstract class AppBaseISpec
+    extends BaseISpec with ScalaFutures with JsonMatchers with WSResponseMatchers with BeforeAndAfterEach {
 
   override lazy val app: Application = PlayServer.app
   val port: Int = PlayServer.port

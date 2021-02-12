@@ -23,7 +23,9 @@ class SsoDomainControllerISpec extends ServerBaseISpec with TestRequests {
       "returns whitelisted domains" in {
         val response = SsoGetDomains.getDomains
         response.status shouldBe 200
-        Json.parse(response.body).toString shouldBe """{"internalDomains":["localhost"],"externalDomains":["127.0.0.1","online-qa.ibt.hmrc.gov.uk","ibt.hmrc.gov.uk"]}"""
+        Json
+          .parse(response.body)
+          .toString shouldBe """{"internalDomains":["localhost"],"externalDomains":["127.0.0.1","online-qa.ibt.hmrc.gov.uk","ibt.hmrc.gov.uk"]}"""
 
       }
     }

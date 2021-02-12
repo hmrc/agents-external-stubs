@@ -58,7 +58,8 @@ object Enrolment {
               .cond(
                 service.identifiers.size == identifiers.size,
                 (),
-                s"Expected ${service.identifiers.size} identifiers while got ${identifiers.size}")
+                s"Expected ${service.identifiers.size} identifiers while got ${identifiers.size}"
+              )
               .andThen(_ => identifiers.map(i => validateIdentifier(i, service)).reduce(_ combine _))
         }
     }
@@ -73,7 +74,8 @@ object Enrolment {
           .fold(
             _ =>
               Invalid(
-                s"Identifier's ${identifier.key} value does not match expected pattern ${serviceIdentifier.regex}"),
+                s"Identifier's ${identifier.key} value does not match expected pattern ${serviceIdentifier.regex}"
+              ),
             _ => Valid(())
           )
     }
@@ -83,7 +85,8 @@ object Enrolment {
   val reads: Reads[Enrolment] = ((JsPath \ "key").read[String] and
     (JsPath \ "identifiers").readNullable[Seq[Identifier]]
     and (JsPath \ "state").readNullable[String].map(_.getOrElse(Enrolment.ACTIVATED)))((k, ii, s) =>
-    Enrolment.apply(k, ii, s))
+    Enrolment.apply(k, ii, s)
+  )
 
   val writes: Writes[Enrolment] = Json.writes[Enrolment]
 

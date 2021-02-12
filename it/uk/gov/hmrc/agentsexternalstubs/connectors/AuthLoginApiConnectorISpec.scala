@@ -32,10 +32,12 @@ class AuthLoginApiConnectorISpec
                 .withHeader("Content-Type", "application/json")
                 .withHeader(HeaderNames.AUTHORIZATION, "Bearer foo123")
                 .withBody("""
-                            |{
-                            |  "gatewayToken": "some-gateway-token"
-                            |}
-                  """.stripMargin)))
+                  |{
+                  |  "gatewayToken": "some-gateway-token"
+                  |}
+                  """.stripMargin)
+            )
+        )
 
         val authLoginApiRequest = AuthLoginApi.Request(
           credId = "foo@bar",

@@ -20,8 +20,7 @@ import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json._
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord._
 
-/**
-  * ----------------------------------------------------------------------------
+/** ----------------------------------------------------------------------------
   * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
   * How to regenerate? Run this command in the project root directory:
   * sbt "test:runMain uk.gov.hmrc.agentsexternalstubs.RecordClassGeneratorFromJsonSchema docs/schemas/DES1171.json app/uk/gov/hmrc/agentsexternalstubs/models/BusinessDetailsRecord.scala BusinessDetailsRecord "
@@ -51,8 +50,9 @@ case class BusinessDetailsRecord(
     Seq(
       Option(nino).map(BusinessDetailsRecord.ninoKey),
       Option(mtdbsa).map(BusinessDetailsRecord.mtdbsaKey),
-      cgtPdRef.map(BusinessDetailsRecord.cgtPdRefKey)).collect {
-      case Some(x) => x
+      cgtPdRef.map(BusinessDetailsRecord.cgtPdRefKey)
+    ).collect { case Some(x) =>
+      x
     }
   override def withId(id: Option[String]): BusinessDetailsRecord = copy(id = id)
 
@@ -74,7 +74,8 @@ case class BusinessDetailsRecord(
   def withBusinessData(businessData: Option[Seq[BusinessData]]): BusinessDetailsRecord =
     copy(businessData = businessData)
   def modifyBusinessData(
-    pf: PartialFunction[Option[Seq[BusinessData]], Option[Seq[BusinessData]]]): BusinessDetailsRecord =
+    pf: PartialFunction[Option[Seq[BusinessData]], Option[Seq[BusinessData]]]
+  ): BusinessDetailsRecord =
     if (pf.isDefinedAt(businessData)) copy(businessData = pf(businessData)) else this
   def withPropertyData(propertyData: Option[PropertyData]): BusinessDetailsRecord = copy(propertyData = propertyData)
   def modifyPropertyData(pf: PartialFunction[Option[PropertyData], Option[PropertyData]]): BusinessDetailsRecord =
@@ -118,28 +119,29 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     mtdbsa         <- Generator.mtdbsaGen.suchThat(_.length >= 15).suchThat(_.length <= 16)
     cgtPdRef       <- Generator.cgtPdRefGen
     propertyIncome <- Generator.booleanGen
-  } yield
-    BusinessDetailsRecord(
-      safeId = safeId,
-      nino = nino,
-      mtdbsa = mtdbsa,
-      propertyIncome = propertyIncome,
-      cgtPdRef = Some(cgtPdRef)
-    )
+  } yield BusinessDetailsRecord(
+    safeId = safeId,
+    nino = nino,
+    mtdbsa = mtdbsa,
+    propertyIncome = propertyIncome,
+    cgtPdRef = Some(cgtPdRef)
+  )
 
   val businessDataSanitizer: Update = seed =>
     entity =>
       entity.copy(
         businessData = entity.businessData
           .orElse(Generator.get(Generator.nonEmptyListOfMaxN(1, BusinessData.gen))(seed))
-          .map(_.map(BusinessData.sanitize(seed))))
+          .map(_.map(BusinessData.sanitize(seed)))
+      )
 
   val propertyDataSanitizer: Update = seed =>
     entity =>
       entity.copy(
         propertyData = entity.propertyData
           .orElse(Generator.get(PropertyData.gen)(seed))
-          .map(PropertyData.sanitize(seed)))
+          .map(PropertyData.sanitize(seed))
+      )
 
   override val sanitizers: Seq[Update] = Seq(businessDataSanitizer, propertyDataSanitizer)
 
@@ -149,7 +151,8 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     phoneNumber: Option[String] = None,
     mobileNumber: Option[String] = None,
     faxNumber: Option[String] = None,
-    emailAddress: Option[String] = None) {
+    emailAddress: Option[String] = None
+  ) {
 
     def withPhoneNumber(phoneNumber: Option[String]): BusinessContactDetails = copy(phoneNumber = phoneNumber)
     def modifyPhoneNumber(pf: PartialFunction[Option[String], Option[String]]): BusinessContactDetails =
@@ -169,13 +172,16 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
 
     val phoneNumberValidator: Validator[Option[String]] = check(
       _.matches(Common.phoneNumberPattern),
-      s"""Invalid phoneNumber, does not matches regex ${Common.phoneNumberPattern}""")
+      s"""Invalid phoneNumber, does not matches regex ${Common.phoneNumberPattern}"""
+    )
     val mobileNumberValidator: Validator[Option[String]] = check(
       _.matches(Common.phoneNumberPattern),
-      s"""Invalid mobileNumber, does not matches regex ${Common.phoneNumberPattern}""")
+      s"""Invalid mobileNumber, does not matches regex ${Common.phoneNumberPattern}"""
+    )
     val faxNumberValidator: Validator[Option[String]] = check(
       _.matches(Common.phoneNumberPattern),
-      s"""Invalid faxNumber, does not matches regex ${Common.phoneNumberPattern}""")
+      s"""Invalid faxNumber, does not matches regex ${Common.phoneNumberPattern}"""
+    )
     val emailAddressValidator: Validator[Option[String]] =
       check(_.lengthMinMaxInclusive(3, 132), "Invalid length of emailAddress, should be between 3 and 132 inclusive")
 
@@ -187,35 +193,39 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     )
 
     override val gen: Gen[BusinessContactDetails] = Gen const BusinessContactDetails(
-      )
+    )
 
     val phoneNumberSanitizer: Update = seed =>
       entity =>
         entity.copy(
           phoneNumber = phoneNumberValidator(entity.phoneNumber)
             .fold(_ => None, _ => entity.phoneNumber)
-            .orElse(Generator.get(Generator.ukPhoneNumber.suchThat(_.length >= 1).suchThat(_.length <= 24))(seed)))
+            .orElse(Generator.get(Generator.ukPhoneNumber.suchThat(_.length >= 1).suchThat(_.length <= 24))(seed))
+        )
 
     val mobileNumberSanitizer: Update = seed =>
       entity =>
         entity.copy(
           mobileNumber = mobileNumberValidator(entity.mobileNumber)
             .fold(_ => None, _ => entity.mobileNumber)
-            .orElse(Generator.get(Generator.ukPhoneNumber.suchThat(_.length >= 1).suchThat(_.length <= 24))(seed)))
+            .orElse(Generator.get(Generator.ukPhoneNumber.suchThat(_.length >= 1).suchThat(_.length <= 24))(seed))
+        )
 
     val faxNumberSanitizer: Update = seed =>
       entity =>
         entity.copy(
           faxNumber = faxNumberValidator(entity.faxNumber)
             .fold(_ => None, _ => entity.faxNumber)
-            .orElse(Generator.get(Generator.ukPhoneNumber.suchThat(_.length >= 1).suchThat(_.length <= 24))(seed)))
+            .orElse(Generator.get(Generator.ukPhoneNumber.suchThat(_.length >= 1).suchThat(_.length <= 24))(seed))
+        )
 
     val emailAddressSanitizer: Update = seed =>
       entity =>
         entity.copy(
           emailAddress = emailAddressValidator(entity.emailAddress)
             .fold(_ => None, _ => entity.emailAddress)
-            .orElse(Generator.get(Generator.emailGen.suchThat(_.length >= 3).suchThat(_.length <= 132))(seed)))
+            .orElse(Generator.get(Generator.emailGen.suchThat(_.length >= 3).suchThat(_.length <= 132))(seed))
+        )
 
     override val sanitizers: Seq[Update] =
       Seq(phoneNumberSanitizer, mobileNumberSanitizer, faxNumberSanitizer, emailAddressSanitizer)
@@ -236,7 +246,8 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     seasonal: Boolean = false,
     cessationDate: Option[String] = None,
     cessationReason: Option[String] = None,
-    paperLess: Boolean = false) {
+    paperLess: Boolean = false
+  ) {
 
     def withIncomeSourceId(incomeSourceId: String): BusinessData = copy(incomeSourceId = incomeSourceId)
     def modifyIncomeSourceId(pf: PartialFunction[String, String]): BusinessData =
@@ -256,13 +267,14 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     def withBusinessAddressDetails(businessAddressDetails: Option[BusinessData.BusinessAddressDetails]): BusinessData =
       copy(businessAddressDetails = businessAddressDetails)
     def modifyBusinessAddressDetails(
-      pf: PartialFunction[Option[BusinessData.BusinessAddressDetails], Option[BusinessData.BusinessAddressDetails]])
-      : BusinessData =
+      pf: PartialFunction[Option[BusinessData.BusinessAddressDetails], Option[BusinessData.BusinessAddressDetails]]
+    ): BusinessData =
       if (pf.isDefinedAt(businessAddressDetails)) copy(businessAddressDetails = pf(businessAddressDetails)) else this
     def withBusinessContactDetails(businessContactDetails: Option[BusinessContactDetails]): BusinessData =
       copy(businessContactDetails = businessContactDetails)
     def modifyBusinessContactDetails(
-      pf: PartialFunction[Option[BusinessContactDetails], Option[BusinessContactDetails]]): BusinessData =
+      pf: PartialFunction[Option[BusinessContactDetails], Option[BusinessContactDetails]]
+    ): BusinessData =
       if (pf.isDefinedAt(businessContactDetails)) copy(businessContactDetails = pf(businessContactDetails)) else this
     def withTradingStartDate(tradingStartDate: Option[String]): BusinessData = copy(tradingStartDate = tradingStartDate)
     def modifyTradingStartDate(pf: PartialFunction[Option[String], Option[String]]): BusinessData =
@@ -304,12 +316,14 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
       checkIfSome(identity, BusinessContactDetails.validate)
     val tradingStartDateValidator: Validator[Option[String]] = check(
       _.matches(Common.accountingPeriodStartDatePattern),
-      s"""Invalid tradingStartDate, does not matches regex ${Common.accountingPeriodStartDatePattern}""")
+      s"""Invalid tradingStartDate, does not matches regex ${Common.accountingPeriodStartDatePattern}"""
+    )
     val cashOrAccrualsValidator: Validator[Option[String]] =
       check(_.isOneOf(Common.cashOrAccrualsEnum), "Invalid cashOrAccruals, does not match allowed values")
     val cessationDateValidator: Validator[Option[String]] = check(
       _.matches(Common.accountingPeriodStartDatePattern),
-      s"""Invalid cessationDate, does not matches regex ${Common.accountingPeriodStartDatePattern}""")
+      s"""Invalid cessationDate, does not matches regex ${Common.accountingPeriodStartDatePattern}"""
+    )
     val cessationReasonValidator: Validator[Option[String]] =
       check(_.isOneOf(Common.cessationReasonEnum), "Invalid cessationReason, does not match allowed values")
 
@@ -332,63 +346,69 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
       accountingPeriodEndDate   <- Generator.dateYYYYMMDDGen.variant("accountingperiodend")
       seasonal                  <- Generator.booleanGen
       paperLess                 <- Generator.booleanGen
-    } yield
-      BusinessData(
-        incomeSourceId = incomeSourceId,
-        accountingPeriodStartDate = accountingPeriodStartDate,
-        accountingPeriodEndDate = accountingPeriodEndDate,
-        seasonal = seasonal,
-        paperLess = paperLess
-      )
+    } yield BusinessData(
+      incomeSourceId = incomeSourceId,
+      accountingPeriodStartDate = accountingPeriodStartDate,
+      accountingPeriodEndDate = accountingPeriodEndDate,
+      seasonal = seasonal,
+      paperLess = paperLess
+    )
 
     val tradingNameSanitizer: Update = seed =>
       entity =>
         entity.copy(
           tradingName = tradingNameValidator(entity.tradingName)
             .fold(_ => None, _ => entity.tradingName)
-            .orElse(Generator.get(Generator.tradingNameGen.suchThat(_.length >= 1).suchThat(_.length <= 105))(seed)))
+            .orElse(Generator.get(Generator.tradingNameGen.suchThat(_.length >= 1).suchThat(_.length <= 105))(seed))
+        )
 
     val businessAddressDetailsSanitizer: Update = seed =>
       entity =>
         entity.copy(
           businessAddressDetails = businessAddressDetailsValidator(entity.businessAddressDetails)
             .fold(_ => None, _ => entity.businessAddressDetails)
-            .orElse(Generator.get(BusinessAddressDetails.gen)(seed)))
+            .orElse(Generator.get(BusinessAddressDetails.gen)(seed))
+        )
 
     val businessContactDetailsSanitizer: Update = seed =>
       entity =>
         entity.copy(
           businessContactDetails = entity.businessContactDetails
             .orElse(Generator.get(BusinessContactDetails.gen)(seed))
-            .map(BusinessContactDetails.sanitize(seed)))
+            .map(BusinessContactDetails.sanitize(seed))
+        )
 
     val tradingStartDateSanitizer: Update = seed =>
       entity =>
         entity.copy(
           tradingStartDate = tradingStartDateValidator(entity.tradingStartDate)
             .fold(_ => None, _ => entity.tradingStartDate)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("tradingstart"))(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("tradingstart"))(seed))
+        )
 
     val cashOrAccrualsSanitizer: Update = seed =>
       entity =>
         entity.copy(
           cashOrAccruals = cashOrAccrualsValidator(entity.cashOrAccruals)
             .fold(_ => None, _ => entity.cashOrAccruals)
-            .orElse(Generator.get(Gen.oneOf(Common.cashOrAccrualsEnum))(seed)))
+            .orElse(Generator.get(Gen.oneOf(Common.cashOrAccrualsEnum))(seed))
+        )
 
     val cessationDateSanitizer: Update = seed =>
       entity =>
         entity.copy(
           cessationDate = cessationDateValidator(entity.cessationDate)
             .fold(_ => None, _ => entity.cessationDate)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("cessation"))(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("cessation"))(seed))
+        )
 
     val cessationReasonSanitizer: Update = seed =>
       entity =>
         entity.copy(
           cessationReason = cessationReasonValidator(entity.cessationReason)
             .fold(_ => None, _ => entity.cessationReason)
-            .orElse(Generator.get(Gen.oneOf(Common.cessationReasonEnum))(seed)))
+            .orElse(Generator.get(Gen.oneOf(Common.cessationReasonEnum))(seed))
+        )
 
     override val sanitizers: Seq[Update] = Seq(
       tradingNameSanitizer,
@@ -419,7 +439,8 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
 
       override val gen: Gen[BusinessAddressDetails] = Gen.oneOf[BusinessAddressDetails](
         UkAddress.gen.map(_.asInstanceOf[BusinessAddressDetails]),
-        ForeignAddress.gen.map(_.asInstanceOf[BusinessAddressDetails]))
+        ForeignAddress.gen.map(_.asInstanceOf[BusinessAddressDetails])
+      )
 
       val sanitizer: Update = seed => {
         case x: UkAddress      => UkAddress.sanitize(seed)(x)
@@ -434,13 +455,17 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
           val r1 = r0.orElse(
             ForeignAddress.formats
               .reads(json)
-              .flatMap(e => ForeignAddress.validate(e).fold(_ => JsError(), _ => JsSuccess(e))))
+              .flatMap(e => ForeignAddress.validate(e).fold(_ => JsError(), _ => JsSuccess(e)))
+          )
           r1.orElse(
             aggregateErrors(
               JsError(
-                "Could not match json object to any variant of BusinessAddressDetails, i.e. UkAddress, ForeignAddress"),
+                "Could not match json object to any variant of BusinessAddressDetails, i.e. UkAddress, ForeignAddress"
+              ),
               r0,
-              r1))
+              r1
+            )
+          )
         }
 
         private def aggregateErrors[T](errors: JsResult[T]*): JsError =
@@ -448,7 +473,8 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
             r match {
               case e: JsError => JsError(a.errors ++ e.errors)
               case _          => a
-          })
+            }
+          )
       }
 
       implicit val writes: Writes[BusinessAddressDetails] = new Writes[BusinessAddressDetails] {
@@ -468,8 +494,8 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     override val addressLine3: Option[String] = None,
     override val addressLine4: Option[String] = None,
     postalCode: Option[String] = None,
-    override val countryCode: String)
-      extends BusinessData.BusinessAddressDetails {
+    override val countryCode: String
+  ) extends BusinessData.BusinessAddressDetails {
 
     def withAddressLine1(addressLine1: String): ForeignAddress = copy(addressLine1 = addressLine1)
     def modifyAddressLine1(pf: PartialFunction[String, String]): ForeignAddress =
@@ -518,42 +544,51 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     override val gen: Gen[ForeignAddress] = for {
       addressLine1 <- Generator.address4Lines35Gen.map(_.line1).suchThat(_.length >= 1).suchThat(_.length <= 35)
       countryCode  <- Gen.oneOf(Common.countryCodeEnum0)
-    } yield
-      ForeignAddress(
-        addressLine1 = addressLine1,
-        countryCode = countryCode
-      )
+    } yield ForeignAddress(
+      addressLine1 = addressLine1,
+      countryCode = countryCode
+    )
 
     val addressLine2Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           addressLine2 = addressLine2Validator(entity.addressLine2)
             .fold(_ => None, _ => entity.addressLine2)
-            .orElse(Generator.get(
-              Generator.address4Lines35Gen.map(_.line2).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
+            .orElse(
+              Generator
+                .get(Generator.address4Lines35Gen.map(_.line2).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)
+            )
+        )
 
     val addressLine3Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           addressLine3 = addressLine3Validator(entity.addressLine3)
             .fold(_ => None, _ => entity.addressLine3)
-            .orElse(Generator.get(
-              Generator.address4Lines35Gen.map(_.line3).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
+            .orElse(
+              Generator
+                .get(Generator.address4Lines35Gen.map(_.line3).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)
+            )
+        )
 
     val addressLine4Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           addressLine4 = addressLine4Validator(entity.addressLine4)
             .fold(_ => None, _ => entity.addressLine4)
-            .orElse(Generator.get(
-              Generator.address4Lines35Gen.map(_.line4).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
+            .orElse(
+              Generator
+                .get(Generator.address4Lines35Gen.map(_.line4).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)
+            )
+        )
 
     val postalCodeSanitizer: Update = seed =>
       entity =>
         entity.copy(
           postalCode = postalCodeValidator(entity.postalCode)
             .fold(_ => None, _ => entity.postalCode)
-            .orElse(Generator.get(Generator.postcode.suchThat(_.length >= 1).suchThat(_.length <= 10))(seed)))
+            .orElse(Generator.get(Generator.postcode.suchThat(_.length >= 1).suchThat(_.length <= 10))(seed))
+        )
 
     override val sanitizers: Seq[Update] =
       Seq(addressLine2Sanitizer, addressLine3Sanitizer, addressLine4Sanitizer, postalCodeSanitizer)
@@ -573,7 +608,8 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     emailAddress: Option[String] = None,
     cessationDate: Option[String] = None,
     cessationReason: Option[String] = None,
-    paperLess: Boolean = false) {
+    paperLess: Boolean = false
+  ) {
 
     def withIncomeSourceId(incomeSourceId: String): PropertyData = copy(incomeSourceId = incomeSourceId)
     def modifyIncomeSourceId(pf: PartialFunction[String, String]): PropertyData =
@@ -628,21 +664,26 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     )
     val numPropRentedValidator: Validator[Option[String]] = check(
       _.matches(Common.numPropRentedPattern),
-      s"""Invalid numPropRented, does not matches regex ${Common.numPropRentedPattern}""")
+      s"""Invalid numPropRented, does not matches regex ${Common.numPropRentedPattern}"""
+    )
     val numPropRentedUKValidator: Validator[Option[String]] = check(
       _.matches(Common.numPropRentedPattern),
-      s"""Invalid numPropRentedUK, does not matches regex ${Common.numPropRentedPattern}""")
+      s"""Invalid numPropRentedUK, does not matches regex ${Common.numPropRentedPattern}"""
+    )
     val numPropRentedEEAValidator: Validator[Option[String]] = check(
       _.matches(Common.numPropRentedPattern),
-      s"""Invalid numPropRentedEEA, does not matches regex ${Common.numPropRentedPattern}""")
+      s"""Invalid numPropRentedEEA, does not matches regex ${Common.numPropRentedPattern}"""
+    )
     val numPropRentedNONEEAValidator: Validator[Option[String]] = check(
       _.matches(Common.numPropRentedPattern),
-      s"""Invalid numPropRentedNONEEA, does not matches regex ${Common.numPropRentedPattern}""")
+      s"""Invalid numPropRentedNONEEA, does not matches regex ${Common.numPropRentedPattern}"""
+    )
     val emailAddressValidator: Validator[Option[String]] =
       check(_.lengthMinMaxInclusive(3, 132), "Invalid length of emailAddress, should be between 3 and 132 inclusive")
     val cessationDateValidator: Validator[Option[String]] = check(
       _.matches(Common.accountingPeriodStartDatePattern),
-      s"""Invalid cessationDate, does not matches regex ${Common.accountingPeriodStartDatePattern}""")
+      s"""Invalid cessationDate, does not matches regex ${Common.accountingPeriodStartDatePattern}"""
+    )
     val cessationReasonValidator: Validator[Option[String]] =
       check(_.isOneOf(Common.cessationReasonEnum), "Invalid cessationReason, does not match allowed values")
 
@@ -664,62 +705,68 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
       accountingPeriodStartDate <- Generator.dateYYYYMMDDGen.variant("accountingperiodstart")
       accountingPeriodEndDate   <- Generator.dateYYYYMMDDGen.variant("accountingperiodend")
       paperLess                 <- Generator.booleanGen
-    } yield
-      PropertyData(
-        incomeSourceId = incomeSourceId,
-        accountingPeriodStartDate = accountingPeriodStartDate,
-        accountingPeriodEndDate = accountingPeriodEndDate,
-        paperLess = paperLess
-      )
+    } yield PropertyData(
+      incomeSourceId = incomeSourceId,
+      accountingPeriodStartDate = accountingPeriodStartDate,
+      accountingPeriodEndDate = accountingPeriodEndDate,
+      paperLess = paperLess
+    )
 
     val numPropRentedSanitizer: Update = seed =>
       entity =>
         entity.copy(
           numPropRented = numPropRentedValidator(entity.numPropRented)
             .fold(_ => None, _ => entity.numPropRented)
-            .orElse(Generator.get(Generator.regex(Common.numPropRentedPattern))(seed)))
+            .orElse(Generator.get(Generator.regex(Common.numPropRentedPattern))(seed))
+        )
 
     val numPropRentedUKSanitizer: Update = seed =>
       entity =>
         entity.copy(
           numPropRentedUK = numPropRentedUKValidator(entity.numPropRentedUK)
             .fold(_ => None, _ => entity.numPropRentedUK)
-            .orElse(Generator.get(Generator.regex(Common.numPropRentedPattern))(seed)))
+            .orElse(Generator.get(Generator.regex(Common.numPropRentedPattern))(seed))
+        )
 
     val numPropRentedEEASanitizer: Update = seed =>
       entity =>
         entity.copy(
           numPropRentedEEA = numPropRentedEEAValidator(entity.numPropRentedEEA)
             .fold(_ => None, _ => entity.numPropRentedEEA)
-            .orElse(Generator.get(Generator.regex(Common.numPropRentedPattern))(seed)))
+            .orElse(Generator.get(Generator.regex(Common.numPropRentedPattern))(seed))
+        )
 
     val numPropRentedNONEEASanitizer: Update = seed =>
       entity =>
         entity.copy(
           numPropRentedNONEEA = numPropRentedNONEEAValidator(entity.numPropRentedNONEEA)
             .fold(_ => None, _ => entity.numPropRentedNONEEA)
-            .orElse(Generator.get(Generator.regex(Common.numPropRentedPattern))(seed)))
+            .orElse(Generator.get(Generator.regex(Common.numPropRentedPattern))(seed))
+        )
 
     val emailAddressSanitizer: Update = seed =>
       entity =>
         entity.copy(
           emailAddress = emailAddressValidator(entity.emailAddress)
             .fold(_ => None, _ => entity.emailAddress)
-            .orElse(Generator.get(Generator.emailGen.suchThat(_.length >= 3).suchThat(_.length <= 132))(seed)))
+            .orElse(Generator.get(Generator.emailGen.suchThat(_.length >= 3).suchThat(_.length <= 132))(seed))
+        )
 
     val cessationDateSanitizer: Update = seed =>
       entity =>
         entity.copy(
           cessationDate = cessationDateValidator(entity.cessationDate)
             .fold(_ => None, _ => entity.cessationDate)
-            .orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("cessation"))(seed)))
+            .orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("cessation"))(seed))
+        )
 
     val cessationReasonSanitizer: Update = seed =>
       entity =>
         entity.copy(
           cessationReason = cessationReasonValidator(entity.cessationReason)
             .fold(_ => None, _ => entity.cessationReason)
-            .orElse(Generator.get(Gen.oneOf(Common.cessationReasonEnum))(seed)))
+            .orElse(Generator.get(Gen.oneOf(Common.cessationReasonEnum))(seed))
+        )
 
     override val sanitizers: Seq[Update] = Seq(
       numPropRentedSanitizer,
@@ -741,8 +788,8 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     override val addressLine3: Option[String] = None,
     override val addressLine4: Option[String] = None,
     postalCode: String,
-    override val countryCode: String)
-      extends BusinessData.BusinessAddressDetails {
+    override val countryCode: String
+  ) extends BusinessData.BusinessAddressDetails {
 
     def withAddressLine1(addressLine1: String): UkAddress = copy(addressLine1 = addressLine1)
     def modifyAddressLine1(pf: PartialFunction[String, String]): UkAddress =
@@ -792,36 +839,44 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
       addressLine1 <- Generator.address4Lines35Gen.map(_.line1).suchThat(_.length >= 1).suchThat(_.length <= 35)
       postalCode   <- Generator.postcode.suchThat(_.length >= 1).suchThat(_.length <= 10)
       countryCode  <- Gen.const("GB")
-    } yield
-      UkAddress(
-        addressLine1 = addressLine1,
-        postalCode = postalCode,
-        countryCode = countryCode
-      )
+    } yield UkAddress(
+      addressLine1 = addressLine1,
+      postalCode = postalCode,
+      countryCode = countryCode
+    )
 
     val addressLine2Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           addressLine2 = addressLine2Validator(entity.addressLine2)
             .fold(_ => None, _ => entity.addressLine2)
-            .orElse(Generator.get(
-              Generator.address4Lines35Gen.map(_.line2).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
+            .orElse(
+              Generator
+                .get(Generator.address4Lines35Gen.map(_.line2).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)
+            )
+        )
 
     val addressLine3Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           addressLine3 = addressLine3Validator(entity.addressLine3)
             .fold(_ => None, _ => entity.addressLine3)
-            .orElse(Generator.get(
-              Generator.address4Lines35Gen.map(_.line3).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
+            .orElse(
+              Generator
+                .get(Generator.address4Lines35Gen.map(_.line3).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)
+            )
+        )
 
     val addressLine4Sanitizer: Update = seed =>
       entity =>
         entity.copy(
           addressLine4 = addressLine4Validator(entity.addressLine4)
             .fold(_ => None, _ => entity.addressLine4)
-            .orElse(Generator.get(
-              Generator.address4Lines35Gen.map(_.line4).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)))
+            .orElse(
+              Generator
+                .get(Generator.address4Lines35Gen.map(_.line4).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)
+            )
+        )
 
     override val sanitizers: Seq[Update] = Seq(addressLine2Sanitizer, addressLine3Sanitizer, addressLine4Sanitizer)
 

@@ -27,18 +27,18 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpGet, HttpPost, HttpResponse}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class AuthLoginApiConnector @Inject()(appConfig: AppConfig, http: HttpPost with HttpGet) {
+class AuthLoginApiConnector @Inject() (appConfig: AppConfig, http: HttpPost with HttpGet) {
 
-  def loginToGovernmentGateway(authLoginApiRequest: AuthLoginApi.Request)(
-    implicit c: HeaderCarrier,
-    ec: ExecutionContext): Future[AuthLoginApi.Response] = {
+  def loginToGovernmentGateway(
+    authLoginApiRequest: AuthLoginApi.Request
+  )(implicit c: HeaderCarrier, ec: ExecutionContext): Future[AuthLoginApi.Response] = {
     val url = new URL(appConfig.authLoginApiUrl + s"/government-gateway/session/login")
     for {
       response <- http.POST[AuthLoginApi.Request, HttpResponse](url.toString, authLoginApiRequest)
       token <- response.header(HeaderNames.AUTHORIZATION) match {
-                case None        => Future.failed(new Exception("Authorization header expected but missing"))
-                case Some(token) => Future.successful(token)
-              }
+                 case None        => Future.failed(new Exception("Authorization header expected but missing"))
+                 case Some(token) => Future.successful(token)
+               }
     } yield AuthLoginApi.Response(token)
 
   }

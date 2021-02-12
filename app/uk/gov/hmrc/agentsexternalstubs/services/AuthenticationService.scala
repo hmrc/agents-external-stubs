@@ -30,21 +30,22 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 @Singleton
-class AuthenticationService @Inject()(
+class AuthenticationService @Inject() (
   authSessionRepository: AuthenticatedSessionsRepository,
   externalAuthorisationService: ExternalAuthorisationService,
-  userService: UsersService) {
+  userService: UsersService
+) {
 
   private val authenticatedSessionCache =
     new AsyncCache[String, AuthenticatedSession](
       maximumSize = 1000000,
       expireAfterWrite = Some(5.minutes),
-      keys = as => Seq(as.authToken, as.sessionId))
+      keys = as => Seq(as.authToken, as.sessionId)
+    )
 
-  def findByAuthTokenOrLookupExternal(authToken: String)(
-    implicit ec: ExecutionContext,
-    hc: HeaderCarrier,
-    request: Request[_]): Future[Option[AuthenticatedSession]] =
+  def findByAuthTokenOrLookupExternal(
+    authToken: String
+  )(implicit ec: ExecutionContext, hc: HeaderCarrier, request: Request[_]): Future[Option[AuthenticatedSession]] =
     authenticatedSessionCache.getOption(
       authToken,
       authSessionRepository.findByAuthToken(authToken).flatMap {
@@ -64,18 +65,18 @@ class AuthenticationService @Inject()(
   def findByPlanetId(planetId: String)(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
     authSessionRepository.findByPlanetId(planetId)
 
-  def authenticate(request: AuthenticateRequest)(
-    implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] = {
+  def authenticate(
+    request: AuthenticateRequest
+  )(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] = {
     val authToken = request.authTokenOpt.getOrElse(UUID.randomUUID().toString)
     val authenticatedSession =
       AuthenticatedSession(request.sessionId, request.userId, authToken, request.providerType, request.planetId)
     (for {
       _ <- authSessionRepository.create(authenticatedSession)
       _ <- authenticatedSessionCache.put(authenticatedSession)
-    } yield Some(authenticatedSession)).recover {
-      case NonFatal(e) =>
-        Logger(getClass).warn(s"Could not create new authorised session ${e.getMessage}")
-        None
+    } yield Some(authenticatedSession)).recover { case NonFatal(e) =>
+      Logger(getClass).warn(s"Could not create new authorised session ${e.getMessage}")
+      None
     }
   }
 

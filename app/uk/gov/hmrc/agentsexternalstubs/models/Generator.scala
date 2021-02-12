@@ -105,9 +105,8 @@ object Generator extends Names with Temporal with Companies with Addresses {
 
     private def calcCheckSum97(total: Int): String = {
       var x = total
-      while (x >= 0) {
+      while (x >= 0)
         x = x - 97
-      }
       if (x > -10) s"0${-x}" else (-x).toString
     }
 
@@ -141,7 +140,8 @@ object Generator extends Names with Temporal with Companies with Addresses {
       .chooseNum[Double](min.toDouble, max.toDouble)
       .map(BigDecimal.decimal)
       .map(bd =>
-        bd.quot(multipleOf.map(BigDecimal.decimal).getOrElse(1)) * multipleOf.map(BigDecimal.decimal).getOrElse(1))
+        bd.quot(multipleOf.map(BigDecimal.decimal).getOrElse(1)) * multipleOf.map(BigDecimal.decimal).getOrElse(1)
+      )
 
   object Modulus32 extends Modulus23Check {
     def apply(s: String) = calculateCheckCharacter(s) + s
@@ -185,13 +185,12 @@ object Generator extends Names with Temporal with Companies with Addresses {
 
   case class Address4Lines35(line1: String, line2: String, line3: String, line4: String)
   lazy val address4Lines35Gen: Gen[Address4Lines35] = surname
-    .flatMap(
-      s =>
-        ukAddress
-          .map {
-            case street :: town :: postcode :: Nil =>
-              Address4Lines35(street.take(35).replace(";", " "), s"The $s House".take(35), town.take(35), postcode)
-        })
+    .flatMap(s =>
+      ukAddress
+        .map { case street :: town :: postcode :: Nil =>
+          Address4Lines35(street.take(35).replace(";", " "), s"The $s House".take(35), town.take(35), postcode)
+        }
+    )
     .suchThat(_.line1.matches("""^[A-Za-z0-9 \-,.&'\/()!]{1,35}$"""))
 
   lazy val tradingNameGen: Gen[String] = company

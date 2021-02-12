@@ -24,7 +24,8 @@ class AsyncCache[K, V](
   maximumSize: Int,
   expireAfterWrite: Option[Duration] = None,
   expireAfterAccess: Option[Duration] = None,
-  keys: V => Seq[K]) {
+  keys: V => Seq[K]
+) {
 
   private val cache = {
     val s = Scaffeine().maximumSize(maximumSize)
@@ -37,10 +38,10 @@ class AsyncCache[K, V](
     cache.getIfPresent(key) match {
       case Some(value) => Future.successful[V](value)
       case None =>
-        load.map(value => {
+        load.map { value =>
           keys(value).foreach(cache.put(_, value))
           value
-        })
+        }
     }
 
   def getOption(key: K, load: => Future[Option[V]])(implicit ec: ExecutionContext): Future[Option[V]] =
@@ -48,10 +49,10 @@ class AsyncCache[K, V](
       case Some(value) => Future.successful[Option[V]](Some(value))
       case None =>
         load.map {
-          _.map(value => {
+          _.map { value =>
             keys(value).foreach(cache.put(_, value))
             value
-          })
+          }
         }
     }
 

@@ -32,21 +32,22 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 @Singleton
-class EnrolmentStoreProxyStubController @Inject()(
+class EnrolmentStoreProxyStubController @Inject() (
   val authenticationService: AuthenticationService,
   knownFactsRepository: KnownFactsRepository,
-  cc: ControllerComponents)(implicit usersService: UsersService, executionContext: ExecutionContext)
+  cc: ControllerComponents
+)(implicit usersService: UsersService, executionContext: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
   def getUserIds(enrolmentKey: EnrolmentKey, `type`: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       (for {
         principal <- if (`type` == "all" || `type` == "principal")
-                      usersService.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
-                    else Future.successful(None)
+                       usersService.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
+                     else Future.successful(None)
         delegated <- if (`type` == "all" || `type` == "delegated")
-                      usersService.findUserIdsByDelegatedEnrolmentKey(enrolmentKey, session.planetId)(1000)
-                    else Future.successful(Seq.empty)
+                       usersService.findUserIdsByDelegatedEnrolmentKey(enrolmentKey, session.planetId)(1000)
+                     else Future.successful(Seq.empty)
       } yield GetUserIdsResponse.from(principal, delegated)).map {
         case GetUserIdsResponse(None, None) => NoContent
         case response                       => Ok(RestfulResponse(response))
@@ -59,11 +60,11 @@ class EnrolmentStoreProxyStubController @Inject()(
     withCurrentSession { session =>
       (for {
         principal <- if (`type` == "all" || `type` == "principal")
-                      usersService.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
-                    else Future.successful(None)
+                       usersService.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
+                     else Future.successful(None)
         delegated <- if (`type` == "all" || `type` == "delegated")
-                      usersService.findGroupIdsByDelegatedEnrolmentKey(enrolmentKey, session.planetId)(1000)
-                    else Future.successful(Seq.empty)
+                       usersService.findGroupIdsByDelegatedEnrolmentKey(enrolmentKey, session.planetId)(1000)
+                     else Future.successful(Seq.empty)
       } yield GetGroupIdsResponse.from(principal, delegated.collect { case Some(x) => x })).map {
         case GetGroupIdsResponse(None, None) => NoContent
         case response                        => Ok(RestfulResponse(response))
@@ -88,8 +89,8 @@ class EnrolmentStoreProxyStubController @Inject()(
       knownFactsRepository
         .delete(enrolmentKey, session.planetId)
         .map(_ => NoContent)
-        .recover {
-          case NonFatal(_) => NoContent
+        .recover { case NonFatal(_) =>
+          NoContent
         }
     }(SessionRecordNotFound)
   }
@@ -101,7 +102,8 @@ class EnrolmentStoreProxyStubController @Inject()(
   def allocateGroupEnrolment(
     groupId: String,
     enrolmentKey: EnrolmentKey,
-    `legacy-agentCode`: Option[String]): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+    `legacy-agentCode`: Option[String]
+  ): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
       withPayload[AllocateGroupEnrolmentRequest] { payload =>
         AllocateGroupEnrolmentRequest
@@ -116,7 +118,8 @@ class EnrolmentStoreProxyStubController @Inject()(
                   enrolmentKey,
                   payload.`type`,
                   `legacy-agentCode`,
-                  session.planetId)
+                  session.planetId
+                )
                 .map(_ => Created)
           )
       }
@@ -127,7 +130,8 @@ class EnrolmentStoreProxyStubController @Inject()(
     groupId: String,
     enrolmentKey: EnrolmentKey,
     `legacy-agentCode`: Option[String],
-    keepAgentAllocations: Option[String]): Action[AnyContent] = Action.async { implicit request =>
+    keepAgentAllocations: Option[String]
+  ): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       usersService
         .deallocateEnrolmentFromGroup(groupId, enrolmentKey, `legacy-agentCode`, keepAgentAllocations, session.planetId)
@@ -140,7 +144,8 @@ class EnrolmentStoreProxyStubController @Inject()(
     `type`: String,
     service: Option[String],
     `start-record`: Option[Int],
-    `max-records`: Option[Int]): Action[AnyContent] = Action.async { implicit request =>
+    `max-records`: Option[Int]
+  ): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       if (`type` != "principal" && `type` != "delegated") badRequestF("INVALID_ENROLMENT_TYPE")
       else if (service.isDefined && !Services.servicesByKey.contains(service.get)) badRequestF("INVALID_SERVICE")
@@ -180,7 +185,8 @@ class EnrolmentStoreProxyStubController @Inject()(
     `start-record`: Option[Int],
     `max-records`: Option[Int],
     userId: Option[String],
-    `unassigned-clients`: Option[Boolean]): Action[AnyContent] = Action.async { implicit request =>
+    `unassigned-clients`: Option[Boolean]
+  ): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       if (`type` != "principal" && `type` != "delegated") badRequestF("INVALID_ENROLMENT_TYPE")
       else if (service.isDefined && !Services.servicesByKey.contains(service.get)) badRequestF("INVALID_SERVICE")
@@ -234,7 +240,8 @@ object EnrolmentStoreProxyStubController {
     def from(principal: Option[User], delegated: Seq[String]): GetGroupIdsResponse =
       GetGroupIdsResponse(
         principal.map(u => Seq(u.groupId).collect { case Some(x) => x }),
-        if (delegated.isEmpty) None else Some(delegated.distinct))
+        if (delegated.isEmpty) None else Some(delegated.distinct)
+      )
   }
 
   case class AllocateGroupEnrolmentRequest(userId: String, `type`: String)
@@ -244,7 +251,8 @@ object EnrolmentStoreProxyStubController {
 
     val validate: AllocateGroupEnrolmentRequest => Validated[List[String], Unit] =
       Validator[AllocateGroupEnrolmentRequest](
-        Validator.check(_.`type`.matches("principal|delegated"), "Unsupported `type` param value"))
+        Validator.check(_.`type`.matches("principal|delegated"), "Unsupported `type` param value")
+      )
   }
 
   case class SetKnownFactsRequest(verifiers: Seq[KnownFact], legacy: Option[Legacy] = None)
@@ -268,7 +276,8 @@ object EnrolmentStoreProxyStubController {
   case class GetUserEnrolmentsResponse(
     startRecord: Int,
     totalRecords: Int,
-    enrolments: Seq[GetUserEnrolmentsResponse.Enrolment])
+    enrolments: Seq[GetUserEnrolmentsResponse.Enrolment]
+  )
 
   object GetUserEnrolmentsResponse {
 
@@ -280,7 +289,8 @@ object EnrolmentStoreProxyStubController {
       failedActivationCount: Int,
       activationDate: Option[DateTime],
       enrolmentTokenExpiryDate: Option[DateTime],
-      identifiers: Seq[Identifier])
+      identifiers: Seq[Identifier]
+    )
 
     object Enrolment {
 
@@ -301,7 +311,8 @@ object EnrolmentStoreProxyStubController {
       user: User,
       startRecord: Int,
       enrolments: Seq[uk.gov.hmrc.agentsexternalstubs.models.Enrolment],
-      knownFacts: Seq[KnownFacts]): GetUserEnrolmentsResponse = {
+      knownFacts: Seq[KnownFacts]
+    ): GetUserEnrolmentsResponse = {
       val ee =
         enrolments
           .map(e => (e, knownFacts.find(kf => e.toEnrolmentKeyTag.contains(kf.enrolmentKey.tag))))

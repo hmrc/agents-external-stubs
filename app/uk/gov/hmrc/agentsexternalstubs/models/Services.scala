@@ -29,7 +29,8 @@ case class Service(
   affinityGroups: Seq[String],
   identifiers: Seq[Service.Identifier],
   knownFacts: Seq[Service.KnownFact],
-  flags: Service.Flags) {
+  flags: Service.Flags
+) {
 
   def getIdentifier(name: String): Option[Service.Identifier] = identifiers.find(_.name.toUpperCase == name.toUpperCase)
 
@@ -50,11 +51,12 @@ object Service {
       extends IdentifierLike {
 
     val generator: Gen[uk.gov.hmrc.agentsexternalstubs.models.Identifier] =
-      valueGenerator.map(
-        value =>
-          uk.gov.hmrc.agentsexternalstubs.models.Identifier(
-            name,
-            if (value.nonEmpty) value else throw new Exception(s"Could not generate value for an identifier $name")))
+      valueGenerator.map(value =>
+        uk.gov.hmrc.agentsexternalstubs.models.Identifier(
+          name,
+          if (value.nonEmpty) value else throw new Exception(s"Could not generate value for an identifier $name")
+        )
+      )
   }
 
   case class KnownFact(name: String, description: String, regex: String, pattern: Option[String]) extends IdentifierLike
@@ -65,7 +67,8 @@ object Service {
     agentExcludesPrincipal: Boolean,
     multipleEnrolment: Boolean,
     autoEnrolment: Boolean,
-    autoActivation: Boolean)
+    autoActivation: Boolean
+  )
 
   trait IdentifierLike {
 

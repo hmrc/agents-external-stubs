@@ -15,6 +15,9 @@
  */
 
 package uk.gov.hmrc.agentsexternalstubs
+
+// format: off
+
 import better.files.File
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.agentsexternalstubs.JsonSchema._

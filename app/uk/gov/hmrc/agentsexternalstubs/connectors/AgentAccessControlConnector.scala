@@ -25,51 +25,60 @@ import uk.gov.hmrc.http._
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class AgentAccessControlConnector @Inject()(appConfig: AppConfig, http: HttpGet) {
+class AgentAccessControlConnector @Inject() (appConfig: AppConfig, http: HttpGet) {
 
-  def isAuthorisedForPaye(agentCode: String, empRef: String)(
-    implicit c: HeaderCarrier,
-    ec: ExecutionContext): Future[Boolean] =
+  def isAuthorisedForPaye(agentCode: String, empRef: String)(implicit
+    c: HeaderCarrier,
+    ec: ExecutionContext
+  ): Future[Boolean] =
     check(
-      new URL(appConfig.agentAccessControlUrl + s"/agent-access-control/epaye-auth/agent/$agentCode/client/$empRef"))
+      new URL(appConfig.agentAccessControlUrl + s"/agent-access-control/epaye-auth/agent/$agentCode/client/$empRef")
+    )
 
-  def isAuthorisedForSa(agentCode: String, saUtr: String)(
-    implicit c: HeaderCarrier,
-    ec: ExecutionContext): Future[Boolean] =
+  def isAuthorisedForSa(agentCode: String, saUtr: String)(implicit
+    c: HeaderCarrier,
+    ec: ExecutionContext
+  ): Future[Boolean] =
     check(new URL(appConfig.agentAccessControlUrl + s"/agent-access-control/sa-auth/agent/$agentCode/client/$saUtr"))
 
-  def isAuthorisedForMtdIt(agentCode: String, mtdItId: String)(
-    implicit c: HeaderCarrier,
-    ec: ExecutionContext): Future[Boolean] =
+  def isAuthorisedForMtdIt(agentCode: String, mtdItId: String)(implicit
+    c: HeaderCarrier,
+    ec: ExecutionContext
+  ): Future[Boolean] =
     check(
-      new URL(appConfig.agentAccessControlUrl + s"/agent-access-control/mtd-it-auth/agent/$agentCode/client/$mtdItId"))
+      new URL(appConfig.agentAccessControlUrl + s"/agent-access-control/mtd-it-auth/agent/$agentCode/client/$mtdItId")
+    )
 
-  def isAuthorisedForMtdVat(agentCode: String, vrn: String)(
-    implicit c: HeaderCarrier,
-    ec: ExecutionContext): Future[Boolean] =
+  def isAuthorisedForMtdVat(agentCode: String, vrn: String)(implicit
+    c: HeaderCarrier,
+    ec: ExecutionContext
+  ): Future[Boolean] =
     check(new URL(appConfig.agentAccessControlUrl + s"/agent-access-control/mtd-vat-auth/agent/$agentCode/client/$vrn"))
 
-  def isAuthorisedForAfi(agentCode: String, nino: String)(
-    implicit c: HeaderCarrier,
-    ec: ExecutionContext): Future[Boolean] =
+  def isAuthorisedForAfi(agentCode: String, nino: String)(implicit
+    c: HeaderCarrier,
+    ec: ExecutionContext
+  ): Future[Boolean] =
     check(new URL(appConfig.agentAccessControlUrl + s"/agent-access-control/afi-auth/agent/$agentCode/client/$nino"))
 
-  def isAuthorisedForTrust(agentCode: String, utr: String)(
-    implicit c: HeaderCarrier,
-    ec: ExecutionContext): Future[Boolean] =
+  def isAuthorisedForTrust(agentCode: String, utr: String)(implicit
+    c: HeaderCarrier,
+    ec: ExecutionContext
+  ): Future[Boolean] =
     check(new URL(appConfig.agentAccessControlUrl + s"/agent-access-control/trust-auth/agent/$agentCode/client/$utr"))
 
-  def isAuthorisedForCgt(agentCode: String, cgtRef: String)(
-    implicit c: HeaderCarrier,
-    ec: ExecutionContext): Future[Boolean] =
+  def isAuthorisedForCgt(agentCode: String, cgtRef: String)(implicit
+    c: HeaderCarrier,
+    ec: ExecutionContext
+  ): Future[Boolean] =
     check(new URL(appConfig.agentAccessControlUrl + s"/agent-access-control/cgt-auth/agent/$agentCode/client/$cgtRef"))
 
   private def check(url: URL)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Boolean] =
     http
       .GET[HttpResponse](url.toString)
       .map(_ => true)
-      .recover {
-        case Upstream4xxResponse(_, 401, _, _) => false
+      .recover { case Upstream4xxResponse(_, 401, _, _) =>
+        false
       }
 
 }

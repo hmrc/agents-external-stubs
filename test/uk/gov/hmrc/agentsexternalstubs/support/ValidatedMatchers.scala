@@ -27,7 +27,8 @@ trait ValidatedMatchers {
         MatchResult(
           validated.isValid,
           validated.fold(errors => s"Validation failed with " + errors.mkString(", "), _ => ""),
-          "Validation passed.")
+          "Validation passed."
+        )
     }
 
   def be_Valid[T]: Matcher[Validated[String, T]] =
@@ -36,7 +37,8 @@ trait ValidatedMatchers {
         MatchResult(
           validated.isValid,
           validated.fold(error => s"Validation failed with " + error, _ => ""),
-          "Validation passed.")
+          "Validation passed."
+        )
     }
 
 }

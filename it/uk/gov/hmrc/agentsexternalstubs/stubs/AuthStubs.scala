@@ -17,7 +17,9 @@ trait AuthStubs {
           aResponse()
             .withStatus(200)
             .withHeader("Content-Type", "application/json")
-            .withBody(Json.toJson(response).toString)))
+            .withBody(Json.toJson(response).toString)
+        )
+    )
 
   def givenAuthorisedFor(response: String): Unit =
     stubFor(
@@ -28,15 +30,20 @@ trait AuthStubs {
           aResponse()
             .withStatus(200)
             .withHeader("Content-Type", "application/json")
-            .withBody(response)))
+            .withBody(response)
+        )
+    )
 
   def givenUnauthorised =
     stubFor(
       post(urlEqualTo("/auth/authorise"))
         .atPriority(2)
-        .willReturn(aResponse()
-          .withStatus(401)
-          .withHeader("WWW-Authenticate", "MDTP detail=\"InsufficientEnrolments\"")))
+        .willReturn(
+          aResponse()
+            .withStatus(401)
+            .withHeader("WWW-Authenticate", "MDTP detail=\"InsufficientEnrolments\"")
+        )
+    )
 
   def verifyAuthoriseAttempt(): Unit =
     verify(1, postRequestedFor(urlEqualTo("/auth/authorise")))

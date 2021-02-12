@@ -28,7 +28,8 @@ case class AuthenticatedSession(
   authToken: String,
   providerType: String,
   planetId: String,
-  createdAt: Long = System.currentTimeMillis())
+  createdAt: Long = System.currentTimeMillis()
+)
 
 object AuthenticatedSession extends ReactiveMongoFormats {
 

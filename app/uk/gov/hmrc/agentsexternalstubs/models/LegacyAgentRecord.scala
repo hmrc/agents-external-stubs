@@ -32,8 +32,8 @@ case class LegacyAgentRecord(
   postcode: Option[String] = None,
   isAgentAbroad: Boolean = false,
   agentCeasedDate: Option[String] = None,
-  id: Option[String] = None)
-    extends Record {
+  id: Option[String] = None
+) extends Record {
 
   override def uniqueKey: Option[String] = Option(agentId)
   override def lookupKeys: Seq[String] = Seq(LegacyAgentRecord.agentIdKey(agentId))
@@ -75,17 +75,16 @@ object LegacyAgentRecord extends RecordUtils[LegacyAgentRecord] {
       isRegisteredAgent <- Generator.biasedOptionGen(Generator.booleanGen)
       agentCeasedDate   <- Generator.optionGen(Generator.date(1990, 2018).map(Generator.`date_yyyy-MM-dd`.format))
       agentPhoneNo      <- Generator.biasedOptionGen(Generator.ukPhoneNumber)
-    } yield
-      LegacyAgentRecord(
-        agentId = agentId,
-        agentName = agentName,
-        address1 = address1,
-        address2 = address2,
-        postcode = postcode,
-        isRegisteredAgent = isRegisteredAgent,
-        agentCeasedDate = agentCeasedDate,
-        agentPhoneNo = agentPhoneNo
-      )
+    } yield LegacyAgentRecord(
+      agentId = agentId,
+      agentName = agentName,
+      address1 = address1,
+      address2 = address2,
+      postcode = postcode,
+      isRegisteredAgent = isRegisteredAgent,
+      agentCeasedDate = agentCeasedDate,
+      agentPhoneNo = agentPhoneNo
+    )
 
   val agentPhoneNoSanitizer: Update = seed =>
     e => e.copy(agentPhoneNo = e.agentPhoneNo.orElse(Generator.get(Generator.ukPhoneNumber)(seed)))

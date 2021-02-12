@@ -29,10 +29,11 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class IdentityVerificationController @Inject()(
+class IdentityVerificationController @Inject() (
   cc: ControllerComponents,
   usersService: UsersService,
-  val authenticationService: AuthenticationService)(implicit ec: ExecutionContext)
+  val authenticationService: AuthenticationService
+)(implicit ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
   private def addNinoToUser(nino: Nino)(user: User): User = user.copy(nino = Some(nino))
