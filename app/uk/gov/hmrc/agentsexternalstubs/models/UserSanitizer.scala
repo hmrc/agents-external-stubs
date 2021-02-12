@@ -36,7 +36,8 @@ object UserSanitizer extends RecordUtils[User] {
             user.copy(name = Some(UserGenerator.nameForAgent(seed, user.groupId.getOrElse(seed))))
           case Some(_) => user.copy(name = Some(UserGenerator.nameForOrganisation(seed)))
           case None    => user
-        } else user
+        }
+      else user
 
   private val ensureStrideUserHaveNoGatewayEnrolmentsNorAffinityGroupNorOtherData: Update = seed =>
     user =>
@@ -62,7 +63,7 @@ object UserSanitizer extends RecordUtils[User] {
         case Some(Organisation) => user.copy(nino = None)
         case Some(_)            => if (user.nino.isEmpty) user.copy(nino = Some(Generator.ninoWithSpaces(seed))) else user
         case None               => user.copy(nino = None)
-  }
+      }
 
   private val ensureOnlyIndividualUserHaveConfidenceLevel: Update = seed =>
     user =>
@@ -72,7 +73,7 @@ object UserSanitizer extends RecordUtils[User] {
             user.copy(confidenceLevel = Some(50))
           else user
         case _ => user.copy(confidenceLevel = None)
-  }
+      }
 
   private val ensureUserHaveCredentialRole: Update = seed =>
     user =>
@@ -82,7 +83,7 @@ object UserSanitizer extends RecordUtils[User] {
         case Some(Organisation) =>
           user.copy(credentialRole = Some(User.CR.Admin))
         case _ => user.copy(credentialRole = None)
-  }
+      }
 
   private val ensureBusinessesDoNotHaveDob: Update = seed =>
     user =>
@@ -92,7 +93,7 @@ object UserSanitizer extends RecordUtils[User] {
         case Some(_) =>
           if (user.dateOfBirth.isEmpty) user.copy(dateOfBirth = Some(UserGenerator.dateOfBirth(seed))) else user
         case None => user.copy(dateOfBirth = None)
-  }
+      }
 
   private val ensureUserHaveGroupIdentifier: Update = seed =>
     user => if (user.groupId.isEmpty) user.copy(groupId = Some(UserGenerator.groupId(seed))) else user
@@ -105,7 +106,7 @@ object UserSanitizer extends RecordUtils[User] {
             user.copy(agentCode = Some(UserGenerator.agentCode(user.groupId.getOrElse(seed))))
           else user
         case _ => user.copy(agentCode = None)
-  }
+      }
 
   private val ensureAgentHaveAgentId: Update = _ =>
     user =>
@@ -115,7 +116,7 @@ object UserSanitizer extends RecordUtils[User] {
             user.copy(agentId = Some(user.userId))
           else user
         case _ => user.copy(agentId = None)
-  }
+      }
 
   private val ensureAgentHaveFriendlyName: Update = seed =>
     user =>
@@ -125,7 +126,7 @@ object UserSanitizer extends RecordUtils[User] {
             user.copy(agentFriendlyName = Some(UserGenerator.agentFriendlyName(user.groupId.getOrElse(seed))))
           else user
         case _ => user.copy(agentFriendlyName = None)
-  }
+      }
 
   private val ensurePrincipalEnrolmentKeysAreDistinct: Update = seed =>
     user => {
@@ -141,37 +142,35 @@ object UserSanitizer extends RecordUtils[User] {
           .toSeq
       )
 
-  }
+    }
 
   private val ensurePrincipalEnrolmentsHaveIdentifiers: Update = seed =>
     user => {
       val modifiedPrincipalEnrolments = user.principalEnrolments
         .groupBy(_.key)
-        .flatMap {
-          case (_, es) =>
-            es.zipWithIndex.map { case (e, i) => ensureEnrolmentHaveIdentifier(Generator.variant(seed, i))(e) }
+        .flatMap { case (_, es) =>
+          es.zipWithIndex.map { case (e, i) => ensureEnrolmentHaveIdentifier(Generator.variant(seed, i))(e) }
         }
         .toSeq
       user.copy(principalEnrolments = modifiedPrincipalEnrolments)
-  }
+    }
 
   private val ensureDelegatedEnrolmentsHaveIdentifiers: Update = seed =>
     user => {
       val modifiedDelegatedEnrolments = user.delegatedEnrolments
         .groupBy(_.key)
-        .flatMap {
-          case (_, es) =>
-            es.zipWithIndex.map { case (e, i) => ensureEnrolmentHaveIdentifier(Generator.variant(seed, i))(e) }
+        .flatMap { case (_, es) =>
+          es.zipWithIndex.map { case (e, i) => ensureEnrolmentHaveIdentifier(Generator.variant(seed, i))(e) }
         }
         .toSeq
       user.copy(delegatedEnrolments = modifiedDelegatedEnrolments)
-  }
+    }
 
   private val ensureEnrolmentHaveIdentifier: String => Enrolment => Enrolment = seed =>
     e =>
       if (e.identifiers.isEmpty) Services(e.key).flatMap(s => Generator.get(s.generator)(seed)).getOrElse(e)
       else
-        e.copy(identifiers = e.identifiers.map(_.map(i => {
+        e.copy(identifiers = e.identifiers.map(_.map { i =>
           val key: String =
             if (i.key.isEmpty) Services(e.key).flatMap(s => s.identifiers.headOption.map(_.name)).getOrElse("")
             else i.key
@@ -182,7 +181,7 @@ object UserSanitizer extends RecordUtils[User] {
                 .getOrElse("")
             else i.value
           Identifier(key, value)
-        })))
+        }))
 
   private def sanitizeAddress(addressOpt: Option[User.Address], seed: String): Option[User.Address] = {
     val newAddress = Generator.address(seed)
@@ -193,7 +192,9 @@ object UserSanitizer extends RecordUtils[User] {
             line1 = Some(newAddress.street.take(35)),
             line2 = Some(newAddress.town.take(35)),
             postcode = Some(newAddress.postcode),
-            countryCode = Some("GB")))
+            countryCode = Some("GB")
+          )
+        )
       case Some(address) =>
         Some(
           address.copy(
@@ -207,7 +208,8 @@ object UserSanitizer extends RecordUtils[User] {
               .countryCodeValidator(address.countryCode)
               .fold(_ => None, _ => address.countryCode)
               .orElse(Some("GB"))
-          ))
+          )
+        )
     }
   }
 

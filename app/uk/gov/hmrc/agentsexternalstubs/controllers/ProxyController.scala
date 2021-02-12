@@ -32,9 +32,9 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 @Singleton
-class ProxyController @Inject()(ws: WSClient, config: Configuration, cc: ControllerComponents)(
-  implicit executionContext: ExecutionContext)
-    extends BackendController(cc) {
+class ProxyController @Inject() (ws: WSClient, config: Configuration, cc: ControllerComponents)(implicit
+  executionContext: ExecutionContext
+) extends BackendController(cc) {
 
   implicit def writeableFor(implicit request: Request[AnyContent], codec: Codec): BodyWritable[AnyContent] =
     request.contentType match {
@@ -46,8 +46,13 @@ class ProxyController @Inject()(ws: WSClient, config: Configuration, cc: Control
       case Some(ContentTypes.FORM) =>
         BodyWritable(
           a =>
-            InMemoryBody(codec.encode((a.asFormUrlEncoded.get flatMap (item =>
-              item._2.map(c => s"""${item._1}=${URLEncoder.encode(c, "UTF-8")}"""))).mkString("&"))),
+            InMemoryBody(
+              codec.encode(
+                (a.asFormUrlEncoded.get flatMap (item =>
+                  item._2.map(c => s"""${item._1}=${URLEncoder.encode(c, "UTF-8")}""")
+                )).mkString("&")
+              )
+            ),
           request.contentType.getOrElse("")
         )
       case _ => throw new UnsupportedOperationException()
@@ -78,7 +83,8 @@ class ProxyController @Inject()(ws: WSClient, config: Configuration, cc: Control
           }
       case None =>
         Future.successful(
-          BadRequest(s"Could not construct target URL for ${request.path}, probably missing configuration."))
+          BadRequest(s"Could not construct target URL for ${request.path}, probably missing configuration.")
+        )
     }
   }
 

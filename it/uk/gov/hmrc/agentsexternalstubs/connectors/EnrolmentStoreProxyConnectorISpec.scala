@@ -124,54 +124,64 @@ trait EnrolmentStoreProxyHelper extends TestRequests with TestStubs with Matcher
     case _          => throw new IllegalArgumentException(s"Tax identifier not supported $identifier")
   }
 
-  def givenPrincipalGroupIdExistsFor(taxIdentifier: TaxIdentifier, groupId: String)(
-    implicit authContext: AuthContext): Unit = taxIdentifier match {
+  def givenPrincipalGroupIdExistsFor(taxIdentifier: TaxIdentifier, groupId: String)(implicit
+    authContext: AuthContext
+  ): Unit = taxIdentifier match {
     case _: Arn =>
       Users.create(
         UserGenerator
           .agent(groupId = groupId)
-          .withPrincipalEnrolment(asEnrolment(taxIdentifier)))
+          .withPrincipalEnrolment(asEnrolment(taxIdentifier))
+      )
     case _ =>
       Users.create(
         UserGenerator
           .individual(groupId = groupId)
-          .withPrincipalEnrolment(asEnrolment(taxIdentifier)))
+          .withPrincipalEnrolment(asEnrolment(taxIdentifier))
+      )
   }
 
-  def givenDelegatedGroupIdsExistFor(taxIdentifier: TaxIdentifier, groupIds: Set[String])(
-    implicit authContext: AuthContext): Unit = for (groupId <- groupIds) {
+  def givenDelegatedGroupIdsExistFor(taxIdentifier: TaxIdentifier, groupIds: Set[String])(implicit
+    authContext: AuthContext
+  ): Unit = for (groupId <- groupIds) {
     val result = Users.create(
       UserGenerator
         .agent(groupId = groupId)
-        .withDelegatedEnrolment(asEnrolment(taxIdentifier)))
+        .withDelegatedEnrolment(asEnrolment(taxIdentifier))
+    )
     result should haveStatus(201)
   }
 
-  def givenDelegatedGroupIdsExistForKey(enrolmentKey: String, groupIds: Set[String])(
-    implicit authContext: AuthContext): Unit = {
+  def givenDelegatedGroupIdsExistForKey(enrolmentKey: String, groupIds: Set[String])(implicit
+    authContext: AuthContext
+  ): Unit = {
     val enrolment = Enrolment.from(EnrolmentKey.parse(enrolmentKey).right.get)
     for (groupId <- groupIds) {
       val result = Users.create(
         UserGenerator
           .agent(groupId = groupId)
-          .withDelegatedEnrolment(enrolment))
+          .withDelegatedEnrolment(enrolment)
+      )
       result should haveStatus(201)
     }
   }
 
-  def givenPrincipalUserIdExistFor(taxIdentifier: TaxIdentifier, userId: String)(
-    implicit authContext: AuthContext): Unit = taxIdentifier match {
+  def givenPrincipalUserIdExistFor(taxIdentifier: TaxIdentifier, userId: String)(implicit
+    authContext: AuthContext
+  ): Unit = taxIdentifier match {
     case _: Arn =>
       val result = Users.create(
         UserGenerator
           .agent(userId = userId)
-          .withPrincipalEnrolment(asEnrolment(taxIdentifier)))
+          .withPrincipalEnrolment(asEnrolment(taxIdentifier))
+      )
       result should haveStatus(201)
     case _ =>
       val result = Users.create(
         UserGenerator
           .individual(userId = userId)
-          .withPrincipalEnrolment(asEnrolment(taxIdentifier)))
+          .withPrincipalEnrolment(asEnrolment(taxIdentifier))
+      )
       result should haveStatus(201)
   }
 
@@ -181,38 +191,46 @@ trait EnrolmentStoreProxyHelper extends TestRequests with TestStubs with Matcher
     key: String,
     identifier: String,
     value: String,
-    agentCode: String)(implicit authContext: AuthContext): Unit = {
+    agentCode: String
+  )(implicit authContext: AuthContext): Unit = {
     val result1 = Users.create(
       UserGenerator
         .individual()
-        .withPrincipalEnrolment(key, identifier, value))
+        .withPrincipalEnrolment(key, identifier, value)
+    )
     result1 should haveStatus(201)
     val result2 = Users.create(
       UserGenerator
-        .agent(userId = userId, groupId = groupId, agentCode = agentCode))
+        .agent(userId = userId, groupId = groupId, agentCode = agentCode)
+    )
     result2 should haveStatus(201)
   }
 
-  def givenEnrolmentDeallocationSucceeds(groupId: String, taxIdentifier: TaxIdentifier, agentCode: String)(
-    implicit authContext: AuthContext): Unit = ()
+  def givenEnrolmentDeallocationSucceeds(groupId: String, taxIdentifier: TaxIdentifier, agentCode: String)(implicit
+    authContext: AuthContext
+  ): Unit = ()
 
   def givenEnrolmentDeallocationSucceeds(
     groupId: String,
     key: String,
     identifier: String,
     value: String,
-    agentCode: String)(implicit authContext: AuthContext): Unit =
+    agentCode: String
+  )(implicit authContext: AuthContext): Unit =
     Users.create(
       UserGenerator
         .agent(groupId = groupId, agentCode = agentCode)
-        .withDelegatedEnrolment(key, identifier, value))
+        .withDelegatedEnrolment(key, identifier, value)
+    )
 
   def verifyEnrolmentAllocationAttempt(groupId: String, userId: String, enrolmentKey: String, agentCode: String)(
-    implicit authContext: AuthContext) =
+    implicit authContext: AuthContext
+  ) =
     Users.get(userId).json.as[User].delegatedEnrolments.map(_.toEnrolmentKeyTag.get) should contain(enrolmentKey)
 
-  def verifyEnrolmentDeallocationAttempt(groupId: String, enrolmentKey: String, agentCode: String)(
-    implicit authContext: AuthContext) =
+  def verifyEnrolmentDeallocationAttempt(groupId: String, enrolmentKey: String, agentCode: String)(implicit
+    authContext: AuthContext
+  ) =
     Users
       .getAll(agentCode = Some(agentCode))
       .json

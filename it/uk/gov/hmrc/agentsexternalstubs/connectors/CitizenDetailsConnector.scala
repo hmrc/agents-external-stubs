@@ -43,13 +43,14 @@ object CitizenDateOfBirth {
 }
 
 @Singleton
-class CitizenDetailsConnector @Inject()(appConfig: AppConfig, http: HttpGet with HttpDelete, metrics: Metrics) {
+class CitizenDetailsConnector @Inject() (appConfig: AppConfig, http: HttpGet with HttpDelete, metrics: Metrics) {
 
   def getCitizenDateOfBirth(
-    nino: Nino)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[CitizenDateOfBirth]] = {
+    nino: Nino
+  )(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[CitizenDateOfBirth]] = {
     val url = new URL(appConfig.citizenDetailsUrl + s"/citizen-details/nino/${nino.value}")
-    http.GET[Option[CitizenDateOfBirth]](url.toString).recover {
-      case _ => None
+    http.GET[Option[CitizenDateOfBirth]](url.toString).recover { case _ =>
+      None
     }
   }
 }

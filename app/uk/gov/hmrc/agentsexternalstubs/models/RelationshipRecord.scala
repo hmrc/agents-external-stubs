@@ -30,8 +30,8 @@ case class RelationshipRecord(
   authProfile: Option[String] = None,
   startDate: Option[LocalDate] = None,
   endDate: Option[LocalDate] = None,
-  id: Option[String] = None)
-    extends Record {
+  id: Option[String] = None
+) extends Record {
 
   import RelationshipRecord._
 
@@ -75,15 +75,15 @@ object RelationshipRecord extends RecordUtils[RelationshipRecord] {
     regime <- Gen.oneOf("ITSA", "VATC", "NI")
     arn    <- Generator.arnGen
     idType <- regime match {
-               case "VATC" => Gen.const("vrn")
-               case "NI"   => Gen.const("eori")
-               case _      => Gen.const("mtdbsa")
-             }
+                case "VATC" => Gen.const("vrn")
+                case "NI"   => Gen.const("eori")
+                case _      => Gen.const("mtdbsa")
+              }
     refNumber <- regime match {
-                  case "VATC" => Generator.vrnGen
-                  case "NI"   => Generator.eoriGen
-                  case _      => Generator.mtdbsaGen
-                }
+                   case "VATC" => Generator.vrnGen
+                   case "NI"   => Generator.eoriGen
+                   case _      => Generator.mtdbsaGen
+                 }
     active <- Generator.booleanGen
   } yield RelationshipRecord(regime, arn, idType, refNumber, active)
 
@@ -92,8 +92,9 @@ object RelationshipRecord extends RecordUtils[RelationshipRecord] {
   val startDateSanitizer: Update = seed =>
     entity =>
       entity.copy(
-        startDate = entity.startDate.orElse(
-          Generator.get(Generator.date(1970, 2018).map(d => LocalDate.parse(d.toString)))(seed)))
+        startDate =
+          entity.startDate.orElse(Generator.get(Generator.date(1970, 2018).map(d => LocalDate.parse(d.toString)))(seed))
+      )
 
   val endDateSanitizer: Update = seed =>
     entity =>
@@ -101,9 +102,13 @@ object RelationshipRecord extends RecordUtils[RelationshipRecord] {
       else
         entity.copy(
           endDate = entity.endDate.orElse(
-            Generator.get(Generator
-              .date(entity.startDate.map(_.toString("yyyy")).getOrElse("1980").toInt - 1, 2018)
-              .map(d => LocalDate.parse(d.toString)))(seed)))
+            Generator.get(
+              Generator
+                .date(entity.startDate.map(_.toString("yyyy")).getOrElse("1980").toInt - 1, 2018)
+                .map(d => LocalDate.parse(d.toString))
+            )(seed)
+          )
+        )
 
   val itsaRegimeSanitizer: Update = seed =>
     entity => entity.copy(regime = "ITSA", authProfile = None, relationshipType = None)
@@ -114,7 +119,7 @@ object RelationshipRecord extends RecordUtils[RelationshipRecord] {
         regime = "VATC",
         authProfile = Generator.get(Gen.oneOf(Common.authProfileEnum))(seed),
         relationshipType = Generator.get(Gen.oneOf(Common.relationshipTypeEnum))(seed)
-  )
+      )
 
   val regimeSanitizer: Update = seed =>
     entity =>
@@ -122,7 +127,7 @@ object RelationshipRecord extends RecordUtils[RelationshipRecord] {
         case "ITSA" => itsaRegimeSanitizer(seed)(entity)
         case "VATC" => vatcRegimeSanitizer(seed)(entity)
         case _      => entity
-  }
+      }
 
   override val sanitizers: Seq[Update] = Seq(
     startDateSanitizer,
@@ -133,20 +138,24 @@ object RelationshipRecord extends RecordUtils[RelationshipRecord] {
   val validate: Validator[RelationshipRecord] = Validator(
     check(
       _.refNumber.matches(Common.refNumberPattern),
-      s"""Invalid refNumber, does not matches regex ${Common.refNumberPattern}"""),
+      s"""Invalid refNumber, does not matches regex ${Common.refNumberPattern}"""
+    ),
     check(
       _.idType.matches(Common.idTypePattern),
-      s"""Invalid idType, does not matches regex ${Common.idTypePattern}"""),
+      s"""Invalid idType, does not matches regex ${Common.idTypePattern}"""
+    ),
     check(
       _.arn.matches(Common.agentReferenceNumberPattern),
       s"""Invalid agentReferenceNumber, does not matches regex ${Common.agentReferenceNumberPattern}"""
     ),
     check(
       _.regime.matches(Common.regimePattern),
-      s"""Invalid regime, does not matches regex ${Common.regimePattern}"""),
+      s"""Invalid regime, does not matches regex ${Common.regimePattern}"""
+    ),
     check(
       _.relationshipType.isOneOf(Common.relationshipTypeEnum),
-      "Invalid relationshipType, does not match allowed values"),
+      "Invalid relationshipType, does not match allowed values"
+    ),
     check(_.authProfile.isOneOf(Common.authProfileEnum), "Invalid authProfile, does not match allowed values")
   )
 

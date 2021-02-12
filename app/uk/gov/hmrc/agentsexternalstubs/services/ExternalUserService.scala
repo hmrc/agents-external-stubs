@@ -30,14 +30,13 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 @Singleton
-class ExternalUserService @Inject()(apiPlatformTestUserConnector: ApiPlatformTestUserConnector, appConfig: AppConfig) {
+class ExternalUserService @Inject() (apiPlatformTestUserConnector: ApiPlatformTestUserConnector, appConfig: AppConfig) {
 
   def maybeSyncExternalUserIdentifiedBy[S](
     userIdentifier: S,
     planetId: String,
-    createUser: (User, String) => Future[User])(
-    implicit ec: ExecutionContext,
-    hc: HeaderCarrier): Future[Option[User]] =
+    createUser: (User, String) => Future[User]
+  )(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[Option[User]] =
     (userIdentifier match {
       case nino: Nino =>
         apiPlatformTestUserConnector.getIndividualUserByNino(nino.value)
@@ -54,31 +53,31 @@ class ExternalUserService @Inject()(apiPlatformTestUserConnector: ApiPlatformTes
           }
       case _ =>
         Future.failed(
-          new IllegalArgumentException(s"Unknown identifier $userIdentifier, expected one of: nino, utr, vrn"))
-    }).flatMap(apiUserOpt => {
-        apiUserOpt.map(TestUser.asUser).map(user => createUser(user, planetId)) match {
-          case Some(f) =>
-            f.map { user =>
-              Logger(getClass).info(
-                s"External user id=name=${user.userId} ${user.name.getOrElse("")} definition successfully imported.")
-              Option(user)
-            }
-          case None =>
-            Logger(getClass).warn(s"External user definition not found for $userIdentifier.")
-            Future.successful(None)
-        }
-      })
-      .recover {
-        case NonFatal(e) =>
-          Logger(getClass).error(s"External user sync failed with ${e.getMessage}")
-          None
+          new IllegalArgumentException(s"Unknown identifier $userIdentifier, expected one of: nino, utr, vrn")
+        )
+    }).flatMap { apiUserOpt =>
+      apiUserOpt.map(TestUser.asUser).map(user => createUser(user, planetId)) match {
+        case Some(f) =>
+          f.map { user =>
+            Logger(getClass).info(
+              s"External user id=name=${user.userId} ${user.name.getOrElse("")} definition successfully imported."
+            )
+            Option(user)
+          }
+        case None =>
+          Logger(getClass).warn(s"External user definition not found for $userIdentifier.")
+          Future.successful(None)
       }
+    }.recover { case NonFatal(e) =>
+      Logger(getClass).error(s"External user sync failed with ${e.getMessage}")
+      None
+    }
 
   def tryLookupExternalUserIfMissingForIdentifier[S, T](
     userIdentifier: S,
     planetId: String,
-    createUser: (User, String) => Future[User])(maybeResult: S => Future[Option[T]])(
-    implicit ec: ExecutionContext): Future[Option[T]] = {
+    createUser: (User, String) => Future[User]
+  )(maybeResult: S => Future[Option[T]])(implicit ec: ExecutionContext): Future[Option[T]] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
     maybeResult(userIdentifier).flatMap {
       case None if appConfig.syncUsersAllPlanets || planetId == Planet.DEFAULT =>
@@ -95,8 +94,8 @@ class ExternalUserService @Inject()(apiPlatformTestUserConnector: ApiPlatformTes
   def tryLookupExternalUserIfMissingForEnrolmentKey[T](
     enrolmentKey: EnrolmentKey,
     planetId: String,
-    createUser: (User, String) => Future[User])(maybeResult: => Future[Option[T]])(
-    implicit ec: ExecutionContext): Future[Option[T]] = {
+    createUser: (User, String) => Future[User]
+  )(maybeResult: => Future[Option[T]])(implicit ec: ExecutionContext): Future[Option[T]] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
     maybeResult.flatMap {
       case None if appConfig.syncUsersAllPlanets || planetId == Planet.DEFAULT =>

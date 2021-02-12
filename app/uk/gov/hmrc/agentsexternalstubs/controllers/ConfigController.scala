@@ -25,9 +25,9 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ConfigController @Inject()(val authenticationService: AuthenticationService, cc: ControllerComponents)(
-  implicit ec: ExecutionContext)
-    extends BackendController(cc) with CurrentSession {
+class ConfigController @Inject() (val authenticationService: AuthenticationService, cc: ControllerComponents)(implicit
+  ec: ExecutionContext
+) extends BackendController(cc) with CurrentSession {
 
   private lazy val servicesResponse = RestfulResponse(Services(services = Services.services))
 

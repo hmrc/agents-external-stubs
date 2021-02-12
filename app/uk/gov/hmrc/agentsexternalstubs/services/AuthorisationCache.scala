@@ -51,7 +51,8 @@ object AuthorisationCache {
   def put(
     authenticatedSession: AuthenticatedSession,
     authoriseRequest: AuthoriseRequest,
-    maybeResponse: MaybeResponse): Unit = {
+    maybeResponse: MaybeResponse
+  ): Unit = {
     val key = s"${authenticatedSession.userId}@${authenticatedSession.planetId}"
     if (isEligibleToCache(authoriseRequest))
       authPlanetCache

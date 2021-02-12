@@ -49,10 +49,10 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       await(repo.create(User("foo", planetId = Some(planetId)), planetId))
       await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 1
 
-      val userFoo = await(repo.findByUserId("foo",planetId))
+      val userFoo = await(repo.findByUserId("foo", planetId))
       userFoo.map(_.userId) shouldBe Some("foo")
 
-      await(repo.findByUserId("foo",planetId2)) shouldBe None
+      await(repo.findByUserId("foo", planetId2)) shouldBe None
     }
 
     "store a user with simple principal enrolment" in {
@@ -68,9 +68,25 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
 
     "do not allow users with the same principal enrolment on a same planet" in {
       val planetId = UUID.randomUUID().toString
-      await(repo.create(User("1foo", principalEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("A","1")))))), planetId))
+      await(
+        repo.create(
+          User("1foo", principalEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("A", "1")))))),
+          planetId
+        )
+      )
       val e = intercept[DuplicateUserException] {
-        await(repo.create(User("foo2", principalEnrolments = Seq(Enrolment("something", Some(Seq(Identifier("B","2")))), Enrolment("foobar", Some(Seq(Identifier("A","1")))))), planetId))
+        await(
+          repo.create(
+            User(
+              "foo2",
+              principalEnrolments = Seq(
+                Enrolment("something", Some(Seq(Identifier("B", "2")))),
+                Enrolment("foobar", Some(Seq(Identifier("A", "1"))))
+              )
+            ),
+            planetId
+          )
+        )
       }
 
       e.getMessage should include("Existing user already has similar enrolment FOOBAR~A~1.")
@@ -80,9 +96,30 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       val planetId1 = UUID.randomUUID().toString
       val planetId2 = UUID.randomUUID().toString
       val planetId3 = UUID.randomUUID().toString
-      await(repo.create(User("1foo", principalEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("A","1")))))), planetId1))
-      await(repo.create(User("foo2", principalEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("A","1")))))), planetId2))
-      await(repo.create(User("foo2", principalEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("A","1")))), Enrolment("barfoo", Some(Seq(Identifier("B","2")))))), planetId3))
+      await(
+        repo.create(
+          User("1foo", principalEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("A", "1")))))),
+          planetId1
+        )
+      )
+      await(
+        repo.create(
+          User("foo2", principalEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("A", "1")))))),
+          planetId2
+        )
+      )
+      await(
+        repo.create(
+          User(
+            "foo2",
+            principalEnrolments = Seq(
+              Enrolment("foobar", Some(Seq(Identifier("A", "1")))),
+              Enrolment("barfoo", Some(Seq(Identifier("B", "2"))))
+            )
+          ),
+          planetId3
+        )
+      )
 
       val result1 = await(repo.findByPlanetId(planetId1, None)(100))
       val result2 = await(repo.findByPlanetId(planetId2, None)(100))
@@ -95,7 +132,12 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
 
     "store a user with single principal enrolment" in {
       val planetId = UUID.randomUUID().toString
-      await(repo.create(User("abcfoo", principalEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))), planetId))
+      await(
+        repo.create(
+          User("abcfoo", principalEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))),
+          planetId
+        )
+      )
 
       val result = await(repo.findByPlanetId(planetId, None)(100))
 
@@ -113,7 +155,11 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
             principalEnrolments = Seq(
               Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))),
               Enrolment("barefoot", Some(Seq(Identifier("foo", "foo345"))))
-            )), planetId))
+            )
+          ),
+          planetId
+        )
+      )
 
       val result = await(repo.findByPlanetId(planetId, None)(100))
 
@@ -122,12 +168,18 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       result.head.principalEnrolments shouldBe
         Seq(
           Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))),
-          Enrolment("barefoot", Some(Seq(Identifier("foo", "foo345")))))
+          Enrolment("barefoot", Some(Seq(Identifier("foo", "foo345"))))
+        )
     }
 
     "store a user with single delegated enrolment" in {
       val planetId = UUID.randomUUID().toString
-      await(repo.create(User("abcfoo", delegatedEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))), planetId))
+      await(
+        repo.create(
+          User("abcfoo", delegatedEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))),
+          planetId
+        )
+      )
 
       val result = await(repo.findByPlanetId(planetId, None)(100))
 
@@ -139,8 +191,18 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
 
     "allow different users with same delegated enrolment" in {
       val planetId = UUID.randomUUID().toString
-      await(repo.create(User("abcfoo1", delegatedEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))), planetId))
-      await(repo.create(User("abcfoo2", delegatedEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))), planetId))
+      await(
+        repo.create(
+          User("abcfoo1", delegatedEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))),
+          planetId
+        )
+      )
+      await(
+        repo.create(
+          User("abcfoo2", delegatedEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))),
+          planetId
+        )
+      )
 
       val result = await(repo.findByPlanetId(planetId, None)(100))
 
@@ -188,10 +250,10 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       val result2 = await(repo.findByPlanetId(planetId2, None)(100))
       result2.size shouldBe 1
 
-      val userFoo = await(repo.findByNino("HW827856C",planetId))
+      val userFoo = await(repo.findByNino("HW827856C", planetId))
       userFoo.map(_.userId) shouldBe Some("foo")
 
-      val userBoo = await(repo.findByNino("HW827856C",planetId2))
+      val userBoo = await(repo.findByNino("HW827856C", planetId2))
       userBoo.map(_.userId) shouldBe Some("boo")
     }
 
@@ -203,10 +265,10 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       val result = await(repo.findByPlanetId(planetId, None)(100))
       result.size shouldBe 2
 
-      val userFoo = await(repo.findByNino("YL970221C",planetId))
+      val userFoo = await(repo.findByNino("YL970221C", planetId))
       userFoo.map(_.userId) shouldBe Some("foo")
 
-      val userBoo = await(repo.findByNino("HW 82 78 56 C",planetId))
+      val userBoo = await(repo.findByNino("HW 82 78 56 C", planetId))
       userBoo.map(_.userId) shouldBe Some("boo")
     }
 
@@ -231,7 +293,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       await(repo.update(User("foo", principalEnrolments = Seq(Enrolment("foobar"))), planetId))
       await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 1
 
-      val userFoo = await(repo.findByUserId("foo",planetId))
+      val userFoo = await(repo.findByUserId("foo", planetId))
       userFoo.map(_.principalEnrolments) shouldBe Some(Seq(Enrolment("foobar")))
     }
 
@@ -242,13 +304,15 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       await(repo.create(User("foo"), planetId))
       await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 1
 
-      await(repo.update(User("foo", planetId = Some(planetId), principalEnrolments = Seq(Enrolment("foobar"))), planetId))
+      await(
+        repo.update(User("foo", planetId = Some(planetId), principalEnrolments = Seq(Enrolment("foobar"))), planetId)
+      )
       await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 1
 
-      val userFoo = await(repo.findByUserId("foo",planetId))
+      val userFoo = await(repo.findByUserId("foo", planetId))
       userFoo.map(_.principalEnrolments) shouldBe Some(Seq(Enrolment("foobar")))
 
-      await(repo.findByUserId("foo",planetId2)) shouldBe None
+      await(repo.findByUserId("foo", planetId2)) shouldBe None
     }
   }
 
@@ -315,9 +379,24 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       val planetId = UUID.randomUUID().toString
       val planetId2 = UUID.randomUUID().toString
 
-      await(repo.create(User("boo", groupId= Some("g1"), affinityGroup = Some("Individual"), credentialRole = Some("User")), planetId))
-      await(repo.create(User("foo", groupId= Some("g2"), affinityGroup = Some("Agent"), credentialRole = Some("Admin")), planetId))
-      await(repo.create(User("foo", groupId= Some("g3"), affinityGroup = Some("Individual"), credentialRole = Some("Assistant")), planetId2))
+      await(
+        repo.create(
+          User("boo", groupId = Some("g1"), affinityGroup = Some("Individual"), credentialRole = Some("User")),
+          planetId
+        )
+      )
+      await(
+        repo.create(
+          User("foo", groupId = Some("g2"), affinityGroup = Some("Agent"), credentialRole = Some("Admin")),
+          planetId
+        )
+      )
+      await(
+        repo.create(
+          User("foo", groupId = Some("g3"), affinityGroup = Some("Individual"), credentialRole = Some("Assistant")),
+          planetId2
+        )
+      )
       await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 2
 
       val result1 = await(repo.findByPlanetId(planetId, None)(10))
@@ -399,15 +478,52 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       val planetId = UUID.randomUUID().toString
       val planetId2 = UUID.randomUUID().toString
 
-      await(repo.create(User("foo1", affinityGroup = Some("Agent"), principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = planetId))
-      await(repo.create(User("foo2", affinityGroup = Some("Agent"), delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = planetId))
-      await(repo.create(User("foo3", affinityGroup = Some("Agent"), principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","222")))))), planetId = planetId))
-      await(repo.create(User("foo4", affinityGroup = Some("Agent"), principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = planetId2))
+      await(
+        repo.create(
+          User(
+            "foo1",
+            affinityGroup = Some("Agent"),
+            principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+          ),
+          planetId = planetId
+        )
+      )
+      await(
+        repo.create(
+          User(
+            "foo2",
+            affinityGroup = Some("Agent"),
+            delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+          ),
+          planetId = planetId
+        )
+      )
+      await(
+        repo.create(
+          User(
+            "foo3",
+            affinityGroup = Some("Agent"),
+            principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "222")))))
+          ),
+          planetId = planetId
+        )
+      )
+      await(
+        repo.create(
+          User(
+            "foo4",
+            affinityGroup = Some("Agent"),
+            principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+          ),
+          planetId = planetId2
+        )
+      )
 
-      val result1 = await(repo.findByPrincipalEnrolmentKey(EnrolmentKey.from("FOO", "AAA" -> "111"), planetId = planetId))
+      val result1 =
+        await(repo.findByPrincipalEnrolmentKey(EnrolmentKey.from("FOO", "AAA" -> "111"), planetId = planetId))
       result1.isDefined shouldBe true
       result1.get.userId shouldBe "foo1"
-      result1.get.principalEnrolments should contain.only(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))
+      result1.get.principalEnrolments should contain.only(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
     }
   }
 
@@ -416,15 +532,54 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       val planetId = UUID.randomUUID().toString
       val planetId2 = UUID.randomUUID().toString
 
-      await(repo.create(User("foo1", affinityGroup = Some("Agent"), delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = planetId))
-      await(repo.create(User("foo3", affinityGroup = Some("Agent"), principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = planetId))
-      await(repo.create(User("foo2", affinityGroup = Some("Agent"), delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = planetId))
-      await(repo.create(User("foo4", affinityGroup = Some("Agent"), delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = planetId2))
+      await(
+        repo.create(
+          User(
+            "foo1",
+            affinityGroup = Some("Agent"),
+            delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+          ),
+          planetId = planetId
+        )
+      )
+      await(
+        repo.create(
+          User(
+            "foo3",
+            affinityGroup = Some("Agent"),
+            principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+          ),
+          planetId = planetId
+        )
+      )
+      await(
+        repo.create(
+          User(
+            "foo2",
+            affinityGroup = Some("Agent"),
+            delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+          ),
+          planetId = planetId
+        )
+      )
+      await(
+        repo.create(
+          User(
+            "foo4",
+            affinityGroup = Some("Agent"),
+            delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+          ),
+          planetId = planetId2
+        )
+      )
 
-      val result1 = await(repo.findByDelegatedEnrolmentKey(EnrolmentKey.from("FOO", "AAA" -> "111"), planetId = planetId)(10))
+      val result1 =
+        await(repo.findByDelegatedEnrolmentKey(EnrolmentKey.from("FOO", "AAA" -> "111"), planetId = planetId)(10))
       result1.size shouldBe 2
-      result1.map(_.userId) should contain.only("foo1","foo2")
-      result1.flatMap(_.delegatedEnrolments).distinct should contain.only(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))
+      result1.map(_.userId) should contain.only("foo1", "foo2")
+      result1.flatMap(_.delegatedEnrolments).distinct should contain.only(
+        Enrolment("FOO", Some(Seq(Identifier("AAA", "111"))))
+      )
     }
   }
 
@@ -433,14 +588,52 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       val planetId = UUID.randomUUID().toString
       val planetId2 = UUID.randomUUID().toString
 
-      await(repo.create(User("foo1", affinityGroup = Some("Agent"), delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = planetId))
-      await(repo.create(User("foo3", affinityGroup = Some("Agent"), principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = planetId))
-      await(repo.create(User("foo2", affinityGroup = Some("Agent"), delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = planetId))
-      await(repo.create(User("foo4", affinityGroup = Some("Agent"), delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = planetId2))
+      await(
+        repo.create(
+          User(
+            "foo1",
+            affinityGroup = Some("Agent"),
+            delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+          ),
+          planetId = planetId
+        )
+      )
+      await(
+        repo.create(
+          User(
+            "foo3",
+            affinityGroup = Some("Agent"),
+            principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+          ),
+          planetId = planetId
+        )
+      )
+      await(
+        repo.create(
+          User(
+            "foo2",
+            affinityGroup = Some("Agent"),
+            delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+          ),
+          planetId = planetId
+        )
+      )
+      await(
+        repo.create(
+          User(
+            "foo4",
+            affinityGroup = Some("Agent"),
+            delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+          ),
+          planetId = planetId2
+        )
+      )
 
-      val result1 = await(repo.findUserIdsByDelegatedEnrolmentKey(EnrolmentKey.from("FOO", "AAA" -> "111"), planetId = planetId)(10))
+      val result1 = await(
+        repo.findUserIdsByDelegatedEnrolmentKey(EnrolmentKey.from("FOO", "AAA" -> "111"), planetId = planetId)(10)
+      )
       result1.size shouldBe 2
-      result1 should contain.only("foo1","foo2")
+      result1 should contain.only("foo1", "foo2")
     }
   }
 
@@ -449,12 +642,54 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       val planetId = UUID.randomUUID().toString
       val planetId2 = UUID.randomUUID().toString
 
-      await(repo.create(User("foo1", groupId = Some("group1"), affinityGroup = Some("Agent"), delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = planetId))
-      await(repo.create(User("foo3", groupId = Some("group2"), affinityGroup = Some("Agent"), principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = planetId))
-      await(repo.create(User("foo2", groupId = Some("group3"), affinityGroup = Some("Agent"), delegatedEnrolments = Seq(Enrolment("BAR", Some(Seq(Identifier("AAA","111")))))), planetId = planetId))
-      await(repo.create(User("foo4", groupId = Some("group4"), affinityGroup = Some("Agent"), delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA","111")))))), planetId = planetId2))
+      await(
+        repo.create(
+          User(
+            "foo1",
+            groupId = Some("group1"),
+            affinityGroup = Some("Agent"),
+            delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+          ),
+          planetId = planetId
+        )
+      )
+      await(
+        repo.create(
+          User(
+            "foo3",
+            groupId = Some("group2"),
+            affinityGroup = Some("Agent"),
+            principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+          ),
+          planetId = planetId
+        )
+      )
+      await(
+        repo.create(
+          User(
+            "foo2",
+            groupId = Some("group3"),
+            affinityGroup = Some("Agent"),
+            delegatedEnrolments = Seq(Enrolment("BAR", Some(Seq(Identifier("AAA", "111")))))
+          ),
+          planetId = planetId
+        )
+      )
+      await(
+        repo.create(
+          User(
+            "foo4",
+            groupId = Some("group4"),
+            affinityGroup = Some("Agent"),
+            delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+          ),
+          planetId = planetId2
+        )
+      )
 
-      val result1 = await(repo.findGroupIdsByDelegatedEnrolmentKey(EnrolmentKey.from("FOO", "AAA" -> "111"), planetId = planetId)(10))
+      val result1 = await(
+        repo.findGroupIdsByDelegatedEnrolmentKey(EnrolmentKey.from("FOO", "AAA" -> "111"), planetId = planetId)(10)
+      )
       result1.size shouldBe 1
       result1 should contain.only(Some("group1"))
     }
@@ -463,10 +698,30 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
   "findAdminByGroupId" should {
     "return Admin user having provided groupId" in {
       val planetId = UUID.randomUUID().toString
-      await(repo.create(UserGenerator.individual("foo1", groupId = "group1", credentialRole = User.CR.Admin), planetId = planetId))
-      await(repo.create(UserGenerator.individual("foo2", groupId = "group1", credentialRole = User.CR.User), planetId = planetId))
-      await(repo.create(UserGenerator.individual("foo3", groupId = "group1", credentialRole = User.CR.Assistant), planetId = planetId))
-      await(repo.create(UserGenerator.individual("foo4", groupId = "group2", credentialRole = User.CR.Admin), planetId = planetId))
+      await(
+        repo.create(
+          UserGenerator.individual("foo1", groupId = "group1", credentialRole = User.CR.Admin),
+          planetId = planetId
+        )
+      )
+      await(
+        repo.create(
+          UserGenerator.individual("foo2", groupId = "group1", credentialRole = User.CR.User),
+          planetId = planetId
+        )
+      )
+      await(
+        repo.create(
+          UserGenerator.individual("foo3", groupId = "group1", credentialRole = User.CR.Assistant),
+          planetId = planetId
+        )
+      )
+      await(
+        repo.create(
+          UserGenerator.individual("foo4", groupId = "group2", credentialRole = User.CR.Admin),
+          planetId = planetId
+        )
+      )
 
       val result1 = await(repo.findAdminByGroupId("group1", planetId = planetId))
 
@@ -487,10 +742,28 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
   "findAdminByAgentCode" should {
     "return Admin user having provided groupId" in {
       val planetId = UUID.randomUUID().toString
-      await(repo.create(UserGenerator.agent("foo1", agentCode = "ABC123", credentialRole = User.CR.Admin), planetId = planetId))
-      await(repo.create(UserGenerator.agent("foo2", agentCode = "ABC123", credentialRole = User.CR.User), planetId = planetId))
-      await(repo.create(UserGenerator.agent("foo3", agentCode = "ABC123", credentialRole = User.CR.Assistant), planetId = planetId))
-      await(repo.create(UserGenerator.agent("foo4", groupId="group2", agentCode = "ABC456", credentialRole = User.CR.Admin), planetId = planetId))
+      await(
+        repo.create(
+          UserGenerator.agent("foo1", agentCode = "ABC123", credentialRole = User.CR.Admin),
+          planetId = planetId
+        )
+      )
+      await(
+        repo
+          .create(UserGenerator.agent("foo2", agentCode = "ABC123", credentialRole = User.CR.User), planetId = planetId)
+      )
+      await(
+        repo.create(
+          UserGenerator.agent("foo3", agentCode = "ABC123", credentialRole = User.CR.Assistant),
+          planetId = planetId
+        )
+      )
+      await(
+        repo.create(
+          UserGenerator.agent("foo4", groupId = "group2", agentCode = "ABC456", credentialRole = User.CR.Admin),
+          planetId = planetId
+        )
+      )
 
       val result1 = await(repo.findAdminByAgentCode("ABC123", planetId = planetId))
 
@@ -511,9 +784,14 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
   "syncRecordId" should {
     "add record id to the array" in {
       val planetId = UUID.randomUUID().toString
-      await(repo.create(UserGenerator.agent("foo1", agentCode = "ABC123", credentialRole = User.CR.Admin), planetId = planetId))
+      await(
+        repo.create(
+          UserGenerator.agent("foo1", agentCode = "ABC123", credentialRole = User.CR.Admin),
+          planetId = planetId
+        )
+      )
 
-      await(repo.syncRecordId("foo1","123456789", planetId))
+      await(repo.syncRecordId("foo1", "123456789", planetId))
 
       val userOpt = await(repo.findByUserId("foo1", planetId))
       userOpt.map(_.recordIds).get should contain.only("123456789")

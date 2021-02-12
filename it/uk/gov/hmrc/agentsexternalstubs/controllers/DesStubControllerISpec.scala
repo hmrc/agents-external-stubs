@@ -23,7 +23,7 @@ class DesStubControllerISpec
   val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
   lazy val repo = app.injector.instanceOf[RecordsRepository]
-  lazy val controller= app.injector.instanceOf[DesStubController]
+  lazy val controller = app.injector.instanceOf[DesStubController]
 
   "DesController" when {
 
@@ -31,18 +31,17 @@ class DesStubControllerISpec
       "respond 200 when authorising for ITSA" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
-        val result = DesStub.authoriseOrDeAuthoriseRelationship(
-          Json.parse("""
-                       |{
-                       |   "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
-                       |   "refNumber": "012345678901234",  
-                       |   "agentReferenceNumber": "ZARN1234567",  
-                       |   "regime": "ITSA",
-                       |   "authorisation": {    
-                       |     "action": "Authorise",    
-                       |     "isExclusiveAgent": true  
-                       |   }
-                       |}
+        val result = DesStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
+          |{
+          |   "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+          |   "refNumber": "012345678901234",  
+          |   "agentReferenceNumber": "ZARN1234567",  
+          |   "regime": "ITSA",
+          |   "authorisation": {    
+          |     "action": "Authorise",    
+          |     "isExclusiveAgent": true  
+          |   }
+          |}
           """.stripMargin))
         result should haveStatus(200)
       }
@@ -51,18 +50,17 @@ class DesStubControllerISpec
         SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
         implicit val apiAuthContext: AuthContext = AuthContext.fromHeaders("X-Client-ID" -> "foo123")
 
-        val result = DesStub.authoriseOrDeAuthoriseRelationship(
-          Json.parse("""
-                       |{
-                       |   "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
-                       |   "refNumber": "012345678901234",  
-                       |   "agentReferenceNumber": "ZARN1234567",  
-                       |   "regime": "ITSA",
-                       |   "authorisation": {    
-                       |     "action": "Authorise",    
-                       |     "isExclusiveAgent": true  
-                       |   }
-                       |}
+        val result = DesStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
+          |{
+          |   "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+          |   "refNumber": "012345678901234",  
+          |   "agentReferenceNumber": "ZARN1234567",  
+          |   "regime": "ITSA",
+          |   "authorisation": {    
+          |     "action": "Authorise",    
+          |     "isExclusiveAgent": true  
+          |   }
+          |}
                      """.stripMargin))
         result should haveStatus(200)
       }
@@ -70,17 +68,16 @@ class DesStubControllerISpec
       "respond 200 when de-authorising an ITSA relationship" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
-        val result = DesStub.authoriseOrDeAuthoriseRelationship(
-          Json.parse("""
-                       |{
-                       |   "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
-                       |   "refNumber": "012345678901234",
-                       |   "agentReferenceNumber": "ZARN1234567",
-                       |   "regime": "ITSA",
-                       |   "authorisation": {
-                       |     "action": "De-Authorise"
-                       |   }
-                       |}
+        val result = DesStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
+          |{
+          |   "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+          |   "refNumber": "012345678901234",
+          |   "agentReferenceNumber": "ZARN1234567",
+          |   "regime": "ITSA",
+          |   "authorisation": {
+          |     "action": "De-Authorise"
+          |   }
+          |}
                      """.stripMargin))
         result should haveStatus(200)
       }
@@ -88,19 +85,18 @@ class DesStubControllerISpec
       "respond 200 when authorising for TRS with UTR" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
-        val result = DesStub.authoriseOrDeAuthoriseRelationship(
-          Json.parse("""
-                       |{
-                       |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
-                       |   "refNumber": "2110118025",
-                       |   "agentReferenceNumber": "PARN0876123",
-                       |   "idType": "UTR",
-                       |   "regime": "TRS",
-                       |   "authorisation": {
-                       |     "action": "Authorise",
-                       |     "isExclusiveAgent": true
-                       |     }
-                       |}
+        val result = DesStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
+          |{
+          |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+          |   "refNumber": "2110118025",
+          |   "agentReferenceNumber": "PARN0876123",
+          |   "idType": "UTR",
+          |   "regime": "TRS",
+          |   "authorisation": {
+          |     "action": "Authorise",
+          |     "isExclusiveAgent": true
+          |     }
+          |}
           """.stripMargin))
         result should haveStatus(200)
       }
@@ -109,19 +105,18 @@ class DesStubControllerISpec
         SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
         implicit val apiAuthContext: AuthContext = AuthContext.fromHeaders("X-Client-ID" -> "foo123")
 
-        val result = DesStub.authoriseOrDeAuthoriseRelationship(
-          Json.parse("""
-                       |{
-                       |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
-                       |   "refNumber": "2110118025",
-                       |   "agentReferenceNumber": "PARN0876123",
-                       |   "idType": "UTR",
-                       |   "regime": "TRS",
-                       |   "authorisation": {
-                       |     "action": "Authorise",
-                       |     "isExclusiveAgent": true
-                       |     }
-                       |}
+        val result = DesStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
+          |{
+          |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+          |   "refNumber": "2110118025",
+          |   "agentReferenceNumber": "PARN0876123",
+          |   "idType": "UTR",
+          |   "regime": "TRS",
+          |   "authorisation": {
+          |     "action": "Authorise",
+          |     "isExclusiveAgent": true
+          |     }
+          |}
                      """.stripMargin))
         result should haveStatus(200)
       }
@@ -129,19 +124,18 @@ class DesStubControllerISpec
       "respond 200 when de-authorising an TRS relationship with UTR" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
-        val result = DesStub.authoriseOrDeAuthoriseRelationship(
-          Json.parse("""
-                       |{
-                       |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
-                       |   "refNumber": "2110118025",
-                       |   "agentReferenceNumber": "PARN0876123",
-                       |   "idType": "UTR",
-                       |   "regime": "TRS",
-                       |   "authorisation": {
-                       |     "action": "Authorise",
-                       |     "isExclusiveAgent": true
-                       |     }
-                       |}
+        val result = DesStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
+          |{
+          |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+          |   "refNumber": "2110118025",
+          |   "agentReferenceNumber": "PARN0876123",
+          |   "idType": "UTR",
+          |   "regime": "TRS",
+          |   "authorisation": {
+          |     "action": "Authorise",
+          |     "isExclusiveAgent": true
+          |     }
+          |}
                      """.stripMargin))
         result should haveStatus(200)
       }
@@ -149,19 +143,18 @@ class DesStubControllerISpec
       "respond 200 when authorising for TRS with URN" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
-        val result = DesStub.authoriseOrDeAuthoriseRelationship(
-          Json.parse("""
-                       |{
-                       |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
-                       |   "refNumber": "XXTRUST80000001",
-                       |   "agentReferenceNumber": "PARN0876123",
-                       |   "idType": "URN",
-                       |   "regime": "TRS",
-                       |   "authorisation": {
-                       |     "action": "Authorise",
-                       |     "isExclusiveAgent": true
-                       |     }
-                       |}
+        val result = DesStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
+          |{
+          |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+          |   "refNumber": "XXTRUST80000001",
+          |   "agentReferenceNumber": "PARN0876123",
+          |   "idType": "URN",
+          |   "regime": "TRS",
+          |   "authorisation": {
+          |     "action": "Authorise",
+          |     "isExclusiveAgent": true
+          |     }
+          |}
           """.stripMargin))
         result should haveStatus(200)
       }
@@ -170,19 +163,18 @@ class DesStubControllerISpec
         SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
         implicit val apiAuthContext: AuthContext = AuthContext.fromHeaders("X-Client-ID" -> "foo123")
 
-        val result = DesStub.authoriseOrDeAuthoriseRelationship(
-          Json.parse("""
-                       |{
-                       |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
-                       |   "refNumber": "XXTRUST80000001",
-                       |   "agentReferenceNumber": "PARN0876123",
-                       |   "idType": "URN",
-                       |   "regime": "TRS",
-                       |   "authorisation": {
-                       |     "action": "Authorise",
-                       |     "isExclusiveAgent": true
-                       |     }
-                       |}
+        val result = DesStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
+          |{
+          |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+          |   "refNumber": "XXTRUST80000001",
+          |   "agentReferenceNumber": "PARN0876123",
+          |   "idType": "URN",
+          |   "regime": "TRS",
+          |   "authorisation": {
+          |     "action": "Authorise",
+          |     "isExclusiveAgent": true
+          |     }
+          |}
                      """.stripMargin))
         result should haveStatus(200)
       }
@@ -190,19 +182,18 @@ class DesStubControllerISpec
       "respond 200 when de-authorising an TRS relationship with URN" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
-        val result = DesStub.authoriseOrDeAuthoriseRelationship(
-          Json.parse("""
-                       |{
-                       |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
-                       |   "refNumber": "XXTRUST80000001",
-                       |   "agentReferenceNumber": "PARN0876123",
-                       |   "idType": "URN",
-                       |   "regime": "TRS",
-                       |   "authorisation": {
-                       |     "action": "Authorise",
-                       |     "isExclusiveAgent": true
-                       |     }
-                       |}
+        val result = DesStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
+          |{
+          |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+          |   "refNumber": "XXTRUST80000001",
+          |   "agentReferenceNumber": "PARN0876123",
+          |   "idType": "URN",
+          |   "regime": "TRS",
+          |   "authorisation": {
+          |     "action": "Authorise",
+          |     "isExclusiveAgent": true
+          |     }
+          |}
                      """.stripMargin))
         result should haveStatus(200)
       }
@@ -224,9 +215,11 @@ class DesStubControllerISpec
               idType = "none",
               refNumber = "012345678901234",
               active = true,
-              startDate = Some(LocalDate.parse("2012-01-01"))),
+              startDate = Some(LocalDate.parse("2012-01-01"))
+            ),
             session.planetId
-          ))
+          )
+        )
 
         await(
           repo.store(
@@ -236,9 +229,11 @@ class DesStubControllerISpec
               idType = "none",
               refNumber = "987654321",
               active = true,
-              startDate = Some(LocalDate.parse("2017-12-31"))),
+              startDate = Some(LocalDate.parse("2017-12-31"))
+            ),
             session.planetId
-          ))
+          )
+        )
 
         val result =
           DesStub.getRelationship(regime = "ITSA", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
@@ -273,9 +268,11 @@ class DesStubControllerISpec
               idType = "none",
               refNumber = "012345678901234",
               active = true,
-              startDate = Some(LocalDate.parse("2012-01-01"))),
+              startDate = Some(LocalDate.parse("2012-01-01"))
+            ),
             session.planetId
-          ))
+          )
+        )
 
         val result =
           DesStub.getRelationship(regime = "ITSA", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
@@ -303,9 +300,11 @@ class DesStubControllerISpec
               idType = "none",
               refNumber = "012345678901234",
               active = true,
-              startDate = Some(LocalDate.parse("2012-01-01"))),
+              startDate = Some(LocalDate.parse("2012-01-01"))
+            ),
             session.planetId
-          ))
+          )
+        )
 
         await(
           repo.store(
@@ -315,9 +314,11 @@ class DesStubControllerISpec
               idType = "UTR",
               refNumber = "1234567890",
               active = true,
-              startDate = Some(LocalDate.parse("2017-12-31"))),
+              startDate = Some(LocalDate.parse("2017-12-31"))
+            ),
             session.planetId
-          ))
+          )
+        )
 
         val result =
           DesStub.getRelationship(regime = "TRS", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
@@ -352,9 +353,11 @@ class DesStubControllerISpec
               idType = "none",
               refNumber = "012345678901234",
               active = true,
-              startDate = Some(LocalDate.parse("2012-01-01"))),
+              startDate = Some(LocalDate.parse("2012-01-01"))
+            ),
             session.planetId
-          ))
+          )
+        )
 
         val result =
           DesStub.getRelationship(regime = "ITSA", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
@@ -382,9 +385,11 @@ class DesStubControllerISpec
               idType = "none",
               refNumber = "012345678901234",
               active = true,
-              startDate = Some(LocalDate.parse("2012-01-01"))),
+              startDate = Some(LocalDate.parse("2012-01-01"))
+            ),
             session.planetId
-          ))
+          )
+        )
 
         await(
           repo.store(
@@ -394,9 +399,11 @@ class DesStubControllerISpec
               idType = "URN",
               refNumber = "XXTRUST80000001",
               active = true,
-              startDate = Some(LocalDate.parse("2017-12-31"))),
+              startDate = Some(LocalDate.parse("2017-12-31"))
+            ),
             session.planetId
-          ))
+          )
+        )
 
         val result =
           DesStub.getRelationship(regime = "TRS", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
@@ -431,9 +438,11 @@ class DesStubControllerISpec
               idType = "none",
               refNumber = "012345678901234",
               active = true,
-              startDate = Some(LocalDate.parse("2012-01-01"))),
+              startDate = Some(LocalDate.parse("2012-01-01"))
+            ),
             session.planetId
-          ))
+          )
+        )
 
         val result =
           DesStub.getRelationship(regime = "ITSA", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
@@ -499,7 +508,8 @@ class DesStubControllerISpec
               haveProperty[String]("address2"),
               haveProperty[Boolean]("isAgentAbroad")
             )
-          ))
+          )
+        )
       }
 
       "return 200 response if relationship does not exist" in {
@@ -510,24 +520,26 @@ class DesStubControllerISpec
       }
     }
 
-    "GET /trusts/agent-known-fact-check/:utr"   should {
-        "respond 200 with trust details using UTR" in {
-          implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-          val enrolmentKey = "HMRC-TERS-ORG~SAUTR~0123456789"
-          Users.create(UserGenerator.organisation("foo1").withPrincipalEnrolment(enrolmentKey))
-          val trustTaxIdentifier = "0123456789"
+    "GET /trusts/agent-known-fact-check/:utr" should {
+      "respond 200 with trust details using UTR" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val enrolmentKey = "HMRC-TERS-ORG~SAUTR~0123456789"
+        Users.create(UserGenerator.organisation("foo1").withPrincipalEnrolment(enrolmentKey))
+        val trustTaxIdentifier = "0123456789"
 
-          val result = DesStub.getTrustKnownFactsUtr(trustTaxIdentifier)
-          result should haveStatus(200)
+        val result = DesStub.getTrustKnownFactsUtr(trustTaxIdentifier)
+        result should haveStatus(200)
 
-          result.json.as[JsObject] should haveProperty[JsObject]("trustDetails",
-            haveProperty[String]("utr"),
-            haveProperty[String]("trustName"),
-            haveProperty[String]("serviceName"))
-        }
+        result.json.as[JsObject] should haveProperty[JsObject](
+          "trustDetails",
+          haveProperty[String]("utr"),
+          haveProperty[String]("trustName"),
+          haveProperty[String]("serviceName")
+        )
       }
+    }
 
-    "GET /trusts/agent-known-fact-check/:urn"   should {
+    "GET /trusts/agent-known-fact-check/:urn" should {
       "respond 200 with trust details using URN" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val enrolmentKey = "HMRC-TERSNT-ORG~URN~XXTRUST80000001"
@@ -537,10 +549,12 @@ class DesStubControllerISpec
         val result = DesStub.getTrustKnownFactsUrn(trustTaxIdentifier)
         result should haveStatus(200)
 
-        result.json.as[JsObject] should haveProperty[JsObject]("trustDetails",
+        result.json.as[JsObject] should haveProperty[JsObject](
+          "trustDetails",
           haveProperty[String]("urn"),
           haveProperty[String]("trustName"),
-          haveProperty[String]("serviceName"))
+          haveProperty[String]("serviceName")
+        )
       }
     }
 
@@ -556,7 +570,8 @@ class DesStubControllerISpec
           haveProperty[String]("safeId"),
           haveProperty[String]("safeId"),
           haveProperty[String]("nino", be("AA123456A")),
-          haveProperty[String]("mtdbsa"))
+          haveProperty[String]("mtdbsa")
+        )
       }
 
       "return 200 response if record not found but user pulled from external source" in {
@@ -565,16 +580,20 @@ class DesStubControllerISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo(s"/individuals/nino/$nino"))
-            .willReturn(aResponse()
-              .withStatus(200)
-              .withBody(testIndividualResponse(Nino(nino)))))
+            .willReturn(
+              aResponse()
+                .withStatus(200)
+                .withBody(testIndividualResponse(Nino(nino)))
+            )
+        )
         val result = DesStub.getBusinessDetails("nino", nino)
         result should haveStatus(200)
         result should haveValidJsonBody(
           haveProperty[String]("safeId"),
           haveProperty[String]("safeId"),
           haveProperty[String]("nino", be(nino)),
-          haveProperty[String]("mtdbsa"))
+          haveProperty[String]("mtdbsa")
+        )
       }
 
       "return 404 response if record not found" in {
@@ -588,8 +607,11 @@ class DesStubControllerISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo(s"/individuals/nino/HW827856C"))
-            .willReturn(aResponse()
-              .withStatus(502)))
+            .willReturn(
+              aResponse()
+                .withStatus(502)
+            )
+        )
         val result = DesStub.getBusinessDetails("nino", "HW827856C")
         result should haveStatus(404)
       }
@@ -599,8 +621,11 @@ class DesStubControllerISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo(s"/individuals/nino/HW827856C"))
-            .willReturn(aResponse()
-              .withStatus(404)))
+            .willReturn(
+              aResponse()
+                .withStatus(404)
+            )
+        )
         val result = DesStub.getBusinessDetails("nino", "HW827856C")
         result should haveStatus(404)
       }
@@ -618,7 +643,8 @@ class DesStubControllerISpec
           haveProperty[String]("safeId"),
           haveProperty[String]("safeId"),
           haveProperty[String]("nino"),
-          haveProperty[String]("mtdbsa"))
+          haveProperty[String]("mtdbsa")
+        )
       }
 
       "return 404 response if record not found" in {
@@ -646,14 +672,20 @@ class DesStubControllerISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo(s"/organisations/vrn/$vrn"))
-            .willReturn(aResponse()
-              .withStatus(200)
-              .withBody(testOrganisationResponse(Vrn(vrn)))))
+            .willReturn(
+              aResponse()
+                .withStatus(200)
+                .withBody(testOrganisationResponse(Vrn(vrn)))
+            )
+        )
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo(s"/individuals/vrn/$vrn"))
-            .willReturn(aResponse()
-              .withStatus(404)))
+            .willReturn(
+              aResponse()
+                .withStatus(404)
+            )
+        )
 
         val result = DesStub.getVatCustomerInformation(vrn)
         result should haveStatus(200)
@@ -667,14 +699,20 @@ class DesStubControllerISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo(s"/organisations/vrn/$vrn"))
-            .willReturn(aResponse()
-              .withStatus(404)))
+            .willReturn(
+              aResponse()
+                .withStatus(404)
+            )
+        )
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo(s"/individuals/vrn/$vrn"))
-            .willReturn(aResponse()
-              .withStatus(200)
-              .withBody(testIndividualResponse(vrn = Vrn(vrn)))))
+            .willReturn(
+              aResponse()
+                .withStatus(200)
+                .withBody(testIndividualResponse(vrn = Vrn(vrn)))
+            )
+        )
 
         val result = DesStub.getVatCustomerInformation(vrn)
         result should haveStatus(200)
@@ -694,13 +732,19 @@ class DesStubControllerISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo(s"/organisations/vrn/$vrn"))
-            .willReturn(aResponse()
-              .withStatus(502)))
+            .willReturn(
+              aResponse()
+                .withStatus(502)
+            )
+        )
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo(s"/individuals/vrn/$vrn"))
-            .willReturn(aResponse()
-              .withStatus(502)))
+            .willReturn(
+              aResponse()
+                .withStatus(502)
+            )
+        )
 
         val result = DesStub.getVatCustomerInformation(vrn)
         result should haveStatus(200)
@@ -712,13 +756,19 @@ class DesStubControllerISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo(s"/organisations/vrn/$vrn"))
-            .willReturn(aResponse()
-              .withStatus(404)))
+            .willReturn(
+              aResponse()
+                .withStatus(404)
+            )
+        )
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo(s"/individuals/vrn/$vrn"))
-            .willReturn(aResponse()
-              .withStatus(404)))
+            .willReturn(
+              aResponse()
+                .withStatus(404)
+            )
+        )
 
         val result = DesStub.getVatCustomerInformation(vrn)
         result should haveStatus(200)
@@ -746,7 +796,6 @@ class DesStubControllerISpec
         json should haveProperty[String]("vrn")
         json should haveProperty[String]("dateOfReg")
       }
-
 
     }
 
@@ -779,7 +828,8 @@ class DesStubControllerISpec
         result should haveStatus(200)
         result should haveValidJsonBody(
           haveProperty[String]("agentReferenceNumber"),
-          haveProperty[JsObject]("addressDetails"))
+          haveProperty[JsObject]("addressDetails")
+        )
       }
 
       "return 404 response if record not found" in {
@@ -1058,7 +1108,8 @@ class DesStubControllerISpec
         Records.createEmployerAuths(employerAuths).status shouldBe 201
 
         val payload = EmployerAuthsPayload(
-          employerAuths.empAuthList.map(e => EmployerAuthsPayload.EmpRef(e.empRef.districtNumber, e.empRef.reference)))
+          employerAuths.empAuthList.map(e => EmployerAuthsPayload.EmpRef(e.empRef.districtNumber, e.empRef.reference))
+        )
         val result = DesStub.retrieveLegacyAgentClientPayeInformation(agentCode, payload)
 
         result should haveStatus(200)
@@ -1071,7 +1122,8 @@ class DesStubControllerISpec
               haveProperty[String]("districtNumber"),
               haveProperty[String]("reference"),
               haveProperty[String]("payType"),
-              haveProperty[String]("checkCode")),
+              haveProperty[String]("checkCode")
+            ),
             haveProperty[Boolean]("Auth_64-8"),
             haveProperty[Boolean]("Auth_OAA")
           )
@@ -1228,22 +1280,35 @@ class DesStubControllerISpec
     "GET /subscriptions/:regime/:idType/:cgtRef" should {
       "return CGT subscription details as expected" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
-        val result = Users.update(User("7728378273", principalEnrolments = Seq(Enrolment("HMRC-CGT-PD", Some(Seq(Identifier("CGTPDRef", "XMCGTP707663428")))))))
+        val result = Users.update(
+          User(
+            "7728378273",
+            principalEnrolments = Seq(Enrolment("HMRC-CGT-PD", Some(Seq(Identifier("CGTPDRef", "XMCGTP707663428")))))
+          )
+        )
         result should haveStatus(202)
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/7728378273")
         val result2 = get("/subscriptions/CGT/ZCGT/XMCGTP707663428")
 
         result2 should haveStatus(200)
         result2 should haveValidJsonBody(haveProperty[String]("regime", be("CGT")))
-        result2 should haveValidJsonBody(haveProperty[JsObject](
-          "subscriptionDetails",
-          haveProperty[JsObject]("typeOfPersonDetails"),
-          haveProperty[JsObject]("addressDetails")))
+        result2 should haveValidJsonBody(
+          haveProperty[JsObject](
+            "subscriptionDetails",
+            haveProperty[JsObject]("typeOfPersonDetails"),
+            haveProperty[JsObject]("addressDetails")
+          )
+        )
       }
 
       "handle invalid regime" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
-        val result = Users.update(User("7728378273", principalEnrolments = Seq(Enrolment("HMRC-CGT-PD", Some(Seq(Identifier("CGTPDRef", "XMCGTP707663428")))))))
+        val result = Users.update(
+          User(
+            "7728378273",
+            principalEnrolments = Seq(Enrolment("HMRC-CGT-PD", Some(Seq(Identifier("CGTPDRef", "XMCGTP707663428")))))
+          )
+        )
         result should haveStatus(202)
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/7728378273")
         val result2 = get("/subscriptions/xxx/ZCGT/XMCGTP707663428")
@@ -1254,7 +1319,12 @@ class DesStubControllerISpec
 
       "handle invalid idType" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
-        val result = Users.update(User("7728378273", principalEnrolments = Seq(Enrolment("HMRC-CGT-PD", Some(Seq(Identifier("CGTPDRef", "XMCGTP707663428")))))))
+        val result = Users.update(
+          User(
+            "7728378273",
+            principalEnrolments = Seq(Enrolment("HMRC-CGT-PD", Some(Seq(Identifier("CGTPDRef", "XMCGTP707663428")))))
+          )
+        )
         result should haveStatus(202)
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/7728378273")
         val result2 = get("/subscriptions/CGT/xxx/XMCGTP707663428")
@@ -1265,7 +1335,12 @@ class DesStubControllerISpec
 
       "handle invalid regime and idType" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
-        val result = Users.update(User("7728378273", principalEnrolments = Seq(Enrolment("HMRC-CGT-PD", Some(Seq(Identifier("CGTPDRef", "XMCGTP707663428")))))))
+        val result = Users.update(
+          User(
+            "7728378273",
+            principalEnrolments = Seq(Enrolment("HMRC-CGT-PD", Some(Seq(Identifier("CGTPDRef", "XMCGTP707663428")))))
+          )
+        )
         result should haveStatus(202)
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/7728378273")
         val result2 = get("/subscriptions/xxx/yyy/XMCGTP707663428")

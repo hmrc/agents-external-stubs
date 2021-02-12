@@ -26,32 +26,32 @@ import uk.gov.hmrc.http.BadRequestException
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class VatCustomerInformationRecordsService @Inject()(
+class VatCustomerInformationRecordsService @Inject() (
   val recordsRepository: RecordsRepository,
   externalUserService: ExternalUserService,
-  usersServiceProvider: Provider[UsersService])
-    extends RecordsService {
+  usersServiceProvider: Provider[UsersService]
+) extends RecordsService {
 
-  def store(record: VatCustomerInformationRecord, autoFill: Boolean, planetId: String)(
-    implicit ec: ExecutionContext): Future[String] = {
+  def store(record: VatCustomerInformationRecord, autoFill: Boolean, planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[String] = {
     val entity = if (autoFill) VatCustomerInformationRecord.sanitize(record.vrn)(record) else record
     VatCustomerInformationRecord
       .validate(entity)
       .fold(
         errors => Future.failed(new BadRequestException(errors.mkString(", "))),
-        _ => {
-          recordsRepository.store(entity, planetId)
-        }
+        _ => recordsRepository.store(entity, planetId)
       )
   }
 
-  def getCustomerInformation(vrn: String, planetId: String)(
-    implicit ec: ExecutionContext): Future[Option[VatCustomerInformationRecord]] =
+  def getCustomerInformation(vrn: String, planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[Option[VatCustomerInformationRecord]] =
     externalUserService
-      .tryLookupExternalUserIfMissingForIdentifier(Vrn(vrn), planetId, usersServiceProvider.get.createUser(_, _))(
-        id =>
-          findByKey[VatCustomerInformationRecord](VatCustomerInformationRecord.uniqueKey(id.value), planetId)
-            .map(_.headOption))
+      .tryLookupExternalUserIfMissingForIdentifier(Vrn(vrn), planetId, usersServiceProvider.get.createUser(_, _))(id =>
+        findByKey[VatCustomerInformationRecord](VatCustomerInformationRecord.uniqueKey(id.value), planetId)
+          .map(_.headOption)
+      )
 
   def getVatKnownFacts(vrn: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[VatKnownFacts]] =
     getCustomerInformation(vrn, planetId).map(VatKnownFacts.fromVatCustomerInformationRecord(vrn, _))

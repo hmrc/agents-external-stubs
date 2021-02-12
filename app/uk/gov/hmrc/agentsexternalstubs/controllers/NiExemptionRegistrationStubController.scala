@@ -27,10 +27,11 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class NiExemptionRegistrationStubController @Inject()(
+class NiExemptionRegistrationStubController @Inject() (
   val authenticationService: AuthenticationService,
   businessPartnerRecordsService: BusinessPartnerRecordsService,
-  cc: ControllerComponents)(implicit ec: ExecutionContext)
+  cc: ControllerComponents
+)(implicit ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
   import NiExemptionRegistrationStubController._
@@ -56,9 +57,10 @@ class NiExemptionRegistrationStubController @Inject()(
                         case _ =>
                           conflict(
                             "NOT_MATCHES",
-                            s"Post Code: ${payload.postcode} in request does not match the business post code")
+                            s"Post Code: ${payload.postcode} in request does not match the business post code"
+                          )
                       }
-                }
+                  }
               )
         }
       }

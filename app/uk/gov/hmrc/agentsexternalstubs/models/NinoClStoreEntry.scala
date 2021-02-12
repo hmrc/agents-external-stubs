@@ -27,7 +27,8 @@ case class NinoClStoreEntry(
   nino: Nino,
   confidenceLevel: Option[ConfidenceLevel],
   createdAt: Option[LocalDateTime],
-  updatedAt: Option[LocalDateTime])
+  updatedAt: Option[LocalDateTime]
+)
 
 object NinoClStoreEntry {
 

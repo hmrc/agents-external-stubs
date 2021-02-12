@@ -80,7 +80,8 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       val user = userOpt.get
       user.userId shouldBe "AgentFoo"
       user.principalEnrolments should contain.only(
-        Enrolment("HMRC-AS-AGENT", Some(Seq(Identifier("AgentReferenceNumber", "TARN0000001")))))
+        Enrolment("HMRC-AS-AGENT", Some(Seq(Identifier("AgentReferenceNumber", "TARN0000001"))))
+      )
       user.affinityGroup shouldBe Some("Agent")
       user.confidenceLevel shouldBe None
       user.credentialStrength shouldBe None
@@ -132,7 +133,8 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       val user = userOpt.get
       user.userId shouldBe "UserFoo"
       user.principalEnrolments should contain.only(
-        Enrolment("HMRC-MTD-IT", Some(Seq(Identifier("MTDITID", "X12345678909876")))))
+        Enrolment("HMRC-MTD-IT", Some(Seq(Identifier("MTDITID", "X12345678909876"))))
+      )
       user.affinityGroup shouldBe Some("Individual")
       user.confidenceLevel shouldBe Some(200)
       user.credentialStrength shouldBe Some("strong")
@@ -169,7 +171,8 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
             .individual("UserFoo", 50, "User")
             .withPrincipalEnrolment(Enrolment("HMRC-MTD-VAT", Some(Seq(Identifier("VRN", "405985922"))))),
           planetId
-        ))
+        )
+      )
 
       givenAuthorisedFor(
         authoriseRequest,
@@ -222,35 +225,35 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
 
       givenAuthorisedFor(
         s"""
-           |{
-           |  "credentials": {
-           |    "providerId": "1551815928588520",
-           |    "providerType": "GovernmentGateway"
-           |  },
-           |  "allEnrolments": [
-           |    {
-           |      "key": "HMRC-NI",
-           |      "identifiers": [
-           |        {
-           |          "key": "NINO",
-           |          "value": "AB123456A"
-           |        }
-           |      ],
-           |      "state": "Activated",
-           |      "confidenceLevel": 200
-           |    }
-           |  ],
-           |  "affinityGroup": "Individual",
-           |  "confidenceLevel": 200,
-           |  "credentialStrength": "weak",
-           |  "credentialRole": "User",
-           |  "nino": "AB123456A",
-           |  "groupIdentifier": "testGroupId-b1062cdf-c73f-4a3f-b949-d43354399729",
-           |  "name": {
-           |    "name": "Foo Bar"
-           |  },
-           |  "agentInformation": {}
-           |}
+          |{
+          |  "credentials": {
+          |    "providerId": "1551815928588520",
+          |    "providerType": "GovernmentGateway"
+          |  },
+          |  "allEnrolments": [
+          |    {
+          |      "key": "HMRC-NI",
+          |      "identifiers": [
+          |        {
+          |          "key": "NINO",
+          |          "value": "AB123456A"
+          |        }
+          |      ],
+          |      "state": "Activated",
+          |      "confidenceLevel": 200
+          |    }
+          |  ],
+          |  "affinityGroup": "Individual",
+          |  "confidenceLevel": 200,
+          |  "credentialStrength": "weak",
+          |  "credentialRole": "User",
+          |  "nino": "AB123456A",
+          |  "groupIdentifier": "testGroupId-b1062cdf-c73f-4a3f-b949-d43354399729",
+          |  "name": {
+          |    "name": "Foo Bar"
+          |  },
+          |  "agentInformation": {}
+          |}
          """.stripMargin
       )
 

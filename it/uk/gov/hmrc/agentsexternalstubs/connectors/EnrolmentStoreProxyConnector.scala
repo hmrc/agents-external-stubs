@@ -43,24 +43,29 @@ object ES8Request {
 }
 
 @Singleton
-class EnrolmentStoreProxyConnector @Inject()(
-                                              appConfig: AppConfig,
+class EnrolmentStoreProxyConnector @Inject() (
+  appConfig: AppConfig,
   http: HttpGet with HttpPost with HttpDelete,
-  metrics: Metrics)
-    extends TaxIdentifierSupport {
+  metrics: Metrics
+) extends TaxIdentifierSupport {
 
   // ES0 - principal
   def getPrincipalUserIdFor(
-    taxIdentifier: TaxIdentifier)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[String] = {
+    taxIdentifier: TaxIdentifier
+  )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[String] = {
     val enrolmentKeyPrefix = enrolmentKeyPrefixFor(taxIdentifier)
     val enrolmentKey = enrolmentKeyPrefix + "~" + taxIdentifier.value
     val url =
-      new URL(appConfig.enrolmentStoreProxyUrl + s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/users?type=principal")
-    http.GET[HttpResponse](url.toString).map { response =>
+      new URL(
+        appConfig.enrolmentStoreProxyUrl + s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/users?type=principal"
+      )
+    http
+      .GET[HttpResponse](url.toString)
+      .map { response =>
         if (response.status == 204) throw new Exception(s"UNKNOWN_${identifierNickname(taxIdentifier)}")
         else response.json
       }
-      .map(json => {
+      .map { json =>
         val userIds = (json \ "principalUserIds").as[Seq[String]]
         if (userIds.isEmpty) {
           throw new Exception(s"UNKNOWN_${identifierNickname(taxIdentifier)}")
@@ -70,21 +75,26 @@ class EnrolmentStoreProxyConnector @Inject()(
           }
           userIds.head
         }
-      })
+      }
   }
 
   // ES1 - principal
   def getPrincipalGroupIdFor(
-    taxIdentifier: TaxIdentifier)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[String] = {
+    taxIdentifier: TaxIdentifier
+  )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[String] = {
     val enrolmentKeyPrefix = enrolmentKeyPrefixFor(taxIdentifier)
     val enrolmentKey = enrolmentKeyPrefix + "~" + taxIdentifier.value
     val url =
-      new URL(appConfig.enrolmentStoreProxyUrl +  s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/groups?type=principal")
-    http.GET[HttpResponse](url.toString).map { response =>
+      new URL(
+        appConfig.enrolmentStoreProxyUrl + s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/groups?type=principal"
+      )
+    http
+      .GET[HttpResponse](url.toString)
+      .map { response =>
         if (response.status == 204) throw new Exception(s"UNKNOWN_${identifierNickname(taxIdentifier)}")
         else response.json
       }
-      .map(json => {
+      .map { json =>
         val groupIds = (json \ "principalGroupIds").as[Seq[String]]
         if (groupIds.isEmpty) {
           throw new Exception(s"UNKNOWN_${identifierNickname(taxIdentifier)}")
@@ -94,24 +104,29 @@ class EnrolmentStoreProxyConnector @Inject()(
           }
           groupIds.head
         }
-      })
+      }
   }
 
   // ES1 - delegated
   def getDelegatedGroupIdsFor(
-    taxIdentifier: TaxIdentifier)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Set[String]] = {
+    taxIdentifier: TaxIdentifier
+  )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Set[String]] = {
     val enrolmentKey = enrolmentKeyPrefixFor(taxIdentifier) + "~" + taxIdentifier.value
     getDelegatedGroupIdsFor(enrolmentKey)
   }
 
   def getDelegatedGroupIdsForHMCEVATDECORG(
-    vrn: Vrn)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Set[String]] =
+    vrn: Vrn
+  )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Set[String]] =
     getDelegatedGroupIdsFor(s"HMCE-VATDEC-ORG~VATRegNo~${vrn.value}")
 
   protected def getDelegatedGroupIdsFor(
-    enrolmentKey: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Set[String]] = {
+    enrolmentKey: String
+  )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Set[String]] = {
     val url =
-      new URL(appConfig.enrolmentStoreProxyUrl +  s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/groups?type=delegated")
+      new URL(
+        appConfig.enrolmentStoreProxyUrl + s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/groups?type=delegated"
+      )
     http.GET[HttpResponse](url.toString).map { response =>
       if (response.status == 204) Set.empty
       else (response.json \ "delegatedGroupIds").as[Seq[String]].toSet
@@ -120,31 +135,39 @@ class EnrolmentStoreProxyConnector @Inject()(
 
   // ES8
   def allocateEnrolmentToAgent(groupId: String, userId: String, taxIdentifier: TaxIdentifier, agentCode: AgentCode)(
-    implicit hc: HeaderCarrier,
-    ec: ExecutionContext): Future[Unit] = {
+    implicit
+    hc: HeaderCarrier,
+    ec: ExecutionContext
+  ): Future[Unit] = {
     val enrolmentKeyPrefix = enrolmentKeyPrefixFor(taxIdentifier)
     val enrolmentKey = enrolmentKeyPrefix + "~" + taxIdentifier.value
     val url = new URL(
       appConfig.taxEnrolmentsUrl +
-        s"/tax-enrolments/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=${agentCode.value}")
-    http.POST[ES8Request, HttpResponse](url.toString, ES8Request(userId, "delegated")).map(_ => ())
+        s"/tax-enrolments/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=${agentCode.value}"
+    )
+    http
+      .POST[ES8Request, HttpResponse](url.toString, ES8Request(userId, "delegated"))
+      .map(_ => ())
       .recover {
         case e: Upstream4xxResponse if e.upstreamResponseCode == Status.CONFLICT =>
           Logger(getClass).warn(
-            s"An attempt to allocate new enrolment $enrolmentKeyPrefix resulted in conflict with an existing one.")
+            s"An attempt to allocate new enrolment $enrolmentKeyPrefix resulted in conflict with an existing one."
+          )
           ()
       }
   }
 
   // ES9
-  def deallocateEnrolmentFromAgent(groupId: String, taxIdentifier: TaxIdentifier, agentCode: AgentCode)(
-    implicit hc: HeaderCarrier,
-    ec: ExecutionContext): Future[Unit] = {
+  def deallocateEnrolmentFromAgent(groupId: String, taxIdentifier: TaxIdentifier, agentCode: AgentCode)(implicit
+    hc: HeaderCarrier,
+    ec: ExecutionContext
+  ): Future[Unit] = {
     val enrolmentKeyPrefix = enrolmentKeyPrefixFor(taxIdentifier)
     val enrolmentKey = enrolmentKeyPrefix + "~" + taxIdentifier.value
     val url = new URL(
       appConfig.taxEnrolmentsUrl +
-      s"/tax-enrolments/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=${agentCode.value}")
+        s"/tax-enrolments/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=${agentCode.value}"
+    )
     http.DELETE[HttpResponse](url.toString).map(_ => ())
   }
 
@@ -172,10 +195,10 @@ trait TaxIdentifierSupport {
 
 object TaxIdentifierSupport extends TaxIdentifierSupport {
   def from(value: String, `type`: String): TaxIdentifier = `type` match {
-    case "MTDITID" => MtdItId(value)
-    case "NINO" => Nino(value)
-    case "VRN" => Vrn(value)
+    case "MTDITID"              => MtdItId(value)
+    case "NINO"                 => Nino(value)
+    case "VRN"                  => Vrn(value)
     case "AgentReferenceNumber" => Arn(value)
-    case _ => throw new Exception(s"Invalid tax identifier type ${`type`}")
+    case _                      => throw new Exception(s"Invalid tax identifier type ${`type`}")
   }
 }

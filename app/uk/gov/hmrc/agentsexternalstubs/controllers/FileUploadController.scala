@@ -27,9 +27,9 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class FileUploadController @Inject()(val authenticationService: AuthenticationService, cc: ControllerComponents)(
-  implicit ec: ExecutionContext)
-    extends BackendController(cc) with CurrentSession {
+class FileUploadController @Inject() (val authenticationService: AuthenticationService, cc: ControllerComponents)(
+  implicit ec: ExecutionContext
+) extends BackendController(cc) with CurrentSession {
 
   def createEnvelope(): Action[AnyContent] =
     Action.async { implicit request =>

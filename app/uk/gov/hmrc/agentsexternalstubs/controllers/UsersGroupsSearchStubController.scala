@@ -27,10 +27,11 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class UsersGroupsSearchStubController @Inject()(
+class UsersGroupsSearchStubController @Inject() (
   val authenticationService: AuthenticationService,
   usersService: UsersService,
-  cc: ControllerComponents)(implicit ec: ExecutionContext)
+  cc: ControllerComponents
+)(implicit ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
   def getUser(userId: String): Action[AnyContent] = Action.async { implicit request =>
@@ -52,9 +53,12 @@ class UsersGroupsSearchStubController @Inject()(
               NonAuthoritativeInformation(
                 RestfulResponse(
                   GetGroupResponse.from(groupId, user),
-                  Link("users", routes.UsersGroupsSearchStubController.getGroupUsers(groupId).url)))
+                  Link("users", routes.UsersGroupsSearchStubController.getGroupUsers(groupId).url)
+                )
+              )
             case None => notFound("GROUP_NOT_FOUND")
-        })
+          }
+        )
     }(SessionRecordNotFound)
   }
 
@@ -82,12 +86,15 @@ class UsersGroupsSearchStubController @Inject()(
         .map(s =>
           s.find(_.isAgent).orElse(s.find(_.isOrganisation)).orElse(s.headOption) match {
             case Some(user) =>
-              NonAuthoritativeInformation(RestfulResponse(
-                GetGroupResponse.from(user.groupId.getOrElse(""), user),
-                Link("users", routes.UsersGroupsSearchStubController.getGroupUsers(user.groupId.getOrElse("")).url)
-              ))
+              NonAuthoritativeInformation(
+                RestfulResponse(
+                  GetGroupResponse.from(user.groupId.getOrElse(""), user),
+                  Link("users", routes.UsersGroupsSearchStubController.getGroupUsers(user.groupId.getOrElse("")).url)
+                )
+              )
             case None => notFound("GROUP_NOT_FOUND")
-        })
+          }
+        )
     }(SessionRecordNotFound)
   }
 
@@ -95,8 +102,7 @@ class UsersGroupsSearchStubController @Inject()(
 
 object UsersGroupsSearchStubController {
 
-  /**
-    * {
+  /** {
     *     "userId": ":userId",
     *     "name": "Subscribed MTD Agent",
     *     "email": "default@email.com",
@@ -120,7 +126,8 @@ object UsersGroupsSearchStubController {
     credentialRole: Option[String] = None,
     description: Option[String] = None,
     groupId: Option[String] = None,
-    owningUserId: Option[String] = None)
+    owningUserId: Option[String] = None
+  )
 
   object GetUserResponse {
     implicit val writes: Writes[GetUserResponse] = Json.writes[GetUserResponse]
@@ -138,8 +145,7 @@ object UsersGroupsSearchStubController {
       )
   }
 
-  /**
-    * {
+  /** {
     *   "_links": [
     *     { "rel": "users", "href": "/groups/:groupdId/users" }
     *   ],
@@ -155,7 +161,8 @@ object UsersGroupsSearchStubController {
     affinityGroup: Option[String] = None,
     agentCode: Option[String] = None,
     agentFriendlyName: Option[String] = None,
-    agentId: Option[String] = None)
+    agentId: Option[String] = None
+  )
 
   object GetGroupResponse {
     implicit val writes: Writes[GetGroupResponse] = Json.writes[GetGroupResponse]
@@ -166,7 +173,8 @@ object UsersGroupsSearchStubController {
         affinityGroup = user.affinityGroup,
         agentCode = user.agentCode,
         agentFriendlyName = user.agentFriendlyName,
-        agentId = user.agentId)
+        agentId = user.agentId
+      )
   }
 
 }

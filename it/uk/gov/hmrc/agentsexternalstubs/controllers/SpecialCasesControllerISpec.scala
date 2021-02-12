@@ -44,7 +44,10 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with MongoDB with Test
           eachArrayElement(
             haveProperty[JsObject]("requestMatch") and haveProperty[JsObject]("response") and haveProperty[String](
               "planetId",
-              be(session.planetId))))
+              be(session.planetId)
+            )
+          )
+        )
       }
 
       "return 204 if none found" in {
@@ -70,7 +73,8 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with MongoDB with Test
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val specialCase = SpecialCase(
           SpecialCase.RequestMatch("/test"),
-          SpecialCase.Response(500, Some("FOO"), Seq(SpecialCase.Header("zig", "foo"))))
+          SpecialCase.Response(500, Some("FOO"), Seq(SpecialCase.Header("zig", "foo")))
+        )
         val id = await(repo.upsert(specialCase, session.planetId))
 
         val result =
@@ -92,7 +96,9 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with MongoDB with Test
           SpecialCases.createSpecialCase(
             SpecialCase(
               SpecialCase.RequestMatch("/test1"),
-              SpecialCase.Response(404, Some("{foo}"), Seq(SpecialCase.Header("foo", "bar")))))
+              SpecialCase.Response(404, Some("{foo}"), Seq(SpecialCase.Header("foo", "bar")))
+            )
+          )
         createResult.status shouldBe 201
 
         val result = createResult.header(HeaderNames.LOCATION).map(get).get
@@ -110,7 +116,8 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with MongoDB with Test
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val specialCase = SpecialCase(
           SpecialCase.RequestMatch("/test1/test2/test3"),
-          SpecialCase.Response(404, Some("{zoo}"), Seq(SpecialCase.Header("zig", "zag"))))
+          SpecialCase.Response(404, Some("{zoo}"), Seq(SpecialCase.Header("zig", "zag")))
+        )
         val id = await(repo.upsert(specialCase, session.planetId))
 
         val result =
@@ -132,7 +139,8 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with MongoDB with Test
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val specialCase = SpecialCase(
           SpecialCase.RequestMatch("/test3"),
-          SpecialCase.Response(404, None, Seq(SpecialCase.Header("zig", "zag"))))
+          SpecialCase.Response(404, None, Seq(SpecialCase.Header("zig", "zag")))
+        )
         val id = await(repo.upsert(specialCase, session.planetId))
 
         val result =
@@ -158,7 +166,8 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with MongoDB with Test
             requestMatch = SpecialCase.RequestMatch(path = s"/citizen-details/nino/${user.nino.get.value}"),
             response = SpecialCase
               .Response(427, Some("""{"a":"b"}"""), Seq(SpecialCase.Header(HeaderNames.CONTENT_TYPE, MimeTypes.JSON)))
-          ))
+          )
+        )
         result2 should haveStatus(201)
         val sc = get(result2.header(HeaderNames.LOCATION).get).json.as[SpecialCase]
 
@@ -192,9 +201,9 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with MongoDB with Test
           agent.groupId.get,
           "HMRC-MTD-IT~MTDITID~RLWA69482506648",
           Json.parse(s"""{
-                        |    "userId" : "${agent.userId}",
-                        |    "type" : "delegated"
-                        |}""".stripMargin),
+            |    "userId" : "${agent.userId}",
+            |    "type" : "delegated"
+            |}""".stripMargin),
           `legacy-agentCode` = agent.agentCode
         )
 
@@ -208,16 +217,17 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with MongoDB with Test
                 s"/enrolment-store-proxy/enrolment-store/groups/${agent.groupId.get}/enrolments/HMRC-MTD-IT~MTDITID~RLWA69482506648?legacy-agentCode=${agent.agentCode.get}"
             ),
             response = SpecialCase.Response(506)
-          ))
+          )
+        )
         result2 should haveStatus(201)
 
         val result3 = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
           agent.groupId.get,
           "HMRC-MTD-IT~MTDITID~RLWA69482506648",
           Json.parse(s"""{
-                        |    "userId" : "${agent.userId}",
-                        |    "type" : "delegated"
-                        |}""".stripMargin),
+            |    "userId" : "${agent.userId}",
+            |    "type" : "delegated"
+            |}""".stripMargin),
           `legacy-agentCode` = agent.agentCode
         )
 
@@ -232,7 +242,8 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with MongoDB with Test
             requestMatch = SpecialCase.RequestMatch(path = s"/registration/business-details/foo/bar"),
             response = SpecialCase
               .Response(427, Some("""{"a":"b"}"""), Seq(SpecialCase.Header(HeaderNames.CONTENT_TYPE, MimeTypes.JSON)))
-          ))
+          )
+        )
         result2 should haveStatus(201)
         val sc = get(result2.header(HeaderNames.LOCATION).get).json.as[SpecialCase]
 

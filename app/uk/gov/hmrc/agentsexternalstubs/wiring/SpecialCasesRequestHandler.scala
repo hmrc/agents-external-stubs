@@ -22,14 +22,14 @@ import play.api.mvc._
 import play.api.routing.Router
 import uk.gov.hmrc.agentsexternalstubs.controllers.SpecialCasesController
 
-class SpecialCasesRequestHandler @Inject()(
+class SpecialCasesRequestHandler @Inject() (
   router: Router,
   errorHandler: HttpErrorHandler,
   configuration: HttpConfiguration,
   filters: HttpFilters,
   specialCasesController: SpecialCasesController,
-  appConfig: AppConfig)
-    extends uk.gov.hmrc.play.bootstrap.http.RequestHandler(router, errorHandler, configuration, filters) {
+  appConfig: AppConfig
+) extends uk.gov.hmrc.play.bootstrap.http.RequestHandler(router, errorHandler, configuration, filters) {
 
   val context = "/agents-external-stubs"
   val health = "/ping"
@@ -39,10 +39,13 @@ class SpecialCasesRequestHandler @Inject()(
       super.handlerForRequest(request)
     } else {
       val (requestHeader, handler) = super.handlerForRequest(request)
-      (requestHeader, handler match {
-        case action: EssentialAction => specialCasesController.maybeSpecialCase(action)
-        case _                       => handler
-      })
+      (
+        requestHeader,
+        handler match {
+          case action: EssentialAction => specialCasesController.maybeSpecialCase(action)
+          case _                       => handler
+        }
+      )
     }
 
 }

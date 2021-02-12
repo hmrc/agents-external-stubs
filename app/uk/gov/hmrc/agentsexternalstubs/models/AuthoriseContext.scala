@@ -48,8 +48,8 @@ trait AuthoriseContext {
 
   def hasDelegatedAuth(rule: String, identifiers: Seq[Identifier]): Boolean
 
-  lazy val authorisedServices: Set[String] = request.authorise.collect {
-    case EnrolmentPredicate(service, _, _) => service
+  lazy val authorisedServices: Set[String] = request.authorise.collect { case EnrolmentPredicate(service, _, _) =>
+    service
   }.toSet
 }
 
@@ -94,7 +94,8 @@ case class FullAuthoriseContext(
   user: User,
   authenticatedSession: AuthenticatedSession,
   request: AuthoriseRequest,
-  agentAccessControlConnector: AgentAccessControlConnector)(implicit ec: ExecutionContext, hc: HeaderCarrier)
+  agentAccessControlConnector: AgentAccessControlConnector
+)(implicit ec: ExecutionContext, hc: HeaderCarrier)
     extends AuthoriseUserContext(user) {
 
   override def providerType: String = authenticatedSession.providerType
@@ -109,8 +110,10 @@ case class FullAuthoriseContext(
           ac          <- agentCode
           taxOfficeNo <- identifiers.find(_.key == "TaxOfficeNumber").map(_.value)
           employerRef <- identifiers.find(_.key == "TaxOfficeReference").map(_.value)
-        } yield
-          Await.result(agentAccessControlConnector.isAuthorisedForPaye(ac, s"$taxOfficeNo/$employerRef"), timeout))
+        } yield Await.result(
+          agentAccessControlConnector.isAuthorisedForPaye(ac, s"$taxOfficeNo/$employerRef"),
+          timeout
+        ))
           .getOrElse(false)
 
       case "sa-auth" =>

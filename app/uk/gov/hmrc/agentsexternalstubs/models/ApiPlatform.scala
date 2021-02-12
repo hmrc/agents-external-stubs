@@ -106,13 +106,14 @@ object ApiPlatform {
         case User.AG.Individual   => testUser.individualDetails.map(_.address)
         case User.AG.Organisation => testUser.organisationDetails.map(_.address)
         case _                    => None
-      }).map(
-        a =>
-          User.Address(
-            line1 = Option(a.line1),
-            line2 = Option(a.line2),
-            postcode = Option(a.postcode),
-            countryCode = Some("GB"))),
+      }).map(a =>
+        User.Address(
+          line1 = Option(a.line1),
+          line2 = Option(a.line2),
+          postcode = Option(a.postcode),
+          countryCode = Some("GB")
+        )
+      ),
       additionalInformation =
         testUser.vatRegistrationDate.map(date => AdditionalInformation(vatRegistrationDate = Some(date)))
     )
@@ -124,14 +125,17 @@ object ApiPlatform {
           case "self-assessment"    => testUser.saUtr.map(Enrolment("IR-SA", "UTR", _))
           case "corporation-tax"    => testUser.ctUtr.map(Enrolment("IR-CT", "UTR", _))
           case "paye-for-employers" =>
-            testUser.empRef.map(
-              empRef =>
-                Enrolment(
-                  "IR-PAYE",
-                  Some(
-                    Seq(
-                      Identifier("TaxOfficeNumber", empRef.taxOfficeNumber),
-                      Identifier("TaxOfficeReference", empRef.taxOfficeReference)))))
+            testUser.empRef.map(empRef =>
+              Enrolment(
+                "IR-PAYE",
+                Some(
+                  Seq(
+                    Identifier("TaxOfficeNumber", empRef.taxOfficeNumber),
+                    Identifier("TaxOfficeReference", empRef.taxOfficeReference)
+                  )
+                )
+              )
+            )
           case "submit-vat-returns" => testUser.vrn.map(Enrolment("HMCE-VATDEC-ORG", "VATRegNo", _))
           case "mtd-vat"            => testUser.vrn.map(Enrolment("HMRC-MTD-VAT", "VRN", _))
           case "mtd-income-tax"     => testUser.mtdItId.map(Enrolment("HMRC-MTD-IT", "MTDITID", _))

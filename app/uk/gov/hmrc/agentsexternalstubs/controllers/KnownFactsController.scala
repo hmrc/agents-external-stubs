@@ -28,11 +28,12 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class KnownFactsController @Inject()(
+class KnownFactsController @Inject() (
   knownFactsRepository: KnownFactsRepository,
   usersRepository: UsersRepository,
   val authenticationService: AuthenticationService,
-  cc: ControllerComponents)(implicit ec: ExecutionContext)
+  cc: ControllerComponents
+)(implicit ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
   import KnownFactsController._
@@ -54,14 +55,16 @@ class KnownFactsController @Inject()(
 
   val createKnownFacts: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
-      withPayload[KnownFacts](
-        knownFacts =>
-          knownFactsRepository
-            .upsert(KnownFacts.sanitize(knownFacts.enrolmentKey.tag)(knownFacts), session.planetId)
-            .map(_ =>
-              Created(s"Known facts ${knownFacts.enrolmentKey.tag} has been created.")
-                .withHeaders(
-                  HeaderNames.LOCATION -> routes.KnownFactsController.getKnownFacts(knownFacts.enrolmentKey).url)))
+      withPayload[KnownFacts](knownFacts =>
+        knownFactsRepository
+          .upsert(KnownFacts.sanitize(knownFacts.enrolmentKey.tag)(knownFacts), session.planetId)
+          .map(_ =>
+            Created(s"Known facts ${knownFacts.enrolmentKey.tag} has been created.")
+              .withHeaders(
+                HeaderNames.LOCATION -> routes.KnownFactsController.getKnownFacts(knownFacts.enrolmentKey).url
+              )
+          )
+      )
     }(SessionRecordNotFound)
   }
 
@@ -76,19 +79,24 @@ class KnownFactsController @Inject()(
                 knownFactsRepository
                   .upsert(
                     KnownFacts.sanitize(enrolmentKey.tag)(knownFacts.copy(enrolmentKey = enrolmentKey)),
-                    session.planetId)
+                    session.planetId
+                  )
                   .map(_ =>
                     Created(s"Known facts ${knownFacts.enrolmentKey.tag} has been created.")
-                      .withHeaders(HeaderNames.LOCATION -> routes.KnownFactsController.getKnownFacts(enrolmentKey).url))
+                      .withHeaders(HeaderNames.LOCATION -> routes.KnownFactsController.getKnownFacts(enrolmentKey).url)
+                  )
               case Some(_) =>
                 knownFactsRepository
                   .upsert(
                     KnownFacts.sanitize(enrolmentKey.tag)(knownFacts.copy(enrolmentKey = enrolmentKey)),
-                    session.planetId)
+                    session.planetId
+                  )
                   .map(_ =>
                     Accepted(s"Known facts ${knownFacts.enrolmentKey.tag} has been updated.")
-                      .withHeaders(HeaderNames.LOCATION -> routes.KnownFactsController.getKnownFacts(enrolmentKey).url))
-          })
+                      .withHeaders(HeaderNames.LOCATION -> routes.KnownFactsController.getKnownFacts(enrolmentKey).url)
+                  )
+            }
+        )
       }(SessionRecordNotFound)
   }
 
@@ -104,15 +112,20 @@ class KnownFactsController @Inject()(
               case Some(knownFacts) =>
                 knownFactsRepository
                   .upsert(
-                    KnownFacts.sanitize(enrolmentKey.tag)(knownFacts.copy(
-                      enrolmentKey = enrolmentKey,
-                      verifiers = KnownFactsController.addVerifier(knownFacts.verifiers, knownFact))),
+                    KnownFacts.sanitize(enrolmentKey.tag)(
+                      knownFacts.copy(
+                        enrolmentKey = enrolmentKey,
+                        verifiers = KnownFactsController.addVerifier(knownFacts.verifiers, knownFact)
+                      )
+                    ),
                     session.planetId
                   )
                   .map(_ =>
                     Accepted(s"Known facts ${knownFacts.enrolmentKey.tag} verifiers has been updated.")
-                      .withHeaders(HeaderNames.LOCATION -> routes.KnownFactsController.getKnownFacts(enrolmentKey).url))
-          })
+                      .withHeaders(HeaderNames.LOCATION -> routes.KnownFactsController.getKnownFacts(enrolmentKey).url)
+                  )
+            }
+        )
       }(SessionRecordNotFound)
   }
 

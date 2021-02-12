@@ -28,13 +28,14 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 @Singleton
-class PlanetsController @Inject()(
+class PlanetsController @Inject() (
   knownFactsRepository: KnownFactsRepository,
   usersRepository: UsersRepository,
   recordsRepository: RecordsRepository,
   specialCasesRepository: SpecialCasesRepository,
   authSessionRepository: AuthenticatedSessionsRepository,
-  cc: ControllerComponents)(implicit ec: ExecutionContext)
+  cc: ControllerComponents
+)(implicit ec: ExecutionContext)
     extends BackendController(cc) {
 
   def destroy(planetId: String): Action[AnyContent] = Action.async { implicit request =>
@@ -42,19 +43,20 @@ class PlanetsController @Inject()(
     UserIdGenerator.destroyPlanetId(planetId)
     AuthorisationCache.destroyPlanet(planetId)
     Future
-      .sequence(Seq(
-        authSessionRepository.destroyPlanet(planetId),
-        usersRepository.destroyPlanet(planetId),
-        recordsRepository.destroyPlanet(planetId),
-        knownFactsRepository.destroyPlanet(planetId),
-        specialCasesRepository.destroyPlanet(planetId)
-      ))
+      .sequence(
+        Seq(
+          authSessionRepository.destroyPlanet(planetId),
+          usersRepository.destroyPlanet(planetId),
+          recordsRepository.destroyPlanet(planetId),
+          knownFactsRepository.destroyPlanet(planetId),
+          specialCasesRepository.destroyPlanet(planetId)
+        )
+      )
       .map { _ =>
         Logger(getClass).info(s"Test planet $planetId destroyed.")
       }
-      .recover {
-        case NonFatal(e) =>
-          Logger(getClass).warn(s"Attempted test planet $planetId destroy failed with $e")
+      .recover { case NonFatal(e) =>
+        Logger(getClass).warn(s"Attempted test planet $planetId destroy failed with $e")
       }
     Future.successful(NoContent)
   }

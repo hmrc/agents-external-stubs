@@ -44,7 +44,9 @@ class UserValidatorSpec extends UnitSpec with ValidatedMatchers {
             "foo",
             confidenceLevel = Some(50),
             affinityGroup = Some(User.AG.Individual),
-            nino = Some(Nino("HW827856C"))))
+            nino = Some(Nino("HW827856C"))
+          )
+        )
         .isValid shouldBe true
       UserValidator
         .validate(
@@ -52,7 +54,9 @@ class UserValidatorSpec extends UnitSpec with ValidatedMatchers {
             "foo",
             confidenceLevel = Some(100),
             affinityGroup = Some(User.AG.Individual),
-            nino = Some(Nino("HW827856C"))))
+            nino = Some(Nino("HW827856C"))
+          )
+        )
         .isValid shouldBe true
       UserValidator
         .validate(
@@ -60,7 +64,9 @@ class UserValidatorSpec extends UnitSpec with ValidatedMatchers {
             "foo",
             confidenceLevel = Some(200),
             affinityGroup = Some(User.AG.Individual),
-            nino = Some(Nino("HW827856C"))))
+            nino = Some(Nino("HW827856C"))
+          )
+        )
         .isValid shouldBe true
       UserValidator
         .validate(
@@ -68,12 +74,15 @@ class UserValidatorSpec extends UnitSpec with ValidatedMatchers {
             "foo",
             confidenceLevel = Some(300),
             affinityGroup = Some(User.AG.Individual),
-            nino = Some(Nino("HW827856C"))))
+            nino = Some(Nino("HW827856C"))
+          )
+        )
         .isValid shouldBe true
 
       UserValidator
         .validate(
-          User("foo", confidenceLevel = Some(200), affinityGroup = Some(User.AG.Agent), nino = Some(Nino("HW827856C"))))
+          User("foo", confidenceLevel = Some(200), affinityGroup = Some(User.AG.Agent), nino = Some(Nino("HW827856C")))
+        )
         .isValid shouldBe false
       UserValidator
         .validate(
@@ -81,7 +90,9 @@ class UserValidatorSpec extends UnitSpec with ValidatedMatchers {
             "foo",
             confidenceLevel = Some(200),
             affinityGroup = Some(User.AG.Organisation),
-            nino = Some(Nino("HW827856C"))))
+            nino = Some(Nino("HW827856C"))
+          )
+        )
         .isValid shouldBe false
       UserValidator
         .validate(User("foo", confidenceLevel = Some(200), affinityGroup = Some(User.AG.Individual), nino = None))
@@ -92,7 +103,9 @@ class UserValidatorSpec extends UnitSpec with ValidatedMatchers {
             "foo",
             confidenceLevel = Some(55),
             affinityGroup = Some(User.AG.Individual),
-            nino = Some(Nino("HW827856C"))))
+            nino = Some(Nino("HW827856C"))
+          )
+        )
         .isValid shouldBe false
       UserValidator
         .validate(
@@ -100,7 +113,9 @@ class UserValidatorSpec extends UnitSpec with ValidatedMatchers {
             "foo",
             confidenceLevel = Some(0),
             affinityGroup = Some(User.AG.Individual),
-            nino = Some(Nino("HW827856C"))))
+            nino = Some(Nino("HW827856C"))
+          )
+        )
         .isValid shouldBe false
     }
 
@@ -153,13 +168,16 @@ class UserValidatorSpec extends UnitSpec with ValidatedMatchers {
             "foo",
             nino = Some(Nino("HW827856C")),
             affinityGroup = Some(User.AG.Individual),
-            confidenceLevel = Some(200)))
+            confidenceLevel = Some(200)
+          )
+        )
         .isValid shouldBe true
       UserValidator.validate(User("foo", nino = None, affinityGroup = Some(User.AG.Individual))).isValid shouldBe true
 
       UserValidator
         .validate(
-          User("foo", nino = Some(Nino("HW827856C")), affinityGroup = Some(User.AG.Individual), confidenceLevel = None))
+          User("foo", nino = Some(Nino("HW827856C")), affinityGroup = Some(User.AG.Individual), confidenceLevel = None)
+        )
         .isValid shouldBe false
       UserValidator
         .validate(User("foo", nino = Some(Nino("HW827856C")), affinityGroup = Some(User.AG.Agent)))
@@ -279,21 +297,24 @@ class UserValidatorSpec extends UnitSpec with ValidatedMatchers {
         .validate(
           UserGenerator
             .agent("foo")
-            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784"))
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
+        )
         .isValid shouldBe true
       UserValidator
         .validate(
           UserGenerator
             .agent("foo")
             .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
-            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784"))
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
+        )
         .isValid shouldBe false
       UserValidator
         .validate(
           UserGenerator
             .agent("foo")
             .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
-            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "429754517"))
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "429754517")
+        )
         .isValid shouldBe true
       UserValidator
         .validate(
@@ -301,7 +322,8 @@ class UserValidatorSpec extends UnitSpec with ValidatedMatchers {
             .agent("foo")
             .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
             .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "429754517")
-            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784"))
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
+        )
         .isValid shouldBe false
       UserValidator
         .validate(
@@ -309,7 +331,8 @@ class UserValidatorSpec extends UnitSpec with ValidatedMatchers {
             .agent("foo")
             .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
             .withDelegatedEnrolment("HMRC-MTD-IT", "MTDITID", "CNOB96766112368")
-            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784"))
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
+        )
         .isValid shouldBe false
       UserValidator
         .validate(
@@ -317,7 +340,8 @@ class UserValidatorSpec extends UnitSpec with ValidatedMatchers {
             .agent("foo")
             .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
             .withDelegatedEnrolment("HMRC-MTD-IT", "MTDITID", "CNOB96766112368")
-            .withDelegatedEnrolment("HMRC-MTD-IT", "MTDITID", "CNOB96766112368"))
+            .withDelegatedEnrolment("HMRC-MTD-IT", "MTDITID", "CNOB96766112368")
+        )
         .isValid shouldBe false
     }
 

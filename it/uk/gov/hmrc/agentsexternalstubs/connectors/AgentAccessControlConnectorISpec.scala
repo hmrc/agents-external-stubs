@@ -24,8 +24,11 @@ class AgentAccessControlConnectorISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo("/agent-access-control/epaye-auth/agent/FOO/client/BAR"))
-            .willReturn(aResponse()
-              .withStatus(200)))
+            .willReturn(
+              aResponse()
+                .withStatus(200)
+            )
+        )
 
         val result = await(connector.isAuthorisedForPaye("FOO", "BAR"))
 
@@ -36,8 +39,11 @@ class AgentAccessControlConnectorISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo("/agent-access-control/epaye-auth/agent/FOO/client/BAR"))
-            .willReturn(aResponse()
-              .withStatus(401)))
+            .willReturn(
+              aResponse()
+                .withStatus(401)
+            )
+        )
 
         val result = await(connector.isAuthorisedForPaye("FOO", "BAR"))
 
@@ -50,8 +56,11 @@ class AgentAccessControlConnectorISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo("/agent-access-control/sa-auth/agent/FOO/client/BAR"))
-            .willReturn(aResponse()
-              .withStatus(200)))
+            .willReturn(
+              aResponse()
+                .withStatus(200)
+            )
+        )
 
         val result = await(connector.isAuthorisedForSa("FOO", "BAR"))
 
@@ -62,8 +71,11 @@ class AgentAccessControlConnectorISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo("/agent-access-control/sa-auth/agent/FOO/client/BAR"))
-            .willReturn(aResponse()
-              .withStatus(401)))
+            .willReturn(
+              aResponse()
+                .withStatus(401)
+            )
+        )
 
         val result = await(connector.isAuthorisedForSa("FOO", "BAR"))
 
@@ -76,8 +88,11 @@ class AgentAccessControlConnectorISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo("/agent-access-control/mtd-it-auth/agent/FOO/client/BAR"))
-            .willReturn(aResponse()
-              .withStatus(200)))
+            .willReturn(
+              aResponse()
+                .withStatus(200)
+            )
+        )
 
         val result = await(connector.isAuthorisedForMtdIt("FOO", "BAR"))
 
@@ -88,8 +103,11 @@ class AgentAccessControlConnectorISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo("/agent-access-control/mtd-it-auth/agent/FOO/client/BAR"))
-            .willReturn(aResponse()
-              .withStatus(401)))
+            .willReturn(
+              aResponse()
+                .withStatus(401)
+            )
+        )
 
         val result = await(connector.isAuthorisedForMtdIt("FOO", "BAR"))
 
@@ -102,8 +120,11 @@ class AgentAccessControlConnectorISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo("/agent-access-control/mtd-vat-auth/agent/FOO/client/BAR"))
-            .willReturn(aResponse()
-              .withStatus(200)))
+            .willReturn(
+              aResponse()
+                .withStatus(200)
+            )
+        )
 
         val result = await(connector.isAuthorisedForMtdVat("FOO", "BAR"))
 
@@ -114,8 +135,11 @@ class AgentAccessControlConnectorISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo("/agent-access-control/mtd-vat-auth/agent/FOO/client/BAR"))
-            .willReturn(aResponse()
-              .withStatus(401)))
+            .willReturn(
+              aResponse()
+                .withStatus(401)
+            )
+        )
 
         val result = await(connector.isAuthorisedForMtdVat("FOO", "BAR"))
 
@@ -128,8 +152,11 @@ class AgentAccessControlConnectorISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo("/agent-access-control/afi-auth/agent/FOO/client/BAR"))
-            .willReturn(aResponse()
-              .withStatus(200)))
+            .willReturn(
+              aResponse()
+                .withStatus(200)
+            )
+        )
 
         val result = await(connector.isAuthorisedForAfi("FOO", "BAR"))
 
@@ -140,8 +167,11 @@ class AgentAccessControlConnectorISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo("/agent-access-control/afi-auth/agent/FOO/client/BAR"))
-            .willReturn(aResponse()
-              .withStatus(401)))
+            .willReturn(
+              aResponse()
+                .withStatus(401)
+            )
+        )
 
         val result = await(connector.isAuthorisedForAfi("FOO", "BAR"))
 

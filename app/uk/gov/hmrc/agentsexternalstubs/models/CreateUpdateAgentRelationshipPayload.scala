@@ -19,8 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import play.api.libs.json._
 import uk.gov.hmrc.agentsexternalstubs.models.CreateUpdateAgentRelationshipPayload._
 
-/**
-  * ----------------------------------------------------------------------------
+/** ----------------------------------------------------------------------------
   * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
   * How to regenerate? Run this command in the project root directory:
   * sbt "test:runMain uk.gov.hmrc.agentsexternalstubs.RecordClassGeneratorFromJsonSchema docs/schemas/DES1167.json app/uk/gov/hmrc/agentsexternalstubs/models/CreateUpdateAgentRelationshipPayload.scala CreateUpdateAgentRelationshipPayload output:payload"
@@ -39,7 +38,8 @@ case class CreateUpdateAgentRelationshipPayload(
   regime: String,
   authorisation: Authorisation,
   relationshipType: Option[String] = None,
-  authProfile: Option[String] = None) {
+  authProfile: Option[String] = None
+) {
 
   def withAcknowledgmentReference(acknowledgmentReference: String): CreateUpdateAgentRelationshipPayload =
     copy(acknowledgmentReference = acknowledgmentReference)
@@ -65,7 +65,8 @@ case class CreateUpdateAgentRelationshipPayload(
   def withRelationshipType(relationshipType: Option[String]): CreateUpdateAgentRelationshipPayload =
     copy(relationshipType = relationshipType)
   def modifyRelationshipType(
-    pf: PartialFunction[Option[String], Option[String]]): CreateUpdateAgentRelationshipPayload =
+    pf: PartialFunction[Option[String], Option[String]]
+  ): CreateUpdateAgentRelationshipPayload =
     if (pf.isDefinedAt(relationshipType)) copy(relationshipType = pf(relationshipType)) else this
   def withAuthProfile(authProfile: Option[String]): CreateUpdateAgentRelationshipPayload =
     copy(authProfile = authProfile)
@@ -83,12 +84,14 @@ object CreateUpdateAgentRelationshipPayload {
   )
   val refNumberValidator: Validator[String] = check(
     _.matches(Common.refNumberPattern),
-    s"""Invalid refNumber, does not matches regex ${Common.refNumberPattern}""")
+    s"""Invalid refNumber, does not matches regex ${Common.refNumberPattern}"""
+  )
   val idTypeValidator: Validator[Option[String]] =
     check(_.matches(Common.idTypePattern), s"""Invalid idType, does not matches regex ${Common.idTypePattern}""")
   val agentReferenceNumberValidator: Validator[String] = check(
     _.matches(Common.agentReferenceNumberPattern),
-    s"""Invalid agentReferenceNumber, does not matches regex ${Common.agentReferenceNumberPattern}""")
+    s"""Invalid agentReferenceNumber, does not matches regex ${Common.agentReferenceNumberPattern}"""
+  )
   val regimeValidator: Validator[String] =
     check(_.matches(Common.regimePattern), s"""Invalid regime, does not matches regex ${Common.regimePattern}""")
   val authorisationValidator: Validator[Authorisation] = checkProperty(identity, Authorisation.validate)
@@ -124,12 +127,15 @@ object CreateUpdateAgentRelationshipPayload {
         val r0 =
           Authorise.formats.reads(json).flatMap(e => Authorise.validate(e).fold(_ => JsError(), _ => JsSuccess(e)))
         val r1 = r0.orElse(
-          Deauthorise.formats.reads(json).flatMap(e => Deauthorise.validate(e).fold(_ => JsError(), _ => JsSuccess(e))))
+          Deauthorise.formats.reads(json).flatMap(e => Deauthorise.validate(e).fold(_ => JsError(), _ => JsSuccess(e)))
+        )
         r1.orElse(
           aggregateErrors(
             JsError("Could not match json object to any variant of Authorisation, i.e. Authorise, Deauthorise"),
             r0,
-            r1))
+            r1
+          )
+        )
       }
 
       private def aggregateErrors[T](errors: JsResult[T]*): JsError =
@@ -137,7 +143,8 @@ object CreateUpdateAgentRelationshipPayload {
           r match {
             case e: JsError => JsError(a.errors ++ e.errors)
             case _          => a
-        })
+          }
+        )
     }
 
     implicit val writes: Writes[Authorisation] = new Writes[Authorisation] {

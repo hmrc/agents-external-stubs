@@ -32,12 +32,13 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class AuthStubController @Inject()(
+class AuthStubController @Inject() (
   val authenticationService: AuthenticationService,
   usersService: UsersService,
   agentAccessControlConnector: AgentAccessControlConnector,
   appConfig: AppConfig,
-  cc: ControllerComponents)(implicit ec: ExecutionContext)
+  cc: ControllerComponents
+)(implicit ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
   import AuthStubController._
@@ -50,49 +51,57 @@ class AuthStubController @Inject()(
         for {
           maybeSession <- authenticationService.findByAuthTokenOrLookupExternal(authToken)
           response <- request.body.validate[AuthoriseRequest] match {
-                       case JsSuccess(authoriseRequest, _) =>
-                         maybeSession match {
-                           case Some(authenticatedSession) =>
-                             authCacheFlag.flatMap(_ => AuthorisationCache.get(authenticatedSession, authoriseRequest)) match {
-                               case Some(maybeResponse) =>
-                                 Future.successful(
-                                   maybeResponse
-                                     .fold(error => unauthorized(error), response => Ok(Json.toJson(response))))
-                               case None =>
-                                 for {
-                                   maybeUser <- usersService
-                                                 .findByUserId(
-                                                   authenticatedSession.userId,
-                                                   authenticatedSession.planetId)
-                                   result <- Future(maybeUser match {
-                                              case Some(user) =>
-                                                Authorise.prepareAuthoriseResponse(
-                                                  FullAuthoriseContext(
-                                                    user,
-                                                    authenticatedSession,
-                                                    authoriseRequest,
-                                                    agentAccessControlConnector))
-                                              case None =>
-                                                Left("SessionRecordNotFound")
-                                            }) map { maybeResponse =>
-                                              if (authCacheFlag.isDefined)
-                                                AuthorisationCache
-                                                  .put(authenticatedSession, authoriseRequest, maybeResponse)
-                                              maybeResponse.fold(
-                                                error => unauthorized(error),
-                                                response => Ok(Json.toJson(response)))
-                                            }
-                                 } yield result
-                             }
-                           case None =>
-                             unauthorizedF("SessionRecordNotFound")
-                         }
-                       case JsError(errors) =>
-                         Future.successful(
-                           BadRequest(errors
-                             .map { case (p, ve) => s"$p -> [${ve.map(v => v.message).mkString(",")}]" }
-                             .mkString("\n")))
-                     }
+                        case JsSuccess(authoriseRequest, _) =>
+                          maybeSession match {
+                            case Some(authenticatedSession) =>
+                              authCacheFlag.flatMap(_ =>
+                                AuthorisationCache.get(authenticatedSession, authoriseRequest)
+                              ) match {
+                                case Some(maybeResponse) =>
+                                  Future.successful(
+                                    maybeResponse
+                                      .fold(error => unauthorized(error), response => Ok(Json.toJson(response)))
+                                  )
+                                case None =>
+                                  for {
+                                    maybeUser <-
+                                      usersService
+                                        .findByUserId(authenticatedSession.userId, authenticatedSession.planetId)
+                                    result <- Future(maybeUser match {
+                                                case Some(user) =>
+                                                  Authorise.prepareAuthoriseResponse(
+                                                    FullAuthoriseContext(
+                                                      user,
+                                                      authenticatedSession,
+                                                      authoriseRequest,
+                                                      agentAccessControlConnector
+                                                    )
+                                                  )
+                                                case None =>
+                                                  Left("SessionRecordNotFound")
+                                              }) map { maybeResponse =>
+                                                if (authCacheFlag.isDefined)
+                                                  AuthorisationCache
+                                                    .put(authenticatedSession, authoriseRequest, maybeResponse)
+                                                maybeResponse.fold(
+                                                  error => unauthorized(error),
+                                                  response => Ok(Json.toJson(response))
+                                                )
+                                              }
+                                  } yield result
+                              }
+                            case None =>
+                              unauthorizedF("SessionRecordNotFound")
+                          }
+                        case JsError(errors) =>
+                          Future.successful(
+                            BadRequest(
+                              errors
+                                .map { case (p, ve) => s"$p -> [${ve.map(v => v.message).mkString(",")}]" }
+                                .mkString("\n")
+                            )
+                          )
+                      }
         } yield response
       case Some(token) =>
         Logger(getClass).warn(s"Unsupported bearer token format $token")
@@ -102,26 +111,27 @@ class AuthStubController @Inject()(
     }
   }
 
-  private def withAuthorisedUserAndSession(body: (User, AuthenticatedSession) => Future[Result])(
-    implicit request: Request[AnyContent]): Future[Result] =
+  private def withAuthorisedUserAndSession(
+    body: (User, AuthenticatedSession) => Future[Result]
+  )(implicit request: Request[AnyContent]): Future[Result] =
     request.headers.get(HeaderNames.AUTHORIZATION) match {
       case Some(BearerToken(authToken)) =>
         for {
           maybeSession <- authenticationService.findByAuthTokenOrLookupExternal(authToken)
           result <- maybeSession match {
-                     case Some(authenticatedSession) =>
-                       for {
-                         maybeUser <- usersService
-                                       .findByUserId(authenticatedSession.userId, authenticatedSession.planetId)
-                         result <- maybeUser match {
-                                    case Some(user) => body(user, authenticatedSession)
-                                    case None =>
-                                      unauthorizedF("UserRecordNotFound")
-                                  }
-                       } yield result
-                     case None =>
-                       unauthorizedF("SessionRecordNotFound")
-                   }
+                      case Some(authenticatedSession) =>
+                        for {
+                          maybeUser <- usersService
+                                         .findByUserId(authenticatedSession.userId, authenticatedSession.planetId)
+                          result <- maybeUser match {
+                                      case Some(user) => body(user, authenticatedSession)
+                                      case None =>
+                                        unauthorizedF("UserRecordNotFound")
+                                    }
+                        } yield result
+                      case None =>
+                        unauthorizedF("SessionRecordNotFound")
+                    }
         } yield result
       case Some(token) =>
         Logger(getClass).warn(s"Unsupported bearer token format $token")
@@ -182,16 +192,18 @@ object AuthStubController {
       checkPredicates(context).fold(error => Left(error), _ => retrieveDetails(context))
 
     def checkPredicates(context: AuthoriseContext)(implicit ex: ExecutionContext): Either[String, Unit] =
-      context.request.authorise.foldLeft[Either[String, Unit]](Right(()))(
-        (result, p: Predicate) => result.fold(error => Left(error), _ => p.validate(context))
+      context.request.authorise.foldLeft[Either[String, Unit]](Right(()))((result, p: Predicate) =>
+        result.fold(error => Left(error), _ => p.validate(context))
       )
 
     def retrieveDetails(context: AuthoriseContext)(implicit ex: ExecutionContext): Retrieve.MaybeResponse =
       context.request.retrieve.foldLeft[Retrieve.MaybeResponse](Right(AuthoriseResponse()))((result, r: String) =>
-        result.fold(error => Left(error), response => addDetailToResponse(response, r, context)))
+        result.fold(error => Left(error), response => addDetailToResponse(response, r, context))
+      )
 
-    def addDetailToResponse(response: AuthoriseResponse, retrieve: String, context: AuthoriseContext)(
-      implicit ex: ExecutionContext): Retrieve.MaybeResponse =
+    def addDetailToResponse(response: AuthoriseResponse, retrieve: String, context: AuthoriseContext)(implicit
+      ex: ExecutionContext
+    ): Retrieve.MaybeResponse =
       Retrieve.of(retrieve).fill(response, context)
   }
 
@@ -228,7 +240,8 @@ object AuthStubController {
       correlationId: String,
       credId: String,
       credentials: Option[Credentials],
-      accounts: Option[Accounts])
+      accounts: Option[Accounts]
+    )
 
     object Response {
       implicit val writes: Writes[Response] = Json.writes[Response]
@@ -264,7 +277,8 @@ object AuthStubController {
                   agentCode = user.agentCode.getOrElse("link"),
                   link = "link",
                   payeReference = user.findIdentifierValue("IR-PAYE-AGENT", "IRAgentReference")
-                )),
+                )
+              ),
               ct = user.findIdentifierValue("IR-CT", "UTR").map(Ct.apply("link", _)),
               sa = user.findIdentifierValue("IR-SA", "UTR").map(Sa.apply("link", _)),
               vat = user.findIdentifierValue("HMCE-VATDEC-ORG", "VRN").map(Vat.apply("link", _))
@@ -276,7 +290,8 @@ object AuthStubController {
               sa = user.findIdentifierValue("IR-SA", "UTR").map(Sa.apply("link", _)),
               paye = user.nino.map(nino => Paye.apply("link", nino.value.replace(" ", ""))),
               vat = user.findIdentifierValue("HMCE-VATDEC-ORG", "VRN").map(Vat.apply("link", _))
-            ))
+            )
+          )
         case Some(User.AG.Organisation) =>
           Some(
             Accounts(
@@ -286,7 +301,8 @@ object AuthStubController {
               epaye = user
                 .findIdentifierValue("IR-PAYE", "TaxOfficeNumber", "TaxOfficeReference", _ + "/" + _)
                 .map(Epaye.apply("link", _))
-            ))
+            )
+          )
         case _ => None
       }
 
@@ -297,7 +313,8 @@ object AuthStubController {
         agentUserId: String,
         agentCode: String,
         link: String,
-        payeReference: Option[String] = None)
+        payeReference: Option[String] = None
+      )
 
       object Agent {
         implicit val writes: Writes[Agent] = Json.writes[Agent]

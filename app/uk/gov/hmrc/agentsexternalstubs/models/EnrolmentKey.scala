@@ -54,7 +54,9 @@ object EnrolmentKey {
   }
 
   def validateIdentifier(identifier: Identifier, service: Service): Either[String, Unit] =
-    if (identifier.key.nonEmpty && identifier.value.nonEmpty && identifier.key.length <= 40 && identifier.value.length <= 50)
+    if (
+      identifier.key.nonEmpty && identifier.value.nonEmpty && identifier.key.length <= 40 && identifier.value.length <= 50
+    )
       service.getIdentifier(identifier.key) match {
         case None => Left("INVALID_IDENTIFIERS")
         case Some(serviceIdentifier) =>
@@ -64,7 +66,8 @@ object EnrolmentKey {
               _ => Left("INVALID_IDENTIFIERS"),
               _ => Right(())
             )
-      } else Left("INVALID_IDENTIFIERS")
+      }
+    else Left("INVALID_IDENTIFIERS")
 
   implicit val writes: Writes[EnrolmentKey] = new Writes[EnrolmentKey] {
     override def writes(ek: EnrolmentKey): JsValue = JsString(ek.toString)

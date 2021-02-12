@@ -25,7 +25,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class DataStreamStubController @Inject()(cc: ControllerComponents)(implicit ec: ExecutionContext)
+class DataStreamStubController @Inject() (cc: ControllerComponents)(implicit ec: ExecutionContext)
     extends BackendController(cc) {
 
   val writeEvent: Action[AnyContent] = Action.async { implicit request =>

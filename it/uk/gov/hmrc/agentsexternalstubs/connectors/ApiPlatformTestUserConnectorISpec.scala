@@ -29,9 +29,12 @@ class ApiPlatformTestUserConnectorISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo("/individuals/nino/PE938808A"))
-            .willReturn(aResponse()
-              .withStatus(200)
-              .withBody(testIndividualResponse(nino = Nino("PE938808A"), vrn = Vrn("666119668")))))
+            .willReturn(
+              aResponse()
+                .withStatus(200)
+                .withBody(testIndividualResponse(nino = Nino("PE938808A"), vrn = Vrn("666119668")))
+            )
+        )
 
         val result: Option[TestUser] = await(connector.getIndividualUserByNino("PE938808A"))
 
@@ -46,7 +49,8 @@ class ApiPlatformTestUserConnectorISpec
         user.lastName shouldBe Some("Newton")
         user.nino shouldBe Some(Nino("PE938808A"))
         user.principalEnrolments.find(_.key == "HMRC-MTD-VAT").flatMap(_.identifierValueOf("VRN")) shouldBe Some(
-          "666119668")
+          "666119668"
+        )
         user.principalEnrolments.find(_.key == "HMRC-MTD-IT").flatMap(_.identifierValueOf("MTDITID")) shouldBe defined
         user.affinityGroup shouldBe Some("Individual")
       }
@@ -55,8 +59,11 @@ class ApiPlatformTestUserConnectorISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo("/individuals/nino/PE938808A"))
-            .willReturn(aResponse()
-              .withStatus(404)))
+            .willReturn(
+              aResponse()
+                .withStatus(404)
+            )
+        )
 
         val result = await(connector.getIndividualUserByNino("PE938808A"))
 
@@ -69,9 +76,12 @@ class ApiPlatformTestUserConnectorISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo("/individuals/vrn/666119668"))
-            .willReturn(aResponse()
-              .withStatus(200)
-              .withBody(testIndividualResponse(nino = Nino("PE938808A"), vrn = Vrn("666119668")))))
+            .willReturn(
+              aResponse()
+                .withStatus(200)
+                .withBody(testIndividualResponse(nino = Nino("PE938808A"), vrn = Vrn("666119668")))
+            )
+        )
 
         val result: Option[TestUser] = await(connector.getIndividualUserByVrn("666119668"))
 
@@ -86,7 +96,8 @@ class ApiPlatformTestUserConnectorISpec
         user.lastName shouldBe Some("Newton")
         user.nino shouldBe Some(Nino("PE938808A"))
         user.principalEnrolments.find(_.key == "HMRC-MTD-VAT").flatMap(_.identifierValueOf("VRN")) shouldBe Some(
-          "666119668")
+          "666119668"
+        )
         user.principalEnrolments.find(_.key == "HMRC-MTD-IT").flatMap(_.identifierValueOf("MTDITID")) shouldBe defined
         user.affinityGroup shouldBe Some("Individual")
       }
@@ -95,8 +106,11 @@ class ApiPlatformTestUserConnectorISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo("/individuals/vrn/666119668"))
-            .willReturn(aResponse()
-              .withStatus(404)))
+            .willReturn(
+              aResponse()
+                .withStatus(404)
+            )
+        )
 
         val result = await(connector.getIndividualUserByVrn("666119668"))
 
@@ -109,9 +123,12 @@ class ApiPlatformTestUserConnectorISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo("/organisations/vrn/666119668"))
-            .willReturn(aResponse()
-              .withStatus(200)
-              .withBody(testOrganisationResponse(Vrn("666119668")))))
+            .willReturn(
+              aResponse()
+                .withStatus(200)
+                .withBody(testOrganisationResponse(Vrn("666119668")))
+            )
+        )
 
         val result: Option[TestUser] = await(connector.getOrganisationUserByVrn("666119668"))
 
@@ -125,7 +142,8 @@ class ApiPlatformTestUserConnectorISpec
         user.name shouldBe Some("Company ABF123")
         user.affinityGroup shouldBe Some("Organisation")
         user.principalEnrolments.find(_.key == "HMRC-MTD-VAT").flatMap(_.identifierValueOf("VRN")) shouldBe Some(
-          "666119668")
+          "666119668"
+        )
         user.principalEnrolments.find(_.key == "HMRC-MTD-IT").flatMap(_.identifierValueOf("MTDITID")) shouldBe None
       }
 
@@ -133,8 +151,11 @@ class ApiPlatformTestUserConnectorISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo("/organisations/vrn/666119668"))
-            .willReturn(aResponse()
-              .withStatus(404)))
+            .willReturn(
+              aResponse()
+                .withStatus(404)
+            )
+        )
 
         val result = await(connector.getOrganisationUserByVrn("666119668"))
 
@@ -149,58 +170,60 @@ trait ExampleApiPlatformTestUserResponses {
   def testIndividualResponse(
     nino: Nino = Generator.ninoNoSpacesGen.sample.map(Nino.apply).get,
     utr: Utr = Generator.utrGen.sample.map(Utr.apply).get,
-    vrn: Vrn = Generator.vrnGen.sample.map(Vrn.apply).get): String =
+    vrn: Vrn = Generator.vrnGen.sample.map(Vrn.apply).get
+  ): String =
     s"""
-       |{
-       |  "userId":"${Generator.userID.sample.get}",
-       |  "password":"bLohysg8utsa",
-       |  "userFullName": "Ida Newton",
-       |  "emailAddress": "ida.newton@example.com",
-       |  "individualDetails": {
-       |    "firstName": "Ida",
-       |    "lastName": "Newton",
-       |    "dateOfBirth": "1960-06-01",
-       |    "address": {
-       |      "line1": "45 Springfield Rise",
-       |      "line2": "Glasgow",
-       |      "postcode": "TS1 1PA"
-       |    }
-       |  },
-       |  "saUtr":"${utr.value}",
-       |  "nino":"${nino.value}",
-       |  "mtdItId":"${Generator.mtdbsaGen.sample.get}",
-       |  "vrn":"${vrn.value}",
-       |  "vatRegistrationDate":"2001-11-02",
-       |  "eoriNumber":"${Generator.eoriGen.sample.get}"
-       |}
+      |{
+      |  "userId":"${Generator.userID.sample.get}",
+      |  "password":"bLohysg8utsa",
+      |  "userFullName": "Ida Newton",
+      |  "emailAddress": "ida.newton@example.com",
+      |  "individualDetails": {
+      |    "firstName": "Ida",
+      |    "lastName": "Newton",
+      |    "dateOfBirth": "1960-06-01",
+      |    "address": {
+      |      "line1": "45 Springfield Rise",
+      |      "line2": "Glasgow",
+      |      "postcode": "TS1 1PA"
+      |    }
+      |  },
+      |  "saUtr":"${utr.value}",
+      |  "nino":"${nino.value}",
+      |  "mtdItId":"${Generator.mtdbsaGen.sample.get}",
+      |  "vrn":"${vrn.value}",
+      |  "vatRegistrationDate":"2001-11-02",
+      |  "eoriNumber":"${Generator.eoriGen.sample.get}"
+      |}
                  """.stripMargin
 
   def testOrganisationResponse(
     vrn: Vrn = Generator.vrnGen.sample.map(Vrn.apply).get,
-    utr: Utr = Generator.utrGen.sample.map(Utr.apply).get): String =
+    utr: Utr = Generator.utrGen.sample.map(Utr.apply).get
+  ): String =
     s"""
-       |{
-       |  "userId":"${Generator.userID.sample.get}",
-       |  "password":"nyezgdfrlsmc",
-       |  "userFullName": "Ida Newton",
-       |  "emailAddress": "ida.newton@example.com",
-       |  "organisationDetails": {
-       |    "name":"Company ABF123",
-       |    "address": {
-       |      "line1":"1 Abbey Road",
-       |      "line2":"Aberdeen",
-       |      "postcode": "TS1 1PA"
-       |    }
-       |  },
-       |  "saUtr":"${utr.value}",
-       |  "empRef":"538/EMKXYNSVTH",
-       |  "ctUtr":"${utr.value}",
-       |  "vrn":"${vrn.value}",
-       |  "vatRegistrationDate":"2001-11-02",
-       |  "lisaManagerReferenceNumber":"Z123456",
-       |  "secureElectronicTransferReferenceNumber":"123456789012",
-       |  "pensionSchemeAdministratorIdentifier":"A1234567",
-       |  "eoriNumber":"${Generator.eoriGen.sample.get}"
-       |}
+      |{
+      |  "userId":"${Generator.userID.sample.get}",
+      |  "password":"nyezgdfrlsmc",
+      |  "userFullName": "Ida Newton",
+      |  "emailAddress": "ida.newton@example.com",
+      |  "organisationDetails": {
+      |    "name":"Company ABF123",
+      |    "address": {
+      |      "line1":"1 Abbey Road",
+      |      "line2":"Aberdeen",
+      |      "postcode": "TS1 1PA"
+      |    }
+      |  },
+      |  "saUtr":"${utr.value}",
+      |  "empRef":"538/EMKXYNSVTH",
+      |  "ctUtr":"${utr.value}",
+      |  "vrn":"${vrn.value}",
+      |  "vatRegistrationDate":"2001-11-02",
+      |  "lisaManagerReferenceNumber":"Z123456",
+      |  "secureElectronicTransferReferenceNumber":"123456789012",
+      |  "pensionSchemeAdministratorIdentifier":"A1234567",
+      |  "eoriNumber":"${Generator.eoriGen.sample.get}"
+      |}
      """.stripMargin
 }

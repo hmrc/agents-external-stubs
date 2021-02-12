@@ -26,7 +26,8 @@ object VatKnownFacts {
 
   def fromVatCustomerInformationRecord(
     vrn: String,
-    vatRecord: Option[VatCustomerInformationRecord]): Option[VatKnownFacts] =
+    vatRecord: Option[VatCustomerInformationRecord]
+  ): Option[VatKnownFacts] =
     vatRecord
       .flatMap(_.approvedInformation)
       .map(_.customerDetails)

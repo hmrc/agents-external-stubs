@@ -39,7 +39,8 @@ object AuthLoginApi {
     itmpData: Option[Request.ItmpData],
     gatewayInformation: Option[Request.GatewayInformation],
     mdtpInformation: Option[Request.MdtpInformation],
-    unreadMessageCount: Option[Int])
+    unreadMessageCount: Option[Int]
+  )
 
   object Request {
 
@@ -66,7 +67,8 @@ object AuthLoginApi {
       line5: Option[String] = None,
       postCode: Option[String] = None,
       countryName: Option[String] = None,
-      countryCode: Option[String] = None)
+      countryCode: Option[String] = None
+    )
 
     object ItmpAddress {
       implicit val formats = Json.format[ItmpAddress]
@@ -77,7 +79,8 @@ object AuthLoginApi {
       middleName: Option[String] = None,
       familyName: Option[String] = None,
       birthdate: Option[String] = None,
-      address: Option[ItmpAddress] = None)
+      address: Option[ItmpAddress] = None
+    )
 
     object ItmpData {
       implicit val formats = Json.format[ItmpData]

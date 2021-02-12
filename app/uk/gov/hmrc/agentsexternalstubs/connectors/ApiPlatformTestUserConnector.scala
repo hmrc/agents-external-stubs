@@ -26,28 +26,30 @@ import uk.gov.hmrc.http._
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ApiPlatformTestUserConnector @Inject()(appConfig: AppConfig, http: HttpGet) {
+class ApiPlatformTestUserConnector @Inject() (appConfig: AppConfig, http: HttpGet) {
 
   def getIndividualUserByNino(nino: String)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
     getUser(new URL(appConfig.apiPlatformTestUserUrl + s"/individuals/nino/$nino"))
 
   def getIndividualUserBySaUtr(
-    saUtr: String)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
+    saUtr: String
+  )(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
     getUser(new URL(appConfig.apiPlatformTestUserUrl + s"/individuals/sautr/$saUtr"))
 
   def getIndividualUserByVrn(vrn: String)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
     getUser(new URL(appConfig.apiPlatformTestUserUrl + s"/individuals/vrn/$vrn"))
 
   def getOrganisationUserByEmpRef(
-    empRef: String)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
+    empRef: String
+  )(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
     getUser(new URL(appConfig.apiPlatformTestUserUrl + s"/organisations/empref/$empRef"))
 
   def getOrganisationUserByVrn(vrn: String)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
     getUser(new URL(appConfig.apiPlatformTestUserUrl + s"/organisations/vrn/$vrn"))
 
   private def getUser(url: URL)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
-    http.GET[TestUser](url.toString).map(Some.apply).recover {
-      case _: NotFoundException => None
+    http.GET[TestUser](url.toString).map(Some.apply).recover { case _: NotFoundException =>
+      None
     }
 
 }

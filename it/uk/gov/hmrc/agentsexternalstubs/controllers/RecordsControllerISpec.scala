@@ -99,8 +99,11 @@ class RecordsControllerISpec
         val result = Records.generateBusinessDetails("foo", minimal = true)
         result should haveStatus(200)
         result should haveValidJsonBody(
-          haveProperty[String]("safeId") and haveProperty[String]("nino") and haveProperty[String]("mtdbsa") and haveProperty[
-            Boolean]("propertyIncome") and notHaveProperty("businessData") and notHaveProperty("propertyData")
+          haveProperty[String]("safeId") and haveProperty[String]("nino") and haveProperty[String](
+            "mtdbsa"
+          ) and haveProperty[Boolean]("propertyIncome") and notHaveProperty("businessData") and notHaveProperty(
+            "propertyData"
+          )
         )
       }
 
@@ -110,9 +113,11 @@ class RecordsControllerISpec
         val result = Records.generateBusinessDetails("bar", minimal = false)
         result should haveStatus(200)
         result should haveValidJsonBody(
-          haveProperty[String]("safeId") and haveProperty[String]("nino") and haveProperty[String]("mtdbsa") and haveProperty[
-            Boolean]("propertyIncome") and haveProperty[JsArray]("businessData") and haveProperty[JsObject](
-            "propertyData")
+          haveProperty[String]("safeId") and haveProperty[String]("nino") and haveProperty[String](
+            "mtdbsa"
+          ) and haveProperty[Boolean]("propertyIncome") and haveProperty[JsArray]("businessData") and haveProperty[
+            JsObject
+          ]("propertyData")
         )
       }
     }
@@ -146,8 +151,9 @@ class RecordsControllerISpec
         val result = Records.generateLegacyAgent("foo", minimal = true)
         result should haveStatus(200)
         result should haveValidJsonBody(
-          haveProperty[String]("agentId") and haveProperty[String]("agentName") and haveProperty[String]("address1") and haveProperty[
-            String]("address2") and haveProperty[Boolean]("isAgentAbroad")
+          haveProperty[String]("agentId") and haveProperty[String]("agentName") and haveProperty[String](
+            "address1"
+          ) and haveProperty[String]("address2") and haveProperty[Boolean]("isAgentAbroad")
         )
       }
 
@@ -157,9 +163,11 @@ class RecordsControllerISpec
         val result = Records.generateLegacyAgent("foo", minimal = false)
         result should haveStatus(200)
         result should haveValidJsonBody(
-          haveProperty[String]("agentId") and haveProperty[String]("agentName") and haveProperty[String]("address1") and haveProperty[
-            String]("address2") and haveProperty[Boolean]("isAgentAbroad") and haveProperty[String]("agentPhoneNo") and haveProperty[
-            String]("postcode")
+          haveProperty[String]("agentId") and haveProperty[String]("agentName") and haveProperty[String](
+            "address1"
+          ) and haveProperty[String]("address2") and haveProperty[Boolean]("isAgentAbroad") and haveProperty[String](
+            "agentPhoneNo"
+          ) and haveProperty[String]("postcode")
         )
       }
     }
@@ -194,8 +202,10 @@ class RecordsControllerISpec
         result should haveStatus(200)
         result should haveValidJsonBody(
           haveProperty[String]("safeId") and haveProperty[Boolean]("businessPartnerExists") and haveProperty[Boolean](
-            "isAnAgent") and haveProperty[Boolean]("isAnASAgent") and haveProperty[Boolean]("isAnIndividual") and haveProperty[
-            Boolean]("isAnOrganisation") and haveProperty[JsObject]("addressDetails")
+            "isAnAgent"
+          ) and haveProperty[Boolean]("isAnASAgent") and haveProperty[Boolean]("isAnIndividual") and haveProperty[
+            Boolean
+          ]("isAnOrganisation") and haveProperty[JsObject]("addressDetails")
         )
       }
 
@@ -206,9 +216,12 @@ class RecordsControllerISpec
         result should haveStatus(200)
         result should haveValidJsonBody(
           haveProperty[String]("safeId") and haveProperty[Boolean]("businessPartnerExists") and haveProperty[Boolean](
-            "isAnAgent") and haveProperty[Boolean]("isAnASAgent") and haveProperty[Boolean]("isAnIndividual") and haveProperty[
-            Boolean]("isAnOrganisation") and haveProperty[JsObject]("addressDetails") and haveProperty[String](
-            "agentReferenceNumber") and haveProperty[String]("utr")
+            "isAnAgent"
+          ) and haveProperty[Boolean]("isAnASAgent") and haveProperty[Boolean]("isAnIndividual") and haveProperty[
+            Boolean
+          ]("isAnOrganisation") and haveProperty[JsObject]("addressDetails") and haveProperty[String](
+            "agentReferenceNumber"
+          ) and haveProperty[String]("utr")
         )
       }
     }

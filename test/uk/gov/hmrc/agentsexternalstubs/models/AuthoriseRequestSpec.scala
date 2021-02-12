@@ -25,10 +25,12 @@ class AuthoriseRequestSpec extends UnitSpec {
 
   "AuthoriseRequest" should {
     "parse empty authorise request" in {
-      Json.parse(s"""{
-                    |"authorise": [],
-                    |"retrieve": []
-                    |}""".stripMargin).as[AuthoriseRequest] shouldBe AuthoriseRequest.empty
+      Json
+        .parse(s"""{
+          |"authorise": [],
+          |"retrieve": []
+          |}""".stripMargin)
+        .as[AuthoriseRequest] shouldBe AuthoriseRequest.empty
     }
 
     "serialize empty authorise request" in {
@@ -36,15 +38,15 @@ class AuthoriseRequestSpec extends UnitSpec {
     }
 
     "parse authorise request with enrolment predicate" in {
-      Json.parse(s"""{
-                    |"authorise": [
-                    | { "enrolment": "FOO"
-                    | }
-                    |],
-                    |"retrieve": []
-                    |}""".stripMargin).as[AuthoriseRequest] shouldBe AuthoriseRequest(
-        Seq(EnrolmentPredicate("FOO")),
-        Seq.empty)
+      Json
+        .parse(s"""{
+          |"authorise": [
+          | { "enrolment": "FOO"
+          | }
+          |],
+          |"retrieve": []
+          |}""".stripMargin)
+        .as[AuthoriseRequest] shouldBe AuthoriseRequest(Seq(EnrolmentPredicate("FOO")), Seq.empty)
     }
 
     "serialize authorise request with enrolment predicate" in {
@@ -54,16 +56,19 @@ class AuthoriseRequestSpec extends UnitSpec {
     }
 
     "parse authorise request with enrolment with identifiers predicate" in {
-      Json.parse(s"""{
-                    |"authorise": [
-                    | { "enrolment": "FOO",
-                    |   "identifiers": [{ "key": "UTR", "value": "123" }, { "key": "ABC", "value": "AGGHGs3892183" }]
-                    | }
-                    |],
-                    |"retrieve": []
-                    |}""".stripMargin).as[AuthoriseRequest] shouldBe AuthoriseRequest(
+      Json
+        .parse(s"""{
+          |"authorise": [
+          | { "enrolment": "FOO",
+          |   "identifiers": [{ "key": "UTR", "value": "123" }, { "key": "ABC", "value": "AGGHGs3892183" }]
+          | }
+          |],
+          |"retrieve": []
+          |}""".stripMargin)
+        .as[AuthoriseRequest] shouldBe AuthoriseRequest(
         Seq(EnrolmentPredicate("FOO", Some(Seq(Identifier("UTR", "123"), Identifier("ABC", "AGGHGs3892183"))))),
-        Seq.empty)
+        Seq.empty
+      )
     }
 
     "serialize authorise request with enrolment with identifiers predicate" in {
@@ -71,23 +76,25 @@ class AuthoriseRequestSpec extends UnitSpec {
         .toJson(
           AuthoriseRequest(
             Seq(EnrolmentPredicate("FOO", Some(Seq(Identifier("UTR", "123"), Identifier("ABC", "AGGHGs3892183"))))),
-            Seq.empty))
+            Seq.empty
+          )
+        )
         .toString() shouldBe
         """{"authorise":[{"enrolment":"FOO","identifiers":[{"key":"UTR","value":"123"},{"key":"ABC","value":"AGGHGs3892183"}]}],"retrieve":[]}"""
     }
 
     "parse authorise request with authProviders predicate" in {
-      Json.parse(s"""{
-                    |"authorise": [
-                    | { "authProviders": [
-                    |     "FOO"
-                    |   ]
-                    | }
-                    |],
-                    |"retrieve": []
-                    |}""".stripMargin).as[AuthoriseRequest] shouldBe AuthoriseRequest(
-        Seq(AuthProviders(Seq("FOO"))),
-        Seq.empty)
+      Json
+        .parse(s"""{
+          |"authorise": [
+          | { "authProviders": [
+          |     "FOO"
+          |   ]
+          | }
+          |],
+          |"retrieve": []
+          |}""".stripMargin)
+        .as[AuthoriseRequest] shouldBe AuthoriseRequest(Seq(AuthProviders(Seq("FOO"))), Seq.empty)
     }
 
     "serialize authorise request with authProviders predicate" in {
@@ -97,14 +104,14 @@ class AuthoriseRequestSpec extends UnitSpec {
     }
 
     "parse authorise request with credentialStrength predicate" in {
-      Json.parse(s"""{
-                    |"authorise": [
-                    | { "credentialStrength": "bar" }
-                    |],
-                    |"retrieve": []
-                    |}""".stripMargin).as[AuthoriseRequest] shouldBe AuthoriseRequest(
-        Seq(CredentialStrength("bar")),
-        Seq.empty)
+      Json
+        .parse(s"""{
+          |"authorise": [
+          | { "credentialStrength": "bar" }
+          |],
+          |"retrieve": []
+          |}""".stripMargin)
+        .as[AuthoriseRequest] shouldBe AuthoriseRequest(Seq(CredentialStrength("bar")), Seq.empty)
     }
 
     "serialize authorise request with credentialStrength predicate" in {
@@ -114,14 +121,14 @@ class AuthoriseRequestSpec extends UnitSpec {
     }
 
     "parse authorise request with confidenceLevel predicate" in {
-      Json.parse(s"""{
-                    |"authorise": [
-                    | { "confidenceLevel": 333 }
-                    |],
-                    |"retrieve": []
-                    |}""".stripMargin).as[AuthoriseRequest] shouldBe AuthoriseRequest(
-        Seq(ConfidenceLevel(333)),
-        Seq.empty)
+      Json
+        .parse(s"""{
+          |"authorise": [
+          | { "confidenceLevel": 333 }
+          |],
+          |"retrieve": []
+          |}""".stripMargin)
+        .as[AuthoriseRequest] shouldBe AuthoriseRequest(Seq(ConfidenceLevel(333)), Seq.empty)
     }
 
     "serialize authorise request with confidenceLevel predicate" in {
@@ -131,14 +138,14 @@ class AuthoriseRequestSpec extends UnitSpec {
     }
 
     "parse authorise request with affinityGroup predicate" in {
-      Json.parse(s"""{
-                    |"authorise": [
-                    | { "affinityGroup": "Organisation" }
-                    |],
-                    |"retrieve": []
-                    |}""".stripMargin).as[AuthoriseRequest] shouldBe AuthoriseRequest(
-        Seq(AffinityGroup(User.AG.Organisation)),
-        Seq.empty)
+      Json
+        .parse(s"""{
+          |"authorise": [
+          | { "affinityGroup": "Organisation" }
+          |],
+          |"retrieve": []
+          |}""".stripMargin)
+        .as[AuthoriseRequest] shouldBe AuthoriseRequest(Seq(AffinityGroup(User.AG.Organisation)), Seq.empty)
     }
 
     "serialize authorise request with affinityGroup predicate" in {
@@ -148,17 +155,17 @@ class AuthoriseRequestSpec extends UnitSpec {
     }
 
     "parse authorise request with nino predicate" in {
-      Json.parse(s"""{
-                    |"authorise": [
-                    |   {
-                    |      "hasNino": true,
-                    |      "nino" : "AA000002B"
-                    |   }
-                    |],
-                    |"retrieve": []
-                    |}""".stripMargin).as[AuthoriseRequest] shouldBe AuthoriseRequest(
-        Seq(HasNino(true, Some("AA000002B"))),
-        Seq.empty)
+      Json
+        .parse(s"""{
+          |"authorise": [
+          |   {
+          |      "hasNino": true,
+          |      "nino" : "AA000002B"
+          |   }
+          |],
+          |"retrieve": []
+          |}""".stripMargin)
+        .as[AuthoriseRequest] shouldBe AuthoriseRequest(Seq(HasNino(true, Some("AA000002B"))), Seq.empty)
     }
 
     "serialize authorise request with nino predicate" in {
@@ -168,16 +175,16 @@ class AuthoriseRequestSpec extends UnitSpec {
     }
 
     "parse authorise request with credentialRole predicate" in {
-      Json.parse(s"""{
-                    |"authorise": [
-                    |   {
-                    |      "credentialRole": "foobar"
-                    |   }
-                    |],
-                    |"retrieve": []
-                    |}""".stripMargin).as[AuthoriseRequest] shouldBe AuthoriseRequest(
-        Seq(CredentialRole("foobar")),
-        Seq.empty)
+      Json
+        .parse(s"""{
+          |"authorise": [
+          |   {
+          |      "credentialRole": "foobar"
+          |   }
+          |],
+          |"retrieve": []
+          |}""".stripMargin)
+        .as[AuthoriseRequest] shouldBe AuthoriseRequest(Seq(CredentialRole("foobar")), Seq.empty)
     }
 
     "serialize authorise request with credentialRole predicate" in {
@@ -187,16 +194,16 @@ class AuthoriseRequestSpec extends UnitSpec {
     }
 
     "parse authorise request with $or predicate" in {
-      Json.parse(s"""{
-                    |"authorise": [{"$$or":[
-                    |   {
-                    |      "credentialRole": "foobar"
-                    |   }
-                    |]}],
-                    |"retrieve": []
-                    |}""".stripMargin).as[AuthoriseRequest] shouldBe AuthoriseRequest(
-        Seq(Alternative(Seq(CredentialRole("foobar")))),
-        Seq.empty)
+      Json
+        .parse(s"""{
+          |"authorise": [{"$$or":[
+          |   {
+          |      "credentialRole": "foobar"
+          |   }
+          |]}],
+          |"retrieve": []
+          |}""".stripMargin)
+        .as[AuthoriseRequest] shouldBe AuthoriseRequest(Seq(Alternative(Seq(CredentialRole("foobar")))), Seq.empty)
     }
   }
 

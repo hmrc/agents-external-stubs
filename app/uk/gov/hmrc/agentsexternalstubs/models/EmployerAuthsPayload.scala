@@ -19,8 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import play.api.libs.json._
 import uk.gov.hmrc.agentsexternalstubs.models.EmployerAuthsPayload._
 
-/**
-  * ----------------------------------------------------------------------------
+/** ----------------------------------------------------------------------------
   * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
   * How to regenerate? Run this command in the project root directory:
   * sbt "test:runMain uk.gov.hmrc.agentsexternalstubs.RecordClassGeneratorFromJsonSchema docs/schemas/empRefsForAgentAuths.schema_v0_3.json app/uk/gov/hmrc/agentsexternalstubs/models/EmployerAuthsPayload.scala EmployerAuthsPayload output:payload"
@@ -60,14 +59,17 @@ object EmployerAuthsPayload {
 
     val districtNumberValidator: Validator[String] = check(
       _.matches(Common.districtNumberPattern),
-      s"""Invalid districtNumber, does not matches regex ${Common.districtNumberPattern}""")
+      s"""Invalid districtNumber, does not matches regex ${Common.districtNumberPattern}"""
+    )
     val referenceValidator: Validator[String] = check(
       _.matches(Common.referencePattern),
-      s"""Invalid reference, does not matches regex ${Common.referencePattern}""")
+      s"""Invalid reference, does not matches regex ${Common.referencePattern}"""
+    )
 
     val validate: Validator[EmpRef] = Validator(
       checkProperty(_.districtNumber, districtNumberValidator),
-      checkProperty(_.reference, referenceValidator))
+      checkProperty(_.reference, referenceValidator)
+    )
 
     implicit val formats: Format[EmpRef] = Json.format[EmpRef]
 

@@ -19,8 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import play.api.libs.json._
 import uk.gov.hmrc.agentsexternalstubs.models.SubscribeAgentServicesPayload._
 
-/**
-  * ----------------------------------------------------------------------------
+/** ----------------------------------------------------------------------------
   * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
   * How to regenerate? Run this command in the project root directory:
   * sbt "test:runMain uk.gov.hmrc.agentsexternalstubs.RecordClassGeneratorFromJsonSchema docs/schemas/DES1173.json app/uk/gov/hmrc/agentsexternalstubs/models/SubscribeAgentServicesPayload.scala SubscribeAgentServicesPayload output:payload"
@@ -36,7 +35,8 @@ case class SubscribeAgentServicesPayload(
   agencyName: String,
   agencyAddress: AgencyAddress,
   telephoneNumber: Option[String] = None,
-  agencyEmail: Option[String] = None) {
+  agencyEmail: Option[String] = None
+) {
 
   def withSafeId(safeId: Option[String]): SubscribeAgentServicesPayload = copy(safeId = safeId)
   def modifySafeId(pf: PartialFunction[Option[String], Option[String]]): SubscribeAgentServicesPayload =
@@ -65,11 +65,13 @@ object SubscribeAgentServicesPayload {
     check(_.matches(Common.safeIdPattern), s"""Invalid safeId, does not matches regex ${Common.safeIdPattern}""")
   val agencyNameValidator: Validator[String] = check(
     _.matches(Common.agencyNamePattern),
-    s"""Invalid agencyName, does not matches regex ${Common.agencyNamePattern}""")
+    s"""Invalid agencyName, does not matches regex ${Common.agencyNamePattern}"""
+  )
   val agencyAddressValidator: Validator[AgencyAddress] = checkProperty(identity, AgencyAddress.validate)
   val telephoneNumberValidator: Validator[Option[String]] = check(
     _.matches(Common.telephoneNumberPattern),
-    s"""Invalid telephoneNumber, does not matches regex ${Common.telephoneNumberPattern}""")
+    s"""Invalid telephoneNumber, does not matches regex ${Common.telephoneNumberPattern}"""
+  )
   val agencyEmailValidator: Validator[Option[String]] =
     check(_.lengthMinMaxInclusive(1, 132), "Invalid length of agencyEmail, should be between 1 and 132 inclusive")
 
@@ -105,12 +107,15 @@ object SubscribeAgentServicesPayload {
         val r1 = r0.orElse(
           ForeignAddress.formats
             .reads(json)
-            .flatMap(e => ForeignAddress.validate(e).fold(_ => JsError(), _ => JsSuccess(e))))
+            .flatMap(e => ForeignAddress.validate(e).fold(_ => JsError(), _ => JsSuccess(e)))
+        )
         r1.orElse(
           aggregateErrors(
             JsError("Could not match json object to any variant of AgencyAddress, i.e. UkAddress, ForeignAddress"),
             r0,
-            r1))
+            r1
+          )
+        )
       }
 
       private def aggregateErrors[T](errors: JsResult[T]*): JsError =
@@ -118,7 +123,8 @@ object SubscribeAgentServicesPayload {
           r match {
             case e: JsError => JsError(a.errors ++ e.errors)
             case _          => a
-        })
+          }
+        )
     }
 
     implicit val writes: Writes[AgencyAddress] = new Writes[AgencyAddress] {
@@ -136,8 +142,8 @@ object SubscribeAgentServicesPayload {
     override val addressLine3: Option[String] = None,
     override val addressLine4: Option[String] = None,
     postalCode: Option[String] = None,
-    override val countryCode: String)
-      extends AgencyAddress {
+    override val countryCode: String
+  ) extends AgencyAddress {
 
     def withAddressLine1(addressLine1: String): ForeignAddress = copy(addressLine1 = addressLine1)
     def modifyAddressLine1(pf: PartialFunction[String, String]): ForeignAddress =
@@ -163,19 +169,24 @@ object SubscribeAgentServicesPayload {
 
     val addressLine1Validator: Validator[String] = check(
       _.matches(Common.addressLinePattern),
-      s"""Invalid addressLine1, does not matches regex ${Common.addressLinePattern}""")
+      s"""Invalid addressLine1, does not matches regex ${Common.addressLinePattern}"""
+    )
     val addressLine2Validator: Validator[Option[String]] = check(
       _.matches(Common.addressLinePattern),
-      s"""Invalid addressLine2, does not matches regex ${Common.addressLinePattern}""")
+      s"""Invalid addressLine2, does not matches regex ${Common.addressLinePattern}"""
+    )
     val addressLine3Validator: Validator[Option[String]] = check(
       _.matches(Common.addressLinePattern),
-      s"""Invalid addressLine3, does not matches regex ${Common.addressLinePattern}""")
+      s"""Invalid addressLine3, does not matches regex ${Common.addressLinePattern}"""
+    )
     val addressLine4Validator: Validator[Option[String]] = check(
       _.matches(Common.addressLinePattern),
-      s"""Invalid addressLine4, does not matches regex ${Common.addressLinePattern}""")
+      s"""Invalid addressLine4, does not matches regex ${Common.addressLinePattern}"""
+    )
     val postalCodeValidator: Validator[Option[String]] = check(
       _.matches(Common.postalCodePattern1),
-      s"""Invalid postalCode, does not matches regex ${Common.postalCodePattern1}""")
+      s"""Invalid postalCode, does not matches regex ${Common.postalCodePattern1}"""
+    )
     val countryCodeValidator: Validator[String] =
       check(_.isOneOf(Common.countryCodeEnum0), "Invalid countryCode, does not match allowed values")
 
@@ -198,8 +209,8 @@ object SubscribeAgentServicesPayload {
     override val addressLine3: Option[String] = None,
     override val addressLine4: Option[String] = None,
     postalCode: String,
-    override val countryCode: String)
-      extends AgencyAddress {
+    override val countryCode: String
+  ) extends AgencyAddress {
 
     def withAddressLine1(addressLine1: String): UkAddress = copy(addressLine1 = addressLine1)
     def modifyAddressLine1(pf: PartialFunction[String, String]): UkAddress =
@@ -225,19 +236,24 @@ object SubscribeAgentServicesPayload {
 
     val addressLine1Validator: Validator[String] = check(
       _.matches(Common.addressLinePattern),
-      s"""Invalid addressLine1, does not matches regex ${Common.addressLinePattern}""")
+      s"""Invalid addressLine1, does not matches regex ${Common.addressLinePattern}"""
+    )
     val addressLine2Validator: Validator[Option[String]] = check(
       _.matches(Common.addressLinePattern),
-      s"""Invalid addressLine2, does not matches regex ${Common.addressLinePattern}""")
+      s"""Invalid addressLine2, does not matches regex ${Common.addressLinePattern}"""
+    )
     val addressLine3Validator: Validator[Option[String]] = check(
       _.matches(Common.addressLinePattern),
-      s"""Invalid addressLine3, does not matches regex ${Common.addressLinePattern}""")
+      s"""Invalid addressLine3, does not matches regex ${Common.addressLinePattern}"""
+    )
     val addressLine4Validator: Validator[Option[String]] = check(
       _.matches(Common.addressLinePattern),
-      s"""Invalid addressLine4, does not matches regex ${Common.addressLinePattern}""")
+      s"""Invalid addressLine4, does not matches regex ${Common.addressLinePattern}"""
+    )
     val postalCodeValidator: Validator[String] = check(
       _.matches(Common.postalCodePattern0),
-      s"""Invalid postalCode, does not matches regex ${Common.postalCodePattern0}""")
+      s"""Invalid postalCode, does not matches regex ${Common.postalCodePattern0}"""
+    )
     val countryCodeValidator: Validator[String] =
       check(_.isOneOf(Common.countryCodeEnum1), "Invalid countryCode, does not match allowed values")
 

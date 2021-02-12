@@ -25,9 +25,11 @@ class UserSanitizerSpec extends UnitSpec {
   "UserSanitizer" should {
     "add missing name to the Individual" in {
       UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Individual))).name shouldBe Some(
-        "Kaylee Phillips")
+        "Kaylee Phillips"
+      )
       UserSanitizer.sanitize(User("boo", affinityGroup = Some(User.AG.Individual))).name shouldBe Some(
-        "Nicholas Isnard")
+        "Nicholas Isnard"
+      )
     }
 
     "add missing name to the Agent" in {
@@ -37,9 +39,11 @@ class UserSanitizerSpec extends UnitSpec {
 
     "add missing name to the Organisation" in {
       UserSanitizer.sanitize(User("boo", affinityGroup = Some(User.AG.Organisation))).name shouldBe Some(
-        "Petroleum Inc.")
+        "Petroleum Inc."
+      )
       UserSanitizer.sanitize(User("zoo", affinityGroup = Some(User.AG.Organisation))).name shouldBe Some(
-        "Markets Mutual FedEx Holdings")
+        "Markets Mutual FedEx Holdings"
+      )
     }
 
     "add missing dateOfBirth to the Individual" in {
@@ -49,9 +53,11 @@ class UserSanitizerSpec extends UnitSpec {
 
     "add missing NINO to the Individual" in {
       UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Individual))).nino shouldBe Some(
-        Nino("XC 93 60 45 D"))
+        Nino("XC 93 60 45 D")
+      )
       UserSanitizer.sanitize(User("boo", affinityGroup = Some(User.AG.Individual))).nino shouldBe Some(
-        Nino("AB 61 73 12 C"))
+        Nino("AB 61 73 12 C")
+      )
     }
 
     "remove NINO for Business" in {
@@ -82,11 +88,14 @@ class UserSanitizerSpec extends UnitSpec {
 
     "add or remove CredentialRole when appropriate" in {
       UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Individual))).credentialRole shouldBe Some(
-        User.CR.User)
+        User.CR.User
+      )
       UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Agent))).credentialRole shouldBe Some(
-        User.CR.User)
+        User.CR.User
+      )
       UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Organisation))).credentialRole shouldBe Some(
-        User.CR.Admin)
+        User.CR.Admin
+      )
       UserSanitizer.sanitize(User("foo", affinityGroup = None)).credentialRole shouldBe None
       UserSanitizer
         .sanitize(User("foo", affinityGroup = Some(User.AG.Organisation), credentialRole = Some(User.CR.User)))
@@ -138,12 +147,14 @@ class UserSanitizerSpec extends UnitSpec {
     "add missing identifiers to principal enrolments" in {
       UserSanitizer
         .sanitize(
-          User("foo", affinityGroup = Some(User.AG.Individual), principalEnrolments = Seq(Enrolment("HMRC-MTD-IT"))))
+          User("foo", affinityGroup = Some(User.AG.Individual), principalEnrolments = Seq(Enrolment("HMRC-MTD-IT")))
+        )
         .principalEnrolments
         .flatMap(_.identifiers.get.map(_.key)) should contain.only("MTDITID")
       UserSanitizer
         .sanitize(
-          User("foo", affinityGroup = Some(User.AG.Agent), principalEnrolments = Seq(Enrolment("HMRC-AS-AGENT"))))
+          User("foo", affinityGroup = Some(User.AG.Agent), principalEnrolments = Seq(Enrolment("HMRC-AS-AGENT")))
+        )
         .principalEnrolments
         .flatMap(_.identifiers.get.map(_.key)) should contain.only("AgentReferenceNumber")
     }
@@ -175,7 +186,9 @@ class UserSanitizerSpec extends UnitSpec {
           User(
             "foo",
             affinityGroup = Some(User.AG.Individual),
-            principalEnrolments = Seq(Enrolment("HMRC-MTD-IT"), Enrolment("HMRC-MTD-IT"))))
+            principalEnrolments = Seq(Enrolment("HMRC-MTD-IT"), Enrolment("HMRC-MTD-IT"))
+          )
+        )
         .principalEnrolments
         .flatMap(_.identifiers.get.map(_.key)) shouldBe Seq("MTDITID")
       UserSanitizer
@@ -183,18 +196,23 @@ class UserSanitizerSpec extends UnitSpec {
           User(
             "foo",
             affinityGroup = Some(User.AG.Individual),
-            principalEnrolments = Seq(Enrolment("HMRC-MTD-IT"), Enrolment("HMRC-MTD-VAT"))))
+            principalEnrolments = Seq(Enrolment("HMRC-MTD-IT"), Enrolment("HMRC-MTD-VAT"))
+          )
+        )
         .principalEnrolments
         .flatMap(_.identifiers.get.map(_.key)) should contain theSameElementsAs Seq("MTDITID", "VRN")
       UserSanitizer
-        .sanitize(User(
-          "foo",
-          affinityGroup = Some(User.AG.Individual),
-          principalEnrolments = Seq(
-            Enrolment("HMRC-MTD-IT"),
-            Enrolment("HMRC-MTD-IT", "MTDITID", "CNOB96766112368"),
-            Enrolment("HMRC-MTD-IT"))
-        ))
+        .sanitize(
+          User(
+            "foo",
+            affinityGroup = Some(User.AG.Individual),
+            principalEnrolments = Seq(
+              Enrolment("HMRC-MTD-IT"),
+              Enrolment("HMRC-MTD-IT", "MTDITID", "CNOB96766112368"),
+              Enrolment("HMRC-MTD-IT")
+            )
+          )
+        )
         .principalEnrolments
         .flatMap(_.identifiers.get.map(_.value)) shouldBe Seq("CNOB96766112368")
     }
@@ -205,7 +223,9 @@ class UserSanitizerSpec extends UnitSpec {
           User(
             "foo",
             affinityGroup = Some(User.AG.Individual),
-            principalEnrolments = Seq(Enrolment("HMRC-MTD-IT", "", "123456789"))))
+            principalEnrolments = Seq(Enrolment("HMRC-MTD-IT", "", "123456789"))
+          )
+        )
         .principalEnrolments
         .flatMap(_.identifiers.get.map(_.key))
         .filter(_.nonEmpty) should contain.only("MTDITID")
@@ -217,7 +237,9 @@ class UserSanitizerSpec extends UnitSpec {
           User(
             "foo",
             affinityGroup = Some(User.AG.Individual),
-            principalEnrolments = Seq(Enrolment("HMRC-MTD-IT", "MTDITID", ""))))
+            principalEnrolments = Seq(Enrolment("HMRC-MTD-IT", "MTDITID", ""))
+          )
+        )
         .principalEnrolments
         .flatMap(_.identifiers.get.map(_.value))
         .filter(_.nonEmpty) should not be empty
@@ -240,7 +262,9 @@ class UserSanitizerSpec extends UnitSpec {
           User(
             "foo",
             affinityGroup = Some(User.AG.Agent),
-            delegatedEnrolments = Seq(Enrolment("HMRC-MTD-IT", "", "123456789"))))
+            delegatedEnrolments = Seq(Enrolment("HMRC-MTD-IT", "", "123456789"))
+          )
+        )
         .delegatedEnrolments
         .flatMap(_.identifiers.get.map(_.key))
         .filter(_.nonEmpty) should contain.only("MTDITID")
@@ -252,7 +276,9 @@ class UserSanitizerSpec extends UnitSpec {
           User(
             "foo",
             affinityGroup = Some(User.AG.Agent),
-            delegatedEnrolments = Seq(Enrolment("HMRC-MTD-IT", "MTDITID", ""))))
+            delegatedEnrolments = Seq(Enrolment("HMRC-MTD-IT", "MTDITID", ""))
+          )
+        )
         .delegatedEnrolments
         .flatMap(_.identifiers.get.map(_.value))
         .filter(_.nonEmpty) should not be empty

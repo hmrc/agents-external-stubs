@@ -21,5 +21,5 @@ import javax.inject.{Inject, Singleton}
 import play.api.http.DefaultHttpFilters
 
 @Singleton
-class MicroserviceFilters @Inject()(metricsFilter: MetricsFilter, monitoringFilter: MicroserviceMonitoringFilter)
+class MicroserviceFilters @Inject() (metricsFilter: MetricsFilter, monitoringFilter: MicroserviceMonitoringFilter)
     extends DefaultHttpFilters(metricsFilter, monitoringFilter)

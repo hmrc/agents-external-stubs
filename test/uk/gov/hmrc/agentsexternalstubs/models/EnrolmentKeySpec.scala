@@ -24,7 +24,8 @@ class EnrolmentKeySpec extends UnitSpec {
     "return EnrolmentKey if string format and content are valid" in {
       EnrolmentKey.parse("IR-SA~UTR~12345678") shouldBe Right(EnrolmentKey("IR-SA", Seq(Identifier("UTR", "12345678"))))
       EnrolmentKey.parse("IR-PAYE~TaxOfficeNumber~754~TaxOfficeReference~KG12512") shouldBe Right(
-        EnrolmentKey("IR-PAYE", Seq(Identifier("TaxOfficeNumber", "754"), Identifier("TaxOfficeReference", "KG12512"))))
+        EnrolmentKey("IR-PAYE", Seq(Identifier("TaxOfficeNumber", "754"), Identifier("TaxOfficeReference", "KG12512")))
+      )
     }
     "return error if enrolment key is empty" in {
       EnrolmentKey.parse("") shouldBe Left("INVALID_ENROLMENT_KEY")
@@ -67,10 +68,16 @@ class EnrolmentKeySpec extends UnitSpec {
   }
   "EnrolmentKey.toString" should {
     "return valid enrolment key" in {
-      EnrolmentKey("IR-SA", Seq(Identifier("FOO", "11223344"), Identifier("UTR", "12345678"))).toString shouldBe "IR-SA~FOO~11223344~UTR~12345678"
+      EnrolmentKey(
+        "IR-SA",
+        Seq(Identifier("FOO", "11223344"), Identifier("UTR", "12345678"))
+      ).toString shouldBe "IR-SA~FOO~11223344~UTR~12345678"
     }
     "return valid enrolment key with sorted identifiers" in {
-      EnrolmentKey("IR-SA", Seq(Identifier("UTR", "12345678"), Identifier("FOO", "11223344"))).toString shouldBe "IR-SA~FOO~11223344~UTR~12345678"
+      EnrolmentKey(
+        "IR-SA",
+        Seq(Identifier("UTR", "12345678"), Identifier("FOO", "11223344"))
+      ).toString shouldBe "IR-SA~FOO~11223344~UTR~12345678"
     }
   }
 

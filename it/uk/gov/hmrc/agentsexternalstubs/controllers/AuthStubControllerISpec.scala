@@ -36,7 +36,8 @@ class AuthStubControllerISpec
         an[MissingBearerToken] shouldBe thrownBy {
           await(
             authConnector
-              .authorise(EmptyPredicate, EmptyRetrieval)(HeaderCarrier(), concurrent.ExecutionContext.Implicits.global))
+              .authorise(EmptyPredicate, EmptyRetrieval)(HeaderCarrier(), concurrent.ExecutionContext.Implicits.global)
+          )
         }
       }
 
@@ -46,7 +47,9 @@ class AuthStubControllerISpec
             authConnector
               .authorise(EmptyPredicate, EmptyRetrieval)(
                 HeaderCarrier().withExtraHeaders(HeaderNames.AUTHORIZATION -> "foo"),
-                concurrent.ExecutionContext.Implicits.global))
+                concurrent.ExecutionContext.Implicits.global
+              )
+          )
         }
       }
 
@@ -56,7 +59,9 @@ class AuthStubControllerISpec
             authConnector
               .authorise(EmptyPredicate, EmptyRetrieval)(
                 HeaderCarrier(authorization = Some(Authorization("Bearer foo"))),
-                concurrent.ExecutionContext.Implicits.global))
+                concurrent.ExecutionContext.Implicits.global
+              )
+          )
         }
       }
 
@@ -90,7 +95,9 @@ class AuthStubControllerISpec
           authConnector
             .authorise[Credentials](EmptyPredicate, Retrievals.credentials)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
         creds.providerId shouldBe id
         creds.providerType shouldBe "GovernmentGateway"
       }
@@ -102,7 +109,9 @@ class AuthStubControllerISpec
           authConnector
             .authorise[Credentials](EmptyPredicate, Retrievals.credentials)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
         creds.providerId shouldBe id
         creds.providerType shouldBe "PrivilegedApplication"
       }
@@ -113,8 +122,10 @@ class AuthStubControllerISpec
         val creds = await(
           authConnector
             .authorise[Option[Credentials]](EmptyPredicate, v2.Retrievals.credentials)(
-            HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-            concurrent.ExecutionContext.Implicits.global))
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
         creds.map(_.providerId) shouldBe Some(id)
         creds.map(_.providerType) shouldBe Some("GovernmentGateway")
       }
@@ -125,8 +136,10 @@ class AuthStubControllerISpec
         val creds = await(
           authConnector
             .authorise[Option[Credentials]](EmptyPredicate, v2.Retrievals.credentials)(
-            HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-            concurrent.ExecutionContext.Implicits.global))
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
         creds.map(_.providerId) shouldBe Some(id)
         creds.map(_.providerType) shouldBe Some("PrivilegedApplication")
       }
@@ -137,7 +150,9 @@ class AuthStubControllerISpec
           authConnector
             .authorise[Unit](AuthProviders(AuthProvider.OneTimeLogin), EmptyRetrieval)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
       }
 
       "authorise if user authenticated with the PrivilegedApplication provider" in {
@@ -146,18 +161,23 @@ class AuthStubControllerISpec
           authConnector
             .authorise[Unit](AuthProviders(AuthProvider.PrivilegedApplication), EmptyRetrieval)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
       }
 
       "authorise if user has a STRIDE enrolment" in {
         val authToken = givenAnAuthenticatedUser(
           UserGenerator.individual(randomId).withStrideRole(role = "FOO"),
-          providerType = "PrivilegedApplication")
+          providerType = "PrivilegedApplication"
+        )
         await(
           authConnector
             .authorise[Unit](AuthProviders(AuthProvider.PrivilegedApplication) and Enrolment("FOO"), EmptyRetrieval)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
       }
 
       "throw UnsupportedAuthProvider if user authenticated with another provider" in {
@@ -167,7 +187,9 @@ class AuthStubControllerISpec
             authConnector
               .authorise(AuthProviders(AuthProvider.GovernmentGateway), EmptyRetrieval)(
                 HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-                concurrent.ExecutionContext.Implicits.global))
+                concurrent.ExecutionContext.Implicits.global
+              )
+          )
         }
       }
 
@@ -178,7 +200,9 @@ class AuthStubControllerISpec
           authConnector
             .authorise[LegacyCredentials](EmptyPredicate, Retrievals.authProviderId)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
         creds shouldBe GGCredId(id)
       }
 
@@ -189,7 +213,9 @@ class AuthStubControllerISpec
             authConnector
               .authorise(Enrolment("HMRC-MTD-IT"), EmptyRetrieval)(
                 HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-                concurrent.ExecutionContext.Implicits.global))
+                concurrent.ExecutionContext.Implicits.global
+              )
+          )
         }
       }
 
@@ -201,13 +227,16 @@ class AuthStubControllerISpec
           planetId = id,
           service = "HMRC-MTD-IT",
           identifierKey = "MTDITID",
-          identifierValue = "236216873678126")
+          identifierValue = "236216873678126"
+        )
         an[InsufficientEnrolments] shouldBe thrownBy {
           await(
             authConnector
               .authorise(Enrolment("HMRC-MTD-IT").withIdentifier("MTDITID", "123"), EmptyRetrieval)(
                 HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-                concurrent.ExecutionContext.Implicits.global))
+                concurrent.ExecutionContext.Implicits.global
+              )
+          )
         }
       }
 
@@ -220,7 +249,9 @@ class AuthStubControllerISpec
             authConnector
               .authorise(Enrolment("HMRC-MTD-IT").withIdentifier("MTDITID", "2362168736"), EmptyRetrieval)(
                 HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-                concurrent.ExecutionContext.Implicits.global))
+                concurrent.ExecutionContext.Implicits.global
+              )
+          )
         }
       }
 
@@ -232,7 +263,9 @@ class AuthStubControllerISpec
             authConnector
               .authorise(Enrolment("HMRC-NI").withIdentifier("NINO", "HW827856C"), EmptyRetrieval)(
                 HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-                concurrent.ExecutionContext.Implicits.global))
+                concurrent.ExecutionContext.Implicits.global
+              )
+          )
         }
       }
 
@@ -242,7 +275,9 @@ class AuthStubControllerISpec
           authConnector
             .authorise[Unit](Enrolment("HMRC-NI"), EmptyRetrieval)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
       }
 
       "authorise if user has an synthetic HMRC-NI enrolment and NINO matches" in {
@@ -251,7 +286,9 @@ class AuthStubControllerISpec
           authConnector
             .authorise[Unit](Enrolment("HMRC-NI").withIdentifier("NINO", "HW827856C"), EmptyRetrieval)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
       }
 
       "retrieve authorisedEnrolments" in {
@@ -264,9 +301,12 @@ class AuthStubControllerISpec
           authConnector
             .authorise[Enrolments](Enrolment("HMRC-MTD-IT"), Retrievals.authorisedEnrolments)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
         enrolments.getEnrolment("HMRC-MTD-IT") shouldBe Some(
-          Enrolment("HMRC-MTD-IT", Seq(EnrolmentIdentifier("MTDITID", "236216873678126")), "Activated"))
+          Enrolment("HMRC-MTD-IT", Seq(EnrolmentIdentifier("MTDITID", "236216873678126")), "Activated")
+        )
         enrolments.getEnrolment("IR-SA") shouldBe None
       }
 
@@ -280,7 +320,9 @@ class AuthStubControllerISpec
           authConnector
             .authorise[Enrolments](Enrolment("FOO_ROLE"), Retrievals.authorisedEnrolments)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
         enrolments.getEnrolment("FOO_ROLE") shouldBe Some(Enrolment("FOO_ROLE", Seq.empty, "Activated"))
         enrolments.getEnrolment("IR-SA") shouldBe None
       }
@@ -296,11 +338,14 @@ class AuthStubControllerISpec
           authConnector
             .authorise[Enrolments](Enrolment("HMRC-NI"), Retrievals.authorisedEnrolments)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
         enrolments.getEnrolment("HMRC-MTD-IT") shouldBe None
         enrolments.getEnrolment("IR-SA") shouldBe None
         enrolments.getEnrolment("HMRC-NI") shouldBe Some(
-          Enrolment("HMRC-NI", Seq(EnrolmentIdentifier("NINO", user.nino.get.value)), "Activated"))
+          Enrolment("HMRC-NI", Seq(EnrolmentIdentifier("NINO", user.nino.get.value)), "Activated")
+        )
       }
 
       "retrieve allEnrolments" in {
@@ -313,12 +358,16 @@ class AuthStubControllerISpec
           authConnector
             .authorise[Enrolments](EmptyPredicate, Retrievals.allEnrolments)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
         enrolments.getEnrolment("foo") shouldBe None
         enrolments.getEnrolment("HMRC-MTD-IT") shouldBe Some(
-          Enrolment("HMRC-MTD-IT", Seq(EnrolmentIdentifier("MTDITID", "236216873678126")), "Activated"))
+          Enrolment("HMRC-MTD-IT", Seq(EnrolmentIdentifier("MTDITID", "236216873678126")), "Activated")
+        )
         enrolments.getEnrolment("IR-SA") shouldBe Some(
-          Enrolment("IR-SA", Seq(EnrolmentIdentifier("UTR", "1234567890")), "Activated"))
+          Enrolment("IR-SA", Seq(EnrolmentIdentifier("UTR", "1234567890")), "Activated")
+        )
       }
 
       "retrieve allEnrolments if PrivilegedApplication" in {
@@ -331,7 +380,9 @@ class AuthStubControllerISpec
           authConnector
             .authorise[Enrolments](EmptyPredicate, Retrievals.allEnrolments)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
         enrolments.getEnrolment("foo") shouldBe None
         enrolments.getEnrolment("FOO_ROLE") shouldBe Some(Enrolment("FOO_ROLE", Seq.empty, "Activated"))
         enrolments.getEnrolment("IR-SA") shouldBe None
@@ -348,14 +399,19 @@ class AuthStubControllerISpec
           authConnector
             .authorise[Enrolments](EmptyPredicate, Retrievals.allEnrolments)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
         enrolments.getEnrolment("foo") shouldBe None
         enrolments.getEnrolment("HMRC-MTD-IT") shouldBe Some(
-          Enrolment("HMRC-MTD-IT", Seq(EnrolmentIdentifier("MTDITID", "236216873678126")), "Activated"))
+          Enrolment("HMRC-MTD-IT", Seq(EnrolmentIdentifier("MTDITID", "236216873678126")), "Activated")
+        )
         enrolments.getEnrolment("IR-SA") shouldBe Some(
-          Enrolment("IR-SA", Seq(EnrolmentIdentifier("UTR", "1234567890")), "Activated"))
+          Enrolment("IR-SA", Seq(EnrolmentIdentifier("UTR", "1234567890")), "Activated")
+        )
         enrolments.getEnrolment("HMRC-NI") shouldBe Some(
-          Enrolment("HMRC-NI", Seq(EnrolmentIdentifier("NINO", user.nino.get.value)), "Activated"))
+          Enrolment("HMRC-NI", Seq(EnrolmentIdentifier("NINO", user.nino.get.value)), "Activated")
+        )
       }
 
       "authorize if confidenceLevel matches" in {
@@ -366,7 +422,9 @@ class AuthStubControllerISpec
           authConnector
             .authorise[Unit](ConfidenceLevel.L300, EmptyRetrieval)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
       }
 
       "throw IncorrectCredentialStrength if confidenceLevel does not match" in {
@@ -378,7 +436,9 @@ class AuthStubControllerISpec
             authConnector
               .authorise[Unit](ConfidenceLevel.L200, EmptyRetrieval)(
                 HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-                concurrent.ExecutionContext.Implicits.global))
+                concurrent.ExecutionContext.Implicits.global
+              )
+          )
         }
       }
 
@@ -389,7 +449,9 @@ class AuthStubControllerISpec
           authConnector
             .authorise[ConfidenceLevel](EmptyPredicate, Retrievals.confidenceLevel)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
         confidence shouldBe ConfidenceLevel.L200
       }
 
@@ -401,7 +463,9 @@ class AuthStubControllerISpec
           authConnector
             .authorise[Unit](CredentialStrength(CredentialStrength.strong), EmptyRetrieval)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
       }
 
       "throw IncorrectCredentialStrength if credentialStrength does not match" in {
@@ -413,7 +477,9 @@ class AuthStubControllerISpec
             authConnector
               .authorise[Unit](CredentialStrength(CredentialStrength.weak), EmptyRetrieval)(
                 HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-                concurrent.ExecutionContext.Implicits.global))
+                concurrent.ExecutionContext.Implicits.global
+              )
+          )
         }
       }
 
@@ -425,7 +491,9 @@ class AuthStubControllerISpec
           authConnector
             .authorise[Option[String]](EmptyPredicate, Retrievals.credentialStrength)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
         strength shouldBe Some(CredentialStrength.strong)
       }
 
@@ -437,7 +505,9 @@ class AuthStubControllerISpec
           authConnector
             .authorise[Unit](AffinityGroup.Agent, EmptyRetrieval)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
       }
 
       "throw UnsupportedAffinityGroup if affinityGroup does not match" in {
@@ -449,7 +519,9 @@ class AuthStubControllerISpec
             authConnector
               .authorise[Unit](AffinityGroup.Agent, EmptyRetrieval)(
                 HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-                concurrent.ExecutionContext.Implicits.global))
+                concurrent.ExecutionContext.Implicits.global
+              )
+          )
         }
       }
 
@@ -462,7 +534,9 @@ class AuthStubControllerISpec
             authConnector
               .authorise[Unit](AffinityGroup.Organisation or AffinityGroup.Individual, EmptyRetrieval)(
                 HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-                concurrent.ExecutionContext.Implicits.global))
+                concurrent.ExecutionContext.Implicits.global
+              )
+          )
         }
       }
 
@@ -473,7 +547,9 @@ class AuthStubControllerISpec
           authConnector
             .authorise[Option[AffinityGroup]](EmptyPredicate, Retrievals.affinityGroup)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
         affinityGroupOpt shouldBe Some(AffinityGroup.Agent)
       }
 
@@ -485,7 +561,9 @@ class AuthStubControllerISpec
           authConnector
             .authorise[Unit](NinoPredicate(hasNino = true, Some("HW827856C")), EmptyRetrieval)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
       }
 
       "throw exception if nino does not match" in {
@@ -497,7 +575,9 @@ class AuthStubControllerISpec
             authConnector
               .authorise[Unit](NinoPredicate(hasNino = true, Some("AB827856A")), EmptyRetrieval)(
                 HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-                concurrent.ExecutionContext.Implicits.global))
+                concurrent.ExecutionContext.Implicits.global
+              )
+          )
         }
       }
 
@@ -508,7 +588,9 @@ class AuthStubControllerISpec
           authConnector
             .authorise[Option[String]](EmptyPredicate, Retrievals.nino)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
         ninoOpt shouldBe Some("HW827856C")
       }
 
@@ -521,25 +603,31 @@ class AuthStubControllerISpec
             authConnector
               .authorise[Unit](Admin, EmptyRetrieval)(
                 HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-                concurrent.ExecutionContext.Implicits.global))
+                concurrent.ExecutionContext.Implicits.global
+              )
+          )
         }
       }
 
       "retrieve credentialRole" in {
         givenAnAuthenticatedUser(
           UserGenerator.individual(groupId = "group1", credentialRole = "User"),
-          planetId = "saturn")
+          planetId = "saturn"
+        )
 
         val authToken =
           givenAnAuthenticatedUser(
             UserGenerator.individual(groupId = "group1", credentialRole = "Assistant"),
-            planetId = "saturn")
+            planetId = "saturn"
+          )
 
         val credentialRoleOpt = await(
           authConnector
             .authorise[Option[CredentialRole]](EmptyPredicate, Retrievals.credentialRole)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
         credentialRoleOpt shouldBe Some(Assistant)
       }
 
@@ -550,7 +638,9 @@ class AuthStubControllerISpec
           authConnector
             .authorise[Option[String]](EmptyPredicate, Retrievals.groupIdentifier)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
         groupIdentifierOpt shouldBe Some("AAA-999-XXX")
       }
 
@@ -561,7 +651,9 @@ class AuthStubControllerISpec
           authConnector
             .authorise[Name](EmptyPredicate, Retrievals.name)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
         nameOpt shouldBe Name(Some("Foo"), Some("Boo"))
       }
 
@@ -571,8 +663,10 @@ class AuthStubControllerISpec
         val nameOpt = await(
           authConnector
             .authorise[Option[Name]](EmptyPredicate, v2.Retrievals.name)(
-            HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-            concurrent.ExecutionContext.Implicits.global))
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
         nameOpt shouldBe Some(Name(Some("Foo"), Some("Boo")))
       }
 
@@ -583,7 +677,9 @@ class AuthStubControllerISpec
           authConnector
             .authorise[Option[LocalDate]](EmptyPredicate, Retrievals.dateOfBirth)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
         dateOfBirthOpt shouldBe Some(LocalDate.parse("1985-09-17"))
       }
 
@@ -594,7 +690,9 @@ class AuthStubControllerISpec
           authConnector
             .authorise[Option[String]](EmptyPredicate, Retrievals.agentCode)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
         agentCodeOpt shouldBe Some("AAABBB1234567")
       }
 
@@ -606,7 +704,9 @@ class AuthStubControllerISpec
           authConnector
             .authorise[AgentInformation](EmptyPredicate, Retrievals.agentInformation)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
-              concurrent.ExecutionContext.Implicits.global))
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
         agentInfo.agentCode shouldBe Some("AAABBB1234567")
         agentInfo.agentFriendlyName shouldBe Some("Fox & Co")
         agentInfo.agentId.isDefined shouldBe true
@@ -617,15 +717,19 @@ class AuthStubControllerISpec
           givenAnAuthenticatedUser(
             UserGenerator
               .individual(randomId)
-              .withPrincipalEnrolment("HMRC-MTD-VAT~VRN~936707596"))
+              .withPrincipalEnrolment("HMRC-MTD-VAT~VRN~936707596")
+          )
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
         val result: String = await(
-          authorised((Enrolment("HMRC-MTD-IT") or Enrolment("HMRC-NI") or Enrolment("HMRC-MTD-VAT"))
-            and AuthProviders(GovernmentGateway)) {
+          authorised(
+            (Enrolment("HMRC-MTD-IT") or Enrolment("HMRC-NI") or Enrolment("HMRC-MTD-VAT"))
+              and AuthProviders(GovernmentGateway)
+          ) {
             "success"
-          })
+          }
+        )
       }
 
       "authorize if mtd-it delegated auth rule returns true" in new TestFixture {
@@ -636,8 +740,11 @@ class AuthStubControllerISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo(s"/agent-access-control/mtd-it-auth/agent/${agent.agentCode.get}/client/236216873678126"))
-            .willReturn(aResponse()
-              .withStatus(200)))
+            .willReturn(
+              aResponse()
+                .withStatus(200)
+            )
+        )
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
@@ -646,9 +753,11 @@ class AuthStubControllerISpec
             authorised(
               Enrolment("HMRC-MTD-IT")
                 .withIdentifier("MTDITID", "236216873678126")
-                .withDelegatedAuthRule("mtd-it-auth")) {
+                .withDelegatedAuthRule("mtd-it-auth")
+            ) {
               "success"
-            })
+            }
+          )
       }
 
       "do not authorize if mtd-it delegated auth rule returns false" in new TestFixture {
@@ -659,8 +768,11 @@ class AuthStubControllerISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo(s"/agent-access-control/mtd-it-auth/agent/${agent.agentCode.get}/client/236216873678126"))
-            .willReturn(aResponse()
-              .withStatus(401)))
+            .willReturn(
+              aResponse()
+                .withStatus(401)
+            )
+        )
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
@@ -669,9 +781,11 @@ class AuthStubControllerISpec
             authorised(
               Enrolment("HMRC-MTD-IT")
                 .withIdentifier("MTDITID", "236216873678126")
-                .withDelegatedAuthRule("mtd-it-auth")) {
+                .withDelegatedAuthRule("mtd-it-auth")
+            ) {
               "success"
-            })
+            }
+          )
         }
       }
 
@@ -683,8 +797,11 @@ class AuthStubControllerISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo(s"/agent-access-control/mtd-it-auth/agent/${agent.agentCode.get}/client/236216873678126"))
-            .willReturn(aResponse()
-              .withStatus(401)))
+            .willReturn(
+              aResponse()
+                .withStatus(401)
+            )
+        )
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
@@ -693,9 +810,11 @@ class AuthStubControllerISpec
             authorised(
               Enrolment("HMRC-MTD-VAT")
                 .withIdentifier("VRN", "236216873678126")
-                .withDelegatedAuthRule("mtd-it-auth")) {
+                .withDelegatedAuthRule("mtd-it-auth")
+            ) {
               "success"
-            })
+            }
+          )
         }
       }
 
@@ -707,8 +826,11 @@ class AuthStubControllerISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo(s"/agent-access-control/mtd-vat-auth/agent/${agent.agentCode.get}/client/936707596"))
-            .willReturn(aResponse()
-              .withStatus(200)))
+            .willReturn(
+              aResponse()
+                .withStatus(200)
+            )
+        )
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
@@ -717,9 +839,11 @@ class AuthStubControllerISpec
             authorised(
               Enrolment("HMRC-MTD-VAT")
                 .withIdentifier("VRN", "936707596")
-                .withDelegatedAuthRule("mtd-vat-auth")) {
+                .withDelegatedAuthRule("mtd-vat-auth")
+            ) {
               "success"
-            })
+            }
+          )
       }
 
       "do not authorize if mtd-vat delegated auth rule returns false" in new TestFixture {
@@ -730,8 +854,11 @@ class AuthStubControllerISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo(s"/agent-access-control/mtd-vat-auth/agent/${agent.agentCode.get}/client/936707596"))
-            .willReturn(aResponse()
-              .withStatus(401)))
+            .willReturn(
+              aResponse()
+                .withStatus(401)
+            )
+        )
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
@@ -740,9 +867,11 @@ class AuthStubControllerISpec
             authorised(
               Enrolment("HMRC-MTD-VAT")
                 .withIdentifier("VRN", "936707596")
-                .withDelegatedAuthRule("mtd-vat-auth")) {
+                .withDelegatedAuthRule("mtd-vat-auth")
+            ) {
               "success"
-            })
+            }
+          )
         }
       }
 
@@ -754,8 +883,11 @@ class AuthStubControllerISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo(s"/agent-access-control/afi-auth/agent/${agent.agentCode.get}/client/HW827856C"))
-            .willReturn(aResponse()
-              .withStatus(200)))
+            .willReturn(
+              aResponse()
+                .withStatus(200)
+            )
+        )
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
@@ -764,9 +896,11 @@ class AuthStubControllerISpec
             authorised(
               Enrolment("HMRC-NI")
                 .withIdentifier("NINO", "HW827856C")
-                .withDelegatedAuthRule("afi-auth")) {
+                .withDelegatedAuthRule("afi-auth")
+            ) {
               "success"
-            })
+            }
+          )
       }
 
       "do not authorize if afi delegated auth rule returns false" in new TestFixture {
@@ -777,8 +911,11 @@ class AuthStubControllerISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo(s"/agent-access-control/afi-auth/agent/${agent.agentCode.get}/client/HW827856C"))
-            .willReturn(aResponse()
-              .withStatus(401)))
+            .willReturn(
+              aResponse()
+                .withStatus(401)
+            )
+        )
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
@@ -787,9 +924,11 @@ class AuthStubControllerISpec
             authorised(
               Enrolment("HMRC-NI")
                 .withIdentifier("NINO", "HW827856C")
-                .withDelegatedAuthRule("afi-auth")) {
+                .withDelegatedAuthRule("afi-auth")
+            ) {
               "success"
-            })
+            }
+          )
         }
       }
 
@@ -801,8 +940,11 @@ class AuthStubControllerISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo(s"/agent-access-control/sa-auth/agent/${agent.agentCode.get}/client/1234556"))
-            .willReturn(aResponse()
-              .withStatus(200)))
+            .willReturn(
+              aResponse()
+                .withStatus(200)
+            )
+        )
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
@@ -811,9 +953,11 @@ class AuthStubControllerISpec
             authorised(
               Enrolment("IR-SA")
                 .withIdentifier("UTR", "1234556")
-                .withDelegatedAuthRule("sa-auth")) {
+                .withDelegatedAuthRule("sa-auth")
+            ) {
               "success"
-            })
+            }
+          )
       }
 
       "do not authorize if sa delegated auth rule returns false" in new TestFixture {
@@ -824,8 +968,11 @@ class AuthStubControllerISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo(s"/agent-access-control/sa-auth/agent/${agent.agentCode.get}/client/1234556"))
-            .willReturn(aResponse()
-              .withStatus(401)))
+            .willReturn(
+              aResponse()
+                .withStatus(401)
+            )
+        )
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
@@ -834,12 +981,13 @@ class AuthStubControllerISpec
             authorised(
               Enrolment("IR-SA")
                 .withIdentifier("UTR", "1234556")
-                .withDelegatedAuthRule("sa-auth")) {
+                .withDelegatedAuthRule("sa-auth")
+            ) {
               "success"
-            })
+            }
+          )
         }
       }
-
 
       "authorize if trust delegated auth rule returns true" in new TestFixture {
         val agent = UserGenerator.agent(randomId)
@@ -849,8 +997,11 @@ class AuthStubControllerISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo(s"/agent-access-control/trust-auth/agent/${agent.agentCode.get}/client/1234556"))
-            .willReturn(aResponse()
-              .withStatus(200)))
+            .willReturn(
+              aResponse()
+                .withStatus(200)
+            )
+        )
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
@@ -859,9 +1010,11 @@ class AuthStubControllerISpec
             authorised(
               Enrolment("HMRC-TERS-ORG")
                 .withIdentifier("UTR", "1234556")
-                .withDelegatedAuthRule("trust-auth")) {
+                .withDelegatedAuthRule("trust-auth")
+            ) {
               "success"
-            })
+            }
+          )
       }
 
       "do not authorize if trust delegated auth rule returns false" in new TestFixture {
@@ -872,8 +1025,11 @@ class AuthStubControllerISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo(s"/agent-access-control/trust-auth/agent/${agent.agentCode.get}/client/1234556"))
-            .willReturn(aResponse()
-              .withStatus(401)))
+            .willReturn(
+              aResponse()
+                .withStatus(401)
+            )
+        )
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
@@ -882,9 +1038,11 @@ class AuthStubControllerISpec
             authorised(
               Enrolment("HMRC-TERS-ORG")
                 .withIdentifier("UTR", "1234556")
-                .withDelegatedAuthRule("trust-auth")) {
+                .withDelegatedAuthRule("trust-auth")
+            ) {
               "success"
-            })
+            }
+          )
         }
       }
 
@@ -896,8 +1054,11 @@ class AuthStubControllerISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo(s"/agent-access-control/cgt-auth/agent/${agent.agentCode.get}/client/XMCGTP123456789"))
-            .willReturn(aResponse()
-              .withStatus(200)))
+            .willReturn(
+              aResponse()
+                .withStatus(200)
+            )
+        )
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
@@ -906,9 +1067,11 @@ class AuthStubControllerISpec
             authorised(
               Enrolment("HMRC-CGT-PD")
                 .withIdentifier("CGTPDRef", "XMCGTP123456789")
-                .withDelegatedAuthRule("cgt-auth")) {
+                .withDelegatedAuthRule("cgt-auth")
+            ) {
               "success"
-            })
+            }
+          )
       }
 
       "do not authorize if cgt delegated auth rule returns false" in new TestFixture {
@@ -919,8 +1082,11 @@ class AuthStubControllerISpec
         WireMock.stubFor(
           WireMock
             .get(urlEqualTo(s"/agent-access-control/cgt-auth/agent/${agent.agentCode.get}/client/XMCGTP123456789"))
-            .willReturn(aResponse()
-              .withStatus(401)))
+            .willReturn(
+              aResponse()
+                .withStatus(401)
+            )
+        )
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
@@ -929,9 +1095,11 @@ class AuthStubControllerISpec
             authorised(
               Enrolment("HMRC-CGT-PD")
                 .withIdentifier("CGTPDRef", "XMCGTP123456789")
-                .withDelegatedAuthRule("cgt-auth")) {
+                .withDelegatedAuthRule("cgt-auth")
+            ) {
               "success"
-            })
+            }
+          )
         }
       }
     }
@@ -1011,7 +1179,8 @@ class AuthStubControllerISpec
         result should haveStatus(200)
         result should haveValidJsonBody(
           haveProperty[String]("internalId", be(authSession.userId)),
-          haveProperty[String]("externalId", be(authSession.userId)))
+          haveProperty[String]("externalId", be(authSession.userId))
+        )
       }
 
       "return 401 if auth token missing" in {
@@ -1032,9 +1201,11 @@ class AuthStubControllerISpec
             haveProperty[String]("key"),
             haveProperty[Seq[JsObject]](
               "identifiers",
-              eachElement[JsObject](haveProperty[String]("key"), haveProperty[String]("value"))),
+              eachElement[JsObject](haveProperty[String]("key"), haveProperty[String]("value"))
+            ),
             haveProperty[String]("state")
-          ))
+          )
+        )
       }
 
       "return 401 if auth token missing" in {

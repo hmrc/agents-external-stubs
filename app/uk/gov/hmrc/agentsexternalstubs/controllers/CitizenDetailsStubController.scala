@@ -31,10 +31,11 @@ import play.api.libs.json.JodaReads._
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class CitizenDetailsStubController @Inject()(
+class CitizenDetailsStubController @Inject() (
   val authenticationService: AuthenticationService,
   usersService: UsersService,
-  cc: ControllerComponents)(implicit ec: ExecutionContext)
+  cc: ControllerComponents
+)(implicit ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
   def getCitizen(idName: String, taxId: String): Action[AnyContent] = Action.async { implicit request =>
@@ -84,8 +85,7 @@ class CitizenDetailsStubController @Inject()(
 
 object CitizenDetailsStubController {
 
-  /**
-    * {
+  /** {
     *   "name": {
     *     "current": {
     *       "firstName": "John",
@@ -102,7 +102,8 @@ object CitizenDetailsStubController {
   case class GetCitizenResponse(
     name: GetCitizenResponse.Names,
     ids: GetCitizenResponse.Ids,
-    dateOfBirth: Option[String])
+    dateOfBirth: Option[String]
+  )
 
   object GetCitizenResponse {
 
@@ -117,13 +118,13 @@ object CitizenDetailsStubController {
 
     private def convertName(name: Option[String]): Name =
       name
-        .map(n => {
+        .map { n =>
           val nameParts = n.split(" ")
           val (fn, ln) = if (nameParts.length > 1) {
             (nameParts.init.mkString(" "), Some(nameParts.last))
           } else (nameParts.headOption.getOrElse("John"), Some("Doe"))
           Name(fn, ln)
-        })
+        }
         .getOrElse(Name("John", Some("Doe")))
 
     def from(user: User): GetCitizenResponse =
@@ -135,8 +136,7 @@ object CitizenDetailsStubController {
 
   }
 
-  /**
-    * {
+  /** {
     *   "etag" : "115",
     *   "person" : {
     *     "firstName" : "HIPPY",
@@ -163,7 +163,8 @@ object CitizenDetailsStubController {
   case class GetDesignatoryDetailsResponse(
     etag: String,
     person: Option[GetDesignatoryDetailsResponse.Person],
-    address: Option[GetDesignatoryDetailsResponse.Address])
+    address: Option[GetDesignatoryDetailsResponse.Address]
+  )
 
   object GetDesignatoryDetailsResponse {
 
@@ -172,22 +173,24 @@ object CitizenDetailsStubController {
         user.userId.reverse,
         user.affinityGroup
           .find(ag => ag == Individual || ag == Agent)
-          .map(
-            _ =>
-              Person(
-                firstName = user.firstName,
-                lastName = user.lastName,
-                sex = Some(UserGenerator.sex(user.userId)),
-                nino = user.nino,
-                dateOfBirth = user.dateOfBirth)),
-        user.address.map(
-          a =>
-            Address(
-              line1 = a.line1,
-              line2 = a.line2,
-              line3 = a.line3,
-              postcode = a.postcode,
-              country = a.countryCode.map { case "GB" => "GREAT BRITAIN"; case cc => cc }))
+          .map(_ =>
+            Person(
+              firstName = user.firstName,
+              lastName = user.lastName,
+              sex = Some(UserGenerator.sex(user.userId)),
+              nino = user.nino,
+              dateOfBirth = user.dateOfBirth
+            )
+          ),
+        user.address.map(a =>
+          Address(
+            line1 = a.line1,
+            line2 = a.line2,
+            line3 = a.line3,
+            postcode = a.postcode,
+            country = a.countryCode.map { case "GB" => "GREAT BRITAIN"; case cc => cc }
+          )
+        )
       )
 
     case class Person(
@@ -196,7 +199,8 @@ object CitizenDetailsStubController {
       sex: Option[String] = None,
       nino: Option[Nino] = None,
       dateOfBirth: Option[LocalDate],
-      deceased: Boolean = false)
+      deceased: Boolean = false
+    )
 
     case class Address(
       line1: Option[String] = None,
@@ -205,15 +209,15 @@ object CitizenDetailsStubController {
       postcode: Option[String] = None,
       startDate: Option[String] = None,
       country: Option[String] = None,
-      `type`: String = "Residential")
+      `type`: String = "Residential"
+    )
 
     implicit val format1: OFormat[Person] = Json.format[Person]
     implicit val format2: OFormat[Address] = Json.format[Address]
     implicit val format3: OFormat[GetDesignatoryDetailsResponse] = Json.format[GetDesignatoryDetailsResponse]
   }
 
-  /**
-    *{
+  /** {
     *   "etag" : "115",
     *   "firstName" : "HIPPY",
     *   "lastName" : "NEWYEAR",
@@ -236,7 +240,8 @@ object CitizenDetailsStubController {
         etag = user.userId.reverse,
         firstName = user.firstName,
         lastName = user.lastName,
-        nino = user.nino)
+        nino = user.nino
+      )
 
     implicit val format1: OFormat[GetDesignatoryDetailsBasicResponse] = Json.format[GetDesignatoryDetailsBasicResponse]
   }

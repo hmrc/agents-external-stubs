@@ -53,7 +53,8 @@ object UserIdGenerator {
           val iterator = new UserIdIterator(result(defaultUserIds.map(shuffle), 60.seconds))
           userIdSeries.put(planetId, iterator)
           iterator.next()
-      } else result(nextUserId, 60.seconds)
+      }
+    else result(nextUserId, 60.seconds)
 
   def destroyPlanetId(planetId: String): Unit = userIdSeries.remove(planetId)
 

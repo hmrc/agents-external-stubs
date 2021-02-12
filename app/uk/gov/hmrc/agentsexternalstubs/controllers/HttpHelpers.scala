@@ -87,18 +87,19 @@ trait HttpHelpers {
 
   val SessionRecordNotFound: Future[Result] = unauthorizedF("SessionRecordNotFound")
 
-  def withPayloadOrDefault[T](default: T)(f: T => Future[Result])(
-    implicit request: Request[AnyContent],
-    reads: Reads[T],
-    ec: ExecutionContext): Future[Result] =
+  def withPayloadOrDefault[T](default: T)(
+    f: T => Future[Result]
+  )(implicit request: Request[AnyContent], reads: Reads[T], ec: ExecutionContext): Future[Result] =
     request.body.asJson.map(j => validate(j)(f)).getOrElse(f(default))
 
   def withPayload[T](
-    f: T => Future[Result])(implicit request: Request[JsValue], reads: Reads[T], ec: ExecutionContext): Future[Result] =
+    f: T => Future[Result]
+  )(implicit request: Request[JsValue], reads: Reads[T], ec: ExecutionContext): Future[Result] =
     validate(request.body)(f)
 
-  def validate[T](body: JsValue)(
-    f: T => Future[Result])(implicit reads: Reads[T], ec: ExecutionContext): Future[Result] =
+  def validate[T](
+    body: JsValue
+  )(f: T => Future[Result])(implicit reads: Reads[T], ec: ExecutionContext): Future[Result] =
     Try(body.validate[T]) match {
       case Success(validationResult) =>
         whenSuccess(f)(validationResult)
@@ -110,9 +111,8 @@ trait HttpHelpers {
     case JsSuccess(payload, _) => f(payload)
     case JsError(errs) =>
       Future.failed(new BadRequestException(s"Invalid payload: Parser failed ${errs
-        .map {
-          case (path, errors) =>
-            s"at path $path with ${errors.map(e => e.messages.mkString(", ")).mkString(", ")}"
+        .map { case (path, errors) =>
+          s"at path $path with ${errors.map(e => e.messages.mkString(", ")).mkString(", ")}"
         }
         .mkString(", and ")}"))
   }

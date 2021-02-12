@@ -42,8 +42,9 @@ trait JsonMatchers {
         }
     }
 
-  def havePropertyArrayOf[T: Reads](name: String, matchers: Matcher[T]*)(
-    implicit classTag: ClassTag[T]): Matcher[JsObject] =
+  def havePropertyArrayOf[T: Reads](name: String, matchers: Matcher[T]*)(implicit
+    classTag: ClassTag[T]
+  ): Matcher[JsObject] =
     new Matcher[JsObject] {
       val matcher =
         if (matchers.nonEmpty) matchers.reduce(_ and _)
@@ -104,7 +105,8 @@ trait JsonMatchers {
       MatchResult(
         values.contains(left),
         s"$left is an unexpected value, should be one of ${values.mkString("[", ",", "]")}",
-        s"$left was expected")
+        s"$left was expected"
+      )
   }
 
 }

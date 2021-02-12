@@ -75,11 +75,13 @@ object KnownFacts {
           .cond(
             kf.verifiers.size == kf.verifiers.map(_.key).distinct.size,
             (),
-            s"Known facts verifiers must represent distinct keys, unlike $kf")
+            s"Known facts verifiers must represent distinct keys, unlike $kf"
+          )
           .andThen(_ =>
             if (kf.verifiers.nonEmpty) kf.verifiers.map(v => validateVerifier(v, service)).reduce(_ combine _)
-            else Valid(()))
-  }
+            else Valid(())
+          )
+    }
 
   def validateVerifier(knownFact: KnownFact, service: Service): Validated[String, Unit] =
     service.getKnownFact(knownFact.key) match {
@@ -97,20 +99,21 @@ object KnownFacts {
   def generate(
     enrolmentKey: EnrolmentKey,
     seed: String,
-    alreadyKnownFacts: String => Option[String]): Option[KnownFacts] =
-    Services(enrolmentKey.service).map(s => {
+    alreadyKnownFacts: String => Option[String]
+  ): Option[KnownFacts] =
+    Services(enrolmentKey.service).map { s =>
       val verifiers =
         s.knownFacts
-          .map(
-            kf =>
-              alreadyKnownFacts(kf.name)
-                .orElse(Generator.get(kf.valueGenerator)(seed))
-                .map(value => KnownFact(kf.name, value)))
-          .collect {
-            case Some(x) => x
+          .map(kf =>
+            alreadyKnownFacts(kf.name)
+              .orElse(Generator.get(kf.valueGenerator)(seed))
+              .map(value => KnownFact(kf.name, value))
+          )
+          .collect { case Some(x) =>
+            x
           }
       KnownFacts(enrolmentKey, verifiers)
-    })
+    }
 
   val knownFactSanitizer: Service => String => KnownFact => KnownFact = service =>
     seed =>
@@ -121,19 +124,18 @@ object KnownFacts {
             if (entity.value.isEmpty || !entity.value.matches(knownFact.regex))
               entity.copy(value = Generator.get(knownFact.valueGenerator)(seed).getOrElse(""))
             else entity
-  }
+        }
 
   val verifiersSanitizer: String => KnownFacts => KnownFacts = seed =>
     entity => {
       Services(entity.enrolmentKey.service) match {
         case None => entity
-        case Some(service) => {
+        case Some(service) =>
           val verifiers =
             service.knownFacts.map(kf => entity.verifiers.find(_.key == kf.name).getOrElse(KnownFact(kf.name, "")))
           entity.copy(verifiers = verifiers.map(knownFactSanitizer(service)(seed)))
-        }
       }
-  }
+    }
 
   def sanitize(s: String)(entity: KnownFacts): KnownFacts =
     Seq(verifiersSanitizer).foldLeft(entity)((u, fx) => fx(s)(u))

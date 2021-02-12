@@ -25,10 +25,11 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.ExecutionContext
 @Singleton
-class UserDetailsStubController @Inject()(
+class UserDetailsStubController @Inject() (
   val authenticationService: AuthenticationService,
   usersService: UsersService,
-  cc: ControllerComponents)(implicit ec: ExecutionContext)
+  cc: ControllerComponents
+)(implicit ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
   import UserDetailsStubController._
@@ -46,34 +47,33 @@ class UserDetailsStubController @Inject()(
 
 object UserDetailsStubController {
 
-  /**
-  {
-    "name":"test",
-    "email":"test@test.com",
-    "affinityGroup" : "affinityGroup",
-    "description" : "description",
-    "lastName":"test",
-    "dateOfBirth":"1980-06-30",
-    "postCode":"NW94HD",
-    "authProviderId": "12345-PID",
-    "authProviderType": "Verify"
-  }
-
-    or for a gateway user that's an agent
-
-  {
-    "authProviderId" : "12345-credId",
-    "authProviderType" : "GovernmentGateway",
-    "name" : "test",
-    "email" : "test@test.com",
-    "affinityGroup" : "Agent",
-    "agentCode" : "TZRXXV",
-    "agentFriendlyName" : "Bodgitt & Legget LLP",
-    "agentId": "BDGL",
-    "credentialRole" : "admin",
-    "description" : "blah"
-  }
- **/
+  /**  {
+    *    "name":"test",
+    *    "email":"test@test.com",
+    *    "affinityGroup" : "affinityGroup",
+    *    "description" : "description",
+    *    "lastName":"test",
+    *    "dateOfBirth":"1980-06-30",
+    *    "postCode":"NW94HD",
+    *    "authProviderId": "12345-PID",
+    *    "authProviderType": "Verify"
+    *  }
+    *
+    *    or for a gateway user that's an agent
+    *
+    *  {
+    *    "authProviderId" : "12345-credId",
+    *    "authProviderType" : "GovernmentGateway",
+    *    "name" : "test",
+    *    "email" : "test@test.com",
+    *    "affinityGroup" : "Agent",
+    *    "agentCode" : "TZRXXV",
+    *    "agentFriendlyName" : "Bodgitt & Legget LLP",
+    *    "agentId": "BDGL",
+    *    "credentialRole" : "admin",
+    *    "description" : "blah"
+    *  }
+    */
   case class GetUserResponse(
     authProviderId: String,
     authProviderType: String,
@@ -87,7 +87,8 @@ object UserDetailsStubController {
     dateOfBirth: Option[String] = None,
     agentCode: Option[String] = None,
     agentFriendlyName: Option[String] = None,
-    agentId: Option[String] = None)
+    agentId: Option[String] = None
+  )
 
   object GetUserResponse {
     implicit val writes: Writes[GetUserResponse] = Json.writes[GetUserResponse]

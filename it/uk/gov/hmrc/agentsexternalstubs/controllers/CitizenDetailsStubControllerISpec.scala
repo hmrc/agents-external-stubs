@@ -22,7 +22,9 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with MongoDB wit
               userId = session.userId,
               nino = "HW 82 78 56 C",
               name = "Alan Brian Foo-Foe",
-              dateOfBirth = "1975-12-18"))
+              dateOfBirth = "1975-12-18"
+            )
+        )
 
         val result = CitizenDetailsStub.getCitizen("nino", "HW827856C")
 
@@ -42,7 +44,9 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with MongoDB wit
               userId = session.userId,
               nino = "JH 59 92 01 D",
               name = "Alan Brian Foo-Foe",
-              dateOfBirth = "1975-12-18"))
+              dateOfBirth = "1975-12-18"
+            )
+        )
 
         val result = CitizenDetailsStub.getCitizen("nino", "HW827856C")
 
@@ -87,8 +91,10 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with MongoDB wit
           "person",
           haveProperty[String]("firstName", be(user.firstName.get)) and haveProperty[String](
             "lastName",
-            be(user.lastName.get)) and haveProperty[String]("nino", be(user.nino.get.value)) and haveProperty[String](
-            "sex") and haveProperty[Boolean]("deceased")
+            be(user.lastName.get)
+          ) and haveProperty[String]("nino", be(user.nino.get.value)) and haveProperty[String]("sex") and haveProperty[
+            Boolean
+          ]("deceased")
         ) and haveProperty[JsObject](
           "address",
           haveProperty[String]("line1") and haveProperty[String]("postcode") and haveProperty[String]("country")
@@ -109,8 +115,10 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with MongoDB wit
           "person",
           haveProperty[String]("firstName", be(user.firstName.get)) and haveProperty[String](
             "lastName",
-            be(user.lastName.get)) and haveProperty[String]("nino", be(user.nino.get.value)) and haveProperty[String](
-            "sex") and haveProperty[Boolean]("deceased")
+            be(user.lastName.get)
+          ) and haveProperty[String]("nino", be(user.nino.get.value)) and haveProperty[String]("sex") and haveProperty[
+            Boolean
+          ]("deceased")
         ) and haveProperty[JsObject](
           "address",
           haveProperty[String]("line1") and haveProperty[String]("postcode") and haveProperty[String]("country")
@@ -131,9 +139,11 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with MongoDB wit
         result.json
           .as[JsObject] should (haveProperty[String]("etag") and haveProperty[String](
           "firstName",
-          be(user.firstName.get)) and haveProperty[String]("lastName", be(user.lastName.get)) and haveProperty[String](
+          be(user.firstName.get)
+        ) and haveProperty[String]("lastName", be(user.lastName.get)) and haveProperty[String](
           "nino",
-          be(user.nino.get.value)) and haveProperty[Boolean]("deceased"))
+          be(user.nino.get.value)
+        ) and haveProperty[Boolean]("deceased"))
       }
     }
   }

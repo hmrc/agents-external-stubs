@@ -29,10 +29,11 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class UsersController @Inject()(
+class UsersController @Inject() (
   usersService: UsersService,
   val authenticationService: AuthenticationService,
-  cc: ControllerComponents)(implicit ec: ExecutionContext)
+  cc: ControllerComponents
+)(implicit ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
   val userIdFromPool = "userIdFromPool"
@@ -55,13 +56,15 @@ class UsersController @Inject()(
     withCurrentSession { session =>
       usersService.findByUserId(userId, session.planetId).map {
         case Some(user) =>
-          Ok(RestfulResponse(
-            user,
-            Link("update", routes.UsersController.updateUser(userId).url),
-            Link("delete", routes.UsersController.deleteUser(userId).url),
-            Link("store", routes.UsersController.createUser().url),
-            Link("list", routes.UsersController.getUsers(None, None).url)
-          )(User.writes))
+          Ok(
+            RestfulResponse(
+              user,
+              Link("update", routes.UsersController.updateUser(userId).url),
+              Link("delete", routes.UsersController.deleteUser(userId).url),
+              Link("store", routes.UsersController.createUser().url),
+              Link("list", routes.UsersController.getUsers(None, None).url)
+            )(User.writes)
+          )
         case None => notFound("USER_NOT_FOUND", s"Could not found user $userId")
       }
     }(SessionRecordNotFound)
@@ -69,55 +72,59 @@ class UsersController @Inject()(
 
   def updateCurrentUser: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
-      withPayload[User](
-        updatedUser =>
-          usersService
-            .updateUser(session.userId, session.planetId, _ => updatedUser)
-            .map(theUser =>
-              Accepted(s"Current user ${theUser.userId} has been updated")
-                .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url))
-            .recover {
-              case DuplicateUserException(msg, _) => Conflict(msg)
-              case e: NotFoundException           => notFound("USER_NOT_FOUND", e.getMessage)
-          })
+      withPayload[User](updatedUser =>
+        usersService
+          .updateUser(session.userId, session.planetId, _ => updatedUser)
+          .map(theUser =>
+            Accepted(s"Current user ${theUser.userId} has been updated")
+              .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url)
+          )
+          .recover {
+            case DuplicateUserException(msg, _) => Conflict(msg)
+            case e: NotFoundException           => notFound("USER_NOT_FOUND", e.getMessage)
+          }
+      )
     }(SessionRecordNotFound)
   }
 
   def updateUser(userId: String): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
-      withPayload[User](updatedUser => {
+      withPayload[User] { updatedUser =>
         usersService
           .updateUser(userId, session.planetId, _ => updatedUser)
           .map(theUser =>
             Accepted(s"User ${theUser.userId} has been updated")
-              .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url))
+              .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url)
+          )
           .recover {
             case DuplicateUserException(msg, _) => Conflict(msg)
             case e: NotFoundException           => notFound("USER_NOT_FOUND", e.getMessage)
           }
-      })
+      }
     }(SessionRecordNotFound)
   }
 
   def createUser(): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
-      withPayload[User](
-        newUser =>
-          usersService
-            .createUser(
-              newUser.copy(
-                userId =
-                  if (newUser.userId == null)
-                    UserIdGenerator.nextUserIdFor(session.planetId, request.getQueryString(userIdFromPool).isDefined)
-                  else newUser.userId),
-              session.planetId
-            )
-            .map(theUser =>
-              Created(s"User ${theUser.userId} has been created.")
-                .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url))
-            .recover {
-              case DuplicateUserException(msg, _) => Conflict(msg)
-          })
+      withPayload[User](newUser =>
+        usersService
+          .createUser(
+            newUser.copy(
+              userId =
+                if (newUser.userId == null)
+                  UserIdGenerator.nextUserIdFor(session.planetId, request.getQueryString(userIdFromPool).isDefined)
+                else newUser.userId
+            ),
+            session.planetId
+          )
+          .map(theUser =>
+            Created(s"User ${theUser.userId} has been created.")
+              .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url)
+          )
+          .recover { case DuplicateUserException(msg, _) =>
+            Conflict(msg)
+          }
+      )
     }(SessionRecordNotFound)
   }
 
@@ -133,16 +140,17 @@ class UsersController @Inject()(
   def createApiPlatformTestUser(): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withMaybeCurrentSession { maybeSession =>
       val planetId = CurrentPlanetId(maybeSession, request)
-      withPayload[ApiPlatform.TestUser](
-        testUser =>
-          usersService
-            .createUser(ApiPlatform.TestUser.asUser(testUser), planetId)
-            .map(theUser =>
-              Created(s"API Platform test user ${theUser.userId} has been created on the planet $planetId")
-                .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url))
-            .recover {
-              case DuplicateUserException(msg, _) => Conflict(msg)
-          })
+      withPayload[ApiPlatform.TestUser](testUser =>
+        usersService
+          .createUser(ApiPlatform.TestUser.asUser(testUser), planetId)
+          .map(theUser =>
+            Created(s"API Platform test user ${theUser.userId} has been created on the planet $planetId")
+              .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(theUser.userId).url)
+          )
+          .recover { case DuplicateUserException(msg, _) =>
+            Conflict(msg)
+          }
+      )
     }
   }
 

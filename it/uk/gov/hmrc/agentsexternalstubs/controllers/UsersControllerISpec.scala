@@ -198,26 +198,26 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
         val utr = Generator.utr(userId)
         val nino = Generator.ninoNoSpaces(userId)
         val payload = Json.parse(s"""{
-                                    |   "userId": "$userId",
-                                    |   "userFullName": "API Test User",
-                                    |   "emailAddress": "user@api.gov.uk",
-                                    |   "affinityGroup": "Individual",
-                                    |   "saUtr": "$utr",
-                                    |   "nino": "$nino",
-                                    |   "individualDetails": {
-                                    |      "firstName": "Test",
-                                    |      "lastName": "User",
-                                    |      "dateOfBirth": "1972-12-23",
-                                    |      "address": {
-                                    |        "line1": "11 High Lane",
-                                    |        "line2": "Croydon",
-                                    |        "postcode": "CR12 3XZ"
-                                    |      }
-                                    |   },
-                                    |   "services": [
-                                    |      "self-assessment"
-                                    |   ]
-                                    |}
+          |   "userId": "$userId",
+          |   "userFullName": "API Test User",
+          |   "emailAddress": "user@api.gov.uk",
+          |   "affinityGroup": "Individual",
+          |   "saUtr": "$utr",
+          |   "nino": "$nino",
+          |   "individualDetails": {
+          |      "firstName": "Test",
+          |      "lastName": "User",
+          |      "dateOfBirth": "1972-12-23",
+          |      "address": {
+          |        "line1": "11 High Lane",
+          |        "line2": "Croydon",
+          |        "postcode": "CR12 3XZ"
+          |      }
+          |   },
+          |   "services": [
+          |      "self-assessment"
+          |   ]
+          |}
       """.stripMargin)
 
         val result = Users.createApiPlatformTestUser(payload)
@@ -241,28 +241,28 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
       val eori = Generator.eori(userId)
       val vrn = Generator.vrn(userId).value
       val payload = Json.parse(s"""{
-                                  |   "userId": "$userId",
-                                  |   "userFullName": "API Test User",
-                                  |   "emailAddress": "user@api.gov.uk",
-                                  |   "affinityGroup": "Organisation",
-                                  |   "ctUtr": "$utr",
-                                  |   "eoriNumber": "$eori",
-                                  |   "vrn": "$vrn",
-                                  |   "organisationDetails": {
-                                  |      "name": "Test Organisation User",
-                                  |      "address": {
-                                  |        "line1": "11 High Lane",
-                                  |        "line2": "Croydon",
-                                  |        "postcode": "CR12 3XZ"
-                                  |      }
-                                  |   },
-                                  |   "services": [
-                                  |      "corporation-tax",
-                                  |      "customs-services",
-                                  |      "mtd-vat",
-                                  |      "submit-vat-returns"
-                                  |   ]
-                                  |}
+        |   "userId": "$userId",
+        |   "userFullName": "API Test User",
+        |   "emailAddress": "user@api.gov.uk",
+        |   "affinityGroup": "Organisation",
+        |   "ctUtr": "$utr",
+        |   "eoriNumber": "$eori",
+        |   "vrn": "$vrn",
+        |   "organisationDetails": {
+        |      "name": "Test Organisation User",
+        |      "address": {
+        |        "line1": "11 High Lane",
+        |        "line2": "Croydon",
+        |        "postcode": "CR12 3XZ"
+        |      }
+        |   },
+        |   "services": [
+        |      "corporation-tax",
+        |      "customs-services",
+        |      "mtd-vat",
+        |      "submit-vat-returns"
+        |   ]
+        |}
       """.stripMargin)
 
       val result = Users.createApiPlatformTestUser(payload)
@@ -285,15 +285,15 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
       val userId = "apitestuser"
       val arn = Generator.arn(userId).value
       val payload = Json.parse(s"""{
-                                  |   "userId": "$userId",
-                                  |   "userFullName": "API Test User",
-                                  |   "emailAddress": "user@api.gov.uk",
-                                  |   "affinityGroup": "Agent",
-                                  |   "arn": "$arn",
-                                  |   "services": [
-                                  |      "agent-services"
-                                  |   ]
-                                  |}
+        |   "userId": "$userId",
+        |   "userFullName": "API Test User",
+        |   "emailAddress": "user@api.gov.uk",
+        |   "affinityGroup": "Agent",
+        |   "arn": "$arn",
+        |   "services": [
+        |      "agent-services"
+        |   ]
+        |}
       """.stripMargin)
 
       {

@@ -39,13 +39,17 @@ trait RecordsRepository {
 
   def store[T <: Record](entity: T, planetId: String)(implicit reads: Reads[T], ec: ExecutionContext): Future[String]
 
-  def cursor[T <: Record](
-    key: String,
-    planetId: String)(implicit reads: Reads[T], ec: ExecutionContext, recordType: RecordMetaData[T]): Cursor[T]
+  def cursor[T <: Record](key: String, planetId: String)(implicit
+    reads: Reads[T],
+    ec: ExecutionContext,
+    recordType: RecordMetaData[T]
+  ): Cursor[T]
 
-  def cursor[T <: Record](
-    keys: Seq[String],
-    planetId: String)(implicit reads: Reads[T], ec: ExecutionContext, recordType: RecordMetaData[T]): Cursor[T]
+  def cursor[T <: Record](keys: Seq[String], planetId: String)(implicit
+    reads: Reads[T],
+    ec: ExecutionContext,
+    recordType: RecordMetaData[T]
+  ): Cursor[T]
 
   def findById[T <: Record](id: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[T]]
 
@@ -59,13 +63,13 @@ trait RecordsRepository {
 }
 
 @Singleton
-class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
+class RecordsRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
     extends ReactiveRepository[Record, BSONObjectID](
       "records",
       mongoComponent.mongoConnector.db,
       Record.formats,
-      ReactiveMongoFormats.objectIdFormats) with StrictlyEnsureIndexes[Record, BSONObjectID] with RecordsRepository
-    with DeleteAll[Record] {
+      ReactiveMongoFormats.objectIdFormats
+    ) with StrictlyEnsureIndexes[Record, BSONObjectID] with RecordsRepository with DeleteAll[Record] {
 
   final val PLANET_ID = "_planetId"
   final val UNIQUE_KEY = "_uniqueKey"
@@ -76,13 +80,14 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
 
   override def indexes =
     Seq(
-      Index(Seq(KEYS       -> Ascending), Some("Keys")),
+      Index(Seq(KEYS -> Ascending), Some("Keys")),
       Index(Seq(UNIQUE_KEY -> Ascending), Some("UniqueKey"), unique = true, sparse = true)
     )
 
-  override def store[T <: Record](entity: T, planetId: String)(
-    implicit reads: Reads[T],
-    ec: ExecutionContext): Future[String] = {
+  override def store[T <: Record](entity: T, planetId: String)(implicit
+    reads: Reads[T],
+    ec: ExecutionContext
+  ): Future[String] = {
     val typeName = Record.typeOf(entity)
     val json = Json
       .toJson[Record](entity)
@@ -94,7 +99,9 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
           entity.uniqueKey
             .map(key => entity.lookupKeys :+ key)
             .getOrElse(entity.lookupKeys)
-            .map(key => JsString(keyOf(key, planetId, typeName)))))
+            .map(key => JsString(keyOf(key, planetId, typeName)))
+        )
+      )
       .|> { obj =>
         entity.uniqueKey
           .map(uniqueKey => obj.+(UNIQUE_KEY -> JsString(keyOf(uniqueKey, planetId, typeName))))
@@ -105,22 +112,27 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
       case (None, None) =>
         val newId = BSONObjectID.generate().stringify
         collection
-          .insert(json + (Record.ID -> Json.obj("$oid" -> JsString(newId))) + (UPDATED -> JsNumber(
-            System.currentTimeMillis())))
+          .insert(
+            json + (Record.ID -> Json.obj("$oid" -> JsString(newId))) + (UPDATED -> JsNumber(
+              System.currentTimeMillis()
+            ))
+          )
           .map((_, newId))
       case (Some(id), _) =>
         collection
           .update(
             Json.obj(Record.ID -> Json.obj("$oid" -> JsString(id))),
             json + (UPDATED -> JsNumber(System.currentTimeMillis())),
-            upsert = true)
+            upsert = true
+          )
           .map((_, id))
       case (None, Some(uniqueKey)) =>
         collection
           .find(Json.obj(UNIQUE_KEY -> JsString(keyOf(uniqueKey, planetId, typeName))))
           .one[JsObject]
           .map(recordOpt =>
-            recordOpt.flatMap(r => (r \ "_id" \ "$oid").asOpt[String]).getOrElse(BSONObjectID.generate().stringify))
+            recordOpt.flatMap(r => (r \ "_id" \ "$oid").asOpt[String]).getOrElse(BSONObjectID.generate().stringify)
+          )
           .flatMap(recordId =>
             collection
               .update(
@@ -130,14 +142,17 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
                   .+(UPDATED -> JsNumber(System.currentTimeMillis())),
                 upsert = true
               )
-              .map((_, recordId)))
+              .map((_, recordId))
+          )
     }).flatMap(MongoHelper.interpretWriteResult)
 
   }
 
-  override def cursor[T <: Record](
-    key: String,
-    planetId: String)(implicit reads: Reads[T], ec: ExecutionContext, recordType: RecordMetaData[T]): Cursor[T] =
+  override def cursor[T <: Record](key: String, planetId: String)(implicit
+    reads: Reads[T],
+    ec: ExecutionContext,
+    recordType: RecordMetaData[T]
+  ): Cursor[T] =
     collection
       .find(
         JsObject(Seq(KEYS -> JsString(keyOf(key, planetId, recordType.typeName)))),
@@ -145,20 +160,29 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
       )
       .cursor[T](ReadPreference.primary)(
         implicitly[collection.pack.Reader[Record]].map(_.asInstanceOf[T]),
-        implicitly[CursorProducer[T]])
+        implicitly[CursorProducer[T]]
+      )
 
-  override def cursor[T <: Record](
-    keys: Seq[String],
-    planetId: String)(implicit reads: Reads[T], ec: ExecutionContext, recordType: RecordMetaData[T]): Cursor[T] =
+  override def cursor[T <: Record](keys: Seq[String], planetId: String)(implicit
+    reads: Reads[T],
+    ec: ExecutionContext,
+    recordType: RecordMetaData[T]
+  ): Cursor[T] =
     collection
       .find(
-        JsObject(Seq(KEYS -> JsObject(Seq("$in" -> JsArray(keys.map(key =>
-          JsString(keyOf(key, planetId, recordType.typeName)))))))),
+        JsObject(
+          Seq(
+            KEYS -> JsObject(
+              Seq("$in" -> JsArray(keys.map(key => JsString(keyOf(key, planetId, recordType.typeName)))))
+            )
+          )
+        ),
         Some(Json.obj(recordType.fieldNames.map(option => option -> toJsFieldJsValueWrapper(JsNumber(1))): _*))
       )
       .cursor[T](ReadPreference.primary)(
         implicitly[collection.pack.Reader[Record]].map(_.asInstanceOf[T]),
-        implicitly[CursorProducer[T]])
+        implicitly[CursorProducer[T]]
+      )
 
   override def findById[T <: Record](id: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[T]] =
     collection
@@ -168,7 +192,8 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
       )
       .cursor[T](ReadPreference.primary)(
         implicitly[collection.pack.Reader[Record]].map(_.asInstanceOf[T]),
-        implicitly[CursorProducer[T]])
+        implicitly[CursorProducer[T]]
+      )
       .headOption
 
   override def findByPlanetId(planetId: String)(implicit ec: ExecutionContext): Cursor[Record] =
@@ -179,7 +204,8 @@ class RecordsRepositoryMongo @Inject()(mongoComponent: ReactiveMongoComponent)
       )
       .cursor[Record](ReadPreference.primary)(
         implicitly[collection.pack.Reader[Record]],
-        implicitly[CursorProducer[Record]])
+        implicitly[CursorProducer[Record]]
+      )
 
   override def remove(id: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     this

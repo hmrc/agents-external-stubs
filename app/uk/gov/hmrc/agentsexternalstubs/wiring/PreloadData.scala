@@ -23,15 +23,15 @@ import uk.gov.hmrc.agentsexternalstubs.models.{BusinessDetailsRecord, BusinessPa
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class PreloadData @Inject()(appConfig: AppConfig)(implicit ec: ExecutionContext) {
+class PreloadData @Inject() (appConfig: AppConfig)(implicit ec: ExecutionContext) {
 
   if (appConfig.preloadRecordsForDefaultUserIds) {
     Logger(getClass).info("Pre-loading records for default user ids")
-    UserIdGenerator.defaultUserIds.map(_.foreach(userId => {
+    UserIdGenerator.defaultUserIds.map(_.foreach { userId =>
       VatCustomerInformationRecord.generate(userId)
       BusinessDetailsRecord.generate(userId)
       BusinessPartnerRecord.generate(userId)
-    }))
+    })
 
   }
 

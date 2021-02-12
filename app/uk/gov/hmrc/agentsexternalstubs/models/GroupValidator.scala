@@ -52,9 +52,11 @@ object GroupValidator {
     else Invalid("Organisation MUST be an Admin in the group")
 
   val agentMayNotBeInTheGroupWithOrganisationAndIndividuals: GroupConstraint = users =>
-    if (users.isEmpty || (users.filter(_.affinityGroup.isDefined).partition(_.isAgent) match {
-          case (a, na) => a.isEmpty || na.isEmpty
-        })) Valid(())
+    if (
+      users.isEmpty || (users.filter(_.affinityGroup.isDefined).partition(_.isAgent) match {
+        case (a, na) => a.isEmpty || na.isEmpty
+      })
+    ) Valid(())
     else Invalid("Agents MAY NOT be in the group with Organisation and Individuals")
 
   val allAgentsInTheGroupMustShareTheSameAgentCode: GroupConstraint = users =>

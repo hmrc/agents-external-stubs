@@ -20,11 +20,13 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         Users.update(
           UserGenerator
             .individual(userId = "foo1")
-            .withPrincipalEnrolment("IR-SA", "UTR", "12345678"))
+            .withPrincipalEnrolment("IR-SA", "UTR", "12345678")
+        )
         Users.create(
           UserGenerator
             .agent(userId = "foo2")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345678"))
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
+        )
 
         val result = EnrolmentStoreProxyStub.getUserIds("IR-SA~UTR~12345678", "principal")
 
@@ -39,15 +41,18 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         Users.update(
           UserGenerator
             .individual(userId = "foo1")
-            .withPrincipalEnrolment("IR-SA", "UTR", "12345678"))
+            .withPrincipalEnrolment("IR-SA", "UTR", "12345678")
+        )
         Users.create(
           UserGenerator
             .agent(userId = "foo2")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345678"))
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
+        )
         Users.create(
           UserGenerator
             .agent(userId = "foo3")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345678"))
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
+        )
 
         val result = EnrolmentStoreProxyStub.getUserIds("IR-SA~UTR~12345678", "delegated")
 
@@ -62,15 +67,18 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         Users.update(
           UserGenerator
             .individual(userId = "foo1")
-            .withPrincipalEnrolment("IR-SA", "UTR", "12345678"))
+            .withPrincipalEnrolment("IR-SA", "UTR", "12345678")
+        )
         Users.create(
           UserGenerator
             .agent(userId = "foo2")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345678"))
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
+        )
         Users.create(
           UserGenerator
             .agent(userId = "foo3")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345678"))
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
+        )
 
         val result = EnrolmentStoreProxyStub.getUserIds("IR-SA~UTR~12345678", "all")
 
@@ -85,15 +93,18 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         Users.update(
           UserGenerator
             .individual(userId = "foo1")
-            .withPrincipalEnrolment("IR-SA", "UTR", "12345678"))
+            .withPrincipalEnrolment("IR-SA", "UTR", "12345678")
+        )
         Users.create(
           UserGenerator
             .agent(userId = "foo2")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345678"))
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
+        )
         Users.create(
           UserGenerator
             .agent(userId = "foo3")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345678"))
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
+        )
 
         val result = EnrolmentStoreProxyStub.getUserIds("IR-SA~UTR~87654321", "all")
 
@@ -115,11 +126,13 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         Users.update(
           UserGenerator
             .individual(userId = "foo1", groupId = "group1")
-            .withPrincipalEnrolment("IR-SA", "UTR", "12345678"))
+            .withPrincipalEnrolment("IR-SA", "UTR", "12345678")
+        )
         Users.create(
           UserGenerator
             .agent(userId = "foo2", groupId = "group2")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345678"))
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
+        )
 
         val result = EnrolmentStoreProxyStub.getGroupIds("IR-SA~UTR~12345678", "principal")
 
@@ -134,11 +147,13 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         Users.update(
           UserGenerator
             .individual(userId = "foo1", groupId = "group1")
-            .withPrincipalEnrolment("IR-SA", "UTR", "12345678"))
+            .withPrincipalEnrolment("IR-SA", "UTR", "12345678")
+        )
         Users.create(
           UserGenerator
             .agent(userId = "foo2", groupId = "group2")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345678"))
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
+        )
 
         val result = EnrolmentStoreProxyStub.getGroupIds("IR-SA~UTR~12345678", "delegated")
 
@@ -153,25 +168,30 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         Users.update(
           UserGenerator
             .individual(userId = "foo1", groupId = "group1")
-            .withPrincipalEnrolment("IR-SA", "UTR", "12345678"))
+            .withPrincipalEnrolment("IR-SA", "UTR", "12345678")
+        )
         Users.create(
           UserGenerator
             .individual(userId = "foo2", groupId = "group1")
-            .withPrincipalEnrolment("IR-SA", "UTR", "87654321"))
+            .withPrincipalEnrolment("IR-SA", "UTR", "87654321")
+        )
         Users.create(
           UserGenerator
             .agent(userId = "foo3", groupId = "group2")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345678"))
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
+        )
         Users.create(
           UserGenerator
             .agent(userId = "foo4", groupId = "group2")
-            .withDelegatedEnrolment("IR-SA", "UTR", "87654321"))
+            .withDelegatedEnrolment("IR-SA", "UTR", "87654321")
+        )
 
         val otherSession: AuthenticatedSession = SignIn.signInAndGetSession("foo5")
         Users.update(
           UserGenerator
             .individual(userId = "foo3", groupId = "group1")
-            .withPrincipalEnrolment("IR-SA", "UTR", "12345678"))(otherSession)
+            .withPrincipalEnrolment("IR-SA", "UTR", "12345678")
+        )(otherSession)
 
         val result = EnrolmentStoreProxyStub.getGroupIds("IR-SA~UTR~12345678", "all")
 
@@ -199,27 +219,28 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
               .generate("IR-SA~UTR~12345678", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts")))
+              .getOrElse(throw new Exception("Could not generate known facts"))
+          )
         Users.update(UserGenerator.individual(userId = "00000000123166122235", groupId = "group1"))
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
           "group1",
           "IR-SA~UTR~12345678",
           Json.parse("""{
-                       |    "userId" : "00000000123166122235",
-                       |    "friendlyName": "My Self Assessment",
-                       |    "type":         "principal",
-                       |    "verifiers": [
-                       |       {
-                       |          "key": "Postcode",
-                       |          "value": "aa11aa"
-                       |       },
-                       |       {
-                       |          "key": "NINO",
-                       |          "value": "aa123456a"
-                       |       }
-                       |    ]
-                       |}""".stripMargin)
+            |    "userId" : "00000000123166122235",
+            |    "friendlyName": "My Self Assessment",
+            |    "type":         "principal",
+            |    "verifiers": [
+            |       {
+            |          "key": "Postcode",
+            |          "value": "aa11aa"
+            |       },
+            |       {
+            |          "key": "NINO",
+            |          "value": "aa123456a"
+            |       }
+            |    ]
+            |}""".stripMargin)
         )
 
         result should haveStatus(201)
@@ -237,9 +258,9 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
           "group1",
           "IR-SA~UTR~12345678",
           Json.parse("""{
-                       |    "userId" : "foo",
-                       |    "type" :         "delegated"
-                       |}""".stripMargin)
+            |    "userId" : "foo",
+            |    "type" :         "delegated"
+            |}""".stripMargin)
         )
 
         result should haveStatus(201)
@@ -256,15 +277,16 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
               .generate("IR-SA~UTR~12345678", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts")))
+              .getOrElse(throw new Exception("Could not generate known facts"))
+          )
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
           "group1",
           "IR-SA~UTR~12345678",
           Json.parse("""{
-                       |    "userId" : "foo",
-                       |    "type" :         "delegated"
-                       |}""".stripMargin)
+            |    "userId" : "foo",
+            |    "type" :         "delegated"
+            |}""".stripMargin)
         )
 
         result should haveStatus(400)
@@ -282,15 +304,16 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
               .generate("IR-SA~UTR~12345678", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts")))
+              .getOrElse(throw new Exception("Could not generate known facts"))
+          )
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
           "group2",
           "IR-SA~UTR~12345678",
           Json.parse("""{
-                       |    "userId" : "foo",
-                       |    "type" :         "delegated"
-                       |}""".stripMargin),
+            |    "userId" : "foo",
+            |    "type" :         "delegated"
+            |}""".stripMargin),
           `legacy-agentCode` = Some("ABC123")
         )
 
@@ -308,15 +331,16 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
               .generate("IR-SA~UTR~12345678", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts")))
+              .getOrElse(throw new Exception("Could not generate known facts"))
+          )
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
           "group1",
           "IR-SA~UTR~12345678",
           Json.parse("""{
-                       |    "userId" : "foo",
-                       |    "type" :         "delegated"
-                       |}""".stripMargin),
+            |    "userId" : "foo",
+            |    "type" :         "delegated"
+            |}""".stripMargin),
           `legacy-agentCode` = Some("ABC123")
         )
 
@@ -331,15 +355,16 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
               .generate("IR-SA~UTR~12345678", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts")))
+              .getOrElse(throw new Exception("Could not generate known facts"))
+          )
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
           "group2",
           "IR-SA~UTR~12345678",
           Json.parse("""{
-                       |    "userId" : "foo",
-                       |    "type":         "principal"
-                       |}""".stripMargin)
+            |    "userId" : "foo",
+            |    "type":         "principal"
+            |}""".stripMargin)
         )
 
         result should haveStatus(400)
@@ -353,15 +378,16 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
               .generate("IR-SA~UTR~12345678", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts")))
+              .getOrElse(throw new Exception("Could not generate known facts"))
+          )
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
           "group1",
           "IR-SA~UTR~12345678",
           Json.parse("""{
-                       |    "userId" : "foo1",
-                       |    "type":         "principal"
-                       |}""".stripMargin)
+            |    "userId" : "foo1",
+            |    "type":         "principal"
+            |}""".stripMargin)
         )
 
         result should haveStatus(400)
@@ -375,9 +401,9 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
           "group1",
           "IR-SA~UTR~12345678",
           Json.parse("""{
-                       |    "userId" : "foo1",
-                       |    "type":         "principal"
-                       |}""".stripMargin)
+            |    "userId" : "foo1",
+            |    "type":         "principal"
+            |}""".stripMargin)
         )
 
         result should haveStatus(404)
@@ -391,9 +417,9 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
           "00000000123166122235",
           "IR-SA~UTR~",
           Json.parse("""{
-                       |    "userId" : "foo1",
-                       |    "type":         "principal"
-                       |}""".stripMargin)
+            |    "userId" : "foo1",
+            |    "type":         "principal"
+            |}""".stripMargin)
         )
 
         result should haveStatus(400)
@@ -406,7 +432,8 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         Users.update(
           UserGenerator
             .individual(userId = "foo1", groupId = "group1")
-            .withPrincipalEnrolment("IR-SA", "UTR", "12345678"))
+            .withPrincipalEnrolment("IR-SA", "UTR", "12345678")
+        )
 
         val result = EnrolmentStoreProxyStub.deallocateEnrolmentFromGroup("group1", "IR-SA~UTR~12345678")
 
@@ -421,7 +448,8 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         Users.update(
           UserGenerator
             .agent(userId = "foo1", groupId = "group1")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345678"))
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
+        )
 
         val result = EnrolmentStoreProxyStub.deallocateEnrolmentFromGroup("group1", "IR-SA~UTR~12345678")
 
@@ -436,7 +464,8 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         Users.update(
           UserGenerator
             .agent(userId = "foo1", groupId = "group1", agentCode = "ABCDEF")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345678"))
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
+        )
 
         val result = EnrolmentStoreProxyStub
           .deallocateEnrolmentFromGroup("group2", "IR-SA~UTR~12345678", `legacy-agentCode` = Some("ABCDEF"))
@@ -452,7 +481,8 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         Users.update(
           UserGenerator
             .agent(userId = "foo1", groupId = "group1", agentCode = "ABCDEF")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345678"))
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
+        )
 
         val result = EnrolmentStoreProxyStub
           .deallocateEnrolmentFromGroup("group2", "IR-SA~UTR~12345678")
@@ -468,7 +498,8 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         Users.update(
           UserGenerator
             .agent(userId = "foo1", groupId = "group1", agentCode = "ABCDEF")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345678"))
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
+        )
 
         val result = EnrolmentStoreProxyStub
           .deallocateEnrolmentFromGroup("group2", "IR-SA~UTR~12345678", `legacy-agentCode` = Some("FFFFFFF"))
@@ -486,29 +517,29 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         val result = EnrolmentStoreProxyStub.setKnownFacts(
           enrolmentKey = "IR-SA~UTR~12345678",
           payload = Json.parse("""{
-                                 |  "verifiers": [
-                                 |    {
-                                 |      "key": "Postcode",
-                                 |      "value": "TF2 6NU"
-                                 |    },
-                                 |    {
-                                 |      "key": "NINO",
-                                 |      "value": "AB123456X"
-                                 |    }
-                                 |  ],
-                                 |  "legacy": {
-                                 |    "previousVerifiers": [
-                                 |      {
-                                 |        "key": "Postcode",
-                                 |        "value": "TF2 6NU"
-                                 |      },
-                                 |      {
-                                 |        "key": "NINO",
-                                 |        "value": "AB123456X"
-                                 |      }
-                                 |    ]
-                                 |  }
-                                 |}
+            |  "verifiers": [
+            |    {
+            |      "key": "Postcode",
+            |      "value": "TF2 6NU"
+            |    },
+            |    {
+            |      "key": "NINO",
+            |      "value": "AB123456X"
+            |    }
+            |  ],
+            |  "legacy": {
+            |    "previousVerifiers": [
+            |      {
+            |        "key": "Postcode",
+            |        "value": "TF2 6NU"
+            |      },
+            |      {
+            |        "key": "NINO",
+            |        "value": "AB123456X"
+            |      }
+            |    ]
+            |  }
+            |}
           """.stripMargin)
         )
 
@@ -522,17 +553,17 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         EnrolmentStoreProxyStub.setKnownFacts(
           enrolmentKey = "IR-SA~UTR~12345678",
           payload = Json.parse("""{
-                                 |  "verifiers": [
-                                 |    {
-                                 |      "key": "Postcode",
-                                 |      "value": "TF2 6NU"
-                                 |    },
-                                 |    {
-                                 |      "key": "NINO",
-                                 |      "value": "AB123456X"
-                                 |    }
-                                 |  ]
-                                 |}
+            |  "verifiers": [
+            |    {
+            |      "key": "Postcode",
+            |      "value": "TF2 6NU"
+            |    },
+            |    {
+            |      "key": "NINO",
+            |      "value": "AB123456X"
+            |    }
+            |  ]
+            |}
                                """.stripMargin)
         )
 
@@ -565,21 +596,27 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         Users.update(
           UserGenerator
             .individual(userId = session.userId)
-            .withPrincipalEnrolment("IR-SA", "UTR", "12345678"))
+            .withPrincipalEnrolment("IR-SA", "UTR", "12345678")
+        )
 
         val result = EnrolmentStoreProxyStub.getUserEnrolments(session.userId)
 
         result should haveStatus(200)
-        result should haveValidJsonBody(haveProperty[Int]("startRecord", be(1)) and haveProperty[Int](
-          "totalRecords",
-          be(1)) and havePropertyArrayOf[JsObject](
-          "enrolments",
-          haveProperty[String]("service", be("IR-SA")) and haveProperty[String]("state") and havePropertyArrayOf[
-            JsObject](
-            "identifiers",
-            haveProperty[String]("key", oneOfValues("UTR", "Postcode", "NINO", "IsVIP", "DAT")) and haveProperty[
-              String]("value"))
-        ))
+        result should haveValidJsonBody(
+          haveProperty[Int]("startRecord", be(1)) and haveProperty[Int]("totalRecords", be(1)) and havePropertyArrayOf[
+            JsObject
+          ](
+            "enrolments",
+            haveProperty[String]("service", be("IR-SA")) and haveProperty[String]("state") and havePropertyArrayOf[
+              JsObject
+            ](
+              "identifiers",
+              haveProperty[String]("key", oneOfValues("UTR", "Postcode", "NINO", "IsVIP", "DAT")) and haveProperty[
+                String
+              ]("value")
+            )
+          )
+        )
       }
 
       "return 204 with an empty list of delegated enrolments" in {
@@ -597,22 +634,28 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
           UserGenerator
             .agent(userId = session.userId, agentCode = "ABCDEF")
             .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345670"))
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345670")
+        )
 
         val result = EnrolmentStoreProxyStub.getUserEnrolments(session.userId, `type` = "delegated")
 
         result should haveStatus(200)
-        result should haveValidJsonBody(haveProperty[Int]("startRecord", be(1)) and haveProperty[Int](
-          "totalRecords",
-          be(2)) and havePropertyArrayOf[JsObject](
-          "enrolments",
-          haveProperty[String]("service", be("IR-SA")) and haveProperty[String]("state") and havePropertyArrayOf[
-            JsObject](
-            "identifiers",
-            haveProperty[String]("key", be("UTR")) and haveProperty[String](
-              "value",
-              oneOfValues("12345678", "12345670")))
-        ))
+        result should haveValidJsonBody(
+          haveProperty[Int]("startRecord", be(1)) and haveProperty[Int]("totalRecords", be(2)) and havePropertyArrayOf[
+            JsObject
+          ](
+            "enrolments",
+            haveProperty[String]("service", be("IR-SA")) and haveProperty[String]("state") and havePropertyArrayOf[
+              JsObject
+            ](
+              "identifiers",
+              haveProperty[String]("key", be("UTR")) and haveProperty[String](
+                "value",
+                oneOfValues("12345678", "12345670")
+              )
+            )
+          )
+        )
       }
 
       "return 200 with a paginated list of delegated enrolments" in {
@@ -649,31 +692,35 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
           .getUserEnrolments(session.userId, `type` = "delegated", `start-record` = Some(3), `max-records` = Some(12))
 
         result should haveStatus(200)
-        result should haveValidJsonBody(haveProperty[Int]("startRecord", be(3)) and haveProperty[Int](
-          "totalRecords",
-          be(12)) and havePropertyArrayOf[JsObject](
-          "enrolments",
-          haveProperty[String]("service", be("IR-SA")) and haveProperty[String]("state") and havePropertyArrayOf[
-            JsObject](
-            "identifiers",
-            haveProperty[String]("key", be("UTR")) and haveProperty[String](
-              "value",
-              oneOfValues(
-                "12345672",
-                "12345673",
-                "12345674",
-                "12345675",
-                "12345676",
-                "12345677",
-                "12345678",
-                "12345679",
-                "12345680",
-                "12345681",
-                "12345682",
-                "12345683")
+        result should haveValidJsonBody(
+          haveProperty[Int]("startRecord", be(3)) and haveProperty[Int]("totalRecords", be(12)) and havePropertyArrayOf[
+            JsObject
+          ](
+            "enrolments",
+            haveProperty[String]("service", be("IR-SA")) and haveProperty[String]("state") and havePropertyArrayOf[
+              JsObject
+            ](
+              "identifiers",
+              haveProperty[String]("key", be("UTR")) and haveProperty[String](
+                "value",
+                oneOfValues(
+                  "12345672",
+                  "12345673",
+                  "12345674",
+                  "12345675",
+                  "12345676",
+                  "12345677",
+                  "12345678",
+                  "12345679",
+                  "12345680",
+                  "12345681",
+                  "12345682",
+                  "12345683"
+                )
+              )
             )
           )
-        ))
+        )
       }
 
       "return 404 if userId not found" in {
@@ -722,7 +769,8 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         Users.update(
           UserGenerator
-            .individual(userId = session.userId, groupId = "group1"))
+            .individual(userId = session.userId, groupId = "group1")
+        )
 
         val result = EnrolmentStoreProxyStub.getGroupEnrolments("group1")
 
@@ -735,21 +783,27 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         Users.update(
           UserGenerator
             .individual(userId = session.userId, groupId = "group1")
-            .withPrincipalEnrolment("IR-SA", "UTR", "12345678"))
+            .withPrincipalEnrolment("IR-SA", "UTR", "12345678")
+        )
 
         val result = EnrolmentStoreProxyStub.getGroupEnrolments("group1")
 
         result should haveStatus(200)
-        result should haveValidJsonBody(haveProperty[Int]("startRecord", be(1)) and haveProperty[Int](
-          "totalRecords",
-          be(1)) and havePropertyArrayOf[JsObject](
-          "enrolments",
-          haveProperty[String]("service", be("IR-SA")) and haveProperty[String]("state") and havePropertyArrayOf[
-            JsObject](
-            "identifiers",
-            haveProperty[String]("key", oneOfValues("UTR", "Postcode", "NINO", "IsVIP", "DAT")) and haveProperty[
-              String]("value"))
-        ))
+        result should haveValidJsonBody(
+          haveProperty[Int]("startRecord", be(1)) and haveProperty[Int]("totalRecords", be(1)) and havePropertyArrayOf[
+            JsObject
+          ](
+            "enrolments",
+            haveProperty[String]("service", be("IR-SA")) and haveProperty[String]("state") and havePropertyArrayOf[
+              JsObject
+            ](
+              "identifiers",
+              haveProperty[String]("key", oneOfValues("UTR", "Postcode", "NINO", "IsVIP", "DAT")) and haveProperty[
+                String
+              ]("value")
+            )
+          )
+        )
       }
 
       "return 204 with an empty list of delegated enrolments" in {
@@ -757,7 +811,8 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
 
         Users.update(
           UserGenerator
-            .individual(userId = session.userId, groupId = "group1"))
+            .individual(userId = session.userId, groupId = "group1")
+        )
 
         val result = EnrolmentStoreProxyStub.getGroupEnrolments("group1", `type` = "delegated")
 
@@ -771,22 +826,28 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
           UserGenerator
             .agent(userId = session.userId, groupId = "group1", agentCode = "ABCDEF")
             .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345670"))
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345670")
+        )
 
         val result = EnrolmentStoreProxyStub.getGroupEnrolments("group1", `type` = "delegated")
 
         result should haveStatus(200)
-        result should haveValidJsonBody(haveProperty[Int]("startRecord", be(1)) and haveProperty[Int](
-          "totalRecords",
-          be(2)) and havePropertyArrayOf[JsObject](
-          "enrolments",
-          haveProperty[String]("service", be("IR-SA")) and haveProperty[String]("state") and havePropertyArrayOf[
-            JsObject](
-            "identifiers",
-            haveProperty[String]("key", be("UTR")) and haveProperty[String](
-              "value",
-              oneOfValues("12345678", "12345670")))
-        ))
+        result should haveValidJsonBody(
+          haveProperty[Int]("startRecord", be(1)) and haveProperty[Int]("totalRecords", be(2)) and havePropertyArrayOf[
+            JsObject
+          ](
+            "enrolments",
+            haveProperty[String]("service", be("IR-SA")) and haveProperty[String]("state") and havePropertyArrayOf[
+              JsObject
+            ](
+              "identifiers",
+              haveProperty[String]("key", be("UTR")) and haveProperty[String](
+                "value",
+                oneOfValues("12345678", "12345670")
+              )
+            )
+          )
+        )
       }
 
       "return 200 with a paginated list of delegated enrolments" in {
@@ -823,31 +884,35 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
           .getGroupEnrolments("group1", `type` = "delegated", `start-record` = Some(3), `max-records` = Some(12))
 
         result should haveStatus(200)
-        result should haveValidJsonBody(haveProperty[Int]("startRecord", be(3)) and haveProperty[Int](
-          "totalRecords",
-          be(12)) and havePropertyArrayOf[JsObject](
-          "enrolments",
-          haveProperty[String]("service", be("IR-SA")) and haveProperty[String]("state") and havePropertyArrayOf[
-            JsObject](
-            "identifiers",
-            haveProperty[String]("key", be("UTR")) and haveProperty[String](
-              "value",
-              oneOfValues(
-                "12345672",
-                "12345673",
-                "12345674",
-                "12345675",
-                "12345676",
-                "12345677",
-                "12345678",
-                "12345679",
-                "12345680",
-                "12345681",
-                "12345682",
-                "12345683")
+        result should haveValidJsonBody(
+          haveProperty[Int]("startRecord", be(3)) and haveProperty[Int]("totalRecords", be(12)) and havePropertyArrayOf[
+            JsObject
+          ](
+            "enrolments",
+            haveProperty[String]("service", be("IR-SA")) and haveProperty[String]("state") and havePropertyArrayOf[
+              JsObject
+            ](
+              "identifiers",
+              haveProperty[String]("key", be("UTR")) and haveProperty[String](
+                "value",
+                oneOfValues(
+                  "12345672",
+                  "12345673",
+                  "12345674",
+                  "12345675",
+                  "12345676",
+                  "12345677",
+                  "12345678",
+                  "12345679",
+                  "12345680",
+                  "12345681",
+                  "12345682",
+                  "12345683"
+                )
+              )
             )
           )
-        ))
+        )
       }
 
       "return 404 if groupId not found" in {
