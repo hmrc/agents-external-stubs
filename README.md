@@ -7,7 +7,9 @@ It replaces gg-stubs and agents-stubs together with auth, company-auth-frontend,
 
 You will have to run [UI stubs](https://github.com/hmrc/agents-external-stubs-frontend) as well in order to be able to sign-in seamlessly into your application.
 
-This app SHOULD NOT be run on QA nor Production environment.
+Support channel: `#event-agents-external-stubs`
+
+This service SHOULD NOT be run on PRODUCTION environment.
 
 ## Principles
 
@@ -105,7 +107,7 @@ Endpoint | Description
 Feature | What's implemented
 -----------|-------------------------- 
 predicates | `enrolment`, `authProviders`, `affinityGroup`, `confidenceLevel`, `credentialStrength`, `nino`, `credentialRole`, `$or`
-retrievals | `authProviderId`, `credentials`, `optionalCredentials`, `authorisedEnrolments`, `allEnrolments`,`affinityGroup`,`confidenceLevel`,`credentialStrength`, `credentialRole`, `nino`, `groupIdentifier`, `name`, `optionalName`, `dateOfBirth`, `agentCode`, `agentInformation`
+retrievals | `authProviderId`, `credentials`, `optionalCredentials`, `authorisedEnrolments`, `allEnrolments`,`affinityGroup`,`confidenceLevel`,`credentialStrength`, `credentialRole`, `nino`, `groupIdentifier`, `name`, `optionalName`, `dateOfBirth`, `agentCode`, `agentInformation`, `email`
 
 ### [User Details](https://github.com/hmrc/user-details) <a name="stubbed_api_user_details"></a>
 
