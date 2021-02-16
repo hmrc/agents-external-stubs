@@ -38,7 +38,8 @@ case class AuthoriseResponse(
   optionalName: Option[Name] = None,
   dateOfBirth: Option[LocalDate] = None,
   agentCode: Option[String] = None,
-  agentInformation: Option[AgentInformation] = None
+  agentInformation: Option[AgentInformation] = None,
+  email: Option[String] = None
 )
 
 object AuthoriseResponse {
@@ -74,7 +75,8 @@ object Retrieve {
       OptionalNameRetrieve,
       DateOfBirthRetrieve,
       AgentCodeRetrieve,
-      AgentInformationRetrieve
+      AgentInformationRetrieve,
+      EmailRetrieve
     )
 
   def of(key: String): Retrieve =
@@ -279,4 +281,12 @@ case object AgentInformationRetrieve extends Retrieve {
         context.agentCode.map(ac => AgentInformation(Some(ac), context.agentFriendlyName, context.agentId))
       )
     )
+}
+
+case object EmailRetrieve extends Retrieve {
+  val key = "email"
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(implicit
+    ec: ExecutionContext
+  ): MaybeResponse =
+    Right(response.copy(email = context.email))
 }

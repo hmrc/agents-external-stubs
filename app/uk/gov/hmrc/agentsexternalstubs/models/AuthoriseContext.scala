@@ -45,6 +45,7 @@ trait AuthoriseContext {
   def agentFriendlyName: Option[String]
   def agentId: Option[String]
   def planetId: Option[String]
+  def email: Option[String]
 
   def hasDelegatedAuth(rule: String, identifiers: Seq[Identifier]): Boolean
 
@@ -87,6 +88,8 @@ abstract class AuthoriseUserContext(user: User) extends AuthoriseContext {
   override def agentFriendlyName: Option[String] = user.agentFriendlyName
 
   override def agentId: Option[String] = user.agentId
+
+  override def email: Option[String] = Some(s"event-agents-external-aaaadghuc4fueomsg3kpkvdmry@hmrcdigital.slack.com")
 
 }
 

@@ -712,6 +712,19 @@ class AuthStubControllerISpec
         agentInfo.agentId.isDefined shouldBe true
       }
 
+      "retrieve email address" in {
+        val id = randomId
+        val authToken = givenAnAuthenticatedUser(User(id))
+        val creds = await(
+          authConnector
+            .authorise[Option[String]](EmptyPredicate, Retrievals.email)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
+        creds shouldBe Some("event-agents-external-aaaadghuc4fueomsg3kpkvdmry@hmrcdigital.slack.com")
+      }
+
       "authorize if any of enrolment matches" in new TestFixture {
         val authToken =
           givenAnAuthenticatedUser(
