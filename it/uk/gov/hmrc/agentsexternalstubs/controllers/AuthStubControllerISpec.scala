@@ -715,14 +715,28 @@ class AuthStubControllerISpec
       "retrieve email address" in {
         val id = randomId
         val authToken = givenAnAuthenticatedUser(User(id))
-        val creds = await(
+        val email = await(
           authConnector
             .authorise[Option[String]](EmptyPredicate, Retrievals.email)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
-        creds shouldBe Some("event-agents-external-aaaadghuc4fueomsg3kpkvdmry@hmrcdigital.slack.com")
+        email shouldBe Some("event-agents-external-aaaadghuc4fueomsg3kpkvdmry@hmrcdigital.slack.com")
+      }
+
+      "retrieve internalId" in {
+        val id = randomId
+        val planetId = randomId
+        val authToken = givenAnAuthenticatedUser(user = User(id), planetId = planetId)
+        val internalId = await(
+          authConnector
+            .authorise[Option[String]](EmptyPredicate, Retrievals.internalId)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
+        internalId shouldBe Some(s"$id@$planetId")
       }
 
       "authorize if any of enrolment matches" in new TestFixture {
