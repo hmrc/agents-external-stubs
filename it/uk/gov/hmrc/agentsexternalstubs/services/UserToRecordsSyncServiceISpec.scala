@@ -37,7 +37,6 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
         .withPrincipalEnrolment("HMRC-MTD-IT", "MTDITID", "123456789098765")
 
       val theUser = await(usersService.createUser(user, planetId))
-      println(theUser)
       val result1 = await(businessDetailsRecordsService.getBusinessDetails(theUser.nino.get, planetId))
       result1.map(_.mtdbsa) shouldBe Some("123456789098765")
       val result2 =

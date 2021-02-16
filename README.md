@@ -216,11 +216,18 @@ and `X-Session-ID` header containing session ID.
 
 *Payload*
 
-    {"userId": "your_test_user", "providerType": "GovernmentGateway", "planetId":"your_test_planet"}
+    {
+        "userId": "your_test_user", 
+        "providerType": "GovernmentGateway", 
+        "planetId":"your_test_planet",
+        "syncToAuthLoginApi": true | false
+    }
     
 All parameters are optional. Sensible random values will be generated if missing.
 
 Add `?userIdFromPool` query parameter to automatically select user id from the default pool
+
+If `syncToAuthLoginApi` set to `true`, and enviromnent property `features.syncToAuthLoginApi = true`, then the user will additionally be authenticated in `auth-login-stub` with `credId` set as `userId`@`planetId`.
 
 Response | Description
 ---|---

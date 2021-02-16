@@ -15,14 +15,14 @@ trait WireMockSupport extends BeforeAndAfterAll with BeforeAndAfterEach {
 
   def commonStubs(): Unit = {}
 
-  val wireMockPort: Int
+  def wireMockPort: Int
   val wireMockHost = "localhost"
-  val wireMockBaseUrlAsString = s"http://$wireMockHost:$wireMockPort"
-  val wireMockBaseUrl = new URL(wireMockBaseUrlAsString)
+  def wireMockBaseUrlAsString = s"http://$wireMockHost:$wireMockPort"
+  def wireMockBaseUrl = new URL(wireMockBaseUrlAsString)
 
   protected def basicWireMockConfig(): WireMockConfiguration = wireMockConfig()
 
-  private val wireMockServer = new WireMockServer(basicWireMockConfig().port(wireMockPort))
+  private lazy val wireMockServer = new WireMockServer(basicWireMockConfig().port(wireMockPort))
 
   override def beforeAll(): Unit = {
     super.beforeAll()

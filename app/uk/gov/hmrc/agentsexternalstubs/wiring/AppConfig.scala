@@ -64,6 +64,8 @@ trait AppConfig {
   val preloadRecordsForDefaultUserIds: Boolean
   val clearOldMongoDbDocumentsDaily: Boolean
 
+  val syncToAuthLoginApi: Boolean
+
 }
 
 @Singleton
@@ -109,4 +111,6 @@ class AppConfigImpl @Inject() (config: ServicesConfig) extends AppConfig {
   val specialCasesDisabled: Boolean = !config.getBoolean("features.specialCases")
   val preloadRecordsForDefaultUserIds: Boolean = config.getBoolean("features.preloadRecordsForDefaultUserIds")
   val clearOldMongoDbDocumentsDaily: Boolean = config.getBoolean("features.clearOldMongoDbDocumentsDaily")
+
+  val syncToAuthLoginApi: Boolean = config.getBoolean("features.syncToAuthLoginApi")
 }

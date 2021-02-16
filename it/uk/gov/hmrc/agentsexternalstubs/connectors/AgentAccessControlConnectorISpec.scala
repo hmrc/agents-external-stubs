@@ -11,6 +11,7 @@ class AgentAccessControlConnectorISpec
     extends ServerBaseISpec with MongoDB with TestRequests with TestStubs with WireMockSupport {
 
   val url = s"http://localhost:$port"
+
   lazy val wsClient = app.injector.instanceOf[WSClient]
   lazy val httpGet = app.injector.instanceOf[HttpGet]
   lazy val connector = new AgentAccessControlConnector(TestAppConfig(wireMockBaseUrlAsString, wireMockPort), httpGet)

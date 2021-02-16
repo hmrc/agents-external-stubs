@@ -35,11 +35,27 @@ class AuthLoginApiConnector @Inject() (appConfig: AppConfig, http: HttpPost with
     val url = new URL(appConfig.authLoginApiUrl + s"/government-gateway/session/login")
     for {
       response <- http.POST[AuthLoginApi.Request, HttpResponse](url.toString, authLoginApiRequest)
-      token <- response.header(HeaderNames.AUTHORIZATION) match {
-                 case None        => Future.failed(new Exception("Authorization header expected but missing"))
-                 case Some(token) => Future.successful(token)
-               }
-    } yield AuthLoginApi.Response(token)
+      token <-
+        response.header(HeaderNames.AUTHORIZATION) match {
+          case None =>
+            Future.failed(
+              new Exception(
+                "AUTHORIZATION header expected but missing on /government-gateway/session/login response"
+              )
+            )
+          case Some(token) => Future.successful(token)
+        }
+      sessionAuthorityUri <-
+        response.header(HeaderNames.LOCATION) match {
+          case None =>
+            Future.failed(
+              new Exception(
+                "LOCATION header expected but missing on /government-gateway/session/login response"
+              )
+            )
+          case Some(uri) => Future.successful(uri)
+        }
+    } yield AuthLoginApi.Response(token, sessionAuthorityUri)
 
   }
 }

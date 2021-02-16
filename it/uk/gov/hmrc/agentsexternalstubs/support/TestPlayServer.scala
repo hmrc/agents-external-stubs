@@ -14,40 +14,42 @@ import uk.gov.hmrc.play.it.Port
 
 import scala.concurrent.Await
 
-object PlayServer {
+trait TestPlayServer {
 
   private val testServer: AtomicReference[TestServer] = new AtomicReference[TestServer]()
   private val lock: Lock = new ReentrantLock()
 
-  lazy val port: Int = Port.randomAvailable
-  lazy val wireMockPort: Int = Port.randomAvailable
+  val port: Int = Port.randomAvailable
+  val wireMockPort: Int = Port.randomAvailable
 
   lazy val app: Application = appBuilder.build()
 
+  def configuration: Seq[(String, Any)] = Seq(
+    "microservice.services.auth.port"                      -> Port.randomAvailable,
+    "microservice.services.citizen-details.port"           -> Port.randomAvailable,
+    "microservice.services.users-groups-search.port"       -> Port.randomAvailable,
+    "microservice.services.enrolment-store-proxy.port"     -> Port.randomAvailable,
+    "microservice.services.tax-enrolments.port"            -> Port.randomAvailable,
+    "microservice.services.des.port"                       -> Port.randomAvailable,
+    "microservice.services.ni-exemption-registration.port" -> Port.randomAvailable,
+    "microservice.services.agent-access-control.port"      -> wireMockPort,
+    "microservice.services.api-platform-test-user.port"    -> wireMockPort,
+    "metrics.enabled"                                      -> false,
+    "auditing.enabled"                                     -> false,
+    "mongodb.uri"                                          -> MongoDB.uri,
+    "http.port"                                            -> port
+  )
+
   protected def appBuilder: GuiceApplicationBuilder =
     new GuiceApplicationBuilder()
-      .configure(
-        "microservice.services.auth.port"                      -> Port.randomAvailable,
-        "microservice.services.citizen-details.port"           -> Port.randomAvailable,
-        "microservice.services.users-groups-search.port"       -> Port.randomAvailable,
-        "microservice.services.enrolment-store-proxy.port"     -> Port.randomAvailable,
-        "microservice.services.tax-enrolments.port"            -> Port.randomAvailable,
-        "microservice.services.des.port"                       -> Port.randomAvailable,
-        "microservice.services.ni-exemption-registration.port" -> Port.randomAvailable,
-        "microservice.services.agent-access-control.port"      -> wireMockPort,
-        "microservice.services.api-platform-test-user.port"    -> wireMockPort,
-        "metrics.enabled"                                      -> false,
-        "auditing.enabled"                                     -> false,
-        "mongodb.uri"                                          -> MongoDB.uri,
-        "http.port"                                            -> PlayServer.port
-      )
+      .configure(configuration: _*)
       .disable[GraphiteMetricsModule]
       .overrides(bind[MetricsFilter].to[DisabledMetricsFilter])
       .overrides(bind[Metrics].to[TestMetrics])
 
   def run(): Unit =
     if (lock.tryLock()) try if (testServer.get() == null) {
-      print(s"Initializing Play Server at $port ... ")
+      println(s"Starting TestPlayServer at $port ... ")
       val server = TestServer(port, app)
       server.start()
       val wsClient = app.injector.instanceOf[WSClient]
@@ -61,13 +63,16 @@ object PlayServer {
       println("ready.")
     } finally lock.unlock()
 
-  def stop(): Unit = {
-    print("Stopping Play Server ...")
-    testServer.get().stop()
-    println("done.")
-  }
+  def stop(): Unit =
+    if (lock.tryLock()) try if (testServer.get() != null) {
+      println(s"Stopping TestPlayServer at $port ...")
+      testServer.get().stop()
+      testServer.set(null)
+    } finally lock.unlock()
 
 }
+
+object TestPlayServer extends TestPlayServer
 
 class TestMetrics extends Metrics {
 
