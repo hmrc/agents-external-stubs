@@ -46,6 +46,7 @@ trait AuthoriseContext {
   def agentId: Option[String]
   def planetId: Option[String]
   def email: Option[String]
+  def internalId: Option[String]
 
   def hasDelegatedAuth(rule: String, identifiers: Seq[Identifier]): Boolean
 
@@ -91,6 +92,7 @@ abstract class AuthoriseUserContext(user: User) extends AuthoriseContext {
 
   override def email: Option[String] = Some(s"event-agents-external-aaaadghuc4fueomsg3kpkvdmry@hmrcdigital.slack.com")
 
+  override def internalId: Option[String] = Some(s"${user.userId}@${user.planetId.getOrElse("hmrc")}")
 }
 
 case class FullAuthoriseContext(

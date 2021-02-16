@@ -39,7 +39,8 @@ case class AuthoriseResponse(
   dateOfBirth: Option[LocalDate] = None,
   agentCode: Option[String] = None,
   agentInformation: Option[AgentInformation] = None,
-  email: Option[String] = None
+  email: Option[String] = None,
+  internalId: Option[String] = None
 )
 
 object AuthoriseResponse {
@@ -76,11 +77,15 @@ object Retrieve {
       DateOfBirthRetrieve,
       AgentCodeRetrieve,
       AgentInformationRetrieve,
-      EmailRetrieve
+      EmailRetrieve,
+      InternalIdRetrieve
     )
 
+  val retrievalsMap: Map[String, Retrieve] =
+    supportedRetrievals.map(r => (r.key, r)).toMap
+
   def of(key: String): Retrieve =
-    supportedRetrievals.find(_.key == key).getOrElse(UnsupportedRetrieve(key))
+    retrievalsMap.getOrElse(key, UnsupportedRetrieve(key))
 }
 
 case class UnsupportedRetrieve(key: String) extends Retrieve {
@@ -289,4 +294,12 @@ case object EmailRetrieve extends Retrieve {
     ec: ExecutionContext
   ): MaybeResponse =
     Right(response.copy(email = context.email))
+}
+
+case object InternalIdRetrieve extends Retrieve {
+  val key = "internalId"
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(implicit
+    ec: ExecutionContext
+  ): MaybeResponse =
+    Right(response.copy(internalId = context.internalId))
 }
