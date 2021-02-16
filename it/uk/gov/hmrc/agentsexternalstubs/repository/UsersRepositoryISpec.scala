@@ -367,7 +367,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 2
       await(repo.findByPlanetId(planetId2, None)(100)).size shouldBe 2
 
-      await(repo.deleteAll(t0)) should be >= 3
+      await(repo.deleteAll(t0)) should be >= 1
 
       await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 0
       await(repo.findByPlanetId(planetId2, None)(100)).size shouldBe 1
