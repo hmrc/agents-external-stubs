@@ -115,16 +115,31 @@ class SignInController @Inject() (
         } else {
           Future.successful(sessionOpt)
         }
-      maybeNewSession <- authenticationService.authenticate(
-                           AuthenticateRequest(
-                             sessionId = maybeExistingSession.map(_.sessionId).getOrElse(UUID.randomUUID().toString),
-                             userId = userId,
-                             password = signInRequest.plainTextPassword.getOrElse("p@ssw0rd"),
-                             providerType = signInRequest.providerType.getOrElse("GovernmentGateway"),
-                             planetId = planetId,
-                             authTokenOpt = maybeExistingSession.map(_.authToken)
+      maybeNewSession <- authenticationService
+                           .authenticate(
+                             AuthenticateRequest(
+                               sessionId = maybeExistingSession.map(_.sessionId).getOrElse(UUID.randomUUID().toString),
+                               userId = userId,
+                               password = signInRequest.plainTextPassword.getOrElse("p@ssw0rd"),
+                               providerType = signInRequest.providerType.getOrElse("GovernmentGateway"),
+                               planetId = planetId,
+                               authTokenOpt = maybeExistingSession.map(_.authToken)
+                             )
                            )
-                         )
+                           .recoverWith { case e =>
+                             Logger(getClass).warn(
+                               s"Saving authenticated sessions for token ${maybeExistingSession.map(_.authToken).getOrElse("none")} failed with ${e.getMessage}, trying again with unique token."
+                             )
+                             authenticationService.authenticate(
+                               AuthenticateRequest(
+                                 sessionId = UUID.randomUUID().toString,
+                                 userId = userId,
+                                 password = signInRequest.plainTextPassword.getOrElse("p@ssw0rd"),
+                                 providerType = signInRequest.providerType.getOrElse("GovernmentGateway"),
+                                 planetId = planetId
+                               )
+                             )
+                           }
       result <- Future.successful(maybeNewSession match {
                   case Some(session) =>
                     maybeUser match {
