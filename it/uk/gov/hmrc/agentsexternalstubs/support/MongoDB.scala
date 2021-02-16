@@ -44,7 +44,7 @@ object MongoDB extends Awaiting {
       await(app.injector.instanceOf[KnownFactsRepositoryMongo].ensureIndexes)
       await(app.injector.instanceOf[SpecialCasesRepositoryMongo].ensureIndexes)
       initialized.set(true)
-      println("ready.")
+      println("MongoDB ready.")
     } finally lock.unlock()
 
 }

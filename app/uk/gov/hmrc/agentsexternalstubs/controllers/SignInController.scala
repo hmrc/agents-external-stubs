@@ -26,12 +26,18 @@ import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersSer
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Random, Success}
+import uk.gov.hmrc.agentsexternalstubs.connectors.AuthLoginApiConnector
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
+import scala.util.Random
+import play.api.Logger
 
 @Singleton
 class SignInController @Inject() (
   val authenticationService: AuthenticationService,
   usersService: UsersService,
+  authLoginApiConnector: AuthLoginApiConnector,
+  appConfig: AppConfig,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
@@ -50,8 +56,8 @@ class SignInController @Inject() (
               "X-User-ID"                             -> session.userId
             )
           )
-        else createNewAuthentication(signInRequest, userIdFromPool)
-      }(createNewAuthentication(signInRequest, userIdFromPool))
+        else createNewAuthentication(signInRequest, userIdFromPool, Some(session))
+      }(createNewAuthentication(signInRequest, userIdFromPool, None))
     }
   }
 
@@ -61,46 +67,103 @@ class SignInController @Inject() (
     }(Future.successful(NoContent))
   }
 
-  private def createNewAuthentication(signInRequest: SignInRequest, userIdFromPool: Boolean)(implicit
+  private def createNewAuthentication(
+    signInRequest: SignInRequest,
+    userIdFromPool: Boolean,
+    sessionOpt: Option[AuthenticatedSession]
+  )(implicit
+    hc: HeaderCarrier,
     ec: ExecutionContext
   ): Future[Result] = {
-    val planetId = signInRequest.planetId.getOrElse(Generator.planetID(Random.nextString(8)))
-    for {
-      maybeSession <- authenticationService.authenticate(
-                        AuthenticateRequest(
-                          sessionId = UUID.randomUUID().toString,
-                          userId =
-                            signInRequest.userId.getOrElse(UserIdGenerator.nextUserIdFor(planetId, userIdFromPool)),
-                          password = signInRequest.plainTextPassword.getOrElse("p@ssw0rd"),
-                          providerType = signInRequest.providerType.getOrElse("GovernmentGateway"),
-                          planetId = planetId
-                        )
-                      )
-      result <- maybeSession match {
-                  case Some(session) =>
-                    usersService
-                      .tryCreateUser(User(session.userId), session.planetId)
-                      .map {
-                        case Success(_) =>
-                          Created.withHeaders(
-                            HeaderNames.LOCATION                    -> routes.SignInController.session(session.authToken).url,
-                            HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
-                            uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId,
-                            "X-Planet-ID"                           -> session.planetId,
-                            "X-User-ID"                             -> session.userId
-                          )
-                        case Failure(_) =>
-                          Accepted.withHeaders(
-                            HeaderNames.LOCATION                    -> routes.SignInController.session(session.authToken).url,
-                            HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
-                            uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId,
-                            "X-Planet-ID"                           -> session.planetId,
-                            "X-User-ID"                             -> session.userId
-                          )
 
-                      }
-                  case None => Future.successful(Unauthorized("SESSION_CREATE_FAILED"))
-                }
+    val planetId =
+      signInRequest.planetId.getOrElse(Generator.planetID(Random.nextString(8)))
+
+    val userId =
+      signInRequest.userId.getOrElse(UserIdGenerator.nextUserIdFor(planetId, userIdFromPool))
+
+    for {
+      maybeUser <- usersService.tryCreateUser(User(userId), planetId)
+      maybeExistingSession <-
+        if (
+          appConfig.syncToAuthLoginApi &&
+          signInRequest.syncToAuthLoginApi.getOrElse(false) &&
+          sessionOpt.isEmpty
+        ) {
+          val user: User = maybeUser.fold(identity, identity)
+          authLoginApiConnector
+            .loginToGovernmentGateway(AuthLoginApi.Request.fromUser(user))
+            .map { response =>
+              Logger(getClass).info(s"Authenticated user in auth-login-api ${response.sessionAuthorityUri}")
+              Some(
+                AuthenticatedSession(
+                  sessionId = UUID.randomUUID().toString,
+                  userId = userId,
+                  authToken = BearerToken
+                    .unapply(response.authToken)
+                    .getOrElse(response.authToken),
+                  providerType = "GovernmentGateway",
+                  planetId = planetId
+                )
+              )
+            }
+            .recover { case e =>
+              Logger(getClass).error(s"Could not authenticate the user in auth-login-api because of $e")
+              sessionOpt
+            }
+
+        } else {
+          Future.successful(sessionOpt)
+        }
+      maybeNewSession <- authenticationService
+                           .authenticate(
+                             AuthenticateRequest(
+                               sessionId = maybeExistingSession.map(_.sessionId).getOrElse(UUID.randomUUID().toString),
+                               userId = userId,
+                               password = signInRequest.plainTextPassword.getOrElse("p@ssw0rd"),
+                               providerType = signInRequest.providerType.getOrElse("GovernmentGateway"),
+                               planetId = planetId,
+                               authTokenOpt = maybeExistingSession.map(_.authToken)
+                             )
+                           )
+                           .recoverWith { case e =>
+                             Logger(getClass).warn(
+                               s"Saving authenticated sessions for token ${maybeExistingSession.map(_.authToken).getOrElse("none")} failed with ${e.getMessage}, trying again with unique token."
+                             )
+                             authenticationService.authenticate(
+                               AuthenticateRequest(
+                                 sessionId = UUID.randomUUID().toString,
+                                 userId = userId,
+                                 password = signInRequest.plainTextPassword.getOrElse("p@ssw0rd"),
+                                 providerType = signInRequest.providerType.getOrElse("GovernmentGateway"),
+                                 planetId = planetId
+                               )
+                             )
+                           }
+      result <- Future.successful(maybeNewSession match {
+                  case Some(session) =>
+                    maybeUser match {
+                      case Right(user) =>
+                        Created.withHeaders(
+                          HeaderNames.LOCATION                    -> routes.SignInController.session(session.authToken).url,
+                          HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
+                          uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId,
+                          "X-Planet-ID"                           -> planetId,
+                          "X-User-ID"                             -> user.userId
+                        )
+
+                      case Left(user) =>
+                        Accepted.withHeaders(
+                          HeaderNames.LOCATION                    -> routes.SignInController.session(session.authToken).url,
+                          HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
+                          uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId,
+                          "X-Planet-ID"                           -> planetId,
+                          "X-User-ID"                             -> user.userId
+                        )
+
+                    }
+                  case None => Unauthorized("SESSION_CREATE_FAILED")
+                })
     } yield result
   }
 

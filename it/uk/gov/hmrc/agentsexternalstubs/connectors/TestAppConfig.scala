@@ -40,4 +40,5 @@ case class TestAppConfig(wireMockBaseUrl: String, wireMockPort: Int) extends App
   override val identityVerification: Int = wireMockPort
   override val personalDetailsValidation: Int = wireMockPort
 
+  override val syncToAuthLoginApi: Boolean = false
 }

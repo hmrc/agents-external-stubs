@@ -10,14 +10,16 @@ import scala.concurrent.ExecutionContext
 abstract class ServerBaseISpec
     extends BaseISpec with BeforeAndAfterAll with ScalaFutures with JsonMatchers with WSResponseMatchers {
 
+  val playServer: TestPlayServer = TestPlayServer
+  def port: Int = playServer.port
+  def wireMockPort: Int = playServer.wireMockPort
+
   override def beforeAll(): Unit = {
     super.beforeAll()
-    PlayServer.run()
+    playServer.run()
   }
 
-  override lazy val app: Application = PlayServer.app
-  val port: Int = PlayServer.port
-  val wireMockPort: Int = PlayServer.wireMockPort
+  override lazy val app: Application = playServer.app
 
   import scala.concurrent.duration._
   override implicit val defaultTimeout: FiniteDuration = 30.seconds

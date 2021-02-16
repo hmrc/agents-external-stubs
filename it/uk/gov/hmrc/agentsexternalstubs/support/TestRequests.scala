@@ -116,11 +116,20 @@ trait TestRequests extends ScalaFutures {
       userId: String = null,
       password: String = null,
       providerType: String = null,
-      planetId: String = null
+      planetId: String = null,
+      syncToAuthLoginApi: Boolean = false
     ): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/sign-in?userIdFromPool")
-        .post(SignInRequest(Option(userId), Option(password), Option(providerType), Option(planetId)))
+        .post(
+          SignInRequest(
+            Option(userId),
+            Option(password),
+            Option(providerType),
+            Option(planetId),
+            if (syncToAuthLoginApi) Some(true) else None
+          )
+        )
         .futureValue
 
     def authSessionFor(loginResponse: WSResponse): WSResponse =
@@ -135,9 +144,10 @@ trait TestRequests extends ScalaFutures {
     def signInAndGetSession(
       userId: String = null,
       password: String = "p@ssw0rd",
-      planetId: String = UUID.randomUUID().toString
+      planetId: String = UUID.randomUUID().toString,
+      syncToAuthLoginApi: Boolean = false
     ): AuthenticatedSession = {
-      val signedIn = signIn(userId, password, planetId = planetId)
+      val signedIn = signIn(userId, password, planetId = planetId, syncToAuthLoginApi = syncToAuthLoginApi)
       val session = authSessionFor(signedIn)
       session.json.as[AuthenticatedSession]
     }

@@ -8,6 +8,7 @@ import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{MongoDB, ServerBaseISpec, TestRequests, WireMockSupport}
 import uk.gov.hmrc.http.{HttpGet, HttpPost}
+import uk.gov.hmrc.http.HeaderCarrier
 
 class AuthLoginApiConnectorISpec
     extends ServerBaseISpec with MongoDB with TestRequests with TestStubs with WireMockSupport {
@@ -21,7 +22,7 @@ class AuthLoginApiConnectorISpec
 
     "loginToGovernmentGateway" should {
       "return new auth token" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        implicit val hc: HeaderCarrier = HeaderCarrier()
 
         WireMock.stubFor(
           WireMock
@@ -31,6 +32,7 @@ class AuthLoginApiConnectorISpec
                 .withStatus(200)
                 .withHeader("Content-Type", "application/json")
                 .withHeader(HeaderNames.AUTHORIZATION, "Bearer foo123")
+                .withHeader(HeaderNames.LOCATION, "http://test/123")
                 .withBody("""
                   |{
                   |  "gatewayToken": "some-gateway-token"

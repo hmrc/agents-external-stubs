@@ -105,12 +105,12 @@ class UsersService @Inject() (
     } yield refined
   }
 
-  def tryCreateUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Try[User]] = {
+  def tryCreateUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Either[User, User]] = {
     val userKey = user.copy(planetId = None, recordIds = Seq.empty).hashCode()
     for {
       maybeUser <- findByUserId(user.userId, planetId)
       result <- maybeUser match {
-                  case Some(_) => Future.successful(Failure(new Exception(s"User ${user.userId} already exists")))
+                  case Some(user) => Future.successful(Left(user))
                   case None =>
                     for {
                       refined <- usersCache
@@ -122,7 +122,7 @@ class UsersService @Inject() (
                       _ <- Future.successful(usersCache.put(userKey, refined))
                       _ <- updateKnownFacts(refined, planetId)
                       _ <- userRecordsService.syncUserToRecords(syncRecordId(refined, planetId))(refined)
-                    } yield Success.apply(refined)
+                    } yield Right(refined)
                 }
     } yield result
   }

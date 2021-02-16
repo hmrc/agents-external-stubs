@@ -22,30 +22,86 @@ object AuthLoginApi {
   case class Request(
     credId: String,
     affinityGroup: String,
-    confidenceLevel: Option[Int],
+    confidenceLevel: Option[Int] = None,
     credentialStrength: String,
-    credentialRole: Option[String],
-    enrolments: Seq[Enrolment],
-    delegatedEnrolments: Option[Seq[Request.DelegatedEnrolment]],
-    gatewayToken: Option[String],
-    groupIdentifier: Option[String],
-    nino: Option[String],
-    usersName: Option[String],
-    email: Option[String],
-    description: Option[String],
-    agentFriendlyName: Option[String],
-    agentCode: Option[String],
-    agentId: Option[String],
-    itmpData: Option[Request.ItmpData],
-    gatewayInformation: Option[Request.GatewayInformation],
-    mdtpInformation: Option[Request.MdtpInformation],
-    unreadMessageCount: Option[Int]
+    credentialRole: Option[String] = None,
+    enrolments: Seq[Enrolment] = Seq.empty,
+    delegatedEnrolments: Option[Seq[Request.DelegatedEnrolment]] = None,
+    gatewayToken: Option[String] = None,
+    groupIdentifier: Option[String] = None,
+    nino: Option[String] = None,
+    usersName: Option[String] = None,
+    email: Option[String] = None,
+    description: Option[String] = None,
+    agentFriendlyName: Option[String] = None,
+    agentCode: Option[String] = None,
+    agentId: Option[String] = None,
+    itmpData: Option[Request.ItmpData] = None,
+    gatewayInformation: Option[Request.GatewayInformation] = None,
+    mdtpInformation: Option[Request.MdtpInformation] = None,
+    unreadMessageCount: Option[Int] = None
   )
 
   object Request {
 
+    def fromUser(user: User): Request =
+      Request(
+        credId = s"${user.userId}${user.planetId.map(planet => s"@$planet").getOrElse("")}",
+        affinityGroup = user.affinityGroup.getOrElse("Individual"),
+        confidenceLevel = user.confidenceLevel,
+        credentialStrength = user.credentialStrength.getOrElse("strong"),
+        credentialRole = user.credentialRole,
+        enrolments = user.principalEnrolments,
+        delegatedEnrolments = DelegatedEnrolment.from(user),
+        gatewayToken = None,
+        groupIdentifier = user.groupId,
+        nino = user.nino.map(_.value),
+        usersName = user.name,
+        email = None,
+        description = None,
+        agentFriendlyName = user.agentFriendlyName,
+        agentCode = user.agentCode,
+        agentId = user.agentId,
+        itmpData = None,
+        gatewayInformation = None,
+        mdtpInformation = None,
+        unreadMessageCount = Some(2)
+      )
+
     case class DelegatedEnrolment(key: String, identifiers: Seq[Identifier], delegatedAuthRule: String)
+
     object DelegatedEnrolment {
+
+      def from(user: User): Option[Seq[DelegatedEnrolment]] =
+        if (user.delegatedEnrolments.isEmpty)
+          None
+        else {
+          val delegatedEnrolments =
+            user.delegatedEnrolments
+              .map(e =>
+                delegatedAuthRuleFor(e.key).map(rule =>
+                  DelegatedEnrolment(e.key, e.identifiers.getOrElse(Seq.empty), rule)
+                )
+              )
+              .collect { case Some(e) => e }
+          if (delegatedEnrolments.isEmpty)
+            None
+          else Some(delegatedEnrolments)
+        }
+
+      def delegatedAuthRuleFor(enrolmentKey: String): Option[String] =
+        enrolmentKey match {
+          case "IR-SA"         => Some("sa-auth")
+          case "IR-PAYE"       => Some("epaye-auth")
+          case "HMRC-MTD-IT"   => Some("mtd-it-auth")
+          case "HMRC-ATED-ORG" => Some("ated-auth")
+          case "HMRC-NI"       => Some("afi-auth")
+          case "HMRC-MTD-VAT"  => Some("mtd-vat-auth")
+          case "HMRC-TERS-ORG" => Some("trust-auth")
+          case "HMRC-CGT-PD"   => Some("cgt-auth")
+          case _               => None
+        }
+
       implicit val formats: Format[DelegatedEnrolment] = Json.format[DelegatedEnrolment]
     }
 
@@ -90,7 +146,7 @@ object AuthLoginApi {
 
   }
 
-  case class Response(authToken: String)
+  case class Response(authToken: String, sessionAuthorityUri: String)
 
   object Response {
     implicit val reads: Reads[Response] = Json.reads[Response]

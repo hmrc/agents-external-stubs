@@ -10,8 +10,8 @@ import scala.concurrent.ExecutionContext
 abstract class AppBaseISpec
     extends BaseISpec with ScalaFutures with JsonMatchers with WSResponseMatchers with BeforeAndAfterEach {
 
-  override lazy val app: Application = PlayServer.app
-  val port: Int = PlayServer.port
+  override lazy val app: Application = TestPlayServer.app
+  val port: Int = TestPlayServer.port
 
   implicit val ec: ExecutionContext = app.actorSystem.dispatcher
 

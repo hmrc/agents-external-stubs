@@ -22,7 +22,8 @@ case class SignInRequest(
   userId: Option[String],
   plainTextPassword: Option[String],
   providerType: Option[String],
-  planetId: Option[String]
+  planetId: Option[String],
+  syncToAuthLoginApi: Option[Boolean] = None
 )
 
 object SignInRequest {
