@@ -94,7 +94,7 @@ class SignInController @Inject() (
           authLoginApiConnector
             .loginToGovernmentGateway(AuthLoginApi.Request.fromUser(user))
             .map { response =>
-              println(response)
+              Logger(getClass).info(s"Authenticated user in auth-login-api ${response.sessionAuthorityUri}")
               Some(
                 AuthenticatedSession(
                   sessionId = UUID.randomUUID().toString,
