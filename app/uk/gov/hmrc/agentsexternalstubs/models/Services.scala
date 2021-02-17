@@ -22,6 +22,8 @@ import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.agentsexternalstubs.models.RegexPatterns.Matcher
 
 import scala.io.Source
+import java.io._
+import java.nio.charset.StandardCharsets
 
 case class Service(
   name: String,
@@ -97,6 +99,28 @@ object Services {
       .fromInputStream(Base64.getMimeDecoder.wrap(this.getClass.getResourceAsStream("/services.b64")), "utf-8")
       .mkString
     Json.parse(json).as[Services].services
+  }
+
+  /** Helper method to run from within sbt console */
+  def decode() = {
+    val json = Json.prettyPrint(Json.toJson(Services(services)))
+    val os = new FileOutputStream(new File("conf/services.json"))
+    os.write(json.getBytes(StandardCharsets.UTF_8))
+    os.close()
+  }
+
+  /** Helper method to run from within sbt console */
+  def encode() = {
+    val is = new FileInputStream(new File("conf/services.json"))
+    val json = Source
+      .fromInputStream(is)
+      .mkString
+    is.close()
+    val services2 = Json.parse(json).as[Services]
+    val json2 = Json.prettyPrint(Json.toJson(services2))
+    val os = Base64.getMimeEncoder.wrap(new FileOutputStream(new File("conf/services.b64")))
+    os.write(json2.getBytes(StandardCharsets.UTF_8))
+    os.close()
   }
 
   lazy val servicesByKey: Map[String, Service] = services.map(s => (s.name, s)).toMap

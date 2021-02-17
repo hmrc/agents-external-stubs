@@ -36,3 +36,4 @@ tmp
 bin
 project/metals.sbt
 docs/schemas/
+conf/services.json
