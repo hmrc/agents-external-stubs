@@ -56,8 +56,8 @@ class SignInController @Inject() (
               "X-User-ID"                             -> session.userId
             )
           )
-        else createNewAuthentication(signInRequest, userIdFromPool, Some(session))
-      }(createNewAuthentication(signInRequest, userIdFromPool, None))
+        else createNewAuthentication(signInRequest, userIdFromPool)
+      }(createNewAuthentication(signInRequest, userIdFromPool))
     }
   }
 
@@ -69,8 +69,7 @@ class SignInController @Inject() (
 
   private def createNewAuthentication(
     signInRequest: SignInRequest,
-    userIdFromPool: Boolean,
-    sessionOpt: Option[AuthenticatedSession]
+    userIdFromPool: Boolean
   )(implicit
     hc: HeaderCarrier,
     ec: ExecutionContext
@@ -87,8 +86,7 @@ class SignInController @Inject() (
       maybeExistingSession <-
         if (
           appConfig.syncToAuthLoginApi &&
-          signInRequest.syncToAuthLoginApi.getOrElse(false) &&
-          sessionOpt.isEmpty
+          signInRequest.syncToAuthLoginApi.getOrElse(false)
         ) {
           val user: User = maybeUser.fold(identity, identity)
           authLoginApiConnector
@@ -109,16 +107,16 @@ class SignInController @Inject() (
             }
             .recover { case e =>
               Logger(getClass).error(s"Could not authenticate the user in auth-login-api because of $e")
-              sessionOpt
+              None
             }
 
         } else {
-          Future.successful(sessionOpt)
+          Future.successful(None)
         }
       maybeNewSession <- authenticationService
                            .authenticate(
                              AuthenticateRequest(
-                               sessionId = maybeExistingSession.map(_.sessionId).getOrElse(UUID.randomUUID().toString),
+                               sessionId = UUID.randomUUID().toString,
                                userId = userId,
                                password = signInRequest.plainTextPassword.getOrElse("p@ssw0rd"),
                                providerType = signInRequest.providerType.getOrElse("GovernmentGateway"),
@@ -126,20 +124,6 @@ class SignInController @Inject() (
                                authTokenOpt = maybeExistingSession.map(_.authToken)
                              )
                            )
-                           .recoverWith { case e =>
-                             Logger(getClass).warn(
-                               s"Saving authenticated sessions for token ${maybeExistingSession.map(_.authToken).getOrElse("none")} failed with ${e.getMessage}, trying again with unique token."
-                             )
-                             authenticationService.authenticate(
-                               AuthenticateRequest(
-                                 sessionId = UUID.randomUUID().toString,
-                                 userId = userId,
-                                 password = signInRequest.plainTextPassword.getOrElse("p@ssw0rd"),
-                                 providerType = signInRequest.providerType.getOrElse("GovernmentGateway"),
-                                 planetId = planetId
-                               )
-                             )
-                           }
       result <- Future.successful(maybeNewSession match {
                   case Some(session) =>
                     maybeUser match {
