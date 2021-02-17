@@ -57,8 +57,8 @@ object UserValidator {
         else
           Invalid("credentialRole must be none, or one of [Admin, User, Assistant] for Individual or Agent")
       case Some(Organisation) =>
-        if (user.credentialRole.contains(Admin)) Valid(())
-        else Invalid("credentialRole must be Admin for Organisation")
+        if (user.credentialRole.contains(Admin) || user.credentialRole.contains(User)) Valid(())
+        else Invalid("credentialRole must be Admin or User for Organisation")
       case _ => Valid(())
     }
 
