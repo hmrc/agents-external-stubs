@@ -81,7 +81,7 @@ object UserSanitizer extends RecordUtils[User] {
         case Some(Individual | Agent) =>
           if (user.credentialRole.isEmpty) user.copy(credentialRole = Some(User.CR.User)) else user
         case Some(Organisation) =>
-          user.copy(credentialRole = Some(User.CR.Admin))
+          if (user.credentialRole.isEmpty) user.copy(credentialRole = Some(User.CR.Admin)) else user
         case _ => user.copy(credentialRole = None)
       }
 

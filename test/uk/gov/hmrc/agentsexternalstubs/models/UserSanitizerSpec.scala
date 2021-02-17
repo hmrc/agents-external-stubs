@@ -99,6 +99,9 @@ class UserSanitizerSpec extends UnitSpec {
       UserSanitizer.sanitize(User("foo", affinityGroup = None)).credentialRole shouldBe None
       UserSanitizer
         .sanitize(User("foo", affinityGroup = Some(User.AG.Organisation), credentialRole = Some(User.CR.User)))
+        .credentialRole shouldBe Some(User.CR.User)
+      UserSanitizer
+        .sanitize(User("foo", affinityGroup = Some(User.AG.Organisation), credentialRole = Some(User.CR.Admin)))
         .credentialRole shouldBe Some(User.CR.Admin)
       UserSanitizer
         .sanitize(User("foo", affinityGroup = None, credentialRole = Some(User.CR.User)))
