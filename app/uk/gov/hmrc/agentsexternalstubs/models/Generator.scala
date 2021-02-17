@@ -128,6 +128,9 @@ object Generator extends Names with Temporal with Companies with Addresses {
   lazy val eoriGen: Gen[String] = pattern"ZZ999999999999".gen
   def eori(seed: String): String = eoriGen.seeded(seed).get
 
+  lazy val ukEoriGen: Gen[String] = pattern"999999999999999".gen.map("GB" + _)
+  def ukEori(seed: String): String = ukEoriGen.seeded(seed).get
+
   lazy val crnGen: Gen[String] = pattern"ZZ999999".gen
   def crn(seed: String): String = crnGen.seeded(seed).get
 
@@ -215,6 +218,7 @@ object Generator extends Names with Temporal with Companies with Addresses {
     "mtditid"         -> mtdbsaGen,
     "vrn"             -> vrnGen,
     "eori"            -> eoriGen,
+    "eoriUK"          -> ukEoriGen,
     "nino"            -> ninoNoSpacesGen,
     "ninoWithSpaces"  -> ninoWithSpacesGen,
     "email"           -> emailGen,
