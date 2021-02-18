@@ -30,6 +30,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
+import uk.gov.hmrc.http.NotFoundException
 
 @Singleton
 class EnrolmentStoreProxyStubController @Inject() (
@@ -95,8 +96,17 @@ class EnrolmentStoreProxyStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def assignUser(userId: String, enrolmentKey: String): Action[AnyContent] = Action.async { implicit request =>
-    Future.successful(Created)
+  def assignUser(userId: String, enrolmentKey: EnrolmentKey): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      usersService
+        .updateUser(userId, session.planetId, _.withPrincipalEnrolment(Enrolment.from(enrolmentKey)))
+        .map { case _ =>
+          Created
+        }
+        .recover { case e: NotFoundException =>
+          notFound("INVALID_CREDENTIAL_ID")
+        }
+    }(SessionRecordNotFound)
   }
 
   def allocateGroupEnrolment(
