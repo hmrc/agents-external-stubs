@@ -424,6 +424,65 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
 
         result should haveStatus(400)
       }
+
+      "return 409 if principal enrolment is already assigned" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        EnrolmentStoreProxyStub
+          .setKnownFacts(
+            "IR-SA~UTR~12345678",
+            SetKnownFactsRequest
+              .generate("IR-SA~UTR~12345678", _ => None)
+              .getOrElse(throw new Exception("Could not generate known facts"))
+          )
+        Users.update(
+          UserGenerator
+            .individual(userId = "foo1", groupId = "group1")
+            .withPrincipalEnrolment("IR-SA~UTR~12345678")
+        )
+
+        val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
+          "group1",
+          "IR-SA~UTR~12345678",
+          Json.parse("""{
+            |    "userId": "foo1",
+            |    "type": "principal"
+            |}""".stripMargin)
+        )
+
+        result should haveStatus(409)
+      }
+
+      "return 409 if delegated enrolment is already assigned" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        EnrolmentStoreProxyStub
+          .setKnownFacts(
+            "IR-SA~UTR~12345678",
+            SetKnownFactsRequest
+              .generate("IR-SA~UTR~12345678", _ => None)
+              .getOrElse(throw new Exception("Could not generate known facts"))
+          )
+        Users.create(
+          UserGenerator
+            .individual(userId = "foo2", groupId = "group2")
+            .withPrincipalEnrolment("IR-SA~UTR~12345678")
+        )
+        Users.update(
+          UserGenerator
+            .agent(userId = "foo1", groupId = "group1")
+            .withDelegatedEnrolment("IR-SA~UTR~12345678")
+        )
+
+        val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
+          "group1",
+          "IR-SA~UTR~12345678",
+          Json.parse("""{
+            |    "userId": "foo1",
+            |    "type": "delegated"
+            |}""".stripMargin)
+        )
+
+        result should haveStatus(409)
+      }
     }
 
     "DELETE /enrolment-store/groups/:groupId/enrolments/:enrolmentKey" should {
