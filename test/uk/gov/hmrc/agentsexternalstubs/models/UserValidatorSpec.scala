@@ -148,14 +148,14 @@ class UserValidatorSpec extends UnitSpec with ValidatedMatchers {
         .isValid shouldBe false
     }
 
-    "validate only when credentialRole is Admin for Organisation" in {
+    "validate only when credentialRole is Admin or User for Organisation" in {
       UserValidator
         .validate(User("foo", credentialRole = Some("Admin"), affinityGroup = Some(User.AG.Organisation)))
         .isValid shouldBe true
 
       UserValidator
         .validate(User("foo", credentialRole = Some("User"), affinityGroup = Some(User.AG.Organisation)))
-        .isValid shouldBe false
+        .isValid shouldBe true
       UserValidator
         .validate(User("foo", credentialRole = Some("Assistant"), affinityGroup = Some(User.AG.Organisation)))
         .isValid shouldBe false
