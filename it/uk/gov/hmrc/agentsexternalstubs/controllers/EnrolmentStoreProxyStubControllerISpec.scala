@@ -955,5 +955,62 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         result should haveStatus(400)
       }
     }
+
+    "POST /tax-enrolments/users/:userId/enrolments/:enrolmentKey" should {
+      "assign an enrolment to the empty user" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+
+        val result = EnrolmentStoreProxyStub.assignUser("foo1", "IR-SA~UTR~12345678")
+
+        result should haveStatus(201)
+
+        val user = await(userService.findByUserId(session.userId, session.planetId)).get
+        user.principalEnrolments.size should be(1)
+        user.principalEnrolments should contain(
+          Enrolment.from(EnrolmentKey.parse("IR-SA~UTR~12345678").getOrElse(fail()))
+        )
+      }
+
+      "assign an enrolment to the user having already this enrolment" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        Users.update(
+          UserGenerator
+            .individual(userId = "foo1")
+            .withPrincipalEnrolment("IR-SA", "UTR", "12345678")
+        )
+
+        val result = EnrolmentStoreProxyStub.assignUser("foo1", "IR-SA~UTR~12345678")
+
+        result should haveStatus(201)
+
+        val user = await(userService.findByUserId(session.userId, session.planetId)).get
+        user.principalEnrolments.size should be(1)
+        user.principalEnrolments should contain(
+          Enrolment.from(EnrolmentKey.parse("IR-SA~UTR~12345678").getOrElse(fail()))
+        )
+      }
+
+      "assign an enrolment to the user having other enrolments" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        Users.update(
+          UserGenerator
+            .individual(userId = "foo1")
+            .withPrincipalEnrolment("HMRC-CUS-ORG", "EORINumber", "GB633024744483000")
+        )
+
+        val result = EnrolmentStoreProxyStub.assignUser("foo1", "IR-SA~UTR~12345678")
+
+        result should haveStatus(201)
+
+        val user = await(userService.findByUserId(session.userId, session.planetId)).get
+        user.principalEnrolments.size should be(2)
+        user.principalEnrolments should contain(
+          Enrolment.from(EnrolmentKey.parse("IR-SA~UTR~12345678").getOrElse(fail()))
+        )
+        user.principalEnrolments should contain(
+          Enrolment.from(EnrolmentKey.parse("HMRC-CUS-ORG~EORINumber~GB633024744483000").getOrElse(fail()))
+        )
+      }
+    }
   }
 }

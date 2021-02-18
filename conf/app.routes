@@ -44,7 +44,7 @@ PUT           /tax-enrolments/enrolments/:enrolmentKey                          
 ## ES7 Call via tax-enrolments delete an enrolment
 DELETE        /tax-enrolments/enrolments/:enrolmentKey                                               @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.removeKnownFacts(enrolmentKey: EnrolmentKey)
 ## ES11 Call: via tax-enrolments assign a user to an enrolment
-POST          /tax-enrolments/users/:userId/enrolments/:enrolmentKey                                  @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.assignUser(userId: String, enrolmentKey: String)
+POST          /tax-enrolments/users/:userId/enrolments/:enrolmentKey                                  @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.assignUser(userId: String, enrolmentKey: EnrolmentKey)
 
 # DES stubs
 POST          /registration/relationship                                                             @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.authoriseOrDeAuthoriseRelationship

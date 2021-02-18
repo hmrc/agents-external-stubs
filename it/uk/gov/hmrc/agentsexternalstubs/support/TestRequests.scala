@@ -372,6 +372,10 @@ trait TestRequests extends ScalaFutures {
         .withHttpHeaders(authContext.headers: _*)
         .get()
         .futureValue
+
+    def assignUser(userId: String, enrolmentKey: String)(implicit authContext: AuthContext): WSResponse =
+      post(s"/tax-enrolments/users/$userId/enrolments/$enrolmentKey")
+
   }
 
   object DesStub {
