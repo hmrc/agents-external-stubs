@@ -21,10 +21,11 @@ import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import reactivemongo.core.errors.DatabaseException
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.SetKnownFactsRequest.Legacy
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController._
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
+import uk.gov.hmrc.agentsexternalstubs.repository.{DuplicateUserException, KnownFactsRepository}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -132,8 +133,9 @@ class EnrolmentStoreProxyStubController @Inject() (
                   session.planetId
                 )
                 .map(_ => Created)
-                .recover { case e: EnrolmentAlreadyExists =>
-                  Conflict
+                .recover {
+                  case _: EnrolmentAlreadyExists => Conflict
+                  case _: DuplicateUserException => Conflict
                 }
           )
       }
