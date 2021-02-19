@@ -31,6 +31,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 import uk.gov.hmrc.http.NotFoundException
+import uk.gov.hmrc.agentsexternalstubs.services.EnrolmentAlreadyExists
 
 @Singleton
 class EnrolmentStoreProxyStubController @Inject() (
@@ -131,6 +132,9 @@ class EnrolmentStoreProxyStubController @Inject() (
                   session.planetId
                 )
                 .map(_ => Created)
+                .recover { case e: EnrolmentAlreadyExists =>
+                  Conflict
+                }
           )
       }
     }(SessionRecordNotFound)

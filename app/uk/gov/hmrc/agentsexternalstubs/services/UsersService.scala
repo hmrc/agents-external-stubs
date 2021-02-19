@@ -26,7 +26,6 @@ import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{BadRequestException, NotFoundException}
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
 import scala.concurrent.duration._
 
 @Singleton
@@ -281,8 +280,14 @@ class UsersService @Inject() (
                   updateUser(
                     admin.userId,
                     planetId,
-                    u =>
-                      u.copy(principalEnrolments = appendEnrolment(u.principalEnrolments, Enrolment.from(enrolmentKey)))
+                    u => {
+                      val enrolment = Enrolment.from(enrolmentKey)
+                      if (u.principalEnrolments.contains(enrolment)) throw new EnrolmentAlreadyExists
+                      else
+                        u.copy(principalEnrolments =
+                          appendEnrolment(u.principalEnrolments, Enrolment.from(enrolmentKey))
+                        )
+                    }
                   )
                 else if (enrolmentType == "delegated" && admin.affinityGroup.contains(User.AG.Agent))
                   findByPrincipalEnrolmentKey(enrolmentKey, planetId).flatMap {
@@ -290,10 +295,14 @@ class UsersService @Inject() (
                       updateUser(
                         admin.userId,
                         planetId,
-                        u =>
-                          u.copy(
-                            delegatedEnrolments = appendEnrolment(u.delegatedEnrolments, Enrolment.from(enrolmentKey))
-                          )
+                        u => {
+                          val enrolment = Enrolment.from(enrolmentKey)
+                          if (u.delegatedEnrolments.contains(enrolment)) throw new EnrolmentAlreadyExists
+                          else
+                            u.copy(
+                              delegatedEnrolments = appendEnrolment(u.delegatedEnrolments, Enrolment.from(enrolmentKey))
+                            )
+                        }
                       )
                     case None =>
                       Future.failed(throw new BadRequestException("INVALID_QUERY_PARAMETERS"))
@@ -392,3 +401,5 @@ class UsersService @Inject() (
   def reindexAllUsers(implicit ec: ExecutionContext): Future[String] = usersRepository.reindexAllUsers
 
 }
+
+final class EnrolmentAlreadyExists extends Exception
