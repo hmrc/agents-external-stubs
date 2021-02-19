@@ -21,7 +21,7 @@ import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.http.Status
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{AnyContentAsEmpty, ControllerComponents, Request, Result}
+import play.api.mvc.{ControllerComponents, Request, Result}
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, EnrolmentKey}
@@ -44,9 +44,7 @@ class EnrolmentStoreProxyStubControllerSpec extends UnitSpec {
     val cc: ControllerComponents = Helpers.stubControllerComponents()
 
     val controller: EnrolmentStoreProxyStubController = new EnrolmentStoreProxyStubController(
-      mockAuthenticationService,
-      mockKnownFactsRepository,
-      cc
+      mockAuthenticationService, mockKnownFactsRepository, cc
     )(mockUsersService, ex) {
       override def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(
         ifSessionNotFound: => Future[Result]
