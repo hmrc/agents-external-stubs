@@ -44,7 +44,9 @@ class EnrolmentStoreProxyStubControllerSpec extends UnitSpec {
     val cc: ControllerComponents = Helpers.stubControllerComponents()
 
     val controller: EnrolmentStoreProxyStubController = new EnrolmentStoreProxyStubController(
-      mockAuthenticationService, mockKnownFactsRepository, cc
+      mockAuthenticationService,
+      mockKnownFactsRepository,
+      cc
     )(mockUsersService, ex) {
       override def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(
         ifSessionNotFound: => Future[Result]

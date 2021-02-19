@@ -337,6 +337,8 @@ object EnrolmentStoreProxyStubController {
         enrolments = ee
       )
     }
+    import play.api.libs.json.JodaWrites._
+    import play.api.libs.json.JodaReads._
     implicit val writes1: Writes[Enrolment] = Json.writes[Enrolment]
     implicit val writes2: Writes[GetUserEnrolmentsResponse] = Json.writes[GetUserEnrolmentsResponse]
   }
