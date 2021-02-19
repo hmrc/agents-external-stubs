@@ -24,14 +24,13 @@ import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.SetKnownFactsRequest.Legacy
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController._
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
-import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
+import uk.gov.hmrc.agentsexternalstubs.repository.{DuplicateUserException, KnownFactsRepository}
+import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, EnrolmentAlreadyExists, UsersService}
+import uk.gov.hmrc.http.NotFoundException
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
-import uk.gov.hmrc.http.NotFoundException
-import uk.gov.hmrc.agentsexternalstubs.services.EnrolmentAlreadyExists
 
 @Singleton
 class EnrolmentStoreProxyStubController @Inject() (
@@ -132,8 +131,9 @@ class EnrolmentStoreProxyStubController @Inject() (
                   session.planetId
                 )
                 .map(_ => Created)
-                .recover { case e: EnrolmentAlreadyExists =>
-                  Conflict
+                .recover {
+                  case _: EnrolmentAlreadyExists => Conflict
+                  case _: DuplicateUserException => Conflict
                 }
           )
       }
@@ -337,9 +337,6 @@ object EnrolmentStoreProxyStubController {
         enrolments = ee
       )
     }
-
-    import play.api.libs.json.JodaWrites._
-    import play.api.libs.json.JodaReads._
     implicit val writes1: Writes[Enrolment] = Json.writes[Enrolment]
     implicit val writes2: Writes[GetUserEnrolmentsResponse] = Json.writes[GetUserEnrolmentsResponse]
   }

@@ -68,7 +68,7 @@ trait CurrentSession extends HttpHelpers {
         } yield result
     }
 
-  final def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(
+  def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(
     ifSessionNotFound: => Future[Result]
   )(implicit request: Request[T], ec: ExecutionContext, hc: HeaderCarrier): Future[Result] = withMaybeCurrentSession {
     case Some(session) => body(session)
