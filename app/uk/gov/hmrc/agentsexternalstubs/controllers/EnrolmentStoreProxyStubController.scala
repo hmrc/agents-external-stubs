@@ -26,7 +26,7 @@ import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubContro
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.{DuplicateUserException, KnownFactsRepository}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, EnrolmentAlreadyExists, UsersService}
-import uk.gov.hmrc.http.NotFoundException
+import uk.gov.hmrc.http.{BadRequestException, NotFoundException}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -100,11 +100,11 @@ class EnrolmentStoreProxyStubController @Inject() (
     withCurrentSession { session =>
       usersService
         .updateUser(userId, session.planetId, _.withPrincipalEnrolment(Enrolment.from(enrolmentKey)))
-        .map { case _ =>
-          Created
-        }
-        .recover { case e: NotFoundException =>
-          notFound("INVALID_CREDENTIAL_ID")
+        .map(_ => Created)
+        .recover {
+          case _: NotFoundException      => notFound("INVALID_CREDENTIAL_ID")
+          case _: BadRequestException    => Created
+          case _: DuplicateUserException => Created
         }
     }(SessionRecordNotFound)
   }

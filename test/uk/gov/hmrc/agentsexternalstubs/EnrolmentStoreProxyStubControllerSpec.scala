@@ -27,7 +27,7 @@ import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubContro
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, EnrolmentKey}
 import uk.gov.hmrc.agentsexternalstubs.repository.{DuplicateUserException, KnownFactsRepository}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -67,6 +67,23 @@ class EnrolmentStoreProxyStubControllerSpec extends UnitSpec {
           FakeRequest().withBody(validRequestBody)
         )
       status(result) shouldBe Status.CONFLICT
+    }
+  }
+
+  "assignUser" should {
+    "return 201 if mongodb returns DuplicateUserException" in new Setup {
+      when(mockUsersService.updateUser(any(), any(), any())(any()))
+        .thenReturn(Future.failed(DuplicateUserException("")))
+      val result: Future[Result] =
+        controller.assignUser("userId", EnrolmentKey("IR-SA~UTR~12345678"))(FakeRequest())
+      status(result) shouldBe Status.CREATED
+    }
+    "return 201 if mongodb returns BadRequestException" in new Setup {
+      when(mockUsersService.updateUser(any(), any(), any())(any()))
+        .thenReturn(Future.failed(new BadRequestException("")))
+      val result: Future[Result] =
+        controller.assignUser("userId", EnrolmentKey("IR-SA~UTR~12345678"))(FakeRequest())
+      status(result) shouldBe Status.CREATED
     }
   }
 
