@@ -23,6 +23,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
+import uk.gov.hmrc.agentsexternalstubs.services.UsersService
 
 trait AuthoriseContext {
 
@@ -57,14 +58,9 @@ trait AuthoriseContext {
 
 abstract class AuthoriseUserContext(user: User) extends AuthoriseContext {
 
+  final val timeout: Duration = 30 seconds
+
   override def userId: String = user.userId
-
-  override def principalEnrolments: Seq[Enrolment] =
-    if (user.affinityGroup.contains(User.AG.Individual) && user.nino.isDefined)
-      user.principalEnrolments :+ Enrolment("HMRC-NI", "NINO", nino.get.value)
-    else user.principalEnrolments
-
-  override def delegatedEnrolments: Seq[Enrolment] = user.delegatedEnrolments
 
   def strideRoles: Seq[String] = user.strideRoles
 
@@ -93,10 +89,60 @@ abstract class AuthoriseUserContext(user: User) extends AuthoriseContext {
   override def email: Option[String] = Some(s"event-agents-external-aaaadghuc4fueomsg3kpkvdmry@hmrcdigital.slack.com")
 
   override def internalId: Option[String] = Some(s"${user.userId}@${user.planetId.getOrElse("hmrc")}")
+
+  val userService: UsersService
+
+  import scala.concurrent.ExecutionContext.Implicits.global
+
+  override def principalEnrolments: Seq[Enrolment] = {
+    val enrolments =
+      if (user.affinityGroup.contains(User.AG.Individual) && user.nino.isDefined)
+        user.principalEnrolments :+ Enrolment("HMRC-NI", "NINO", nino.get.value)
+      else user.principalEnrolments
+    if (user.isAdmin) enrolments
+    else {
+      enrolments.toSet
+        .union((user.groupId, user.planetId) match {
+          case (Some(groupId), Some(planetId)) =>
+            Await
+              .result(
+                userService
+                  .findAdminByGroupId(groupId, user.planetId.getOrElse(throw new IllegalStateException()))
+                  .map(_.map(_.principalEnrolments).getOrElse(Seq.empty)),
+                timeout
+              )
+              .toSet
+          case _ => Set.empty[Enrolment]
+        })
+        .toSeq
+    }
+  }
+
+  override def delegatedEnrolments: Seq[Enrolment] = {
+    val enrolments = user.delegatedEnrolments
+    if (user.isAdmin) enrolments
+    else {
+      enrolments.toSet
+        .union((user.groupId, user.planetId) match {
+          case (Some(groupId), Some(planetId)) =>
+            Await
+              .result(
+                userService
+                  .findAdminByGroupId(groupId, planetId)
+                  .map(_.map(_.delegatedEnrolments).getOrElse(Seq.empty)),
+                timeout
+              )
+              .toSet
+          case _ => Set.empty[Enrolment]
+        })
+        .toSeq
+    }
+  }
 }
 
 case class FullAuthoriseContext(
   user: User,
+  userService: UsersService,
   authenticatedSession: AuthenticatedSession,
   request: AuthoriseRequest,
   agentAccessControlConnector: AgentAccessControlConnector
@@ -105,8 +151,6 @@ case class FullAuthoriseContext(
 
   override def providerType: String = authenticatedSession.providerType
   override def planetId: Option[String] = Some(authenticatedSession.planetId)
-
-  val timeout: Duration = 30 seconds
 
   def hasDelegatedAuth(rule: String, identifiers: Seq[Identifier]): Boolean =
     rule match {

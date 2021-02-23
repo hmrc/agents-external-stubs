@@ -310,6 +310,51 @@ class AuthStubControllerISpec
         enrolments.getEnrolment("IR-SA") shouldBe None
       }
 
+      "retrieve authorisedEnrolments for member of a group" in {
+        val userId = randomId
+        val userOrganisationId = randomId
+        val groupId = randomId
+
+        givenAnAuthenticatedUser(User(userOrganisationId, groupId = Some(groupId)), planetId = userId)
+        givenUserEnrolledFor(userOrganisationId, planetId = userId, "HMRC-MTD-IT", "MTDITID", "236216873678126")
+
+        val authToken = givenAnAuthenticatedUser(User(userId, groupId = Some(groupId)), planetId = userId)
+        givenUserEnrolledFor(userId, planetId = userId, "IR-SA", "UTR", "1234567890")
+
+        val enrolments = await(
+          authConnector
+            .authorise[Enrolments](Enrolment("HMRC-MTD-IT"), Retrievals.authorisedEnrolments)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
+        enrolments.getEnrolment("HMRC-MTD-IT") shouldBe Some(
+          Enrolment("HMRC-MTD-IT", Seq(EnrolmentIdentifier("MTDITID", "236216873678126")), "Activated")
+        )
+        enrolments.getEnrolment("IR-SA") shouldBe None
+      }
+
+      "fail retrieving authorisedEnrolments for member of an other group" in {
+        val userId = randomId
+        val userOrganisationId = randomId
+
+        givenAnAuthenticatedUser(User(userOrganisationId, groupId = Some(randomId)), planetId = userId)
+        givenUserEnrolledFor(userOrganisationId, planetId = userId, "HMRC-MTD-IT", "MTDITID", "236216873678126")
+
+        val authToken = givenAnAuthenticatedUser(User(userId, groupId = Some(randomId)), planetId = userId)
+        givenUserEnrolledFor(userId, planetId = userId, "IR-SA", "UTR", "1234567890")
+
+        an[InsufficientEnrolments] shouldBe thrownBy(
+          await(
+            authConnector
+              .authorise[Enrolments](Enrolment("HMRC-MTD-IT"), Retrievals.authorisedEnrolments)(
+                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+                concurrent.ExecutionContext.Implicits.global
+              )
+          )
+        )
+      }
+
       "retrieve authorisedEnrolments if PrivilegedApplication" in {
         val id = randomId
         val authToken = givenAnAuthenticatedUser(User(id), planetId = id, providerType = "PrivilegedApplication")
@@ -368,6 +413,57 @@ class AuthStubControllerISpec
         enrolments.getEnrolment("IR-SA") shouldBe Some(
           Enrolment("IR-SA", Seq(EnrolmentIdentifier("UTR", "1234567890")), "Activated")
         )
+      }
+
+      "retrieve allEnrolments of a member of a group" in {
+        val userId = randomId
+        val userOrganisationId = randomId
+        val groupId = randomId
+
+        givenAnAuthenticatedUser(User(userOrganisationId, groupId = Some(groupId)), planetId = userId)
+        givenUserEnrolledFor(userOrganisationId, planetId = userId, "IR-SA", "UTR", "1234567890")
+
+        val authToken = givenAnAuthenticatedUser(User(userId, groupId = Some(groupId)), planetId = userId)
+        givenUserEnrolledFor(userId, planetId = userId, "HMRC-MTD-IT", "MTDITID", "236216873678126")
+
+        val enrolments = await(
+          authConnector
+            .authorise[Enrolments](EmptyPredicate, Retrievals.allEnrolments)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
+        enrolments.getEnrolment("foo") shouldBe None
+        enrolments.getEnrolment("HMRC-MTD-IT") shouldBe Some(
+          Enrolment("HMRC-MTD-IT", Seq(EnrolmentIdentifier("MTDITID", "236216873678126")), "Activated")
+        )
+        enrolments.getEnrolment("IR-SA") shouldBe Some(
+          Enrolment("IR-SA", Seq(EnrolmentIdentifier("UTR", "1234567890")), "Activated")
+        )
+      }
+
+      "retrieve allEnrolments of a member of an other group" in {
+        val userId = randomId
+        val userOrganisationId = randomId
+
+        givenAnAuthenticatedUser(User(userOrganisationId, groupId = Some(randomId)), planetId = userId)
+        givenUserEnrolledFor(userOrganisationId, planetId = userId, "IR-SA", "UTR", "1234567890")
+
+        val authToken = givenAnAuthenticatedUser(User(userId, groupId = Some(randomId)), planetId = userId)
+        givenUserEnrolledFor(userId, planetId = userId, "HMRC-MTD-IT", "MTDITID", "236216873678126")
+
+        val enrolments = await(
+          authConnector
+            .authorise[Enrolments](EmptyPredicate, Retrievals.allEnrolments)(
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              concurrent.ExecutionContext.Implicits.global
+            )
+        )
+        enrolments.getEnrolment("foo") shouldBe None
+        enrolments.getEnrolment("HMRC-MTD-IT") shouldBe Some(
+          Enrolment("HMRC-MTD-IT", Seq(EnrolmentIdentifier("MTDITID", "236216873678126")), "Activated")
+        )
+        enrolments.getEnrolment("IR-SA") shouldBe None
       }
 
       "retrieve allEnrolments if PrivilegedApplication" in {

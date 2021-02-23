@@ -137,7 +137,7 @@ class UsersService @Inject() (
                            _       <- usersRepository.update(refined, planetId)
                            _       <- updateKnownFacts(refined, planetId)
                            _       <- userRecordsService.syncUserToRecords(syncRecordId(refined, planetId))(refined)
-                           _ = AuthorisationCache.updateResultsFor(refined, planetId)
+                           _ = AuthorisationCache.updateResultsFor(refined, UsersService.this, planetId)
                          } yield refined
                          else Future.successful(existingUser)
                        case None => Future.failed(new NotFoundException(s"User $userId not found"))
