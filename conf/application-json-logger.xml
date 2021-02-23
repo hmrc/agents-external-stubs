@@ -2,7 +2,7 @@
 <configuration>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder class="uk.gov.hmrc.play.logging.JsonEncoder"/>
+        <encoder class="uk.gov.hmrc.agentsexternalstubs.wiring.JsonEncoder"/>
     </appender>
 
     <logger name="uk.gov" level="WARN"/>
