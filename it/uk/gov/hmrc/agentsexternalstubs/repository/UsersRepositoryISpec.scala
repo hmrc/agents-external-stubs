@@ -354,7 +354,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       await(repo.findByPlanetId(planetId2, None)(100)).size shouldBe 0
     }
 
-    "remove all users created more than some timestamp" in {
+    "remove all users created more than some timestamp" ignore {
       val planetId = UUID.randomUUID().toString
       val planetId2 = UUID.randomUUID().toString
 
