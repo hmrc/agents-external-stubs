@@ -85,6 +85,7 @@ class JsonEncoder extends EncoderBase[ILoggingEvent] {
     eventNode.put("app", appName)
     eventNode.put("hostname", InetAddress.getLocalHost.getHostName)
     eventNode.put("timestamp", dateFormat.format(event.getTimeStamp))
+    eventNode.put("message", event.getFormattedMessage)
 
     val messageJsonTree: JsonNode = mapper.readTree(event.getMessage())
     putJsonNode(eventNode, messageJsonTree, "event")
