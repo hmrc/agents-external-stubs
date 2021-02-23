@@ -31,6 +31,7 @@ import scala.util.{Success, Try}
 import scala.collection.JavaConverters._
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
+import com.fasterxml.jackson.databind.node.JsonNodeType
 
 class JsonEncoder extends EncoderBase[ILoggingEvent] {
 
@@ -106,10 +107,15 @@ class JsonEncoder extends EncoderBase[ILoggingEvent] {
 
   final def putJsonNode(eventNode: ObjectNode, jsonNode: JsonNode, prefix: String): Unit =
     jsonNode.fields.asScala.foreach { field =>
-      if (field.getValue().isValueNode())
-        eventNode.put(prefix + "_" + field.getKey(), field.getValue().asText())
-      else
+      if (field.getValue().isValueNode()) {
+        val key = prefix + "_" + field.getKey()
+        val value = field.getValue().asText()
+        if (!key.contains("Authorization") && !value.contains("Bearer"))
+          eventNode.put(key, value)
+        else ()
+      } else if (field.getValue().getNodeType() == JsonNodeType.OBJECT)
         putJsonNode(eventNode, field.getValue(), prefix + "_" + field.getKey())
+      else ()
     }
 
   override def footerBytes(): Array[Byte] =
