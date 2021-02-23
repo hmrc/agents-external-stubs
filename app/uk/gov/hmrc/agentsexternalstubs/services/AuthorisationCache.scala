@@ -61,13 +61,14 @@ object AuthorisationCache {
     else ()
   }
 
-  def updateResultsFor(user: User, planetId: String)(implicit ec: ExecutionContext): Unit = {
+  def updateResultsFor(user: User, userService: UsersService, planetId: String)(implicit ec: ExecutionContext): Unit = {
     val key = s"${user.userId}@$planetId"
     authPlanetCache
       .get(key, _ => new ConcurrentHashMap[AuthoriseRequest, Retrieve.MaybeResponse]())
       .replaceAll(new BiFunction[AuthoriseRequest, MaybeResponse, MaybeResponse] {
         override def apply(authoriseRequest: AuthoriseRequest, u: MaybeResponse): MaybeResponse =
-          Authorise.prepareAuthoriseResponse(SimplifiedAuthoriseContext(authoriseRequest, user, Some(planetId)))
+          Authorise
+            .prepareAuthoriseResponse(SimplifiedAuthoriseContext(authoriseRequest, user, userService, Some(planetId)))
       })
 
   }
@@ -80,8 +81,12 @@ object AuthorisationCache {
 
 }
 
-case class SimplifiedAuthoriseContext(request: AuthoriseRequest, user: User, planetId: Option[String])
-    extends AuthoriseUserContext(user) {
+case class SimplifiedAuthoriseContext(
+  request: AuthoriseRequest,
+  user: User,
+  userService: UsersService,
+  planetId: Option[String]
+) extends AuthoriseUserContext(user) {
 
   override def userId: String = user.userId
   override def providerType: String = "GovernmentGateway"

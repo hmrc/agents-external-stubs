@@ -72,6 +72,7 @@ class AuthStubController @Inject() (
                                                   Authorise.prepareAuthoriseResponse(
                                                     FullAuthoriseContext(
                                                       user,
+                                                      usersService,
                                                       authenticatedSession,
                                                       authoriseRequest,
                                                       agentAccessControlConnector
