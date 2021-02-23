@@ -30,6 +30,7 @@ import com.typesafe.config.ConfigFactory
 import scala.util.{Success, Try}
 import scala.collection.JavaConverters._
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.ObjectNode
 
 class JsonEncoder extends EncoderBase[ILoggingEvent] {
 
@@ -86,7 +87,7 @@ class JsonEncoder extends EncoderBase[ILoggingEvent] {
     eventNode.put("timestamp", dateFormat.format(event.getTimeStamp))
 
     val messageJsonTree: JsonNode = mapper.readTree(event.getMessage())
-    eventNode.set("event", messageJsonTree)
+    putJsonNode(eventNode, messageJsonTree, "event")
 
     Option(event.getThrowableProxy).map(p => eventNode.put("exception", ThrowableProxyUtil.asString(p)))
 
@@ -101,6 +102,14 @@ class JsonEncoder extends EncoderBase[ILoggingEvent] {
 
     s"${mapper.writeValueAsString(eventNode)}$LINE_SEPARATOR".getBytes(StandardCharsets.UTF_8)
   }
+
+  final def putJsonNode(eventNode: ObjectNode, jsonNode: JsonNode, prefix: String): Unit =
+    jsonNode.fields.asScala.foreach { field =>
+      if (field.getValue().isValueNode())
+        eventNode.put(prefix + "_" + field.getKey(), field.getValue().asText())
+      else
+        putJsonNode(eventNode, field.getValue(), prefix + "_" + field.getKey())
+    }
 
   override def footerBytes(): Array[Byte] =
     LINE_SEPARATOR.getBytes(StandardCharsets.UTF_8)
