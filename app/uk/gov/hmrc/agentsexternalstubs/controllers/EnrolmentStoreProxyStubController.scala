@@ -31,6 +31,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
+import uk.gov.hmrc.http.BadRequestException
 
 @Singleton
 class EnrolmentStoreProxyStubController @Inject() (
@@ -99,12 +100,13 @@ class EnrolmentStoreProxyStubController @Inject() (
   def assignUser(userId: String, enrolmentKey: EnrolmentKey): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       usersService
-        .updateUser(userId, session.planetId, _.withPrincipalEnrolment(Enrolment.from(enrolmentKey)))
-        .map { case _ =>
-          Created
-        }
-        .recover { case e: NotFoundException =>
-          notFound("INVALID_CREDENTIAL_ID")
+        .assignEnrolmentToUser(userId, enrolmentKey, session.planetId)
+        .map(_ => Created)
+        .recover {
+          case e: NotFoundException =>
+            notFound("INVALID_CREDENTIAL_ID")
+          case e: BadRequestException =>
+            badRequest(e.getMessage())
         }
     }(SessionRecordNotFound)
   }

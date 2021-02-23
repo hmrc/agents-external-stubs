@@ -249,6 +249,33 @@ class UsersService @Inject() (
         }
     }
 
+  def assignEnrolmentToUser(userId: String, enrolmentKey: EnrolmentKey, planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[User] =
+    knownFactsRepository.findByEnrolmentKey(enrolmentKey, planetId).flatMap {
+      case None => Future.failed(new NotFoundException("ALLOCATION_DOES_NOT_EXIST"))
+      case Some(_) =>
+        findByUserId(userId, planetId)
+          .flatMap {
+            case None => Future.failed(throw new BadRequestException("INVALID_JSON_BODY"))
+            case Some(user) =>
+              user.groupId match {
+                case None => Future.failed(throw new BadRequestException("INVALID_CREDENTIAL_ID"))
+                case Some(groupId) =>
+                  val enrolment = Enrolment.from(enrolmentKey)
+                  findByGroupId(groupId, planetId)(101).flatMap { members =>
+                    if (members.exists(m => m.isAdmin && m.principalEnrolments.contains(enrolment))) {
+                      Future.successful(user)
+                    } else if (members.exists(m => m.isAdmin && m.delegatedEnrolments.contains(enrolment))) {
+                      Future.successful(user)
+                    } else {
+                      Future.failed(throw new BadRequestException("SERVICE_UNAVAILABLE"))
+                    }
+                  }
+              }
+          }
+    }
+
   /* Group enrolment is assigned to the unique Admin user of the group */
   def allocateEnrolmentToGroup(
     userId: String,

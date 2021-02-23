@@ -1016,60 +1016,140 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
     }
 
     "POST /tax-enrolments/users/:userId/enrolments/:enrolmentKey" should {
-      "assign an enrolment to the empty user" in {
+      "assign a principal enrolment to the member of an organisation having this enrolment" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
-
-        val result = EnrolmentStoreProxyStub.assignUser("foo1", "IR-SA~UTR~12345678")
-
-        result should haveStatus(201)
-
-        val user = await(userService.findByUserId(session.userId, session.planetId)).get
-        user.principalEnrolments.size should be(1)
-        user.principalEnrolments should contain(
-          Enrolment.from(EnrolmentKey.parse("IR-SA~UTR~12345678").getOrElse(fail()))
+        EnrolmentStoreProxyStub
+          .setKnownFacts(
+            "IR-SA~UTR~12345678",
+            SetKnownFactsRequest
+              .generate("IR-SA~UTR~12345678", _ => None)
+              .getOrElse(throw new Exception("Could not generate known facts"))
+          )
+        Users.create(
+          UserGenerator
+            .organisation(userId = "foo2", groupId = "group1")
+            .withPrincipalEnrolment("IR-SA~UTR~12345678")
         )
-      }
-
-      "assign an enrolment to the user having already this enrolment" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         Users.update(
           UserGenerator
-            .individual(userId = "foo1")
-            .withPrincipalEnrolment("IR-SA", "UTR", "12345678")
+            .individual(userId = "foo1", groupId = "group1")
         )
 
         val result = EnrolmentStoreProxyStub.assignUser("foo1", "IR-SA~UTR~12345678")
 
         result should haveStatus(201)
-
-        val user = await(userService.findByUserId(session.userId, session.planetId)).get
-        user.principalEnrolments.size should be(1)
-        user.principalEnrolments should contain(
-          Enrolment.from(EnrolmentKey.parse("IR-SA~UTR~12345678").getOrElse(fail()))
-        )
       }
 
-      "assign an enrolment to the user having other enrolments" in {
+      "assign a delegated enrolment to the member of an agent organisation having this enrolment" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        EnrolmentStoreProxyStub
+          .setKnownFacts(
+            "IR-SA~UTR~12345678",
+            SetKnownFactsRequest
+              .generate("IR-SA~UTR~12345678", _ => None)
+              .getOrElse(throw new Exception("Could not generate known facts"))
+          )
+        Users.create(
+          UserGenerator
+            .agent(userId = "foo2", groupId = "group1")
+            .withDelegatedEnrolment("IR-SA~UTR~12345678")
+        )
         Users.update(
           UserGenerator
-            .individual(userId = "foo1")
-            .withPrincipalEnrolment("HMRC-CUS-ORG", "EORINumber", "GB633024744483000")
+            .agent(userId = "foo1", groupId = "group1")
         )
 
         val result = EnrolmentStoreProxyStub.assignUser("foo1", "IR-SA~UTR~12345678")
 
         result should haveStatus(201)
-
-        val user = await(userService.findByUserId(session.userId, session.planetId)).get
-        user.principalEnrolments.size should be(2)
-        user.principalEnrolments should contain(
-          Enrolment.from(EnrolmentKey.parse("IR-SA~UTR~12345678").getOrElse(fail()))
-        )
-        user.principalEnrolments should contain(
-          Enrolment.from(EnrolmentKey.parse("HMRC-CUS-ORG~EORINumber~GB633024744483000").getOrElse(fail()))
-        )
       }
+
+      "fail to assign a principal enrolment if not allocated" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        EnrolmentStoreProxyStub
+          .setKnownFacts(
+            "IR-SA~UTR~12345678",
+            SetKnownFactsRequest
+              .generate("IR-SA~UTR~12345678", _ => None)
+              .getOrElse(throw new Exception("Could not generate known facts"))
+          )
+        Users.update(
+          UserGenerator
+            .individual(userId = "foo1", groupId = "group1")
+        )
+
+        val result = EnrolmentStoreProxyStub.assignUser("foo1", "IR-SA~UTR~12345678")
+
+        result should haveStatus(400)
+      }
+
+      "fail to assign a delegated enrolment if not allocated" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        EnrolmentStoreProxyStub
+          .setKnownFacts(
+            "IR-SA~UTR~12345678",
+            SetKnownFactsRequest
+              .generate("IR-SA~UTR~12345678", _ => None)
+              .getOrElse(throw new Exception("Could not generate known facts"))
+          )
+        Users.update(
+          UserGenerator
+            .agent(userId = "foo1", groupId = "group1")
+        )
+
+        val result = EnrolmentStoreProxyStub.assignUser("foo1", "IR-SA~UTR~12345678")
+
+        result should haveStatus(400)
+      }
+
+      "fail to assign a principal enrolment if not allocated to the user's group" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        EnrolmentStoreProxyStub
+          .setKnownFacts(
+            "IR-SA~UTR~12345678",
+            SetKnownFactsRequest
+              .generate("IR-SA~UTR~12345678", _ => None)
+              .getOrElse(throw new Exception("Could not generate known facts"))
+          )
+        Users.create(
+          UserGenerator
+            .organisation(userId = "foo2", groupId = "group2")
+            .withPrincipalEnrolment("IR-SA~UTR~12345678")
+        )
+        Users.update(
+          UserGenerator
+            .individual(userId = "foo1", groupId = "group1")
+        )
+
+        val result = EnrolmentStoreProxyStub.assignUser("foo1", "IR-SA~UTR~12345678")
+
+        result should haveStatus(400)
+      }
+
+      "fail to assign a delegated enrolment if not allocated to the user's group" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        EnrolmentStoreProxyStub
+          .setKnownFacts(
+            "IR-SA~UTR~12345678",
+            SetKnownFactsRequest
+              .generate("IR-SA~UTR~12345678", _ => None)
+              .getOrElse(throw new Exception("Could not generate known facts"))
+          )
+        Users.create(
+          UserGenerator
+            .agent(userId = "foo2", groupId = "group2")
+            .withDelegatedEnrolment("IR-SA~UTR~12345678")
+        )
+        Users.update(
+          UserGenerator
+            .agent(userId = "foo1", groupId = "group1")
+        )
+
+        val result = EnrolmentStoreProxyStub.assignUser("foo1", "IR-SA~UTR~12345678")
+
+        result should haveStatus(400)
+      }
+
     }
   }
 }
