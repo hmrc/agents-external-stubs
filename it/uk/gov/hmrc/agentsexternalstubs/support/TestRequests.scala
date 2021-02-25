@@ -387,7 +387,7 @@ trait TestRequests extends ScalaFutures {
         .post[T](payload)
         .futureValue
 
-    def getRelationship(
+    def getRelationshipDES(
       regime: String,
       agent: Boolean,
       `active-only`: Boolean,
@@ -401,7 +401,7 @@ trait TestRequests extends ScalaFutures {
         .url(s"$url/registration/relationship")
         .withQueryStringParameters(
           Seq(
-            "idtype"      -> `idtype`,
+            "idtype"      -> idtype,
             "ref-no"      -> `ref-no`,
             "arn"         -> arn,
             "agent"       -> Some(agent.toString),
@@ -409,6 +409,36 @@ trait TestRequests extends ScalaFutures {
             "regime"      -> Some(regime),
             "from"        -> from,
             "to"          -> to
+          ).collect { case (name, Some(value: String)) =>
+            (name, value)
+          }: _*
+        )
+        .withHttpHeaders(authContext.headers: _*)
+        .get()
+        .futureValue
+
+    def getRelationshipFE(
+      regime: String,
+      agent: Boolean,
+      `active-only`: Boolean,
+      idtype: Option[String] = None,
+      referenceNumber: Option[String] = None,
+      arn: Option[String] = None,
+      from: Option[String] = None,
+      to: Option[String] = None
+    )(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/registration/relationship")
+        .withQueryStringParameters(
+          Seq(
+            "idtype"          -> idtype,
+            "referenceNumber" -> referenceNumber,
+            "arn"             -> arn,
+            "agent"           -> Some(agent.toString),
+            "active-only"     -> Some(`active-only`.toString),
+            "regime"          -> Some(regime),
+            "from"            -> from,
+            "to"              -> to
           ).collect { case (name, Some(value: String)) =>
             (name, value)
           }: _*

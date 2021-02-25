@@ -236,7 +236,7 @@ class DesStubControllerISpec
         )
 
         val result =
-          DesStub.getRelationship(regime = "ITSA", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
+          DesStub.getRelationshipDES(regime = "ITSA", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
 
         result should haveStatus(200)
         result.json.as[JsObject] should haveProperty[Seq[JsObject]](
@@ -275,7 +275,7 @@ class DesStubControllerISpec
         )
 
         val result =
-          DesStub.getRelationship(regime = "ITSA", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
+          DesStub.getRelationshipDES(regime = "ITSA", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
 
         result should haveStatus(403)
         val errorResponse = Json.parse(result.body).as[ErrorResponse]
@@ -321,7 +321,7 @@ class DesStubControllerISpec
         )
 
         val result =
-          DesStub.getRelationship(regime = "TRS", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
+          DesStub.getRelationshipDES(regime = "TRS", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
 
         result should haveStatus(200)
         result.json.as[JsObject] should haveProperty[Seq[JsObject]](
@@ -360,7 +360,7 @@ class DesStubControllerISpec
         )
 
         val result =
-          DesStub.getRelationship(regime = "ITSA", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
+          DesStub.getRelationshipDES(regime = "ITSA", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
 
         result should haveStatus(403)
         val errorResponse = Json.parse(result.body).as[ErrorResponse]
@@ -370,7 +370,7 @@ class DesStubControllerISpec
     }
 
     "GET /registration/relationship for URN" should {
-      "respond 200" in {
+      "respond 200 when agent = true" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val user = UserGenerator
           .agent("foo", agentFriendlyName = "ABC123")
@@ -406,10 +406,82 @@ class DesStubControllerISpec
         )
 
         val result =
-          DesStub.getRelationship(regime = "TRS", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
+          DesStub.getRelationshipDES(regime = "TRS", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
 
         result should haveStatus(200)
         result.json.as[JsObject] should haveProperty[Seq[JsObject]](
+          "relationship",
+          have.size(1),
+          eachElement(
+            haveProperty[String]("referenceNumber"),
+            haveProperty[String]("agentReferenceNumber", be("ZARN1234567")),
+            haveProperty[String]("dateFrom") and
+              haveProperty[String]("contractAccountCategory", be("33")),
+            haveProperty[JsObject]("individual", haveProperty[String]("firstName"), haveProperty[String]("lastName")) or
+              haveProperty[JsObject]("organisation", haveProperty[String]("organisationName"))
+          )
+        )
+      }
+
+      "respond 200 when agent = false, but ref-no or referenceNumber is given" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val user = UserGenerator
+          .agent("foo", agentFriendlyName = "ABC123")
+          .withPrincipalEnrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567")
+        await(userService.createUser(user, session.planetId))
+
+        await(
+          repo.store(
+            RelationshipRecord(
+              regime = "ITSA",
+              arn = "ZARN1234567",
+              idType = "none",
+              refNumber = "012345678901234",
+              active = true,
+              startDate = Some(LocalDate.parse("2012-01-01"))
+            ),
+            session.planetId
+          )
+        )
+
+        await(
+          repo.store(
+            RelationshipRecord(
+              regime = "TRS",
+              arn = "ZARN1234567",
+              idType = "URN",
+              refNumber = "XXTRUST80000001",
+              active = true,
+              startDate = Some(LocalDate.parse("2017-12-31"))
+            ),
+            session.planetId
+          )
+        )
+
+        val resultPassingRefNo =
+          DesStub.getRelationshipDES(
+            regime = "TRS",
+            agent = false,
+            `ref-no` = Some("XXTRUST80000001"),
+            `active-only` = true,
+            idtype = Some("URN"),
+            arn = Some("ZARN1234567")
+          )
+
+        val resultPassingReferenceNumber =
+          DesStub.getRelationshipFE(
+            regime = "TRS",
+            agent = false,
+            referenceNumber = Some("XXTRUST80000001"),
+            `active-only` = true,
+            idtype = Some("URN"),
+            arn = Some("ZARN1234567")
+          )
+
+        resultPassingRefNo should haveStatus(200)
+        resultPassingReferenceNumber should haveStatus(200)
+
+        resultPassingReferenceNumber.json.as[JsObject] should haveProperty[Seq[JsObject]](
           "relationship",
           have.size(1),
           eachElement(
@@ -445,7 +517,7 @@ class DesStubControllerISpec
         )
 
         val result =
-          DesStub.getRelationship(regime = "ITSA", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
+          DesStub.getRelationshipDES(regime = "ITSA", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
 
         result should haveStatus(403)
         val errorResponse = Json.parse(result.body).as[ErrorResponse]

@@ -16,9 +16,6 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import java.time.Instant
-
-import javax.inject.{Inject, Singleton}
 import org.joda.time.LocalDate
 import play.api.data.Form
 import play.api.data.Forms._
@@ -26,7 +23,6 @@ import play.api.data.validation.{Constraint, Constraints, Invalid, Valid}
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Urn, Utr}
-import uk.gov.hmrc.agentsexternalstubs.models.Generator.{urn, utr}
 import uk.gov.hmrc.agentsexternalstubs.models.TrustDetailsResponse.getErrorResponseFor
 import uk.gov.hmrc.agentsexternalstubs.models.{BusinessPartnerRecord, SubscribeAgentServicesPayload, _}
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
@@ -34,6 +30,8 @@ import uk.gov.hmrc.agentsexternalstubs.services._
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import java.time.Instant
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -76,6 +74,7 @@ class DesStubController @Inject() (
   def getRelationship(
     idtype: Option[String],
     `ref-no`: Option[String],
+    referenceNumber: Option[String],
     arn: Option[String],
     agent: Boolean,
     `active-only`: Boolean,
@@ -624,7 +623,8 @@ object DesStubController {
 
     private val queryConstraint: Constraint[RelationshipRecordQuery] = Constraint(q =>
       if (q.agent && q.arn.isEmpty) Invalid("Missing arn")
-      else if (!q.agent && q.refNumber.isEmpty) Invalid("Missing ref-no")
+      else if (!q.agent && q.getRefNumber.isEmpty)
+        Invalid("ref-no [DES] or referenceNumber [IF] must be present")
       else if ((!q.activeOnly || q.to.isDefined) && q.from.isEmpty) Invalid("Missing from date")
       else if (!q.activeOnly && q.to.isEmpty) Invalid("Missing to date")
       else if ((q.regime == "VATC" || q.regime == "CGT") && q.relationship.isEmpty)
@@ -644,6 +644,11 @@ object DesStubController {
         ),
         "ref-no" -> optional(
           nonEmptyText.verifying(Constraints.pattern("^[0-9A-Za-z]{1,15}$".r, "ref-no", "Invalid ref-no"))
+        ),
+        "referenceNumber" -> optional(
+          nonEmptyText.verifying(
+            Constraints.pattern("^[0-9A-Za-z]{1,15}$".r, "referenceNumber", "Invalid referenceNumber")
+          )
         ),
         "active-only" -> boolean,
         "agent"       -> boolean,
