@@ -33,6 +33,7 @@ trait AppConfig {
   val enrolmentStoreProxyUrl: String
   val taxEnrolmentsUrl: String
   val desUrl: String
+  val ifUrl: String
   val niExemptionRegistrationUrl: String
 
   // External services we connect to
@@ -52,6 +53,7 @@ trait AppConfig {
   val taxEnrolmentsPort: Int
   val niExemptionRegistrationPort: Int
   val desPort: Int
+  val ifPort: Int
   val dataStreamPort: Int
   val ssoPort: Int
   val fileUploadPort: Int
@@ -81,6 +83,7 @@ class AppConfigImpl @Inject() (config: ServicesConfig) extends AppConfig {
   val enrolmentStoreProxyUrl: String = config.baseUrl("enrolment-store-proxy")
   val taxEnrolmentsUrl: String = config.baseUrl("tax-enrolments")
   val desUrl: String = config.baseUrl("des")
+  val ifUrl: String = config.baseUrl("if")
   val niExemptionRegistrationUrl: String = config.baseUrl("ni-exemption-registration")
 
   // External services we connect to
@@ -99,6 +102,7 @@ class AppConfigImpl @Inject() (config: ServicesConfig) extends AppConfig {
   val taxEnrolmentsPort: Int = config.getConfInt("tax-enrolments.port", 0)
   val niExemptionRegistrationPort: Int = config.getConfInt("ni-exemption-registration.port", 0)
   val desPort: Int = config.getConfInt("des.port", 0)
+  val ifPort: Int = config.getConfInt("if.port", 0)
   val dataStreamPort: Int = config.getInt("auditing.consumer.baseUri.port")
   val ssoPort: Int = config.getConfInt("sso.port", 0)
   val fileUploadPort: Int = config.getConfInt("file-upload.port", 0)
