@@ -43,27 +43,6 @@ class IfStubController @Inject() (
 
   import IfStubController._
 
-  val authoriseOrDeAuthoriseRelationship: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
-    withCurrentSession { session =>
-      withPayload[CreateUpdateAgentRelationshipPayload] { payload =>
-        CreateUpdateAgentRelationshipPayload
-          .validate(payload)
-          .fold(
-            error => badRequestF("INVALID_SUBMISSION", error.mkString(", ")),
-            _ =>
-              if (payload.authorisation.action == "Authorise")
-                relationshipRecordsService
-                  .authorise(AuthoriseRequest.toRelationshipRecord(payload), session.planetId)
-                  .map(_ => Ok(Json.toJson(AuthoriseResponse())))
-              else
-                relationshipRecordsService
-                  .deAuthorise(AuthoriseRequest.toRelationshipRecord(payload), session.planetId)
-                  .map(_ => Ok(Json.toJson(AuthoriseResponse())))
-          )
-      }
-    }(SessionRecordNotFound)
-  }
-
   def getRelationship(
     idtype: Option[String],
     referenceNumber: Option[String],
@@ -111,27 +90,6 @@ class IfStubController @Inject() (
 }
 
 object IfStubController {
-
-  object AuthoriseRequest {
-
-    def toRelationshipRecord(r: CreateUpdateAgentRelationshipPayload): RelationshipRecord =
-      RelationshipRecord(
-        regime = r.regime,
-        arn = r.agentReferenceNumber,
-        idType = r.idType.getOrElse("none"),
-        refNumber = r.refNumber,
-        active = false,
-        relationshipType = r.relationshipType,
-        authProfile = r.authProfile
-      )
-
-  }
-
-  case class AuthoriseResponse(processingDate: Instant = Instant.now())
-
-  object AuthoriseResponse {
-    implicit val writes: Writes[AuthoriseResponse] = Json.writes[AuthoriseResponse]
-  }
 
   object GetRelationships {
 
