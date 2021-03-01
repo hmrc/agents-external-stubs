@@ -73,6 +73,8 @@ GET           /subscriptions/:regime/:idType/:cgtRef                            
 
 # IF Stubs
 GET           /registration/relationship                                                             @uk.gov.hmrc.agentsexternalstubs.controllers.IfStubController.getRelationship(idtype: Option[String] ?= None, `referenceNumber`: Option[String] ?= None, arn: Option[String] ?= None, agent: Boolean, `active-only`: Boolean, regime: String, from: Option[String] ?= None, to: Option[String] ?= None, relationship: Option[String] ?= None, `auth-profile`: Option[String] ?= None)
+GET           /trusts/agent-known-fact-check/UTR/:utr                                                @uk.gov.hmrc.agentsexternalstubs.controllers.IfStubController.getTrustKnownFactsUTR(utr: String)
+GET           /trusts/agent-known-fact-check/URN/:urn                                                @uk.gov.hmrc.agentsexternalstubs.controllers.IfStubController.getTrustKnownFactsURN(urn: String)
 
 # Datastream
 POST          /write/audit                                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.DataStreamStubController.writeEvent

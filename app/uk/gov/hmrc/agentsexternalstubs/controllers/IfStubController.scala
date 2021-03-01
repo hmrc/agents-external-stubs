@@ -17,7 +17,6 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import java.time.Instant
-
 import javax.inject.{Inject, Singleton}
 import org.joda.time.LocalDate
 import play.api.data.Form
@@ -25,7 +24,9 @@ import play.api.data.Forms._
 import play.api.data.validation.{Constraint, Constraints, Invalid, Valid}
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
-import uk.gov.hmrc.agentmtdidentifiers.model.Arn
+import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, Urn, Utr}
+import uk.gov.hmrc.agentsexternalstubs.models.RegexPatterns.Matcher
+import uk.gov.hmrc.agentsexternalstubs.models.TrustDetailsResponse.getErrorResponseFor
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.services._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -38,7 +39,7 @@ class IfStubController @Inject() (
   relationshipRecordsService: RelationshipRecordsService,
   businessPartnerRecordsService: BusinessPartnerRecordsService,
   cc: ControllerComponents
-)(implicit executionContext: ExecutionContext)
+)(implicit usersService: UsersService, executionContext: ExecutionContext)
     extends BackendController(cc) with DesCurrentSession {
 
   import IfStubController._
@@ -87,6 +88,61 @@ class IfStubController @Inject() (
       )
     }(SessionRecordNotFound)
   }
+
+  private val HMRC_TERS_ORG = "HMRC-TERS-ORG"
+  private val HMRC_TERSNT_ORG = "HMRC-TERSNT-ORG"
+
+  def getTrustKnownFactsUTR(utr: String): Action[AnyContent] =
+    getTrustsKnownFacts(utr, RegexPatterns.validUtr, HMRC_TERS_ORG, "SAUTR")
+
+  def getTrustKnownFactsURN(urn: String): Action[AnyContent] =
+    getTrustsKnownFacts(urn, RegexPatterns.validUrn, HMRC_TERSNT_ORG, "URN")
+
+  private def getTrustsKnownFacts(
+    id: String,
+    validation: RegexPatterns.Matcher,
+    service: String,
+    key: String
+  ): Action[AnyContent] =
+    Action.async { implicit request =>
+      withCurrentSession { session =>
+        validation(id)
+          .fold(
+            error => badRequestF(error),
+            taxIdentifier => {
+
+              val enrolmentKey = EnrolmentKey(service, Seq(Identifier(key, taxIdentifier)))
+              usersService
+                .findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
+                .map {
+                  case Some(record) =>
+                    val maybeUtr =
+                      extractEnrolmentValue(HMRC_TERS_ORG)(record)
+                    val maybeUrn =
+                      extractEnrolmentValue(HMRC_TERSNT_ORG)(record)
+                    val trustDetails = TrustDetailsResponse(
+                      TrustDetails(
+                        maybeUtr,
+                        maybeUrn,
+                        record.name.getOrElse(""),
+                        TrustAddress(record.user.address),
+                        "TERS"
+                      )
+                    )
+                    Ok(Json.toJson(trustDetails))
+                  case None => getErrorResponseFor(id)
+                }
+            }
+          )
+      }(SessionRecordNotFound)
+    }
+
+  private def extractEnrolmentValue(serviceKey: String)(record: User) =
+    record.principalEnrolments
+      .find(_.key == serviceKey)
+      .flatMap(_.toEnrolmentKeyTag)
+      .map(_.split('~').takeRight(1).mkString)
+
 }
 
 object IfStubController {

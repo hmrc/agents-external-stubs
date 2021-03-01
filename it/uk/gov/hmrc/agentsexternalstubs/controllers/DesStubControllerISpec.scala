@@ -527,7 +527,7 @@ class DesStubControllerISpec
         Users.create(UserGenerator.organisation("foo1").withPrincipalEnrolment(enrolmentKey))
         val trustTaxIdentifier = "0123456789"
 
-        val result = DesStub.getTrustKnownFactsUtr(trustTaxIdentifier)
+        val result = DesStub.getTrustKnownFacts(trustTaxIdentifier)
         result should haveStatus(200)
 
         result.json.as[JsObject] should haveProperty[JsObject](
@@ -540,21 +540,14 @@ class DesStubControllerISpec
     }
 
     "GET /trusts/agent-known-fact-check/:urn" should {
-      "respond 200 with trust details using URN" in {
+      "respond 400" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val enrolmentKey = "HMRC-TERSNT-ORG~URN~XXTRUST80000001"
         Users.create(UserGenerator.organisation("foo1").withPrincipalEnrolment(enrolmentKey))
         val trustTaxIdentifier = "XXTRUST80000001"
 
         val result = DesStub.getTrustKnownFactsUrn(trustTaxIdentifier)
-        result should haveStatus(200)
-
-        result.json.as[JsObject] should haveProperty[JsObject](
-          "trustDetails",
-          haveProperty[String]("urn"),
-          haveProperty[String]("trustName"),
-          haveProperty[String]("serviceName")
-        )
+        result should haveStatus(400)
       }
     }
 

@@ -449,17 +449,14 @@ class DesStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def getTrustKnownFacts(trustTaxIdentifier: String): Action[AnyContent] = Action.async { implicit request =>
+  def getTrustKnownFacts(utr: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       RegexPatterns
-        .validUtrOrUrn(trustTaxIdentifier)
+        .validUtr(utr)
         .fold(
-          error => badRequestF(error.mkString(", ")),
+          error => badRequestF(error),
           taxIdentifier => {
-            val enrolmentKey = taxIdentifier match {
-              case Utr(v) => EnrolmentKey("HMRC-TERS-ORG", Seq(Identifier("SAUTR", v)))
-              case Urn(v) => EnrolmentKey("HMRC-TERSNT-ORG", Seq(Identifier("URN", v)))
-            }
+            val enrolmentKey = EnrolmentKey("HMRC-TERS-ORG", Seq(Identifier("SAUTR", taxIdentifier)))
             usersService
               .findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
               .map {
@@ -478,7 +475,7 @@ class DesStubController @Inject() (
                     )
                   )
                   Ok(Json.toJson(trustDetails))
-                case None => getErrorResponseFor(trustTaxIdentifier)
+                case None => getErrorResponseFor(utr)
               }
           }
         )
