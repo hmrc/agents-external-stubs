@@ -140,7 +140,7 @@ class DesStubControllerISpec
         result should haveStatus(200)
       }
 
-      "respond 200 when authorising for TRS with URN" in {
+      "respond 400 when authorising for TRS with URN" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = DesStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
@@ -156,10 +156,10 @@ class DesStubControllerISpec
           |     }
           |}
           """.stripMargin))
-        result should haveStatus(200)
+        result should haveStatus(400)
       }
 
-      "respond 200 when authorising for TRS with URN through API gateway" in {
+      "respond 400 when authorising for TRS with URN through API gateway" in {
         SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
         implicit val apiAuthContext: AuthContext = AuthContext.fromHeaders("X-Client-ID" -> "foo123")
 
@@ -176,10 +176,10 @@ class DesStubControllerISpec
           |     }
           |}
                      """.stripMargin))
-        result should haveStatus(200)
+        result should haveStatus(400)
       }
 
-      "respond 200 when de-authorising an TRS relationship with URN" in {
+      "respond 400 when de-authorising an TRS relationship with URN" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = DesStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
@@ -195,7 +195,7 @@ class DesStubControllerISpec
           |     }
           |}
                      """.stripMargin))
-        result should haveStatus(200)
+        result should haveStatus(400)
       }
     }
 

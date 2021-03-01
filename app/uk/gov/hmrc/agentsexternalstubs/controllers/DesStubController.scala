@@ -56,7 +56,7 @@ class DesStubController @Inject() (
     withCurrentSession { session =>
       withPayload[CreateUpdateAgentRelationshipPayload] { payload =>
         CreateUpdateAgentRelationshipPayload
-          .validate(payload)
+          .validate(CreateUpdateAgentRelationshipPayload.noUrnIdTypeValidator)(payload)
           .fold(
             error => badRequestF("INVALID_SUBMISSION", error.mkString(", ")),
             _ =>
