@@ -21,6 +21,169 @@ class IfStubControllerISpec
 
   "IfController" when {
 
+    "POST /registration/relationship" should {
+      "respond 200 when authorising for ITSA" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = IfStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
+          |{
+          |   "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+          |   "refNumber": "012345678901234",
+          |   "agentReferenceNumber": "ZARN1234567",
+          |   "regime": "ITSA",
+          |   "authorisation": {
+          |     "action": "Authorise",
+          |     "isExclusiveAgent": true
+          |   }
+          |}""".stripMargin))
+        result should haveStatus(200)
+      }
+
+      "respond 200 when authorising for ITSA through API gateway" in {
+        SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+        implicit val apiAuthContext: AuthContext = AuthContext.fromHeaders("X-Client-ID" -> "foo123")
+
+        val result = IfStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
+          |{
+          |   "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+          |   "refNumber": "012345678901234",
+          |   "agentReferenceNumber": "ZARN1234567",
+          |   "regime": "ITSA",
+          |   "authorisation": {
+          |     "action": "Authorise",
+          |     "isExclusiveAgent": true
+          |   }
+          |}""".stripMargin))
+        result should haveStatus(200)
+      }
+
+      "respond 200 when de-authorising an ITSA relationship" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = IfStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
+          |{
+          |   "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+          |   "refNumber": "012345678901234",
+          |   "agentReferenceNumber": "ZARN1234567",
+          |   "regime": "ITSA",
+          |   "authorisation": {
+          |     "action": "De-Authorise"
+          |   }
+          |}""".stripMargin))
+        result should haveStatus(200)
+      }
+
+      "respond 400 when authorising for TRS with UTR" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = IfStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
+          |{
+          |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+          |   "refNumber": "2110118025",
+          |   "agentReferenceNumber": "PARN0876123",
+          |   "idType": "UTR",
+          |   "regime": "TRS",
+          |   "authorisation": {
+          |     "action": "Authorise",
+          |     "isExclusiveAgent": true
+          |     }
+          |}""".stripMargin))
+        result should haveStatus(200)
+      }
+
+      "respond 400 when authorising for TRS with UTR through API gateway" in {
+        SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+        implicit val apiAuthContext: AuthContext = AuthContext.fromHeaders("X-Client-ID" -> "foo123")
+
+        val result = IfStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
+          |{
+          |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+          |   "refNumber": "2110118025",
+          |   "agentReferenceNumber": "PARN0876123",
+          |   "idType": "UTR",
+          |   "regime": "TRS",
+          |   "authorisation": {
+          |     "action": "Authorise",
+          |     "isExclusiveAgent": true
+          |     }
+          |}""".stripMargin))
+        result should haveStatus(200)
+      }
+
+      "respond 400 when de-authorising an TRS relationship with UTR" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = IfStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
+          |{
+          |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+          |   "refNumber": "2110118025",
+          |   "agentReferenceNumber": "PARN0876123",
+          |   "idType": "UTR",
+          |   "regime": "TRS",
+          |   "authorisation": {
+          |     "action": "Authorise",
+          |     "isExclusiveAgent": true
+          |     }
+          |}""".stripMargin))
+        result should haveStatus(200)
+      }
+
+      "respond 200 when authorising for TRS with URN" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = IfStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
+          |{
+          |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+          |   "refNumber": "XXTRUST80000001",
+          |   "agentReferenceNumber": "PARN0876123",
+          |   "idType": "URN",
+          |   "regime": "TRS",
+          |   "authorisation": {
+          |     "action": "Authorise",
+          |     "isExclusiveAgent": true
+          |     }
+          |}""".stripMargin))
+        result should haveStatus(200)
+      }
+
+      "respond 200 when authorising for TRS with URN through API gateway" in {
+        SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+        implicit val apiAuthContext: AuthContext = AuthContext.fromHeaders("X-Client-ID" -> "foo123")
+
+        val result = IfStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
+          |{
+          |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+          |   "refNumber": "XXTRUST80000001",
+          |   "agentReferenceNumber": "PARN0876123",
+          |   "idType": "URN",
+          |   "regime": "TRS",
+          |   "authorisation": {
+          |     "action": "Authorise",
+          |     "isExclusiveAgent": true
+          |     }
+          |}""".stripMargin))
+        result should haveStatus(200)
+      }
+
+      "respond 200 when de-authorising an TRS relationship with URN" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = IfStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
+          |{
+          |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+          |   "refNumber": "XXTRUST80000001",
+          |   "agentReferenceNumber": "PARN0876123",
+          |   "idType": "URN",
+          |   "regime": "TRS",
+          |   "authorisation": {
+          |     "action": "Authorise",
+          |     "isExclusiveAgent": true
+          |     }
+          |}""".stripMargin))
+        result should haveStatus(200)
+      }
+    }
+
     "GET /registration/relationship" should {
       "respond 200" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()

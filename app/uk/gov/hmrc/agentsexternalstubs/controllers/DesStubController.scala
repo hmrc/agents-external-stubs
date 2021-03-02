@@ -74,16 +74,9 @@ class DesStubController @Inject() (
   }
 
   def getRelationship(
-    idtype: Option[String],
-    `ref-no`: Option[String],
     arn: Option[String],
     agent: Boolean,
-    `active-only`: Boolean,
-    regime: String,
-    from: Option[String],
-    to: Option[String],
-    relationship: Option[String],
-    `auth-profile`: Option[String]
+    regime: String
   ): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       GetRelationships.form.bindFromRequest.fold(
@@ -640,7 +633,7 @@ object DesStubController {
           "none"
         ),
         "ref-no" -> optional(
-          nonEmptyText.verifying(Constraints.pattern("^[0-9A-Za-z]{1,15}$".r, "ref-no", "Invalid ref-no"))
+          nonEmptyText.verifying(Constraints.pattern(RegexPatterns.validUtrPattern.r, "ref-no", "Invalid ref-no"))
         ),
         "active-only" -> boolean,
         "agent"       -> boolean,

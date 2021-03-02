@@ -33,9 +33,12 @@ object RegexPatterns {
     "^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})\\s?\\d{2}\\s?\\d{2}\\s?\\d{2}\\s?[A-D]?$".r
   )
   val validArn: Matcher = validate("^[A-Z]ARN[0-9]{7}$".r)
-  val validUtr: Matcher = validate("^[0-9]{10}$".r)
-  val validUrn: Matcher = validate("^([A-Z0-9]{1,15})$".r)
-  val validUtrOrUrn = validateTrustTaxIdentifier("^[0-9]{10}$".r, "^([A-Z0-9]{1,15})$".r)
+  val validUtrPattern = "^[0-9]{10}$"
+  val validUtr: Matcher = validate(validUtrPattern.r)
+  val validUrnPattern = "^([A-Z0-9]{1,15})$"
+  val validUrn: Matcher = validate(validUrnPattern.r)
+  val validUtrOrUrn: String => Either[String, TaxIdentifier] =
+    validateTrustTaxIdentifier(validUrnPattern.r, validUtrPattern.r)
   val validMtdbsa: Matcher = validate("^[A-Z0-9]{1,15}$".r)
   val validVrn: Matcher = validate("^[0-9]{1,9}$".r)
   val validEori: Matcher = validate("^[A-Z]{2}[0-9]{12}$".r)

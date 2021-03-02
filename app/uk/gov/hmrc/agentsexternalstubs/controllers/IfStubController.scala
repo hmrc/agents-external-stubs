@@ -16,21 +16,20 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import java.time.Instant
-import javax.inject.{Inject, Singleton}
 import org.joda.time.LocalDate
 import play.api.data.Form
 import play.api.data.Forms._
 import play.api.data.validation.{Constraint, Constraints, Invalid, Valid}
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
-import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, Urn, Utr}
-import uk.gov.hmrc.agentsexternalstubs.models.RegexPatterns.Matcher
+import uk.gov.hmrc.agentmtdidentifiers.model.Arn
+import uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.{AuthoriseRequest, AuthoriseResponse}
 import uk.gov.hmrc.agentsexternalstubs.models.TrustDetailsResponse.getErrorResponseFor
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.services._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -45,16 +44,9 @@ class IfStubController @Inject() (
   import IfStubController._
 
   def getRelationship(
-    idtype: Option[String],
-    referenceNumber: Option[String],
     arn: Option[String],
     agent: Boolean,
-    `active-only`: Boolean,
-    regime: String,
-    from: Option[String],
-    to: Option[String],
-    relationship: Option[String],
-    `auth-profile`: Option[String]
+    regime: String
   ): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       GetRelationships.form.bindFromRequest.fold(
@@ -143,6 +135,26 @@ class IfStubController @Inject() (
       .flatMap(_.toEnrolmentKeyTag)
       .map(_.split('~').takeRight(1).mkString)
 
+  val authoriseOrDeAuthoriseRelationship: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+    withCurrentSession { session =>
+      withPayload[CreateUpdateAgentRelationshipPayload] { payload =>
+        CreateUpdateAgentRelationshipPayload
+          .validate()(payload)
+          .fold(
+            error => badRequestF("INVALID_SUBMISSION", error.mkString(", ")),
+            _ =>
+              if (payload.authorisation.action == "Authorise")
+                relationshipRecordsService
+                  .authorise(AuthoriseRequest.toRelationshipRecord(payload), session.planetId)
+                  .map(_ => Ok(Json.toJson(AuthoriseResponse())))
+              else
+                relationshipRecordsService
+                  .deAuthorise(AuthoriseRequest.toRelationshipRecord(payload), session.planetId)
+                  .map(_ => Ok(Json.toJson(AuthoriseResponse())))
+          )
+      }
+    }(SessionRecordNotFound)
+  }
 }
 
 object IfStubController {
@@ -171,7 +183,7 @@ object IfStubController {
         ),
         "referenceNumber" -> optional(
           nonEmptyText.verifying(
-            Constraints.pattern("^[0-9A-Za-z]{1,15}$".r, "referenceNumber", "Invalid referenceNumber")
+            Constraints.pattern(RegexPatterns.validUrnPattern.r, "referenceNumber", "Invalid referenceNumber")
           )
         ),
         "active-only" -> boolean,
