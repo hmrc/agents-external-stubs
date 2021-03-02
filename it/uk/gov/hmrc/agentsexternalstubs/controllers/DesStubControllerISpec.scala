@@ -348,7 +348,13 @@ class DesStubControllerISpec
         )
 
         val result =
-          DesStub.getRelationship(regime = "TRS", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
+          DesStub.getRelationship(
+            regime = "TRS",
+            agent = true,
+            `active-only` = true,
+            arn = Some("ZARN1234567"),
+            `ref-no` = Some("XXTRUST80000001")
+          )
 
         result should haveStatus(200)
         result.json.as[JsObject] should haveProperty[Seq[JsObject]](

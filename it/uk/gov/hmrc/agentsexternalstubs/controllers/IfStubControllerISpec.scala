@@ -306,7 +306,13 @@ class IfStubControllerISpec
         )
 
         val result =
-          IfStub.getRelationship(regime = "TRS", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
+          IfStub.getRelationship(
+            regime = "TRS",
+            agent = true,
+            `active-only` = true,
+            referenceNumber = Some("1234567890"),
+            arn = Some("ZARN1234567")
+          )
 
         result should haveStatus(200)
         result.json.as[JsObject] should haveProperty[Seq[JsObject]](
@@ -391,7 +397,13 @@ class IfStubControllerISpec
         )
 
         val result =
-          IfStub.getRelationship(regime = "TRS", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
+          IfStub.getRelationship(
+            regime = "TRS",
+            agent = true,
+            `active-only` = true,
+            arn = Some("ZARN1234567"),
+            referenceNumber = Some("XXTRUST80000001")
+          )
 
         result should haveStatus(200)
         result.json.as[JsObject] should haveProperty[Seq[JsObject]](

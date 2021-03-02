@@ -18,21 +18,25 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.json.JsValue
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.agentsexternalstubs.models.RegexPatterns
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
 
 /** Some routes can be handled by IF or DES, based on a feature flag in the client.
   * We dispatch these to DES or IF based on the shape of the call.
+  *
+  * TODO: The inference in this class could be obviated with an environment switch
   */
 @Singleton
 class StubRouting @Inject() (ifStub: IfStubController, desStub: DesStubController, cc: ControllerComponents)
     extends BackendController(cc) {
 
+  // referenceNumber is only used for trusts URN
+  // otherwise ref-no is used
   def getRelationship(
     idtype: Option[String],
     referenceNumber: Option[String],
+    `ref-no`: Option[String],
     arn: Option[String],
     agent: Boolean,
     `active-only`: Boolean,
@@ -42,9 +46,10 @@ class StubRouting @Inject() (ifStub: IfStubController, desStub: DesStubControlle
     relationship: Option[String],
     `auth-profile`: Option[String]
   ): Action[AnyContent] = {
-    def routeByRefNumber = referenceNumber match {
-      case Some(n) if n.matches(RegexPatterns.validUrnPattern) => ifStub.getRelationship(arn, agent, regime)
-      case _                                                   => desStub.getRelationship(arn, agent, regime)
+    def routeByRefNumber = (`ref-no`, referenceNumber) match {
+      case (Some(_), None) => ifStub.getRelationship(arn, agent, regime)
+      case (None, Some(_)) => desStub.getRelationship(arn, agent, regime)
+      case _               => desStub.getRelationship(arn, agent, regime)
     }
     idtype.map(_.toUpperCase) match {
       case Some("URN") => ifStub.getRelationship(arn, agent, regime)
