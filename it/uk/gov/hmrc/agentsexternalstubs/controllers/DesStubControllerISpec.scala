@@ -34,12 +34,12 @@ class DesStubControllerISpec
         val result = DesStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
           |{
           |   "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
-          |   "refNumber": "012345678901234",  
-          |   "agentReferenceNumber": "ZARN1234567",  
+          |   "refNumber": "012345678901234",
+          |   "agentReferenceNumber": "ZARN1234567",
           |   "regime": "ITSA",
-          |   "authorisation": {    
-          |     "action": "Authorise",    
-          |     "isExclusiveAgent": true  
+          |   "authorisation": {
+          |     "action": "Authorise",
+          |     "isExclusiveAgent": true
           |   }
           |}
           """.stripMargin))
@@ -53,12 +53,12 @@ class DesStubControllerISpec
         val result = DesStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
           |{
           |   "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
-          |   "refNumber": "012345678901234",  
-          |   "agentReferenceNumber": "ZARN1234567",  
+          |   "refNumber": "012345678901234",
+          |   "agentReferenceNumber": "ZARN1234567",
           |   "regime": "ITSA",
-          |   "authorisation": {    
-          |     "action": "Authorise",    
-          |     "isExclusiveAgent": true  
+          |   "authorisation": {
+          |     "action": "Authorise",
+          |     "isExclusiveAgent": true
           |   }
           |}
                      """.stripMargin))
@@ -130,64 +130,6 @@ class DesStubControllerISpec
           |   "refNumber": "2110118025",
           |   "agentReferenceNumber": "PARN0876123",
           |   "idType": "UTR",
-          |   "regime": "TRS",
-          |   "authorisation": {
-          |     "action": "Authorise",
-          |     "isExclusiveAgent": true
-          |     }
-          |}
-                     """.stripMargin))
-        result should haveStatus(200)
-      }
-
-      "respond 200 when authorising for TRS with URN" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-
-        val result = DesStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
-          |{
-          |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
-          |   "refNumber": "XXTRUST80000001",
-          |   "agentReferenceNumber": "PARN0876123",
-          |   "idType": "URN",
-          |   "regime": "TRS",
-          |   "authorisation": {
-          |     "action": "Authorise",
-          |     "isExclusiveAgent": true
-          |     }
-          |}
-          """.stripMargin))
-        result should haveStatus(200)
-      }
-
-      "respond 200 when authorising for TRS with URN through API gateway" in {
-        SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
-        implicit val apiAuthContext: AuthContext = AuthContext.fromHeaders("X-Client-ID" -> "foo123")
-
-        val result = DesStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
-          |{
-          |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
-          |   "refNumber": "XXTRUST80000001",
-          |   "agentReferenceNumber": "PARN0876123",
-          |   "idType": "URN",
-          |   "regime": "TRS",
-          |   "authorisation": {
-          |     "action": "Authorise",
-          |     "isExclusiveAgent": true
-          |     }
-          |}
-                     """.stripMargin))
-        result should haveStatus(200)
-      }
-
-      "respond 200 when de-authorising an TRS relationship with URN" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-
-        val result = DesStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
-          |{
-          |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
-          |   "refNumber": "XXTRUST80000001",
-          |   "agentReferenceNumber": "PARN0876123",
-          |   "idType": "URN",
           |   "regime": "TRS",
           |   "authorisation": {
           |     "action": "Authorise",
@@ -406,7 +348,13 @@ class DesStubControllerISpec
         )
 
         val result =
-          DesStub.getRelationship(regime = "TRS", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
+          DesStub.getRelationship(
+            regime = "TRS",
+            agent = true,
+            `active-only` = true,
+            arn = Some("ZARN1234567"),
+            `ref-no` = Some("XXTRUST80000001")
+          )
 
         result should haveStatus(200)
         result.json.as[JsObject] should haveProperty[Seq[JsObject]](
@@ -527,7 +475,7 @@ class DesStubControllerISpec
         Users.create(UserGenerator.organisation("foo1").withPrincipalEnrolment(enrolmentKey))
         val trustTaxIdentifier = "0123456789"
 
-        val result = DesStub.getTrustKnownFactsUtr(trustTaxIdentifier)
+        val result = DesStub.getTrustKnownFacts(trustTaxIdentifier)
         result should haveStatus(200)
 
         result.json.as[JsObject] should haveProperty[JsObject](
@@ -540,21 +488,14 @@ class DesStubControllerISpec
     }
 
     "GET /trusts/agent-known-fact-check/:urn" should {
-      "respond 200 with trust details using URN" in {
+      "respond 400" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val enrolmentKey = "HMRC-TERSNT-ORG~URN~XXTRUST80000001"
         Users.create(UserGenerator.organisation("foo1").withPrincipalEnrolment(enrolmentKey))
         val trustTaxIdentifier = "XXTRUST80000001"
 
         val result = DesStub.getTrustKnownFactsUrn(trustTaxIdentifier)
-        result should haveStatus(200)
-
-        result.json.as[JsObject] should haveProperty[JsObject](
-          "trustDetails",
-          haveProperty[String]("urn"),
-          haveProperty[String]("trustName"),
-          haveProperty[String]("serviceName")
-        )
+        result should haveStatus(400)
       }
     }
 

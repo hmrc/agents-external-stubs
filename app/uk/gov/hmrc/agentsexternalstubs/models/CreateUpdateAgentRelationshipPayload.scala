@@ -86,8 +86,13 @@ object CreateUpdateAgentRelationshipPayload {
     _.matches(Common.refNumberPattern),
     s"""Invalid refNumber, does not matches regex ${Common.refNumberPattern}"""
   )
-  val idTypeValidator: Validator[Option[String]] =
+  val defaultIdTypeValidator: Validator[Option[String]] =
     check(_.matches(Common.idTypePattern), s"""Invalid idType, does not matches regex ${Common.idTypePattern}""")
+  val noUrnIdTypeValidator: Validator[Option[String]] =
+    check(
+      _.matches(Common.idTypePatternNoUrn),
+      s"""Invalid idType, does not matches regex ${Common.idTypePatternNoUrn}"""
+    )
   val agentReferenceNumberValidator: Validator[String] = check(
     _.matches(Common.agentReferenceNumberPattern),
     s"""Invalid agentReferenceNumber, does not matches regex ${Common.agentReferenceNumberPattern}"""
@@ -100,7 +105,9 @@ object CreateUpdateAgentRelationshipPayload {
   val authProfileValidator: Validator[Option[String]] =
     check(_.isOneOf(Common.authProfileEnum), "Invalid authProfile, does not match allowed values")
 
-  val validate: Validator[CreateUpdateAgentRelationshipPayload] = Validator(
+  def validate(
+    idTypeValidator: Validator[Option[String]] = defaultIdTypeValidator
+  ): Validator[CreateUpdateAgentRelationshipPayload] = Validator(
     checkProperty(_.acknowledgmentReference, acknowledgmentReferenceValidator),
     checkProperty(_.refNumber, refNumberValidator),
     checkProperty(_.idType, idTypeValidator),
@@ -206,5 +213,6 @@ object CreateUpdateAgentRelationshipPayload {
     val regimePattern = """^[A-Z]{2,10}$"""
     val actionEnum1 = Seq("Authorise")
     val idTypePattern = """^[0-9A-Za-z]{1,6}$"""
+    val idTypePatternNoUrn = """^(?i)(?!urn$)(?-i)[0-9A-Za-z]{1,6}$"""
   }
 }

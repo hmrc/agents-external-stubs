@@ -56,7 +56,7 @@ class DesStubController @Inject() (
     withCurrentSession { session =>
       withPayload[CreateUpdateAgentRelationshipPayload] { payload =>
         CreateUpdateAgentRelationshipPayload
-          .validate(payload)
+          .validate(CreateUpdateAgentRelationshipPayload.noUrnIdTypeValidator)(payload)
           .fold(
             error => badRequestF("INVALID_SUBMISSION", error.mkString(", ")),
             _ =>
@@ -74,16 +74,9 @@ class DesStubController @Inject() (
   }
 
   def getRelationship(
-    idtype: Option[String],
-    `ref-no`: Option[String],
     arn: Option[String],
     agent: Boolean,
-    `active-only`: Boolean,
-    regime: String,
-    from: Option[String],
-    to: Option[String],
-    relationship: Option[String],
-    `auth-profile`: Option[String]
+    regime: String
   ): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       GetRelationships.form.bindFromRequest.fold(
@@ -449,17 +442,14 @@ class DesStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def getTrustKnownFacts(trustTaxIdentifier: String): Action[AnyContent] = Action.async { implicit request =>
+  def getTrustKnownFacts(utr: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       RegexPatterns
-        .validUtrOrUrn(trustTaxIdentifier)
+        .validUtr(utr)
         .fold(
-          error => badRequestF(error.mkString(", ")),
+          error => badRequestF(error),
           taxIdentifier => {
-            val enrolmentKey = taxIdentifier match {
-              case Utr(v) => EnrolmentKey("HMRC-TERS-ORG", Seq(Identifier("SAUTR", v)))
-              case Urn(v) => EnrolmentKey("HMRC-TERSNT-ORG", Seq(Identifier("URN", v)))
-            }
+            val enrolmentKey = EnrolmentKey("HMRC-TERS-ORG", Seq(Identifier("SAUTR", taxIdentifier)))
             usersService
               .findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
               .map {
@@ -478,7 +468,7 @@ class DesStubController @Inject() (
                     )
                   )
                   Ok(Json.toJson(trustDetails))
-                case None => getErrorResponseFor(trustTaxIdentifier)
+                case None => getErrorResponseFor(utr)
               }
           }
         )
@@ -643,7 +633,7 @@ object DesStubController {
           "none"
         ),
         "ref-no" -> optional(
-          nonEmptyText.verifying(Constraints.pattern("^[0-9A-Za-z]{1,15}$".r, "ref-no", "Invalid ref-no"))
+          nonEmptyText.verifying(Constraints.pattern(RegexPatterns.validUtrPattern.r, "ref-no", "Invalid ref-no"))
         ),
         "active-only" -> boolean,
         "agent"       -> boolean,
