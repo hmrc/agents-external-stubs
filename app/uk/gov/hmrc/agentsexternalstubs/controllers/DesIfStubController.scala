@@ -37,7 +37,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class DesStubController @Inject() (
+class DesIfStubController @Inject() (
   val authenticationService: AuthenticationService,
   relationshipRecordsService: RelationshipRecordsService,
   legacyRelationshipRecordsService: LegacyRelationshipRecordsService,
@@ -50,13 +50,13 @@ class DesStubController @Inject() (
 )(implicit usersService: UsersService, executionContext: ExecutionContext)
     extends BackendController(cc) with DesCurrentSession {
 
-  import DesStubController._
+  import DesIfStubController._
 
   val authoriseOrDeAuthoriseRelationship: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
       withPayload[CreateUpdateAgentRelationshipPayload] { payload =>
         CreateUpdateAgentRelationshipPayload
-          .validate(CreateUpdateAgentRelationshipPayload.noUrnIdTypeValidator)(payload)
+          .validate()(payload)
           .fold(
             error => badRequestF("INVALID_SUBMISSION", error.mkString(", ")),
             _ =>
@@ -74,9 +74,17 @@ class DesStubController @Inject() (
   }
 
   def getRelationship(
+    idtype: Option[String],
+    `ref-no`: Option[String],
+    referenceNumber: Option[String],
     arn: Option[String],
     agent: Boolean,
-    regime: String
+    `active-only`: Boolean,
+    regime: String,
+    from: Option[String],
+    to: Option[String],
+    relationship: Option[String],
+    `auth-profile`: Option[String]
   ): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       GetRelationships.form.bindFromRequest.fold(
@@ -474,6 +482,54 @@ class DesStubController @Inject() (
         )
     }(SessionRecordNotFound)
   }
+
+  private val HMRC_TERS_ORG = "HMRC-TERS-ORG"
+  private val HMRC_TERSNT_ORG = "HMRC-TERSNT-ORG"
+
+  def getTrustKnownFactsUTR(utr: String): Action[AnyContent] =
+    getTrustsKnownFacts(utr, RegexPatterns.validUtr, HMRC_TERS_ORG, "SAUTR")
+
+  def getTrustKnownFactsURN(urn: String): Action[AnyContent] =
+    getTrustsKnownFacts(urn, RegexPatterns.validUrn, HMRC_TERSNT_ORG, "URN")
+
+  private def getTrustsKnownFacts(
+    id: String,
+    validation: RegexPatterns.Matcher,
+    service: String,
+    key: String
+  ): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      validation(id)
+        .fold(
+          error => badRequestF(error),
+          taxIdentifier => {
+
+            val enrolmentKey = EnrolmentKey(service, Seq(Identifier(key, taxIdentifier)))
+            usersService
+              .findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
+              .map {
+                case Some(record) =>
+                  val maybeUtr =
+                    extractEnrolmentValue(HMRC_TERS_ORG)(record)
+                  val maybeUrn =
+                    extractEnrolmentValue(HMRC_TERSNT_ORG)(record)
+                  val trustDetails = TrustDetailsResponse(
+                    TrustDetails(
+                      maybeUtr,
+                      maybeUrn,
+                      record.name.getOrElse(""),
+                      TrustAddress(record.user.address),
+                      "TERS"
+                    )
+                  )
+                  Ok(Json.toJson(trustDetails))
+                case None => getErrorResponseFor(id)
+              }
+          }
+        )
+    }(SessionRecordNotFound)
+  }
+
   private def extractEnrolmentValue(serviceKey: String)(record: User) =
     record.principalEnrolments
       .find(_.key == serviceKey)
@@ -587,7 +643,7 @@ class DesStubController @Inject() (
 
 }
 
-object DesStubController {
+object DesIfStubController {
 
   object AuthoriseRequest {
 
@@ -614,7 +670,8 @@ object DesStubController {
 
     private val queryConstraint: Constraint[RelationshipRecordQuery] = Constraint(q =>
       if (q.agent && q.arn.isEmpty) Invalid("Missing arn")
-      else if (!q.agent && q.refNumber.isEmpty) Invalid("Missing ref-no")
+      else if (!q.agent && q.getRefNumber.isEmpty)
+        Invalid("ref-no [DES] or referenceNumber [IF] must be present")
       else if ((!q.activeOnly || q.to.isDefined) && q.from.isEmpty) Invalid("Missing from date")
       else if (!q.activeOnly && q.to.isEmpty) Invalid("Missing to date")
       else if ((q.regime == "VATC" || q.regime == "CGT") && q.relationship.isEmpty)
@@ -633,7 +690,12 @@ object DesStubController {
           "none"
         ),
         "ref-no" -> optional(
-          nonEmptyText.verifying(Constraints.pattern(RegexPatterns.validUtrPattern.r, "ref-no", "Invalid ref-no"))
+          nonEmptyText.verifying(Constraints.pattern("^[0-9A-Za-z]{1,15}$".r, "ref-no", "Invalid ref-no"))
+        ),
+        "referenceNumber" -> optional(
+          nonEmptyText.verifying(
+            Constraints.pattern("^[0-9A-Za-z]{1,15}$".r, "referenceNumber", "Invalid referenceNumber")
+          )
         ),
         "active-only" -> boolean,
         "agent"       -> boolean,

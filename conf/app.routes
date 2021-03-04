@@ -48,34 +48,31 @@ DELETE        /tax-enrolments/enrolments/:enrolmentKey                          
 POST          /tax-enrolments/users/:userId/enrolments/:enrolmentKey                                  @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.assignUser(userId: String, enrolmentKey: EnrolmentKey)
 
 # DES stubs
-GET           /registration/relationship/utr/:utr                                                    @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getLegacyRelationshipsByUtr(utr: String)
-GET           /registration/relationship/nino/:nino                                                  @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getLegacyRelationshipsByNino(nino: String)
-GET           /registration/business-details/:idType/:idNumber                                       @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getBusinessDetails(idType: String, idNumber: String)
-GET           /vat/customer/vrn/:vrn/information                                                     @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getVatCustomerInformation(vrn: String)
-GET           /registration/personal-details/:idType/:idNumber                                       @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getBusinessPartnerRecord(idType: String, idNumber: String)
-GET           /vat/known-facts/control-list/:vrn                                                     @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getVatKnownFacts(vrn: String)
-POST          /registration/agents/utr/:utr                                                          @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.subscribeAgentServicesWithUtr(utr: String)
-POST          /registration/agents/safeId/:safeId                                                    @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.subscribeAgentServicesWithSafeId(safeId: String)
-POST          /registration/individual/:idType/:idNumber                                             @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.register(idType: String, idNumber: String)
-POST          /registration/organisation/:idType/:idNumber                                           @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.register(idType: String, idNumber: String)
-GET           /sa/agents/:agentref/client/:utr                                                       @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.agentClientAuthorisationFlags(agentref: String, utr: String)
-POST          /registration/02.00.00/individual                                                      @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.registerIndividualWithoutID
-POST          /registration/02.00.00/organisation                                                    @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.registerOrganisationWithoutID
-POST          /agents/paye/:agentCode/clients/compare                                                @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.retrieveLegacyAgentClientPayeInformation(agentCode: String)
-DELETE        /agents/paye/:agentCode/clients/:taxOfficeNumber/:taxOfficeReference                   @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.removeLegacyAgentClientPayeRelationship(agentCode: String, taxOfficeNumber: String, taxOfficeReference: String)
-GET           /corporation-tax/identifiers/:idType/:idValue                                          @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getCtReference(idType: String, idValue: String)
+GET           /registration/relationship/utr/:utr                                                    @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getLegacyRelationshipsByUtr(utr: String)
+GET           /registration/relationship/nino/:nino                                                  @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getLegacyRelationshipsByNino(nino: String)
+GET           /registration/business-details/:idType/:idNumber                                       @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getBusinessDetails(idType: String, idNumber: String)
+GET           /vat/customer/vrn/:vrn/information                                                     @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getVatCustomerInformation(vrn: String)
+GET           /registration/personal-details/:idType/:idNumber                                       @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getBusinessPartnerRecord(idType: String, idNumber: String)
+GET           /vat/known-facts/control-list/:vrn                                                     @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getVatKnownFacts(vrn: String)
+POST          /registration/agents/utr/:utr                                                          @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.subscribeAgentServicesWithUtr(utr: String)
+POST          /registration/agents/safeId/:safeId                                                    @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.subscribeAgentServicesWithSafeId(safeId: String)
+POST          /registration/individual/:idType/:idNumber                                             @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.register(idType: String, idNumber: String)
+POST          /registration/organisation/:idType/:idNumber                                           @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.register(idType: String, idNumber: String)
+GET           /sa/agents/:agentref/client/:utr                                                       @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.agentClientAuthorisationFlags(agentref: String, utr: String)
+POST          /registration/02.00.00/individual                                                      @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.registerIndividualWithoutID
+POST          /registration/02.00.00/organisation                                                    @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.registerOrganisationWithoutID
+POST          /agents/paye/:agentCode/clients/compare                                                @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.retrieveLegacyAgentClientPayeInformation(agentCode: String)
+DELETE        /agents/paye/:agentCode/clients/:taxOfficeNumber/:taxOfficeReference                   @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.removeLegacyAgentClientPayeRelationship(agentCode: String, taxOfficeNumber: String, taxOfficeReference: String)
+GET           /corporation-tax/identifiers/:idType/:idValue                                          @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getCtReference(idType: String, idValue: String)
 
-GET           /trusts/agent-known-fact-check/:trustTaxIdentifier                                     @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getTrustKnownFacts(trustTaxIdentifier: String)
+GET           /trusts/agent-known-fact-check/:trustTaxIdentifier                                     @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getTrustKnownFacts(trustTaxIdentifier: String)
+GET           /trusts/agent-known-fact-check/UTR/:utr                                                @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getTrustKnownFactsUTR(utr: String)
+GET           /trusts/agent-known-fact-check/URN/:urn                                                @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getTrustKnownFactsURN(urn: String)
 
-GET           /subscriptions/:regime/:idType/:cgtRef                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.DesStubController.getCgtSubscription(regime: String, idType: String, cgtRef: String)
+GET           /subscriptions/:regime/:idType/:cgtRef                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getCgtSubscription(regime: String, idType: String, cgtRef: String)
 
-# IF Stubs
-GET           /trusts/agent-known-fact-check/UTR/:utr                                                @uk.gov.hmrc.agentsexternalstubs.controllers.IfStubController.getTrustKnownFactsUTR(utr: String)
-GET           /trusts/agent-known-fact-check/URN/:urn                                                @uk.gov.hmrc.agentsexternalstubs.controllers.IfStubController.getTrustKnownFactsURN(urn: String)
-
-# Routings serviced by both DES and IF
-GET           /registration/relationship                                                             @uk.gov.hmrc.agentsexternalstubs.controllers.StubRouting.getRelationship(idtype: Option[String] ?= None, `referenceNumber`: Option[String] ?= None, `ref-no`: Option[String], arn: Option[String] ?= None, agent: Boolean, `active-only`: Boolean, regime: String, from: Option[String] ?= None, to: Option[String] ?= None, relationship: Option[String] ?= None, `auth-profile`: Option[String] ?= None)
-POST          /registration/relationship                                                             @uk.gov.hmrc.agentsexternalstubs.controllers.StubRouting.authoriseOrDeAuthoriseRelationship
+GET           /registration/relationship                                                             @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getRelationship(idtype: Option[String] ?= None, `referenceNumber`: Option[String] ?= None, `ref-no`: Option[String], arn: Option[String] ?= None, agent: Boolean, `active-only`: Boolean, regime: String, from: Option[String] ?= None, to: Option[String] ?= None, relationship: Option[String] ?= None, `auth-profile`: Option[String] ?= None)
+POST          /registration/relationship                                                             @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.authoriseOrDeAuthoriseRelationship
 
 # Datastream
 POST          /write/audit                                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.DataStreamStubController.writeEvent
