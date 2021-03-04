@@ -32,8 +32,7 @@ This service SHOULD NOT be run on PRODUCTION environment.
     * [Enrolment Store Proxy](#stubbed_api_enrolment_store_proxy)
     * [Tax Enrolments](#stubbed_api_tax_enrolments)
     * [NI Exemption Registration](#stubbed_api_ni_exemption_registration)
-    * [DES](#stubbed_api_des)
-    * [IF](#stubbed_api_if)
+    * [DES and IF](#stubbed_api_des)
     * [Datastream](#stubbed_api_datastream)
     * [File Upload](#stubbed_api_file-upload)
 * [Custom API](#custom_api)
@@ -71,8 +70,7 @@ We handle local requests gracefully and do not require existing applications to 
 - listening on 9984 for users-groups-search requests
 - listening on 7775 for enrolment-store-proxy requests
 - listening on 9111 for ni-exemption-registration requests
-- listening on 9904 for des requests
-- listening on 9906 for IF requests
+- listening on 9904 for des and if requests
 - listening on 8100 for datastream events
 - listening on 9974 for sso requests
 - listening on 8898 for file-upload requests
@@ -156,7 +154,7 @@ Endpoint | Description
 `PUT /tax-enrolments/enrolments/:enrolmentKey` | upsert an (allocated or unallocated) enrolment
 `DELETE /tax-enrolments/enrolments/:enrolmentKey` | remove an unallocated enrolment
 
-### DES <a name="stubbed_api_des"></a>
+### DES and IF <a name="stubbed_api_des"></a>
 
 Endpoint | Description
 ---|---
@@ -178,12 +176,9 @@ Endpoint | Description
 `POST /agents/paye/:agentCode/clients/compare` | Returns agent-client authorisations for epaye
 `DELETE /agents/paye/:agentCode/clients/:taxOfficeNumber/:taxOfficeReference` | Removes given agent-client authorisation for epaye
 `GET /corporation-tax/identifiers/:idType/:idValue` | Provides the ability for a Taxpayer to retrieve the Corporation Tax Unique Taxpayer Reference (CTUTR) given a Company Registration Number (CRN) identifier
-
-### IF <a name="stubbed_api_if"></a>
-
-Endpoint | Description
----|---
-`GET  /registration/relationship` | Provides the ability for a taxpayer (individual or organisation) or their agent to display historical or current relationships.
+`GET /trusts/agent-known-fact-check/URN/:urn` | Get known facts (enrolment) information
+`GET /trusts/agent-known-fact-check/UTF/:utf` | Get known facts (enrolment) information
+`GET /trusts/agent-known-fact-check/:trustTaxIdentifier` | Get known facts (enrolment) information
 
 ### [Datastream](https://github.com/hmrc/datastream) <a name="stubbed_api_datastream"></a>
 

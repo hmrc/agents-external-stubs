@@ -98,7 +98,7 @@ class RecordsController @Inject() (
           .store(record, autoFill, session.planetId)
           .map(recordId =>
             Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))).withHeaders(
-              HeaderNames.LOCATION -> routes.DesStubController.getBusinessDetails("mtdbsa", record.mtdbsa).url
+              HeaderNames.LOCATION -> routes.DesIfStubController.getBusinessDetails("mtdbsa", record.mtdbsa).url
             )
           )
       )
@@ -146,8 +146,8 @@ class RecordsController @Inject() (
             .map(recordId =>
               Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))).withHeaders(
                 HeaderNames.LOCATION -> record.nino
-                  .map(nino => routes.DesStubController.getLegacyRelationshipsByNino(nino).url)
-                  .orElse(record.utr.map(utr => routes.DesStubController.getLegacyRelationshipsByUtr(utr).url))
+                  .map(nino => routes.DesIfStubController.getLegacyRelationshipsByNino(nino).url)
+                  .orElse(record.utr.map(utr => routes.DesIfStubController.getLegacyRelationshipsByUtr(utr).url))
                   .getOrElse("")
               )
             )
@@ -174,7 +174,9 @@ class RecordsController @Inject() (
             .store(record, autoFill, session.planetId)
             .map(recordId =>
               Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url)))
-                .withHeaders(HeaderNames.LOCATION -> routes.DesStubController.getVatCustomerInformation(record.vrn).url)
+                .withHeaders(
+                  HeaderNames.LOCATION -> routes.DesIfStubController.getVatCustomerInformation(record.vrn).url
+                )
             )
         )
       }(SessionRecordNotFound)

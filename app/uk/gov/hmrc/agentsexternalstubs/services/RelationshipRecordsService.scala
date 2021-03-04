@@ -108,7 +108,7 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
           RelationshipRecord.clientKey(
             query.regime,
             query.idType,
-            query.refNumber.getOrElse(throw new Exception("Missing refNumber parameter"))
+            query.getRefNumber.getOrElse(throw new Exception("Missing refNumber parameter"))
           )
         )
       }
@@ -127,11 +127,14 @@ case class RelationshipRecordQuery(
   regime: String,
   arn: Option[String] = None,
   idType: String,
-  refNumber: Option[String] = None,
+  private val refNumber: Option[String] = None, // Deprecated, DES service
+  private val referenceNumber: Option[String] = None, // IF Service
   activeOnly: Boolean = true,
   agent: Boolean,
   from: Option[LocalDate] = None,
   to: Option[LocalDate] = None,
   relationship: Option[String] = None,
   authProfile: Option[String] = None
-)
+) {
+  def getRefNumber: Option[String] = Seq(refNumber, referenceNumber).flatten.headOption
+}

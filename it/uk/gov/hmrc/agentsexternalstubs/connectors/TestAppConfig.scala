@@ -12,7 +12,6 @@ case class TestAppConfig(wireMockBaseUrl: String, wireMockPort: Int) extends App
   override val enrolmentStoreProxyUrl: String = wireMockBaseUrl
   override val taxEnrolmentsUrl: String = wireMockBaseUrl
   override val desUrl: String = wireMockBaseUrl
-  override val ifUrl: String = wireMockBaseUrl
   override val niExemptionRegistrationUrl: String = wireMockBaseUrl
   override val authLoginApiUrl: String = wireMockBaseUrl
   override val agentAccessControlUrl: String = wireMockBaseUrl
@@ -29,7 +28,6 @@ case class TestAppConfig(wireMockBaseUrl: String, wireMockPort: Int) extends App
   override val taxEnrolmentsPort: Int = wireMockPort
   override val niExemptionRegistrationPort: Int = wireMockPort
   override val desPort: Int = wireMockPort
-  override val ifPort: Int = wireMockPort
   override val dataStreamPort: Int = wireMockPort
   override val ssoPort: Int = wireMockPort
   override val fileUploadFrontendPort: Int = wireMockPort

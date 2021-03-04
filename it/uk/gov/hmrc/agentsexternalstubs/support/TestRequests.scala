@@ -393,113 +393,6 @@ trait TestRequests extends ScalaFutures {
       `active-only`: Boolean,
       idtype: Option[String] = None,
       `ref-no`: Option[String] = None,
-      arn: Option[String] = None,
-      from: Option[String] = None,
-      to: Option[String] = None
-    )(implicit authContext: AuthContext): WSResponse =
-      wsClient
-        .url(s"$url/registration/relationship")
-        .withQueryStringParameters(
-          Seq(
-            "idtype"      -> `idtype`,
-            "ref-no"      -> `ref-no`,
-            "arn"         -> arn,
-            "agent"       -> Some(agent.toString),
-            "active-only" -> Some(`active-only`.toString),
-            "regime"      -> Some(regime),
-            "from"        -> from,
-            "to"          -> to
-          ).collect { case (name, Some(value: String)) =>
-            (name, value)
-          }: _*
-        )
-        .withHttpHeaders(authContext.headers: _*)
-        .get()
-        .futureValue
-
-    def getLegacyRelationshipsByNino(nino: String)(implicit authContext: AuthContext): WSResponse =
-      get(s"/registration/relationship/nino/$nino")
-
-    def getLegacyRelationshipsByUtr(utr: String)(implicit authContext: AuthContext): WSResponse =
-      get(s"/registration/relationship/utr/$utr")
-
-    def getTrustKnownFacts(utr: String)(implicit authContext: AuthContext): WSResponse =
-      get(s"/trusts/agent-known-fact-check/$utr")
-
-    def getTrustKnownFactsUrn(urn: String)(implicit authContext: AuthContext): WSResponse =
-      get(s"/trusts/agent-known-fact-check/UTN/$urn")
-
-    def getBusinessDetails(idType: String, idNumber: String)(implicit authContext: AuthContext): WSResponse =
-      get(s"/registration/business-details/$idType/$idNumber")
-
-    def getVatCustomerInformation(vrn: String)(implicit authContext: AuthContext): WSResponse =
-      get(s"/vat/customer/vrn/$vrn/information")
-
-    def getVatKnownFacts(vrn: String)(implicit authContext: AuthContext): WSResponse =
-      get(s"/vat/known-facts/control-list/$vrn")
-
-    def getBusinessPartnerRecord(idType: String, idNumber: String)(implicit authContext: AuthContext): WSResponse =
-      get(s"/registration/personal-details/$idType/$idNumber")
-
-    def subscribeToAgentServicesWithUtr[T: BodyWritable](utr: String, payload: T)(implicit
-      authContext: AuthContext
-    ): WSResponse =
-      post(s"/registration/agents/utr/$utr", payload)
-
-    def subscribeToAgentServicesWithSafeId[T: BodyWritable](safeId: String, payload: T)(implicit
-      authContext: AuthContext
-    ): WSResponse =
-      post(s"/registration/agents/safeId/$safeId", payload)
-
-    def registerIndividual[T: BodyWritable](idType: String, idNumber: String, payload: T)(implicit
-      authContext: AuthContext
-    ): WSResponse =
-      post(s"/registration/individual/$idType/$idNumber", payload)
-
-    def registerOrganisation[T: BodyWritable](idType: String, idNumber: String, payload: T)(implicit
-      authContext: AuthContext
-    ): WSResponse =
-      post(s"/registration/organisation/$idType/$idNumber", payload)
-
-    def getSAAgentClientAuthorisationFlags(agentref: String, utr: String)(implicit
-      authContext: AuthContext
-    ): WSResponse =
-      get(s"/sa/agents/$agentref/client/$utr")
-
-    def registerIndividualWithoutID[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
-      post(s"/registration/02.00.00/individual", payload)
-
-    def registerOrganisationWithoutID[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
-      post(s"/registration/02.00.00/organisation", payload)
-
-    def retrieveLegacyAgentClientPayeInformation[T: BodyWritable](agentCode: String, payload: T)(implicit
-      authContext: AuthContext
-    ): WSResponse =
-      post(s"/agents/paye/$agentCode/clients/compare", payload)
-
-    def removeLegacyAgentClientPayeRelationship(agentCode: String, taxOfficeNumber: String, taxOfficeReference: String)(
-      implicit authContext: AuthContext
-    ): WSResponse =
-      delete(s"/agents/paye/$agentCode/clients/$taxOfficeNumber/$taxOfficeReference")
-
-    def getCtReference(idType: String, idValue: String)(implicit authContext: AuthContext): WSResponse =
-      get(s"/corporation-tax/identifiers/$idType/$idValue")
-  }
-
-  object IfStub {
-
-    def authoriseOrDeAuthoriseRelationship[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
-      wsClient
-        .url(s"$url/registration/relationship")
-        .withHttpHeaders(authContext.headers: _*)
-        .post[T](payload)
-        .futureValue
-
-    def getRelationship(
-      regime: String,
-      agent: Boolean,
-      `active-only`: Boolean,
-      idtype: Option[String] = None,
       referenceNumber: Option[String] = None,
       arn: Option[String] = None,
       from: Option[String] = None,
@@ -509,7 +402,8 @@ trait TestRequests extends ScalaFutures {
         .url(s"$url/registration/relationship")
         .withQueryStringParameters(
           Seq(
-            "idtype"          -> idtype,
+            "idtype"          -> `idtype`,
+            "ref-no"          -> `ref-no`,
             "referenceNumber" -> referenceNumber,
             "arn"             -> arn,
             "agent"           -> Some(agent.toString),
@@ -531,11 +425,8 @@ trait TestRequests extends ScalaFutures {
     def getLegacyRelationshipsByUtr(utr: String)(implicit authContext: AuthContext): WSResponse =
       get(s"/registration/relationship/utr/$utr")
 
-    def getTrustKnownFactsUtr(utr: String)(implicit authContext: AuthContext): WSResponse =
-      get(s"/trusts/agent-known-fact-check/UTR/$utr")
-
-    def getTrustKnownFactsUrn(urn: String)(implicit authContext: AuthContext): WSResponse =
-      get(s"/trusts/agent-known-fact-check/URN/$urn")
+    def getTrustKnownFacts(utr: String)(implicit authContext: AuthContext): WSResponse =
+      get(s"/trusts/agent-known-fact-check/$utr")
 
     def getBusinessDetails(idType: String, idNumber: String)(implicit authContext: AuthContext): WSResponse =
       get(s"/registration/business-details/$idType/$idNumber")
@@ -592,6 +483,15 @@ trait TestRequests extends ScalaFutures {
 
     def getCtReference(idType: String, idValue: String)(implicit authContext: AuthContext): WSResponse =
       get(s"/corporation-tax/identifiers/$idType/$idValue")
+
+    def getTrustKnownFactsUtr(utr: String)(implicit authContext: AuthContext): WSResponse =
+      get(s"/trusts/agent-known-fact-check/UTR/$utr")
+
+    def getTrustKnownFactsUrn(urn: String)(implicit authContext: AuthContext): WSResponse =
+      get(s"/trusts/agent-known-fact-check/URN/$urn")
+
+    def getTrustKnownFactsUrnIncorrectly(urn: String)(implicit authContext: AuthContext): WSResponse =
+      get(s"/trusts/agent-known-fact-check/$urn")
   }
 
   object DataStreamStubs {
