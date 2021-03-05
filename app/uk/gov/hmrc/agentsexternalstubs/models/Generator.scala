@@ -119,7 +119,7 @@ object Generator extends Names with Temporal with Companies with Addresses {
     def apply(s: String) = s + calcCheckSum97(weightedTotal(s))
   }
 
-  lazy val urnGen: Gen[String] = pattern"ZZZZZZZ99999999".gen
+  lazy val urnGen: Gen[String] = pattern"99999999".gen.map("XATRUST" + _)
   def urn(seed: String): Urn = urnGen.map(Urn.apply).seeded(seed).get
 
   lazy val vrnGen: Gen[String] = pattern"9999999".gen.map(VrnChecksum.apply).retryUntil(Vrn.isValid)
