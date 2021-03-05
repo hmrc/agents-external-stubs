@@ -35,7 +35,7 @@ object RegexPatterns {
   val validArn: Matcher = validate("^[A-Z]ARN[0-9]{7}$".r)
   val validUtrPattern = "^[0-9]{10}$"
   val validUtr: Matcher = validate(validUtrPattern.r)
-  val validUrnPattern = "^([A-Z0-9]{1,15})$"
+  val validUrnPattern = "^((?i)[a-z]{2}trust[0-9]{8})$"
   val validUrn: Matcher = validate(validUrnPattern.r)
   val validUtrOrUrn: String => Either[String, TaxIdentifier] =
     validateTrustTaxIdentifier(validUrnPattern.r, validUtrPattern.r)

@@ -17,14 +17,13 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
 import com.google.inject.Provider
-import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, Urn, Utr}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord
-import uk.gov.hmrc.agentsexternalstubs.models.Generator.urn
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.BadRequestException
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton

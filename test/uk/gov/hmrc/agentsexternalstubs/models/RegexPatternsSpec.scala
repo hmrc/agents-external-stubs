@@ -39,6 +39,7 @@ class RegexPatternsSpec extends UnitSpec {
     "validate urn" in {
       RegexPatterns.validUrn("XXTRUST80000001").isRight shouldBe true
       RegexPatterns.validUrn("").isLeft shouldBe true
+      RegexPatterns.validUrn("XXABCDE12345678").isLeft shouldBe true
       RegexPatterns.validUrn("XXTRUST800000101").isLeft shouldBe true
     }
 
