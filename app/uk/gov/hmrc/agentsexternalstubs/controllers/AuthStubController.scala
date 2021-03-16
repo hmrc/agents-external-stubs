@@ -192,7 +192,7 @@ object AuthStubController {
     def prepareAuthoriseResponse(context: AuthoriseContext)(implicit ex: ExecutionContext): Retrieve.MaybeResponse =
       checkPredicates(context).fold(error => Left(error), _ => retrieveDetails(context))
 
-    def checkPredicates(context: AuthoriseContext)(implicit ex: ExecutionContext): Either[String, Unit] =
+    def checkPredicates(context: AuthoriseContext): Either[String, Unit] =
       context.request.authorise.foldLeft[Either[String, Unit]](Right(()))((result, p: Predicate) =>
         result.fold(error => Left(error), _ => p.validate(context))
       )

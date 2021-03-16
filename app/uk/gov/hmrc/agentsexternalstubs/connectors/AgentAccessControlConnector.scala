@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.connectors
 
 import java.net.URL
 
-import javax.inject.{Inject, Named, Singleton}
+import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.http._
 

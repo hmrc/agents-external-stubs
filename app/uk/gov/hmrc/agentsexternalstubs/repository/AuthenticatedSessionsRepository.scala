@@ -96,7 +96,7 @@ class AuthenticatedSessionsRepository @Inject() (mongoComponent: ReactiveMongoCo
 
   private def cursor[T](query: Seq[(String, Option[String])], projection: Seq[(String, Int)] = Seq.empty)(
     reader: collection.pack.Reader[T]
-  )(implicit ec: ExecutionContext): Cursor[T] =
+  ): Cursor[T] =
     collection
       .find(
         Json.obj(query.collect(toJsWrapper): _*),

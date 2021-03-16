@@ -160,8 +160,8 @@ object JsonSchema {
 
     def read(valueType: String, isMandatory: Boolean): Definition = valueType match {
       case "object"  => readObject(name, path, property, schema, isRef, desc, isMandatory)
-      case "string"  => readString(name, path, property, schema, isRef, desc, isMandatory)
-      case "number"  => readNumber(name, path, property, schema, isRef, desc, isMandatory)
+      case "string"  => readString(name, path, property, isRef, desc, isMandatory)
+      case "number"  => readNumber(name, path, property, isRef, desc, isMandatory)
       case "boolean" => BooleanDefinition(name, path, isRef, desc, isMandatory = true)
       case "array"   => readArray(name, path, property, schema, isRef, desc, isMandatory)
     }
@@ -218,9 +218,8 @@ object JsonSchema {
     name: String,
     path: String,
     property: JsObject,
-    schema: JsObject,
     isRef: Boolean,
-    description: Option[String] = None,
+    description: Option[String],
     isMandatory: Boolean
   ): Definition = {
 
@@ -252,9 +251,8 @@ object JsonSchema {
     name: String,
     path: String,
     property: JsObject,
-    schema: JsObject,
     isRef: Boolean,
-    description: Option[String] = None,
+    description: Option[String],
     isMandatory: Boolean
   ): Definition = {
 
@@ -282,7 +280,7 @@ object JsonSchema {
     property: JsObject,
     schema: JsObject,
     isRef: Boolean,
-    description: Option[String] = None,
+    description: Option[String],
     isMandatory: Boolean
   ): Definition = {
 
@@ -332,7 +330,7 @@ object JsonSchema {
     property: JsObject,
     schema: JsObject,
     isRef: Boolean,
-    description: Option[String] = None,
+    description: Option[String],
     isMandatory: Boolean,
     required: Seq[String],
     alternatives: Seq[Set[String]]
@@ -350,7 +348,7 @@ object JsonSchema {
     property: JsObject,
     schema: JsObject,
     isRef: Boolean,
-    description: Option[String] = None,
+    description: Option[String],
     isMandatory: Boolean
   ): Definition = {
 

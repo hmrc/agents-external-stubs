@@ -183,15 +183,20 @@ object Generator extends Names with Temporal with Companies with Addresses {
 
   case class Address(street: String, town: String, postcode: String)
   lazy val addressGen: Gen[Address] = ukAddress
-    .map { case street :: town :: postcode :: Nil => Address(street, town, postcode) }
+    .map {
+      case street :: town :: postcode :: Nil => Address(street, town, postcode)
+      case _                                 => throw new GeneratorException("Cannot map address")
+    }
   def address(userId: String): Address = addressGen.seeded(userId).get
 
   case class Address4Lines35(line1: String, line2: String, line3: String, line4: String)
   lazy val address4Lines35Gen: Gen[Address4Lines35] = surname
     .flatMap(s =>
       ukAddress
-        .map { case street :: town :: postcode :: Nil =>
-          Address4Lines35(street.take(35).replace(";", " "), s"The $s House".take(35), town.take(35), postcode)
+        .map {
+          case street :: town :: postcode :: Nil =>
+            Address4Lines35(street.take(35).replace(";", " "), s"The $s House".take(35), town.take(35), postcode)
+          case _ => throw new GeneratorException("Cannot map address")
         }
     )
     .suchThat(_.line1.matches("""^[A-Za-z0-9 \-,.&'\/()!]{1,35}$"""))
@@ -248,3 +253,5 @@ object Generator extends Names with Temporal with Companies with Addresses {
   }
 
 }
+
+case class GeneratorException(msg: String) extends RuntimeException(msg)

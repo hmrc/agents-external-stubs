@@ -50,7 +50,7 @@ class ClearDatabase @Inject() (
   class ClearDatabaseTaskActor(olderThanMilliseconds: Long) extends Actor {
 
     override val receive: Receive = { case "clear" =>
-      clearDatabase(System.currentTimeMillis() - olderThanMilliseconds).recover { case _ => }
+      clearDatabase(System.currentTimeMillis() - olderThanMilliseconds).recover { case _ => -1 }
     }
   }
 

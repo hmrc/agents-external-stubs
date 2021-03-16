@@ -19,7 +19,7 @@ import play.api.libs.json._
 import play.api.mvc.{AnyContent, Request, Result, Results}
 import uk.gov.hmrc.http.BadRequestException
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 case class ErrorResponse(code: String, reason: Option[String])
@@ -89,17 +89,17 @@ trait HttpHelpers {
 
   def withPayloadOrDefault[T](default: T)(
     f: T => Future[Result]
-  )(implicit request: Request[AnyContent], reads: Reads[T], ec: ExecutionContext): Future[Result] =
+  )(implicit request: Request[AnyContent], reads: Reads[T]): Future[Result] =
     request.body.asJson.map(j => validate(j)(f)).getOrElse(f(default))
 
   def withPayload[T](
     f: T => Future[Result]
-  )(implicit request: Request[JsValue], reads: Reads[T], ec: ExecutionContext): Future[Result] =
+  )(implicit request: Request[JsValue], reads: Reads[T]): Future[Result] =
     validate(request.body)(f)
 
   def validate[T](
     body: JsValue
-  )(f: T => Future[Result])(implicit reads: Reads[T], ec: ExecutionContext): Future[Result] =
+  )(f: T => Future[Result])(implicit reads: Reads[T]): Future[Result] =
     Try(body.validate[T]) match {
       case Success(validationResult) =>
         whenSuccess(f)(validationResult)

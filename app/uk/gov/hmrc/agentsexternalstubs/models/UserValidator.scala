@@ -18,7 +18,6 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
 import uk.gov.hmrc.agentsexternalstubs.models.User.AG._
-import uk.gov.hmrc.agentsexternalstubs.models.User.CR.Admin
 
 object UserValidator {
 
@@ -119,11 +118,14 @@ object UserValidator {
   val validateSuspendedRegimes: UserConstraint = user => {
     val validRegimes = Set("ALL", "ITSA", "VATC", "TRS", "CGT")
     user.suspendedRegimes match {
-      case None => Valid()
+      case None => Valid(())
       case Some(regimes) =>
         import Validator.Implicits._
         regimes
-          .map(regime => if (validRegimes.contains(regime)) Valid() else Invalid(s"suspended regime $regime not valid"))
+          .map(regime =>
+            if (validRegimes.contains(regime)) Valid(())
+            else Invalid(s"suspended regime $regime not valid")
+          )
           .reduce(_ combine _)
     }
   }

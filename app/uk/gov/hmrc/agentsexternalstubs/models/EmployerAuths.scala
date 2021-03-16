@@ -57,7 +57,6 @@ object EmployerAuths extends RecordUtils[EmployerAuths] {
   def uniqueKey(key: String): String = s"""agentCode:${key.toUpperCase}"""
 
   import Validator._
-  import Generator.GenOps._
 
   val agentCodeValidator: Validator[String] = check(
     _.matches(Common.agentCodePattern),

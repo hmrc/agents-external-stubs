@@ -151,7 +151,7 @@ class SignInController @Inject() (
     } yield result
   }
 
-  def session(authToken: String): Action[AnyContent] = Action.async { implicit request =>
+  def session(authToken: String): Action[AnyContent] = Action.async {
     for {
       maybeSession <- authenticationService.findByAuthToken(authToken)
     } yield maybeSession match {

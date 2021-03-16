@@ -16,17 +16,13 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import java.time.Instant
-
-import javax.inject.{Inject, Singleton}
 import org.joda.time.LocalDate
 import play.api.data.Form
 import play.api.data.Forms._
 import play.api.data.validation.{Constraint, Constraints, Invalid, Valid}
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
-import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Urn, Utr}
-import uk.gov.hmrc.agentsexternalstubs.models.Generator.{urn, utr}
+import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Utr}
 import uk.gov.hmrc.agentsexternalstubs.models.TrustDetailsResponse.getErrorResponseFor
 import uk.gov.hmrc.agentsexternalstubs.models.{BusinessPartnerRecord, SubscribeAgentServicesPayload, _}
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
@@ -34,6 +30,8 @@ import uk.gov.hmrc.agentsexternalstubs.services._
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import java.time.Instant
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -94,17 +92,18 @@ class DesIfStubController @Inject() (
             .findByQuery(query, session.planetId)
             .flatMap { records =>
               def checkSuspension(arn: Arn): Future[Result] =
-                businessPartnerRecordsService.getBusinessPartnerRecord(arn, session.planetId) map { case Some(bpr) =>
-                  bpr.suspensionDetails match {
-                    case Some(sd) =>
-                      if (sd.suspendedRegimes.contains(regime))
-                        forbidden("AGENT_SUSPENDED", "The remote endpoint has indicated that the agent is suspended")
-                      else Ok(Json.toJson(GetRelationships.Response.from(records)))
+                businessPartnerRecordsService.getBusinessPartnerRecord(arn, session.planetId) map {
+                  case Some(bpr) =>
+                    bpr.suspensionDetails match {
+                      case Some(sd) =>
+                        if (sd.suspendedRegimes.contains(regime))
+                          forbidden("AGENT_SUSPENDED", "The remote endpoint has indicated that the agent is suspended")
+                        else Ok(Json.toJson(GetRelationships.Response.from(records)))
 
-                    case None => Ok(Json.toJson(GetRelationships.Response.from(records)))
-                  }
+                      case None => Ok(Json.toJson(GetRelationships.Response.from(records)))
+                    }
+                  case None => notFound("INVALID_SUBMISSION", "No BPR found")
                 }
-
               records.headOption match {
                 case Some(r) =>
                   checkSuspension(Arn(r.arn))
@@ -114,6 +113,7 @@ class DesIfStubController @Inject() (
                     checkSuspension(Arn(arn.getOrElse(throw new Exception("agent must have arn"))))
                   } else Future successful Ok(Json.toJson(GetRelationships.Response.from(records)))
               }
+
             }
       )
     }(SessionRecordNotFound)
@@ -293,15 +293,15 @@ class DesIfStubController @Inject() (
             case ("utr", utr) =>
               businessPartnerRecordsService
                 .getBusinessPartnerRecord(Utr(utr), session.planetId)
-                .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId)(record => true))
+                .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId))
             case ("nino", nino) =>
               businessPartnerRecordsService
                 .getBusinessPartnerRecord(Nino(nino), session.planetId)
-                .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId)(record => true))
+                .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId))
             case ("eori", eori) =>
               businessPartnerRecordsService
                 .getBusinessPartnerRecordByEori(eori, session.planetId)
-                .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId)(record => true))
+                .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId))
           }
         }
       }(SessionRecordNotFound)
@@ -596,19 +596,16 @@ class DesIfStubController @Inject() (
     idType: String,
     idNumber: String,
     planetId: String
-  )(matches: T => Boolean): Option[T] => Future[Result] = {
-    case Some(record) =>
-      if (matches(record)) okF(record, Registration.fixSchemaDifferences _)
-      else notFoundF("NOT_FOUND", "BusinessPartnerRecord exists but fails match expectations.")
+  ): Option[T] => Future[Result] = {
+
+    case Some(record) => okF(record, Registration.fixSchemaDifferences _)
     case None =>
       if (payload.organisation.isDefined || payload.individual.isDefined) {
         businessPartnerRecordsService
           .store(Registration.toBusinessPartnerRecord(payload, idType, idNumber), autoFill = false, planetId)
           .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, planetId))
           .map {
-            case Some(record: T) =>
-              if (matches(record)) ok(record, Registration.fixSchemaDifferences _)
-              else internalServerError("SERVER_ERROR", "Created BusinessPartnerRecord fails match expectations.")
+            case Some(record) => ok(record, Registration.fixSchemaDifferences _)
             case _ =>
               internalServerError("SERVER_ERROR", "BusinessPartnerRecord creation failed silently.")
           }
@@ -617,7 +614,7 @@ class DesIfStubController @Inject() (
 
   private def withValidIdentifier(idType: String, idNumber: String)(
     pf: PartialFunction[(String, String), Future[Result]]
-  )(implicit ec: ExecutionContext): Future[Result] =
+  ): Future[Result] =
     idType match {
       case "nino"   => validateIdentifier(RegexPatterns.validNinoNoSpaces, "INVALID_NINO", idType, idNumber)(pf)
       case "mtdbsa" => validateIdentifier(RegexPatterns.validMtdbsa, "INVALID_MTDBSA", idType, idNumber)(pf)
@@ -727,7 +724,6 @@ object DesIfStubController {
 
     object Relationship {
       import play.api.libs.json.JodaWrites._
-      import play.api.libs.json.JodaReads._
 
       implicit val writes1: Writes[Individual] = Json.writes[Individual]
       implicit val writes2: Writes[Organisation] = Json.writes[Organisation]

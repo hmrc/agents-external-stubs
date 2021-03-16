@@ -17,8 +17,8 @@
 package uk.gov.hmrc.agentsexternalstubs.connectors
 
 import java.net.URL
-
 import com.kenshoo.play.metrics.Metrics
+
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.http.Status
@@ -26,7 +26,8 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Vrn}
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.domain.{AgentCode, Nino, TaxIdentifier}
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.{HeaderCarrier, HttpDelete, HttpGet, HttpPost, HttpResponse, UpstreamErrorResponse}
+import uk.gov.hmrc.http.HttpReads.Implicits._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -149,7 +150,7 @@ class EnrolmentStoreProxyConnector @Inject() (
       .POST[ES8Request, HttpResponse](url.toString, ES8Request(userId, "delegated"))
       .map(_ => ())
       .recover {
-        case e: Upstream4xxResponse if e.upstreamResponseCode == Status.CONFLICT =>
+        case e: UpstreamErrorResponse if e.statusCode == Status.CONFLICT =>
           Logger(getClass).warn(
             s"An attempt to allocate new enrolment $enrolmentKeyPrefix resulted in conflict with an existing one."
           )

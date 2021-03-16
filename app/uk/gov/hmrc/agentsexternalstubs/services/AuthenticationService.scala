@@ -20,7 +20,6 @@ import java.util.UUID
 
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
-import play.api.mvc.Request
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticateRequest, AuthenticatedSession, Planet}
 import uk.gov.hmrc.agentsexternalstubs.repository.AuthenticatedSessionsRepository
 import uk.gov.hmrc.http.HeaderCarrier
@@ -32,8 +31,7 @@ import scala.util.control.NonFatal
 @Singleton
 class AuthenticationService @Inject() (
   authSessionRepository: AuthenticatedSessionsRepository,
-  externalAuthorisationService: ExternalAuthorisationService,
-  userService: UsersService
+  externalAuthorisationService: ExternalAuthorisationService
 ) {
 
   private val authenticatedSessionCache =
@@ -45,7 +43,7 @@ class AuthenticationService @Inject() (
 
   def findByAuthTokenOrLookupExternal(
     authToken: String
-  )(implicit ec: ExecutionContext, hc: HeaderCarrier, request: Request[_]): Future[Option[AuthenticatedSession]] =
+  )(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[Option[AuthenticatedSession]] =
     authenticatedSessionCache.getOption(
       authToken,
       authSessionRepository.findByAuthToken(authToken).flatMap {

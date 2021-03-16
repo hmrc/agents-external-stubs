@@ -17,19 +17,19 @@
 package uk.gov.hmrc.agentsexternalstubs.repository
 
 import com.google.inject.ImplementedBy
-import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json.toJsFieldJsValueWrapper
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.api.{CursorProducer, ReadPreference}
-import reactivemongo.bson.{BSONDocument, BSONLong, BSONObjectID}
+import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers
-import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, KnownFact, KnownFacts}
+import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, KnownFacts}
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[KnownFactsRepositoryMongo])
 trait KnownFactsRepository {
@@ -86,7 +86,8 @@ class KnownFactsRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponen
         errors => Future.failed(new Exception(s"KnownFacts validation failed because $errors")),
         _ =>
           collection
-            .update(
+            .update(ordered = false)
+            .one(
               Json.obj(KnownFacts.UNIQUE_KEY -> KnownFacts.uniqueKey(knownFacts.enrolmentKey.tag, planetId)),
               Json
                 .toJson(knownFacts.copy(planetId = Some(planetId)))

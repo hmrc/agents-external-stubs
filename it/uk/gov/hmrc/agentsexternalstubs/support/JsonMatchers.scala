@@ -88,7 +88,7 @@ trait JsonMatchers {
       left.foldLeft(MatchResult(true, "", ""))((a: MatchResult, v: T) => if (a.matches) matcher(v) else a)
   }
 
-  def eachArrayElement[T: Reads](matchers: Matcher[T]*)(implicit classTag: ClassTag[T]): Matcher[JsArray] =
+  def eachArrayElement[T: Reads](matchers: Matcher[T]*): Matcher[JsArray] =
     new Matcher[JsArray] {
       val matcher =
         if (matchers.nonEmpty) matchers.reduce(_ and _)

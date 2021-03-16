@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import javax.inject.{Inject, Singleton}
 import play.api.libs.json.JsValue
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import play.mvc.Http.HeaderNames
@@ -27,6 +26,7 @@ import uk.gov.hmrc.agentsexternalstubs.services._
 import uk.gov.hmrc.agentsexternalstubs.syntax._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 @Singleton
@@ -109,7 +109,6 @@ class RecordsController @Inject() (
     implicit request =>
       withCurrentSession { session =>
         val seed = seedOpt.getOrElse(session.sessionId)
-        implicit val optionGenStrategy: Generator.OptionGenStrategy = Generator.AlwaysSome
         val record = BusinessDetailsRecord.seed(seed)
         val result = if (minimal) record else BusinessDetailsRecord.sanitize(seed)(record)
         okF(result, Link("create", routes.RecordsController.storeBusinessDetails(minimal).url))
@@ -130,7 +129,6 @@ class RecordsController @Inject() (
     implicit request =>
       withCurrentSession { session =>
         val seed = seedOpt.getOrElse(session.sessionId)
-        implicit val optionGenStrategy: Generator.OptionGenStrategy = Generator.AlwaysSome
         val record = LegacyAgentRecord.seed(seed)
         val result = if (minimal) record else LegacyAgentRecord.sanitize(seed)(record)
         okF(result, Link("create", routes.RecordsController.storeLegacyAgent(minimal).url))
@@ -159,7 +157,6 @@ class RecordsController @Inject() (
     implicit request =>
       withCurrentSession { session =>
         val seed = seedOpt.getOrElse(session.sessionId)
-        implicit val optionGenStrategy: Generator.OptionGenStrategy = Generator.AlwaysSome
         val record = LegacyRelationshipRecord.seed(seed)
         val result = if (minimal) record else LegacyRelationshipRecord.sanitize(seed)(record)
         okF(result, Link("create", routes.RecordsController.storeLegacyRelationship(minimal).url))
@@ -186,7 +183,6 @@ class RecordsController @Inject() (
     implicit request =>
       withCurrentSession { session =>
         val seed = seedOpt.getOrElse(session.sessionId)
-        implicit val optionGenStrategy: Generator.OptionGenStrategy = Generator.AlwaysSome
         val record = VatCustomerInformationRecord.seed(seed)
         val result = if (minimal) record else VatCustomerInformationRecord.sanitize(seed)(record)
         okF(result, Link("create", routes.RecordsController.storeVatCustomerInformation(minimal).url))
@@ -208,7 +204,6 @@ class RecordsController @Inject() (
     implicit request =>
       withCurrentSession { session =>
         val seed = seedOpt.getOrElse(session.sessionId)
-        implicit val optionGenStrategy: Generator.OptionGenStrategy = Generator.AlwaysSome
         val record = BusinessPartnerRecord.seed(seed)
         val result = if (minimal) record else BusinessPartnerRecord.sanitize(seed)(record)
         okF(result, Link("create", routes.RecordsController.storeBusinessPartnerRecord(minimal).url))
@@ -239,7 +234,6 @@ class RecordsController @Inject() (
     implicit request =>
       withCurrentSession { session =>
         val seed = seedOpt.getOrElse(session.sessionId)
-        implicit val optionGenStrategy: Generator.OptionGenStrategy = Generator.AlwaysSome
         val record = RelationshipRecord.seed(seed)
         val result = if (minimal) record else RelationshipRecord.sanitize(seed)(record)
         okF(result, Link("create", routes.RecordsController.storeRelationship(minimal).url))
@@ -250,7 +244,6 @@ class RecordsController @Inject() (
     implicit request =>
       withCurrentSession { session =>
         val seed = seedOpt.getOrElse(session.sessionId)
-        implicit val optionGenStrategy: Generator.OptionGenStrategy = Generator.AlwaysSome
         val record = EmployerAuths.seed(seed)
         val result = if (minimal) record else EmployerAuths.sanitize(seed)(record)
         okF(result, Link("create", routes.RecordsController.storeEmployerAuths(minimal).url))
