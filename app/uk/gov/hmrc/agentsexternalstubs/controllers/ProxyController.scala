@@ -16,18 +16,15 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import java.net.URLEncoder
-
-import akka.util.ByteString
-import javax.inject.{Inject, Singleton}
-import play.api.http.{ContentTypes, HttpEntity, MimeTypes, Writeable}
-import play.api.libs.concurrent.ExecutionContextProvider
+import play.api.http.{ContentTypes, HttpEntity, MimeTypes}
 import play.api.libs.json.Json
 import play.api.libs.ws.{BodyWritable, EmptyBody, InMemoryBody, WSClient}
 import play.api.mvc._
 import play.api.{Configuration, Logger}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import java.net.URLEncoder
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
@@ -35,6 +32,8 @@ import scala.util.Try
 class ProxyController @Inject() (ws: WSClient, config: Configuration, cc: ControllerComponents)(implicit
   executionContext: ExecutionContext
 ) extends BackendController(cc) {
+
+  val logger = Logger(this.getClass)
 
   implicit def writeableFor(implicit request: Request[AnyContent], codec: Codec): BodyWritable[AnyContent] =
     request.contentType match {
@@ -61,21 +60,21 @@ class ProxyController @Inject() (ws: WSClient, config: Configuration, cc: Contro
   def proxyPassTo(url: String): Action[AnyContent] = Action.async { implicit request =>
     targetUrlFor(request.path) match {
       case Some(targetUrl) =>
-        Logger.info("Sending upstream proxy request " + targetUrl.toString)
+        logger.info("Sending upstream proxy request " + targetUrl.toString)
         val requestContentType: Seq[(String, String)] =
           request.headers.get("Content-Type").map(("Content-Type", _)).toSeq
         val upstreamRequest = ws
           .url(targetUrl)
           .withMethod(request.method)
-          .withQueryString(request.queryString.toSeq.flatMap({ case (k, sv) => sv.map(v => (k, v)) }): _*)
-          .withHeaders(hc.withExtraHeaders(requestContentType: _*).headers: _*)
+          .withQueryStringParameters(request.queryString.toSeq.flatMap({ case (k, sv) => sv.map(v => (k, v)) }): _*)
+          .withHttpHeaders(hc.withExtraHeaders(requestContentType: _*).headers: _*)
           .withBody(request.body)
         upstreamRequest
           .stream()
           .map { response =>
             val responseContentType = response.headers.get("Content-Type").flatMap(_.headOption)
             val length = response.headers.get("Content-Length").flatMap(_.headOption).map(_.toLong)
-            Logger.info("Got upstream response " + response.status)
+            logger.info("Got upstream response " + response.status)
             Results
               .Status(response.status)
               .sendEntity(HttpEntity.Streamed(response.bodyAsSource, length, responseContentType))

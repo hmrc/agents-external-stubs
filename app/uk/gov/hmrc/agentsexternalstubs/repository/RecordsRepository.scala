@@ -17,21 +17,21 @@
 package uk.gov.hmrc.agentsexternalstubs.repository
 
 import com.google.inject.ImplementedBy
-import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json.toJsFieldJsValueWrapper
-import play.api.libs.json._
+import play.api.libs.json.{OWrites => _, _}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.api.{Cursor, CursorProducer, ReadPreference}
 import reactivemongo.bson.BSONObjectID
-import reactivemongo.play.json.ImplicitBSONHandlers
+import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
 import uk.gov.hmrc.agentsexternalstubs.models.Record.TYPE
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.syntax.|>
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[RecordsRepositoryMongo])
@@ -76,8 +76,6 @@ class RecordsRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
   final val KEYS = "_keys"
   final val UPDATED = "_last_updated_at"
 
-  import ImplicitBSONHandlers._
-
   override def indexes =
     Seq(
       Index(Seq(KEYS -> Ascending), Some("Keys")),
@@ -112,7 +110,8 @@ class RecordsRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
       case (None, None) =>
         val newId = BSONObjectID.generate().stringify
         collection
-          .insert(
+          .insert(ordered = false)
+          .one(
             json + (Record.ID -> Json.obj("$oid" -> JsString(newId))) + (UPDATED -> JsNumber(
               System.currentTimeMillis()
             ))
@@ -120,7 +119,8 @@ class RecordsRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
           .map((_, newId))
       case (Some(id), _) =>
         collection
-          .update(
+          .update(ordered = false)
+          .one(
             Json.obj(Record.ID -> Json.obj("$oid" -> JsString(id))),
             json + (UPDATED -> JsNumber(System.currentTimeMillis())),
             upsert = true
@@ -128,14 +128,15 @@ class RecordsRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
           .map((_, id))
       case (None, Some(uniqueKey)) =>
         collection
-          .find(Json.obj(UNIQUE_KEY -> JsString(keyOf(uniqueKey, planetId, typeName))))
+          .find(Json.obj(UNIQUE_KEY -> JsString(keyOf(uniqueKey, planetId, typeName))), projection = None)
           .one[JsObject]
           .map(recordOpt =>
             recordOpt.flatMap(r => (r \ "_id" \ "$oid").asOpt[String]).getOrElse(BSONObjectID.generate().stringify)
           )
           .flatMap(recordId =>
             collection
-              .update(
+              .update(ordered = false)
+              .one(
                 Json.obj(Record.ID -> Json.obj("$oid" -> JsString(recordId))),
                 json
                   .+(Record.ID -> Json.obj("$oid" -> JsString(recordId)))

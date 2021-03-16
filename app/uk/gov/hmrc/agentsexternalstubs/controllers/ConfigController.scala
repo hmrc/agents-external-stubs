@@ -16,22 +16,21 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import javax.inject.{Inject, Singleton}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import scala.concurrent.{ExecutionContext, Future}
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.Future
 
 @Singleton
-class ConfigController @Inject() (val authenticationService: AuthenticationService, cc: ControllerComponents)(implicit
-  ec: ExecutionContext
-) extends BackendController(cc) with CurrentSession {
+class ConfigController @Inject() (val authenticationService: AuthenticationService, cc: ControllerComponents)
+    extends BackendController(cc) with CurrentSession {
 
   private lazy val servicesResponse = RestfulResponse(Services(services = Services.services))
 
-  def getServices: Action[AnyContent] = Action.async { implicit request =>
+  def getServices: Action[AnyContent] = Action.async {
     Future.successful(Ok(servicesResponse))
   }
 

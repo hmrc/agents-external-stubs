@@ -19,7 +19,6 @@ import play.api.libs.json.Reads
 import reactivemongo.api.Cursor
 import uk.gov.hmrc.agentsexternalstubs.models.{Record, RecordMetaData}
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
-import uk.gov.hmrc.http.BadRequestException
 
 import scala.concurrent.{ExecutionContext, Future}
 

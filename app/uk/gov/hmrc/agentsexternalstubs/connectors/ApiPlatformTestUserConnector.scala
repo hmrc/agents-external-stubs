@@ -16,13 +16,12 @@
 
 package uk.gov.hmrc.agentsexternalstubs.connectors
 
-import java.net.URL
-
-import javax.inject.{Inject, Named, Singleton}
 import uk.gov.hmrc.agentsexternalstubs.models.ApiPlatform.TestUser
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.http._
 
+import java.net.URL
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton

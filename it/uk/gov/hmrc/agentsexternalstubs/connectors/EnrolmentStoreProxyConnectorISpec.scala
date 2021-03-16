@@ -1,6 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.connectors
 
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.{Matchers, Suite}
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Vrn}
@@ -206,9 +206,7 @@ trait EnrolmentStoreProxyHelper extends TestRequests with TestStubs with Matcher
     result2 should haveStatus(201)
   }
 
-  def givenEnrolmentDeallocationSucceeds(groupId: String, taxIdentifier: TaxIdentifier, agentCode: String)(implicit
-    authContext: AuthContext
-  ): Unit = ()
+  def givenEnrolmentDeallocationSucceeds(groupId: String, taxIdentifier: TaxIdentifier, agentCode: String): Unit = ()
 
   def givenEnrolmentDeallocationSucceeds(
     groupId: String,

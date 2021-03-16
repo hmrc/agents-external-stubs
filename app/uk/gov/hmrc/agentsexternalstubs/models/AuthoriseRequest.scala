@@ -211,6 +211,7 @@ object Alternative extends PredicateFormat[Alternative]("$or") {
           case Some(alt) => JsSuccess(alt)
           case None      => JsError("Expected an array value for $or predicate")
         }
+      case _ => JsError("Expected a JSON Object")
     }
   }
 

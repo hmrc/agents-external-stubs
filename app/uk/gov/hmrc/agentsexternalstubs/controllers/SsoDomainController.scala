@@ -35,7 +35,7 @@ class SsoDomainController @Inject() (cc: MessagesControllerComponents)(implicit 
     Ok
   }
 
-  def getDomains: Action[AnyContent] = Action.async { implicit request =>
+  def getDomains: Action[AnyContent] = Action.async {
     successful(Ok(domainsJson))
   }
 

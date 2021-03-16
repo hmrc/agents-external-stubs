@@ -18,10 +18,9 @@ package uk.gov.hmrc.agentsexternalstubs.wiring
 
 import java.net.InetAddress
 import java.nio.charset.StandardCharsets
-
 import ch.qos.logback.classic.spi.{ILoggingEvent, ThrowableProxyUtil}
 import ch.qos.logback.core.encoder.EncoderBase
-import com.fasterxml.jackson.core.JsonGenerator.Feature
+import com.fasterxml.jackson.core.json.JsonWriteFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.commons.io.IOUtils._
 import org.apache.commons.lang3.time.FastDateFormat
@@ -35,7 +34,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeType
 
 class JsonEncoder extends EncoderBase[ILoggingEvent] {
 
-  private val mapper = new ObjectMapper().configure(Feature.ESCAPE_NON_ASCII, true)
+  private val mapper = new ObjectMapper().configure(JsonWriteFeature.ESCAPE_NON_ASCII.mappedFeature(), true)
 
   lazy val appName: String = Try(ConfigFactory.load().getString("appName")) match {
     case Success(name) => name.toString

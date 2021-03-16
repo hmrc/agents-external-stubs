@@ -17,7 +17,6 @@
 package uk.gov.hmrc.agentsexternalstubs.repository
 
 import com.google.inject.ImplementedBy
-import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.json.Json.toJsFieldJsValueWrapper
 import play.api.libs.json._
@@ -33,6 +32,7 @@ import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, User}
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
@@ -223,7 +223,8 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
 
   override def create(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     collection
-      .insert(serializeUser(user, planetId).+(UPDATED -> JsNumber(System.currentTimeMillis())))
+      .insert(ordered = false)
+      .one(serializeUser(user, planetId).+(UPDATED -> JsNumber(System.currentTimeMillis())))
       .map(_ => ())
       .recoverWith {
         case e: DatabaseException if e.code.contains(11000) =>
@@ -232,7 +233,8 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
 
   override def update(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     collection
-      .update(
+      .update(ordered = false)
+      .one(
         Json.obj(UNIQUE_KEYS                    -> keyOf(User.userIdKey(user.userId), planetId)),
         serializeUser(user, planetId).+(UPDATED -> JsNumber(System.currentTimeMillis())),
         upsert = true
@@ -255,9 +257,7 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
         .map(_.group(1))
     else None
 
-  private def throwDuplicatedException(e: DatabaseException, user: User, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[Unit] =
+  private def throwDuplicatedException(e: DatabaseException, user: User, planetId: String): Future[Unit] =
     throw extractKey(e.getMessage()) match {
       case Some(key) =>
         val prefix = key.takeWhile(_ != ':')
@@ -293,14 +293,16 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
     if (recordId.nonEmpty) {
       if (recordId.startsWith("--")) {
         collection
-          .update(
+          .update(ordered = false)
+          .one(
             Json.obj(UNIQUE_KEYS -> keyOf(User.userIdKey(userId), planetId)),
             Json.obj("$pull"     -> Json.obj("recordIds" -> recordId.substring(2)))
           )
           .flatMap(MongoHelper.interpretWriteResultUnit)
       } else {
         collection
-          .update(
+          .update(ordered = false)
+          .one(
             Json.obj(UNIQUE_KEYS -> keyOf(User.userIdKey(userId), planetId)),
             Json.obj("$push"     -> Json.obj("recordIds" -> recordId))
           )
@@ -330,7 +332,8 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
                   findById(BSONObjectID.parse(id).get).flatMap {
                     case Some(user) =>
                       collection
-                        .update(
+                        .update(ordered = false)
+                        .one(
                           Json.obj("_id" -> Json.obj("$oid" -> JsString(id))),
                           serializeUser(user, user.planetId.get),
                           upsert = false

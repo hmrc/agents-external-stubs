@@ -17,22 +17,23 @@
 package uk.gov.hmrc.agentsexternalstubs.repository
 
 import com.google.inject.ImplementedBy
-import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json.toJsFieldJsValueWrapper
-import play.api.libs.json._
+import play.api.libs.json.{OWrites => _, _}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.api.{Cursor, CursorProducer, ReadPreference}
 import reactivemongo.bson.BSONObjectID
-import reactivemongo.play.json.ImplicitBSONHandlers
+import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
 import uk.gov.hmrc.agentsexternalstubs.models.SpecialCase.internal
 import uk.gov.hmrc.agentsexternalstubs.models.{Id, SpecialCase}
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
+import javax.inject.{Inject, Singleton}
 import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
+
 @ImplementedBy(classOf[SpecialCasesRepositoryMongo])
 trait SpecialCasesRepository {
 
@@ -68,14 +69,11 @@ class SpecialCasesRepositoryMongo @Inject() (mongoComponent: ReactiveMongoCompon
     Index(Seq(Id.ID -> Ascending, PLANET_ID -> Ascending), Some("SpecialCaseId"), unique = true)
   )
 
-  import ImplicitBSONHandlers._
-
-  implicit val writes: OWrites[SpecialCase] = SpecialCase.internal.writes
-
   def findById(id: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[SpecialCase]] =
     collection
       .find(
-        Json.obj(Id.ID -> Json.obj("$oid" -> JsString(id)), PLANET_ID -> JsString(planetId))
+        Json.obj(Id.ID -> Json.obj("$oid" -> JsString(id)), PLANET_ID -> JsString(planetId)),
+        projection = None
       )
       .cursor[SpecialCase](ReadPreference.primary)(
         implicitly[collection.pack.Reader[SpecialCase]],
@@ -86,7 +84,8 @@ class SpecialCasesRepositoryMongo @Inject() (mongoComponent: ReactiveMongoCompon
   def findByMatchKey(key: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[SpecialCase]] =
     collection
       .find(
-        Json.obj(SpecialCase.UNIQUE_KEY -> SpecialCase.uniqueKey(key, planetId))
+        Json.obj(SpecialCase.UNIQUE_KEY -> SpecialCase.uniqueKey(key, planetId)),
+        projection = None
       )
       .cursor[SpecialCase](ReadPreference.primary)(
         implicitly[collection.pack.Reader[SpecialCase]],
@@ -96,7 +95,7 @@ class SpecialCasesRepositoryMongo @Inject() (mongoComponent: ReactiveMongoCompon
 
   def findByPlanetId(planetId: String)(limit: Int)(implicit ec: ExecutionContext): Future[Seq[SpecialCase]] =
     collection
-      .find(Json.obj(PLANET_ID -> planetId))
+      .find(Json.obj(PLANET_ID -> planetId), projection = None)
       .cursor[SpecialCase]()
       .collect[Seq](limit, Cursor.FailOnError())
 
@@ -109,7 +108,8 @@ class SpecialCasesRepositoryMongo @Inject() (mongoComponent: ReactiveMongoCompon
           specialCase.id match {
             case Some(id) =>
               collection
-                .update(
+                .update(ordered = false)
+                .one(
                   Json.obj(Id.ID -> Json.obj("$oid" -> JsString(id.value)), PLANET_ID -> JsString(planetId)),
                   Json
                     .toJson(specialCase.copy(planetId = Some(planetId)))
@@ -125,13 +125,15 @@ class SpecialCasesRepositoryMongo @Inject() (mongoComponent: ReactiveMongoCompon
                 .find(
                   Json.obj(
                     SpecialCase.UNIQUE_KEY -> JsString(SpecialCase.uniqueKey(specialCase.requestMatch.toKey, planetId))
-                  )
+                  ),
+                  projection = None
                 )
                 .one[SpecialCase]
                 .flatMap {
                   case Some(sc) =>
                     collection
-                      .update(
+                      .update(ordered = false)
+                      .one(
                         Json.obj(
                           Id.ID     -> Json.obj("$oid" -> JsString(sc.id.map(_.value).get)),
                           PLANET_ID -> JsString(planetId)
@@ -146,7 +148,8 @@ class SpecialCasesRepositoryMongo @Inject() (mongoComponent: ReactiveMongoCompon
                       .flatMap(MongoHelper.interpretWriteResult)
                   case None =>
                     collection
-                      .insert(
+                      .insert(ordered = false)
+                      .one(
                         Json
                           .toJson(specialCase.copy(planetId = Some(planetId), id = Some(Id(newId))))
                           .as[JsObject]

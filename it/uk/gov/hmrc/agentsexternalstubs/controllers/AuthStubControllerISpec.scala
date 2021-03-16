@@ -21,7 +21,7 @@ class AuthStubControllerISpec
     extends ServerBaseISpec with MongoDB with TestRequests with TestStubs with WireMockSupport {
 
   val url = s"http://localhost:$port"
-  lazy val wsClient = app.injector.instanceOf[WSClient]
+  lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
 
   val authConnector: AuthConnector = app.injector.instanceOf[MicroserviceAuthConnector]
 
@@ -66,7 +66,7 @@ class AuthStubControllerISpec
       }
 
       "return 400 BadRequest if authorise field missing" in {
-        val authToken = givenAnAuthenticatedUser(User(randomId))
+        val authToken: String = givenAnAuthenticatedUser(User(randomId))
         val result =
           AuthStub.authorise(s"""{"foo":[{"enrolment":"FOO"}],"retrieve":[]}""")(AuthContext.fromToken(authToken))
         result should haveStatus(400)
@@ -74,7 +74,7 @@ class AuthStubControllerISpec
       }
 
       "return 400 BadRequest if predicate not supported" in {
-        val authToken = givenAnAuthenticatedUser(User(randomId))
+        val authToken: String = givenAnAuthenticatedUser(User(randomId))
         val result =
           AuthStub.authorise(s"""{"authorise":[{"foo":"FOO"}],"retrieve":[]}""")(AuthContext.fromToken(authToken))
         result should haveStatus(400)
@@ -82,7 +82,7 @@ class AuthStubControllerISpec
       }
 
       "return 200 OK if predicate empty" in {
-        val authToken = givenAnAuthenticatedUser(User(randomId))
+        val authToken: String = givenAnAuthenticatedUser(User(randomId))
         val result =
           AuthStub.authorise(s"""{"authorise":[],"retrieve":[]}""")(AuthContext.fromToken(authToken))
         result should haveStatus(200)
@@ -90,35 +90,35 @@ class AuthStubControllerISpec
 
       "retrieve credentials" in {
         val id = randomId
-        val authToken = givenAnAuthenticatedUser(User(id))
+        val authToken: String = givenAnAuthenticatedUser(User(id))
         val creds = await(
           authConnector
-            .authorise[Credentials](EmptyPredicate, Retrievals.credentials)(
+            .authorise[Option[Credentials]](EmptyPredicate, v2.Retrievals.credentials)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
-        creds.providerId shouldBe id
-        creds.providerType shouldBe "GovernmentGateway"
+        creds.get.providerId shouldBe id
+        creds.get.providerType shouldBe "GovernmentGateway"
       }
 
       "retrieve credentials if PrivilegedApplication" in {
         val id = randomId
-        val authToken = givenAnAuthenticatedUser(User(id), providerType = "PrivilegedApplication")
+        val authToken: String = givenAnAuthenticatedUser(User(id), providerType = "PrivilegedApplication")
         val creds = await(
           authConnector
-            .authorise[Credentials](EmptyPredicate, Retrievals.credentials)(
+            .authorise[Option[Credentials]](EmptyPredicate, v2.Retrievals.credentials)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
-        creds.providerId shouldBe id
-        creds.providerType shouldBe "PrivilegedApplication"
+        creds.get.providerId shouldBe id
+        creds.get.providerType shouldBe "PrivilegedApplication"
       }
 
       "retrieve optionalCredentials (v2) if GovernmentGateway" in {
         val id = randomId
-        val authToken = givenAnAuthenticatedUser(User(id))
+        val authToken: String = givenAnAuthenticatedUser(User(id))
         val creds = await(
           authConnector
             .authorise[Option[Credentials]](EmptyPredicate, v2.Retrievals.credentials)(
@@ -132,7 +132,7 @@ class AuthStubControllerISpec
 
       "retrieve optionalCredentials (v2) if PrivilegedApplication" in {
         val id = randomId
-        val authToken = givenAnAuthenticatedUser(User(id), providerType = "PrivilegedApplication")
+        val authToken: String = givenAnAuthenticatedUser(User(id), providerType = "PrivilegedApplication")
         val creds = await(
           authConnector
             .authorise[Option[Credentials]](EmptyPredicate, v2.Retrievals.credentials)(
@@ -145,7 +145,7 @@ class AuthStubControllerISpec
       }
 
       "authorise if user authenticated with the OneTimeLogin provider" in {
-        val authToken = givenAnAuthenticatedUser(User(randomId), providerType = "OneTimeLogin")
+        val authToken: String = givenAnAuthenticatedUser(User(randomId), providerType = "OneTimeLogin")
         await(
           authConnector
             .authorise[Unit](AuthProviders(AuthProvider.OneTimeLogin), EmptyRetrieval)(
@@ -156,7 +156,7 @@ class AuthStubControllerISpec
       }
 
       "authorise if user authenticated with the PrivilegedApplication provider" in {
-        val authToken = givenAnAuthenticatedUser(User(randomId), providerType = "PrivilegedApplication")
+        val authToken: String = givenAnAuthenticatedUser(User(randomId), providerType = "PrivilegedApplication")
         await(
           authConnector
             .authorise[Unit](AuthProviders(AuthProvider.PrivilegedApplication), EmptyRetrieval)(
@@ -167,7 +167,7 @@ class AuthStubControllerISpec
       }
 
       "authorise if user has a STRIDE enrolment" in {
-        val authToken = givenAnAuthenticatedUser(
+        val authToken: String = givenAnAuthenticatedUser(
           UserGenerator.individual(randomId).withStrideRole(role = "FOO"),
           providerType = "PrivilegedApplication"
         )
@@ -181,7 +181,7 @@ class AuthStubControllerISpec
       }
 
       "throw UnsupportedAuthProvider if user authenticated with another provider" in {
-        val authToken = givenAnAuthenticatedUser(User(randomId), providerType = "someOtherProvider")
+        val authToken: String = givenAnAuthenticatedUser(User(randomId), providerType = "someOtherProvider")
         an[UnsupportedAuthProvider] shouldBe thrownBy {
           await(
             authConnector
@@ -195,10 +195,10 @@ class AuthStubControllerISpec
 
       "retrieve authProviderId" in {
         val id = randomId
-        val authToken = givenAnAuthenticatedUser(User(id))
+        val authToken: String = givenAnAuthenticatedUser(User(id))
         val creds = await(
           authConnector
-            .authorise[LegacyCredentials](EmptyPredicate, Retrievals.authProviderId)(
+            .authorise[LegacyCredentials](EmptyPredicate, v2.Retrievals.authProviderId)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global
             )
@@ -207,7 +207,7 @@ class AuthStubControllerISpec
       }
 
       "throw InsufficientEnrolments if user not enrolled" in {
-        val authToken = givenAnAuthenticatedUser(User(randomId))
+        val authToken: String = givenAnAuthenticatedUser(User(randomId))
         an[InsufficientEnrolments] shouldBe thrownBy {
           await(
             authConnector
@@ -221,7 +221,7 @@ class AuthStubControllerISpec
 
       "throw InsufficientEnrolments if user not enrolled with expected identifier key" in {
         val id = randomId
-        val authToken = givenAnAuthenticatedUser(User(id), planetId = id)
+        val authToken: String = givenAnAuthenticatedUser(User(id), planetId = id)
         givenUserEnrolledFor(
           id,
           planetId = id,
@@ -242,7 +242,7 @@ class AuthStubControllerISpec
 
       "throw InsufficientEnrolments if user not enrolled with expected identifier value" in {
         val id = randomId
-        val authToken = givenAnAuthenticatedUser(User(id), planetId = id)
+        val authToken: String = givenAnAuthenticatedUser(User(id), planetId = id)
         givenUserEnrolledFor(id, planetId = id, "HMRC-MTD-IT", "MTDITID", "236216873678126")
         an[InsufficientEnrolments] shouldBe thrownBy {
           await(
@@ -257,7 +257,7 @@ class AuthStubControllerISpec
 
       "throw InsufficientEnrolments if user does not have NINO" in {
         val id = randomId
-        val authToken = givenAnAuthenticatedUser(User(id), planetId = id)
+        val authToken: String = givenAnAuthenticatedUser(User(id), planetId = id)
         an[InsufficientEnrolments] shouldBe thrownBy {
           await(
             authConnector
@@ -270,7 +270,7 @@ class AuthStubControllerISpec
       }
 
       "authorise if user has an synthetic HMRC-NI enrolment" in {
-        val authToken = givenAnAuthenticatedUser(UserGenerator.individual(randomId))
+        val authToken: String = givenAnAuthenticatedUser(UserGenerator.individual(randomId))
         await(
           authConnector
             .authorise[Unit](Enrolment("HMRC-NI"), EmptyRetrieval)(
@@ -281,7 +281,7 @@ class AuthStubControllerISpec
       }
 
       "authorise if user has an synthetic HMRC-NI enrolment and NINO matches" in {
-        val authToken = givenAnAuthenticatedUser(UserGenerator.individual(randomId, nino = "HW827856C"))
+        val authToken: String = givenAnAuthenticatedUser(UserGenerator.individual(randomId, nino = "HW827856C"))
         await(
           authConnector
             .authorise[Unit](Enrolment("HMRC-NI").withIdentifier("NINO", "HW827856C"), EmptyRetrieval)(
@@ -293,7 +293,7 @@ class AuthStubControllerISpec
 
       "retrieve authorisedEnrolments" in {
         val id = randomId
-        val authToken = givenAnAuthenticatedUser(User(id), planetId = id)
+        val authToken: String = givenAnAuthenticatedUser(User(id), planetId = id)
         givenUserEnrolledFor(id, planetId = id, "HMRC-MTD-IT", "MTDITID", "236216873678126")
         givenUserEnrolledFor(id, planetId = id, "IR-SA", "UTR", "1234567890")
 
@@ -318,7 +318,7 @@ class AuthStubControllerISpec
         givenAnAuthenticatedUser(User(userOrganisationId, groupId = Some(groupId)), planetId = userId)
         givenUserEnrolledFor(userOrganisationId, planetId = userId, "HMRC-MTD-IT", "MTDITID", "236216873678126")
 
-        val authToken = givenAnAuthenticatedUser(User(userId, groupId = Some(groupId)), planetId = userId)
+        val authToken: String = givenAnAuthenticatedUser(User(userId, groupId = Some(groupId)), planetId = userId)
         givenUserEnrolledFor(userId, planetId = userId, "IR-SA", "UTR", "1234567890")
 
         val enrolments = await(
@@ -341,7 +341,7 @@ class AuthStubControllerISpec
         givenAnAuthenticatedUser(User(userOrganisationId, groupId = Some(randomId)), planetId = userId)
         givenUserEnrolledFor(userOrganisationId, planetId = userId, "HMRC-MTD-IT", "MTDITID", "236216873678126")
 
-        val authToken = givenAnAuthenticatedUser(User(userId, groupId = Some(randomId)), planetId = userId)
+        val authToken: String = givenAnAuthenticatedUser(User(userId, groupId = Some(randomId)), planetId = userId)
         givenUserEnrolledFor(userId, planetId = userId, "IR-SA", "UTR", "1234567890")
 
         an[InsufficientEnrolments] shouldBe thrownBy(
@@ -357,7 +357,8 @@ class AuthStubControllerISpec
 
       "retrieve authorisedEnrolments if PrivilegedApplication" in {
         val id = randomId
-        val authToken = givenAnAuthenticatedUser(User(id), planetId = id, providerType = "PrivilegedApplication")
+        val authToken: String =
+          givenAnAuthenticatedUser(User(id), planetId = id, providerType = "PrivilegedApplication")
         givenUserWithStrideRole(id, planetId = id, "FOO_ROLE")
         givenUserEnrolledFor(id, planetId = id, "IR-SA", "UTR", "1234567890")
 
@@ -375,7 +376,7 @@ class AuthStubControllerISpec
       "retrieve authorisedEnrolments with HMRC-NI" in {
         val id = randomId
         val user = UserGenerator.individual(id)
-        val authToken = givenAnAuthenticatedUser(user, planetId = id)
+        val authToken: String = givenAnAuthenticatedUser(user, planetId = id)
         givenUserEnrolledFor(id, planetId = id, "HMRC-MTD-IT", "MTDITID", "236216873678126")
         givenUserEnrolledFor(id, planetId = id, "IR-SA", "UTR", "1234567890")
 
@@ -395,7 +396,7 @@ class AuthStubControllerISpec
 
       "retrieve allEnrolments" in {
         val id = randomId
-        val authToken = givenAnAuthenticatedUser(User(id), planetId = id)
+        val authToken: String = givenAnAuthenticatedUser(User(id), planetId = id)
         givenUserEnrolledFor(id, planetId = id, "HMRC-MTD-IT", "MTDITID", "236216873678126")
         givenUserEnrolledFor(id, planetId = id, "IR-SA", "UTR", "1234567890")
 
@@ -423,7 +424,7 @@ class AuthStubControllerISpec
         givenAnAuthenticatedUser(User(userOrganisationId, groupId = Some(groupId)), planetId = userId)
         givenUserEnrolledFor(userOrganisationId, planetId = userId, "IR-SA", "UTR", "1234567890")
 
-        val authToken = givenAnAuthenticatedUser(User(userId, groupId = Some(groupId)), planetId = userId)
+        val authToken: String = givenAnAuthenticatedUser(User(userId, groupId = Some(groupId)), planetId = userId)
         givenUserEnrolledFor(userId, planetId = userId, "HMRC-MTD-IT", "MTDITID", "236216873678126")
 
         val enrolments = await(
@@ -449,7 +450,7 @@ class AuthStubControllerISpec
         givenAnAuthenticatedUser(User(userOrganisationId, groupId = Some(randomId)), planetId = userId)
         givenUserEnrolledFor(userOrganisationId, planetId = userId, "IR-SA", "UTR", "1234567890")
 
-        val authToken = givenAnAuthenticatedUser(User(userId, groupId = Some(randomId)), planetId = userId)
+        val authToken: String = givenAnAuthenticatedUser(User(userId, groupId = Some(randomId)), planetId = userId)
         givenUserEnrolledFor(userId, planetId = userId, "HMRC-MTD-IT", "MTDITID", "236216873678126")
 
         val enrolments = await(
@@ -468,7 +469,8 @@ class AuthStubControllerISpec
 
       "retrieve allEnrolments if PrivilegedApplication" in {
         val id = randomId
-        val authToken = givenAnAuthenticatedUser(User(id), planetId = id, providerType = "PrivilegedApplication")
+        val authToken: String =
+          givenAnAuthenticatedUser(User(id), planetId = id, providerType = "PrivilegedApplication")
         givenUserWithStrideRole(id, planetId = id, "FOO_ROLE")
         givenUserEnrolledFor(id, planetId = id, "IR-SA", "UTR", "1234567890")
 
@@ -487,7 +489,7 @@ class AuthStubControllerISpec
       "retrieve allEnrolments with HMRC-NI" in {
         val id = randomId
         val user = UserGenerator.individual(id)
-        val authToken = givenAnAuthenticatedUser(user, planetId = id)
+        val authToken: String = givenAnAuthenticatedUser(user, planetId = id)
         givenUserEnrolledFor(id, planetId = id, "HMRC-MTD-IT", "MTDITID", "236216873678126")
         givenUserEnrolledFor(id, planetId = id, "IR-SA", "UTR", "1234567890")
 
@@ -511,7 +513,7 @@ class AuthStubControllerISpec
       }
 
       "authorize if confidenceLevel matches" in {
-        val authToken =
+        val authToken: String =
           givenAnAuthenticatedUser(UserGenerator.individual(confidenceLevel = 300))
 
         await(
@@ -524,7 +526,7 @@ class AuthStubControllerISpec
       }
 
       "throw IncorrectCredentialStrength if confidenceLevel does not match" in {
-        val authToken =
+        val authToken: String =
           givenAnAuthenticatedUser(UserGenerator.individual(confidenceLevel = 100))
 
         an[InsufficientConfidenceLevel] shouldBe thrownBy {
@@ -539,7 +541,7 @@ class AuthStubControllerISpec
       }
 
       "retrieve confidenceLevel" in {
-        val authToken = givenAnAuthenticatedUser(UserGenerator.individual(confidenceLevel = 200))
+        val authToken: String = givenAnAuthenticatedUser(UserGenerator.individual(confidenceLevel = 200))
 
         val confidence = await(
           authConnector
@@ -552,7 +554,7 @@ class AuthStubControllerISpec
       }
 
       "authorize if credentialStrength matches" in {
-        val authToken =
+        val authToken: String =
           givenAnAuthenticatedUser(User(randomId, credentialStrength = Some("strong")))
 
         await(
@@ -565,7 +567,7 @@ class AuthStubControllerISpec
       }
 
       "throw IncorrectCredentialStrength if credentialStrength does not match" in {
-        val authToken =
+        val authToken: String =
           givenAnAuthenticatedUser(User(randomId, credentialStrength = Some("strong")))
 
         an[IncorrectCredentialStrength] shouldBe thrownBy {
@@ -580,7 +582,7 @@ class AuthStubControllerISpec
       }
 
       "retrieve credentialStrength" in {
-        val authToken =
+        val authToken: String =
           givenAnAuthenticatedUser(User(randomId, credentialStrength = Some("strong")))
 
         val strength = await(
@@ -594,7 +596,7 @@ class AuthStubControllerISpec
       }
 
       "authorize if affinityGroup matches" in {
-        val authToken =
+        val authToken: String =
           givenAnAuthenticatedUser(User(randomId, affinityGroup = Some(User.AG.Agent)))
 
         await(
@@ -607,7 +609,7 @@ class AuthStubControllerISpec
       }
 
       "throw UnsupportedAffinityGroup if affinityGroup does not match" in {
-        val authToken =
+        val authToken: String =
           givenAnAuthenticatedUser(User(randomId, affinityGroup = Some(User.AG.Individual)))
 
         an[UnsupportedAffinityGroup] shouldBe thrownBy {
@@ -622,7 +624,7 @@ class AuthStubControllerISpec
       }
 
       "throw UnsupportedAffinityGroup if none of alternative affinityGroup does not match" in {
-        val authToken =
+        val authToken: String =
           givenAnAuthenticatedUser(User(randomId, affinityGroup = Some(User.AG.Agent)))
 
         an[UnsupportedAffinityGroup] shouldBe thrownBy {
@@ -637,7 +639,7 @@ class AuthStubControllerISpec
       }
 
       "retrieve affinityGroup" in {
-        val authToken = givenAnAuthenticatedUser(User(randomId, affinityGroup = Some(User.AG.Agent)))
+        val authToken: String = givenAnAuthenticatedUser(User(randomId, affinityGroup = Some(User.AG.Agent)))
 
         val affinityGroupOpt = await(
           authConnector
@@ -650,7 +652,7 @@ class AuthStubControllerISpec
       }
 
       "authorize if user has nino" in {
-        val authToken =
+        val authToken: String =
           givenAnAuthenticatedUser(UserGenerator.individual(nino = "HW827856C"))
 
         await(
@@ -663,7 +665,7 @@ class AuthStubControllerISpec
       }
 
       "throw exception if nino does not match" in {
-        val authToken =
+        val authToken: String =
           givenAnAuthenticatedUser(UserGenerator.individual(nino = "HW827856C"))
 
         an[InternalError] shouldBe thrownBy {
@@ -678,7 +680,7 @@ class AuthStubControllerISpec
       }
 
       "retrieve nino" in {
-        val authToken = givenAnAuthenticatedUser(UserGenerator.individual(nino = "HW827856C"))
+        val authToken: String = givenAnAuthenticatedUser(UserGenerator.individual(nino = "HW827856C"))
 
         val ninoOpt = await(
           authConnector
@@ -691,7 +693,7 @@ class AuthStubControllerISpec
       }
 
       "throw UnsupportedCredentialRole if credentialRole does not match" in {
-        val authToken =
+        val authToken: String =
           givenAnAuthenticatedUser(User(randomId, credentialRole = Some("Foo"), isNonCompliant = Some(true)))
 
         an[UnsupportedCredentialRole] shouldBe thrownBy {
@@ -711,7 +713,7 @@ class AuthStubControllerISpec
           planetId = "saturn"
         )
 
-        val authToken =
+        val authToken: String =
           givenAnAuthenticatedUser(
             UserGenerator.individual(groupId = "group1", credentialRole = "Assistant"),
             planetId = "saturn"
@@ -728,7 +730,7 @@ class AuthStubControllerISpec
       }
 
       "retrieve groupIdentifier" in {
-        val authToken = givenAnAuthenticatedUser(User(randomId, groupId = Some("AAA-999-XXX")))
+        val authToken: String = givenAnAuthenticatedUser(User(randomId, groupId = Some("AAA-999-XXX")))
 
         val groupIdentifierOpt = await(
           authConnector
@@ -741,20 +743,20 @@ class AuthStubControllerISpec
       }
 
       "retrieve name" in {
-        val authToken = givenAnAuthenticatedUser(UserGenerator.individual(name = "Foo Boo"))
+        val authToken: String = givenAnAuthenticatedUser(UserGenerator.individual(name = "Foo Boo"))
 
         val nameOpt = await(
           authConnector
-            .authorise[Name](EmptyPredicate, Retrievals.name)(
+            .authorise[Option[Name]](EmptyPredicate, v2.Retrievals.name)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
-        nameOpt shouldBe Name(Some("Foo"), Some("Boo"))
+        nameOpt.get shouldBe Name(Some("Foo"), Some("Boo"))
       }
 
       "retrieve optionalName (v2)" in {
-        val authToken = givenAnAuthenticatedUser(UserGenerator.individual(name = "Foo Boo"))
+        val authToken: String = givenAnAuthenticatedUser(UserGenerator.individual(name = "Foo Boo"))
 
         val nameOpt = await(
           authConnector
@@ -767,7 +769,7 @@ class AuthStubControllerISpec
       }
 
       "retrieve dateOfBirth" in {
-        val authToken = givenAnAuthenticatedUser(UserGenerator.individual(dateOfBirth = "1985-09-17"))
+        val authToken: String = givenAnAuthenticatedUser(UserGenerator.individual(dateOfBirth = "1985-09-17"))
 
         val dateOfBirthOpt = await(
           authConnector
@@ -780,7 +782,7 @@ class AuthStubControllerISpec
       }
 
       "retrieve agentCode" in {
-        val authToken = givenAnAuthenticatedUser(UserGenerator.agent(agentCode = "AAABBB1234567"))
+        val authToken: String = givenAnAuthenticatedUser(UserGenerator.agent(agentCode = "AAABBB1234567"))
 
         val agentCodeOpt = await(
           authConnector
@@ -793,7 +795,7 @@ class AuthStubControllerISpec
       }
 
       "retrieve agentInformation" in {
-        val authToken =
+        val authToken: String =
           givenAnAuthenticatedUser(UserGenerator.agent(agentCode = "AAABBB1234567", agentFriendlyName = "Fox & Co"))
 
         val agentInfo = await(
@@ -810,7 +812,7 @@ class AuthStubControllerISpec
 
       "retrieve email address" in {
         val id = randomId
-        val authToken = givenAnAuthenticatedUser(User(id))
+        val authToken: String = givenAnAuthenticatedUser(User(id))
         val email = await(
           authConnector
             .authorise[Option[String]](EmptyPredicate, Retrievals.email)(
@@ -824,7 +826,7 @@ class AuthStubControllerISpec
       "retrieve internalId" in {
         val id = randomId
         val planetId = randomId
-        val authToken = givenAnAuthenticatedUser(user = User(id), planetId = planetId)
+        val authToken: String = givenAnAuthenticatedUser(user = User(id), planetId = planetId)
         val internalId = await(
           authConnector
             .authorise[Option[String]](EmptyPredicate, Retrievals.internalId)(
@@ -836,7 +838,7 @@ class AuthStubControllerISpec
       }
 
       "authorize if any of enrolment matches" in new TestFixture {
-        val authToken =
+        val authToken: String =
           givenAnAuthenticatedUser(
             UserGenerator
               .individual(randomId)
@@ -845,7 +847,7 @@ class AuthStubControllerISpec
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
-        val result: String = await(
+        await(
           authorised(
             (Enrolment("HMRC-MTD-IT") or Enrolment("HMRC-NI") or Enrolment("HMRC-MTD-VAT"))
               and AuthProviders(GovernmentGateway)
@@ -856,8 +858,8 @@ class AuthStubControllerISpec
       }
 
       "authorize if mtd-it delegated auth rule returns true" in new TestFixture {
-        val agent = UserGenerator.agent(randomId)
-        val authToken =
+        val agent: User = UserGenerator.agent(randomId)
+        val authToken: String =
           givenAnAuthenticatedUser(agent)
 
         WireMock.stubFor(
@@ -871,21 +873,20 @@ class AuthStubControllerISpec
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
-        val result: String =
-          await(
-            authorised(
-              Enrolment("HMRC-MTD-IT")
-                .withIdentifier("MTDITID", "236216873678126")
-                .withDelegatedAuthRule("mtd-it-auth")
-            ) {
-              "success"
-            }
-          )
+        await(
+          authorised(
+            Enrolment("HMRC-MTD-IT")
+              .withIdentifier("MTDITID", "236216873678126")
+              .withDelegatedAuthRule("mtd-it-auth")
+          ) {
+            "success"
+          }
+        ) shouldBe "success"
       }
 
       "do not authorize if mtd-it delegated auth rule returns false" in new TestFixture {
-        val agent = UserGenerator.agent(randomId)
-        val authToken =
+        val agent: User = UserGenerator.agent(randomId)
+        val authToken: String =
           givenAnAuthenticatedUser(agent)
 
         WireMock.stubFor(
@@ -913,8 +914,8 @@ class AuthStubControllerISpec
       }
 
       "do not authorize for mtd-it delegated auth rule when identifier type differs" in new TestFixture {
-        val agent = UserGenerator.agent(randomId)
-        val authToken =
+        val agent: User = UserGenerator.agent(randomId)
+        val authToken: String =
           givenAnAuthenticatedUser(agent)
 
         WireMock.stubFor(
@@ -942,8 +943,8 @@ class AuthStubControllerISpec
       }
 
       "authorize if mtd-vat delegated auth rule returns true" in new TestFixture {
-        val agent = UserGenerator.agent(randomId)
-        val authToken =
+        val agent: User = UserGenerator.agent(randomId)
+        val authToken: String =
           givenAnAuthenticatedUser(agent)
 
         WireMock.stubFor(
@@ -957,21 +958,20 @@ class AuthStubControllerISpec
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
-        val result: String =
-          await(
-            authorised(
-              Enrolment("HMRC-MTD-VAT")
-                .withIdentifier("VRN", "936707596")
-                .withDelegatedAuthRule("mtd-vat-auth")
-            ) {
-              "success"
-            }
-          )
+        await(
+          authorised(
+            Enrolment("HMRC-MTD-VAT")
+              .withIdentifier("VRN", "936707596")
+              .withDelegatedAuthRule("mtd-vat-auth")
+          ) {
+            "success"
+          }
+        ) shouldBe "success"
       }
 
       "do not authorize if mtd-vat delegated auth rule returns false" in new TestFixture {
-        val agent = UserGenerator.agent(randomId)
-        val authToken =
+        val agent: User = UserGenerator.agent(randomId)
+        val authToken: String =
           givenAnAuthenticatedUser(agent)
 
         WireMock.stubFor(
@@ -999,8 +999,8 @@ class AuthStubControllerISpec
       }
 
       "authorize if afi delegated auth rule returns true" in new TestFixture {
-        val agent = UserGenerator.agent(randomId)
-        val authToken =
+        val agent: User = UserGenerator.agent(randomId)
+        val authToken: String =
           givenAnAuthenticatedUser(agent)
 
         WireMock.stubFor(
@@ -1014,21 +1014,20 @@ class AuthStubControllerISpec
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
-        val result: String =
-          await(
-            authorised(
-              Enrolment("HMRC-NI")
-                .withIdentifier("NINO", "HW827856C")
-                .withDelegatedAuthRule("afi-auth")
-            ) {
-              "success"
-            }
-          )
+        await(
+          authorised(
+            Enrolment("HMRC-NI")
+              .withIdentifier("NINO", "HW827856C")
+              .withDelegatedAuthRule("afi-auth")
+          ) {
+            "success"
+          }
+        ) shouldBe "success"
       }
 
       "do not authorize if afi delegated auth rule returns false" in new TestFixture {
-        val agent = UserGenerator.agent(randomId)
-        val authToken =
+        val agent: User = UserGenerator.agent(randomId)
+        val authToken: String =
           givenAnAuthenticatedUser(agent)
 
         WireMock.stubFor(
@@ -1056,8 +1055,8 @@ class AuthStubControllerISpec
       }
 
       "authorize if sa delegated auth rule returns true" in new TestFixture {
-        val agent = UserGenerator.agent(randomId)
-        val authToken =
+        val agent: User = UserGenerator.agent(randomId)
+        val authToken: String =
           givenAnAuthenticatedUser(agent)
 
         WireMock.stubFor(
@@ -1071,21 +1070,20 @@ class AuthStubControllerISpec
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
-        val result: String =
-          await(
-            authorised(
-              Enrolment("IR-SA")
-                .withIdentifier("UTR", "1234556")
-                .withDelegatedAuthRule("sa-auth")
-            ) {
-              "success"
-            }
-          )
+        await(
+          authorised(
+            Enrolment("IR-SA")
+              .withIdentifier("UTR", "1234556")
+              .withDelegatedAuthRule("sa-auth")
+          ) {
+            "success"
+          }
+        ) shouldBe "success"
       }
 
       "do not authorize if sa delegated auth rule returns false" in new TestFixture {
-        val agent = UserGenerator.agent(randomId)
-        val authToken =
+        val agent: User = UserGenerator.agent(randomId)
+        val authToken: String =
           givenAnAuthenticatedUser(agent)
 
         WireMock.stubFor(
@@ -1113,8 +1111,8 @@ class AuthStubControllerISpec
       }
 
       "authorize if trust delegated auth rule returns true" in new TestFixture {
-        val agent = UserGenerator.agent(randomId)
-        val authToken =
+        val agent: User = UserGenerator.agent(randomId)
+        val authToken: String =
           givenAnAuthenticatedUser(agent)
 
         WireMock.stubFor(
@@ -1138,11 +1136,12 @@ class AuthStubControllerISpec
               "success"
             }
           )
+        println(result)
       }
 
       "do not authorize if trust delegated auth rule returns false" in new TestFixture {
-        val agent = UserGenerator.agent(randomId)
-        val authToken =
+        val agent: User = UserGenerator.agent(randomId)
+        val authToken: String =
           givenAnAuthenticatedUser(agent)
 
         WireMock.stubFor(
@@ -1170,8 +1169,8 @@ class AuthStubControllerISpec
       }
 
       "authorize if cgt delegated auth rule returns true" in new TestFixture {
-        val agent = UserGenerator.agent(randomId)
-        val authToken =
+        val agent: User = UserGenerator.agent(randomId)
+        val authToken: String =
           givenAnAuthenticatedUser(agent)
 
         WireMock.stubFor(
@@ -1185,21 +1184,20 @@ class AuthStubControllerISpec
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
-        val result: String =
-          await(
-            authorised(
-              Enrolment("HMRC-CGT-PD")
-                .withIdentifier("CGTPDRef", "XMCGTP123456789")
-                .withDelegatedAuthRule("cgt-auth")
-            ) {
-              "success"
-            }
-          )
+        await(
+          authorised(
+            Enrolment("HMRC-CGT-PD")
+              .withIdentifier("CGTPDRef", "XMCGTP123456789")
+              .withDelegatedAuthRule("cgt-auth")
+          ) {
+            "success"
+          }
+        ) shouldBe "success"
       }
 
       "do not authorize if cgt delegated auth rule returns false" in new TestFixture {
-        val agent = UserGenerator.agent(randomId)
-        val authToken =
+        val agent: User = UserGenerator.agent(randomId)
+        val authToken: String =
           givenAnAuthenticatedUser(agent)
 
         WireMock.stubFor(

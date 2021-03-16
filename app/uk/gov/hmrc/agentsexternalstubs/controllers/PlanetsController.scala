@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.agentsexternalstubs.models.UserIdGenerator
@@ -24,6 +23,7 @@ import uk.gov.hmrc.agentsexternalstubs.repository._
 import uk.gov.hmrc.agentsexternalstubs.services.AuthorisationCache
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
@@ -38,7 +38,7 @@ class PlanetsController @Inject() (
 )(implicit ec: ExecutionContext)
     extends BackendController(cc) {
 
-  def destroy(planetId: String): Action[AnyContent] = Action.async { implicit request =>
+  def destroy(planetId: String): Action[AnyContent] = Action.async {
     Logger(getClass).info(s"About to start destroying test planet $planetId ..")
     UserIdGenerator.destroyPlanetId(planetId)
     AuthorisationCache.destroyPlanet(planetId)
