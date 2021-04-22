@@ -72,11 +72,8 @@ lazy val root = (project in file("."))
     scalaVersion := "2.12.10",
     majorVersion := 0,
     PlayKeys.playDefaultPort := 9009,
-    resolvers := Seq(
-      Resolver.bintrayRepo("hmrc", "releases"),
-      Resolver.bintrayRepo("hmrc", "release-candidates"),
+    resolvers ++= Seq(
       Resolver.typesafeRepo("releases"),
-      Resolver.jcenterRepo,
       Resolver.bintrayRepo("wolfendale", "maven")
     ),
     libraryDependencies ++= tmpMacWorkaround() ++ compileDeps ++ testDeps("test") ++ testDeps("it"),
