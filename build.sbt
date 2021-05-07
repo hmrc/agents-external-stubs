@@ -25,7 +25,7 @@ lazy val compileDeps = Seq(
   "com.github.blemale" %% "scaffeine"                 % "4.0.1",
   "org.typelevel"      %% "cats-core"                 % "2.0.0",
   "uk.gov.hmrc"        %% "stub-data-generator"       % "0.5.3",
-  "wolfendale"         %% "scalacheck-gen-regexp"     % "0.1.1",
+  "io.github.wolfendale"         %% "scalacheck-gen-regexp"     % "0.1.3",
   "com.typesafe.play"  %% "play-json"                 % "2.7.0",
   "com.typesafe.play"  %% "play-json-joda"            % "2.7.4",
   ws
@@ -74,7 +74,6 @@ lazy val root = (project in file("."))
     PlayKeys.playDefaultPort := 9009,
     resolvers ++= Seq(
       Resolver.typesafeRepo("releases"),
-      Resolver.bintrayRepo("wolfendale", "maven")
     ),
     libraryDependencies ++= tmpMacWorkaround() ++ compileDeps ++ testDeps("test") ++ testDeps("it"),
     publishingSettings,
