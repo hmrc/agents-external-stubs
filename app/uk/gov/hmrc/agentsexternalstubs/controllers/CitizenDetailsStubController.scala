@@ -28,6 +28,8 @@ import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import play.api.libs.json.JodaWrites._
 import play.api.libs.json.JodaReads._
+import uk.gov.hmrc.agentmtdidentifiers.model.Utr
+
 import scala.concurrent.ExecutionContext
 
 @Singleton
@@ -109,7 +111,7 @@ object CitizenDetailsStubController {
 
     case class Name(firstName: String, lastName: Option[String] = None)
     case class Names(current: Name, previous: Seq[Name] = Seq.empty)
-    case class Ids(nino: Option[Nino])
+    case class Ids(nino: Option[Nino], sautr: Option[Utr])
 
     implicit val formats1: Format[Name] = Json.format[Name]
     implicit val formats2: Format[Names] = Json.format[Names]
@@ -130,7 +132,7 @@ object CitizenDetailsStubController {
     def from(user: User): GetCitizenResponse =
       GetCitizenResponse(
         name = Names(current = convertName(user.name)),
-        ids = Ids(nino = user.nino),
+        ids = Ids(nino = user.nino, sautr = Some(Utr("1234567890"))),
         dateOfBirth = user.dateOfBirth.map(_.toString("ddMMyyyy"))
       )
 
