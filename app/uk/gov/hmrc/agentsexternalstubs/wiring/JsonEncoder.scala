@@ -22,7 +22,6 @@ import ch.qos.logback.classic.spi.{ILoggingEvent, ThrowableProxyUtil}
 import ch.qos.logback.core.encoder.EncoderBase
 import com.fasterxml.jackson.core.json.JsonWriteFeature
 import com.fasterxml.jackson.databind.ObjectMapper
-import org.apache.commons.io.IOUtils._
 import org.apache.commons.lang3.time.FastDateFormat
 import com.typesafe.config.ConfigFactory
 
@@ -76,7 +75,7 @@ class JsonEncoder extends EncoderBase[ILoggingEvent] {
     )
     event.getMDCPropertyMap.asScala foreach { case (k, v) => eventNode.put(k.toLowerCase, v) }
 
-    s"${mapper.writeValueAsString(eventNode)}$LINE_SEPARATOR".getBytes(StandardCharsets.UTF_8)
+    s"${mapper.writeValueAsString(eventNode)}${System.lineSeparator}".getBytes(StandardCharsets.UTF_8)
   }
 
   final def encodeAuditEventLog(event: ILoggingEvent): Array[Byte] = {
@@ -101,7 +100,7 @@ class JsonEncoder extends EncoderBase[ILoggingEvent] {
     )
     event.getMDCPropertyMap.asScala foreach { case (k, v) => eventNode.put(k.toLowerCase, v) }
 
-    s"${mapper.writeValueAsString(eventNode)}$LINE_SEPARATOR".getBytes(StandardCharsets.UTF_8)
+    s"${mapper.writeValueAsString(eventNode)}${System.lineSeparator}".getBytes(StandardCharsets.UTF_8)
   }
 
   final def putJsonNode(eventNode: ObjectNode, jsonNode: JsonNode, prefix: String): Unit =
@@ -118,9 +117,9 @@ class JsonEncoder extends EncoderBase[ILoggingEvent] {
     }
 
   override def footerBytes(): Array[Byte] =
-    LINE_SEPARATOR.getBytes(StandardCharsets.UTF_8)
+    System.lineSeparator.getBytes(StandardCharsets.UTF_8)
 
   override def headerBytes(): Array[Byte] =
-    LINE_SEPARATOR.getBytes(StandardCharsets.UTF_8)
+    System.lineSeparator.getBytes(StandardCharsets.UTF_8)
 
 }

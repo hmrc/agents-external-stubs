@@ -40,7 +40,7 @@ class UsersService @Inject() (
     usersRepository.findByUserId(userId, planetId)
 
   def findByNino(nino: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
-    externalUserService.tryLookupExternalUserIfMissingForIdentifier(Nino(nino), planetId, createUser)(id =>
+    externalUserService.tryLookupExternalUserIfMissingForIdentifier(Nino(nino), planetId, createUser(_, _)(ec))(id =>
       usersRepository.findByNino(id.value, planetId)
     )
 
@@ -257,10 +257,10 @@ class UsersService @Inject() (
       case Some(_) =>
         findByUserId(userId, planetId)
           .flatMap {
-            case None => Future.failed(throw new BadRequestException("INVALID_JSON_BODY"))
+            case None => Future.failed(new BadRequestException("INVALID_JSON_BODY"))
             case Some(user) =>
               user.groupId match {
-                case None => Future.failed(throw new BadRequestException("INVALID_CREDENTIAL_ID"))
+                case None => Future.failed(new BadRequestException("INVALID_CREDENTIAL_ID"))
                 case Some(groupId) =>
                   val enrolment = Enrolment.from(enrolmentKey)
                   findByGroupId(groupId, planetId)(101).flatMap { members =>
@@ -269,7 +269,7 @@ class UsersService @Inject() (
                     } else if (members.exists(m => m.isAdmin && m.delegatedEnrolments.contains(enrolment))) {
                       Future.successful(user)
                     } else {
-                      Future.failed(throw new BadRequestException("SERVICE_UNAVAILABLE"))
+                      Future.failed(new BadRequestException("SERVICE_UNAVAILABLE"))
                     }
                   }
               }
@@ -332,11 +332,11 @@ class UsersService @Inject() (
                         }
                       )
                     case None =>
-                      Future.failed(throw new BadRequestException("INVALID_QUERY_PARAMETERS"))
+                      Future.failed(new BadRequestException("INVALID_QUERY_PARAMETERS"))
                   }
-                else Future.failed(throw new BadRequestException("INVALID_QUERY_PARAMETERS"))
+                else Future.failed(new BadRequestException("INVALID_QUERY_PARAMETERS"))
               }
-            case None => Future.failed(throw new BadRequestException("INVALID_JSON_BODY"))
+            case None => Future.failed(new BadRequestException("INVALID_JSON_BODY"))
           }
     }
 
@@ -368,7 +368,7 @@ class UsersService @Inject() (
                   )
               }
 
-            case _ => Future.failed(throw new BadRequestException("INVALID_GROUP_ID"))
+            case _ => Future.failed(new BadRequestException("INVALID_GROUP_ID"))
           }
       case Some(agentCode) =>
         findAdminByAgentCode(agentCode, planetId)
@@ -379,7 +379,7 @@ class UsersService @Inject() (
                 planetId,
                 u => u.copy(delegatedEnrolments = removeEnrolment(u.delegatedEnrolments, enrolmentKey))
               )
-            case _ => Future.failed(throw new BadRequestException("INVALID_AGENT_FORMAT"))
+            case _ => Future.failed(new BadRequestException("INVALID_AGENT_FORMAT"))
           }
     }
 

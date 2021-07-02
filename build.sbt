@@ -16,12 +16,12 @@ lazy val scoverageSettings = {
 
 lazy val compileDeps = Seq(
   ws,
-  "uk.gov.hmrc"        %% "bootstrap-backend-play-27" % "2.24.0",
+  "uk.gov.hmrc"        %% "bootstrap-backend-play-27" % "5.6.0",
   "uk.gov.hmrc"        %% "simple-reactivemongo"      % "7.30.0-play-27",
   "uk.gov.hmrc"        %% "auth-client"               % "3.0.0-play-27",
-  "uk.gov.hmrc"        %% "agent-mtd-identifiers"     % "0.23.0-play-27",
+  "uk.gov.hmrc"        %% "agent-mtd-identifiers"     % "0.25.0-play-27",
   "com.kenshoo"        %% "metrics-play"              % "2.7.3_0.8.2",
-  "uk.gov.hmrc"        %% "domain"                    % "5.9.0-play-27",
+  "uk.gov.hmrc"        %% "domain"                    % "6.0.0-play-27",
   "com.github.blemale" %% "scaffeine"                 % "4.0.1",
   "org.typelevel"      %% "cats-core"                 % "2.0.0",
   "uk.gov.hmrc"        %% "stub-data-generator"       % "0.5.3",
@@ -69,13 +69,26 @@ lazy val root = (project in file("."))
   .settings(
     name := "agents-external-stubs",
     organization := "uk.gov.hmrc",
-    scalaVersion := "2.12.10",
+    scalaVersion := "2.12.12",
     majorVersion := 0,
+    scalacOptions ++= Seq(
+      "-Xlint:-missing-interpolator,_",
+      "-Yno-adapted-args",
+      "-Ywarn-dead-code",
+      "-deprecation",
+      "-feature",
+      "-unchecked",
+      "-language:implicitConversions",
+      "-P:silencer:pathFilters=views;routes"),
     PlayKeys.playDefaultPort := 9009,
     resolvers ++= Seq(
       Resolver.typesafeRepo("releases"),
     ),
     libraryDependencies ++= tmpMacWorkaround() ++ compileDeps ++ testDeps("test") ++ testDeps("it"),
+    libraryDependencies ++= Seq(
+      compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.0" cross CrossVersion.full),
+      "com.github.ghik" % "silencer-lib" % "1.7.0" % Provided cross CrossVersion.full
+    ),
     publishingSettings,
     scoverageSettings,
     unmanagedResourceDirectories in Compile += baseDirectory.value / "resources",

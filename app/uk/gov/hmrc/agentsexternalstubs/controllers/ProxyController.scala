@@ -21,6 +21,7 @@ import play.api.libs.json.Json
 import play.api.libs.ws.{BodyWritable, EmptyBody, InMemoryBody, WSClient}
 import play.api.mvc._
 import play.api.{Configuration, Logger}
+import uk.gov.hmrc.http.HeaderCarrier.Config
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import java.net.URLEncoder
@@ -60,20 +61,20 @@ class ProxyController @Inject() (ws: WSClient, config: Configuration, cc: Contro
   def proxyPassTo(url: String): Action[AnyContent] = Action.async { implicit request =>
     targetUrlFor(request.path) match {
       case Some(targetUrl) =>
-        logger.info("Sending upstream proxy request " + targetUrl.toString)
+        logger.info("Sending upstream proxy request " + targetUrl)
         val requestContentType: Seq[(String, String)] =
-          request.headers.get("Content-Type").map(("Content-Type", _)).toSeq
+          request.headers.get(CONTENT_TYPE).map((CONTENT_TYPE, _)).toSeq
         val upstreamRequest = ws
           .url(targetUrl)
           .withMethod(request.method)
           .withQueryStringParameters(request.queryString.toSeq.flatMap({ case (k, sv) => sv.map(v => (k, v)) }): _*)
-          .withHttpHeaders(hc.withExtraHeaders(requestContentType: _*).headers: _*)
+          .withHttpHeaders(hc.withExtraHeaders(requestContentType: _*).headersForUrl(Config())(targetUrl): _*)
           .withBody(request.body)
         upstreamRequest
           .stream()
           .map { response =>
-            val responseContentType = response.headers.get("Content-Type").flatMap(_.headOption)
-            val length = response.headers.get("Content-Length").flatMap(_.headOption).map(_.toLong)
+            val responseContentType = response.headers.get(CONTENT_TYPE).flatMap(_.headOption)
+            val length = response.headers.get(CONTENT_LENGTH).flatMap(_.headOption).map(_.toLong)
             logger.info("Got upstream response " + response.status)
             Results
               .Status(response.status)
