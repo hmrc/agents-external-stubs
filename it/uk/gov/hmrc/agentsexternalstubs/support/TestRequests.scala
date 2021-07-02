@@ -2,13 +2,13 @@ package uk.gov.hmrc.agentsexternalstubs.support
 
 import java.util.UUID
 import org.scalatest.concurrent.ScalaFutures
-import play.api.http.{HeaderNames, MimeTypes, SessionConfiguration}
+import play.api.http.{HeaderNames, MimeTypes}
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.libs.ws.{BodyWritable, WSClient, WSCookie, WSResponse}
 import play.api.mvc.{Cookie, Cookies, Session}
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, SignInRequest, User}
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.http.logging.Authorization
+import uk.gov.hmrc.http.Authorization
 
 trait AuthContext {
   self =>

@@ -12,10 +12,11 @@ import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
 import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
 import uk.gov.hmrc.auth.core.authorise.EmptyPredicate
-import uk.gov.hmrc.auth.core.retrieve._
+import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials, EmptyRetrieval, GGCredId, LegacyCredentials, Name}
+import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.{Nino => NinoPredicate, _}
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.http.logging.Authorization
+import uk.gov.hmrc.http.Authorization
 
 class AuthStubControllerISpec
     extends ServerBaseISpec with MongoDB with TestRequests with TestStubs with WireMockSupport {
@@ -93,7 +94,7 @@ class AuthStubControllerISpec
         val authToken: String = givenAnAuthenticatedUser(User(id))
         val creds = await(
           authConnector
-            .authorise[Option[Credentials]](EmptyPredicate, v2.Retrievals.credentials)(
+            .authorise[Option[Credentials]](EmptyPredicate, Retrievals.credentials)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global
             )
@@ -107,7 +108,7 @@ class AuthStubControllerISpec
         val authToken: String = givenAnAuthenticatedUser(User(id), providerType = "PrivilegedApplication")
         val creds = await(
           authConnector
-            .authorise[Option[Credentials]](EmptyPredicate, v2.Retrievals.credentials)(
+            .authorise[Option[Credentials]](EmptyPredicate, Retrievals.credentials)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global
             )
@@ -121,7 +122,7 @@ class AuthStubControllerISpec
         val authToken: String = givenAnAuthenticatedUser(User(id))
         val creds = await(
           authConnector
-            .authorise[Option[Credentials]](EmptyPredicate, v2.Retrievals.credentials)(
+            .authorise[Option[Credentials]](EmptyPredicate, Retrievals.credentials)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global
             )
@@ -135,7 +136,7 @@ class AuthStubControllerISpec
         val authToken: String = givenAnAuthenticatedUser(User(id), providerType = "PrivilegedApplication")
         val creds = await(
           authConnector
-            .authorise[Option[Credentials]](EmptyPredicate, v2.Retrievals.credentials)(
+            .authorise[Option[Credentials]](EmptyPredicate, Retrievals.credentials)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global
             )
@@ -198,7 +199,7 @@ class AuthStubControllerISpec
         val authToken: String = givenAnAuthenticatedUser(User(id))
         val creds = await(
           authConnector
-            .authorise[LegacyCredentials](EmptyPredicate, v2.Retrievals.authProviderId)(
+            .authorise[LegacyCredentials](EmptyPredicate, Retrievals.authProviderId)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global
             )
@@ -514,11 +515,11 @@ class AuthStubControllerISpec
 
       "authorize if confidenceLevel matches" in {
         val authToken: String =
-          givenAnAuthenticatedUser(UserGenerator.individual(confidenceLevel = 300))
+          givenAnAuthenticatedUser(UserGenerator.individual(confidenceLevel = 200))
 
         await(
           authConnector
-            .authorise[Unit](ConfidenceLevel.L300, EmptyRetrieval)(
+            .authorise[Unit](ConfidenceLevel.L200, EmptyRetrieval)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global
             )
@@ -747,7 +748,7 @@ class AuthStubControllerISpec
 
         val nameOpt = await(
           authConnector
-            .authorise[Option[Name]](EmptyPredicate, v2.Retrievals.name)(
+            .authorise[Option[Name]](EmptyPredicate, Retrievals.name)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global
             )
@@ -760,7 +761,7 @@ class AuthStubControllerISpec
 
         val nameOpt = await(
           authConnector
-            .authorise[Option[Name]](EmptyPredicate, v2.Retrievals.name)(
+            .authorise[Option[Name]](EmptyPredicate, Retrievals.name)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global
             )

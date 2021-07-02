@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs
 
-import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.{any, anyString}
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.http.Status
@@ -60,7 +60,16 @@ class EnrolmentStoreProxyStubControllerSpec extends UnitSpec {
 
   "allocateGroupEnrolment" should {
     "return 409 if mongodb returns DuplicateUserException" in new Setup {
-      when(mockUsersService.allocateEnrolmentToGroup(any(), any(), any(), any(), any(), any())(any()))
+      when(
+        mockUsersService.allocateEnrolmentToGroup(
+          anyString(),
+          anyString(),
+          any[EnrolmentKey](),
+          anyString(),
+          any[Option[String]](),
+          anyString()
+        )(any[ExecutionContext]())
+      )
         .thenReturn(Future.failed(DuplicateUserException("")))
       val result: Future[Result] =
         controller.allocateGroupEnrolment("group1", EnrolmentKey("IR-SA~UTR~12345678"), None)(
