@@ -44,10 +44,7 @@ class SpecialCasesController @Inject() (
 
   val getAllSpecialCases: Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
-      specialCasesRepository.findByPlanetId(session.planetId)(1000).map {
-        case sc if sc.nonEmpty => ok(sc)
-        case _                 => NoContent
-      }
+      specialCasesRepository.findByPlanetId(session.planetId)(1000).map(ok(_))
     }(SessionRecordNotFound)
   }
 

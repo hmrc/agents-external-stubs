@@ -49,23 +49,6 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with MongoDB with Test
           )
         )
       }
-
-      "return 204 if none found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-        val entity1 = SpecialCase(RequestMatch("/test1", "GET"), SpecialCase.Response(200), Some(session.planetId))
-        val entity2 = SpecialCase(RequestMatch("/test2", "POST"), SpecialCase.Response(201), Some(session.planetId))
-        val entity3 = SpecialCase(RequestMatch("/test3", "PUT"), SpecialCase.Response(202), Some(session.planetId))
-        val entity4 =
-          SpecialCase(RequestMatch("/test4", "DELETE"), SpecialCase.Response(204), Some(session.planetId))
-
-        await(repo.upsert(entity1, session.planetId + "_"))
-        await(repo.upsert(entity2, session.planetId + "_"))
-        await(repo.upsert(entity3, session.planetId + "_"))
-        await(repo.upsert(entity4, session.planetId + "_"))
-
-        val result = SpecialCases.getAllSpecialCases
-        result should haveStatus(204)
-      }
     }
 
     "GET /agents-external-stubs/special-cases/:id" should {

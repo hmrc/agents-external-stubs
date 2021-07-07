@@ -506,8 +506,7 @@ List all special cases defined on the planet
 
 Response | Description
 ---|---
-200| special cases array if any
-204| None found
+200| special cases array
 
 #### GET /agents-external-stubs/special-cases/:id
 Get special case by id
