@@ -490,6 +490,9 @@ trait TestRequests extends ScalaFutures {
 
     def getTrustKnownFactsUrnIncorrectly(urn: String)(implicit authContext: AuthContext): WSResponse =
       get(s"/trusts/agent-known-fact-check/$urn")
+
+    def getAmlsSubscriptionStatus(amlsRegistrationNumber: String)(implicit authContext: AuthContext): WSResponse =
+      get(s"/anti-money-laundering/subscription/$amlsRegistrationNumber/status")
   }
 
   object DataStreamStubs {

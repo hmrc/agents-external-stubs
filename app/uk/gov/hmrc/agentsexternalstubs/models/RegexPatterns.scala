@@ -48,6 +48,7 @@ object RegexPatterns {
   val validAgentCode: Matcher = validate("^[A-Z0-9]{1,12}$".r)
   val validTaxOfficeNumber: Matcher = validate("^\\d{1,3}$".r)
   val validTaxOfficeReference: Matcher = validate("^[A-Za-z0-9 ]{1,10}$".r)
+  val validateAmlsRegistrationNumber: Matcher = validate("^X[A-Z]ML00000[0-9]{6}$".r)
 
   val validDate: Matcher =
     validate(

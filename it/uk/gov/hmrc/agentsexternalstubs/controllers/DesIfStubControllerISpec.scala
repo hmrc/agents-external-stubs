@@ -1389,4 +1389,22 @@ class DesIfStubControllerISpec
       result2 should haveValidJsonBody(haveProperty[String]("code", be("INVALID_REQUEST")))
     }
   }
+
+  "GET /anti-money-laundering/subscription/:amlsRegistrationNumber/status" should {
+    "return AmlsSubscriptionStatusResponse when the amlsRegistrationNumber is recognised" in {
+      implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
+      val result = DesStub.getAmlsSubscriptionStatus("XAML00000100000")
+      result should haveStatus(200)
+    }
+    "return 400 Bad Request when registration number is invalid" in {
+      implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
+      val result = DesStub.getAmlsSubscriptionStatus("invalid")
+      result should haveStatus(400)
+    }
+    "return 404 Not Found when registration number is unknown" in {
+      implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
+      val result = DesStub.getAmlsSubscriptionStatus("XAML00000000001")
+      result should haveStatus(404)
+    }
+  }
 }

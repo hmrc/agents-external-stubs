@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import org.joda.time.LocalDate
+import org.joda.time.{LocalDate, LocalDateTime}
 import play.api.data.Form
 import play.api.data.Forms._
 import play.api.data.validation.{Constraint, Constraints, Invalid, Valid}
@@ -591,6 +591,19 @@ class DesIfStubController @Inject() (
       }(SessionRecordNotFound)
   }
 
+  def getAmlsSubscriptionStatus(amlsRegistrationNumber: String): Action[AnyContent] = Action.async { implicit request =>
+    RegexPatterns
+      .validateAmlsRegistrationNumber(amlsRegistrationNumber)
+      .fold(
+        error => badRequestF("INVALID_AMLS_REGISTRATION_NUMBER", error),
+        regNumber =>
+          AmlsSubscriptionStatus(regNumber) match {
+            case Some(json) => Future.successful(Ok(json))
+            case None       => Future successful NotFound
+          }
+      )
+  }
+
   private def getOrCreateBusinessPartnerRecord[T <: Record](
     payload: RegistrationPayload,
     idType: String,
@@ -992,6 +1005,34 @@ object DesIfStubController {
 
       implicit val formats: Format[Response] = Json.format[Response]
     }
+
+  }
+
+  object AmlsSubscriptionStatus {
+
+    def apply(amlsRegistrationNumber: String): Option[JsValue] =
+      amlsRegistrationNumber match {
+        case "XAML00000100000" => Some(jsonPendingResponse) //Pending
+        case "XAML00000200000" => Some(jsonApprovedResponse) //Approved
+        case "XAML00000300000" => Some(jsonSuspendedResponse) //Suspended
+        case _                 => None
+      }
+
+    val now = LocalDateTime.now()
+
+    val standardSuccessfulResponse = AmlsSubscriptionStatusResponse(
+      processingDate = now,
+      formBundleStatus = "Pending",
+      deRegistrationDate = LocalDate.parse(s"${now.getYear}-01-01"),
+      currentRegYearEndDate = LocalDate.parse(s"${now.getYear}-12-31"),
+      currentRegYearStartDate = LocalDate.parse(s"${now.getYear}-01-01"),
+      safeId = "111234567890123",
+      suspended = false
+    )
+
+    val jsonPendingResponse = Json.toJson(standardSuccessfulResponse)
+    val jsonApprovedResponse = Json.toJson(standardSuccessfulResponse.copy(formBundleStatus = "Approved"))
+    val jsonSuspendedResponse = Json.toJson(standardSuccessfulResponse.copy(suspended = true))
 
   }
 
