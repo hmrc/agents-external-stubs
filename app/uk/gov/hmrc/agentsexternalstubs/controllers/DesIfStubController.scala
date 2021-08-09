@@ -1015,25 +1015,30 @@ object DesIfStubController {
         case "XAML00000100000" => Some(jsonPendingResponse) //Pending
         case "XAML00000200000" => Some(jsonApprovedResponse) //Approved
         case "XAML00000300000" => Some(jsonSuspendedResponse) //Suspended
+        case "XAML00000400000" => Some(jsonRejectedResponse) //Rejected
         case _                 => None
       }
 
     val now = LocalDateTime.now()
 
-    val standardSuccessfulResponse = AmlsSubscriptionStatusResponse(
-      processingDate = now,
-      formBundleStatus = "Pending",
-      deRegistrationDate = LocalDate.parse(s"${now.getYear}-01-01"),
-      currentRegYearEndDate = LocalDate.parse(s"${now.getYear}-12-31"),
-      currentRegYearStartDate = LocalDate.parse(s"${now.getYear}-01-01"),
-      safeId = "111234567890123",
-      suspended = false
-    )
+    def standardSuccessfulResponse(formBundleStatus: String, suspended: Option[Boolean] = None) =
+      AmlsSubscriptionStatusResponse(
+        processingDate = now,
+        formBundleStatus = formBundleStatus,
+        renewalConFlag = false,
+        renewalSubmissionFlag = false,
+        currentAMLSOutstandingBalance = "0",
+        deRegistrationDate = None,
+        currentRegYearEndDate = Some(LocalDate.parse(s"${now.getYear}-12-31")),
+        currentRegYearStartDate = Some(LocalDate.parse(s"${now.getYear}-01-01")),
+        safeId = "111234567890123",
+        suspended = suspended
+      )
 
-    val jsonPendingResponse = Json.toJson(standardSuccessfulResponse)
-    val jsonApprovedResponse = Json.toJson(standardSuccessfulResponse.copy(formBundleStatus = "Approved"))
-    val jsonSuspendedResponse = Json.toJson(standardSuccessfulResponse.copy(suspended = true))
-
+    val jsonPendingResponse = Json.toJson(standardSuccessfulResponse("Pending"))
+    val jsonApprovedResponse = Json.toJson(standardSuccessfulResponse("Approved"))
+    val jsonSuspendedResponse = Json.toJson(standardSuccessfulResponse("Approved", Some(true)))
+    val jsonRejectedResponse = Json.toJson(standardSuccessfulResponse("Rejected"))
   }
 
 }

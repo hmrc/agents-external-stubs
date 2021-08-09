@@ -179,6 +179,7 @@ Endpoint | Description
 `GET /trusts/agent-known-fact-check/URN/:urn` | Get known facts (enrolment) information
 `GET /trusts/agent-known-fact-check/UTF/:utf` | Get known facts (enrolment) information
 `GET /trusts/agent-known-fact-check/:trustTaxIdentifier` | Get known facts (enrolment) information
+`GET /anti-money-laundering/subscription/:amlsRegistrationNumber/status` | Get AMLS subscription status. Use XAML00000100000 Pending; XAML00000200000 Approved; XAML00000300000 Suspended; XAML00000400000 Rejected (use current year start and current year end dates for currentRegYearStartDate and currentRegYearEndDate respectively)
 
 ### [Datastream](https://github.com/hmrc/datastream) <a name="stubbed_api_datastream"></a>
 

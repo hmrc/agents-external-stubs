@@ -1395,6 +1395,7 @@ class DesIfStubControllerISpec
       implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
       val result = DesStub.getAmlsSubscriptionStatus("XAML00000100000")
       result should haveStatus(200)
+      result should haveValidJsonBody(haveProperty[String]("formBundleStatus", be("Pending")))
     }
     "return 400 Bad Request when registration number is invalid" in {
       implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")

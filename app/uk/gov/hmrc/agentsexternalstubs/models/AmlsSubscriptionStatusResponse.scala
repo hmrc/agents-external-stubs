@@ -18,17 +18,19 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.joda.time.{LocalDate, LocalDateTime}
 import play.api.libs.json.Json
-import play.api.libs.functional.syntax._
 import uk.gov.hmrc.http.controllers.RestFormats
 
 case class AmlsSubscriptionStatusResponse(
   processingDate: LocalDateTime,
   formBundleStatus: String,
-  deRegistrationDate: LocalDate,
-  currentRegYearStartDate: LocalDate,
-  currentRegYearEndDate: LocalDate,
+  renewalConFlag: Boolean,
+  renewalSubmissionFlag: Boolean,
+  currentAMLSOutstandingBalance: String,
+  deRegistrationDate: Option[LocalDate],
+  currentRegYearStartDate: Option[LocalDate],
+  currentRegYearEndDate: Option[LocalDate],
   safeId: String,
-  suspended: Boolean
+  suspended: Option[Boolean]
 )
 
 object AmlsSubscriptionStatusResponse {
