@@ -2,6 +2,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
+import play.api.test.Helpers._
 import reactivemongo.api.Cursor
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, Record, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.repository.{RecordsRepository, UsersRepository}

@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.joda.time.LocalDate
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
 import org.scalatest.Inspectors._
 import uk.gov.hmrc.agentsexternalstubs.support.ValidatedMatchers
 

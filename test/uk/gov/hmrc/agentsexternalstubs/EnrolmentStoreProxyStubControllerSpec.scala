@@ -28,7 +28,7 @@ import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, EnrolmentKe
 import uk.gov.hmrc.agentsexternalstubs.repository.{DuplicateUserException, KnownFactsRepository}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
 

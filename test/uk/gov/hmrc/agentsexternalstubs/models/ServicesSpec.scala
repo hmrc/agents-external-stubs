@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import play.api.libs.json.{JsArray, Json}
 import uk.gov.hmrc.agentsexternalstubs.support.ValidatedMatchers
-import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
 
 class ServicesSpec extends UnitSpec with ValidatedMatchers {
 

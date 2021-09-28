@@ -17,12 +17,11 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalatest.Inspectors
-import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.libs.json.Json
 import uk.gov.hmrc.agentsexternalstubs.support.ValidatedMatchers
-import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
 
-class RecordSpec extends UnitSpec with ScalaCheckPropertyChecks with ValidatedMatchers {
+class RecordSpec extends UnitSpec with ValidatedMatchers {
 
   val seeds = "foeba".permutations.toSeq
 

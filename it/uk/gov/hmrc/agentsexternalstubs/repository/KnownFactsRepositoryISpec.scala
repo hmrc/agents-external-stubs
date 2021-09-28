@@ -19,6 +19,7 @@ import java.util.UUID
 
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
+import play.api.test.Helpers._
 
 import scala.concurrent.Future
 

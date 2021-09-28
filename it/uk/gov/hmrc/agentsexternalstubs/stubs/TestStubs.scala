@@ -1,9 +1,9 @@
 package uk.gov.hmrc.agentsexternalstubs.stubs
 
 import java.util.UUID
-
 import org.scalatest.Suite
 import play.api.Application
+import play.api.test.Helpers._
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 
@@ -14,7 +14,6 @@ trait TestStubs {
   this: Suite =>
 
   def app: Application
-  def await[A](future: Future[A])(implicit timeout: Duration): A
 
   lazy val authenticationService: AuthenticationService = app.injector.instanceOf[AuthenticationService]
   lazy val userService: UsersService = app.injector.instanceOf[UsersService]

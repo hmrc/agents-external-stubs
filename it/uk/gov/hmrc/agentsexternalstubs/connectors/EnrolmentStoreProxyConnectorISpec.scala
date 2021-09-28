@@ -1,8 +1,10 @@
 package uk.gov.hmrc.agentsexternalstubs.connectors
 
 import org.scalatestplus.mockito.MockitoSugar
-import org.scalatest.{Matchers, Suite}
+import org.scalatest.Suite
+import org.scalatest.matchers.should.Matchers
 import play.api.libs.ws.WSClient
+import play.api.test.Helpers._
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Vrn}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
