@@ -2,6 +2,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.json.{JsObject, Json, Reads, Writes}
 import play.api.libs.ws.WSClient
+import play.api.test.Helpers._
 import play.mvc.Http.{HeaderNames, MimeTypes}
 import uk.gov.hmrc.agentsexternalstubs.models.SpecialCase.RequestMatch
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, SpecialCase, UserGenerator}

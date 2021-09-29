@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import uk.gov.hmrc.agentsexternalstubs.support.ValidatedMatchers
-import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
 
 class KnownFactsSpec extends UnitSpec with ValidatedMatchers {
 

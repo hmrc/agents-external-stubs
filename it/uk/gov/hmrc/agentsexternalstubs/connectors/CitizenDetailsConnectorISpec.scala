@@ -2,6 +2,7 @@ package uk.gov.hmrc.agentsexternalstubs.connectors
 
 import org.joda.time.LocalDate
 import play.api.libs.ws.WSClient
+import play.api.test.Helpers._
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{MongoDB, ServerBaseISpec, TestRequests}

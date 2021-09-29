@@ -20,6 +20,7 @@ import java.util.UUID
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
 import uk.gov.hmrc.domain.Nino
+import play.api.test.Helpers._
 
 class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
 
@@ -74,21 +75,21 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
           planetId
         )
       )
-      val e = intercept[DuplicateUserException] {
-        await(
-          repo.create(
-            User(
-              "foo2",
-              principalEnrolments = Seq(
-                Enrolment("something", Some(Seq(Identifier("B", "2")))),
-                Enrolment("foobar", Some(Seq(Identifier("A", "1"))))
-              )
-            ),
-            planetId
-          )
+      val e = repo
+        .create(
+          User(
+            "foo2",
+            principalEnrolments = Seq(
+              Enrolment("something", Some(Seq(Identifier("B", "2")))),
+              Enrolment("foobar", Some(Seq(Identifier("A", "1"))))
+            )
+          ),
+          planetId
         )
-      }
+        .failed
+        .futureValue
 
+      e shouldBe a[DuplicateUserException]
       e.getMessage should include("Existing user already has similar enrolment FOOBAR~A~1.")
     }
 

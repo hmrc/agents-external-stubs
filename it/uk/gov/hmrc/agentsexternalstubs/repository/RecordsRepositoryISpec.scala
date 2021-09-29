@@ -22,6 +22,7 @@ import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.services.LegacyRelationshipRecordsService
 import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
 import uk.gov.hmrc.mongo.ReactiveRepository
+import play.api.test.Helpers._
 
 class RecordsRepositoryISpec extends AppBaseISpec with MongoDB {
 
