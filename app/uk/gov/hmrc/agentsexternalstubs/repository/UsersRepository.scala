@@ -248,7 +248,7 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
   override def delete(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[WriteResult] =
     remove(UNIQUE_KEYS -> keyOf(User.userIdKey(userId), planetId))
 
-  private final val keyValueRegex = """\skey\:\s\{\s\w+\:\s\"(.*?)\"\s\}""".r
+  private final val keyValueRegex = """\skey\:\s\{\s\w*\:\s\"(.*?)\"\s\}""".r
 
   private def extractKey(msg: String): Option[String] =
     if (msg.contains("11000"))
