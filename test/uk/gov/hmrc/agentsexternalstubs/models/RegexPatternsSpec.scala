@@ -78,6 +78,14 @@ class RegexPatternsSpec extends UnitSpec {
       RegexPatterns.validPostcode("BN14").isLeft shouldBe true
       RegexPatterns.validPostcode("BN147B").isLeft shouldBe true
     }
+
+    "validate PptRef" in {
+      RegexPatterns.validPptRef("XAPPT1234567890").isRight shouldBe true
+      RegexPatterns.validPptRef("XAPPT1111111111").isRight shouldBe true
+      RegexPatterns.validPptRef("").isLeft shouldBe true
+      RegexPatterns.validPptRef("1234567890").isLeft shouldBe true
+      RegexPatterns.validPptRef("XAPPT123456789A").isLeft shouldBe true
+    }
   }
 
 }

@@ -16,9 +16,8 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 import java.time.format.DateTimeFormatter
-
 import org.scalacheck.Gen
-import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Urn, UtrCheck, Vrn}
+import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, PptRef, Urn, UtrCheck, Vrn}
 import uk.gov.hmrc.domain.{Modulus11Check, Modulus23Check, Nino}
 import uk.gov.hmrc.smartstub.{Addresses, Companies, Names, Temporal, ToLong}
 import wolfendale.scalacheck.regexp.RegexpGen
@@ -122,6 +121,9 @@ object Generator extends Names with Temporal with Companies with Addresses {
   lazy val urnGen: Gen[String] = pattern"99999999".gen.map("XATRUST" + _)
   def urn(seed: String): Urn = urnGen.map(Urn.apply).seeded(seed).get
 
+  lazy val pptReferenceGen: Gen[String] = pattern"9999999999".gen.map("XAPPT" + _)
+  def pptReference(seed: String): PptRef = pptReferenceGen.map(PptRef.apply).seeded(seed).get
+
   lazy val vrnGen: Gen[String] = pattern"9999999".gen.map(VrnChecksum.apply).retryUntil(Vrn.isValid)
   def vrn(seed: String): Vrn = vrnGen.map(Vrn.apply).seeded(seed).get
 
@@ -220,6 +222,7 @@ object Generator extends Names with Temporal with Companies with Addresses {
     "utr"             -> utrGen,
     "urn"             -> urnGen,
     "cgtPdRef"        -> cgtPdRefGen,
+    "pptReference"    -> pptReferenceGen,
     "mtditid"         -> mtdbsaGen,
     "vrn"             -> vrnGen,
     "eori"            -> eoriGen,
