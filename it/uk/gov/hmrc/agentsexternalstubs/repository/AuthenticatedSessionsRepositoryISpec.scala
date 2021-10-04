@@ -20,6 +20,7 @@ import java.util.UUID
 import reactivemongo.core.errors.DatabaseException
 import uk.gov.hmrc.agentsexternalstubs.models.AuthenticatedSession
 import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
+import play.api.test.Helpers._
 
 import scala.concurrent.Future
 import scala.util.Random

@@ -5,6 +5,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, urlEqualTo}
 import org.joda.time.LocalDate
 import play.api.libs.json.JsObject
 import play.api.libs.ws.WSClient
+import play.api.test.Helpers._
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.connectors.MicroserviceAuthConnector
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, User, UserGenerator}
@@ -17,6 +18,8 @@ import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.{Nino => NinoPredicate, _}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.Authorization
+
+import scala.concurrent.Future
 
 class AuthStubControllerISpec
     extends ServerBaseISpec with MongoDB with TestRequests with TestStubs with WireMockSupport {
@@ -853,7 +856,7 @@ class AuthStubControllerISpec
             (Enrolment("HMRC-MTD-IT") or Enrolment("HMRC-NI") or Enrolment("HMRC-MTD-VAT"))
               and AuthProviders(GovernmentGateway)
           ) {
-            "success"
+            Future.successful("success")
           }
         )
       }
@@ -880,7 +883,7 @@ class AuthStubControllerISpec
               .withIdentifier("MTDITID", "236216873678126")
               .withDelegatedAuthRule("mtd-it-auth")
           ) {
-            "success"
+            Future.successful("success")
           }
         ) shouldBe "success"
       }
@@ -908,7 +911,7 @@ class AuthStubControllerISpec
                 .withIdentifier("MTDITID", "236216873678126")
                 .withDelegatedAuthRule("mtd-it-auth")
             ) {
-              "success"
+              Future.successful("success")
             }
           )
         }
@@ -937,7 +940,7 @@ class AuthStubControllerISpec
                 .withIdentifier("VRN", "236216873678126")
                 .withDelegatedAuthRule("mtd-it-auth")
             ) {
-              "success"
+              Future.successful("success")
             }
           )
         }
@@ -965,7 +968,7 @@ class AuthStubControllerISpec
               .withIdentifier("VRN", "936707596")
               .withDelegatedAuthRule("mtd-vat-auth")
           ) {
-            "success"
+            Future.successful("success")
           }
         ) shouldBe "success"
       }
@@ -993,7 +996,7 @@ class AuthStubControllerISpec
                 .withIdentifier("VRN", "936707596")
                 .withDelegatedAuthRule("mtd-vat-auth")
             ) {
-              "success"
+              Future.successful("success")
             }
           )
         }
@@ -1021,7 +1024,7 @@ class AuthStubControllerISpec
               .withIdentifier("NINO", "HW827856C")
               .withDelegatedAuthRule("afi-auth")
           ) {
-            "success"
+            Future.successful("success")
           }
         ) shouldBe "success"
       }
@@ -1049,7 +1052,7 @@ class AuthStubControllerISpec
                 .withIdentifier("NINO", "HW827856C")
                 .withDelegatedAuthRule("afi-auth")
             ) {
-              "success"
+              Future.successful("success")
             }
           )
         }
@@ -1077,7 +1080,7 @@ class AuthStubControllerISpec
               .withIdentifier("UTR", "1234556")
               .withDelegatedAuthRule("sa-auth")
           ) {
-            "success"
+            Future.successful("success")
           }
         ) shouldBe "success"
       }
@@ -1105,7 +1108,7 @@ class AuthStubControllerISpec
                 .withIdentifier("UTR", "1234556")
                 .withDelegatedAuthRule("sa-auth")
             ) {
-              "success"
+              Future.successful("success")
             }
           )
         }
@@ -1134,7 +1137,7 @@ class AuthStubControllerISpec
                 .withIdentifier("UTR", "1234556")
                 .withDelegatedAuthRule("trust-auth")
             ) {
-              "success"
+              Future.successful("success")
             }
           )
         println(result)
@@ -1163,7 +1166,7 @@ class AuthStubControllerISpec
                 .withIdentifier("UTR", "1234556")
                 .withDelegatedAuthRule("trust-auth")
             ) {
-              "success"
+              Future.successful("success")
             }
           )
         }
@@ -1191,7 +1194,7 @@ class AuthStubControllerISpec
               .withIdentifier("CGTPDRef", "XMCGTP123456789")
               .withDelegatedAuthRule("cgt-auth")
           ) {
-            "success"
+            Future.successful("success")
           }
         ) shouldBe "success"
       }
@@ -1219,7 +1222,7 @@ class AuthStubControllerISpec
                 .withIdentifier("CGTPDRef", "XMCGTP123456789")
                 .withDelegatedAuthRule("cgt-auth")
             ) {
-              "success"
+              Future.successful("success")
             }
           )
         }

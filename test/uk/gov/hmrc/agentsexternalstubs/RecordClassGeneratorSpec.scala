@@ -16,12 +16,10 @@
 
 package uk.gov.hmrc.agentsexternalstubs
 
-import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import uk.gov.hmrc.agentsexternalstubs.support.ValidatedMatchers
-import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
 
-class RecordClassGeneratorSpec
-    extends UnitSpec with ScalaCheckPropertyChecks with ValidatedMatchers with KnownFieldGenerators {
+class RecordClassGeneratorSpec extends UnitSpec with ValidatedMatchers with KnownFieldGenerators {
 
   "KnownFieldGenerators" should {
     "find a generator for a common field name" in {

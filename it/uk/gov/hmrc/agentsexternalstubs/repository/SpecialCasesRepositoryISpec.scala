@@ -20,6 +20,7 @@ import java.util.UUID
 import uk.gov.hmrc.agentsexternalstubs.models.SpecialCase.RequestMatch
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
+import play.api.test.Helpers._
 
 class SpecialCasesRepositoryISpec extends AppBaseISpec with MongoDB {
 

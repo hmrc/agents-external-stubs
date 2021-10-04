@@ -20,6 +20,7 @@ import org.scalatest.concurrent.Eventually
 import uk.gov.hmrc.agentsexternalstubs.models.{BusinessPartnerRecord, UserGenerator, VatCustomerInformationRecord}
 import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
 import uk.gov.hmrc.agentsexternalstubs.wiring.ClearDatabase
+import play.api.test.Helpers._
 
 import scala.concurrent.Future
 import scala.util.Random

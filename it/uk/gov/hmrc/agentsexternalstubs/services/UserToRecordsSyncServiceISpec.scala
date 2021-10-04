@@ -9,12 +9,13 @@ import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.agentsexternalstubs.support._
 import uk.gov.hmrc.domain.Nino
+import play.api.test.Helpers._
 
 import scala.concurrent.duration._
 
 class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
 
-  override implicit val defaultTimeout = 60.seconds
+  implicit val defaultTimeout = 60.seconds
 
   lazy val usersService = app.injector.instanceOf[UsersService]
   lazy val userRecordsService = app.injector.instanceOf[UserToRecordsSyncService]

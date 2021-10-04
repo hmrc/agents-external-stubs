@@ -2,10 +2,10 @@ package uk.gov.hmrc.agentsexternalstubs.support
 
 import java.util.UUID
 import org.scalatest.concurrent.ScalaFutures
-import play.api.http.{HeaderNames, MimeTypes}
+import play.api.http.{CookiesConfiguration, HeaderNames, MimeTypes}
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.libs.ws.{BodyWritable, WSClient, WSCookie, WSResponse}
-import play.api.mvc.{Cookie, Cookies, Session}
+import play.api.mvc.{Cookie, DefaultCookieHeaderEncoding}
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, SignInRequest, User}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.Authorization
@@ -35,15 +35,11 @@ object AuthContext {
     )
   }
 
+  val cookieEncoding = new DefaultCookieHeaderEncoding(CookiesConfiguration())
+
   def fromCookies(response: WSResponse): AuthContext = new AuthContext with CookieConverter {
     override def headers: Seq[(String, String)] = Seq(
-      HeaderNames.COOKIE -> Cookies.encodeCookieHeader(response.cookies.map(x => asCookie(x)))
-    )
-  }
-
-  def fromSession(session: (String, String)*): AuthContext = new AuthContext {
-    override def headers: Seq[(String, String)] = Seq(
-      HeaderNames.COOKIE -> Cookies.encodeCookieHeader(Seq(Session.encodeAsCookie(new Session(session.toMap))))
+      HeaderNames.COOKIE -> cookieEncoding.encodeCookieHeader(response.cookies.map(x => asCookie(x)))
     )
   }
 

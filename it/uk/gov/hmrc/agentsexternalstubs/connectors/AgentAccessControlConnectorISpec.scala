@@ -3,6 +3,7 @@ package uk.gov.hmrc.agentsexternalstubs.connectors
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import play.api.libs.ws.WSClient
+import play.api.test.Helpers._
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{MongoDB, ServerBaseISpec, TestRequests, WireMockSupport}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpGet}

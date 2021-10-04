@@ -11,6 +11,7 @@ import uk.gov.hmrc.agentsexternalstubs.support._
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{Authorization, SessionId}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpPost}
+import play.api.test.Helpers._
 
 import scala.concurrent.ExecutionContext
 

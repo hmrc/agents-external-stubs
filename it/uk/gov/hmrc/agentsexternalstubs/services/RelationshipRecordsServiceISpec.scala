@@ -4,6 +4,7 @@ import org.joda.time.LocalDate
 import uk.gov.hmrc.agentsexternalstubs.models.RelationshipRecord
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.support._
+import play.api.test.Helpers._
 
 class RelationshipRecordsServiceISpec extends AppBaseISpec with MongoDB {
 

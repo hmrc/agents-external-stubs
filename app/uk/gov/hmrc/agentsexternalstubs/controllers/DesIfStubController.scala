@@ -609,7 +609,7 @@ class DesIfStubController @Inject() (
     idType: String,
     idNumber: String,
     planetId: String
-  ): Option[T] => Future[Result] = {
+  )(implicit writes: Writes[T]): Option[T] => Future[Result] = {
 
     case Some(record) => okF(record, Registration.fixSchemaDifferences _)
     case None =>

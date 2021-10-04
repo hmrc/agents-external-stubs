@@ -22,7 +22,7 @@ abstract class ServerBaseISpec
   override lazy val app: Application = playServer.app
 
   import scala.concurrent.duration._
-  override implicit val defaultTimeout: FiniteDuration = 30.seconds
+  implicit val defaultTimeout: FiniteDuration = 30.seconds
 
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.global
 
