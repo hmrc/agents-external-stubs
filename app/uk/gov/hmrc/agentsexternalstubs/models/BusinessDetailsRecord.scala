@@ -20,6 +20,8 @@ import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json._
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord._
 
+import java.time.LocalDate
+
 /** ----------------------------------------------------------------------------
   * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
   * How to regenerate? Run this command in the project root directory:
@@ -38,6 +40,8 @@ case class BusinessDetailsRecord(
   safeId: String,
   nino: String,
   mtdbsa: String,
+  pptReference: Option[String] = None,
+  pptRegistrationDate: Option[LocalDate] = None,
   propertyIncome: Boolean = false,
   businessData: Option[Seq[BusinessData]] = None,
   propertyData: Option[PropertyData] = None,
@@ -50,7 +54,8 @@ case class BusinessDetailsRecord(
     Seq(
       Option(nino).map(BusinessDetailsRecord.ninoKey),
       Option(mtdbsa).map(BusinessDetailsRecord.mtdbsaKey),
-      cgtPdRef.map(BusinessDetailsRecord.cgtPdRefKey)
+      cgtPdRef.map(BusinessDetailsRecord.cgtPdRefKey),
+      pptReference.map(BusinessDetailsRecord.pptReferenceKey)
     ).collect { case Some(x) =>
       x
     }
@@ -64,6 +69,9 @@ case class BusinessDetailsRecord(
     if (pf.isDefinedAt(nino)) copy(nino = pf(nino)) else this
 
   def withCgtPdRef(cgtPdRef: Option[String]): BusinessDetailsRecord = copy(cgtPdRef = cgtPdRef)
+  def withPptReference(pptReference: String): BusinessDetailsRecord = copy(pptReference = Some(pptReference))
+  def withPptRegistrationDate(pptRegistrationDate: LocalDate): BusinessDetailsRecord =
+    copy(pptRegistrationDate = Some(pptRegistrationDate))
 
   def withMtdbsa(mtdbsa: String): BusinessDetailsRecord = copy(mtdbsa = mtdbsa)
   def modifyMtdbsa(pf: PartialFunction[String, String]): BusinessDetailsRecord =
@@ -93,6 +101,8 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
 
   def cgtPdRefKey(key: String): String = s"""cgtPdRef:${key.toUpperCase}"""
 
+  def pptReferenceKey(key: String): String = s"""pptReference:${key.toUpperCase}"""
+
   import Validator._
   import Generator.GenOps._
 
@@ -118,13 +128,16 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     nino           <- Generator.ninoNoSpacesGen
     mtdbsa         <- Generator.mtdbsaGen.suchThat(_.length >= 15).suchThat(_.length <= 16)
     cgtPdRef       <- Generator.cgtPdRefGen
+    pptReference   <- Generator.pptReferenceGen
     propertyIncome <- Generator.booleanGen
   } yield BusinessDetailsRecord(
     safeId = safeId,
     nino = nino,
     mtdbsa = mtdbsa,
     propertyIncome = propertyIncome,
-    cgtPdRef = Some(cgtPdRef)
+    cgtPdRef = Some(cgtPdRef),
+    pptReference = Some(pptReference),
+    pptRegistrationDate = None
   )
 
   val businessDataSanitizer: Update = seed =>

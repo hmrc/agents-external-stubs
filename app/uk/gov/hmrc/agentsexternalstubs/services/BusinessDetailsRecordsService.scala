@@ -17,8 +17,9 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
 import com.google.inject.Provider
+
 import javax.inject.{Inject, Singleton}
-import uk.gov.hmrc.agentmtdidentifiers.model.{CgtRef, MtdItId}
+import uk.gov.hmrc.agentmtdidentifiers.model.{CgtRef, MtdItId, PptRef}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.domain.Nino
@@ -63,4 +64,9 @@ class BusinessDetailsRecordsService @Inject() (
   ): Future[Option[BusinessDetailsRecord]] =
     findByKey[BusinessDetailsRecord](BusinessDetailsRecord.cgtPdRefKey(cgtPdRef.value), planetId).map(_.headOption)
 
+  def getBusinessDetails(pptReference: PptRef, planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[Option[BusinessDetailsRecord]] =
+    findByKey[BusinessDetailsRecord](BusinessDetailsRecord.pptReferenceKey(pptReference.value), planetId)
+      .map(_.headOption)
 }

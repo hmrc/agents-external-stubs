@@ -3,8 +3,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.UUID
-
-import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Utr}
+import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, PptRef, Utr}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.UkAddress
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
@@ -150,6 +149,17 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
 
       val userWithRecordId = await(usersService.findByUserId(user.userId, planetId))
       userWithRecordId.map(_.recordIds).get should not be empty
+    }
+
+    "sync hmrc-ppt-org individual to business details records" in {
+      val planetId = UUID.randomUUID().toString
+      val user = UserGenerator
+        .individual("foo")
+        .withPrincipalEnrolment("HMRC-PPT-ORG", "PPTReference", "XAPPT1234567890")
+
+      await(usersService.createUser(user, planetId))
+      val result1 = await(businessDetailsRecordsService.getBusinessDetails(PptRef("XAPPT1234567890"), planetId))
+      result1.flatMap(_.pptReference) shouldBe Some("XAPPT1234567890")
     }
 
     "sync hmce-vat-agnt agent to vat customer information records" in {
