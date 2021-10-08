@@ -63,7 +63,7 @@ object RelationshipRecord extends RecordUtils[RelationshipRecord] {
   def agentKey(regime: String, arn: String): String = s"AK/$regime/$arn"
 
   def agentKeys(arn: String): Seq[String] =
-    Seq(s"AK/itsa/$arn", s"AK/vatc/$arn", s"AK/trs/$arn", s"AK/cgt/$arn")
+    Seq(s"AK/itsa/$arn", s"AK/vatc/$arn", s"AK/trs/$arn", s"AK/cgt/$arn", s"AK/ppt/$arn")
 
   def clientKey(regime: String, idType: String, refNumber: String): String =
     s"CK/$regime/$idType/$refNumber"
