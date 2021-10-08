@@ -25,7 +25,7 @@ class DesIfStubControllerISpec
   lazy val repo = app.injector.instanceOf[RecordsRepository]
   lazy val controller = app.injector.instanceOf[DesIfStubController]
 
-  "DesController" when {
+  "DesIfController" when {
 
     "POST /registration/relationship" should {
       "respond 200 when authorising for ITSA" in {
@@ -456,6 +456,97 @@ class DesIfStubControllerISpec
 
       val result =
         DesStub.getRelationship(regime = "ITSA", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
+
+      result should haveStatus(403)
+      val errorResponse = Json.parse(result.body).as[ErrorResponse]
+      errorResponse.code shouldBe "AGENT_SUSPENDED"
+      errorResponse.reason shouldBe Some("The remote endpoint has indicated that the agent is suspended")
+    }
+  }
+
+  "GET /registration/relationship for PPT" should {
+    "respond 200" in {
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      val user = UserGenerator
+        .agent("foo", agentFriendlyName = "ABC123")
+        .withPrincipalEnrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567")
+      await(userService.createUser(user, session.planetId))
+
+      await(
+        repo.store(
+          RelationshipRecord(
+            regime = "PPT",
+            arn = "ZARN1234567",
+            idType = "none",
+            refNumber = "XAPPT1234567890",
+            active = true,
+            startDate = Some(LocalDate.parse("2012-01-01"))
+          ),
+          session.planetId
+        )
+      )
+
+      await(
+        repo.store(
+          RelationshipRecord(
+            regime = "TRS",
+            arn = "ZARN1234567",
+            idType = "URN",
+            refNumber = "XXTRUST80000001",
+            active = true,
+            startDate = Some(LocalDate.parse("2017-12-31"))
+          ),
+          session.planetId
+        )
+      )
+
+      val result =
+        DesStub.getRelationship(
+          regime = "PPT",
+          agent = true,
+          `active-only` = true,
+          arn = Some("ZARN1234567"),
+          referenceNumber = Some("XAPPT1234567890")
+        )
+
+      result should haveStatus(200)
+      result.json.as[JsObject] should haveProperty[Seq[JsObject]](
+        "relationship",
+        have.size(1),
+        eachElement(
+          haveProperty[String]("referenceNumber"),
+          haveProperty[String]("agentReferenceNumber", be("ZARN1234567")),
+          haveProperty[String]("dateFrom") and
+            haveProperty[String]("contractAccountCategory", be("33")),
+          haveProperty[JsObject]("individual", haveProperty[String]("firstName"), haveProperty[String]("lastName")) or
+            haveProperty[JsObject]("organisation", haveProperty[String]("organisationName"))
+        )
+      )
+    }
+
+    "return 403 if the agent is suspended" in {
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      val user = UserGenerator
+        .agent("foo", agentFriendlyName = "ABC123")
+        .withPrincipalEnrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567")
+      await(userService.createUser(user.copy(suspendedRegimes = Some(Set("PPT"))), session.planetId))
+
+      await(
+        repo.store(
+          RelationshipRecord(
+            regime = "PPT",
+            arn = "ZARN1234567",
+            idType = "none",
+            refNumber = "XAPPT1234567890",
+            active = true,
+            startDate = Some(LocalDate.parse("2012-01-01"))
+          ),
+          session.planetId
+        )
+      )
+
+      val result =
+        DesStub.getRelationship(regime = "PPT", agent = true, `active-only` = true, arn = Some("ZARN1234567"))
 
       result should haveStatus(403)
       val errorResponse = Json.parse(result.body).as[ErrorResponse]
