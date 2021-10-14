@@ -36,7 +36,8 @@ class UserToRecordsSyncService @Inject() (
   BusinessPartnerRecordsService: BusinessPartnerRecordsService,
   knownFactsRepository: KnownFactsRepository,
   legacyRelationshipRecordsService: LegacyRelationshipRecordsService,
-  employerAuthsRecordsService: EmployerAuthsRecordsService
+  employerAuthsRecordsService: EmployerAuthsRecordsService,
+  pptSubscriptionDisplayRecordsService: PPTSubscriptionDisplayRecordsService
 ) {
 
   type SaveRecordId = String => Future[Unit]
@@ -44,7 +45,7 @@ class UserToRecordsSyncService @Inject() (
 
   final val userRecordsSyncOperations: Seq[UserRecordsSync] = Seq(
     Sync.businessDetailsForMtdItIndividual,
-    Sync.businessDetailsForPptReference,
+    Sync.pptSubscriptionDisplayRecordForPptReference,
     Sync.vatCustomerInformationForMtdVatIndividual,
     Sync.businessDetailsForCgt,
     Sync.vatCustomerInformationForMtdVatOrganisation,
@@ -146,16 +147,15 @@ class UserToRecordsSyncService @Inject() (
     final val PptReferenceMatch =
       User.Matches(ag => ag == User.AG.Individual || ag == User.AG.Organisation, "HMRC-PPT-ORG")
 
-    val businessDetailsForPptReference: UserRecordsSync = saveRecordId => {
+    val pptSubscriptionDisplayRecordForPptReference: UserRecordsSync = saveRecordId => {
       case PptReferenceMatch(user, pptReference) =>
         Future {
-          BusinessDetailsRecord
+          PPTSubscriptionDisplayRecord
             .generate(user.userId)
             .withPptReference(pptReference)
-            .withPptRegistrationDate(LocalDate.now())
         }.flatMap(record =>
-          businessDetailsRecordsService
-            .store(record, autoFill = false, user.planetId.get)
+          pptSubscriptionDisplayRecordsService
+            .store(record, autoFill = true, user.planetId.get)
             .flatMap(saveRecordId)
         )
     }

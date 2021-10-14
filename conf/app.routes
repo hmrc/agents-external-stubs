@@ -47,7 +47,7 @@ DELETE        /tax-enrolments/enrolments/:enrolmentKey                          
 ## ES11 Call: via tax-enrolments assign a user to an enrolment
 POST          /tax-enrolments/users/:userId/enrolments/:enrolmentKey                                  @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.assignUser(userId: String, enrolmentKey: EnrolmentKey)
 
-# DES stubs
+# DES IF stubs
 GET           /registration/relationship/utr/:utr                                                    @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getLegacyRelationshipsByUtr(utr: String)
 GET           /registration/relationship/nino/:nino                                                  @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getLegacyRelationshipsByNino(nino: String)
 GET           /registration/business-details/:idType/:idNumber                                       @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getBusinessDetails(idType: String, idNumber: String)
@@ -64,6 +64,7 @@ POST          /registration/02.00.00/organisation                               
 POST          /agents/paye/:agentCode/clients/compare                                                @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.retrieveLegacyAgentClientPayeInformation(agentCode: String)
 DELETE        /agents/paye/:agentCode/clients/:taxOfficeNumber/:taxOfficeReference                   @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.removeLegacyAgentClientPayeRelationship(agentCode: String, taxOfficeNumber: String, taxOfficeReference: String)
 GET           /corporation-tax/identifiers/:idType/:idValue                                          @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getCtReference(idType: String, idValue: String)
+GET           /plastic-packaging-tax/subscriptions/:regime/:pptReferenceNumber/display               @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getPPTSubscriptionDisplay(regime: String, pptReferenceNumber: String)
 
 GET           /trusts/agent-known-fact-check/:trustTaxIdentifier                                     @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getTrustKnownFacts(trustTaxIdentifier: String)
 GET           /trusts/agent-known-fact-check/UTR/:utr                                                @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getTrustKnownFactsUTR(utr: String)
@@ -138,6 +139,8 @@ POST          /agents-external-stubs/records/relationship                       
 GET           /agents-external-stubs/records/relationship/generate                                   @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generateRelationship(seed: Option[String] ?= None, minimal: Boolean ?= false)
 POST          /agents-external-stubs/records/employer-auths                                          @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.storeEmployerAuths(autoFill: Boolean ?= true)
 GET           /agents-external-stubs/records/employer-auths/generate                                 @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generateEmployerAuths(seed: Option[String] ?= None, minimal: Boolean ?= false)
+POST          /agents-external-stubs/records/ppt-subscription                                        @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.storePPTSubscriptionDisplayRecord(autoFill: Boolean ?= true)
+GET           /agents-external-stubs/records/ppt-subscription/generate                               @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generatePPTSubscriptionDisplayRecord(seed: Option[String] ?= None, ninimal: Boolean ?= false)
 
 # Known facts management
 POST          /agents-external-stubs/known-facts                                                     @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.createKnownFacts

@@ -504,4 +504,27 @@ trait ExampleDesPayloads {
       |}
     """.stripMargin
 
+  val validPPTSubscriptionDisplayPayload =
+    s"""
+      |{
+      |  "pptReference": "XAPPT1234567890",
+      |    "legalEntityDetails": {
+      |        "dateOfApplication": "2004-08-21",
+      |        "customerDetails": {
+      |            "customerType": "Individual",
+      |            "individualDetails": {
+      |                "firstName": "Jacob",
+      |                "lastName": "Smellie"
+      |            }
+      |        }
+      |    },
+      |    "changeOfCircumstanceDetails": {
+      |        "deregistrationDetails": {
+      |            "deregistrationDate": "1991-09-01"
+      |        }
+      |    },
+      |    "id": "6167e9b0f7000054fab88f17"
+      |}
+      |""".stripMargin
+
 }

@@ -25,6 +25,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
   lazy val legacyRelationshipRecordsService = app.injector.instanceOf[LegacyRelationshipRecordsService]
   lazy val employerAuthsRecordsService = app.injector.instanceOf[EmployerAuthsRecordsService]
   lazy val knownFactsRepository = app.injector.instanceOf[KnownFactsRepository]
+  lazy val pptSubscriptionDisplayRecordsService = app.injector.instanceOf[PPTSubscriptionDisplayRecordsService]
 
   private val formatter1 = DateTimeFormatter.ofPattern("dd/MM/yy")
   private val formatter2 = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -158,8 +159,9 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
         .withPrincipalEnrolment("HMRC-PPT-ORG", "PPTReference", "XAPPT1234567890")
 
       await(usersService.createUser(user, planetId))
-      val result1 = await(businessDetailsRecordsService.getBusinessDetails(PptRef("XAPPT1234567890"), planetId))
-      result1.flatMap(_.pptReference) shouldBe Some("XAPPT1234567890")
+      val result1 =
+        await(pptSubscriptionDisplayRecordsService.getPPTSubscriptionDisplayRecord(PptRef("XAPPT1234567890"), planetId))
+      result1.map(_.pptReference) shouldBe Some("XAPPT1234567890")
     }
 
     "sync hmce-vat-agnt agent to vat customer information records" in {

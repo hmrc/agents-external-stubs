@@ -64,9 +64,4 @@ class BusinessDetailsRecordsService @Inject() (
   ): Future[Option[BusinessDetailsRecord]] =
     findByKey[BusinessDetailsRecord](BusinessDetailsRecord.cgtPdRefKey(cgtPdRef.value), planetId).map(_.headOption)
 
-  def getBusinessDetails(pptReference: PptRef, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[Option[BusinessDetailsRecord]] =
-    findByKey[BusinessDetailsRecord](BusinessDetailsRecord.pptReferenceKey(pptReference.value), planetId)
-      .map(_.headOption)
 }

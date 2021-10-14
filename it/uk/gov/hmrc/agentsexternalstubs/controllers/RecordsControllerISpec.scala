@@ -31,6 +31,8 @@ class RecordsControllerISpec
         createResult5 should haveStatus(201)
         val createResult6 = Records.createRelationship(Json.parse(validRelationshipPayload))
         createResult6 should haveStatus(201)
+        val createResult7 = Records.createPPTSubscriptionDisplayRecord(Json.parse(validPPTSubscriptionDisplayPayload))
+        createResult7 should haveStatus(201)
 
         val result = Records.getRecords()
         result should haveStatus(200)
@@ -40,7 +42,8 @@ class RecordsControllerISpec
             haveProperty[JsArray]("LegacyRelationshipRecord") and
             haveProperty[JsArray]("LegacyAgentRecord") and
             haveProperty[JsArray]("BusinessPartnerRecord") and
-            haveProperty[JsArray]("RelationshipRecord")
+            haveProperty[JsArray]("RelationshipRecord") and
+            haveProperty[JsArray]("PPTSubscriptionDisplayRecord")
         )
       }
     }
@@ -222,6 +225,28 @@ class RecordsControllerISpec
           ]("isAnOrganisation") and haveProperty[JsObject]("addressDetails") and haveProperty[String](
             "agentReferenceNumber"
           ) and haveProperty[String]("utr")
+        )
+      }
+    }
+
+    "GET /agents-external-stubs/records/ppt-registration/generate" should {
+      "respond 200 with a minimal auto-generated entity" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = Records.generatePPTSubscriptionDisplayRecord("foo", minimal = true)
+        result should haveStatus(200)
+        result should haveValidJsonBody(
+          haveProperty[String]("pptReference")
+        )
+      }
+
+      "respond 200 with a complete auto-generated entity" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = Records.generatePPTSubscriptionDisplayRecord("foo", minimal = false)
+        result should haveStatus(200)
+        result should haveValidJsonBody(
+          haveProperty[String]("pptReference")
         )
       }
     }

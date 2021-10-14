@@ -22,7 +22,7 @@ import play.api.data.Forms._
 import play.api.data.validation.{Constraint, Constraints, Invalid, Valid}
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
-import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Utr}
+import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, PptRef, Utr}
 import uk.gov.hmrc.agentsexternalstubs.models.TrustDetailsResponse.getErrorResponseFor
 import uk.gov.hmrc.agentsexternalstubs.models.{BusinessPartnerRecord, SubscribeAgentServicesPayload, _}
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
@@ -44,6 +44,7 @@ class DesIfStubController @Inject() (
   businessPartnerRecordsService: BusinessPartnerRecordsService,
   recordsRepository: RecordsRepository,
   employerAuthsRecordsService: EmployerAuthsRecordsService,
+  pptSubscriptionDisplayRecordsService: PPTSubscriptionDisplayRecordsService,
   cc: ControllerComponents
 )(implicit usersService: UsersService, executionContext: ExecutionContext)
     extends BackendController(cc) with DesCurrentSession {
@@ -602,6 +603,26 @@ class DesIfStubController @Inject() (
             case None       => Future successful NotFound
           }
       )
+  }
+
+//    //API #1712 Get Plastic Packaging Tax Subscription Display
+  def getPPTSubscriptionDisplay(regime: String, pptReferenceNumber: String) = Action.async { implicit request =>
+    withCurrentSession { session =>
+      if (regime == "PPT") {
+        RegexPatterns
+          .validPptRef(pptReferenceNumber)
+          .fold(
+            error => badRequestF("INVALID_PPT_REFERENCE_NUMBER", error),
+            regNumber =>
+              pptSubscriptionDisplayRecordsService
+                .getPPTSubscriptionDisplayRecord(PptRef(regNumber), session.planetId)
+                .map {
+                  case Some(record) => Ok(Json.toJson(record))
+                  case None         => notFound("NOT_FOUND")
+                }
+          )
+      } else badRequestF("INVALID_REGIME", "Submission has not passed validation. Invalid parameter regime")
+    }(SessionRecordNotFound)
   }
 
   private def getOrCreateBusinessPartnerRecord[T <: Record](
