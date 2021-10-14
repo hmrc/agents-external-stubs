@@ -72,6 +72,7 @@ object Record {
     case r: VatCustomerInformationRecord => VatCustomerInformationRecord.formats.writes(r)
     case r: BusinessPartnerRecord        => BusinessPartnerRecord.formats.writes(r)
     case r: EmployerAuths                => EmployerAuths.formats.writes(r)
+    case r: PPTSubscriptionDisplayRecord => PPTSubscriptionDisplayRecord.formats.writes(r)
     case _                               => throw new UnsupportedOperationException(s"Cannot serialize $record")
   }
 
@@ -83,6 +84,7 @@ object Record {
     case "VatCustomerInformationRecord" => VatCustomerInformationRecord.formats.reads(json)
     case "BusinessPartnerRecord"        => BusinessPartnerRecord.formats.reads(json)
     case "EmployerAuths"                => EmployerAuths.formats.reads(json)
+    case "PPTSubscriptionDisplayRecord" => PPTSubscriptionDisplayRecord.formats.reads(json)
     case other                          => JsError(s"Record type $other not supported")
   }
 

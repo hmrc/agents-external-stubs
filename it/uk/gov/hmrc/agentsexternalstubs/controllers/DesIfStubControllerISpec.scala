@@ -1500,4 +1500,49 @@ class DesIfStubControllerISpec
       result should haveStatus(404)
     }
   }
+
+  "GET /plastic-packaging-tax/subscriptions/:regime/:pptReferenceNumber/display" should {
+    "return PPTSubscriptionDisplayRecord" in {
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      val createResult = Records.createPPTSubscriptionDisplayRecord(Json.parse(validPPTSubscriptionDisplayPayload))
+      createResult should haveStatus(201)
+
+      val result = DesStub.getPPTSubscriptionDisplayRecord("PPT", "XAPPT1234567890")
+      result should haveStatus(200)
+      val json = result.json
+      json.as[JsObject] should haveProperty[String]("pptReference")
+      json.as[JsObject] should haveProperty[JsObject]("legalEntityDetails")
+      json.as[JsObject] should haveProperty[JsObject]("changeOfCircumstanceDetails")
+      val legalEntityDetails = (result.json \ "legalEntityDetails").as[JsObject]
+      legalEntityDetails should haveProperty[String]("dateOfApplication")
+      legalEntityDetails should haveProperty[JsObject]("customerDetails")
+      val customerDetails = (result.json \ "legalEntityDetails" \ "customerDetails").as[JsObject]
+      customerDetails should haveProperty[String]("customerType")
+      customerDetails should haveProperty[JsObject]("individualDetails")
+      val individualDetails =
+        (result.json \ "legalEntityDetails" \ "customerDetails" \ "individualDetails").as[JsObject]
+      individualDetails should haveProperty[String]("firstName")
+      individualDetails should haveProperty[String]("lastName")
+      val changeOfCircumstanceDetails = (result.json \ "changeOfCircumstanceDetails").as[JsObject]
+      changeOfCircumstanceDetails should haveProperty[JsObject]("deregistrationDetails")
+    }
+
+    "return 404 Not Found" in {
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      val result = DesStub.getPPTSubscriptionDisplayRecord("PPT", "XAPPT1111111111")
+      result should haveStatus(404)
+    }
+
+    "return bad request when regime is invalid" in {
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      val result = DesStub.getPPTSubscriptionDisplayRecord("INVALID", "XAPPT1111111111")
+      result should haveStatus(400)
+    }
+
+    "return bad request when the PPT reference is invalid" in {
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      val result = DesStub.getPPTSubscriptionDisplayRecord("PPT", "INVALID")
+      result should haveStatus(400)
+    }
+  }
 }

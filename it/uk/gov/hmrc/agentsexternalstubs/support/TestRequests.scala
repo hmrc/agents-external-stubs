@@ -489,6 +489,11 @@ trait TestRequests extends ScalaFutures {
 
     def getAmlsSubscriptionStatus(amlsRegistrationNumber: String)(implicit authContext: AuthContext): WSResponse =
       get(s"/anti-money-laundering/subscription/$amlsRegistrationNumber/status")
+
+    def getPPTSubscriptionDisplayRecord(regime: String, pptReferenceNumber: String)(implicit
+      authContext: AuthContext
+    ): WSResponse =
+      get(s"/plastic-packaging-tax/subscriptions/$regime/$pptReferenceNumber/display")
   }
 
   object DataStreamStubs {
@@ -635,6 +640,23 @@ trait TestRequests extends ScalaFutures {
     def generateEmployerAuths(seed: String, minimal: Boolean)(implicit authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/employer-auths/generate")
+        .withQueryStringParameters("seed" -> seed, "minimal" -> minimal.toString)
+        .withHttpHeaders(authContext.headers: _*)
+        .get
+        .futureValue
+
+    def createPPTSubscriptionDisplayRecord[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/records/ppt-subscription")
+        .withHttpHeaders(authContext.headers: _*)
+        .post[T](payload)
+        .futureValue
+
+    def generatePPTSubscriptionDisplayRecord(seed: String, minimal: Boolean)(implicit
+      authContext: AuthContext
+    ): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/records/ppt-subscription/generate")
         .withQueryStringParameters("seed" -> seed, "minimal" -> minimal.toString)
         .withHttpHeaders(authContext.headers: _*)
         .get

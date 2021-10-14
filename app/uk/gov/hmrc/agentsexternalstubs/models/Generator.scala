@@ -210,10 +210,10 @@ object Generator extends Names with Temporal with Companies with Addresses {
   lazy val `date_yyyy-MM-dd` = DateTimeFormatter.ofPattern("yyyy-MM-dd")
   lazy val `date_MMM` = DateTimeFormatter.ofPattern("MMM")
 
-  lazy val dateDDMMYYGen: Gen[String] = date(1970, 2017).map(_.format(`date_dd/MM/yy`))
-  lazy val dateDDMMYYYYGen: Gen[String] = date(1970, 2017).map(_.format(`date_dd/MM/yyyy`))
-  lazy val dateYYYYMMDDGen: Gen[String] = date(1970, 2017).map(_.format(`date_yyyy-MM-dd`))
-  lazy val shortMonthNameGen: Gen[String] = date(1970, 2017).map(_.format(`date_MMM`).toUpperCase)
+  lazy val dateDDMMYYGen: Gen[String] = date(1970, 2020).map(_.format(`date_dd/MM/yy`))
+  lazy val dateDDMMYYYYGen: Gen[String] = date(1970, 2020).map(_.format(`date_dd/MM/yyyy`))
+  lazy val dateYYYYMMDDGen: Gen[String] = date(1970, 2020).map(_.format(`date_yyyy-MM-dd`))
+  lazy val shortMonthNameGen: Gen[String] = date(1970, 2020).map(_.format(`date_MMM`).toUpperCase)
   lazy val countryCodeGen: Gen[String] =
     Gen.frequency(95 -> Gen.const("GB"), 5 -> Gen.oneOf(Seq("IE", "DE", "FR", "CA", "AU", "ES", "PL", "NL", "BB")))
 
