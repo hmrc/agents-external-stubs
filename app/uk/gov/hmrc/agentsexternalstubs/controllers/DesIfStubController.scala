@@ -607,7 +607,6 @@ class DesIfStubController @Inject() (
 
 //    //API #1712 Get Plastic Packaging Tax Subscription Display
   def getPPTSubscriptionDisplay(regime: String, pptReferenceNumber: String) = Action.async { implicit request =>
-    Future successful Ok("")
     withCurrentSession { session =>
       if (regime == "PPT") {
         RegexPatterns
