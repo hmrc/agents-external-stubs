@@ -195,6 +195,61 @@ class DesIfStubControllerISpec
         |}""".stripMargin))
       result should haveStatus(200)
     }
+
+    "respond 200 when authorising for PPT with PPTRef" in {
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+      val result = DesStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
+        |{
+        |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+        |   "refNumber": "XAPPT1234567890",
+        |   "agentReferenceNumber": "PARN0876123",
+        |   "idType": "ZPPT",
+        |   "regime": "PPT",
+        |   "authorisation": {
+        |     "action": "Authorise",
+        |     "isExclusiveAgent": true
+        |     }
+        |}""".stripMargin))
+      result should haveStatus(200)
+    }
+
+    "respond 200 when authorising for PPT with PPTRef through API gateway" in {
+      SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+      implicit val apiAuthContext: AuthContext = AuthContext.fromHeaders("X-Client-ID" -> "foo123")
+
+      val result = DesStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
+        |{
+        |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+        |   "refNumber": "XAPPT1234567890",
+        |   "agentReferenceNumber": "PARN0876123",
+        |   "idType": "ZPPT",
+        |   "regime": "PPT",
+        |   "authorisation": {
+        |     "action": "Authorise",
+        |     "isExclusiveAgent": true
+        |     }
+        |}""".stripMargin))
+      result should haveStatus(200)
+    }
+
+    "respond 200 when de-authorising a PPT relationship with PPT" in {
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+      val result = DesStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
+        |{
+        |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+        |   "refNumber": "XAPPT1234567890",
+        |   "agentReferenceNumber": "PARN0876123",
+        |   "idType": "ZPPT",
+        |   "regime": "PPT",
+        |   "authorisation": {
+        |     "action": "Authorise",
+        |     "isExclusiveAgent": true
+        |     }
+        |}""".stripMargin))
+      result should haveStatus(200)
+    }
   }
 
   "GET /registration/relationship" should {
