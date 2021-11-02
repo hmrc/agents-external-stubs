@@ -152,16 +152,16 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
       userWithRecordId.map(_.recordIds).get should not be empty
     }
 
-    "sync hmrc-ppt-org individual to business details records" in {
+    "sync hmrc-ppt-org individual to ppt subscription display records" in {
       val planetId = UUID.randomUUID().toString
       val user = UserGenerator
         .individual("foo")
-        .withPrincipalEnrolment("HMRC-PPT-ORG", "PPTReference", "XAPPT1234567890")
+        .withPrincipalEnrolment("HMRC-PPT-ORG", "EtmpRegistrationNumber", "XAPPT000456789")
 
       await(usersService.createUser(user, planetId))
       val result1 =
-        await(pptSubscriptionDisplayRecordsService.getPPTSubscriptionDisplayRecord(PptRef("XAPPT1234567890"), planetId))
-      result1.map(_.pptReference) shouldBe Some("XAPPT1234567890")
+        await(pptSubscriptionDisplayRecordsService.getPPTSubscriptionDisplayRecord(PptRef("XAPPT000456789"), planetId))
+      result1.map(_.pptReference) shouldBe Some("XAPPT000456789")
     }
 
     "sync hmce-vat-agnt agent to vat customer information records" in {

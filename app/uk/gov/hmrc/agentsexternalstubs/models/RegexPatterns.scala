@@ -40,7 +40,7 @@ object RegexPatterns {
   val validUtrOrUrn: String => Either[String, TaxIdentifier] =
     validateTrustTaxIdentifier(validUrnPattern.r, validUtrPattern.r)
   val validMtdbsa: Matcher = validate("^[A-Z0-9]{1,15}$".r)
-  val validPptRef: Matcher = validate("^XAPPT[0-9]{10}$".r)
+  val validPptRef: Matcher = validate("^X[A-Z]PPT000[0-9]{6}$".r)
   val validVrn: Matcher = validate("^[0-9]{1,9}$".r)
   val validEori: Matcher = validate("^[A-Z]{2}[0-9]{12}$".r)
   val validCrn: Matcher = validate("^([A-Za-z0-9]{0,2})?([0-9]{1,6})$".r)

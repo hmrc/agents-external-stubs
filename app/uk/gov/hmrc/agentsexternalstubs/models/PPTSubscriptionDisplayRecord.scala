@@ -179,9 +179,7 @@ object PPTSubscriptionDisplayRecord extends RecordUtils[PPTSubscriptionDisplayRe
       override val sanitizers: Seq[Update] = Seq()
 
       implicit val formats: Format[DeregistrationDetails] = Json.format[DeregistrationDetails]
-
     }
-
   }
 
   case class IndividualDetails(firstName: Option[String] = None, lastName: Option[String] = None) {
@@ -425,7 +423,7 @@ object PPTSubscriptionDisplayRecord extends RecordUtils[PPTSubscriptionDisplayRe
   object Common {
     val firstNamePattern = """^[a-zA-Z &`\-\'^]{1,35}$"""
     val dateOfApplicationPattern = """^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""
-    val pptReferencePattern = """^XAPPT[0-9]{10}$"""
+    val pptReferencePattern = """^X[A-Z]PPT000[0-9]{6}$"""
     val customerTypeEnum = Seq("Individual", "Organisation")
   }
 }
