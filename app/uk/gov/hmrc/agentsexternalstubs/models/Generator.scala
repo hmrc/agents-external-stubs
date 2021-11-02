@@ -121,7 +121,8 @@ object Generator extends Names with Temporal with Companies with Addresses {
   lazy val urnGen: Gen[String] = pattern"99999999".gen.map("XATRUST" + _)
   def urn(seed: String): Urn = urnGen.map(Urn.apply).seeded(seed).get
 
-  lazy val pptReferenceGen: Gen[String] = pattern"9999999999".gen.map("XAPPT" + _)
+  lazy val singleStrGen: Gen[String] = pattern"Z".gen
+  lazy val pptReferenceGen: Gen[String] = pattern"999999".gen.map(s"X${singleStrGen}PPT000" + _)
   def pptReference(seed: String): PptRef = pptReferenceGen.map(PptRef.apply).seeded(seed).get
 
   lazy val vrnGen: Gen[String] = pattern"9999999".gen.map(VrnChecksum.apply).retryUntil(Vrn.isValid)

@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.agentsexternalstubs.services
 
-import com.google.inject.Provider
 import uk.gov.hmrc.agentmtdidentifiers.model.PptRef
 import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
@@ -27,9 +26,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class PPTSubscriptionDisplayRecordsService @Inject() (
-  val recordsRepository: RecordsRepository,
-  externalUserService: ExternalUserService,
-  usersServiceProvider: Provider[UsersService]
+  val recordsRepository: RecordsRepository
 ) extends RecordsService {
   def store(record: PPTSubscriptionDisplayRecord, autoFill: Boolean, planetId: String)(implicit
     ec: ExecutionContext
