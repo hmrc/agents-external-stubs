@@ -101,7 +101,7 @@ object Services {
     Json.parse(json).as[Services].services
   }
 
-  /** Helper method to run from within sbt console */
+  /** Helper method to run from within sbt console e.g. uk.gov.hmrc.agentsexternalstubs.models.Services.decode() */
   def decode() = {
     val json = Json.prettyPrint(Json.toJson(Services(services)))
     val os = new FileOutputStream(new File("conf/services.json"))

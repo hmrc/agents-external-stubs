@@ -80,8 +80,8 @@ class RegexPatternsSpec extends UnitSpec {
     }
 
     "validate PptRef" in {
-      RegexPatterns.validPptRef("XAPPT1234567890").isRight shouldBe true
-      RegexPatterns.validPptRef("XAPPT1111111111").isRight shouldBe true
+      RegexPatterns.validPptRef("XAPPT0001234567").isRight shouldBe true
+      RegexPatterns.validPptRef("XZPPT0000000000").isRight shouldBe true
       RegexPatterns.validPptRef("").isLeft shouldBe true
       RegexPatterns.validPptRef("1234567890").isLeft shouldBe true
       RegexPatterns.validPptRef("XAPPT123456789A").isLeft shouldBe true

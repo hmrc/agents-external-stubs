@@ -507,7 +507,7 @@ trait ExampleDesPayloads {
   val validPPTSubscriptionDisplayPayload =
     s"""
       |{
-      |  "pptReference": "XAPPT000123456",
+      |  "pptReference": "XAPPT0001234567",
       |    "legalEntityDetails": {
       |        "dateOfApplication": "2004-08-21",
       |        "customerDetails": {
