@@ -423,7 +423,7 @@ object PPTSubscriptionDisplayRecord extends RecordUtils[PPTSubscriptionDisplayRe
   object Common {
     val firstNamePattern = """^[a-zA-Z &`\-\'^]{1,35}$"""
     val dateOfApplicationPattern = """^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""
-    val pptReferencePattern = """^X[A-Z]PPT000[0-9]{6}$"""
+    val pptReferencePattern = """^X[A-Z]PPT000[0-9]{7}$"""
     val customerTypeEnum = Seq("Individual", "Organisation")
   }
 }

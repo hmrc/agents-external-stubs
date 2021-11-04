@@ -202,7 +202,7 @@ class DesIfStubControllerISpec
       val result = DesStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
         |{
         |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
-        |   "refNumber": "XAPPT000123456",
+        |   "refNumber": "XAPPT0001234567",
         |   "agentReferenceNumber": "PARN0876123",
         |   "idType": "ZPPT",
         |   "regime": "PPT",
@@ -221,7 +221,7 @@ class DesIfStubControllerISpec
       val result = DesStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
         |{
         |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
-        |   "refNumber": "XAPPT000123456",
+        |   "refNumber": "XAPPT0001234567",
         |   "agentReferenceNumber": "PARN0876123",
         |   "idType": "ZPPT",
         |   "regime": "PPT",
@@ -239,7 +239,7 @@ class DesIfStubControllerISpec
       val result = DesStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
         |{
         |  "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
-        |   "refNumber": "XAPPT000123456",
+        |   "refNumber": "XAPPT0001234567",
         |   "agentReferenceNumber": "PARN0876123",
         |   "idType": "ZPPT",
         |   "regime": "PPT",
@@ -1562,7 +1562,7 @@ class DesIfStubControllerISpec
       val createResult = Records.createPPTSubscriptionDisplayRecord(Json.parse(validPPTSubscriptionDisplayPayload))
       createResult should haveStatus(201)
 
-      val result = DesStub.getPPTSubscriptionDisplayRecord("PPT", "XAPPT000123456")
+      val result = DesStub.getPPTSubscriptionDisplayRecord("PPT", "XAPPT0001234567")
       result should haveStatus(200)
       val json = result.json
       json.as[JsObject] should haveProperty[String]("pptReference")
@@ -1584,19 +1584,19 @@ class DesIfStubControllerISpec
 
     "return 404 Not Found" in {
       implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-      val result = DesStub.getPPTSubscriptionDisplayRecord("PPT", "XAPPT000123456")
+      val result = DesStub.getPPTSubscriptionDisplayRecord("PPT", "XAPPT0001234567")
       result should haveStatus(404)
     }
 
     "return bad request when regime is invalid" in {
       implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-      val result = DesStub.getPPTSubscriptionDisplayRecord("INVALID", "XAPPT000123456")
+      val result = DesStub.getPPTSubscriptionDisplayRecord("INVALID", "XAPPT0001234567")
       result should haveStatus(400)
     }
 
     "return bad request when the PPT reference is invalid" in {
       implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-      val result = DesStub.getPPTSubscriptionDisplayRecord("PPT", "XAPPT1234567890")
+      val result = DesStub.getPPTSubscriptionDisplayRecord("PPT", "XAPPT12345678900")
       result should haveStatus(400)
     }
   }
