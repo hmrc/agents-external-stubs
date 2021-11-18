@@ -732,7 +732,8 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     mandationStatus: String,
     registrationReason: Option[String] = None,
     effectiveRegistrationDate: Option[String] = None,
-    businessStartDate: Option[String] = None
+    businessStartDate: Option[String] = None,
+    isInsolvent: Option[Boolean] = Some(false)
   ) {
 
     def withOrganisationName(organisationName: Option[String]): CustomerDetails =
@@ -764,6 +765,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       copy(businessStartDate = businessStartDate)
     def modifyBusinessStartDate(pf: PartialFunction[Option[String], Option[String]]): CustomerDetails =
       if (pf.isDefinedAt(businessStartDate)) copy(businessStartDate = pf(businessStartDate)) else this
+    def withInsolvencyFlag: CustomerDetails = copy(isInsolvent = Some(false))
   }
 
   object CustomerDetails extends RecordUtils[CustomerDetails] {
