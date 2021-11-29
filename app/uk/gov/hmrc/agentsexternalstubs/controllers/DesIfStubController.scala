@@ -45,6 +45,7 @@ class DesIfStubController @Inject() (
   recordsRepository: RecordsRepository,
   employerAuthsRecordsService: EmployerAuthsRecordsService,
   pptSubscriptionDisplayRecordsService: PPTSubscriptionDisplayRecordsService,
+  insolvencyService: InsolvencyService,
   cc: ControllerComponents
 )(implicit usersService: UsersService, executionContext: ExecutionContext)
     extends BackendController(cc) with DesCurrentSession {
@@ -59,11 +60,16 @@ class DesIfStubController @Inject() (
           .fold(
             error => badRequestF("INVALID_SUBMISSION", error.mkString(", ")),
             _ =>
-              if (payload.authorisation.action == "Authorise")
-                relationshipRecordsService
-                  .authorise(AuthoriseRequest.toRelationshipRecord(payload), session.planetId)
-                  .map(_ => Ok(Json.toJson(AuthoriseResponse())))
-              else
+              if (payload.authorisation.action == "Authorise") {
+                insolvencyService.insolvencyCheckOnCustomer(payload, session.planetId).flatMap {
+                  case true => unprocessableEntityF("INSOLVENT_TRADER")
+                  case false =>
+                    relationshipRecordsService
+                      .authorise(AuthoriseRequest.toRelationshipRecord(payload), session.planetId)
+                      .map(_ => Ok(Json.toJson(AuthoriseResponse())))
+                }
+
+              } else
                 relationshipRecordsService
                   .deAuthorise(AuthoriseRequest.toRelationshipRecord(payload), session.planetId)
                   .map(_ => Ok(Json.toJson(AuthoriseResponse())))

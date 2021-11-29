@@ -61,6 +61,12 @@ trait HttpHelpers {
   def badRequest(code: String, reason: String = null): Result =
     Results.BadRequest(errorMessage(code, Option(reason)))
 
+  def unprocessableEntityF(code: String, reason: String = null): Future[Result] =
+    success(unprocessableEntity(code, reason))
+
+  def unprocessableEntity(code: String, reason: String = null): Result =
+    Results.UnprocessableEntity(errorMessage(code, Option(reason)))
+
   def forbiddenF(code: String, reason: String = null): Future[Result] =
     success(forbidden(code, reason))
 

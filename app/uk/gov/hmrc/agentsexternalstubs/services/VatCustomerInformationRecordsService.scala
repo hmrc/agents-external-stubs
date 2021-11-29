@@ -56,4 +56,6 @@ class VatCustomerInformationRecordsService @Inject() (
   def getVatKnownFacts(vrn: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[VatKnownFacts]] =
     getCustomerInformation(vrn, planetId).map(VatKnownFacts.fromVatCustomerInformationRecord(vrn, _))
 
+  def customerIsInsolvent(vrn: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[Boolean]] =
+    getCustomerInformation(vrn, planetId).map(_.flatMap(_.approvedInformation.flatMap(_.customerDetails.isInsolvent)))
 }

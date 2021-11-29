@@ -10,8 +10,10 @@ import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.connectors.ExampleApiPlatformTestUserResponses
 import uk.gov.hmrc.agentsexternalstubs.controllers.ErrorResponse._
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.Individual
+import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, IndividualName, PPOB}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
+import uk.gov.hmrc.agentsexternalstubs.services.VatCustomerInformationRecordsService
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
 import uk.gov.hmrc.domain.{Nino, Vrn}
@@ -24,10 +26,60 @@ class DesIfStubControllerISpec
   lazy val wsClient = app.injector.instanceOf[WSClient]
   lazy val repo = app.injector.instanceOf[RecordsRepository]
   lazy val controller = app.injector.instanceOf[DesIfStubController]
+  lazy val vatCustomerService = app.injector.instanceOf[VatCustomerInformationRecordsService]
 
   "DesIfController" when {
 
     "POST /registration/relationship" should {
+
+      "respond 200 when authorising for VAT" in {
+
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val record = vatRecordGenerator("123456789")
+
+        await(vatCustomerService.store(record, autoFill = false, session.planetId))
+
+        val result = DesStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
+          |{
+          |   "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+          |   "refNumber": "123456789",
+          |   "agentReferenceNumber": "ZARN1234567",
+          |   "regime": "VATC",
+          |   "authorisation": {
+          |     "action": "Authorise",
+          |     "isExclusiveAgent": true
+          |   }
+          |}
+          """.stripMargin))
+        result should haveStatus(200)
+      }
+
+      "respond 422 when authorising for VAT and the customer is insolvent" in {
+
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val record = vatRecordGenerator("123456789", insolvent = true)
+
+        await(vatCustomerService.store(record, autoFill = false, session.planetId))
+
+        val result = DesStub.authoriseOrDeAuthoriseRelationship(Json.parse("""
+          |{
+          |   "acknowledgmentReference": "A1BCDEFG1HIJKLNOPQRSTUVWXYZ12346",
+          |   "refNumber": "123456789",
+          |   "agentReferenceNumber": "ZARN1234567",
+          |   "regime": "VATC",
+          |   "authorisation": {
+          |     "action": "Authorise",
+          |     "isExclusiveAgent": true
+          |   }
+          |}
+          """.stripMargin))
+        result should haveStatus(422)
+        result.body.contains("INSOLVENT_TRADER") shouldBe true
+
+      }
+
       "respond 200 when authorising for ITSA" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
@@ -1600,4 +1652,20 @@ class DesIfStubControllerISpec
       result should haveStatus(400)
     }
   }
+
+  private def vatRecordGenerator(vrn: String, insolvent: Boolean = false): VatCustomerInformationRecord =
+    VatCustomerInformationRecord
+      .generate("userId")
+      .withVrn(vrn)
+      .withApprovedInformation(
+        Some(
+          ApprovedInformation
+            .generate("userId")
+            .withCustomerDetails(
+              CustomerDetails
+                .generate("userId")
+                .withInsolvencyFlag(insolvent)
+            )
+        )
+      )
 }

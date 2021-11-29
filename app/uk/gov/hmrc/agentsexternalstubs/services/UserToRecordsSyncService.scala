@@ -287,7 +287,7 @@ class UserToRecordsSyncService @Inject() (
                           .modifyEffectiveRegistrationDate { case date =>
                             vatRegistrationDateOpt.map(_.format(dateFormatyyyyMMdd)).orElse(date)
                           }
-                          .withInsolvencyFlag
+                          .withInsolvencyFlag()
                       )
                       .modifyPPOB { case ppob =>
                         ppob.withAddress(address)
