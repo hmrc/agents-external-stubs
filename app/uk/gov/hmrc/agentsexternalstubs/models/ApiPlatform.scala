@@ -90,7 +90,7 @@ object ApiPlatform {
     def asUser(testUser: TestUser): User = User(
       userId = testUser.userId,
       affinityGroup = Option(testUser.affinityGroup),
-      confidenceLevel = if (testUser.affinityGroup == User.AG.Individual) Some(200) else None,
+      confidenceLevel = if (testUser.affinityGroup == User.AG.Individual) Some(250) else None,
       credentialStrength = Some("strong"),
       nino = if (testUser.affinityGroup == User.AG.Individual) testUser.nino.map(Nino.apply) else None,
       name = (testUser.affinityGroup match {

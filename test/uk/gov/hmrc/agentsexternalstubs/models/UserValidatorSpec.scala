@@ -37,22 +37,12 @@ class UserValidatorSpec extends UnitSpec with ValidatedMatchers {
       UserValidator.validate(User("foo", affinityGroup = Some(""))).isValid shouldBe false
     }
 
-    "validate only when confidenceLevel is none, or one of [50,100,200,300] and user is Individual and NINO is not empty" in {
+    "validate only when confidenceLevel is none, or one of [50,200,250] and user is Individual and NINO is not empty" in {
       UserValidator
         .validate(
           User(
             "foo",
             confidenceLevel = Some(50),
-            affinityGroup = Some(User.AG.Individual),
-            nino = Some(Nino("HW827856C"))
-          )
-        )
-        .isValid shouldBe true
-      UserValidator
-        .validate(
-          User(
-            "foo",
-            confidenceLevel = Some(100),
             affinityGroup = Some(User.AG.Individual),
             nino = Some(Nino("HW827856C"))
           )
@@ -72,7 +62,7 @@ class UserValidatorSpec extends UnitSpec with ValidatedMatchers {
         .validate(
           User(
             "foo",
-            confidenceLevel = Some(300),
+            confidenceLevel = Some(250),
             affinityGroup = Some(User.AG.Individual),
             nino = Some(Nino("HW827856C"))
           )
