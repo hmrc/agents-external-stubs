@@ -109,7 +109,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
           credentials = Some(Credentials("UserFoo", "GovernmentGateway")),
           allEnrolments = Some(Seq(Enrolment("HMRC-MTD-IT", Some(Seq(Identifier("MTDITID", "X12345678909876")))))),
           affinityGroup = Some("Individual"),
-          confidenceLevel = Some(200),
+          confidenceLevel = Some(250),
           credentialStrength = Some("strong"),
           credentialRole = Some("User"),
           nino = Some(Nino("HW827856C")),
@@ -137,7 +137,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
         Enrolment("HMRC-MTD-IT", Some(Seq(Identifier("MTDITID", "X12345678909876"))))
       )
       user.affinityGroup shouldBe Some("Individual")
-      user.confidenceLevel shouldBe Some(200)
+      user.confidenceLevel shouldBe Some(250)
       user.credentialStrength shouldBe Some("strong")
       user.credentialRole shouldBe Some("Admin")
       user.nino shouldBe Some(Nino("HW827856C"))
@@ -181,7 +181,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
           credentials = Some(Credentials("UserFoo", "GovernmentGateway")),
           allEnrolments = Some(Seq(Enrolment("HMRC-MTD-IT", Some(Seq(Identifier("MTDITID", "X12345678909876")))))),
           affinityGroup = Some("Individual"),
-          confidenceLevel = Some(200),
+          confidenceLevel = Some(250),
           credentialStrength = Some("strong"),
           credentialRole = Some("User"),
           nino = Some(Nino("HW827856C")),
@@ -241,11 +241,11 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
           |        }
           |      ],
           |      "state": "Activated",
-          |      "confidenceLevel": 200
+          |      "confidenceLevel": 250
           |    }
           |  ],
           |  "affinityGroup": "Individual",
-          |  "confidenceLevel": 200,
+          |  "confidenceLevel": 250,
           |  "credentialStrength": "weak",
           |  "credentialRole": "User",
           |  "nino": "AB123456A",
@@ -273,7 +273,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       user.userId shouldBe "1551815928588520"
       user.principalEnrolments shouldBe empty
       user.affinityGroup shouldBe Some("Individual")
-      user.confidenceLevel shouldBe Some(200)
+      user.confidenceLevel shouldBe Some(250)
       user.credentialStrength shouldBe Some("weak")
       user.credentialRole shouldBe Some("Admin")
       user.nino shouldBe Some(Nino("AB123456A"))

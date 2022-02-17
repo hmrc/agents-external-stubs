@@ -45,7 +45,7 @@ class AuthLoginApiConnectorISpec
         val authLoginApiRequest = AuthLoginApi.Request(
           credId = "foo@bar",
           affinityGroup = "Agent",
-          confidenceLevel = Some(200),
+          confidenceLevel = Some(250),
           credentialStrength = "strong",
           credentialRole = Some("Admin"),
           enrolments = Seq.empty,

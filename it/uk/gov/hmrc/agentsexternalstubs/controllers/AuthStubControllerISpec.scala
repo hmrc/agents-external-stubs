@@ -518,11 +518,11 @@ class AuthStubControllerISpec
 
       "authorize if confidenceLevel matches" in {
         val authToken: String =
-          givenAnAuthenticatedUser(UserGenerator.individual(confidenceLevel = 200))
+          givenAnAuthenticatedUser(UserGenerator.individual(confidenceLevel = 250))
 
         await(
           authConnector
-            .authorise[Unit](ConfidenceLevel.L200, EmptyRetrieval)(
+            .authorise[Unit](ConfidenceLevel.L250, EmptyRetrieval)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global
             )
@@ -531,12 +531,12 @@ class AuthStubControllerISpec
 
       "throw IncorrectCredentialStrength if confidenceLevel does not match" in {
         val authToken: String =
-          givenAnAuthenticatedUser(UserGenerator.individual(confidenceLevel = 100))
+          givenAnAuthenticatedUser(UserGenerator.individual(confidenceLevel = 50))
 
         an[InsufficientConfidenceLevel] shouldBe thrownBy {
           await(
             authConnector
-              .authorise[Unit](ConfidenceLevel.L200, EmptyRetrieval)(
+              .authorise[Unit](ConfidenceLevel.L250, EmptyRetrieval)(
                 HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
                 concurrent.ExecutionContext.Implicits.global
               )
