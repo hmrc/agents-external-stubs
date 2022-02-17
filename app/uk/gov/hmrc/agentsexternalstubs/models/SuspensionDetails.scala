@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,10 +20,12 @@ import play.api.libs.json.{Json, OFormat}
 
 case class SuspensionDetails(suspensionStatus: Boolean, regimes: Option[Set[String]]) {
   //PERSONAL-INCOME-RECORD service has no enrolment / regime so cannot be suspended
-  private val validSuspensionRegimes = Set("ITSA", "VATC", "TRS", "CGT")
+  private val validSuspensionRegimes = Set("ITSA", "VATC", "TRS", "CGT", "PPT")
 
   val suspendedRegimes: Set[String] =
-    this.regimes.fold(Set.empty[String])(rs => if (rs.contains("ALL")) validSuspensionRegimes else rs)
+    this.regimes.fold(Set.empty[String])(rs =>
+      if (rs.contains("ALL") || rs.contains("AGSV")) validSuspensionRegimes else rs
+    )
 }
 
 object SuspensionDetails {
