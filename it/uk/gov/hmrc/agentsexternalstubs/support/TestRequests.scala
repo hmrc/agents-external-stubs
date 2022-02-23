@@ -682,6 +682,9 @@ trait TestRequests extends ScalaFutures {
 
     def deleteKnownFacts(enrolmentKey: String)(implicit authContext: AuthContext): WSResponse =
       delete(s"/agents-external-stubs/known-facts/$enrolmentKey")
+
+    def createPAYEKnownFacts(agentId: String)(implicit authContext: AuthContext): WSResponse =
+      post(s"/agents-external-stubs/known-facts/regime/PAYE/$agentId")
   }
 
   object SpecialCases {

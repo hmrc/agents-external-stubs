@@ -146,5 +146,17 @@ class KnownFactsControllerISpec extends ServerBaseISpec with MongoDB with TestRe
         feedback should haveStatus(404)
       }
     }
+
+    "POST /agents-external-stubs/known-facts/regime/PAYE/:agentId" should {
+      "return 204 NoContent" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val agentId = "MARN5311437"
+
+        val result = KnownFacts.createPAYEKnownFacts(agentId)
+        result should haveStatus(204)
+
+      }
+    }
   }
 }
