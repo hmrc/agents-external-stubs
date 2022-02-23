@@ -148,6 +148,7 @@ GET           /agents-external-stubs/known-facts/:enrolmentKey                  
 PUT           /agents-external-stubs/known-facts/:enrolmentKey                                       @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.upsertKnownFacts(enrolmentKey: EnrolmentKey)
 PUT           /agents-external-stubs/known-facts/:enrolmentKey/verifier                              @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.upsertKnownFactVerifier(enrolmentKey: EnrolmentKey)
 DELETE        /agents-external-stubs/known-facts/:enrolmentKey                                       @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.deleteKnownFacts(enrolmentKey: EnrolmentKey)
+POST          /agents-external-stubs/known-facts/regime/PAYE/:agentId                                @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.createPAYEKnownFacts(agentId: String)
 
 # Special cases management
 GET           /agents-external-stubs/special-cases                                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SpecialCasesController.getAllSpecialCases
