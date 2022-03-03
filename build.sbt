@@ -2,6 +2,8 @@ import sbt.Tests.{Group, SubProcess}
 import uk.gov.hmrc.SbtAutoBuildPlugin
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
 
+ThisBuild / libraryDependencySchemes += "org.typelevel" %% "cats-core" % "always"
+
 lazy val scoverageSettings = {
   import scoverage.ScoverageKeys
   Seq(
@@ -10,17 +12,17 @@ lazy val scoverageSettings = {
     ScoverageKeys.coverageMinimum := 80.00,
     ScoverageKeys.coverageFailOnMinimum := true,
     ScoverageKeys.coverageHighlighting := true,
-    parallelExecution in Test := false
+    Test / parallelExecution := false
   )
 }
 
 lazy val compileDeps = Seq(
   ws,
-  "uk.gov.hmrc"          %% "bootstrap-backend-play-28" % "5.9.0",
+  "uk.gov.hmrc"          %% "bootstrap-backend-play-28" % "5.20.0",
   "uk.gov.hmrc"          %% "simple-reactivemongo"      % "8.0.0-play-28",
-  "uk.gov.hmrc"          %% "agent-mtd-identifiers"     % "0.28.0-play-27",
+  "uk.gov.hmrc"          %% "agent-mtd-identifiers"     % "0.33.0-play-28",
   "com.kenshoo"          %% "metrics-play"              % "2.7.3_0.8.2",
-  "uk.gov.hmrc"          %% "domain"                    % "6.2.0-play-28",
+  "uk.gov.hmrc"          %% "domain"                    % "7.0.0-play-28",
   "com.github.blemale"   %% "scaffeine"                 % "4.0.1",
   "org.typelevel"        %% "cats-core"                 % "2.6.1",
   "uk.gov.hmrc"          %% "stub-data-generator"       % "0.5.3",
@@ -89,21 +91,21 @@ lazy val root = (project in file("."))
     ),
     publishingSettings,
     scoverageSettings,
-    unmanagedResourceDirectories in Compile += baseDirectory.value / "resources",
+    Compile / unmanagedResourceDirectories  += baseDirectory.value / "resources",
     routesImport ++= Seq(
       "uk.gov.hmrc.agentsexternalstubs.binders.UrlBinders._",
       "uk.gov.hmrc.agentsexternalstubs.models._"
     ),
-    scalafmtOnCompile in Compile := true,
-    scalafmtOnCompile in Test := true
+    Compile / scalafmtOnCompile := true,
+    Test / scalafmtOnCompile := true
   )
   .configs(IntegrationTest)
   .settings(
-    Keys.fork in IntegrationTest := true,
+    IntegrationTest / Keys.fork := true,
     Defaults.itSettings,
-    unmanagedSourceDirectories in IntegrationTest += baseDirectory(_ / "it").value,
-    parallelExecution in IntegrationTest := false,
-    scalafmtOnCompile in IntegrationTest := true
+    IntegrationTest / unmanagedSourceDirectories += baseDirectory(_ / "it").value,
+    IntegrationTest / parallelExecution := false,
+    IntegrationTest / scalafmtOnCompile := true
   )
   .enablePlugins(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin)
 

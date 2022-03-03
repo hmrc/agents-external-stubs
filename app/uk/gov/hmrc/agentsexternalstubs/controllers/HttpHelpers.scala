@@ -91,6 +91,12 @@ trait HttpHelpers {
   def internalServerError(code: String, reason: String = null): Result =
     Results.InternalServerError(errorMessage(code, Option(reason)))
 
+  def serviceUnavailableF(code: String, reason: String = null): Future[Result] =
+    success(serviceUnavailable(code, reason))
+
+  def serviceUnavailable(code: String, reason: String = null): Result =
+    Results.ServiceUnavailable(errorMessage(code, Option(reason)))
+
   val SessionRecordNotFound: Future[Result] = unauthorizedF("SessionRecordNotFound")
 
   def withPayloadOrDefault[T](default: T)(

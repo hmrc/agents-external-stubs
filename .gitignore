@@ -37,3 +37,8 @@ bin
 project/metals.sbt
 docs/schemas/
 conf/services.json
+.bloop
+.bsp
+project/metals.sbt
+.metals
+.vscode

@@ -16,20 +16,32 @@
 
 package uk.gov.hmrc.agentsexternalstubs.wiring
 
+import play.api.OptionalDevContext
+
 import javax.inject.Inject
 import play.api.http.{HttpConfiguration, HttpErrorHandler, HttpFilters}
 import play.api.mvc._
 import play.api.routing.Router
+import play.core.WebCommands
 import uk.gov.hmrc.agentsexternalstubs.controllers.SpecialCasesController
 
 class SpecialCasesRequestHandler @Inject() (
+  webCommands: WebCommands,
+  optDevContext: OptionalDevContext,
   router: Router,
   errorHandler: HttpErrorHandler,
   configuration: HttpConfiguration,
   filters: HttpFilters,
   specialCasesController: SpecialCasesController,
   appConfig: AppConfig
-) extends uk.gov.hmrc.play.bootstrap.http.RequestHandler(router, errorHandler, configuration, filters) {
+) extends uk.gov.hmrc.play.bootstrap.http.RequestHandler(
+      webCommands,
+      optDevContext,
+      router,
+      errorHandler,
+      configuration,
+      filters
+    ) {
 
   val context = "/agents-external-stubs"
   val health = "/ping"

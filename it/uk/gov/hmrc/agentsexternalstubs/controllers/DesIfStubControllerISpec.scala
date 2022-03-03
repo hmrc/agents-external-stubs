@@ -3,14 +3,14 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, urlEqualTo}
 import org.joda.time.LocalDate
-import play.api.libs.json.{Json, _}
+import play.api.libs.json._
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.connectors.ExampleApiPlatformTestUserResponses
 import uk.gov.hmrc.agentsexternalstubs.controllers.ErrorResponse._
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.Individual
-import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, IndividualName, PPOB}
+import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.services.VatCustomerInformationRecordsService
@@ -903,6 +903,15 @@ class DesIfStubControllerISpec
       result should haveStatus(200)
       val json = result.json
       json.as[JsObject] should haveProperty[String]("vrn")
+    }
+
+    "return 400 response for invalid vrn" in {
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+      val result = DesStub.getVatCustomerInformation("0123456789")
+      result should haveStatus(400)
+      val json = result.json
+      (json \ "code").as[String] shouldBe "INVALID_VRN"
     }
 
     "return 200 response if record not found but organisation pulled from external source" in {
