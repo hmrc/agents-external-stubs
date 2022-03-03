@@ -199,16 +199,14 @@ class DesIfStubController @Inject() (
 
   def getVatCustomerInformation(vrn: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
-      RegexPatterns
-        .validVrn(vrn)
-        .fold(
-          error => badRequestF("INVALID_VRN", error),
-          _ =>
-            vatCustomerInformationRecordsService.getCustomerInformation(vrn, session.planetId).map {
-              case Some(record) => Ok(Json.toJson(record))
-              case None         => Ok(Json.obj())
-            }
-        )
+      RegexPatterns.validVrn(vrn) match {
+        case Left(error) => badRequestF("INVALID_VRN", error)
+        case Right(validVrn) =>
+          vatCustomerInformationRecordsService.getCustomerInformation(validVrn, session.planetId).map {
+            case Some(record) => Ok(Json.toJson(record))
+            case None         => Ok(Json.obj())
+          }
+      }
     }(SessionRecordNotFound)
   }
 
