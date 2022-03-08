@@ -115,7 +115,7 @@ object UserValidator {
     }
 
   val validateSuspendedRegimes: UserConstraint = user => {
-    val validRegimes = Set("ALL", "ITSA", "VATC", "TRS", "CGT", "PPT", "AGSV")
+    val validRegimes = Set("ALL", "ITSA", "VATC", "TRS", "CGT", "PPT", "PIR", "AGSV")
     user.suspendedRegimes match {
       case None => Valid(())
       case Some(regimes) =>

@@ -17,9 +17,8 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-
 import javax.inject.{Inject, Singleton}
-import uk.gov.hmrc.agentmtdidentifiers.model.{CgtRef, MtdItId}
+import uk.gov.hmrc.agentmtdidentifiers.model.{CgtRef, MtdItId, SuspensionDetails}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{AgencyDetails, Individual, Organisation}
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, IndividualName}
 import uk.gov.hmrc.agentsexternalstubs.models.{User, _}
