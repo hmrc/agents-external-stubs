@@ -25,10 +25,11 @@ import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{Appr
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.domain.Nino
+import uk.gov.hmrc.smartstub.{Female, Male, Names}
 
 import java.text.SimpleDateFormat
-import java.time.{LocalDate, ZoneId}
 import java.time.format.DateTimeFormatter
+import java.time.{LocalDate, ZoneId}
 import java.util.Date
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -165,15 +166,20 @@ class UserToRecordsSyncService @Inject() (
             "yyyy-MM-dd"
           ).format(_))
 
-          val strGen = (n: Int) => Gen.listOfN(n, Gen.alphaChar).map(_.mkString)
-
           def customerDetails =
             user.affinityGroup flatMap {
               case AG.Individual =>
                 Some(
                   LegalEntityDetails.CustomerDetails
                     .generate(AG.Individual)
-                    .withIndividualDetails(Some(IndividualDetails(strGen(10).sample, strGen(10).sample)))
+                    .withIndividualDetails(
+                      Some(
+                        IndividualDetails(
+                          user.firstName orElse Names._forenames(Female).sample,
+                          user.lastName orElse Names.surname.sample
+                        )
+                      )
+                    )
                     .withOrganisationDetails(None)
                     .withCustomerType(AG.Individual)
                 )
@@ -183,7 +189,14 @@ class UserToRecordsSyncService @Inject() (
                     .generate(AG.Organisation)
                     .withCustomerType(AG.Organisation)
                     .withIndividualDetails(None)
-                    .withOrganisationDetails(Some(OrganisationDetails(strGen(15).sample)))
+                    .withOrganisationDetails(
+                      Some(
+                        OrganisationDetails(
+                          for (forename <- Names._forenames(Male).sample; lastname <- Names.surname.sample)
+                            yield s"$forename $lastname"
+                        )
+                      )
+                    )
                 )
               case _ => None
             }
