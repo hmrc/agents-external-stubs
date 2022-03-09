@@ -15,16 +15,22 @@
  */
 
 package uk.gov.hmrc.agentsexternalstubs.services
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import javax.inject.{Inject, Singleton}
+import org.scalacheck.Gen
 import uk.gov.hmrc.agentmtdidentifiers.model.{CgtRef, MtdItId, SuspensionDetails}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{AgencyDetails, Individual, Organisation}
+import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord.ChangeOfCircumstanceDetails.DeregistrationDetails
+import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord.{ChangeOfCircumstanceDetails, IndividualDetails, LegalEntityDetails, OrganisationDetails}
+import uk.gov.hmrc.agentsexternalstubs.models.User.AG
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, IndividualName}
-import uk.gov.hmrc.agentsexternalstubs.models.{User, _}
+import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.domain.Nino
 
+import java.text.SimpleDateFormat
+import java.time.{LocalDate, ZoneId}
+import java.time.format.DateTimeFormatter
+import java.util.Date
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -149,12 +155,51 @@ class UserToRecordsSyncService @Inject() (
     val pptSubscriptionDisplayRecordForPptReference: UserRecordsSync = saveRecordId => {
       case PptReferenceMatch(user, pptReference) =>
         Future {
+
+          def generateRandomDate = {
+            val today = LocalDate.now()
+            val rangeStart = today.toEpochDay + 1
+            val rangeEnd = today.toEpochDay + 365
+            Gen.choose(rangeStart, rangeEnd).map(i => LocalDate.ofEpochDay(i))
+          } map (d => Date.from(d.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant)) map (new SimpleDateFormat(
+            "yyyy-MM-dd"
+          ).format(_))
+
+          val strGen = (n: Int) => Gen.listOfN(n, Gen.alphaChar).map(_.mkString)
+
+          def customerDetails =
+            user.affinityGroup flatMap {
+              case AG.Individual =>
+                Some(
+                  LegalEntityDetails.CustomerDetails
+                    .generate(AG.Individual)
+                    .withIndividualDetails(Some(IndividualDetails(strGen(10).sample, strGen(10).sample)))
+                    .withOrganisationDetails(None)
+                    .withCustomerType(AG.Individual)
+                )
+              case AG.Organisation =>
+                Some(
+                  LegalEntityDetails.CustomerDetails
+                    .generate(AG.Organisation)
+                    .withCustomerType(AG.Organisation)
+                    .withIndividualDetails(None)
+                    .withOrganisationDetails(Some(OrganisationDetails(strGen(15).sample)))
+                )
+              case _ => None
+            }
+
           PPTSubscriptionDisplayRecord
             .generate(user.userId)
+            .withChangeOfCircumstanceDetails(
+              ChangeOfCircumstanceDetails(DeregistrationDetails(deregistrationDate = generateRandomDate.sample.get))
+            )
+            .withLegalEntityDetails(
+              LegalEntityDetails(dateOfApplication = generateRandomDate.sample, customerDetails = customerDetails)
+            )
             .withPptReference(pptReference)
         }.flatMap(record =>
           pptSubscriptionDisplayRecordsService
-            .store(record, autoFill = true, user.planetId.get)
+            .store(record, autoFill = false, user.planetId.get)
             .flatMap(saveRecordId)
         )
     }

@@ -19,6 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json._
 import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord._
+import uk.gov.hmrc.agentsexternalstubs.models.User.AG
 
 /** ----------------------------------------------------------------------------
   * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
@@ -368,7 +369,11 @@ object PPTSubscriptionDisplayRecord extends RecordUtils[PPTSubscriptionDisplayRe
 
       val individualDetailsOrOrganisationDetailsAlternativeSanitizer: Update = seed =>
         entity =>
-          if (entity.individualDetails.isDefined) individualDetailsCompoundSanitizer(seed)(entity)
+          if (entity.customerType == AG.Individual && entity.organisationDetails.isEmpty)
+            individualDetailsCompoundSanitizer(seed)(entity)
+          else if (entity.customerType == AG.Organisation && entity.individualDetails.isEmpty)
+            organisationDetailsCompoundSanitizer(seed)(entity)
+          else if (entity.individualDetails.isDefined) individualDetailsCompoundSanitizer(seed)(entity)
           else if (entity.organisationDetails.isDefined) organisationDetailsCompoundSanitizer(seed)(entity)
           else
             Generator.get(Gen.chooseNum(0, 1))(seed) match {
