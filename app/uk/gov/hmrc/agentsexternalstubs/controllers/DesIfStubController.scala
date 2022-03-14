@@ -79,7 +79,7 @@ class DesIfStubController @Inject() (
   }
 
   def getRelationship(
-    idtype: Option[String],
+    idType: Option[String],
     `ref-no`: Option[String],
     referenceNumber: Option[String],
     arn: Option[String],
@@ -720,8 +720,8 @@ object DesIfStubController {
       mapping(
         "regime" -> nonEmptyText.verifying(Constraints.pattern("^[A-Z]{3,10}$".r, "regime", "Invalid regime")),
         "arn"    -> optional(nonEmptyText.verifying(MoreConstraints.pattern(RegexPatterns.validArn, "arn"))),
-        "idtype" -> default(
-          nonEmptyText.verifying(Constraints.pattern("^[A-Z]{1,6}$".r, "idtype", "Invalid idtype")),
+        "idType" -> default(
+          nonEmptyText.verifying(Constraints.pattern("^[A-Z]{1,6}$".r, "idType", "Invalid idtype")),
           "none"
         ),
         "ref-no" -> optional(
