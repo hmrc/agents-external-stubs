@@ -21,6 +21,10 @@ import play.api.libs.json._
 import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord._
 import uk.gov.hmrc.agentsexternalstubs.models.User.AG
 
+import java.text.SimpleDateFormat
+import java.time.{LocalDate, ZoneId}
+import java.util.Date
+
 /** ----------------------------------------------------------------------------
   * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
   * How to regenerate? Run this command in the project root directory:
@@ -171,8 +175,17 @@ object PPTSubscriptionDisplayRecord extends RecordUtils[PPTSubscriptionDisplayRe
         checkProperty(_.deregistrationDate, deregistrationDateValidator)
       )
 
+      def generateRandomDateInTheNextYear: Gen[String] = {
+        val today = LocalDate.now()
+        val rangeStart = today.toEpochDay + 1
+        val rangeEnd = today.toEpochDay + 365
+        Gen.choose(rangeStart, rangeEnd).map(i => LocalDate.ofEpochDay(i))
+      } map (d => Date.from(d.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant)) map (new SimpleDateFormat(
+        "yyyy-MM-dd"
+      ).format(_))
+
       override val gen: Gen[DeregistrationDetails] = for {
-        deregistrationDate <- Generator.dateYYYYMMDDGen.variant("deregistration")
+        deregistrationDate <- generateRandomDateInTheNextYear
       } yield DeregistrationDetails(
         deregistrationDate = deregistrationDate
       )

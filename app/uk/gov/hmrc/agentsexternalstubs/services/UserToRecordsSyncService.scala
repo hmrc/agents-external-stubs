@@ -15,7 +15,6 @@
  */
 
 package uk.gov.hmrc.agentsexternalstubs.services
-import org.scalacheck.Gen
 import uk.gov.hmrc.agentmtdidentifiers.model.{CgtRef, MtdItId, SuspensionDetails}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{AgencyDetails, Individual, Organisation}
 import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord.ChangeOfCircumstanceDetails.DeregistrationDetails
@@ -27,10 +26,8 @@ import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.smartstub.{Female, Male, Names}
 
-import java.text.SimpleDateFormat
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.time.{LocalDate, ZoneId}
-import java.util.Date
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -157,15 +154,6 @@ class UserToRecordsSyncService @Inject() (
       case PptReferenceMatch(user, pptReference) =>
         Future {
 
-          def generateRandomDate = {
-            val today = LocalDate.now()
-            val rangeStart = today.toEpochDay + 1
-            val rangeEnd = today.toEpochDay + 365
-            Gen.choose(rangeStart, rangeEnd).map(i => LocalDate.ofEpochDay(i))
-          } map (d => Date.from(d.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant)) map (new SimpleDateFormat(
-            "yyyy-MM-dd"
-          ).format(_))
-
           def customerDetails =
             user.affinityGroup flatMap {
               case AG.Individual =>
@@ -204,10 +192,17 @@ class UserToRecordsSyncService @Inject() (
           PPTSubscriptionDisplayRecord
             .generate(user.userId)
             .withChangeOfCircumstanceDetails(
-              ChangeOfCircumstanceDetails(DeregistrationDetails(deregistrationDate = generateRandomDate.sample.get))
+              ChangeOfCircumstanceDetails(
+                DeregistrationDetails(deregistrationDate =
+                  DeregistrationDetails.generateRandomDateInTheNextYear.sample.get
+                )
+              )
             )
             .withLegalEntityDetails(
-              LegalEntityDetails(dateOfApplication = generateRandomDate.sample, customerDetails = customerDetails)
+              LegalEntityDetails(
+                dateOfApplication = DeregistrationDetails.generateRandomDateInTheNextYear.sample,
+                customerDetails = customerDetails
+              )
             )
             .withPptReference(pptReference)
         }.flatMap(record =>
