@@ -18,8 +18,11 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json._
+import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord.ChangeOfCircumstanceDetails.DeregistrationDetails
+import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord.LegalEntityDetails.CustomerDetails
 import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord._
 import uk.gov.hmrc.agentsexternalstubs.models.User.AG
+import uk.gov.hmrc.smartstub.{Female, Male, Names}
 
 import java.text.SimpleDateFormat
 import java.time.{LocalDate, ZoneId}
@@ -107,6 +110,28 @@ object PPTSubscriptionDisplayRecord extends RecordUtils[PPTSubscriptionDisplayRe
     changeOfCircumstanceDetails = changeOfCircumstanceDetails
   )
 
+  def generateWith(
+    affinityGroup: Option[String],
+    firstName: Option[String],
+    lastName: Option[String],
+    pptRegistrationDate: Option[String],
+    pptReference: String
+  ): PPTSubscriptionDisplayRecord =
+    PPTSubscriptionDisplayRecord
+      .generate(PPTSubscriptionDisplayRecord.getClass.getSimpleName)
+      .withChangeOfCircumstanceDetails(
+        ChangeOfCircumstanceDetails(
+          DeregistrationDetails(deregistrationDate = DateSupport.inTheNextYear.sample.get)
+        )
+      )
+      .withLegalEntityDetails(
+        LegalEntityDetails(
+          dateOfApplication = pptRegistrationDate orElse DateSupport.inThePastYear.sample,
+          customerDetails = CustomerDetails.generateWith(affinityGroup, firstName, lastName)
+        )
+      )
+      .withPptReference(pptReference)
+
   val legalEntityDetailsSanitizer: Update = seed =>
     entity => entity.copy(legalEntityDetails = LegalEntityDetails.sanitize(seed)(entity.legalEntityDetails))
 
@@ -175,17 +200,8 @@ object PPTSubscriptionDisplayRecord extends RecordUtils[PPTSubscriptionDisplayRe
         checkProperty(_.deregistrationDate, deregistrationDateValidator)
       )
 
-      def generateRandomDateInTheNextYear: Gen[String] = {
-        val today = LocalDate.now()
-        val rangeStart = today.toEpochDay + 1
-        val rangeEnd = today.toEpochDay + 365
-        Gen.choose(rangeStart, rangeEnd).map(i => LocalDate.ofEpochDay(i))
-      } map (d => Date.from(d.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant)) map (new SimpleDateFormat(
-        "yyyy-MM-dd"
-      ).format(_))
-
       override val gen: Gen[DeregistrationDetails] = for {
-        deregistrationDate <- generateRandomDateInTheNextYear
+        deregistrationDate <- DateSupport.inTheNextYear
       } yield DeregistrationDetails(
         deregistrationDate = deregistrationDate
       )
@@ -346,6 +362,47 @@ object PPTSubscriptionDisplayRecord extends RecordUtils[PPTSubscriptionDisplayRe
         customerType = customerType
       )
 
+      def generateWith(
+        affinityGroup: Option[String],
+        firstName: Option[String],
+        lastName: Option[String]
+      ): Option[CustomerDetails] =
+        affinityGroup flatMap {
+          case AG.Individual =>
+            Some(
+              LegalEntityDetails.CustomerDetails
+                .generate(AG.Individual)
+                .withIndividualDetails(
+                  Some(
+                    IndividualDetails(
+                      firstName orElse Names._forenames(Female).sample,
+                      lastName orElse Names.surname.sample
+                    )
+                  )
+                )
+                .withOrganisationDetails(None)
+                .withCustomerType(AG.Individual)
+            )
+          case AG.Organisation =>
+            Some(
+              LegalEntityDetails.CustomerDetails
+                .generate(AG.Organisation)
+                .withCustomerType(AG.Organisation)
+                .withIndividualDetails(None)
+                .withOrganisationDetails(
+                  Some(
+                    OrganisationDetails(
+                      firstName orElse (for (
+                        forename <- Names._forenames(Male).sample; lastname <- Names.surname.sample
+                      )
+                        yield s"$forename $lastname")
+                    )
+                  )
+                )
+            )
+          case _ => None
+        }
+
       val individualDetailsSanitizer: Update = seed =>
         entity =>
           entity.copy(individualDetails =
@@ -443,5 +500,25 @@ object PPTSubscriptionDisplayRecord extends RecordUtils[PPTSubscriptionDisplayRe
     val dateOfApplicationPattern = """^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$"""
     val pptReferencePattern = """^X[A-Z]PPT000[0-9]{7}$"""
     val customerTypeEnum = Seq("Individual", "Organisation")
+  }
+
+  object DateSupport {
+
+    def inTheNextYear: Gen[String] = {
+      val today = LocalDate.now().toEpochDay
+      aDateBetween(today + 1, today + 365)
+    }
+
+    def inThePastYear: Gen[String] = {
+      val today = LocalDate.now().toEpochDay
+      aDateBetween(today - 365, today - 1)
+    }
+
+    private def aDateBetween(daysFrom: Long, daysTo: Long) = {
+      Gen.choose(daysFrom, daysTo).map(day => LocalDate.ofEpochDay(day))
+    } map (d => Date.from(d.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant)) map (new SimpleDateFormat(
+      "yyyy-MM-dd"
+    ).format(_))
+
   }
 }
