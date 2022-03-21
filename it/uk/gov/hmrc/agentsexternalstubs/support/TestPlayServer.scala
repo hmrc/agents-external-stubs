@@ -8,6 +8,8 @@ import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.ws.WSClient
 import play.api.test.TestServer
+import uk.gov.hmrc.play.audit.http.connector.DatastreamMetrics
+import uk.gov.hmrc.play.bootstrap.audit.DisabledDatastreamMetricsProvider
 import uk.gov.hmrc.play.bootstrap.graphite.GraphiteMetricsModule
 
 import java.net.ServerSocket
@@ -45,6 +47,7 @@ trait TestPlayServer {
       .configure(configuration: _*)
       .disable[GraphiteMetricsModule]
       .overrides(bind[MetricsFilter].to[DisabledMetricsFilter])
+      .overrides(bind(classOf[DatastreamMetrics]).toProvider(classOf[DisabledDatastreamMetricsProvider]))
       .overrides(bind[Metrics].to[TestMetrics])
 
   def run(): Unit =

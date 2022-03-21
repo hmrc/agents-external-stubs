@@ -17,14 +17,10 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 import uk.gov.hmrc.agentmtdidentifiers.model.{CgtRef, MtdItId, SuspensionDetails}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{AgencyDetails, Individual, Organisation}
-import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord.ChangeOfCircumstanceDetails.DeregistrationDetails
-import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord.{ChangeOfCircumstanceDetails, IndividualDetails, LegalEntityDetails, OrganisationDetails}
-import uk.gov.hmrc.agentsexternalstubs.models.User.AG
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, IndividualName}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.smartstub.{Female, Male, Names}
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -152,64 +148,29 @@ class UserToRecordsSyncService @Inject() (
 
     val pptSubscriptionDisplayRecordForPptReference: UserRecordsSync = saveRecordId => {
       case PptReferenceMatch(user, pptReference) =>
-        Future {
-
-          def customerDetails =
-            user.affinityGroup flatMap {
-              case AG.Individual =>
-                Some(
-                  LegalEntityDetails.CustomerDetails
-                    .generate(AG.Individual)
-                    .withIndividualDetails(
-                      Some(
-                        IndividualDetails(
-                          user.firstName orElse Names._forenames(Female).sample,
-                          user.lastName orElse Names.surname.sample
-                        )
-                      )
-                    )
-                    .withOrganisationDetails(None)
-                    .withCustomerType(AG.Individual)
-                )
-              case AG.Organisation =>
-                Some(
-                  LegalEntityDetails.CustomerDetails
-                    .generate(AG.Organisation)
-                    .withCustomerType(AG.Organisation)
-                    .withIndividualDetails(None)
-                    .withOrganisationDetails(
-                      Some(
-                        OrganisationDetails(
-                          for (forename <- Names._forenames(Male).sample; lastname <- Names.surname.sample)
-                            yield s"$forename $lastname"
-                        )
-                      )
-                    )
-                )
-              case _ => None
-            }
-
-          PPTSubscriptionDisplayRecord
-            .generate(user.userId)
-            .withChangeOfCircumstanceDetails(
-              ChangeOfCircumstanceDetails(
-                DeregistrationDetails(deregistrationDate =
-                  DeregistrationDetails.generateRandomDateInTheNextYear.sample.get
-                )
-              )
-            )
-            .withLegalEntityDetails(
-              LegalEntityDetails(
-                dateOfApplication = DeregistrationDetails.generateRandomDateInTheNextYear.sample,
-                customerDetails = customerDetails
-              )
-            )
-            .withPptReference(pptReference)
-        }.flatMap(record =>
-          pptSubscriptionDisplayRecordsService
-            .store(record, autoFill = false, user.planetId.get)
-            .flatMap(saveRecordId)
+        def knownFactsForPptRegDate = knownFactsRepository.findByEnrolmentKey(
+          EnrolmentKey.from("HMRC-PPT-ORG", "ETMPREGISTRATIONNUMBER" -> pptReference),
+          user.planetId.get
         )
+
+        def getPptRegDate(knownFacts: Option[KnownFacts]) = knownFacts.fold(Option.empty[String])(
+          _.getVerifierValue("PPTRegistrationDate")
+            .map(date => LocalDate.parse(date, dateFormatddMMyy).format(dateFormatyyyyMMdd))
+        )
+
+        knownFactsForPptRegDate map getPptRegDate flatMap { pptRegistrationDate =>
+          val subscriptionDisplayRecord = PPTSubscriptionDisplayRecord
+            .generateWith(
+              user.affinityGroup,
+              user.firstName,
+              user.lastName,
+              pptRegistrationDate,
+              pptReference
+            )
+          pptSubscriptionDisplayRecordsService
+            .store(subscriptionDisplayRecord, autoFill = false, user.planetId.get)
+            .flatMap(saveRecordId)
+        }
     }
 
     final val CgtMatch = User.Matches(ag => ag == User.AG.Individual || ag == User.AG.Organisation, "HMRC-CGT-PD")
