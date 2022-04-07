@@ -159,5 +159,4 @@ class UsersController @Inject() (
       usersService.reindexAllUsers.map(msg => Ok(msg))
     }(SessionRecordNotFound)
   }
-
 }
