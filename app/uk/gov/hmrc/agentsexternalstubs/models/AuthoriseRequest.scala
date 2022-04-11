@@ -101,9 +101,9 @@ case class EnrolmentPredicate(
         else
           context.principalEnrolments
             .collectFirst {
-              case Enrolment(`enrolment`, ii, state)
+              case Enrolment(`enrolment`, ii, state, _)
                   if ii.nonEmpty && identifiersMatches(identifiers, ii) && state == Enrolment.ACTIVATED =>
-              case Enrolment(`enrolment`, ii, state) if ii.isEmpty && state == Enrolment.ACTIVATED =>
+              case Enrolment(`enrolment`, ii, state, _) if ii.isEmpty && state == Enrolment.ACTIVATED =>
             }
             .map(_ => ())
             .toRight("InsufficientEnrolments")

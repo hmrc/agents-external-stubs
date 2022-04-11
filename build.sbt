@@ -18,9 +18,9 @@ lazy val scoverageSettings = {
 
 lazy val compileDeps = Seq(
   ws,
-  "uk.gov.hmrc"          %% "bootstrap-backend-play-28" % "5.20.0",
+  "uk.gov.hmrc"          %% "bootstrap-backend-play-28" % "5.21.0",
   "uk.gov.hmrc"          %% "simple-reactivemongo"      % "8.0.0-play-28",
-  "uk.gov.hmrc"          %% "agent-mtd-identifiers"     % "0.34.0-play-28",
+  "uk.gov.hmrc"          %% "agent-mtd-identifiers"     % "0.35.0-play-28",
   "com.kenshoo"          %% "metrics-play"              % "2.7.3_0.8.2",
   "uk.gov.hmrc"          %% "domain"                    % "7.0.0-play-28",
   "com.github.blemale"   %% "scaffeine"                 % "4.0.1",
@@ -69,7 +69,7 @@ lazy val root = (project in file("."))
   .settings(
     name := "agents-external-stubs",
     organization := "uk.gov.hmrc",
-    scalaVersion := "2.12.12",
+    scalaVersion := "2.12.15",
     majorVersion := 0,
     scalacOptions ++= Seq(
       "-Xlint:-missing-interpolator,_",
@@ -86,8 +86,8 @@ lazy val root = (project in file("."))
     ),
     libraryDependencies ++= tmpMacWorkaround() ++ compileDeps ++ testDeps("test") ++ testDeps("it"),
     libraryDependencies ++= Seq(
-      compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.0" cross CrossVersion.full),
-      "com.github.ghik" % "silencer-lib" % "1.7.0" % Provided cross CrossVersion.full
+      compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.7" cross CrossVersion.full),
+      "com.github.ghik" % "silencer-lib" % "1.7.7" % Provided cross CrossVersion.full
     ),
     publishingSettings,
     scoverageSettings,

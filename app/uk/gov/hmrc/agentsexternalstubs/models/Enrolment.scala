@@ -19,7 +19,12 @@ import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
 import play.api.libs.json._
 
-case class Enrolment(key: String, identifiers: Option[Seq[Identifier]] = None, state: String = Enrolment.ACTIVATED) {
+case class Enrolment(
+  key: String,
+  identifiers: Option[Seq[Identifier]] = None,
+  state: String = Enrolment.ACTIVATED,
+  friendlyName: Option[String] = None
+) {
 
   lazy val toEnrolmentKey: Option[EnrolmentKey] = identifiers.map(ii => EnrolmentKey(key, ii))
   lazy val toEnrolmentKeyTag: Option[String] = toEnrolmentKey.map(_.tag)
@@ -83,10 +88,9 @@ object Enrolment {
   import play.api.libs.functional.syntax._
 
   val reads: Reads[Enrolment] = ((JsPath \ "key").read[String] and
-    (JsPath \ "identifiers").readNullable[Seq[Identifier]]
-    and (JsPath \ "state").readNullable[String].map(_.getOrElse(Enrolment.ACTIVATED)))((k, ii, s) =>
-    Enrolment.apply(k, ii, s)
-  )
+    (JsPath \ "identifiers").readNullable[Seq[Identifier]] and
+    (JsPath \ "state").readNullable[String].map(_.getOrElse(Enrolment.ACTIVATED)) and
+    (JsPath \ "friendlyName").readNullable[String])((k, ii, s, fn) => Enrolment.apply(k, ii, s, fn))
 
   val writes: Writes[Enrolment] = Json.writes[Enrolment]
 

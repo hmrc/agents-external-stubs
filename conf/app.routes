@@ -46,8 +46,10 @@ PUT           /tax-enrolments/enrolments/:enrolmentKey                          
 DELETE        /tax-enrolments/enrolments/:enrolmentKey                                               @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.removeKnownFacts(enrolmentKey: EnrolmentKey)
 ## ES11 Call: via tax-enrolments assign a user to an enrolment
 POST          /tax-enrolments/users/:userId/enrolments/:enrolmentKey                                  @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.assignUser(userId: String, enrolmentKey: EnrolmentKey)
+## ES19 Call: via tax-enrolments update friendly name
+PUT           /tax-enrolments/groups/:groupId/enrolments/:enrolmentKey/friendly_name                @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.setEnrolmentFriendlyName(groupId: String, enrolmentKey: EnrolmentKey)
 
-# DES IF stubs
+
 GET           /registration/relationship/utr/:utr                                                    @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getLegacyRelationshipsByUtr(utr: String)
 GET           /registration/relationship/nino/:nino                                                  @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getLegacyRelationshipsByNino(nino: String)
 GET           /registration/business-details/:idType/:idNumber                                       @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getBusinessDetails(idType: String, idNumber: String)

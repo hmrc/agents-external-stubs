@@ -18,15 +18,15 @@ package uk.gov.hmrc.agentsexternalstubs.services
 
 import cats.data.Validated.{Invalid, Valid}
 import com.github.blemale.scaffeine.Scaffeine
-import javax.inject.{Inject, Singleton}
-import uk.gov.hmrc.agentsexternalstubs.models.{User, _}
+import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.{KnownFactsRepository, UsersRepository}
 import uk.gov.hmrc.auth.core.UnsupportedCredentialRole
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{BadRequestException, NotFoundException}
 
-import scala.concurrent.{ExecutionContext, Future}
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class UsersService @Inject() (
@@ -170,6 +170,27 @@ class UsersService @Inject() (
              case None => Future.successful(())
            }
     } yield ()
+
+  def setEnrolmentFriendlyName(user: User, planetId: String, enrolmentKey: EnrolmentKey, friendlyName: String)(implicit
+    ec: ExecutionContext
+  ) =
+    setEnrolmentFriendlyNameIfFound(user.principalEnrolments, enrolmentKey, friendlyName) match {
+      case Some(enrols) => updateUser(user.userId, planetId, _.copy(principalEnrolments = enrols))
+      case None =>
+        setEnrolmentFriendlyNameIfFound(user.delegatedEnrolments, enrolmentKey, friendlyName) match {
+          case Some(enrols) => updateUser(user.userId, planetId, _.copy(delegatedEnrolments = enrols))
+          case None         => Future.failed(new NotFoundException("enrolment not found"))
+        }
+    }
+
+  private def setEnrolmentFriendlyNameIfFound(
+    enrolments: Seq[Enrolment],
+    enrolmentKey: EnrolmentKey,
+    friendlyName: String
+  ) =
+    enrolments.zipWithIndex
+      .find(_._1.matches(enrolmentKey))
+      .map(enrol => enrolments.updated(enrol._2, enrol._1.copy(friendlyName = Option(friendlyName))))
 
   private def refineAndValidateUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] =
     if (user.isNonCompliant.contains(true)) {
