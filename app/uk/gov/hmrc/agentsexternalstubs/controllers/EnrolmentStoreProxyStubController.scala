@@ -17,6 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import cats.data.Validated
+
 import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTime
 import play.api.libs.json._
@@ -235,6 +236,22 @@ class EnrolmentStoreProxyStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
+  def setEnrolmentFriendlyName(groupId: String, enrolmentKey: EnrolmentKey): Action[JsValue] =
+    Action.async(parse.tolerantJson) { implicit request =>
+      withCurrentSession { session =>
+        withPayload[SetFriendlyNameRequest] { payload =>
+          usersService.findAdminByGroupId(groupId, session.planetId).flatMap {
+            case None => notFoundF("INVALID_GROUP_ID")
+            case Some(user) =>
+              if (user.groupId.contains(groupId))
+                usersService
+                  .setEnrolmentFriendlyName(user, session.planetId, enrolmentKey, payload.friendlyName)
+                  .map(_ => NoContent)
+              else forbiddenF("NO_PERMISSION")
+          }
+        }
+      }(SessionRecordNotFound)
+    }
 }
 
 object EnrolmentStoreProxyStubController {
@@ -313,7 +330,7 @@ object EnrolmentStoreProxyStubController {
       def from(e: uk.gov.hmrc.agentsexternalstubs.models.Enrolment, kf: Option[KnownFacts]): Enrolment = Enrolment(
         service = e.key,
         state = e.state,
-        friendlyName = Services.servicesByKey.get(e.key).map(_.description).getOrElse(""),
+        friendlyName = e.friendlyName.getOrElse(""),
         failedActivationCount = 0,
         activationDate = None,
         enrolmentDate = None,
@@ -342,6 +359,12 @@ object EnrolmentStoreProxyStubController {
     import play.api.libs.json.JodaWrites._
     implicit val writes1: Writes[Enrolment] = Json.writes[Enrolment]
     implicit val writes2: Writes[GetUserEnrolmentsResponse] = Json.writes[GetUserEnrolmentsResponse]
+  }
+
+  case class SetFriendlyNameRequest(friendlyName: String)
+
+  object SetFriendlyNameRequest {
+    implicit val format: Format[SetFriendlyNameRequest] = Json.format[SetFriendlyNameRequest]
   }
 
 }

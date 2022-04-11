@@ -1152,5 +1152,76 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
       }
 
     }
+
+    "PUT /tax-enrolments/groups/:groupId/enrolments/:enrolmentKey/friendly_name" should {
+      "update a principal enrolment belonging to the groupId with the friendlyName specified in the request" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        Users.update(
+          UserGenerator
+            .individual(userId = session.userId, groupId = "group2")
+            .withPrincipalEnrolment("IR-SA~UTR~12345678")
+        )
+        val result = EnrolmentStoreProxyStub.setEnrolmentFriendlyName(
+          "group2",
+          "IR-SA~UTR~12345678",
+          Json.parse("""{"friendlyName": "friendlyHugs"}""")
+        )
+
+        result should haveStatus(204)
+
+      }
+
+      "update a delegated enrolment belonging to the groupId with the friendlyName specified in the request" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        Users.update(
+          UserGenerator
+            .agent(userId = session.userId, groupId = "group2", credentialRole = "Admin")
+            .withDelegatedEnrolment("IR-SA~UTR~12345678")
+        )
+        val result = EnrolmentStoreProxyStub.setEnrolmentFriendlyName(
+          "group2",
+          "IR-SA~UTR~12345678",
+          Json.parse("""{"friendlyName": "friendlyHugs"}""")
+        )
+
+        result should haveStatus(204)
+      }
+
+      "return 400 BadRequest if the payload is invalid " in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        val result = EnrolmentStoreProxyStub.setEnrolmentFriendlyName(
+          "group2",
+          "IR-SA~UTR~12345678",
+          Json.parse("""{"somethingElse": "..."}""")
+        )
+        result should haveStatus(400)
+      }
+
+      "return 404 NotFound if the groupId does not exist " in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        val result = EnrolmentStoreProxyStub.setEnrolmentFriendlyName(
+          "group2",
+          "IR-SA~UTR~12345678",
+          Json.parse("""{"friendlyName": "friendlyHugs"}""")
+        )
+        result should haveStatus(404)
+      }
+
+      "return 404 NotFound if the enrolment is not found " in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        Users.create(
+          UserGenerator
+            .agent(userId = "foo2", groupId = "group2", credentialRole = "Admin")
+            .withDelegatedEnrolment("IR-SA~UTR~12345678")
+        )
+        val result = EnrolmentStoreProxyStub.setEnrolmentFriendlyName(
+          "group2",
+          "IR-SA~UTR~22222222",
+          Json.parse("""{"friendlyName": "friendlyHugs"}""")
+        )
+        result should haveStatus(404)
+      }
+
+    }
   }
 }
