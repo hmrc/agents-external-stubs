@@ -2,7 +2,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, urlEqualTo}
-import org.joda.time.LocalDate
+import java.time.LocalDate
 import play.api.libs.json.JsObject
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
@@ -50,7 +50,7 @@ class AuthStubControllerISpec
           await(
             authConnector
               .authorise(EmptyPredicate, EmptyRetrieval)(
-                HeaderCarrier().withExtraHeaders(HeaderNames.AUTHORIZATION -> "foo"),
+                HeaderCarrier(authorization = Some(Authorization("foo"))),
                 concurrent.ExecutionContext.Implicits.global
               )
           )
