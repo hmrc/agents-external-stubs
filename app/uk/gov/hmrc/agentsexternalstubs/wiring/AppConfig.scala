@@ -65,6 +65,8 @@ trait AppConfig {
 
   val syncToAuthLoginApi: Boolean
 
+  val granPermsTestGenMaxClients: Int
+  val granPermsTestGenMaxAgents: Int
 }
 
 @Singleton
@@ -112,4 +114,7 @@ class AppConfigImpl @Inject() (config: ServicesConfig) extends AppConfig {
   val clearOldMongoDbDocumentsDaily: Boolean = config.getBoolean("features.clearOldMongoDbDocumentsDaily")
 
   val syncToAuthLoginApi: Boolean = config.getBoolean("features.syncToAuthLoginApi")
+
+  val granPermsTestGenMaxClients: Int = config.getInt("gran-perms-test-gen-max-clients")
+  val granPermsTestGenMaxAgents: Int = config.getInt("gran-perms-test-gen-max-agents")
 }
