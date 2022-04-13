@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 /** Request for generating large number of users for the purpose of testing Granular Permissions.
   */
