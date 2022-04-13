@@ -6,7 +6,7 @@ import play.api.http.{CookiesConfiguration, HeaderNames, MimeTypes}
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.libs.ws.{BodyWritable, WSClient, WSCookie, WSResponse}
 import play.api.mvc.{Cookie, DefaultCookieHeaderEncoding}
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, SignInRequest, User}
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, GranPermsGenRequest, SignInRequest, User}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.Authorization
 
@@ -522,6 +522,11 @@ trait TestRequests extends ScalaFutures {
   object SsoGetDomains {
     def getDomains: WSResponse =
       get(s"/sso/domains")(NotAuthorized)
+  }
+
+  object GranPermsStubs {
+    def massGenerateAgentsAndClients(payload: GranPermsGenRequest)(implicit authContext: AuthContext): WSResponse =
+      post("/agents-external-stubs/test/gran-perms/generate-users", payload)
   }
 
   object Records {

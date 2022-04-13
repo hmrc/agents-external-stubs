@@ -39,7 +39,9 @@ trait TestPlayServer {
     "metrics.enabled"                                      -> false,
     "auditing.enabled"                                     -> false,
     "mongodb.uri"                                          -> MongoDB.uri,
-    "http.port"                                            -> port
+    "http.port"                                            -> port,
+    "gran-perms-test-gen-max-clients"                      -> 10,
+    "gran-perms-test-gen-max-agents"                       -> 5
   )
 
   protected def appBuilder: GuiceApplicationBuilder =
