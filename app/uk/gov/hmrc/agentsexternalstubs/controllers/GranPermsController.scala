@@ -57,6 +57,7 @@ class GranPermsController @Inject() (
                 .massGenerateAgentsAndClients(
                   planetId = session.planetId,
                   groupId = currentUser.groupId,
+                  agentCode = currentUser.agentCode,
                   genRequest = request
                 )
                 .map { case (createdAgents, createdClients) =>

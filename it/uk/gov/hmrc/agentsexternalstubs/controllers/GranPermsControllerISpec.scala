@@ -36,6 +36,9 @@ class GranPermsControllerISpec extends ServerBaseISpec with MongoDB with TestReq
 
       createdAgents.map(_.groupId).distinct.size shouldBe 1 //they should all have the same groupId
       createdAgents.map(_.agentCode).distinct.size shouldBe 1 //they should all have the same agentCode
+      createdAgents.flatMap(
+        _.delegatedEnrolments
+      ) shouldBe empty //the new agents should not receive the delegated enrolments directly, but through membership of the group
     }
 
     "return 400 BadRequest when specified number of agents is too large" in {
