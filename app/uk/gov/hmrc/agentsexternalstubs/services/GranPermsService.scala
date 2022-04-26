@@ -81,6 +81,7 @@ class GranPermsService @Inject() (
     planetId: String,
     genRequest: GranPermsGenRequest,
     groupId: Option[String],
+    agentCode: Option[String],
     delegatedEnrolments: Seq[Enrolment],
     idNaming: Option[Int => String] = None
   )(implicit ec: ExecutionContext): Future[List[User]] = {
@@ -90,6 +91,7 @@ class GranPermsService @Inject() (
         .agent(
           userId = idFn(x),
           groupId = groupId.orNull,
+          agentCode = agentCode.orNull,
           delegatedEnrolments = delegatedEnrolments
         )
       usersService.createUser(
@@ -102,11 +104,11 @@ class GranPermsService @Inject() (
   def massGenerateAgentsAndClients(
     planetId: String,
     groupId: Option[String],
+    agentCode: Option[String],
     genRequest: GranPermsGenRequest
   )(implicit ec: ExecutionContext): Future[(Seq[User], Seq[User])] = for {
     clients <- massGenerateClients(planetId, genRequest)
-    allEnrolments = clients.flatMap(_.principalEnrolments)
-    agents <- massGenerateAgents(planetId, genRequest, groupId, allEnrolments)
+    agents  <- massGenerateAgents(planetId, genRequest, groupId, agentCode, delegatedEnrolments = Seq.empty)
   } yield (agents, clients)
 
   private def pickFromDistribution[A](method: String, distribution: Map[A, Double], n: Int): Seq[A] = method match {
