@@ -60,10 +60,10 @@ class UserSanitizerSpec extends UnitSpec {
       )
     }
 
-    "remove NINO for Business" in {
+    "allow NINO for Business" in {
       UserSanitizer
         .sanitize(User("foo", affinityGroup = Some(User.AG.Organisation), nino = Some(Nino("XC 93 60 45 D"))))
-        .nino shouldBe None
+        .nino shouldBe Some(Nino("XC 93 60 45 D"))
       UserSanitizer
         .sanitize(User("foo", affinityGroup = Some(User.AG.Agent), nino = Some(Nino("XC 93 60 45 D"))))
         .nino shouldBe Some(Nino("XC 93 60 45 D"))
@@ -108,14 +108,14 @@ class UserSanitizerSpec extends UnitSpec {
         .credentialRole shouldBe None
     }
 
-    "remove DateOfBirth for Business" in {
+    "allow DateOfBirth for Business" in {
       val now = LocalDate.now()
       UserSanitizer
         .sanitize(User("foo", affinityGroup = Some(User.AG.Individual), dateOfBirth = Some(now)))
         .dateOfBirth shouldBe Some(now)
       UserSanitizer
         .sanitize(User("foo", affinityGroup = Some(User.AG.Organisation), dateOfBirth = Some(now)))
-        .dateOfBirth shouldBe None
+        .dateOfBirth shouldBe Some(now)
       UserSanitizer
         .sanitize(User("foo", affinityGroup = Some(User.AG.Agent), dateOfBirth = Some(now)))
         .dateOfBirth shouldBe Some(now)

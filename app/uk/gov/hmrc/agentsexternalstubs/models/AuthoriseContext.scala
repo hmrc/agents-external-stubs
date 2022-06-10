@@ -96,7 +96,10 @@ abstract class AuthoriseUserContext(user: User) extends AuthoriseContext {
 
   override def principalEnrolments: Seq[Enrolment] = {
     val enrolments =
-      if (user.affinityGroup.contains(User.AG.Individual) && user.nino.isDefined)
+      if (
+        (user.affinityGroup
+          .contains(User.AG.Individual) || user.affinityGroup.contains(User.AG.Organisation)) && user.nino.isDefined
+      )
         user.principalEnrolments :+ Enrolment("HMRC-NI", "NINO", nino.get.value)
       else user.principalEnrolments
     if (user.isAdmin) enrolments
