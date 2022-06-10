@@ -57,10 +57,10 @@ object UserSanitizer extends RecordUtils[User] {
         )
       else user
 
-  private val ensureBusinessesDoNotHaveNINO: Update = seed =>
+  private val ensureAgentsAndIndividualsHaveANino: Update = seed =>
     user =>
       user.affinityGroup match {
-        case Some(Organisation) => user.copy(nino = None)
+        case Some(Organisation) => user // APB-6051 Organisations may also have a Nino
         case Some(_)            => if (user.nino.isEmpty) user.copy(nino = Some(Generator.ninoWithSpaces(seed))) else user
         case None               => user.copy(nino = None)
       }
@@ -85,11 +85,10 @@ object UserSanitizer extends RecordUtils[User] {
         case _ => user.copy(credentialRole = None)
       }
 
-  private val ensureBusinessesDoNotHaveDob: Update = seed =>
+  private val ensuresAgentsAndIndividualsHaveDateOfBirth: Update = seed =>
     user =>
       user.affinityGroup match {
-        case Some(Organisation) =>
-          user.copy(dateOfBirth = None)
+        case Some(Organisation) => user
         case Some(_) =>
           if (user.dateOfBirth.isEmpty) user.copy(dateOfBirth = Some(UserGenerator.dateOfBirth(seed))) else user
         case None => user.copy(dateOfBirth = None)
@@ -220,10 +219,10 @@ object UserSanitizer extends RecordUtils[User] {
       ensureUserHaveGroupIdentifier,
       ensureUserHaveName,
       ensureStrideUserHaveNoGatewayEnrolmentsNorAffinityGroupNorOtherData,
-      ensureBusinessesDoNotHaveNINO,
+      ensureAgentsAndIndividualsHaveANino,
       ensureOnlyIndividualUserHaveConfidenceLevel,
       ensureUserHaveCredentialRole,
-      ensureBusinessesDoNotHaveDob,
+      ensuresAgentsAndIndividualsHaveDateOfBirth,
       ensureAgentHaveAgentCode,
       ensureAgentHaveAgentId,
       ensureAgentHaveFriendlyName,

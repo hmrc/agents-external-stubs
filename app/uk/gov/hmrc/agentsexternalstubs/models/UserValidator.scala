@@ -60,13 +60,6 @@ object UserValidator {
       case _ => Valid(())
     }
 
-  val validateNino: UserConstraint = user =>
-    user.nino match {
-      case Some(_) if user.affinityGroup.contains(Individual) || user.affinityGroup.contains(Agent) => Valid(())
-      case None                                                                                     => Valid(())
-      case _                                                                                        => Invalid("NINO can be only set for Individual or Agent")
-    }
-
   val validateConfidenceLevelAndNino: UserConstraint = user =>
     (user.affinityGroup, user.nino, user.confidenceLevel) match {
       case (Some(Individual), Some(_), Some(_)) => Valid(())
@@ -75,13 +68,6 @@ object UserValidator {
       case (Some(Individual), Some(_), None) =>
         Invalid("NINO must be accompanied by confidenceLevel")
       case _ => Valid(())
-    }
-
-  val validateDateOfBirth: UserConstraint = user =>
-    user.dateOfBirth match {
-      case Some(_) if user.affinityGroup.contains(Individual) || user.affinityGroup.contains(Agent) => Valid(())
-      case None                                                                                     => Valid(())
-      case _                                                                                        => Invalid("dateOfBirth can be only set for Individual or Agent")
     }
 
   val validateAgentCode: UserConstraint = user =>
@@ -211,9 +197,7 @@ object UserValidator {
     validateConfidenceLevel,
     validateCredentialStrength,
     validateCredentialRole,
-    validateNino,
     validateConfidenceLevelAndNino,
-    validateDateOfBirth,
     validateAgentCode,
     validateEachPrincipalEnrolment,
     validatePrincipalEnrolmentsAreDistinct,

@@ -361,7 +361,10 @@ object AuthStubController {
     def prepareIdsResponse(user: User): Ids = Ids(user.userId, user.userId)
 
     def prepareEnrolmentsResponse(user: User): Seq[Enrolment] =
-      if (user.affinityGroup.contains(User.AG.Individual) && user.nino.isDefined)
+      if (
+        user.affinityGroup
+          .contains(User.AG.Individual) || user.affinityGroup.contains(User.AG.Organisation) && user.nino.isDefined
+      )
         user.principalEnrolments :+ Enrolment("HMRC-NI", "NINO", user.nino.get.value)
       else user.principalEnrolments
   }
