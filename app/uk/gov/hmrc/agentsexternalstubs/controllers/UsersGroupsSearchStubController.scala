@@ -17,10 +17,10 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import javax.inject.{Inject, Singleton}
-import play.api.libs.json.{Json, Writes}
+import play.api.libs.json.{JsArray, JsObject, Json, Writes}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.agentsexternalstubs.controllers.UsersGroupsSearchStubController.{GetGroupResponse, GetUserResponse}
-import uk.gov.hmrc.agentsexternalstubs.models.User
+import uk.gov.hmrc.agentsexternalstubs.models.{Generator, User}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -63,6 +63,9 @@ class UsersGroupsSearchStubController @Inject() (
   }
 
   def getGroupUsers(groupId: String): Action[AnyContent] = Action.async { implicit request =>
+    def addEmailFieldInUserJson(user: User): JsObject =
+      Json.toJson(user).as[JsObject] + ("email" -> Json.toJson(Generator.email(user.userId)))
+
     withCurrentSession { session =>
       if (groupId == "wrongGroupId") {
         Future.successful(notFound("GROUP_NOT_FOUND"))
@@ -73,7 +76,7 @@ class UsersGroupsSearchStubController @Inject() (
             case users if users.isEmpty =>
               notFound("GROUP_NOT_FOUND")
             case users =>
-              NonAuthoritativeInformation(RestfulResponse(users))
+              NonAuthoritativeInformation(JsArray(users.map(addEmailFieldInUserJson)))
           }
       }
     }(SessionRecordNotFound)
