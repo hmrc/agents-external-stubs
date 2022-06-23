@@ -270,6 +270,10 @@ class UsersService @Inject() (
         }
     }
 
+  /* TODO this call does not actually change any data.
+   Providing target endpoint to enable basic testing.
+   Awaiting refactor to distinguish between group-level and user-level assignments.
+   */
   def assignEnrolmentToUser(userId: String, enrolmentKey: EnrolmentKey, planetId: String)(implicit
     ec: ExecutionContext
   ): Future[User] =
@@ -283,17 +287,36 @@ class UsersService @Inject() (
               user.groupId match {
                 case None => Future.failed(new BadRequestException("INVALID_CREDENTIAL_ID"))
                 case Some(groupId) =>
-                  val enrolment = Enrolment.from(enrolmentKey)
                   findByGroupId(groupId, planetId)(101).flatMap { members =>
-                    if (members.exists(m => m.isAdmin && m.principalEnrolments.contains(enrolment))) {
+                    if (members.exists(m => m.isAdmin && m.principalEnrolments.exists(_.matches(enrolmentKey)))) {
                       Future.successful(user)
-                    } else if (members.exists(m => m.isAdmin && m.delegatedEnrolments.contains(enrolment))) {
+                    } else if (
+                      members.exists(m => m.isAdmin && m.delegatedEnrolments.exists(_.matches(enrolmentKey)))
+                    ) {
                       Future.successful(user)
                     } else {
                       Future.failed(new BadRequestException("SERVICE_UNAVAILABLE"))
                     }
                   }
               }
+          }
+    }
+
+  /* TODO this call does not actually change any data.
+     Providing target endpoint to enable basic testing.
+     Awaiting refactor to distinguish between group-level and user-level assignments.
+   */
+  def deassignEnrolmentFromUser(userId: String, enrolmentKey: EnrolmentKey, planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[User] =
+    knownFactsRepository.findByEnrolmentKey(enrolmentKey, planetId).flatMap {
+      case None => Future.failed(new NotFoundException("ALLOCATION_DOES_NOT_EXIST"))
+      case Some(_) =>
+        findByUserId(userId, planetId)
+          .flatMap {
+            case None => Future.failed(new NotFoundException("USER_ID_DOES_NOT_EXIST"))
+            case Some(user) =>
+              Future.successful(user)
           }
     }
 

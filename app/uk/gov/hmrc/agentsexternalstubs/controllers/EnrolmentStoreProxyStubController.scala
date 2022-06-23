@@ -112,6 +112,20 @@ class EnrolmentStoreProxyStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
+  def deassignUser(userId: String, enrolmentKey: EnrolmentKey): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      usersService
+        .deassignEnrolmentFromUser(userId, enrolmentKey, session.planetId)
+        .map(_ => NoContent)
+        .recover {
+          case e: NotFoundException =>
+            notFound("INVALID_CREDENTIAL_ID")
+          case e: BadRequestException =>
+            badRequest(e.getMessage())
+        }
+    }(SessionRecordNotFound)
+  }
+
   def allocateGroupEnrolment(
     groupId: String,
     enrolmentKey: EnrolmentKey,
