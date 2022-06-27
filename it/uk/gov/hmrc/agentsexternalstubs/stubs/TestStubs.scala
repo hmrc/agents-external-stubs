@@ -51,11 +51,7 @@ trait TestStubs {
     userService.updateUser(
       userId,
       planetId,
-      user =>
-        user.copy(
-          principalEnrolments =
-            user.principalEnrolments :+ Enrolment(service, Some(Seq(Identifier(identifierKey, identifierValue))))
-        )
+      _.updatePrincipalEnrolments(_ :+ Enrolment(service, Some(Seq(Identifier(identifierKey, identifierValue)))))
     )
 
   def givenUserWithStrideRole(userId: String, planetId: String, role: String)(implicit

@@ -49,10 +49,10 @@ class ApiPlatformTestUserConnectorISpec
         user.firstName shouldBe Some("Ida")
         user.lastName shouldBe Some("Newton")
         user.nino shouldBe Some(Nino("PE938808A"))
-        user.principalEnrolments.find(_.key == "HMRC-MTD-VAT").flatMap(_.identifierValueOf("VRN")) shouldBe Some(
+        user.enrolments.principal.find(_.key == "HMRC-MTD-VAT").flatMap(_.identifierValueOf("VRN")) shouldBe Some(
           "666119668"
         )
-        user.principalEnrolments.find(_.key == "HMRC-MTD-IT").flatMap(_.identifierValueOf("MTDITID")) shouldBe defined
+        user.enrolments.principal.find(_.key == "HMRC-MTD-IT").flatMap(_.identifierValueOf("MTDITID")) shouldBe defined
         user.affinityGroup shouldBe Some("Individual")
       }
 
@@ -96,10 +96,10 @@ class ApiPlatformTestUserConnectorISpec
         user.firstName shouldBe Some("Ida")
         user.lastName shouldBe Some("Newton")
         user.nino shouldBe Some(Nino("PE938808A"))
-        user.principalEnrolments.find(_.key == "HMRC-MTD-VAT").flatMap(_.identifierValueOf("VRN")) shouldBe Some(
+        user.enrolments.principal.find(_.key == "HMRC-MTD-VAT").flatMap(_.identifierValueOf("VRN")) shouldBe Some(
           "666119668"
         )
-        user.principalEnrolments.find(_.key == "HMRC-MTD-IT").flatMap(_.identifierValueOf("MTDITID")) shouldBe defined
+        user.enrolments.principal.find(_.key == "HMRC-MTD-IT").flatMap(_.identifierValueOf("MTDITID")) shouldBe defined
         user.affinityGroup shouldBe Some("Individual")
       }
 
@@ -142,10 +142,10 @@ class ApiPlatformTestUserConnectorISpec
         val user = result.map(TestUser.asUser).get
         user.name shouldBe Some("Company ABF123")
         user.affinityGroup shouldBe Some("Organisation")
-        user.principalEnrolments.find(_.key == "HMRC-MTD-VAT").flatMap(_.identifierValueOf("VRN")) shouldBe Some(
+        user.enrolments.principal.find(_.key == "HMRC-MTD-VAT").flatMap(_.identifierValueOf("VRN")) shouldBe Some(
           "666119668"
         )
-        user.principalEnrolments.find(_.key == "HMRC-MTD-IT").flatMap(_.identifierValueOf("MTDITID")) shouldBe None
+        user.enrolments.principal.find(_.key == "HMRC-MTD-IT").flatMap(_.identifierValueOf("MTDITID")) shouldBe None
       }
 
       "return none if missing" in {

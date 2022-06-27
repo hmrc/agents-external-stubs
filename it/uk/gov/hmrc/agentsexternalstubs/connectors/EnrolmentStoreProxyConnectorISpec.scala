@@ -226,7 +226,7 @@ trait EnrolmentStoreProxyHelper extends TestRequests with TestStubs with Matcher
   def verifyEnrolmentAllocationAttempt(groupId: String, userId: String, enrolmentKey: String, agentCode: String)(
     implicit authContext: AuthContext
   ) =
-    Users.get(userId).json.as[User].delegatedEnrolments.map(_.toEnrolmentKeyTag.get) should contain(enrolmentKey)
+    Users.get(userId).json.as[User].enrolments.delegated.map(_.toEnrolmentKeyTag.get) should contain(enrolmentKey)
 
   def verifyEnrolmentDeallocationAttempt(groupId: String, enrolmentKey: String, agentCode: String)(implicit
     authContext: AuthContext
@@ -237,7 +237,7 @@ trait EnrolmentStoreProxyHelper extends TestRequests with TestStubs with Matcher
       .as[Users]
       .users
       .headOption
-      .map(u => Users.get(u.userId).json.as[User].delegatedEnrolments.map(_.toEnrolmentKeyTag.get))
+      .map(u => Users.get(u.userId).json.as[User].enrolments.delegated.map(_.toEnrolmentKeyTag.get))
       .get should not contain enrolmentKey
 
 }

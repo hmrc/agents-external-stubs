@@ -370,6 +370,9 @@ trait TestRequests extends ScalaFutures {
     def assignUser(userId: String, enrolmentKey: String)(implicit authContext: AuthContext): WSResponse =
       post(s"/tax-enrolments/users/$userId/enrolments/$enrolmentKey")
 
+    def deassignUser(userId: String, enrolmentKey: String)(implicit authContext: AuthContext): WSResponse =
+      delete(s"/tax-enrolments/users/$userId/enrolments/$enrolmentKey")
+
     def setEnrolmentFriendlyName[T: BodyWritable](groupId: String, enrolmentKey: String, payload: T)(implicit
       authContext: AuthContext
     ): WSResponse =

@@ -96,28 +96,29 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
     "PUT /agents-external-stubs/users" should {
       "update current user" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
-        val result = Users.updateCurrent(User("7728378273", principalEnrolments = Seq(Enrolment("foo"))))
+        val result =
+          Users.updateCurrent(User("7728378273", enrolments = User.Enrolments(principal = Seq(Enrolment("foo")))))
         result should haveStatus(202)
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/7728378273")
         val result2 = Users.get("7728378273")
-        result2.json.as[User].principalEnrolments should contain(Enrolment("foo"))
+        result2.json.as[User].enrolments.principal should contain(Enrolment("foo"))
       }
     }
 
     "PUT /agents-external-stubs/users/:userId" should {
       "return 404 if userId not found" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
-        val result = Users.update(User("7728378273", principalEnrolments = Seq(Enrolment("foo"))))
+        val result = Users.update(User("7728378273", enrolments = User.Enrolments(principal = Seq(Enrolment("foo")))))
         result should haveStatus(404)
       }
 
       "update an existing user" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
-        val result = Users.update(User("7728378273", principalEnrolments = Seq(Enrolment("foo"))))
+        val result = Users.update(User("7728378273", enrolments = User.Enrolments(principal = Seq(Enrolment("foo")))))
         result should haveStatus(202)
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/7728378273")
         val result2 = Users.get("7728378273")
-        result2.json.as[User].principalEnrolments should contain(Enrolment("foo"))
+        result2.json.as[User].enrolments.principal should contain(Enrolment("foo"))
       }
     }
 
@@ -229,7 +230,7 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
         user.nino shouldBe Some(nino)
         user.dateOfBirth shouldBe Some(LocalDate.parse("1972-12-23"))
         user.name shouldBe Some("Test User")
-        user.principalEnrolments should contain(Enrolment("IR-SA", "UTR", utr))
+        user.enrolments.principal should contain(Enrolment("IR-SA", "UTR", utr))
         user.facts("businesspostcode") shouldBe Some("CR12 3XZ")
       }
     }
@@ -274,10 +275,10 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
       user.nino shouldBe None
       user.dateOfBirth shouldBe None
       user.name shouldBe Some("Test Organisation User")
-      user.principalEnrolments should contain(Enrolment("IR-CT", "UTR", utr))
-      user.principalEnrolments should contain(Enrolment("HMRC-CUS-ORG", "EORINumber", eori))
-      user.principalEnrolments should contain(Enrolment("HMRC-MTD-VAT", "VRN", vrn))
-      user.principalEnrolments should contain(Enrolment("HMCE-VATDEC-ORG", "VATRegNo", vrn))
+      user.enrolments.principal should contain(Enrolment("IR-CT", "UTR", utr))
+      user.enrolments.principal should contain(Enrolment("HMRC-CUS-ORG", "EORINumber", eori))
+      user.enrolments.principal should contain(Enrolment("HMRC-MTD-VAT", "VRN", vrn))
+      user.enrolments.principal should contain(Enrolment("HMCE-VATDEC-ORG", "VATRegNo", vrn))
       user.facts("Postcode") shouldBe Some("CR12 3XZ")
     }
 
@@ -310,7 +311,7 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
         user.nino shouldBe Some(Nino("WZ 58 73 41 D"))
         user.dateOfBirth shouldBe defined
         user.name shouldBe Some("API Test User")
-        user.principalEnrolments should contain.only(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", arn))
+        user.enrolments.principal should contain.only(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", arn))
       }
     }
   }

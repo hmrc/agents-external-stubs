@@ -116,10 +116,10 @@ object UserValidator {
   }
 
   val validateEachPrincipalEnrolment: UserConstraint = user =>
-    if (user.principalEnrolments.isEmpty) Valid(())
+    if (user.enrolments.principal.isEmpty) Valid(())
     else {
       import Validator.Implicits._
-      user.principalEnrolments
+      user.enrolments.principal
         .map(e =>
           Validated
             .cond(
@@ -138,9 +138,9 @@ object UserValidator {
     }
 
   val validatePrincipalEnrolmentsAreDistinct: UserConstraint = user =>
-    if (user.principalEnrolments.isEmpty) Valid(())
+    if (user.enrolments.principal.isEmpty) Valid(())
     else {
-      val keys = user.principalEnrolments.map(_.key)
+      val keys = user.enrolments.principal.map(_.key)
       if (keys.size == keys.distinct.size) Valid(())
       else {
         val repeated: Iterable[String] = keys.groupBy(identity).filter { case (_, k) => k.size > 1 }.map(_._2.head)
@@ -153,11 +153,11 @@ object UserValidator {
     }
 
   val validateEachDelegatedEnrolment: UserConstraint = user =>
-    user.delegatedEnrolments match {
+    user.enrolments.delegated match {
       case s if s.isEmpty => Valid(())
       case _ if user.affinityGroup.contains(Agent) =>
         import Validator.Implicits._
-        user.delegatedEnrolments
+        user.enrolments.delegated
           .map(e =>
             Validated
               .cond(
@@ -174,10 +174,10 @@ object UserValidator {
     }
 
   val validateDelegatedEnrolmentsValuesAreDistinct: UserConstraint = user =>
-    if (user.delegatedEnrolments.isEmpty) Valid(())
+    if (user.enrolments.delegated.isEmpty) Valid(())
     else {
       import Validator.Implicits._
-      val results = user.delegatedEnrolments
+      val results = user.enrolments.delegated
         .groupBy(_.key)
         .collect { case (key, es) if es.size > 1 => (key, es) }
         .map { case (key, es) =>

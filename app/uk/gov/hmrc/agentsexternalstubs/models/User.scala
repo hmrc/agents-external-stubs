@@ -30,8 +30,7 @@ case class User(
   credentialStrength: Option[String] = None,
   credentialRole: Option[String] = None,
   nino: Option[Nino] = None,
-  principalEnrolments: Seq[Enrolment] = Seq.empty,
-  delegatedEnrolments: Seq[Enrolment] = Seq.empty,
+  enrolments: User.Enrolments = User.Enrolments.none,
   name: Option[String] = None,
   dateOfBirth: Option[LocalDate] = None,
   agentCode: Option[String] = None,
@@ -55,7 +54,7 @@ case class User(
       credentialRole.find(_ == User.CR.Admin).flatMap(_ => groupId.map(User.groupIdIndexKey))
     ).collect { case Some(x) =>
       x
-    } ++ principalEnrolments.map(_.toEnrolmentKeyTag).collect { case Some(key) => User.enrolmentIndexKey(key) }
+    } ++ enrolments.principal.map(_.toEnrolmentKeyTag).collect { case Some(key) => User.enrolmentIndexKey(key) }
 
   def lookupKeys: Seq[String] =
     Seq(
@@ -68,7 +67,7 @@ case class User(
       groupId
         .flatMap(gid => credentialRole.map(cr => (gid, cr)))
         .map(gidcr => User.groupIdWithCredentialRoleKey(gidcr._1, gidcr._2))
-    ).collect { case Some(x) => x } ++ delegatedEnrolments
+    ).collect { case Some(x) => x } ++ enrolments.delegated
       .map(_.toEnrolmentKeyTag)
       .collect { case Some(key) => User.enrolmentIndexKey(key) }
 
@@ -95,7 +94,7 @@ case class User(
   }
 
   def findIdentifierValue(serviceName: String, identifierName: String): Option[String] =
-    principalEnrolments
+    enrolments.principal
       .find(_.key == serviceName)
       .flatMap(_.identifiers.flatMap(_.find(_.key == identifierName)))
       .map(_.value)
@@ -107,21 +106,28 @@ case class User(
     join: (String, String) => String
   ): Option[String] =
     for {
-      enrolment <- principalEnrolments.find(_.key == serviceName)
+      enrolment <- enrolments.principal.find(_.key == serviceName)
       part1     <- enrolment.identifierValueOf(identifierName1)
       part2     <- enrolment.identifierValueOf(identifierName2)
     } yield join(part1, part2)
 
   def findDelegatedIdentifierValues(serviceName: String, identifierName: String): Seq[String] =
-    delegatedEnrolments
+    enrolments.delegated
       .filter(_.key == serviceName)
       .flatMap(_.identifiers.flatMap(_.find(_.key == identifierName)))
       .map(_.value)
 
   def findDelegatedIdentifierValues(serviceName: String): Seq[Seq[String]] =
-    delegatedEnrolments
+    enrolments.delegated
       .filter(_.key == serviceName)
       .flatMap(_.identifiers.map(_.map(_.value)))
+
+  def updatePrincipalEnrolments(f: Seq[Enrolment] => Seq[Enrolment]): User =
+    this.copy(enrolments = this.enrolments.copy(principal = f(this.enrolments.principal)))
+  def updateDelegatedEnrolments(f: Seq[Enrolment] => Seq[Enrolment]): User =
+    this.copy(enrolments = this.enrolments.copy(delegated = f(this.enrolments.delegated)))
+  def updateAssignedEnrolments(f: Seq[EnrolmentKey] => Seq[EnrolmentKey]): User =
+    this.copy(enrolments = this.enrolments.copy(assigned = f(this.enrolments.assigned)))
 }
 
 object User {
@@ -192,10 +198,28 @@ object User {
     def unapply(user: User): Option[(User, String)] =
       user.affinityGroup
         .flatMap(ag => if (affinityGroupMatches(ag)) Some(user) else None)
-        .flatMap(_.principalEnrolments.find(_.key == serviceName))
+        .flatMap(_.enrolments.principal.find(_.key == serviceName))
         .flatMap(_.identifiers)
         .flatMap(_.map(_.value).headOption)
         .map((user, _))
+  }
+
+  case class Enrolments(
+    principal: Seq[Enrolment] = Seq.empty,
+    delegated: Seq[Enrolment] = Seq.empty,
+    assigned: Seq[EnrolmentKey] = Seq.empty
+  )
+
+  object Enrolments {
+    import play.api.libs.functional.syntax._
+    implicit val reads: Reads[Enrolments] = (
+      (JsPath \ "principal").readNullable[Seq[Enrolment]].map(_.getOrElse(Seq.empty)) and
+        (JsPath \ "delegated").readNullable[Seq[Enrolment]].map(_.getOrElse(Seq.empty)) and
+        (JsPath \ "assigned").readNullable[Seq[EnrolmentKey]].map(_.getOrElse(Seq.empty))
+    )(Enrolments.apply _)
+    implicit val writes: Writes[Enrolments] = Json.writes[Enrolments]
+
+    val none = Enrolments(Seq.empty, Seq.empty, Seq.empty)
   }
 
   def validate(user: User): Either[List[String], User] = UserValidator.validate(user) match {
@@ -205,7 +229,7 @@ object User {
 
   implicit class UserBuilder(val user: User) extends AnyVal {
     def withPrincipalEnrolment(enrolment: Enrolment): User =
-      user.copy(principalEnrolments = user.principalEnrolments :+ enrolment)
+      user.updatePrincipalEnrolments(_ :+ enrolment)
 
     def withPrincipalEnrolment(service: String, identifierKey: String, identifierValue: String): User =
       withPrincipalEnrolment(Enrolment(service, identifierKey, identifierValue))
@@ -218,7 +242,7 @@ object User {
     def withStrideRole(role: String): User = user.copy(strideRoles = user.strideRoles :+ role)
 
     def withDelegatedEnrolment(enrolment: Enrolment): User =
-      user.copy(delegatedEnrolments = user.delegatedEnrolments :+ enrolment)
+      user.updateDelegatedEnrolments(_ :+ enrolment)
 
     def withDelegatedEnrolment(service: String, identifierKey: String, identifierValue: String): User =
       withDelegatedEnrolment(Enrolment(service, Some(Seq(Identifier(identifierKey, identifierValue)))))
@@ -250,8 +274,7 @@ object User {
       (JsPath \ "credentialStrength").readNullable[String] and
       (JsPath \ "credentialRole").readNullable[String] and
       (JsPath \ "nino").readNullable[Nino] and
-      (JsPath \ "principalEnrolments").readNullable[Seq[Enrolment]].map(_.getOrElse(Seq.empty)) and
-      (JsPath \ "delegatedEnrolments").readNullable[Seq[Enrolment]].map(_.getOrElse(Seq.empty)) and
+      (JsPath \ "enrolments").readNullable[Enrolments].map(_.getOrElse(Enrolments.none)) and
       (JsPath \ "name").readNullable[String] and
       (JsPath \ "dateOfBirth").readNullable[LocalDate] and
       (JsPath \ "agentCode").readNullable[String] and

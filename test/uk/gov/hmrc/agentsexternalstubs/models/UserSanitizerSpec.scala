@@ -150,15 +150,25 @@ class UserSanitizerSpec extends UnitSpec {
     "add missing identifiers to principal enrolments" in {
       UserSanitizer
         .sanitize(
-          User("foo", affinityGroup = Some(User.AG.Individual), principalEnrolments = Seq(Enrolment("HMRC-MTD-IT")))
+          User(
+            "foo",
+            affinityGroup = Some(User.AG.Individual),
+            enrolments = User.Enrolments(principal = Seq(Enrolment("HMRC-MTD-IT")))
+          )
         )
-        .principalEnrolments
+        .enrolments
+        .principal
         .flatMap(_.identifiers.get.map(_.key)) should contain.only("MTDITID")
       UserSanitizer
         .sanitize(
-          User("foo", affinityGroup = Some(User.AG.Agent), principalEnrolments = Seq(Enrolment("HMRC-AS-AGENT")))
+          User(
+            "foo",
+            affinityGroup = Some(User.AG.Agent),
+            enrolments = User.Enrolments(principal = Seq(Enrolment("HMRC-AS-AGENT")))
+          )
         )
-        .principalEnrolments
+        .enrolments
+        .principal
         .flatMap(_.identifiers.get.map(_.key)) should contain.only("AgentReferenceNumber")
     }
 
@@ -168,13 +178,15 @@ class UserSanitizerSpec extends UnitSpec {
           User(
             "foo",
             affinityGroup = Some(User.AG.Individual),
-            principalEnrolments = Seq(Enrolment("HMRC-AS-AGENT")),
-            delegatedEnrolments = Seq(Enrolment("HMRC-MTD-IT")),
+            enrolments = User.Enrolments(
+              principal = Seq(Enrolment("HMRC-AS-AGENT")),
+              delegated = Seq(Enrolment("HMRC-MTD-IT"))
+            ),
             strideRoles = Seq("FOO")
           )
         )
-      sanitized.principalEnrolments shouldBe empty
-      sanitized.delegatedEnrolments shouldBe empty
+      sanitized.enrolments.principal shouldBe empty
+      sanitized.enrolments.delegated shouldBe empty
       sanitized.strideRoles shouldBe Seq("FOO")
       sanitized.affinityGroup shouldBe None
       sanitized.nino shouldBe None
@@ -189,34 +201,39 @@ class UserSanitizerSpec extends UnitSpec {
           User(
             "foo",
             affinityGroup = Some(User.AG.Individual),
-            principalEnrolments = Seq(Enrolment("HMRC-MTD-IT"), Enrolment("HMRC-MTD-IT"))
+            enrolments = User.Enrolments(principal = Seq(Enrolment("HMRC-MTD-IT"), Enrolment("HMRC-MTD-IT")))
           )
         )
-        .principalEnrolments
+        .enrolments
+        .principal
         .flatMap(_.identifiers.get.map(_.key)) shouldBe Seq("MTDITID")
       UserSanitizer
         .sanitize(
           User(
             "foo",
             affinityGroup = Some(User.AG.Individual),
-            principalEnrolments = Seq(Enrolment("HMRC-MTD-IT"), Enrolment("HMRC-MTD-VAT"))
+            enrolments = User.Enrolments(principal = Seq(Enrolment("HMRC-MTD-IT"), Enrolment("HMRC-MTD-VAT")))
           )
         )
-        .principalEnrolments
+        .enrolments
+        .principal
         .flatMap(_.identifiers.get.map(_.key)) should contain theSameElementsAs Seq("MTDITID", "VRN")
       UserSanitizer
         .sanitize(
           User(
             "foo",
             affinityGroup = Some(User.AG.Individual),
-            principalEnrolments = Seq(
-              Enrolment("HMRC-MTD-IT"),
-              Enrolment("HMRC-MTD-IT", "MTDITID", "CNOB96766112368"),
-              Enrolment("HMRC-MTD-IT")
+            enrolments = User.Enrolments(
+              principal = Seq(
+                Enrolment("HMRC-MTD-IT"),
+                Enrolment("HMRC-MTD-IT", "MTDITID", "CNOB96766112368"),
+                Enrolment("HMRC-MTD-IT")
+              )
             )
           )
         )
-        .principalEnrolments
+        .enrolments
+        .principal
         .flatMap(_.identifiers.get.map(_.value)) shouldBe Seq("CNOB96766112368")
     }
 
@@ -226,10 +243,11 @@ class UserSanitizerSpec extends UnitSpec {
           User(
             "foo",
             affinityGroup = Some(User.AG.Individual),
-            principalEnrolments = Seq(Enrolment("HMRC-MTD-IT", "", "123456789"))
+            enrolments = User.Enrolments(principal = Seq(Enrolment("HMRC-MTD-IT", "", "123456789")))
           )
         )
-        .principalEnrolments
+        .enrolments
+        .principal
         .flatMap(_.identifiers.get.map(_.key))
         .filter(_.nonEmpty) should contain.only("MTDITID")
     }
@@ -240,22 +258,37 @@ class UserSanitizerSpec extends UnitSpec {
           User(
             "foo",
             affinityGroup = Some(User.AG.Individual),
-            principalEnrolments = Seq(Enrolment("HMRC-MTD-IT", "MTDITID", ""))
+            enrolments = User.Enrolments(principal = Seq(Enrolment("HMRC-MTD-IT", "MTDITID", "")))
           )
         )
-        .principalEnrolments
+        .enrolments
+        .principal
         .flatMap(_.identifiers.get.map(_.value))
         .filter(_.nonEmpty) should not be empty
     }
 
     "add missing identifiers to delegated enrolments" in {
       UserSanitizer
-        .sanitize(User("foo", affinityGroup = Some(User.AG.Agent), delegatedEnrolments = Seq(Enrolment("HMRC-MTD-IT"))))
-        .delegatedEnrolments
+        .sanitize(
+          User(
+            "foo",
+            affinityGroup = Some(User.AG.Agent),
+            enrolments = User.Enrolments(delegated = Seq(Enrolment("HMRC-MTD-IT")))
+          )
+        )
+        .enrolments
+        .delegated
         .flatMap(_.identifiers.get.map(_.key)) should contain.only("MTDITID")
       UserSanitizer
-        .sanitize(User("foo", affinityGroup = Some(User.AG.Agent), delegatedEnrolments = Seq(Enrolment("IR-SA"))))
-        .delegatedEnrolments
+        .sanitize(
+          User(
+            "foo",
+            affinityGroup = Some(User.AG.Agent),
+            enrolments = User.Enrolments(delegated = Seq(Enrolment("IR-SA")))
+          )
+        )
+        .enrolments
+        .delegated
         .flatMap(_.identifiers.get.map(_.key)) should contain.only("UTR")
     }
 
@@ -265,10 +298,11 @@ class UserSanitizerSpec extends UnitSpec {
           User(
             "foo",
             affinityGroup = Some(User.AG.Agent),
-            delegatedEnrolments = Seq(Enrolment("HMRC-MTD-IT", "", "123456789"))
+            enrolments = User.Enrolments(delegated = Seq(Enrolment("HMRC-MTD-IT", "", "123456789")))
           )
         )
-        .delegatedEnrolments
+        .enrolments
+        .delegated
         .flatMap(_.identifiers.get.map(_.key))
         .filter(_.nonEmpty) should contain.only("MTDITID")
     }
@@ -279,10 +313,11 @@ class UserSanitizerSpec extends UnitSpec {
           User(
             "foo",
             affinityGroup = Some(User.AG.Agent),
-            delegatedEnrolments = Seq(Enrolment("HMRC-MTD-IT", "MTDITID", ""))
+            enrolments = User.Enrolments(delegated = Seq(Enrolment("HMRC-MTD-IT", "MTDITID", "")))
           )
         )
-        .delegatedEnrolments
+        .enrolments
+        .delegated
         .flatMap(_.identifiers.get.map(_.value))
         .filter(_.nonEmpty) should not be empty
     }

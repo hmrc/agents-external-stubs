@@ -80,7 +80,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       userOpt shouldBe defined
       val user = userOpt.get
       user.userId shouldBe "AgentFoo"
-      user.principalEnrolments should contain.only(
+      user.enrolments.principal should contain.only(
         Enrolment("HMRC-AS-AGENT", Some(Seq(Identifier("AgentReferenceNumber", "TARN0000001"))))
       )
       user.affinityGroup shouldBe Some("Agent")
@@ -133,7 +133,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       userOpt shouldBe defined
       val user = userOpt.get
       user.userId shouldBe "UserFoo"
-      user.principalEnrolments should contain.only(
+      user.enrolments.principal should contain.only(
         Enrolment("HMRC-MTD-IT", Some(Seq(Identifier("MTDITID", "X12345678909876"))))
       )
       user.affinityGroup shouldBe Some("Individual")
@@ -200,7 +200,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       userOpt shouldBe defined
       val user = userOpt.get
       user.userId shouldBe "UserFoo"
-      user.principalEnrolments should contain.only(
+      user.enrolments.principal should contain.only(
         Enrolment("HMRC-MTD-IT", Some(Seq(Identifier("MTDITID", "X12345678909876")))),
         Enrolment("HMRC-MTD-VAT", Some(Seq(Identifier("VRN", "405985922"))))
       )
@@ -271,7 +271,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       userOpt shouldBe defined
       val user = userOpt.get
       user.userId shouldBe "1551815928588520"
-      user.principalEnrolments shouldBe empty
+      user.enrolments.principal shouldBe empty
       user.affinityGroup shouldBe Some("Individual")
       user.confidenceLevel shouldBe Some(250)
       user.credentialStrength shouldBe Some("weak")

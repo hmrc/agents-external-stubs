@@ -22,7 +22,7 @@ import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.{KnownFactsRepository, UsersRepository}
 import uk.gov.hmrc.auth.core.UnsupportedCredentialRole
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.http.{BadRequestException, NotFoundException}
+import uk.gov.hmrc.http.{BadRequestException, ForbiddenException, NotFoundException}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration._
@@ -174,11 +174,11 @@ class UsersService @Inject() (
   def setEnrolmentFriendlyName(user: User, planetId: String, enrolmentKey: EnrolmentKey, friendlyName: String)(implicit
     ec: ExecutionContext
   ) =
-    setEnrolmentFriendlyNameIfFound(user.principalEnrolments, enrolmentKey, friendlyName) match {
-      case Some(enrols) => updateUser(user.userId, planetId, _.copy(principalEnrolments = enrols))
+    setEnrolmentFriendlyNameIfFound(user.enrolments.principal, enrolmentKey, friendlyName) match {
+      case Some(enrols) => updateUser(user.userId, planetId, _.updatePrincipalEnrolments(_ => enrols))
       case None =>
-        setEnrolmentFriendlyNameIfFound(user.delegatedEnrolments, enrolmentKey, friendlyName) match {
-          case Some(enrols) => updateUser(user.userId, planetId, _.copy(delegatedEnrolments = enrols))
+        setEnrolmentFriendlyNameIfFound(user.enrolments.delegated, enrolmentKey, friendlyName) match {
+          case Some(enrols) => updateUser(user.userId, planetId, _.updateDelegatedEnrolments(_ => enrols))
           case None         => Future.failed(new NotFoundException("enrolment not found"))
         }
     }
@@ -215,7 +215,7 @@ class UsersService @Inject() (
   private def updateKnownFacts(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     Future
       .sequence(
-        user.principalEnrolments
+        user.enrolments.principal
           .map(_.toEnrolmentKey.flatMap(ek => KnownFacts.generate(ek, user.userId, user.facts)))
           .collect { case Some(x) => x }
           .map(knownFacts => knownFactsRepository.upsert(knownFacts.applyProperties(User.knownFactsOf(user)), planetId))
@@ -225,7 +225,7 @@ class UsersService @Inject() (
   private def deleteKnownFacts(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     Future
       .sequence(
-        user.principalEnrolments
+        user.enrolments.principal
           .map(_.toEnrolmentKey)
           .collect { case Some(x) => x }
           .map(enrolmentKey => knownFactsRepository.delete(enrolmentKey, planetId))
@@ -270,10 +270,6 @@ class UsersService @Inject() (
         }
     }
 
-  /* TODO this call does not actually change any data.
-   Providing target endpoint to enable basic testing.
-   Awaiting refactor to distinguish between group-level and user-level assignments.
-   */
   def assignEnrolmentToUser(userId: String, enrolmentKey: EnrolmentKey, planetId: String)(implicit
     ec: ExecutionContext
   ): Future[User] =
@@ -282,30 +278,34 @@ class UsersService @Inject() (
       case Some(_) =>
         findByUserId(userId, planetId)
           .flatMap {
-            case None => Future.failed(new BadRequestException("INVALID_JSON_BODY"))
+            case None                                                          => Future.failed(new NotFoundException("USER_ID_DOES_NOT_EXIST"))
+            case Some(user) if user.enrolments.assigned.contains(enrolmentKey) =>
+              // if the user already has the assignment, return Bad Request as per spec
+              Future.failed(new BadRequestException("INVALID_CREDENTIAL_ID"))
             case Some(user) =>
               user.groupId match {
                 case None => Future.failed(new BadRequestException("INVALID_CREDENTIAL_ID"))
                 case Some(groupId) =>
                   findByGroupId(groupId, planetId)(101).flatMap { members =>
-                    if (members.exists(m => m.isAdmin && m.principalEnrolments.exists(_.matches(enrolmentKey)))) {
-                      Future.successful(user)
-                    } else if (
-                      members.exists(m => m.isAdmin && m.delegatedEnrolments.exists(_.matches(enrolmentKey)))
+                    if (
+                      members.exists(m =>
+                        m.isAdmin && (m.enrolments.principal.exists(_.matches(enrolmentKey)) || m.enrolments.delegated
+                          .exists(_.matches(enrolmentKey)))
+                      )
                     ) {
-                      Future.successful(user)
+                      updateUser(
+                        userId,
+                        planetId,
+                        _.updateAssignedEnrolments(aes => (aes :+ enrolmentKey).distinct)
+                      )
                     } else {
-                      Future.failed(new BadRequestException("SERVICE_UNAVAILABLE"))
+                      Future.failed(new ForbiddenException("INVALID_CREDENTIAL_ID"))
                     }
                   }
               }
           }
     }
 
-  /* TODO this call does not actually change any data.
-     Providing target endpoint to enable basic testing.
-     Awaiting refactor to distinguish between group-level and user-level assignments.
-   */
   def deassignEnrolmentFromUser(userId: String, enrolmentKey: EnrolmentKey, planetId: String)(implicit
     ec: ExecutionContext
   ): Future[User] =
@@ -316,7 +316,11 @@ class UsersService @Inject() (
           .flatMap {
             case None => Future.failed(new NotFoundException("USER_ID_DOES_NOT_EXIST"))
             case Some(user) =>
-              Future.successful(user)
+              updateUser(
+                userId,
+                planetId,
+                _.updateAssignedEnrolments(aes => aes.filterNot(_.tag == enrolmentKey.tag))
+              )
           }
     }
 
@@ -353,10 +357,11 @@ class UsersService @Inject() (
                     planetId,
                     u => {
                       val enrolment = Enrolment.from(enrolmentKey)
-                      if (u.principalEnrolments.contains(enrolment)) throw new EnrolmentAlreadyExists
+                      if (u.enrolments.principal.contains(enrolment)) throw new EnrolmentAlreadyExists
                       else
-                        u.copy(principalEnrolments =
-                          appendEnrolment(u.principalEnrolments, Enrolment.from(enrolmentKey))
+                        u.copy(enrolments =
+                          u.enrolments
+                            .copy(principal = appendEnrolment(u.enrolments.principal, Enrolment.from(enrolmentKey)))
                         )
                     }
                   )
@@ -368,11 +373,10 @@ class UsersService @Inject() (
                         planetId,
                         u => {
                           val enrolment = Enrolment.from(enrolmentKey)
-                          if (u.delegatedEnrolments.contains(enrolment)) throw new EnrolmentAlreadyExists
-                          else
-                            u.copy(
-                              delegatedEnrolments = appendEnrolment(u.delegatedEnrolments, Enrolment.from(enrolmentKey))
-                            )
+                          if (u.enrolments.delegated.contains(enrolment)) throw new EnrolmentAlreadyExists
+                          else {
+                            u.updateDelegatedEnrolments(appendEnrolment(_, Enrolment.from(enrolmentKey)))
+                          }
                         }
                       )
                     case None =>
@@ -402,13 +406,13 @@ class UsersService @Inject() (
                   updateUser(
                     admin.userId,
                     planetId,
-                    u => u.copy(delegatedEnrolments = removeEnrolment(u.delegatedEnrolments, enrolmentKey))
+                    _.updateDelegatedEnrolments(es => removeEnrolment(es, enrolmentKey))
                   )
                 case _ =>
                   updateUser(
                     admin.userId,
                     planetId,
-                    u => u.copy(principalEnrolments = removeEnrolment(u.principalEnrolments, enrolmentKey))
+                    _.updatePrincipalEnrolments(es => removeEnrolment(es, enrolmentKey))
                   )
               }
 
@@ -421,7 +425,7 @@ class UsersService @Inject() (
               updateUser(
                 admin.userId,
                 planetId,
-                u => u.copy(delegatedEnrolments = removeEnrolment(u.delegatedEnrolments, enrolmentKey))
+                _.updateDelegatedEnrolments(es => removeEnrolment(es, enrolmentKey))
               )
             case _ => Future.failed(new BadRequestException("INVALID_AGENT_FORMAT"))
           }
