@@ -51,7 +51,7 @@ object AuthLoginApi {
         confidenceLevel = user.confidenceLevel,
         credentialStrength = user.credentialStrength.getOrElse("strong"),
         credentialRole = user.credentialRole,
-        enrolments = user.principalEnrolments,
+        enrolments = user.enrolments.principal,
         delegatedEnrolments = DelegatedEnrolment.from(user),
         gatewayToken = None,
         groupIdentifier = user.groupId,
@@ -73,11 +73,11 @@ object AuthLoginApi {
     object DelegatedEnrolment {
 
       def from(user: User): Option[Seq[DelegatedEnrolment]] =
-        if (user.delegatedEnrolments.isEmpty)
+        if (user.enrolments.delegated.isEmpty)
           None
         else {
           val delegatedEnrolments =
-            user.delegatedEnrolments
+            user.enrolments.delegated
               .map(e =>
                 delegatedAuthRuleFor(e.key).map(rule =>
                   DelegatedEnrolment(e.key, e.identifiers.getOrElse(Seq.empty), rule)

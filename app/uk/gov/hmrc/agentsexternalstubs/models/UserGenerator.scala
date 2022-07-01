@@ -120,7 +120,7 @@ object UserGenerator {
       agentCode = Option(agentCode).orElse(Option(UserGenerator.agentCode(gid))),
       agentFriendlyName = Option(agentFriendlyName).orElse(Option(UserGenerator.agentFriendlyName(gid))),
       agentId = Option(agentId).orElse(Option(UserGenerator.agentId(gid))),
-      delegatedEnrolments = delegatedEnrolments,
+      enrolments = User.Enrolments(delegated = delegatedEnrolments),
       groupId = Option(gid)
     )
   }

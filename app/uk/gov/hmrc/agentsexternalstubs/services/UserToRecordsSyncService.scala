@@ -528,7 +528,7 @@ class UserToRecordsSyncService @Inject() (
                   .flatMap(saveRecordId)
               }
 
-          case None if user.principalEnrolments.isEmpty =>
+          case None if user.enrolments.principal.isEmpty =>
             val ar = record
               .withUtr(Option(utr))
               .withCrn(Option(crn))
@@ -609,7 +609,7 @@ class UserToRecordsSyncService @Inject() (
         id <- legacyRelationshipRecordsService.store(entity, autoFill = false, user.planetId.get)
         _  <- saveRecordId(id)
         _ <- Future.sequence(
-               user.delegatedEnrolments
+               user.enrolments.delegated
                  .filter(_.key == "IR-SA")
                  .map(_.identifierValueOf("UTR"))
                  .map {

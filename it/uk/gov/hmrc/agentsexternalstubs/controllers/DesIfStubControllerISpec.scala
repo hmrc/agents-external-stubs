@@ -1531,7 +1531,9 @@ class DesIfStubControllerISpec
       val result = Users.update(
         User(
           "7728378273",
-          principalEnrolments = Seq(Enrolment("HMRC-CGT-PD", Some(Seq(Identifier("CGTPDRef", "XMCGTP707663428")))))
+          enrolments = User.Enrolments(principal =
+            Seq(Enrolment("HMRC-CGT-PD", Some(Seq(Identifier("CGTPDRef", "XMCGTP707663428")))))
+          )
         )
       )
       result should haveStatus(202)
@@ -1554,7 +1556,9 @@ class DesIfStubControllerISpec
       val result = Users.update(
         User(
           "7728378273",
-          principalEnrolments = Seq(Enrolment("HMRC-CGT-PD", Some(Seq(Identifier("CGTPDRef", "XMCGTP707663428")))))
+          enrolments = User.Enrolments(principal =
+            Seq(Enrolment("HMRC-CGT-PD", Some(Seq(Identifier("CGTPDRef", "XMCGTP707663428")))))
+          )
         )
       )
       result should haveStatus(202)
@@ -1570,7 +1574,9 @@ class DesIfStubControllerISpec
       val result = Users.update(
         User(
           "7728378273",
-          principalEnrolments = Seq(Enrolment("HMRC-CGT-PD", Some(Seq(Identifier("CGTPDRef", "XMCGTP707663428")))))
+          enrolments = User.Enrolments(principal =
+            Seq(Enrolment("HMRC-CGT-PD", Some(Seq(Identifier("CGTPDRef", "XMCGTP707663428")))))
+          )
         )
       )
       result should haveStatus(202)
@@ -1586,7 +1592,9 @@ class DesIfStubControllerISpec
       val result = Users.update(
         User(
           "7728378273",
-          principalEnrolments = Seq(Enrolment("HMRC-CGT-PD", Some(Seq(Identifier("CGTPDRef", "XMCGTP707663428")))))
+          enrolments = User.Enrolments(principal =
+            Seq(Enrolment("HMRC-CGT-PD", Some(Seq(Identifier("CGTPDRef", "XMCGTP707663428")))))
+          )
         )
       )
       result should haveStatus(202)

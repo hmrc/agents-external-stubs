@@ -100,8 +100,8 @@ abstract class AuthoriseUserContext(user: User) extends AuthoriseContext {
         (user.affinityGroup
           .contains(User.AG.Individual) || user.affinityGroup.contains(User.AG.Organisation)) && user.nino.isDefined
       )
-        user.principalEnrolments :+ Enrolment("HMRC-NI", "NINO", nino.get.value)
-      else user.principalEnrolments
+        user.enrolments.principal :+ Enrolment("HMRC-NI", "NINO", nino.get.value)
+      else user.enrolments.principal
     if (user.isAdmin) enrolments
     else {
       enrolments.toSet
@@ -111,7 +111,7 @@ abstract class AuthoriseUserContext(user: User) extends AuthoriseContext {
               .result(
                 userService
                   .findAdminByGroupId(groupId, user.planetId.getOrElse(throw new IllegalStateException()))
-                  .map(_.map(_.principalEnrolments).getOrElse(Seq.empty)),
+                  .map(_.map(_.enrolments.principal).getOrElse(Seq.empty)),
                 timeout
               )
               .toSet
@@ -122,7 +122,7 @@ abstract class AuthoriseUserContext(user: User) extends AuthoriseContext {
   }
 
   override def delegatedEnrolments: Seq[Enrolment] = {
-    val enrolments = user.delegatedEnrolments
+    val enrolments = user.enrolments.delegated
     if (user.isAdmin) enrolments
     else {
       enrolments.toSet
@@ -132,7 +132,7 @@ abstract class AuthoriseUserContext(user: User) extends AuthoriseContext {
               .result(
                 userService
                   .findAdminByGroupId(groupId, planetId)
-                  .map(_.map(_.delegatedEnrolments).getOrElse(Seq.empty)),
+                  .map(_.map(_.enrolments.delegated).getOrElse(Seq.empty)),
                 timeout
               )
               .toSet

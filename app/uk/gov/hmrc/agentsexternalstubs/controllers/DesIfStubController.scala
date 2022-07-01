@@ -536,7 +536,7 @@ class DesIfStubController @Inject() (
   }
 
   private def extractEnrolmentValue(serviceKey: String)(record: User) =
-    record.principalEnrolments
+    record.enrolments.principal
       .find(_.key == serviceKey)
       .flatMap(_.toEnrolmentKeyTag)
       .map(_.split('~').takeRight(1).mkString)

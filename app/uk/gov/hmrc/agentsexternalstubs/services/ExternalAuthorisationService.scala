@@ -82,7 +82,9 @@ class ExternalAuthorisationService @Inject() (usersService: UsersService, http: 
               credentialStrength = response.credentialStrength,
               credentialRole = response.credentialRole,
               nino = response.nino,
-              principalEnrolments = response.allEnrolments.map(_.filterNot(_.key == "HMRC-NI")).getOrElse(Seq.empty),
+              enrolments = User.Enrolments(principal =
+                response.allEnrolments.map(_.filterNot(_.key == "HMRC-NI")).getOrElse(Seq.empty)
+              ),
               name = response.name.map(_.toString),
               dateOfBirth = response.dateOfBirth,
               agentCode = response.agentInformation.flatMap(_.agentCode),
@@ -175,8 +177,10 @@ class ExternalAuthorisationService @Inject() (usersService: UsersService, http: 
     credentialStrength = first.credentialStrength.orElse(second.credentialStrength),
     credentialRole = first.credentialRole.orElse(second.credentialRole),
     nino = first.nino.orElse(second.nino),
-    principalEnrolments = (first.principalEnrolments ++ second.principalEnrolments).distinct,
-    delegatedEnrolments = (first.delegatedEnrolments ++ second.delegatedEnrolments).distinct,
+    enrolments = User.Enrolments(
+      principal = (first.enrolments.principal ++ second.enrolments.principal).distinct,
+      delegated = (first.enrolments.delegated ++ second.enrolments.delegated).distinct
+    ),
     name = first.name.orElse(second.name),
     dateOfBirth = first.dateOfBirth.orElse(second.dateOfBirth),
     agentCode = first.agentCode.orElse(second.agentCode),

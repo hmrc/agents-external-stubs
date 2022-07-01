@@ -27,12 +27,11 @@ import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubContro
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.{DuplicateUserException, KnownFactsRepository}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, EnrolmentAlreadyExists, UsersService}
-import uk.gov.hmrc.http.NotFoundException
+import uk.gov.hmrc.http.{BadRequestException, ForbiddenException, NotFoundException}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
-import uk.gov.hmrc.http.BadRequestException
 
 @Singleton
 class EnrolmentStoreProxyStubController @Inject() (
@@ -105,9 +104,11 @@ class EnrolmentStoreProxyStubController @Inject() (
         .map(_ => Created)
         .recover {
           case e: NotFoundException =>
-            notFound("INVALID_CREDENTIAL_ID")
+            notFound(e.getMessage())
           case e: BadRequestException =>
             badRequest(e.getMessage())
+          case e: ForbiddenException =>
+            forbidden(e.getMessage())
         }
     }(SessionRecordNotFound)
   }
@@ -119,7 +120,7 @@ class EnrolmentStoreProxyStubController @Inject() (
         .map(_ => NoContent)
         .recover {
           case e: NotFoundException =>
-            notFound("INVALID_CREDENTIAL_ID")
+            notFound(e.getMessage())
           case e: BadRequestException =>
             badRequest(e.getMessage())
         }
@@ -193,7 +194,7 @@ class EnrolmentStoreProxyStubController @Inject() (
               if (principal) knownFactsRepository.findByEnrolmentKey(_, session.planetId)
               else _ => Future.successful(None)
             val startRecord = `start-record`.getOrElse(1)
-            val enrolments = (if (principal) user.principalEnrolments else user.delegatedEnrolments)
+            val enrolments = (if (principal) user.enrolments.principal else user.enrolments.delegated)
               .filter(e => service.forall(_ == e.key))
               .slice(startRecord - 1, startRecord - 1 + `max-records`.getOrElse(1000))
             Future
@@ -234,7 +235,7 @@ class EnrolmentStoreProxyStubController @Inject() (
               if (principal) knownFactsRepository.findByEnrolmentKey(_, session.planetId)
               else _ => Future.successful(None)
             val startRecord = `start-record`.getOrElse(1)
-            val enrolments = (if (principal) user.principalEnrolments else user.delegatedEnrolments)
+            val enrolments = (if (principal) user.enrolments.principal else user.enrolments.delegated)
               .filter(e => service.forall(_ == e.key))
               .slice(startRecord - 1, startRecord - 1 + `max-records`.getOrElse(1000))
             Future

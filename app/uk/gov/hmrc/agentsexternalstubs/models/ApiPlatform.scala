@@ -101,7 +101,7 @@ object ApiPlatform {
       dateOfBirth =
         if (testUser.affinityGroup == User.AG.Individual) testUser.individualDetails.map(_.dateOfBirth) else None,
       agentFriendlyName = if (testUser.affinityGroup == User.AG.Agent) Some(testUser.userFullName) else None,
-      principalEnrolments = mapServicesToEnrolments(testUser),
+      enrolments = User.Enrolments(principal = mapServicesToEnrolments(testUser)),
       address = (testUser.affinityGroup match {
         case User.AG.Individual   => testUser.individualDetails.map(_.address)
         case User.AG.Organisation => testUser.organisationDetails.map(_.address)

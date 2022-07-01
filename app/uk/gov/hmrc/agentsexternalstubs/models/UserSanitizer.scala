@@ -43,8 +43,7 @@ object UserSanitizer extends RecordUtils[User] {
     user =>
       if (user.strideRoles.nonEmpty)
         user.copy(
-          principalEnrolments = Seq.empty,
-          delegatedEnrolments = Seq.empty,
+          enrolments = User.Enrolments.none,
           affinityGroup = None,
           agentCode = None,
           agentId = None,
@@ -129,9 +128,8 @@ object UserSanitizer extends RecordUtils[User] {
 
   private val ensurePrincipalEnrolmentKeysAreDistinct: Update = seed =>
     user => {
-      user.copy(
-        principalEnrolments = user.principalEnrolments
-          .groupBy(_.key)
+      user.updatePrincipalEnrolments(
+        _.groupBy(_.key)
           .collect {
             case (key, es) if es.size == 1 || Services(key).exists(_.flags.multipleEnrolment) => es
             case (_, es) =>
@@ -140,29 +138,20 @@ object UserSanitizer extends RecordUtils[User] {
           .flatten
           .toSeq
       )
-
     }
 
   private val ensurePrincipalEnrolmentsHaveIdentifiers: Update = seed =>
     user => {
-      val modifiedPrincipalEnrolments = user.principalEnrolments
-        .groupBy(_.key)
-        .flatMap { case (_, es) =>
-          es.zipWithIndex.map { case (e, i) => ensureEnrolmentHaveIdentifier(Generator.variant(seed, i))(e) }
-        }
-        .toSeq
-      user.copy(principalEnrolments = modifiedPrincipalEnrolments)
+      user.updatePrincipalEnrolments(_.groupBy(_.key).flatMap { case (_, es) =>
+        es.zipWithIndex.map { case (e, i) => ensureEnrolmentHaveIdentifier(Generator.variant(seed, i))(e) }
+      }.toSeq)
     }
 
   private val ensureDelegatedEnrolmentsHaveIdentifiers: Update = seed =>
     user => {
-      val modifiedDelegatedEnrolments = user.delegatedEnrolments
-        .groupBy(_.key)
-        .flatMap { case (_, es) =>
-          es.zipWithIndex.map { case (e, i) => ensureEnrolmentHaveIdentifier(Generator.variant(seed, i))(e) }
-        }
-        .toSeq
-      user.copy(delegatedEnrolments = modifiedDelegatedEnrolments)
+      user.updateDelegatedEnrolments(_.groupBy(_.key).flatMap { case (_, es) =>
+        es.zipWithIndex.map { case (e, i) => ensureEnrolmentHaveIdentifier(Generator.variant(seed, i))(e) }
+      }.toSeq)
     }
 
   private val ensureEnrolmentHaveIdentifier: String => Enrolment => Enrolment = seed =>

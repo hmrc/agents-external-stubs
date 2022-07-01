@@ -193,44 +193,71 @@ class UserValidatorSpec extends UnitSpec with ValidatedMatchers {
     }
 
     "validate only when delegatedEnrolments are empty or user is an Agent" in {
-      UserValidator.validate(User("foo", delegatedEnrolments = Seq.empty)).isValid shouldBe true
+      UserValidator.validate(User("foo", enrolments = User.Enrolments(delegated = Seq.empty))).isValid shouldBe true
       UserValidator
         .validate(UserGenerator.agent("foo", delegatedEnrolments = Seq(Enrolment("A"))))
         .isValid shouldBe true
 
       UserValidator
-        .validate(User("foo", delegatedEnrolments = Seq(Enrolment("A")), affinityGroup = Some(User.AG.Individual)))
+        .validate(
+          User(
+            "foo",
+            enrolments = User.Enrolments(delegated = Seq(Enrolment("A"))),
+            affinityGroup = Some(User.AG.Individual)
+          )
+        )
         .isValid shouldBe false
       UserValidator
-        .validate(User("foo", delegatedEnrolments = Seq(Enrolment("A")), affinityGroup = Some(User.AG.Organisation)))
+        .validate(
+          User(
+            "foo",
+            enrolments = User.Enrolments(delegated = Seq(Enrolment("A"))),
+            affinityGroup = Some(User.AG.Organisation)
+          )
+        )
         .isValid shouldBe false
     }
 
     "validate only when principal enrolments are valid" in {
-      UserValidator.validate(User("foo", principalEnrolments = Seq(Enrolment("A")))).isValid shouldBe true
-      UserValidator.validate(User("foo", principalEnrolments = Seq(Enrolment("A", "A", null)))).isInvalid shouldBe true
-      UserValidator.validate(User("foo", principalEnrolments = Seq(Enrolment("A", "A", "A")))).isInvalid shouldBe true
+      UserValidator
+        .validate(User("foo", enrolments = User.Enrolments(principal = Seq(Enrolment("A")))))
+        .isValid shouldBe true
+      UserValidator
+        .validate(User("foo", enrolments = User.Enrolments(principal = Seq(Enrolment("A", "A", null)))))
+        .isInvalid shouldBe true
+      UserValidator
+        .validate(User("foo", enrolments = User.Enrolments(principal = Seq(Enrolment("A", "A", "A")))))
+        .isInvalid shouldBe true
 
       forAll(Services.services) { service =>
         val enrolment = Generator.get(service.generator)("foo").get
         UserValidator
-          .validate(User("foo", principalEnrolments = Seq(enrolment)))
+          .validate(User("foo", enrolments = User.Enrolments(principal = Seq(enrolment))))
           .isValid shouldBe true
       }
     }
 
     "validate only when principal enrolments are distinct" in {
       UserValidator
-        .validate(User("foo", principalEnrolments = Seq(Enrolment("A", "A", "A"), Enrolment("A", "A", "A"))))
+        .validate(
+          User("foo", enrolments = User.Enrolments(principal = Seq(Enrolment("A", "A", "A"), Enrolment("A", "A", "A"))))
+        )
         .isValid shouldBe false
       UserValidator
-        .validate(User("foo", principalEnrolments = Seq(Enrolment("A"), Enrolment("A"))))
+        .validate(User("foo", enrolments = User.Enrolments(principal = Seq(Enrolment("A"), Enrolment("A")))))
         .isValid shouldBe false
       UserValidator
-        .validate(User("foo", principalEnrolments = Seq(Enrolment("A", "A", "A"), Enrolment("A", "B", "B"))))
+        .validate(
+          User("foo", enrolments = User.Enrolments(principal = Seq(Enrolment("A", "A", "A"), Enrolment("A", "B", "B"))))
+        )
         .isValid shouldBe false
       UserValidator
-        .validate(User("foo", principalEnrolments = Seq(Enrolment("A", "B", "C1"), Enrolment("A", "B", "C2"))))
+        .validate(
+          User(
+            "foo",
+            enrolments = User.Enrolments(principal = Seq(Enrolment("A", "B", "C1"), Enrolment("A", "B", "C2")))
+          )
+        )
         .isValid shouldBe false
     }
 

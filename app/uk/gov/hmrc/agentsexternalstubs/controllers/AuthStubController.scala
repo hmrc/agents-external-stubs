@@ -365,8 +365,8 @@ object AuthStubController {
         user.affinityGroup
           .contains(User.AG.Individual) || user.affinityGroup.contains(User.AG.Organisation) && user.nino.isDefined
       )
-        user.principalEnrolments :+ Enrolment("HMRC-NI", "NINO", user.nino.get.value)
-      else user.principalEnrolments
+        user.enrolments.principal :+ Enrolment("HMRC-NI", "NINO", user.nino.get.value)
+      else user.enrolments.principal
   }
 
 }

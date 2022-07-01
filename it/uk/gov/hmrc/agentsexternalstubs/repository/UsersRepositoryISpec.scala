@@ -58,20 +58,23 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
 
     "store a user with simple principal enrolment" in {
       val planetId = UUID.randomUUID().toString
-      await(repo.create(User("889foo", principalEnrolments = Seq(Enrolment("foobar"))), planetId))
+      await(repo.create(User("889foo", enrolments = User.Enrolments(principal = Seq(Enrolment("foobar")))), planetId))
 
       val result = await(repo.findByPlanetId(planetId, None)(100))
 
       result.size shouldBe 1
       result.head.userId shouldBe "889foo"
-      result.head.principalEnrolments shouldBe Seq(Enrolment("foobar"))
+      result.head.enrolments.principal shouldBe Seq(Enrolment("foobar"))
     }
 
     "do not allow users with the same principal enrolment on a same planet" in {
       val planetId = UUID.randomUUID().toString
       await(
         repo.create(
-          User("1foo", principalEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("A", "1")))))),
+          User(
+            "1foo",
+            enrolments = User.Enrolments(principal = Seq(Enrolment("foobar", Some(Seq(Identifier("A", "1"))))))
+          ),
           planetId
         )
       )
@@ -79,9 +82,11 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
         .create(
           User(
             "foo2",
-            principalEnrolments = Seq(
-              Enrolment("something", Some(Seq(Identifier("B", "2")))),
-              Enrolment("foobar", Some(Seq(Identifier("A", "1"))))
+            enrolments = User.Enrolments(
+              principal = Seq(
+                Enrolment("something", Some(Seq(Identifier("B", "2")))),
+                Enrolment("foobar", Some(Seq(Identifier("A", "1"))))
+              )
             )
           ),
           planetId
@@ -99,13 +104,19 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       val planetId3 = UUID.randomUUID().toString
       await(
         repo.create(
-          User("1foo", principalEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("A", "1")))))),
+          User(
+            "1foo",
+            enrolments = User.Enrolments(principal = Seq(Enrolment("foobar", Some(Seq(Identifier("A", "1"))))))
+          ),
           planetId1
         )
       )
       await(
         repo.create(
-          User("foo2", principalEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("A", "1")))))),
+          User(
+            "foo2",
+            enrolments = User.Enrolments(principal = Seq(Enrolment("foobar", Some(Seq(Identifier("A", "1"))))))
+          ),
           planetId2
         )
       )
@@ -113,9 +124,11 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
         repo.create(
           User(
             "foo2",
-            principalEnrolments = Seq(
-              Enrolment("foobar", Some(Seq(Identifier("A", "1")))),
-              Enrolment("barfoo", Some(Seq(Identifier("B", "2"))))
+            enrolments = User.Enrolments(
+              principal = Seq(
+                Enrolment("foobar", Some(Seq(Identifier("A", "1")))),
+                Enrolment("barfoo", Some(Seq(Identifier("B", "2"))))
+              )
             )
           ),
           planetId3
@@ -135,7 +148,10 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       val planetId = UUID.randomUUID().toString
       await(
         repo.create(
-          User("abcfoo", principalEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))),
+          User(
+            "abcfoo",
+            enrolments = User.Enrolments(principal = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123"))))))
+          ),
           planetId
         )
       )
@@ -144,7 +160,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
 
       result.size shouldBe 1
       result.head.userId shouldBe "abcfoo"
-      result.head.principalEnrolments shouldBe Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))
+      result.head.enrolments.principal shouldBe Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))
     }
 
     "store a user with multiple principal enrolments" in {
@@ -153,9 +169,11 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
         repo.create(
           User(
             "foo888",
-            principalEnrolments = Seq(
-              Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))),
-              Enrolment("barefoot", Some(Seq(Identifier("foo", "foo345"))))
+            enrolments = User.Enrolments(
+              principal = Seq(
+                Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))),
+                Enrolment("barefoot", Some(Seq(Identifier("foo", "foo345"))))
+              )
             )
           ),
           planetId
@@ -166,7 +184,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
 
       result.size shouldBe 1
       result.head.userId shouldBe "foo888"
-      result.head.principalEnrolments shouldBe
+      result.head.enrolments.principal shouldBe
         Seq(
           Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))),
           Enrolment("barefoot", Some(Seq(Identifier("foo", "foo345"))))
@@ -177,7 +195,10 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       val planetId = UUID.randomUUID().toString
       await(
         repo.create(
-          User("abcfoo", delegatedEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))),
+          User(
+            "abcfoo",
+            enrolments = User.Enrolments(delegated = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123"))))))
+          ),
           planetId
         )
       )
@@ -186,21 +207,27 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
 
       result.size shouldBe 1
       result.head.userId shouldBe "abcfoo"
-      result.head.principalEnrolments shouldBe Seq.empty
-      result.head.delegatedEnrolments shouldBe Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))
+      result.head.enrolments.principal shouldBe Seq.empty
+      result.head.enrolments.delegated shouldBe Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))
     }
 
     "allow different users with same delegated enrolment" in {
       val planetId = UUID.randomUUID().toString
       await(
         repo.create(
-          User("abcfoo1", delegatedEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))),
+          User(
+            "abcfoo1",
+            enrolments = User.Enrolments(delegated = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123"))))))
+          ),
           planetId
         )
       )
       await(
         repo.create(
-          User("abcfoo2", delegatedEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))),
+          User(
+            "abcfoo2",
+            enrolments = User.Enrolments(delegated = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123"))))))
+          ),
           planetId
         )
       )
@@ -209,8 +236,8 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
 
       result.size shouldBe 2
       result.head.userId shouldBe "abcfoo1"
-      result.head.principalEnrolments shouldBe Seq.empty
-      result.head.delegatedEnrolments shouldBe Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))
+      result.head.enrolments.principal shouldBe Seq.empty
+      result.head.enrolments.delegated shouldBe Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))
     }
 
     "allow duplicate usersId to be created for different planetIds" in {
@@ -291,11 +318,11 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       await(repo.create(User("foo"), planetId))
       await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 1
 
-      await(repo.update(User("foo", principalEnrolments = Seq(Enrolment("foobar"))), planetId))
+      await(repo.update(User("foo", enrolments = User.Enrolments(principal = Seq(Enrolment("foobar")))), planetId))
       await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 1
 
       val userFoo = await(repo.findByUserId("foo", planetId))
-      userFoo.map(_.principalEnrolments) shouldBe Some(Seq(Enrolment("foobar")))
+      userFoo.map(_.enrolments.principal) shouldBe Some(Seq(Enrolment("foobar")))
     }
 
     "respect provided planetId" in {
@@ -306,12 +333,15 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 1
 
       await(
-        repo.update(User("foo", planetId = Some(planetId), principalEnrolments = Seq(Enrolment("foobar"))), planetId)
+        repo.update(
+          User("foo", planetId = Some(planetId), enrolments = User.Enrolments(principal = Seq(Enrolment("foobar")))),
+          planetId
+        )
       )
       await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 1
 
       val userFoo = await(repo.findByUserId("foo", planetId))
-      userFoo.map(_.principalEnrolments) shouldBe Some(Seq(Enrolment("foobar")))
+      userFoo.map(_.enrolments.principal) shouldBe Some(Seq(Enrolment("foobar")))
 
       await(repo.findByUserId("foo", planetId2)) shouldBe None
     }
@@ -484,7 +514,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
           User(
             "foo1",
             affinityGroup = Some("Agent"),
-            principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+            enrolments = User.Enrolments(principal = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111"))))))
           ),
           planetId = planetId
         )
@@ -494,7 +524,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
           User(
             "foo2",
             affinityGroup = Some("Agent"),
-            delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+            enrolments = User.Enrolments(delegated = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111"))))))
           ),
           planetId = planetId
         )
@@ -504,7 +534,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
           User(
             "foo3",
             affinityGroup = Some("Agent"),
-            principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "222")))))
+            enrolments = User.Enrolments(principal = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "222"))))))
           ),
           planetId = planetId
         )
@@ -514,7 +544,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
           User(
             "foo4",
             affinityGroup = Some("Agent"),
-            principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+            enrolments = User.Enrolments(principal = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111"))))))
           ),
           planetId = planetId2
         )
@@ -524,7 +554,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
         await(repo.findByPrincipalEnrolmentKey(EnrolmentKey.from("FOO", "AAA" -> "111"), planetId = planetId))
       result1.isDefined shouldBe true
       result1.get.userId shouldBe "foo1"
-      result1.get.principalEnrolments should contain.only(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+      result1.get.enrolments.principal should contain.only(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
     }
   }
 
@@ -538,7 +568,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
           User(
             "foo1",
             affinityGroup = Some("Agent"),
-            delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+            enrolments = User.Enrolments(delegated = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111"))))))
           ),
           planetId = planetId
         )
@@ -548,7 +578,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
           User(
             "foo3",
             affinityGroup = Some("Agent"),
-            principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+            enrolments = User.Enrolments(principal = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111"))))))
           ),
           planetId = planetId
         )
@@ -558,7 +588,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
           User(
             "foo2",
             affinityGroup = Some("Agent"),
-            delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+            enrolments = User.Enrolments(delegated = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111"))))))
           ),
           planetId = planetId
         )
@@ -568,7 +598,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
           User(
             "foo4",
             affinityGroup = Some("Agent"),
-            delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+            enrolments = User.Enrolments(delegated = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111"))))))
           ),
           planetId = planetId2
         )
@@ -578,7 +608,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
         await(repo.findByDelegatedEnrolmentKey(EnrolmentKey.from("FOO", "AAA" -> "111"), planetId = planetId)(10))
       result1.size shouldBe 2
       result1.map(_.userId) should contain.only("foo1", "foo2")
-      result1.flatMap(_.delegatedEnrolments).distinct should contain.only(
+      result1.flatMap(_.enrolments.delegated).distinct should contain.only(
         Enrolment("FOO", Some(Seq(Identifier("AAA", "111"))))
       )
     }
@@ -594,7 +624,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
           User(
             "foo1",
             affinityGroup = Some("Agent"),
-            delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+            enrolments = User.Enrolments(delegated = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111"))))))
           ),
           planetId = planetId
         )
@@ -604,7 +634,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
           User(
             "foo3",
             affinityGroup = Some("Agent"),
-            principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+            enrolments = User.Enrolments(principal = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111"))))))
           ),
           planetId = planetId
         )
@@ -614,7 +644,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
           User(
             "foo2",
             affinityGroup = Some("Agent"),
-            delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+            enrolments = User.Enrolments(delegated = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111"))))))
           ),
           planetId = planetId
         )
@@ -624,7 +654,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
           User(
             "foo4",
             affinityGroup = Some("Agent"),
-            delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+            enrolments = User.Enrolments(delegated = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111"))))))
           ),
           planetId = planetId2
         )
@@ -649,7 +679,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
             "foo1",
             groupId = Some("group1"),
             affinityGroup = Some("Agent"),
-            delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+            enrolments = User.Enrolments(delegated = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111"))))))
           ),
           planetId = planetId
         )
@@ -660,7 +690,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
             "foo3",
             groupId = Some("group2"),
             affinityGroup = Some("Agent"),
-            principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+            enrolments = User.Enrolments(principal = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111"))))))
           ),
           planetId = planetId
         )
@@ -671,7 +701,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
             "foo2",
             groupId = Some("group3"),
             affinityGroup = Some("Agent"),
-            delegatedEnrolments = Seq(Enrolment("BAR", Some(Seq(Identifier("AAA", "111")))))
+            enrolments = User.Enrolments(delegated = Seq(Enrolment("BAR", Some(Seq(Identifier("AAA", "111"))))))
           ),
           planetId = planetId
         )
@@ -682,7 +712,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
             "foo4",
             groupId = Some("group4"),
             affinityGroup = Some("Agent"),
-            delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+            enrolments = User.Enrolments(delegated = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111"))))))
           ),
           planetId = planetId2
         )
