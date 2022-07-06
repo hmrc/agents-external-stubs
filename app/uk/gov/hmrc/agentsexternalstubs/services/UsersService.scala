@@ -278,8 +278,8 @@ class UsersService @Inject() (
       case Some(_) =>
         findByUserId(userId, planetId)
           .flatMap {
-            case None                                                          => Future.failed(new NotFoundException("USER_ID_DOES_NOT_EXIST"))
-            case Some(user) if user.enrolments.assigned.contains(enrolmentKey) =>
+            case None                                                                                    => Future.failed(new NotFoundException("USER_ID_DOES_NOT_EXIST"))
+            case Some(user) if user.enrolments.assigned.exists(_.tag.equalsIgnoreCase(enrolmentKey.tag)) =>
               // if the user already has the assignment, return Bad Request as per spec
               Future.failed(new BadRequestException("INVALID_CREDENTIAL_ID"))
             case Some(user) =>
