@@ -110,7 +110,7 @@ class GranPermsService @Inject() (
     delegatedEnrols = clients.flatMap(_.enrolments.principal)
     _ <-
       usersService
-        .updateUser(currentUser.userId, planetId, _ => currentUser.updateDelegatedEnrolments(_ => delegatedEnrols))
+        .updateUser(currentUser.userId, planetId, _ => currentUser.updateDelegatedEnrolments(_ ++ delegatedEnrols))
     agents <- massGenerateAgents(
                 planetId,
                 genRequest,

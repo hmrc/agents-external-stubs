@@ -116,4 +116,27 @@ class GranPermsControllerISpec extends ServerBaseISpec with MongoDB with TestReq
     result should haveStatus(401)
     result.body.contains("Currently logged-in user is not a group Admin.") shouldBe true
   }
+
+  "allow for correctly adding additional clients if the logged-in user has already some" in {
+
+    implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+    Users.update(
+      UserGenerator
+        .agent(userId = session.userId)
+        .withPrincipalEnrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "KARN3869382")
+    )
+
+    // Create some clients
+    val payload1 = GranPermsGenRequest("test1", 0, 5, None, None, None, None)
+    val result1 = GranPermsStubs.massGenerateAgentsAndClients(payload1)
+    result1 should haveStatus(201)
+
+    // Create some more clients for the same agent
+    val payload2 = GranPermsGenRequest("test2", 0, 3, None, None, None, None)
+    val result2 = GranPermsStubs.massGenerateAgentsAndClients(payload2)
+    result2 should haveStatus(201)
+
+    val Some(currentUser) = usersService.findByUserId(session.userId, session.planetId).futureValue
+    currentUser.enrolments.delegated.length shouldBe 8
+  }
 }
