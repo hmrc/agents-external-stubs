@@ -261,6 +261,14 @@ trait TestRequests extends ScalaFutures {
   }
 
   object EnrolmentStoreProxyStub {
+
+    def getDelegatedEnrolments(groupId: String)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/enrolment-store-proxy/enrolment-store/groups/$groupId/delegated")
+        .withHttpHeaders(authContext.headers: _*)
+        .get()
+        .futureValue
+
     def getUserIds(enrolmentKey: String, _type: String = "all")(implicit authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/users")
