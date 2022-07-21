@@ -22,6 +22,8 @@ import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import uk.gov.hmrc.agentmtdidentifiers.model.{AssignedClient, GroupDelegatedEnrolments}
+import uk.gov.hmrc.agentmtdidentifiers.model.{Identifier => MtdIdentifier}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.SetKnownFactsRequest.Legacy
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController._
 import uk.gov.hmrc.agentsexternalstubs.models._
@@ -247,6 +249,29 @@ class EnrolmentStoreProxyStubController @Inject() (
                 if (response.totalRecords == 0) NoContent else Ok(Json.toJson(response))
               }
         }
+      }
+    }(SessionRecordNotFound)
+  }
+
+  def getDelegatedEnrolments(groupId: String): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      usersService.findByGroupId(groupId, session.planetId)(100).map { users =>
+        val clients = users
+          .filter(_.enrolments.delegated.nonEmpty)
+          .flatMap(user => user.enrolments.delegated.map(enrolment => (enrolment, user.userId)))
+          .groupBy(_._1)
+          .map(groupedByEnrolment => groupedByEnrolment._1 -> groupedByEnrolment._2.map(_._2))
+          .map(enrolmentToUserIds =>
+            AssignedClient(
+              enrolmentToUserIds._1.key,
+              enrolmentToUserIds._1.identifiers.toSeq.flatten.map(i => MtdIdentifier(i.key, i.value)),
+              None,
+              if (enrolmentToUserIds._2.size == 1) enrolmentToUserIds._2.head
+              else enrolmentToUserIds._2.size.toString
+            )
+          )
+          .toSeq
+        Ok(Json.toJson(GroupDelegatedEnrolments(clients)))
       }
     }(SessionRecordNotFound)
   }
