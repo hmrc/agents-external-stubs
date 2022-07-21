@@ -82,6 +82,11 @@ class UsersService @Inject() (
   ): Future[Seq[String]] =
     usersRepository.findUserIdsByDelegatedEnrolmentKey(enrolmentKey, planetId)(limit)
 
+  def findUserIdsByAssignedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(implicit
+    ec: ExecutionContext
+  ): Future[Seq[String]] =
+    usersRepository.findUserIdsByAssignedEnrolmentKey(enrolmentKey, planetId)(limit)
+
   def findGroupIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(implicit
     ec: ExecutionContext
   ): Future[Seq[Option[String]]] =
