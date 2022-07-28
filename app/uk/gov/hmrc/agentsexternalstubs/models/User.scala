@@ -251,6 +251,9 @@ object User {
       withDelegatedEnrolment(
         Enrolment.from(EnrolmentKey.parse(enrolmentKey).fold(e => throw new Exception(e), identity))
       )
+
+    def withAssignedEnrolment(service: String, identifierKey: String, identifierValue: String): User =
+      user.updateAssignedEnrolments(_ => Seq(EnrolmentKey(service, Seq(Identifier(identifierKey, identifierValue)))))
   }
 
   def userIdKey(userId: String): String = s"uid:$userId"
