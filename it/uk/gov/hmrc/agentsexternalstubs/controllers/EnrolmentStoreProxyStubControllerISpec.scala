@@ -651,12 +651,14 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         result.body shouldBe empty
       }
 
-      "return 200 with a list of principal enrolments" in {
+      "return 200 with a list of principal enrolments if assigned to the user" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val enrolment = Enrolment("IR-SA", "UTR", "12345678")
         Users.update(
           UserGenerator
             .individual(userId = session.userId)
-            .withPrincipalEnrolment("IR-SA", "UTR", "12345678")
+            .withPrincipalEnrolment(enrolment)
+            .updateAssignedEnrolments(_ ++ enrolment.toEnrolmentKey.toSeq)
         )
 
         val result = EnrolmentStoreProxyStub.getUserEnrolments(session.userId)
@@ -679,6 +681,22 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         )
       }
 
+      "return 204 with an empty list of principal enrolments if allocated to the group but not to the user" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val enrolment = Enrolment("IR-SA", "UTR", "12345678")
+        Users.update(
+          UserGenerator
+            .individual(userId = session.userId)
+            .withPrincipalEnrolment(enrolment)
+            .updateAssignedEnrolments(_ => Seq.empty)
+        )
+
+        val result = EnrolmentStoreProxyStub.getUserEnrolments(session.userId)
+
+        result should haveStatus(204)
+        result.body shouldBe empty
+      }
+
       "return 204 with an empty list of delegated enrolments" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
@@ -688,13 +706,17 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         result.body shouldBe empty
       }
 
-      "return 200 with a list of delegated enrolments" in {
+      "return 200 with a list of delegated enrolments if assigned to the user" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val enrolments = Seq(
+          Enrolment("IR-SA", "UTR", "12345678"),
+          Enrolment("IR-SA", "UTR", "12345670")
+        )
         Users.update(
           UserGenerator
             .agent(userId = session.userId, agentCode = "ABCDEF")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345670")
+            .updateDelegatedEnrolments(_ => enrolments)
+            .updateAssignedEnrolments(_ => enrolments.flatMap(_.toEnrolmentKey))
         )
 
         val result = EnrolmentStoreProxyStub.getUserEnrolments(session.userId, `type` = "delegated")
@@ -718,33 +740,53 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         )
       }
 
-      "return 200 with a paginated list of delegated enrolments" in {
+      "return 204 with an empty list of delegated enrolments if assigned to the group but not to the user" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        Users.update(
+          UserGenerator
+            .agent(userId = session.userId, agentCode = "ABCDEF")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345670")
+            .updateAssignedEnrolments(_ => Seq.empty)
+        )
+
+        val result = EnrolmentStoreProxyStub.getUserEnrolments(session.userId, `type` = "delegated")
+
+        result should haveStatus(204)
+        result.body shouldBe empty
+      }
+
+      "return 200 with a paginated list of delegated enrolments assigned to the user" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val enrolments = Seq(
+          Enrolment("IR-SA", "UTR", "12345670"),
+          Enrolment("IR-SA", "UTR", "12345671"),
+          Enrolment("IR-SA", "UTR", "12345672"),
+          Enrolment("IR-SA", "UTR", "12345673"),
+          Enrolment("IR-SA", "UTR", "12345674"),
+          Enrolment("IR-SA", "UTR", "12345675"),
+          Enrolment("IR-SA", "UTR", "12345676"),
+          Enrolment("IR-SA", "UTR", "12345677"),
+          Enrolment("IR-SA", "UTR", "12345678"),
+          Enrolment("IR-SA", "UTR", "12345679"),
+          Enrolment("IR-SA", "UTR", "12345680"),
+          Enrolment("IR-SA", "UTR", "12345681"),
+          Enrolment("IR-SA", "UTR", "12345682"),
+          Enrolment("IR-SA", "UTR", "12345683"),
+          Enrolment("IR-SA", "UTR", "12345684"),
+          Enrolment("IR-SA", "UTR", "12345685"),
+          Enrolment("IR-SA", "UTR", "12345686"),
+          Enrolment("IR-SA", "UTR", "12345687"),
+          Enrolment("IR-SA", "UTR", "12345688"),
+          Enrolment("IR-SA", "UTR", "12345689"),
+          Enrolment("IR-SA", "UTR", "12345690"),
+          Enrolment("IR-SA", "UTR", "12345691")
+        )
         val updateResult = Users.update(
           UserGenerator
             .agent(userId = session.userId)
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345670")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345671")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345672")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345673")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345674")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345675")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345676")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345677")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345679")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345680")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345681")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345682")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345683")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345684")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345685")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345686")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345687")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345688")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345689")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345690")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345691")
+            .updateDelegatedEnrolments(_ => enrolments)
+            .updateAssignedEnrolments(_ => enrolments.flatMap(_.toEnrolmentKey))
         )
         updateResult should haveStatus(202)
 

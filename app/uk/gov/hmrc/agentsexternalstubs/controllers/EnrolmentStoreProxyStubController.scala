@@ -21,7 +21,7 @@ import cats.data.Validated
 import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTime
 import play.api.libs.json._
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.SetKnownFactsRequest.Legacy
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController._
 import uk.gov.hmrc.agentsexternalstubs.models._
@@ -171,6 +171,44 @@ class EnrolmentStoreProxyStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
+  def doGetGroupEnrolments(
+    planetId: String,
+    groupId: String,
+    `type`: String,
+    service: Option[String],
+    `start-record`: Option[Int],
+    `max-records`: Option[Int],
+    assignedToUser: Option[User] // if non-empty, only return the enrolments assigned to the given user.
+  ): Future[Result] =
+    if (`type` != "principal" && `type` != "delegated") badRequestF("INVALID_ENROLMENT_TYPE")
+    else if (service.isDefined && !Services.servicesByKey.contains(service.get)) badRequestF("INVALID_SERVICE")
+    else if (`start-record`.isDefined && `start-record`.get < 1) badRequestF("INVALID_START_RECORD")
+    else if (`max-records`.isDefined && (`max-records`.get < 10 || `max-records`.get > 1000))
+      badRequestF("INVALID_MAX_RECORDS")
+    else {
+      usersService.findAdminByGroupId(groupId, planetId).flatMap {
+        case None =>
+          notFoundF("INVALID_GROUP_ID")
+        case Some(user) =>
+          val principal = `type` == "principal"
+          val getKnownFacts: EnrolmentKey => Future[Option[KnownFacts]] =
+            if (principal) knownFactsRepository.findByEnrolmentKey(_, planetId)
+            else _ => Future.successful(None)
+          val startRecord = `start-record`.getOrElse(1)
+          val enrolments = (if (principal) user.enrolments.principal else user.enrolments.delegated)
+            .filter(e => service.forall(_ == e.key))
+            .filter(e => assignedToUser.forall(user => e.toEnrolmentKey.exists(user.enrolments.assigned.contains(_))))
+            .slice(startRecord - 1, startRecord - 1 + `max-records`.getOrElse(1000))
+          Future
+            .sequence(enrolments.map(_.toEnrolmentKey).collect { case Some(x) => x }.map(getKnownFacts))
+            .map(_.collect { case Some(x) => x })
+            .map(knownFacts => GetUserEnrolmentsResponse.from(user, startRecord, enrolments, knownFacts))
+            .map { response =>
+              if (response.totalRecords == 0) NoContent else Ok(Json.toJson(response))
+            }
+      }
+    }
+
   def getUserEnrolments(
     userId: String,
     `type`: String,
@@ -188,23 +226,18 @@ class EnrolmentStoreProxyStubController @Inject() (
         usersService.findByUserId(userId, session.planetId).flatMap {
           case None =>
             notFoundF("INVALID_CREDENTIAL_ID")
-          case Some(user) =>
-            val principal = `type` == "principal"
-            val getKnownFacts: EnrolmentKey => Future[Option[KnownFacts]] =
-              if (principal) knownFactsRepository.findByEnrolmentKey(_, session.planetId)
-              else _ => Future.successful(None)
-            val startRecord = `start-record`.getOrElse(1)
-            val enrolments = (if (principal) user.enrolments.principal else user.enrolments.delegated)
-              .filter(e => service.forall(_ == e.key))
-              .slice(startRecord - 1, startRecord - 1 + `max-records`.getOrElse(1000))
-            Future
-              .sequence(enrolments.map(_.toEnrolmentKey).collect { case Some(x) => x }.map(getKnownFacts))
-              .map(_.collect { case Some(x) => x })
-              .map { knownFacts =>
-                val response =
-                  GetUserEnrolmentsResponse.from(user, startRecord, enrolments, knownFacts)
-                if (response.totalRecords == 0) NoContent else Ok(Json.toJson(response))
-              }
+          case Some(user) if user.groupId.isEmpty =>
+            notFoundF("INVALID_GROUP_ID")
+          case Some(user) if user.groupId.nonEmpty =>
+            doGetGroupEnrolments(
+              session.planetId,
+              user.groupId.get,
+              `type`,
+              service,
+              `start-record`,
+              `max-records`,
+              assignedToUser = Some(user)
+            )
         }
       }
     }(SessionRecordNotFound)
@@ -226,27 +259,15 @@ class EnrolmentStoreProxyStubController @Inject() (
       else if (`max-records`.isDefined && (`max-records`.get < 10 || `max-records`.get > 1000))
         badRequestF("INVALID_MAX_RECORDS")
       else {
-        usersService.findAdminByGroupId(groupId, session.planetId).flatMap {
-          case None =>
-            notFoundF("INVALID_GROUP_ID")
-          case Some(user) =>
-            val principal = `type` == "principal"
-            val getKnownFacts: EnrolmentKey => Future[Option[KnownFacts]] =
-              if (principal) knownFactsRepository.findByEnrolmentKey(_, session.planetId)
-              else _ => Future.successful(None)
-            val startRecord = `start-record`.getOrElse(1)
-            val enrolments = (if (principal) user.enrolments.principal else user.enrolments.delegated)
-              .filter(e => service.forall(_ == e.key))
-              .slice(startRecord - 1, startRecord - 1 + `max-records`.getOrElse(1000))
-            Future
-              .sequence(enrolments.map(_.toEnrolmentKey).collect { case Some(x) => x }.map(getKnownFacts))
-              .map(_.collect { case Some(x) => x })
-              .map { knownFacts =>
-                val response =
-                  GetUserEnrolmentsResponse.from(user, startRecord, enrolments, knownFacts)
-                if (response.totalRecords == 0) NoContent else Ok(Json.toJson(response))
-              }
-        }
+        doGetGroupEnrolments(
+          session.planetId,
+          groupId,
+          `type`,
+          service,
+          `start-record`,
+          `max-records`,
+          assignedToUser = None
+        )
       }
     }(SessionRecordNotFound)
   }
