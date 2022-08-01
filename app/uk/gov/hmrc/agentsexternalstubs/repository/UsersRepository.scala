@@ -59,6 +59,9 @@ trait UsersRepository {
   def findUserIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(implicit
     ec: ExecutionContext
   ): Future[Seq[String]]
+  def findUserIdsByAssignedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(implicit
+    ec: ExecutionContext
+  ): Future[Seq[String]]
   def findGroupIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(implicit
     ec: ExecutionContext
   ): Future[Seq[Option[String]]]
@@ -169,6 +172,14 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
     cursor(
       Seq(KEYS     -> Option(keyOf(User.enrolmentIndexKey(enrolmentKey.toString), planetId))),
       Seq("userId" -> 1)
+    )(userIdReads).collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[String]]())
+
+  override def findUserIdsByAssignedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
+    limit: Int
+  )(implicit ec: ExecutionContext): Future[Seq[String]] =
+    cursor(
+      Seq("enrolments.assigned" -> Option(enrolmentKey.toString), KEYS -> Option(planetIdKey(planetId))),
+      Seq("userId"              -> 1)
     )(userIdReads).collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[String]]())
 
   private val groupIdReads = new Reads[Option[String]] {

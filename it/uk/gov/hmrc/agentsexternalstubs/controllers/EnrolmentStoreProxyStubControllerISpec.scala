@@ -3,6 +3,8 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
+import uk.gov.hmrc.agentmtdidentifiers.model.AssignedClient
+import uk.gov.hmrc.agentmtdidentifiers.model.{Identifier => MtdIdentifier}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.SetKnownFactsRequest
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
@@ -14,6 +16,30 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
   lazy val wsClient = app.injector.instanceOf[WSClient]
 
   "EnrolmentStoreProxyStubController" when {
+
+    "GET /enrolment-store/groups/:groupId/delegated" when {
+
+      "a single user is assigned to a client" should {
+        "return id of the assigned user" in {
+          implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+
+          Users.update(
+            UserGenerator
+              .agent(userId = "foo1", groupId = "group1")
+              .withAssignedEnrolment("IR-SA", "UTR", "12345678")
+          )
+
+          val result = EnrolmentStoreProxyStub.getDelegatedEnrolments("group1")
+
+          result should haveStatus(200)
+          val json = result.json
+
+          (json \ "clients").as[Seq[AssignedClient]] shouldBe Seq(
+            AssignedClient("IR-SA", Seq(MtdIdentifier("UTR", "12345678")), None, "foo1")
+          )
+        }
+      }
+    }
 
     "GET /enrolment-store/enrolments/:enrolmentKey/users?type=principal" should {
       "respond 200 with user ids matching provided principal enrolment key" in {
@@ -37,7 +63,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         (json \ "delegatedUserIds").asOpt[Seq[String]] shouldBe None
       }
 
-      "respond 200 with user ids matching provided delegated enrolment key" in {
+      "respond 200 with user ids matching provided assigned enrolment key" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         Users.update(
           UserGenerator
@@ -47,12 +73,12 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         Users.create(
           UserGenerator
             .agent(userId = "foo2")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
+            .withAssignedEnrolment("IR-SA", "UTR", "12345678")
         )
         Users.create(
           UserGenerator
             .agent(userId = "foo3")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
+            .withAssignedEnrolment("IR-SA", "UTR", "12345678")
         )
 
         val result = EnrolmentStoreProxyStub.getUserIds("IR-SA~UTR~12345678", "delegated")
@@ -73,12 +99,12 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         Users.create(
           UserGenerator
             .agent(userId = "foo2")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
+            .withAssignedEnrolment("IR-SA", "UTR", "12345678")
         )
         Users.create(
           UserGenerator
             .agent(userId = "foo3")
-            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
+            .withAssignedEnrolment("IR-SA", "UTR", "12345678")
         )
 
         val result = EnrolmentStoreProxyStub.getUserIds("IR-SA~UTR~12345678", "all")
@@ -1200,7 +1226,6 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
     }
     "DELETE /tax-enrolments/users/:userId/enrolments/:enrolmentKey (ES12)" should {
       val enrolmentKey = "HMRC-MTD-VAT~VRN~123456789"
-      val anotherEnrolmentKey = "HMRC-MTD-VAT~VRN~987654321"
       val adminUser = UserGenerator
         .agent(userId = "testAdmin", groupId = "testGroup", credentialRole = "Admin")
         .withDelegatedEnrolment(enrolmentKey)

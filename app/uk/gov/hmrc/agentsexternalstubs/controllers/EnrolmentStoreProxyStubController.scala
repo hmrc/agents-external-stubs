@@ -17,11 +17,10 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import cats.data.Validated
-
-import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
+import uk.gov.hmrc.agentmtdidentifiers.model.{AssignedClient, GroupDelegatedEnrolments, Identifier => MtdIdentifier}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.SetKnownFactsRequest.Legacy
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController._
 import uk.gov.hmrc.agentsexternalstubs.models._
@@ -30,6 +29,7 @@ import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, Enrolmen
 import uk.gov.hmrc.http.{BadRequestException, ForbiddenException, NotFoundException}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
@@ -48,7 +48,7 @@ class EnrolmentStoreProxyStubController @Inject() (
                        usersService.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
                      else Future.successful(None)
         delegated <- if (`type` == "all" || `type` == "delegated")
-                       usersService.findUserIdsByDelegatedEnrolmentKey(enrolmentKey, session.planetId)(1000)
+                       usersService.findUserIdsByAssignedEnrolmentKey(enrolmentKey, session.planetId)(1000)
                      else Future.successful(Seq.empty)
       } yield GetUserIdsResponse.from(principal, delegated)).map {
         case GetUserIdsResponse(None, None) => NoContent
@@ -268,6 +268,50 @@ class EnrolmentStoreProxyStubController @Inject() (
           `max-records`,
           assignedToUser = None
         )
+      }
+    }(SessionRecordNotFound)
+  }
+
+  def getDelegatedEnrolments(groupId: String): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      usersService.findByGroupId(groupId, session.planetId)(100).map { users =>
+        val setOfDelegatedEnrolments: Set[Enrolment] =
+          users.foldLeft(Set.empty[Enrolment]) { (accumulatedEnrolments, user) =>
+            accumulatedEnrolments ++ user.enrolments.delegated
+          }
+
+        val mapOfEnrolmentsToAssignedUsers: Map[Enrolment, Seq[String]] =
+          users
+            .flatMap(user => user.enrolments.assigned.map(enrolmentKey => (Enrolment.from(enrolmentKey), user.userId)))
+            .groupBy(_._1)
+            .map(groupedByEnrolment => groupedByEnrolment._1 -> groupedByEnrolment._2.map(_._2))
+
+        val enrolmentsToAssignedUsersMergedWithDelegatedEnrolments: Map[Enrolment, Seq[String]] =
+          setOfDelegatedEnrolments.foldLeft(mapOfEnrolmentsToAssignedUsers) { (accumulatedMap, delegatedEnrolment) =>
+            if (
+              accumulatedMap.keySet.exists(assignedEnrolment =>
+                assignedEnrolment.key == delegatedEnrolment.key &&
+                  assignedEnrolment.identifiers == delegatedEnrolment.identifiers
+              )
+            ) {
+              accumulatedMap
+            } else {
+              accumulatedMap + (delegatedEnrolment -> Seq("0"))
+            }
+          }
+
+        val assignedClients = enrolmentsToAssignedUsersMergedWithDelegatedEnrolments
+          .map(enrolmentToUserIds =>
+            AssignedClient(
+              enrolmentToUserIds._1.key,
+              enrolmentToUserIds._1.identifiers.toSeq.flatten.map(i => MtdIdentifier(i.key, i.value)),
+              None,
+              if (enrolmentToUserIds._2.size == 1) enrolmentToUserIds._2.head
+              else enrolmentToUserIds._2.size.toString
+            )
+          )
+          .toSeq
+        Ok(Json.toJson(GroupDelegatedEnrolments(assignedClients)))
       }
     }(SessionRecordNotFound)
   }
