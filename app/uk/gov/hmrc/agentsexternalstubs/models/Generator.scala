@@ -187,9 +187,10 @@ object Generator extends Names with Temporal with Companies with Addresses {
   case class Address(street: String, town: String, postcode: String)
   lazy val addressGen: Gen[Address] = ukAddress
     .map {
-      case street :: town :: postcode :: Nil => Address(street, town, postcode)
+      case street :: town :: postcode :: Nil => Address(street.replaceAll("[^A-Za-z0-9 /s //.]", ""), town, postcode)
       case _                                 => throw new GeneratorException("Cannot map address")
     }
+
   def address(userId: String): Address = addressGen.seeded(userId).get
 
   case class Address4Lines35(line1: String, line2: String, line3: String, line4: String)
@@ -204,7 +205,9 @@ object Generator extends Names with Temporal with Companies with Addresses {
     )
     .suchThat(_.line1.matches("""^[A-Za-z0-9 \-,.&'\/()!]{1,35}$"""))
 
-  lazy val tradingNameGen: Gen[String] = company
+  lazy val tradingNameGen: Gen[String] = company.map { case name =>
+    name.replaceAll("[^A-Za-z0-9 /s //.]", "")
+  }
 
   lazy val `date_dd/MM/yy` = DateTimeFormatter.ofPattern("dd/MM/yy")
   lazy val `date_dd/MM/yyyy` = DateTimeFormatter.ofPattern("dd/MM/yyyy")
