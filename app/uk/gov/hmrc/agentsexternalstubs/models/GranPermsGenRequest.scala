@@ -24,6 +24,7 @@ case class GranPermsGenRequest(
   idPrefix: String,
   numberOfAgents: Int,
   numberOfClients: Int,
+  fillFriendlyNames: Boolean = false,
   clientTypeDistribution: Option[Map[String, Double]],
   individualServiceDistribution: Option[Map[String, Double]],
   organisationServiceDistribution: Option[Map[String, Double]],

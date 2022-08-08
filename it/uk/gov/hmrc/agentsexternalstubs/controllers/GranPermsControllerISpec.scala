@@ -21,7 +21,7 @@ class GranPermsControllerISpec extends ServerBaseISpec with MongoDB with TestReq
           .withPrincipalEnrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "KARN3869382")
       )
 
-      val payload = GranPermsGenRequest("test", 3, 10, None, None, None, None)
+      val payload = GranPermsGenRequest("test", 3, 10, false, None, None, None, None)
 
       val result = GranPermsStubs.massGenerateAgentsAndClients(payload)
 
@@ -50,7 +50,7 @@ class GranPermsControllerISpec extends ServerBaseISpec with MongoDB with TestReq
           .withPrincipalEnrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "KARN3869382")
       )
 
-      val payload = GranPermsGenRequest("test", 6, 10, None, None, None, None)
+      val payload = GranPermsGenRequest("test", 6, 10, false, None, None, None, None)
 
       val result = GranPermsStubs.massGenerateAgentsAndClients(payload)
 
@@ -67,7 +67,7 @@ class GranPermsControllerISpec extends ServerBaseISpec with MongoDB with TestReq
           .withPrincipalEnrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "KARN3869382")
       )
 
-      val payload = GranPermsGenRequest("test", 5, 11, None, None, None, None)
+      val payload = GranPermsGenRequest("test", 5, 11, false, None, None, None, None)
 
       val result = GranPermsStubs.massGenerateAgentsAndClients(payload)
 
@@ -83,7 +83,7 @@ class GranPermsControllerISpec extends ServerBaseISpec with MongoDB with TestReq
           .individual(userId = session.userId)
       )
 
-      val payload = GranPermsGenRequest("test", 5, 10, None, None, None, None)
+      val payload = GranPermsGenRequest("test", 5, 10, false, None, None, None, None)
 
       val result = GranPermsStubs.massGenerateAgentsAndClients(payload)
 
@@ -109,7 +109,7 @@ class GranPermsControllerISpec extends ServerBaseISpec with MongoDB with TestReq
       UserGenerator.agent(session.userId, credentialRole = "Assistant", groupId = adminUser.groupId.get)
     )
 
-    val payload = GranPermsGenRequest("test", 5, 10, None, None, None, None)
+    val payload = GranPermsGenRequest("test", 5, 10, false, None, None, None, None)
 
     val result = GranPermsStubs.massGenerateAgentsAndClients(payload)
 
@@ -127,12 +127,12 @@ class GranPermsControllerISpec extends ServerBaseISpec with MongoDB with TestReq
     )
 
     // Create some clients
-    val payload1 = GranPermsGenRequest("test1", 0, 5, None, None, None, None)
+    val payload1 = GranPermsGenRequest("test1", 0, 5, false, None, None, None, None)
     val result1 = GranPermsStubs.massGenerateAgentsAndClients(payload1)
     result1 should haveStatus(201)
 
     // Create some more clients for the same agent
-    val payload2 = GranPermsGenRequest("test2", 0, 3, None, None, None, None)
+    val payload2 = GranPermsGenRequest("test2", 0, 3, false, None, None, None, None)
     val result2 = GranPermsStubs.massGenerateAgentsAndClients(payload2)
     result2 should haveStatus(201)
 

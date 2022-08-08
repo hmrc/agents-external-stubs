@@ -107,7 +107,12 @@ class GranPermsService @Inject() (
     genRequest: GranPermsGenRequest
   )(implicit ec: ExecutionContext): Future[(Seq[User], Seq[User])] = for {
     clients <- massGenerateClients(planetId, genRequest)
-    delegatedEnrols = clients.flatMap(_.enrolments.principal)
+    delegatedEnrols =
+      clients.flatMap(client =>
+        client.enrolments.principal.map(enrol =>
+          if (genRequest.fillFriendlyNames) enrol.copy(friendlyName = client.name) else enrol
+        )
+      )
     _ <-
       usersService
         .updateUser(currentUser.userId, planetId, _ => currentUser.updateDelegatedEnrolments(_ ++ delegatedEnrols))
