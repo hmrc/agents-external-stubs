@@ -42,7 +42,7 @@ object UserGenerator {
     s"${forename().suchThat(_.length > 0).seeded(userId).getOrElse("Agent")} ${surname.suchThat(_.length > 0).seeded(groupId).getOrElse("Cooper")}"
 
   def nameForOrganisation(userId: String): String =
-    company.suchThat(_.length > 0).map(_.replaceAll("[^A-Za-z0-9 /s //.]", "0")).seeded(userId).get
+    company.suchThat(_.length > 0).map(_.replaceAll("[^A-Za-z0-9 /s //.]", "A")).seeded(userId).get
 
   private final val dateOfBirthLow: java.time.LocalDate = java.time.LocalDate.now().minusYears(100)
   private final val dateOfBirthHigh: java.time.LocalDate = java.time.LocalDate.now().minusYears(18)
