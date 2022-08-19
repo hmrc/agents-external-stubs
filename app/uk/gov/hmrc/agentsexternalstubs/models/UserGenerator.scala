@@ -16,11 +16,12 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 import java.util.UUID
-
 import org.joda.time.LocalDate
 import org.joda.time.format.ISODateTimeFormat
 import org.scalacheck.Gen
 import uk.gov.hmrc.domain.Nino
+
+import java.time.LocalDateTime
 
 object UserGenerator {
 
@@ -42,7 +43,11 @@ object UserGenerator {
     s"${forename().suchThat(_.length > 0).seeded(userId).getOrElse("Agent")} ${surname.suchThat(_.length > 0).seeded(groupId).getOrElse("Cooper")}"
 
   def nameForOrganisation(userId: String): String =
-    company.suchThat(_.length > 0).map(_.replaceAll("[^A-Za-z0-9 /s //.]", "A")).seeded(userId).get
+    company
+      .suchThat(_.length > 0)
+      .map(_.replaceAll("[^A-Za-z0-9 /s //.]", "A"))
+      .seeded(userId)
+      .getOrElse(s"Acme-${UUID.randomUUID().toString.take(5)}")
 
   private final val dateOfBirthLow: java.time.LocalDate = java.time.LocalDate.now().minusYears(100)
   private final val dateOfBirthHigh: java.time.LocalDate = java.time.LocalDate.now().minusYears(18)
