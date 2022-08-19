@@ -92,13 +92,19 @@ class GranPermsService @Inject() (
           userId = idFn(x),
           groupId = groupId.orNull,
           agentCode = agentCode.orNull,
-          delegatedEnrolments = delegatedEnrolments
+          delegatedEnrolments = delegatedEnrolments,
+          credentialRole = credRole()
         )
       usersService.createUser(
         planetId = planetId,
         user = user
       )
     }
+  }
+
+  def credRole() = {
+    val n = Random.nextInt(10)
+    if (n > 7) "Assistant" else "User"
   }
 
   def massGenerateAgentsAndClients(
