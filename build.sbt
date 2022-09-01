@@ -18,9 +18,9 @@ lazy val scoverageSettings = {
 
 lazy val compileDeps = Seq(
   ws,
-  "uk.gov.hmrc"          %% "bootstrap-backend-play-28" % "6.4.0",
+  "uk.gov.hmrc"          %% "bootstrap-backend-play-28" % "7.1.0",
   "uk.gov.hmrc"          %% "simple-reactivemongo"      % "8.1.0-play-28",
-  "uk.gov.hmrc"          %% "agent-mtd-identifiers"     % "0.45.0-play-28",
+  "uk.gov.hmrc"          %% "agent-mtd-identifiers"     % "0.47.0-play-28",
   "com.kenshoo"          %% "metrics-play"              % "2.7.3_0.8.2",
   "uk.gov.hmrc"          %% "domain"                    % "7.0.0-play-28",
   "com.github.blemale"   %% "scaffeine"                 % "4.0.1",

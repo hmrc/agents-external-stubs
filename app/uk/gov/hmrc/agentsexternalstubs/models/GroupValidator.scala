@@ -44,9 +44,6 @@ object GroupValidator {
     if (users.isEmpty || !users.forall(_.isAssistant)) Valid(())
     else Invalid("Group MAY NOT consist of Assistants only")
 
-  val groupCanHaveAtMost100Users: GroupConstraint = users =>
-    if (users.size <= 100) Valid(()) else Invalid("Group CAN have at most 100 users")
-
   val organisationMustBeAnAdminInTheGroup: GroupConstraint = users =>
     if (users.filter(_.isOrganisation).forall(_.isAdmin)) Valid(())
     else Invalid("Organisation MUST be an Admin in the group")
@@ -68,7 +65,6 @@ object GroupValidator {
       groupMustHaveOneAndAtMostOneAdmin,
       groupCanHaveAtMostOneOrganisation,
       groupMayNotHaveOnlyAssistants,
-      groupCanHaveAtMost100Users,
       organisationMustBeAnAdminInTheGroup,
       agentMayNotBeInTheGroupWithOrganisationAndIndividuals,
       allAgentsInTheGroupMustShareTheSameAgentCode
