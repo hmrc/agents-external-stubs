@@ -392,10 +392,8 @@ object PPTSubscriptionDisplayRecord extends RecordUtils[PPTSubscriptionDisplayRe
                 .withOrganisationDetails(
                   Some(
                     OrganisationDetails(
-                      firstName orElse (for (
-                        forename <- Names._forenames(Male).sample; lastname <- Names.surname.sample
-                      )
-                        yield s"$forename $lastname")
+                      for (forename <- Names._forenames(Male).sample; lastname <- Names.surname.sample)
+                        yield s"$forename $lastname"
                     )
                   )
                 )
