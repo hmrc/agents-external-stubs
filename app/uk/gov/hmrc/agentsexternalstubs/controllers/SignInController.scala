@@ -156,7 +156,7 @@ class SignInController @Inject() (
       maybeSession <- authenticationService.findByAuthToken(authToken)
     } yield maybeSession match {
       case Some(session) =>
-        Ok(RestfulResponse(session, Link("delete", routes.SignInController.signOut().url)))
+        Ok(RestfulResponse(session, Link("delete", routes.SignInController.signOut.url)))
           .withHeaders(
             HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
             uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId,
@@ -169,7 +169,7 @@ class SignInController @Inject() (
 
   def currentSession: Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
-      okF(session, Link("delete", routes.SignInController.signOut().url))
+      okF(session, Link("delete", routes.SignInController.signOut.url))
     }(notFoundF("MISSING_AUTH_SESSION"))
   }
 

@@ -27,10 +27,12 @@ import scala.concurrent.Future
 @Singleton
 class DataStreamStubController @Inject() (cc: ControllerComponents) extends BackendController(cc) {
 
+  private val logger = Logger(getClass)
+
   val writeEvent: Action[AnyContent] = Action.async { implicit request =>
     request.body.asJson
       .map(Json.prettyPrint)
-      .foreach(Logger(getClass).info(_))
+      .foreach(logger.info(_))
     Future.successful(NoContent)
   }
 

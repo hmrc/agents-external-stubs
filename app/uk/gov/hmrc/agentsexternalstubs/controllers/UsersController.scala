@@ -61,7 +61,7 @@ class UsersController @Inject() (
               user,
               Link("update", routes.UsersController.updateUser(userId).url),
               Link("delete", routes.UsersController.deleteUser(userId).url),
-              Link("store", routes.UsersController.createUser().url),
+              Link("store", routes.UsersController.createUser.url),
               Link("list", routes.UsersController.getUsers(None, None).url)
             )(User.writes)
           )
