@@ -327,13 +327,7 @@ class EnrolmentStoreProxyStubController @Inject() (
               if (user.groupId.contains(groupId))
                 usersService
                   .setEnrolmentFriendlyName(user, session.planetId, enrolmentKey, payload.friendlyName)
-                  .map { user =>
-                    logger.info(
-                      s"[TODO remove this] updated friendly name request for group " +
-                        s"id $groupId and ek $enrolmentKey with friendly name ${payload.friendlyName} result was user $user"
-                    )
-                    NoContent
-                  }
+                  .map(_ => NoContent)
               else forbiddenF("NO_PERMISSION")
           }
         }

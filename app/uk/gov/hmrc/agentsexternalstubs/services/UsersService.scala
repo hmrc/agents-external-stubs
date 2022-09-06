@@ -179,29 +179,16 @@ class UsersService @Inject() (
 
   def setEnrolmentFriendlyName(user: User, planetId: String, enrolmentKey: EnrolmentKey, friendlyName: String)(implicit
     ec: ExecutionContext
-  ) =
-    setEnrolmentFriendlyNameIfFound(user.enrolments.principal, enrolmentKey, friendlyName) match {
-      case Some(enrols) => updateUser(user.userId, planetId, _.updatePrincipalEnrolments(_ => enrols))
-      case None =>
-        setEnrolmentFriendlyNameIfFound(user.enrolments.delegated, enrolmentKey, friendlyName) match {
-          case Some(enrols) => updateUser(user.userId, planetId, _.updateDelegatedEnrolments(_ => enrols))
-          case None         => Future.failed(new NotFoundException("enrolment not found"))
-        }
-    }
+  ): Future[Option[User]] = {
+    logger.info(
+      s"Updating friendly name '$friendlyName', enrolment key '$enrolmentKey', user '${user.userId}', planet '$planetId'"
+    )
 
-  private def setEnrolmentFriendlyNameIfFound(
-    enrolments: Seq[Enrolment],
-    enrolmentKey: EnrolmentKey,
-    friendlyName: String
-  ) =
-    enrolments.zipWithIndex
-      .find(_._1.matches(enrolmentKey))
-      .map { enrol =>
-        logger.info(
-          s"[TODO remove this] found matching enrolment $enrol. Attempting to update with friendly name: $friendlyName"
-        )
-        enrolments.updated(enrol._2, enrol._1.copy(friendlyName = Option(friendlyName)))
-      }
+    usersRepository.updateFriendlyNameForEnrolment(user, planetId, enrolmentKey, friendlyName) flatMap {
+      case None       => Future.failed(new NotFoundException("enrolment not found"))
+      case Some(user) => Future successful Option(user)
+    }
+  }
 
   private def refineAndValidateUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] =
     if (user.isNonCompliant.contains(true)) {
