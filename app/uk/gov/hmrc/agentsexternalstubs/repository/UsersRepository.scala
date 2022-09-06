@@ -73,6 +73,8 @@ trait UsersRepository {
   def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit]
   def reindexAllUsers(implicit ec: ExecutionContext): Future[String]
   def deleteAll(createdBefore: Long)(implicit ec: ExecutionContext): Future[Int]
+  def updateFriendlyNameForEnrolment(userId: String, planetId: String, enrolmentKey: String, friendlyName: String)
+                                    (implicit ec: ExecutionContext): Future[Option[User]]
 }
 
 @Singleton
@@ -162,6 +164,22 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
     )(User.formats)
       .collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[User]]())
 
+  override def updateFriendlyNameForEnrolment
+  (use: User, planetId: String, enrolmentKey: String, friendlyName: String)
+  (implicit ec: ExecutionContext): Future[Option[User]] =
+    collection
+      .update(ordered = false)
+      .one(
+        Json.obj(UNIQUE_KEYS                    -> keyOf(User.userIdKey(userId), planetId)),
+        serializeUser(user, planetId).+(UPDATED -> JsNumber(System.currentTimeMillis())),
+        upsert = true
+      )
+      .map(wr => logger.info(s"[TODO remove this] update write result for user $user was $wr"))
+      .recoverWith {
+        case e: DatabaseException if e.code.contains(11000) =>
+          throwDuplicatedException(e, user, planetId)
+      }
+
   private val userIdReads = new Reads[String] {
     override def reads(json: JsValue): JsResult[String] = JsSuccess((json \ "userId").as[String])
   }
@@ -223,6 +241,29 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
 
   private def planetIdKey(planetId: String): String = s"planet:$planetId"
 
+  private def updateFriendlyNameForEnrolmentForThisUser(user: User, planetId: String, enrolmentKey: String, friendlyName: String)(implicit ec: ExecutionContext): JsObject = {
+    val delegatedEnrolments = user.enrolments.delegated.toVector
+    delegatedEnrolments.zipWithIndex.find(_._1.key == enrolmentKey).map {
+      case (enrol, index) => delegatedEnrolments.updated(index, enrol.copy(friendlyName = Some(friendlyName)))
+    }.map(updatedDelegatedEnrolments => serializeUser(
+      user.copy(enrolments = user.enrolments.copy(delegated = updatedDelegatedEnrolments)), planetId)).map(jsValue =>
+      collection
+        .update(ordered = false)
+        .one(
+          Json.obj(UNIQUE_KEYS                    -> keyOf(User.userIdKey(user.userId), planetId)),
+          jsValue.+(UPDATED -> JsNumber(System.currentTimeMillis())),
+          upsert = false
+        )
+        .map(wr => logger.info(s"[TODO remove this] update write result for user $user was $wr"))
+        .recoverWith {
+          case e: DatabaseException if e.code.contains(11000) =>
+            throwDuplicatedException(e, user, planetId)
+        }
+
+
+    )
+  }
+
   private def serializeUser(user: User, planetId: String): JsObject = {
     val json = Json
       .toJson[User](user.copy(planetId = Some(planetId)))
@@ -231,6 +272,7 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
       .+(UNIQUE_KEYS -> JsArray(user.uniqueKeys.map(key => JsString(keyOf(key, planetId)))))
     json
   }
+
 
   override def create(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     collection

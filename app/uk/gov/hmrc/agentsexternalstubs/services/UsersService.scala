@@ -93,6 +93,8 @@ class UsersService @Inject() (
   ): Future[Seq[Option[String]]] =
     usersRepository.findGroupIdsByDelegatedEnrolmentKey(enrolmentKey, planetId)(limit)
 
+  def updateFriendlyName(groupId: String, planetId: String, )
+
   val usersCache = Scaffeine().maximumSize(1000).expireAfterWrite(10.minutes).build[Int, User]()
 
   def createUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] = {
@@ -180,14 +182,7 @@ class UsersService @Inject() (
   def setEnrolmentFriendlyName(user: User, planetId: String, enrolmentKey: EnrolmentKey, friendlyName: String)(implicit
     ec: ExecutionContext
   ) =
-    setEnrolmentFriendlyNameIfFound(user.enrolments.principal, enrolmentKey, friendlyName) match {
-      case Some(enrols) => updateUser(user.userId, planetId, _.updatePrincipalEnrolments(_ => enrols))
-      case None =>
-        setEnrolmentFriendlyNameIfFound(user.enrolments.delegated, enrolmentKey, friendlyName) match {
-          case Some(enrols) => updateUser(user.userId, planetId, _.updateDelegatedEnrolments(_ => enrols))
-          case None         => Future.failed(new NotFoundException("enrolment not found"))
-        }
-    }
+    usersRepository.updateFriendlyName(userId: String, planetId: String, enrolmentKey: )
 
   private def setEnrolmentFriendlyNameIfFound(
     enrolments: Seq[Enrolment],
