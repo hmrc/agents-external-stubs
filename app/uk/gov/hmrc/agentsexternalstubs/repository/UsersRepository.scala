@@ -242,7 +242,8 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
           throwDuplicatedException(e, user, planetId)
       }
 
-  override def update(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+  override def update(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] = {
+    logger.info(s"[TODO: remove this] attempting to update mongo collection with user $user")
     collection
       .update(ordered = false)
       .one(
@@ -250,11 +251,12 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
         serializeUser(user, planetId).+(UPDATED -> JsNumber(System.currentTimeMillis())),
         upsert = true
       )
-      .map(_ => ())
+      .map(wr => logger.info(s"[TODO remove this] update write result for user $user was $wr"))
       .recoverWith {
         case e: DatabaseException if e.code.contains(11000) =>
           throwDuplicatedException(e, user, planetId)
       }
+  }
 
   override def delete(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[WriteResult] =
     remove(UNIQUE_KEYS -> keyOf(User.userIdKey(userId), planetId))
