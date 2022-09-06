@@ -18,6 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import cats.data.Validated
 import org.joda.time.DateTime
+import play.api.i18n.Lang.logger
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.agentmtdidentifiers.model.{AssignedClient, GroupDelegatedEnrolments, Identifier => MtdIdentifier}
@@ -326,7 +327,13 @@ class EnrolmentStoreProxyStubController @Inject() (
               if (user.groupId.contains(groupId))
                 usersService
                   .setEnrolmentFriendlyName(user, session.planetId, enrolmentKey, payload.friendlyName)
-                  .map(_ => NoContent)
+                  .map { user =>
+                    logger.info(
+                      s"[TODO remove this] updated friendly name request for group " +
+                        s"id $groupId and ek $enrolmentKey with friendly name ${payload.friendlyName} result was user $user"
+                    )
+                    NoContent
+                  }
               else forbiddenF("NO_PERMISSION")
           }
         }

@@ -18,6 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 
 import cats.data.Validated.{Invalid, Valid}
 import com.github.blemale.scaffeine.Scaffeine
+import play.api.i18n.Lang.logger
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.{KnownFactsRepository, UsersRepository}
 import uk.gov.hmrc.auth.core.UnsupportedCredentialRole
@@ -195,7 +196,12 @@ class UsersService @Inject() (
   ) =
     enrolments.zipWithIndex
       .find(_._1.matches(enrolmentKey))
-      .map(enrol => enrolments.updated(enrol._2, enrol._1.copy(friendlyName = Option(friendlyName))))
+      .map { enrol =>
+        logger.info(
+          s"[TODO remove this] found matching enrolment $enrol. Attempting to update with friendly name: $friendlyName"
+        )
+        enrolments.updated(enrol._2, enrol._1.copy(friendlyName = Option(friendlyName)))
+      }
 
   private def refineAndValidateUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] =
     if (user.isNonCompliant.contains(true)) {
