@@ -25,10 +25,10 @@ import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.api.{Cursor, CursorProducer, ReadPreference}
-import reactivemongo.bson.BSONObjectID
+import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.core.errors.DatabaseException
 import reactivemongo.play.json.ImplicitBSONHandlers
-import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, User}
+import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, Identifier, User}
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
@@ -73,6 +73,9 @@ trait UsersRepository {
   def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit]
   def reindexAllUsers(implicit ec: ExecutionContext): Future[String]
   def deleteAll(createdBefore: Long)(implicit ec: ExecutionContext): Future[Int]
+  def updateFriendlyNameForEnrolment(user: User, planetId: String, enrolmentKey: EnrolmentKey, friendlyName: String)(
+    implicit ec: ExecutionContext
+  ): Future[Option[User]]
 }
 
 @Singleton
@@ -162,6 +165,44 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
     )(User.formats)
       .collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[User]]())
 
+  override def updateFriendlyNameForEnrolment(
+    user: User,
+    planetId: String,
+    enrolmentKey: EnrolmentKey,
+    friendlyName: String
+  )(implicit
+    ec: ExecutionContext
+  ): Future[Option[User]] = {
+
+    def update(enrolmentType: String, identifier: Identifier): Future[Option[User]] = {
+      val selector = BSONDocument(
+        "planetId"                                     -> planetId,
+        "userId"                                       -> user.userId,
+        s"enrolments.$enrolmentType.identifiers.key"   -> identifier.key,
+        s"enrolments.$enrolmentType.identifiers.value" -> identifier.value
+      )
+      val modifier = BSONDocument(
+        "$set" -> BSONDocument(s"enrolments.$enrolmentType.$$.friendlyName" -> friendlyName)
+      )
+
+      collection
+        .findAndUpdate(selector, modifier, fetchNewObject = true, upsert = false)
+        .map(_.result[User])
+    }
+
+    enrolmentKey.identifiers.headOption match {
+      case None =>
+        Future successful None
+      case Some(identifier) =>
+        update("principal", identifier) flatMap {
+          case None =>
+            update("delegated", identifier)
+          case Some(updatedUser) =>
+            Future successful Option(updatedUser)
+        }
+    }
+  }
+
   private val userIdReads = new Reads[String] {
     override def reads(json: JsValue): JsResult[String] = JsSuccess((json \ "userId").as[String])
   }
@@ -242,8 +283,7 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
           throwDuplicatedException(e, user, planetId)
       }
 
-  override def update(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] = {
-    logger.info(s"[TODO: remove this] attempting to update mongo collection with user $user")
+  override def update(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     collection
       .update(ordered = false)
       .one(
@@ -251,12 +291,11 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
         serializeUser(user, planetId).+(UPDATED -> JsNumber(System.currentTimeMillis())),
         upsert = true
       )
-      .map(wr => logger.info(s"[TODO remove this] update write result for user $user was $wr"))
+      .map(wr => logger.info(s"User update was OK?: ${wr.ok}"))
       .recoverWith {
         case e: DatabaseException if e.code.contains(11000) =>
           throwDuplicatedException(e, user, planetId)
       }
-  }
 
   override def delete(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[WriteResult] =
     remove(UNIQUE_KEYS -> keyOf(User.userIdKey(userId), planetId))
