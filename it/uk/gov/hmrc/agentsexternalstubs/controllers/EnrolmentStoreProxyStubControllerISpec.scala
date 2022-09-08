@@ -73,12 +73,12 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         Users.create(
           UserGenerator
             .agent(userId = "foo2")
-            .withAssignedEnrolment("IR-SA", "UTR", "12345678")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
         )
         Users.create(
           UserGenerator
             .agent(userId = "foo3")
-            .withAssignedEnrolment("IR-SA", "UTR", "12345678")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
         )
 
         val result = EnrolmentStoreProxyStub.getUserIds("IR-SA~UTR~12345678", "delegated")
@@ -99,12 +99,12 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         Users.create(
           UserGenerator
             .agent(userId = "foo2")
-            .withAssignedEnrolment("IR-SA", "UTR", "12345678")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
         )
         Users.create(
           UserGenerator
             .agent(userId = "foo3")
-            .withAssignedEnrolment("IR-SA", "UTR", "12345678")
+            .withDelegatedEnrolment("IR-SA", "UTR", "12345678")
         )
 
         val result = EnrolmentStoreProxyStub.getUserIds("IR-SA~UTR~12345678", "all")
