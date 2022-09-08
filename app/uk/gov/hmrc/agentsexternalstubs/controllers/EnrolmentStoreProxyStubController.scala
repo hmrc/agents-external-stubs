@@ -18,7 +18,6 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import cats.data.Validated
 import org.joda.time.DateTime
-import play.api.i18n.Lang.logger
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.agentmtdidentifiers.model.{AssignedClient, GroupDelegatedEnrolments, Identifier => MtdIdentifier}
@@ -48,9 +47,13 @@ class EnrolmentStoreProxyStubController @Inject() (
         principal <- if (`type` == "all" || `type` == "principal")
                        usersService.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
                      else Future.successful(None)
-        delegated <- if (`type` == "all" || `type` == "delegated")
-                       usersService.findUserIdsByAssignedEnrolmentKey(enrolmentKey, session.planetId)(1000)
-                     else Future.successful(Seq.empty)
+        delegated <- if (`type` == "all" || `type` == "delegated") {
+                       enrolmentKey.service match {
+                         case "IR-PAYE" | "IR-SA" =>
+                           usersService.findUserIdsByDelegatedEnrolmentKey(enrolmentKey, session.planetId)(1000)
+                         case _ => usersService.findUserIdsByAssignedEnrolmentKey(enrolmentKey, session.planetId)(1000)
+                       }
+                     } else Future.successful(Seq.empty)
       } yield GetUserIdsResponse.from(principal, delegated)).map {
         case GetUserIdsResponse(None, None) => NoContent
         case response                       => Ok(RestfulResponse(response))
