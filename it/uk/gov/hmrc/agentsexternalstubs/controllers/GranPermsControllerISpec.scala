@@ -1,7 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, GranPermsGenRequest, User, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, GranPermsGenRequest, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.services.UsersService
 import uk.gov.hmrc.agentsexternalstubs.support.{MongoDB, ServerBaseISpec, TestRequests}
 
@@ -28,17 +28,11 @@ class GranPermsControllerISpec extends ServerBaseISpec with MongoDB with TestReq
       result should haveStatus(201)
 
       val json = result.json
-      val createdAgents = (json \ "createdAgents").as[Seq[User]]
-      val createdClients = (json \ "createdClients").as[Seq[User]]
+      val createdAgents = (json \ "createdAgentsCount").as[Int]
+      val createdClients = (json \ "createdClientsCount").as[Int]
 
-      createdAgents.size shouldBe 3
-      createdClients.size shouldBe 10
-
-      createdAgents.map(_.groupId).distinct.size shouldBe 1 //they should all have the same groupId
-      createdAgents.map(_.agentCode).distinct.size shouldBe 1 //they should all have the same agentCode
-      createdAgents.flatMap(
-        _.enrolments.delegated
-      ) shouldBe empty //the new agents should not receive the delegated enrolments directly, but through membership of the group
+      createdAgents shouldBe 3
+      createdClients shouldBe 10
     }
 
     "return 400 BadRequest when specified number of agents is too large" in {

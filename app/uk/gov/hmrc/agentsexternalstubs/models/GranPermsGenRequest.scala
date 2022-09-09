@@ -53,8 +53,8 @@ object GranPermsGenRequest {
 }
 
 case class GranPermsGenResponse(
-  createdAgents: Seq[User],
-  createdClients: Seq[User]
+  createdAgentsCount: Int,
+  createdClientsCount: Int
 )
 
 object GranPermsGenResponse {

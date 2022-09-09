@@ -60,7 +60,7 @@ class GranPermsController @Inject() (
                   genRequest = request
                 )
                 .map { case (createdAgents, createdClients) =>
-                  Created(Json.toJson(GranPermsGenResponse(createdAgents, createdClients)))
+                  Created(Json.toJson(GranPermsGenResponse(createdAgents.size, createdClients.size)))
                 }
           }
         }
