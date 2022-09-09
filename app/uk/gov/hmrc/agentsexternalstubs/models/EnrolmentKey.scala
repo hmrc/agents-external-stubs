@@ -31,14 +31,7 @@ object EnrolmentKey {
   def from(service: String, identifiers: (String, String)*): EnrolmentKey =
     EnrolmentKey(service, identifiers.map { case (k, v) => Identifier(k, v) })
 
-  def parse(s: String): Either[String, EnrolmentKey] = {
-    val parts = s.split("~")
-    if (parts.nonEmpty && parts.size >= 3 && parts.size % 2 == 1) {
-      val service = parts.head
-      val identifiers = parts.tail.sliding(2, 2).map(a => Identifier(a(0), a(1))).toSeq
-      Right(EnrolmentKey(service, identifiers)).right.flatMap(validateService).right.flatMap(validateIdentifiers)
-    } else Left("INVALID_ENROLMENT_KEY")
-  }
+  def parse(s: String): Either[String, EnrolmentKey] = EnrolmentKeyCache.get(s)
 
   def validateService(ek: EnrolmentKey): Either[String, EnrolmentKey] =
     if (ek.service.nonEmpty) Services(ek.service).map(_ => Right(ek)).getOrElse(Left("INVALID_SERVICE"))
