@@ -7,7 +7,6 @@ Agents External Stubs let you define, authenticate and authorise test users usin
 - Group MUST have one and at most one Admin
 - Group CAN have at most one Organisation
 - Group MAY NOT consist of Assistants only
-- Group CAN have at most 100 users
 - Organisation MUST be an Admin in the group
 - Agent MAY NOT be in the group with Organisation and Individuals
 - All Agents in the group MUST have the same AgentCode
@@ -28,7 +27,8 @@ Agents External Stubs let you define, authenticate and authorise test users usin
         "confidenceLevel" : 50,
         "credentialRole" : "Admin",
         "nino" : "AB 49 16 66 B",
-        "principalEnrolments" : [ 
+        "enrolments" : {
+          "principal" : [ 
             {
                 "key" : "HMRC-MTD-VAT",
                 "identifiers" : [ 
@@ -47,7 +47,8 @@ Agents External Stubs let you define, authenticate and authorise test users usin
                     }
                 ]
             }
-        ],
+          ]
+        },
         "name" : "Nicholas Brady",
         "dateOfBirth" : "1980-05-15",
         "address" : {
@@ -67,7 +68,8 @@ Agents External Stubs let you define, authenticate and authorise test users usin
         "groupId" : "3H2Q-Z6L0-0Z9L-J1B0",
         "affinityGroup" : "Organisation",
         "credentialRole" : "Admin",
-        "principalEnrolments" : [ 
+        "enrolments" : {
+          "principal" : [ 
             {
                 "key" : "HMRC-MTD-VAT",
                 "identifiers" : [ 
@@ -77,7 +79,8 @@ Agents External Stubs let you define, authenticate and authorise test users usin
                     }
                 ]
             }
-        ],
+          ]
+        },
         "name" : "Dai-ich",
         "address" : {
            "line1" : "72 Sidmouth Drive",
@@ -95,7 +98,8 @@ Agents External Stubs let you define, authenticate and authorise test users usin
         "groupId" : "3I3R-U5L8-8V0W-A2F0",
         "affinityGroup" : "Agent",
         "credentialRole" : "Admin",
-        "principalEnrolments" : [ 
+        "enrolments" : {
+          "principal" : [ 
             {
                 "key" : "HMRC-AS-AGENT",
                 "identifiers" : [ 
@@ -105,8 +109,8 @@ Agents External Stubs let you define, authenticate and authorise test users usin
                     }
                 ]
             }
-        ],
-        "delegatedEnrolments" : [ 
+          ],
+          "delegated" : [ 
             {
                 "key" : "HMRC-MTD-IT",
                 "identifiers" : [ 
@@ -116,7 +120,8 @@ Agents External Stubs let you define, authenticate and authorise test users usin
                     }
                 ]
             }
-        ],
+          ]
+        },
         "name" : "Aubrey Levann",
         "agentCode" : "OCILEJ135897",
         "agentFriendlyName" : "Pritchard Professional",
