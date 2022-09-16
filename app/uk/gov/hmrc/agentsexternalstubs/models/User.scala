@@ -21,6 +21,7 @@ import org.joda.time.LocalDate
 import play.api.libs.json._
 import uk.gov.hmrc.agentsexternalstubs.models.User.AdditionalInformation
 import uk.gov.hmrc.domain.Nino
+import uk.gov.hmrc.agentmtdidentifiers.model.Enrolment
 
 case class User(
   userId: String,
@@ -124,8 +125,10 @@ case class User(
 
   def updatePrincipalEnrolments(f: Seq[Enrolment] => Seq[Enrolment]): User =
     this.copy(enrolments = this.enrolments.copy(principal = f(this.enrolments.principal)))
+
   def updateDelegatedEnrolments(f: Seq[Enrolment] => Seq[Enrolment]): User =
     this.copy(enrolments = this.enrolments.copy(delegated = f(this.enrolments.delegated)))
+
   def updateAssignedEnrolments(f: Seq[EnrolmentKey] => Seq[EnrolmentKey]): User =
     this.copy(enrolments = this.enrolments.copy(assigned = f(this.enrolments.assigned)))
 }
@@ -269,6 +272,28 @@ object User {
 
   import play.api.libs.functional.syntax._
 
+  private val convertLegacyEnrolmentsFormat: PartialFunction[JsValue, JsValue] = { case json @ JsObject(fields) =>
+    val principal = (json \ "principalEnrolments").asOpt[Seq[Enrolment]]
+    val delegated = (json \ "delegatedEnrolments").asOpt[Seq[Enrolment]]
+
+    def append(es: Seq[Enrolment], e: Option[Seq[Enrolment]]): Seq[Enrolment] =
+      e.map(es ++ _).getOrElse(es)
+
+    if (principal.isDefined || delegated.isDefined) {
+      val enrolments = (json \ "enrolments").asOpt[Enrolments].getOrElse(Enrolments())
+      val modifiedEnrolments =
+        enrolments.copy(
+          principal = append(enrolments.principal, principal),
+          delegated = append(enrolments.delegated, delegated)
+        )
+      json
+        .+(("enrolments", Json.toJson(modifiedEnrolments)))
+        .-("principalEnrolments")
+        .-("delegatedEnrolments")
+    } else
+      json
+  }
+
   implicit val reads: Reads[User] = (
     (JsPath \ "userId").readNullable[String].map(_.orNull) and
       (JsPath \ "groupId").readNullable[String] and
@@ -292,6 +317,7 @@ object User {
       (JsPath \ "strideRoles").readNullable[Seq[String]].map(_.getOrElse(Seq.empty)) and
       (JsPath \ "suspendedRegimes").readNullable[Set[String]]
   )(User.apply _)
+    .preprocess(convertLegacyEnrolmentsFormat)
 
   implicit val writes: Writes[User] = Json.writes[User]
 
