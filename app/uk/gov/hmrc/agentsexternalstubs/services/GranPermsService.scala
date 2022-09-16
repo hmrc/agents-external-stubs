@@ -16,51 +16,98 @@
 
 package uk.gov.hmrc.agentsexternalstubs.services
 
+import akka.actor.{ActorRef, ActorSystem}
+import cats.implicits._
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.services.UserCreationActor.PlanetUser
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import cats._
-import cats.data._
-import cats.implicits._
-
 import scala.util.Random
 
 @Singleton
 class GranPermsService @Inject() (
-  usersService: UsersService
-) {
+  usersService: UsersService,
+  actorSystem: ActorSystem
+)(implicit executionContext: ExecutionContext) {
 
   type ClientType = String
   type EnrolmentKey = String
 
-  def massGenerateClients(planetId: String, genRequest: GranPermsGenRequest, idNaming: Option[Int => String] = None)(
-    implicit ec: ExecutionContext
+  private val refUserCreationActor: ActorRef = actorSystem.actorOf(UserCreationActor.props(usersService))
+
+  def massGenerateAgentsAndClients(
+    planetId: String,
+    currentUser: User,
+    genRequest: GranPermsGenRequest
+  ): Future[(Seq[User], Seq[User])] = for {
+    clients <- massGenerateClients(planetId, genRequest)
+    delegatedEnrols =
+      clients.flatMap(client =>
+        client.enrolments.principal.map(enrol =>
+          if (genRequest.fillFriendlyNames) enrol.copy(friendlyName = client.name) else enrol
+        )
+      )
+    _ <-
+      usersService
+        .updateUser(currentUser.userId, planetId, _ => currentUser.updateDelegatedEnrolments(_ ++ delegatedEnrols))
+    agents <- massGenerateAgents(
+                planetId,
+                genRequest,
+                currentUser.groupId,
+                currentUser.agentCode,
+                delegatedEnrolments = Seq.empty
+              )
+  } yield (agents, clients)
+
+  private def massGenerateClients(
+    planetId: String,
+    genRequest: GranPermsGenRequest,
+    idNaming: Option[Int => String] = None
   ): Future[List[User]] = {
+
     val idFunction: Int => String = idNaming.getOrElse(n => f"${genRequest.idPrefix}%sC$n%03d")
-    val clientTypeAndEnrolmentToGenerate: Seq[(ClientType, EnrolmentKey)] = {
-      val genMethod = genRequest.genMethod.getOrElse(GranPermsGenRequest.GenMethodProportional)
-      val clientTypes: Seq[ClientType] = pickFromDistribution(
-        genMethod,
-        genRequest.clientTypeDistribution.getOrElse(GranPermsGenRequest.defaultClientTypeDistribution),
-        genRequest.numberOfClients
-      )
-      val individualEnrolments: Seq[EnrolmentKey] = pickFromDistribution(
-        genMethod,
-        genRequest.individualServiceDistribution.getOrElse(GranPermsGenRequest.defaultIndividualServiceDistribution),
-        clientTypes.count(_ == User.AG.Individual)
-      )
-      val organisationEnrolments: Seq[EnrolmentKey] = pickFromDistribution(
-        genMethod,
-        genRequest.organisationServiceDistribution.getOrElse(
-          GranPermsGenRequest.defaultOrganisationServiceDistribution
-        ),
-        clientTypes.count(_ == User.AG.Organisation)
-      )
-      individualEnrolments.map((User.AG.Individual, _)) ++ organisationEnrolments.map((User.AG.Organisation, _))
-    }
-    clientTypeAndEnrolmentToGenerate.zipWithIndex.toList.traverse { case ((clientType, enrolmentKey), i: Int) =>
-      val user = clientType match {
+
+    val clientTypesAndEnrolmentKeysToGenerate: Seq[(ClientType, EnrolmentKey)] =
+      generateClientTypesAndEnrolmentKeys(genRequest)
+
+    val clientUsersToCreate = generateClientUsers(idFunction, clientTypesAndEnrolmentKeysToGenerate)
+
+    clientUsersToCreate.foreach(user => refUserCreationActor ! PlanetUser(planetId, user))
+
+    Future(clientUsersToCreate)
+  }
+
+  private def generateClientTypesAndEnrolmentKeys(
+    genRequest: GranPermsGenRequest
+  ): Seq[(ClientType, EnrolmentKey)] = {
+
+    val genMethod = genRequest.genMethod.getOrElse(GranPermsGenRequest.GenMethodProportional)
+    val clientTypes: Seq[ClientType] = pickFromDistribution(
+      genMethod,
+      genRequest.clientTypeDistribution.getOrElse(GranPermsGenRequest.defaultClientTypeDistribution),
+      genRequest.numberOfClients
+    )
+    val individualEnrolments: Seq[EnrolmentKey] = pickFromDistribution(
+      genMethod,
+      genRequest.individualServiceDistribution.getOrElse(GranPermsGenRequest.defaultIndividualServiceDistribution),
+      clientTypes.count(_ == User.AG.Individual)
+    )
+    val organisationEnrolments: Seq[EnrolmentKey] = pickFromDistribution(
+      genMethod,
+      genRequest.organisationServiceDistribution.getOrElse(
+        GranPermsGenRequest.defaultOrganisationServiceDistribution
+      ),
+      clientTypes.count(_ == User.AG.Organisation)
+    )
+    individualEnrolments.map((User.AG.Individual, _)) ++ organisationEnrolments.map((User.AG.Organisation, _))
+  }
+  private def generateClientUsers(
+    idFunction: Int => String,
+    clientTypeAndEnrolmentToGenerate: Seq[(ClientType, EnrolmentKey)]
+  ) =
+    clientTypeAndEnrolmentToGenerate.zipWithIndex.toList.map { case ((clientType, enrolmentKey), i: Int) =>
+      clientType match {
         case User.AG.Individual =>
           UserGenerator
             .individual(userId = idFunction(i), confidenceLevel = 250)
@@ -70,21 +117,16 @@ class GranPermsService @Inject() (
             .organisation(userId = idFunction(i))
             .withPrincipalEnrolment(service = enrolmentKey, identifierKey = "", identifierValue = "")
       }
-      usersService.createUser(
-        planetId = planetId,
-        user = user
-      )
     }
-  }
 
-  def massGenerateAgents(
+  private def massGenerateAgents(
     planetId: String,
     genRequest: GranPermsGenRequest,
     groupId: Option[String],
     agentCode: Option[String],
     delegatedEnrolments: Seq[Enrolment],
     idNaming: Option[Int => String] = None
-  )(implicit ec: ExecutionContext): Future[List[User]] = {
+  ): Future[List[User]] = {
     val idFn: Int => String = idNaming.getOrElse(x => f"${genRequest.idPrefix}%sA$x%02d")
     (1 to genRequest.numberOfAgents).toList.traverse { x =>
       val user = UserGenerator
@@ -106,30 +148,6 @@ class GranPermsService @Inject() (
     val n = Random.nextInt(10)
     if (n > 7) "Assistant" else "User"
   }
-
-  def massGenerateAgentsAndClients(
-    planetId: String,
-    currentUser: User,
-    genRequest: GranPermsGenRequest
-  )(implicit ec: ExecutionContext): Future[(Seq[User], Seq[User])] = for {
-    clients <- massGenerateClients(planetId, genRequest)
-    delegatedEnrols =
-      clients.flatMap(client =>
-        client.enrolments.principal.map(enrol =>
-          if (genRequest.fillFriendlyNames) enrol.copy(friendlyName = client.name) else enrol
-        )
-      )
-    _ <-
-      usersService
-        .updateUser(currentUser.userId, planetId, _ => currentUser.updateDelegatedEnrolments(_ ++ delegatedEnrols))
-    agents <- massGenerateAgents(
-                planetId,
-                genRequest,
-                currentUser.groupId,
-                currentUser.agentCode,
-                delegatedEnrolments = Seq.empty
-              )
-  } yield (agents, clients)
 
   private def pickFromDistribution[A](method: String, distribution: Map[A, Double], n: Int): Seq[A] = method match {
     case GranPermsGenRequest.GenMethodRandom =>
