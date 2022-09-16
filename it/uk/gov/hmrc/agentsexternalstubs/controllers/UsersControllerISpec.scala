@@ -103,6 +103,21 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
         val result2 = Users.get("7728378273")
         result2.json.as[User].enrolments.principal should contain(Enrolment("foo"))
       }
+
+      "update current user with a legacy principalEnrolments" in {
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378276")
+        val userJson = Json.obj(
+          "userId" -> "7728378276",
+          "principalEnrolments" -> Json.arr(
+            Json.obj("key" -> "foo1")
+          )
+        )
+        val result = Users.updateCurrentLegacy(userJson)
+        result should haveStatus(202)
+        result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/7728378276")
+        val result2 = Users.get("7728378276")
+        result2.json.as[User].enrolments.principal should contain(Enrolment("foo1"))
+      }
     }
 
     "PUT /agents-external-stubs/users/:userId" should {

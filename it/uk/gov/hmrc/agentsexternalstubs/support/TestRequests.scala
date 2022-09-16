@@ -9,6 +9,7 @@ import play.api.mvc.{Cookie, DefaultCookieHeaderEncoding}
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, GranPermsGenRequest, SignInRequest, User}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.Authorization
+import play.api.libs.json.JsObject
 
 trait AuthContext {
   self =>
@@ -195,6 +196,13 @@ trait TestRequests extends ScalaFutures {
         .url(s"$url/agents-external-stubs/users")
         .withHttpHeaders(authContext.headers: _*)
         .put(Json.toJson(user))
+        .futureValue
+
+    def updateCurrentLegacy(userJson: JsObject)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/users")
+        .withHttpHeaders(authContext.headers: _*)
+        .put(userJson)
         .futureValue
 
     def update(user: User)(implicit authContext: AuthContext): WSResponse =
