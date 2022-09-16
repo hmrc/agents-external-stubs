@@ -324,4 +324,31 @@ object User {
     }.toMap[String, String]
   }
 
+  val fromLegacyUser: LegacyUser => User = (legacyUser: LegacyUser) => {
+    User(
+      userId = legacyUser.userId,
+      groupId = legacyUser.groupId,
+      affinityGroup = legacyUser.affinityGroup,
+      confidenceLevel = legacyUser.confidenceLevel,
+      credentialStrength = legacyUser.credentialStrength,
+      credentialRole = legacyUser.credentialRole,
+      nino = legacyUser.nino,
+      enrolments =
+        User.Enrolments(principal = legacyUser.principalEnrolments, delegated = legacyUser.delegatedEnrolments),
+      name = legacyUser.name,
+      dateOfBirth = legacyUser.dateOfBirth,
+      agentCode = legacyUser.agentCode,
+      agentFriendlyName = legacyUser.agentFriendlyName,
+      agentId = legacyUser.agentId,
+      planetId = legacyUser.planetId,
+      isNonCompliant = legacyUser.isNonCompliant,
+      complianceIssues = legacyUser.complianceIssues,
+      recordIds = legacyUser.recordIds,
+      address = legacyUser.address,
+      additionalInformation = legacyUser.additionalInformation,
+      strideRoles = legacyUser.strideRoles,
+      suspendedRegimes = legacyUser.suspendedRegimes
+    )
+  }
+
 }

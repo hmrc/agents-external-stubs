@@ -109,12 +109,36 @@ trait HttpHelpers {
   )(implicit request: Request[JsValue], reads: Reads[T]): Future[Result] =
     validate(request.body)(f)
 
+  def withPayload[U, T](transformF: U => T)(
+    f: T => Future[Result]
+  )(implicit request: Request[JsValue], readsT: Reads[T], readsU: Reads[U]): Future[Result] =
+    validateWithTransform[U, T](request.body)(transformF)(f)
+
   def validate[T](
     body: JsValue
   )(f: T => Future[Result])(implicit reads: Reads[T]): Future[Result] =
     Try(body.validate[T]) match {
       case Success(validationResult) =>
         whenSuccess(f)(validationResult)
+      case Failure(e) =>
+        Future.failed(new BadRequestException(s"Could not parse body due to ${e.getMessage}"))
+    }
+
+  def validateWithTransform[U, T](
+    body: JsValue
+  )(transformF: U => T)(f: T => Future[Result])(implicit readsT: Reads[T], readsU: Reads[U]): Future[Result] =
+    Try(body.validate[U]) match {
+      case Success(JsSuccess(payload, _)) =>
+        f(transformF(payload))
+      case Success(JsError(_)) =>
+        Try(body.validate[T]) match {
+          case Success(JsSuccess(payload, _)) =>
+            f(payload)
+          case Success(JsError(e)) =>
+            Future.failed(new BadRequestException(s"Could not parse body due to $e"))
+          case Failure(e) =>
+            Future.failed(new BadRequestException(s"Could not parse body due to ${e.getMessage}"))
+        }
       case Failure(e) =>
         Future.failed(new BadRequestException(s"Could not parse body due to ${e.getMessage}"))
     }
@@ -128,7 +152,6 @@ trait HttpHelpers {
         }
         .mkString(", and ")}"))
   }
-
 }
 
 case class DesErrorResponse(code: String, reason: Option[String])

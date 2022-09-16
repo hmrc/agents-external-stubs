@@ -16,16 +16,16 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import javax.inject.{Inject, Singleton}
 import play.api.libs.json.JsValue
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import play.mvc.Http.HeaderNames
-import uk.gov.hmrc.agentsexternalstubs.models.{ApiPlatform, User, UserIdGenerator, Users}
+import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.DuplicateUserException
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.http.NotFoundException
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 @Singleton
@@ -72,7 +72,7 @@ class UsersController @Inject() (
 
   def updateCurrentUser: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
-      withPayload[User](updatedUser =>
+      withPayload[LegacyUser, User](User.fromLegacyUser) { updatedUser =>
         usersService
           .updateUser(session.userId, session.planetId, _ => updatedUser)
           .map(theUser =>
@@ -83,13 +83,13 @@ class UsersController @Inject() (
             case DuplicateUserException(msg, _) => Conflict(msg)
             case e: NotFoundException           => notFound("USER_NOT_FOUND", e.getMessage)
           }
-      )
+      }
     }(SessionRecordNotFound)
   }
 
-  def updateUser(userId: String): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+  def updateUser(userId: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withCurrentSession { session =>
-      withPayload[User] { updatedUser =>
+      withPayload[LegacyUser, User](User.fromLegacyUser) { updatedUser =>
         usersService
           .updateUser(userId, session.planetId, _ => updatedUser)
           .map(theUser =>

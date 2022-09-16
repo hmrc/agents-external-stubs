@@ -6,7 +6,7 @@ import play.api.http.{CookiesConfiguration, HeaderNames, MimeTypes}
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.libs.ws.{BodyWritable, WSClient, WSCookie, WSResponse}
 import play.api.mvc.{Cookie, DefaultCookieHeaderEncoding}
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, GranPermsGenRequest, SignInRequest, User}
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, GranPermsGenRequest, LegacyUser, SignInRequest, User}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.Authorization
 
@@ -202,6 +202,13 @@ trait TestRequests extends ScalaFutures {
         .url(s"$url/agents-external-stubs/users/${user.userId}?userIdFromPool")
         .withHttpHeaders(authContext.headers: _*)
         .put(Json.toJson(user))
+        .futureValue
+
+    def updateAcceptLegacyUser(legacyUser: LegacyUser)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/users/${legacyUser.userId}?userIdFromPool")
+        .withHttpHeaders(authContext.headers: _*)
+        .put(Json.toJson(legacyUser))
         .futureValue
 
     def create(user: User)(implicit authContext: AuthContext): WSResponse =

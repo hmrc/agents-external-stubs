@@ -120,6 +120,15 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
         val result2 = Users.get("7728378273")
         result2.json.as[User].enrolments.principal should contain(Enrolment("foo"))
       }
+
+      "accept legacy user payload and update as user" in {
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
+        val result = Users.updateAcceptLegacyUser(LegacyUser("7728378273", principalEnrolments = Seq(Enrolment("foo"))))
+        result should haveStatus(202)
+        result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/7728378273")
+        val result2 = Users.get("7728378273")
+        result2.json.as[User].enrolments.principal should contain(Enrolment("foo"))
+      }
     }
 
     "DELETE /agents-external-stubs/users/:userId" should {
