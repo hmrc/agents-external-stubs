@@ -172,6 +172,7 @@ POST          /file-upload/upload/envelopes/:envelopeId/files/:fileId           
 
 #Granular permissions test URLs
 POST          /agents-external-stubs/test/gran-perms/generate-users                                  @uk.gov.hmrc.agentsexternalstubs.controllers.GranPermsController.massGenerateAgentsAndClients
+POST          /agents-external-stubs/test/gran-perms/generate-perf-data                              @uk.gov.hmrc.agentsexternalstubs.controllers.PerfDataController.generate
 
 # Config management
 GET           /agents-external-stubs/config/services                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.ConfigController.getServices

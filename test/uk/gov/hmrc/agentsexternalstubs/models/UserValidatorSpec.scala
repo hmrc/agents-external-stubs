@@ -309,58 +309,58 @@ class UserValidatorSpec extends UnitSpec with ValidatedMatchers {
       }
     }
 
-//    "validate only when delegated enrolments have distinct values" in {
-//      UserValidator
-//        .validate(
-//          UserGenerator
-//            .agent("foo")
-//            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
-//        )
-//        .isValid shouldBe true
-//      UserValidator
-//        .validate(
-//          UserGenerator
-//            .agent("foo")
-//            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
-//            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
-//        )
-//        .isValid shouldBe false
-//      UserValidator
-//        .validate(
-//          UserGenerator
-//            .agent("foo")
-//            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
-//            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "429754517")
-//        )
-//        .isValid shouldBe true
-//      UserValidator
-//        .validate(
-//          UserGenerator
-//            .agent("foo")
-//            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
-//            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "429754517")
-//            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
-//        )
-//        .isValid shouldBe false
-//      UserValidator
-//        .validate(
-//          UserGenerator
-//            .agent("foo")
-//            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
-//            .withDelegatedEnrolment("HMRC-MTD-IT", "MTDITID", "CNOB96766112368")
-//            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
-//        )
-//        .isValid shouldBe false
-//      UserValidator
-//        .validate(
-//          UserGenerator
-//            .agent("foo")
-//            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
-//            .withDelegatedEnrolment("HMRC-MTD-IT", "MTDITID", "CNOB96766112368")
-//            .withDelegatedEnrolment("HMRC-MTD-IT", "MTDITID", "CNOB96766112368")
-//        )
-//        .isValid shouldBe false
-//    }
+    "validate only when delegated enrolments have distinct values" in {
+      UserValidator
+        .validate(
+          UserGenerator
+            .agent("foo")
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
+        )
+        .isValid shouldBe true
+      UserValidator
+        .validate(
+          UserGenerator
+            .agent("foo")
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
+        )
+        .isValid shouldBe false
+      UserValidator
+        .validate(
+          UserGenerator
+            .agent("foo")
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "429754517")
+        )
+        .isValid shouldBe true
+      UserValidator
+        .validate(
+          UserGenerator
+            .agent("foo")
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "429754517")
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
+        )
+        .isValid shouldBe false
+      UserValidator
+        .validate(
+          UserGenerator
+            .agent("foo")
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
+            .withDelegatedEnrolment("HMRC-MTD-IT", "MTDITID", "CNOB96766112368")
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
+        )
+        .isValid shouldBe false
+      UserValidator
+        .validate(
+          UserGenerator
+            .agent("foo")
+            .withDelegatedEnrolment("HMRC-MTD-VAT", "VRN", "410392784")
+            .withDelegatedEnrolment("HMRC-MTD-IT", "MTDITID", "CNOB96766112368")
+            .withDelegatedEnrolment("HMRC-MTD-IT", "MTDITID", "CNOB96766112368")
+        )
+        .isValid shouldBe false
+    }
 
     "validate only when delegated enrolment is of Individual or Organisation affinity" in {
       val user = UserGenerator.agent("foo")
