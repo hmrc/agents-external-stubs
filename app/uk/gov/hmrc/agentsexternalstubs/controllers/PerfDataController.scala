@@ -81,7 +81,7 @@ class PerfDataController @Inject() (
   }
 
   private def buildBatchesForProcessing(numAgents: Int): List[Seq[Int]] = {
-    val agencyNumbers = 1 to numAgents
+    val agencyNumbers = 0 until numAgents
     val availableProcessors = Runtime.getRuntime.availableProcessors()
     val numThreadsToRunOn = if (availableProcessors > 4) 4 else availableProcessors - 1
 
