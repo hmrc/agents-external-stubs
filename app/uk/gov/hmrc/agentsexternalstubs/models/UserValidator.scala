@@ -202,7 +202,7 @@ object UserValidator {
     validateEachPrincipalEnrolment,
     validatePrincipalEnrolmentsAreDistinct,
     validateEachDelegatedEnrolment,
-//    validateDelegatedEnrolmentsValuesAreDistinct,
+    validateDelegatedEnrolmentsValuesAreDistinct,
     validateAddress,
     validateSuspendedRegimes
   )
