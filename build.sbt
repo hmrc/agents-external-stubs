@@ -65,8 +65,6 @@ def reactivemongoShadedNative(): Seq[ModuleID] = {
   val reactivemongoShadedNativeVersion = "0.18.8"
 
   sys.props.get("os.name") match {
-    case Some(osx) if osx.toLowerCase.contains("mac") =>
-      Seq("org.reactivemongo" % "reactivemongo-shaded-native" % s"$reactivemongoShadedNativeVersion-osx-x86-64" % "runtime,test,it")
     case Some(linux) if linux.toLowerCase.contains("linux") =>
       Seq("org.reactivemongo" % "reactivemongo-shaded-native" % s"$reactivemongoShadedNativeVersion-linux-x86-64" % "runtime,test,it")
     case _ =>
