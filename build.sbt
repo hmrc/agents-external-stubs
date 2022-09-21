@@ -60,10 +60,19 @@ val jettyOverrides = Set(
   "org.eclipse.jetty.websocket" % "websocket-client"   % jettyVersion % IntegrationTest
 )
 
-def tmpMacWorkaround(): Seq[ModuleID] =
-  if (sys.props.get("os.name").fold(false)(_.toLowerCase.contains("mac")))
-    Seq("org.reactivemongo" % "reactivemongo-shaded-native" % "0.16.1-osx-x86-64" % "runtime,test,it")
-  else Seq()
+def reactivemongoShadedNative(): Seq[ModuleID] = {
+  // match with transitive dependency brought in by "uk.gov.hmrc:simple-reactivemongo"
+  val reactivemongoShadedNativeVersion = "0.18.8"
+
+  sys.props.get("os.name") match {
+    case Some(osx) if osx.toLowerCase.contains("mac") =>
+      Seq("org.reactivemongo" % "reactivemongo-shaded-native" % s"$reactivemongoShadedNativeVersion-osx-x86-64" % "runtime,test,it")
+    case Some(linux) if linux.toLowerCase.contains("linux") =>
+      Seq("org.reactivemongo" % "reactivemongo-shaded-native" % s"$reactivemongoShadedNativeVersion-linux-x86-64" % "runtime,test,it")
+    case _ =>
+      Seq()
+  }
+}
 
 lazy val root = (project in file("."))
   .settings(
@@ -84,7 +93,7 @@ lazy val root = (project in file("."))
     resolvers ++= Seq(
       Resolver.typesafeRepo("releases"),
     ),
-    libraryDependencies ++= tmpMacWorkaround() ++ compileDeps ++ testDeps("test") ++ testDeps("it"),
+    libraryDependencies ++= reactivemongoShadedNative() ++ compileDeps ++ testDeps("test") ++ testDeps("it"),
     libraryDependencies ++= Seq(
       compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.7" cross CrossVersion.full),
       "com.github.ghik" % "silencer-lib" % "1.7.7" % Provided cross CrossVersion.full

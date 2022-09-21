@@ -82,10 +82,17 @@ class PerfDataController @Inject() (
 
   private def buildBatchesForProcessing(numAgents: Int): List[Seq[Int]] = {
     val agencyNumbers = 1 to numAgents
-//    val availableProcessors = Runtime.getRuntime.availableProcessors()
-    val numThreadsToRunOn = 3 // if (availableProcessors > 4) 4 else availableProcessors - 1
 
-    agencyNumbers.grouped(agencyNumbers.size / numThreadsToRunOn).toList
+    val numParallels = Runtime.getRuntime.availableProcessors() match {
+      case count if count > 4               => 4
+      case count if count == 1 | count == 2 => 2
+      case count                            => count - 1
+    }
+    logger.info(s"Processing across '$numParallels' streams")
+
+    val numBatchesAtLeast = agencyNumbers.size / numParallels
+
+    agencyNumbers.grouped(if (numBatchesAtLeast < 1) 1 else numBatchesAtLeast).toList
   }
 
   private def processBatch(runPrefix: String, batchOfIndexes: Seq[Int], clientsPerAgent: Int, teamMembersPerAgent: Int)(
