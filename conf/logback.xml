@@ -62,6 +62,7 @@
     <logger name="akka" level="ERROR"/>
 
     <logger name="reactivemongo" level="ERROR"/>
+    <logger name="reactivemongo.core.netty.Pack" level="INFO"/>
 
     <logger name="org.asynchttpclient" level="ERROR"/>
 
