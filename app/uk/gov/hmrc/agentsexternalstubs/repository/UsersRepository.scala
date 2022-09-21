@@ -97,7 +97,9 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
 
   override def indexes = Seq(
     Index(Seq(KEYS -> Ascending), Some("Keys")),
-    Index(Seq(UNIQUE_KEYS -> Ascending), Some("UniqueKeys"), unique = true, sparse = true)
+    Index(Seq(UNIQUE_KEYS -> Ascending), Some("UniqueKeys"), unique = true, sparse = true),
+    Index(Seq("userId" -> Ascending), Some("keyUserId")),
+    Index(Seq("planetId" -> Ascending), Some("keyPlanetId"))
   )
 
   override def findByUserId(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
