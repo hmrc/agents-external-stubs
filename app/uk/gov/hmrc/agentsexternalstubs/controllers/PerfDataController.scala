@@ -22,6 +22,7 @@ import play.api.libs.json.{JsValue, Json, OFormat}
 import play.api.libs.ws.{WSClient, WSResponse}
 import play.api.mvc.{Action, ControllerComponents, RequestHeader}
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.repository.UsersRepository
 import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -39,13 +40,24 @@ object PerfDataRequest {
 class PerfDataController @Inject() (
   val authenticationService: AuthenticationService,
   cc: ControllerComponents,
-  wsClient: WSClient
+  wsClient: WSClient,
+  usersRepository: UsersRepository
 )(implicit ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession with Logging {
 
   def generate: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withPayload[PerfDataRequest] { perfDataRequest =>
-      Future.sequence(processBatches(perfDataRequest))
+      for {
+        _ <- {
+          logger.info("Dropping indexes for data generation")
+          usersRepository.dropDataGenerationIndexes
+        }
+        _ <- Future.sequence(processBatches(perfDataRequest))
+        _ <- {
+          logger.info("Creating indexes after data generation")
+          usersRepository.createDataGenerationIndexes
+        }
+      } yield ()
 
       Future successful Accepted(
         s"Processing can take a while, please check later for creation of " +
