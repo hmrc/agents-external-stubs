@@ -92,15 +92,14 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
   private final val UNIQUE_KEYS = "_uniqueKeys"
   private final val KEYS = "_keys"
   final val UPDATED = "_last_updated_at"
+  private final val USER_ID = "userId"
 
   private def keyOf(key: String, planetId: String): String = s"${key.replace(" ", "")}@$planetId"
-
-  override def indexes = Seq(
-    Index(Seq(KEYS -> Ascending), Some("Keys")),
-    Index(Seq(UNIQUE_KEYS -> Ascending), Some("UniqueKeys"), unique = true, sparse = true),
-    Index(Seq("userId" -> Ascending), Some("keyUserId")),
-    Index(Seq("planetId" -> Ascending), Some("keyPlanetId"))
-  )
+  override def indexes =
+    Seq(
+      Index(Seq(KEYS -> Ascending), Some("Keys")),
+      Index(Seq(UNIQUE_KEYS -> Ascending), Some("UniqueKeys"), unique = true, sparse = true)
+    )
 
   override def findByUserId(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
     one[User](Seq(UNIQUE_KEYS -> Option(keyOf(User.userIdKey(userId), planetId))))(User.formats)
@@ -178,8 +177,7 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
 
     def update(enrolmentType: String, identifier: Identifier): Future[Option[User]] = {
       val selector = BSONDocument(
-        "planetId"                                     -> planetId,
-        "userId"                                       -> user.userId,
+        UNIQUE_KEYS                                    -> keyOf(User.userIdKey(user.userId), planetId),
         s"enrolments.$enrolmentType.identifiers.key"   -> identifier.key,
         s"enrolments.$enrolmentType.identifiers.value" -> identifier.value
       )
@@ -206,15 +204,15 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
   }
 
   private val userIdReads = new Reads[String] {
-    override def reads(json: JsValue): JsResult[String] = JsSuccess((json \ "userId").as[String])
+    override def reads(json: JsValue): JsResult[String] = JsSuccess((json \ USER_ID).as[String])
   }
 
   override def findUserIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
     limit: Int
   )(implicit ec: ExecutionContext): Future[Seq[String]] =
     cursor(
-      Seq(KEYS     -> Option(keyOf(User.enrolmentIndexKey(enrolmentKey.toString), planetId))),
-      Seq("userId" -> 1)
+      Seq(KEYS    -> Option(keyOf(User.enrolmentIndexKey(enrolmentKey.toString), planetId))),
+      Seq(USER_ID -> 1)
     )(userIdReads).collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[String]]())
 
   override def findUserIdsByAssignedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
@@ -222,7 +220,7 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
   )(implicit ec: ExecutionContext): Future[Seq[String]] =
     cursor(
       Seq("enrolments.assigned" -> Option(enrolmentKey.toString), KEYS -> Option(planetIdKey(planetId))),
-      Seq("userId"              -> 1)
+      Seq(USER_ID               -> 1)
     )(userIdReads).collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[String]]())
 
   private val groupIdReads = new Reads[Option[String]] {

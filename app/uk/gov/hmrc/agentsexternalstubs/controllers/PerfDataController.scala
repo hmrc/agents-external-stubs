@@ -45,39 +45,42 @@ class PerfDataController @Inject() (
 
   def generate: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withPayload[PerfDataRequest] { perfDataRequest =>
-      val runPrefix = Random.alphanumeric.filter(_.isUpper).take(4).mkString
-      logger.info(s"Prefix for identifying clients and team members generated in this run: '$runPrefix'")
-
-      val batchesOfIndexes = buildBatchesForProcessing(perfDataRequest.numAgents)
-      logger.info(s"Processing will be done in parallel in ${batchesOfIndexes.size} batch(es)")
-
-      Future.sequence(
-        batchesOfIndexes.map { batchOfIndexes =>
-          logger.info(s"Starting batch having indexes: ${batchOfIndexes.mkString(", ")}")
-
-          processBatch(runPrefix, batchOfIndexes, perfDataRequest.clientsPerAgent, perfDataRequest.teamMembersPerAgent)
-            .map { maybeStatus =>
-              maybeStatus match {
-                case None =>
-                  logger.info(s"Done batch")
-                case Some(status) =>
-                  if (status != CREATED) {
-                    logger.error(s"Encountered $maybeStatus during processing")
-                  } else {
-                    logger.info(s"Done batch with status $status")
-                  }
-              }
-              maybeStatus
-            }
-        }
-      )
+      Future.sequence(processBatches(perfDataRequest))
 
       Future successful Accepted(
         s"Processing can take a while, please check later for creation of " +
           s"${perfDataRequest.numAgents * (1 + perfDataRequest.clientsPerAgent + perfDataRequest.teamMembersPerAgent)} records"
       )
     }
+  }
 
+  private def processBatches(perfDataRequest: PerfDataRequest)(implicit
+    requestHeader: RequestHeader
+  ): List[Future[Option[Int]]] = {
+    val runPrefix = Random.alphanumeric.filter(_.isUpper).take(4).mkString
+    logger.info(s"Prefix for identifying clients and team members generated in this run: '$runPrefix'")
+
+    val batchesOfIndexes = buildBatchesForProcessing(perfDataRequest.numAgents)
+    logger.info(s"Processing will be done across ${batchesOfIndexes.size} batch(es)")
+
+    batchesOfIndexes.map { batchOfIndexes =>
+      logger.info(s"Starting batch having indexes: ${batchOfIndexes.mkString(", ")}")
+
+      processBatch(runPrefix, batchOfIndexes, perfDataRequest.clientsPerAgent, perfDataRequest.teamMembersPerAgent)
+        .map { maybeStatus =>
+          maybeStatus match {
+            case None =>
+              logger.info(s"Done batch")
+            case Some(status) =>
+              if (status != CREATED) {
+                logger.error(s"Encountered $maybeStatus during processing")
+              } else {
+                logger.info(s"Done batch with status $status")
+              }
+          }
+          maybeStatus
+        }
+    }
   }
 
   private def buildBatchesForProcessing(numAgents: Int): List[Seq[Int]] = {
@@ -88,11 +91,10 @@ class PerfDataController @Inject() (
       case count if count == 1 | count == 2 => 2
       case count                            => count - 1
     }
-    logger.info(s"Processing across '$numParallels' streams")
 
-    val numBatchesAtLeast = agencyNumbers.size / numParallels
+    val groupSize = agencyNumbers.size / numParallels
 
-    agencyNumbers.grouped(if (numBatchesAtLeast < 1) 1 else numBatchesAtLeast).toList
+    agencyNumbers.grouped(if (groupSize < 1) 1 else groupSize).toList
   }
 
   private def processBatch(runPrefix: String, batchOfIndexes: Seq[Int], clientsPerAgent: Int, teamMembersPerAgent: Int)(
