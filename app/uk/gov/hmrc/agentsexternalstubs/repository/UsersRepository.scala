@@ -76,6 +76,8 @@ trait UsersRepository {
   def updateFriendlyNameForEnrolment(user: User, planetId: String, enrolmentKey: EnrolmentKey, friendlyName: String)(
     implicit ec: ExecutionContext
   ): Future[Option[User]]
+  def dropDataGenerationIndexes(implicit ec: ExecutionContext): Future[Int]
+  def createDataGenerationIndexes(implicit ec: ExecutionContext): Future[Int]
 }
 
 @Singleton
@@ -93,12 +95,17 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
   private final val KEYS = "_keys"
   final val UPDATED = "_last_updated_at"
   private final val USER_ID = "userId"
+  private final val KEY_USER_ID = "keyUserId"
+  private final val PLANET_ID = "planetId"
+  private final val KEY_PLANET_ID = "keyPlanetId"
 
   private def keyOf(key: String, planetId: String): String = s"${key.replace(" ", "")}@$planetId"
   override def indexes =
     Seq(
       Index(Seq(KEYS -> Ascending), Some("Keys")),
-      Index(Seq(UNIQUE_KEYS -> Ascending), Some("UniqueKeys"), unique = true, sparse = true)
+      Index(Seq(UNIQUE_KEYS -> Ascending), Some("UniqueKeys"), unique = true, sparse = true),
+      Index(Seq(USER_ID -> Ascending), Some(KEY_USER_ID)),
+      Index(Seq(PLANET_ID -> Ascending), Some(KEY_PLANET_ID))
     )
 
   override def findByUserId(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
@@ -177,7 +184,8 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
 
     def update(enrolmentType: String, identifier: Identifier): Future[Option[User]] = {
       val selector = BSONDocument(
-        UNIQUE_KEYS                                    -> keyOf(User.userIdKey(user.userId), planetId),
+        PLANET_ID                                      -> planetId,
+        USER_ID                                        -> user.userId,
         s"enrolments.$enrolmentType.identifiers.key"   -> identifier.key,
         s"enrolments.$enrolmentType.identifiers.value" -> identifier.value
       )
@@ -408,5 +416,15 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
           }
       )
   }
+
+  override def dropDataGenerationIndexes(implicit ec: ExecutionContext): Future[Int] = for {
+    n <- collection.indexesManager.drop(KEY_USER_ID)
+    m <- collection.indexesManager.drop(KEY_PLANET_ID)
+  } yield n + m
+
+  override def createDataGenerationIndexes(implicit ec: ExecutionContext): Future[Int] = for {
+    n <- collection.indexesManager.create(Index(Seq(USER_ID -> Ascending), Some(KEY_USER_ID))).map(_.n)
+    m <- collection.indexesManager.create(Index(Seq(PLANET_ID -> Ascending), Some(KEY_PLANET_ID))).map(_.n)
+  } yield n + m
 
 }
