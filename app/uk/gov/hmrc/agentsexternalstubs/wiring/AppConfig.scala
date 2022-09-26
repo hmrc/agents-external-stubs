@@ -60,6 +60,7 @@ trait AppConfig {
 
   val authCacheEnabled: Boolean
   val specialCasesDisabled: Boolean
+  val specialCasesUseTruncatedRequestUriMatch: Boolean
   val preloadRecordsForDefaultUserIds: Boolean
   val clearOldMongoDbDocumentsDaily: Boolean
 
@@ -109,7 +110,9 @@ class AppConfigImpl @Inject() (config: ServicesConfig) extends AppConfig {
 
   val isProxyMode: Boolean = config.getBoolean("features.proxies")
   val authCacheEnabled: Boolean = config.getBoolean("features.authCache")
-  val specialCasesDisabled: Boolean = !config.getBoolean("features.specialCases")
+  val specialCasesDisabled: Boolean = !config.getBoolean("features.specialCases.enabled")
+  val specialCasesUseTruncatedRequestUriMatch: Boolean =
+    config.getBoolean("features.specialCases.truncate-request-uri-match")
   val preloadRecordsForDefaultUserIds: Boolean = config.getBoolean("features.preloadRecordsForDefaultUserIds")
   val clearOldMongoDbDocumentsDaily: Boolean = config.getBoolean("features.clearOldMongoDbDocumentsDaily")
 
