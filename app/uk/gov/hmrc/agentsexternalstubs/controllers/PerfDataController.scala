@@ -16,18 +16,20 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import play.api.Logging
-import play.api.http.HeaderNames
-import play.api.libs.json.{JsValue, Json, OFormat}
-import play.api.libs.ws.{WSClient, WSResponse}
-import play.api.mvc.{Action, ControllerComponents, RequestHeader}
+import play.api.libs.json._
+import play.api.mvc.{Action, ControllerComponents}
+import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.BusinessData
+import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord.Common
+import uk.gov.hmrc.agentsexternalstubs.models.User.{AG, CR, Enrolments}
+import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, PPOB}
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.repository.UsersRepository
+import uk.gov.hmrc.agentsexternalstubs.repository._
 import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
-import scala.concurrent.duration.{Duration, MINUTES}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
@@ -37,192 +39,313 @@ object PerfDataRequest {
   implicit val format: OFormat[PerfDataRequest] = Json.format[PerfDataRequest]
 }
 
+case class AgencyCreationPayload(planetId: String, agentUser: User, clients: List[User], teamMembers: List[User])
+
+case class UserCreationPayload(user: User, planetId: String)
+case class ClientRecordCreationPayload(record: Record, planetId: String)
+
 class PerfDataController @Inject() (
   val authenticationService: AuthenticationService,
   cc: ControllerComponents,
-  wsClient: WSClient,
-  usersRepository: UsersRepository
+  usersRepository: UsersRepositoryMongo,
+  recordsRepository: RecordsRepositoryMongo,
+  authenticatedSessionsRepository: AuthenticatedSessionsRepository,
+  knownFactsRepository: KnownFactsRepositoryMongo,
+  specialCasesRepository: SpecialCasesRepositoryMongo,
+  actorSystem: ActorSystem
 )(implicit ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession with Logging {
 
+  type ClientType = String
+  type ServiceKey = String
+
+  private val dataCreationActor: ActorRef =
+    actorSystem.actorOf(
+      DataCreationActor.props(usersRepository, recordsRepository)
+    )
+
   def generate: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withPayload[PerfDataRequest] { perfDataRequest =>
-      for {
-        _ <- {
-          logger.info("Dropping indexes for data generation")
-          usersRepository.dropDataGenerationIndexes
-        }
-        _ <- Future.sequence(processBatches(perfDataRequest))
-        _ <- {
-          logger.info("Creating indexes after data generation")
-          usersRepository.createDataGenerationIndexes
-        }
-      } yield ()
+      dropCollections().map { _ =>
+        process(perfDataRequest)
+      }
 
       Future successful Accepted(
         s"Processing can take a while, please check later for creation of " +
           s"${perfDataRequest.numAgents * (1 + perfDataRequest.clientsPerAgent + perfDataRequest.teamMembersPerAgent)} records"
       )
+
     }
   }
 
-  private def processBatches(perfDataRequest: PerfDataRequest)(implicit
-    requestHeader: RequestHeader
-  ): List[Future[Option[Int]]] = {
-    val runPrefix = Random.alphanumeric.filter(_.isUpper).take(4).mkString
-    logger.info(s"Prefix for identifying clients and team members generated in this run: '$runPrefix'")
-
-    val batchesOfIndexes = buildBatchesForProcessing(perfDataRequest.numAgents)
-    logger.info(s"Processing will be done across ${batchesOfIndexes.size} batch(es)")
-
-    batchesOfIndexes.map { batchOfIndexes =>
-      logger.info(s"Starting batch having indexes: ${batchOfIndexes.mkString(", ")}")
-
-      processBatch(runPrefix, batchOfIndexes, perfDataRequest.clientsPerAgent, perfDataRequest.teamMembersPerAgent)
-        .map { maybeStatus =>
-          maybeStatus match {
-            case None =>
-              logger.info(s"Done batch")
-            case Some(status) =>
-              if (status != CREATED) {
-                logger.error(s"Encountered $maybeStatus during processing")
-              } else {
-                logger.info(s"Done batch with status $status")
-              }
-          }
-          maybeStatus
-        }
-    }
-  }
-
-  private def buildBatchesForProcessing(numAgents: Int): List[Seq[Int]] = {
-    val agencyNumbers = 1 to numAgents
-
-    val numParallels = Runtime.getRuntime.availableProcessors() match {
-      case count if count > 4               => 4
-      case count if count == 1 | count == 2 => 2
-      case count                            => count - 1
+  private def dropCollections(): Future[Unit] =
+    Future {
+      usersRepository.drop
+      logger.info(s"Dropped '${usersRepository.collection.name}' collection if it existed")
+      recordsRepository.drop
+      logger.info(s"Dropped '${recordsRepository.collection.name}' collection if it existed")
+      authenticatedSessionsRepository.drop
+      logger.info(s"Dropped '${authenticatedSessionsRepository.collection.name}' collection if it existed")
+      knownFactsRepository.drop
+      logger.info(s"Dropped '${knownFactsRepository.collection.name}' collection if it existed")
+      specialCasesRepository.drop
+      logger.info(s"Dropped '${specialCasesRepository.collection.name}' collection if it existed")
     }
 
-    val groupSize = agencyNumbers.size / numParallels
+  private def process(perfDataRequest: PerfDataRequest): Unit = {
 
-    agencyNumbers.grouped(if (groupSize < 1) 1 else groupSize).toList
-  }
+    def assembleAgency(indexAgency: Int) = {
+      val planetId = f"perf-test-planet-$indexAgency%03d"
+      val agentUser = buildMainAgentUser(indexAgency)
+      val clients = buildClientsForAgent(indexAgency, perfDataRequest.clientsPerAgent)
+      val teamMembers = buildTeamMembersForAgent(indexAgency, perfDataRequest.teamMembersPerAgent, agentUser)
 
-  private def processBatch(runPrefix: String, batchOfIndexes: Seq[Int], clientsPerAgent: Int, teamMembersPerAgent: Int)(
-    implicit requestHeader: RequestHeader
-  ): Future[Option[Int]] = {
-    var workAccum = Future[Option[Int]](None)
-
-    for (index <- batchOfIndexes)
-      workAccum = workAccum flatMap (maybeLatestStatus => {
-        logger.info(s"Processing agency #$index")
-        generateForOneAgent(runPrefix, index, clientsPerAgent, teamMembersPerAgent) map { status =>
-          if (status != CREATED && maybeLatestStatus.isEmpty) Some(status) else maybeLatestStatus
-        }
-      })
-
-    workAccum
-  }
-
-  private def generateForOneAgent(runPrefix: String, index: Int, clientsPerAgent: Int, teamMembersPerAgent: Int)(
-    implicit requestHeader: RequestHeader
-  ): Future[Int] =
-    for {
-      signInResponse      <- signIn(index)
-      authSessionResponse <- getAuthSession(signInResponse)
-      authenticatedSession = authSessionResponse.json.as[AuthenticatedSession]
-      _ <- setUserAsAgent(authenticatedSession)
-      massGenerationResponse <-
-        massGenerate(runPrefix, index, clientsPerAgent, teamMembersPerAgent, authenticatedSession)
-    } yield massGenerationResponse.status
-
-  private def signIn(index: Int)(implicit requestHeader: RequestHeader): Future[WSResponse] = {
-    val url = s"$baseUrl/agents-external-stubs/sign-in"
-
-    wsClient
-      .url(url)
-      .post(
-        Json.toJson(
-          SignInRequest(
-            userId = Some(f"perf-test-agent-$index%03d"),
-            plainTextPassword = None,
-            providerType = None,
-            planetId = Some(f"perf-test-planet-$index%03d"),
-            syncToAuthLoginApi = None
-          )
-        )
+      AgencyCreationPayload(
+        planetId,
+        agentUser.copy(enrolments = agentUser.enrolments.copy(delegated = clients.flatMap(_.enrolments.principal))),
+        clients,
+        teamMembers
       )
+
+    }
+
+    for (indexAgency <- (1 to perfDataRequest.numAgents).toList) {
+      val agencyCreationPayload = assembleAgency(indexAgency)
+
+      Future(persistUsers(agencyCreationPayload))
+      Future(persistClientRecords(agencyCreationPayload))
+    }
   }
 
-  private def getAuthSession(signedIn: WSResponse)(implicit requestHeader: RequestHeader): Future[WSResponse] = {
-    val url = s"$baseUrl${signedIn.header(HeaderNames.LOCATION).getOrElse("")}"
+  private def buildMainAgentUser(indexAgency: Int) = {
+    val principalEnrolments = Seq(
+      Enrolment(
+        "HMRC-AS-AGENT",
+        identifiers = Some(Seq(Identifier("AgentReferenceNumber", Generator.arn(indexAgency.toString).value)))
+      )
+    )
 
-    wsClient
-      .url(url)
-      .get()
+    val userId = f"perf-test-agent-$indexAgency%03d"
+
+    User(
+      userId = userId,
+      groupId = Some(UserGenerator.groupId(userId)),
+      affinityGroup = Some(AG.Agent),
+      credentialRole = Some(CR.Admin),
+      enrolments = Enrolments(
+        principalEnrolments,
+        Seq.empty,
+        Seq.empty
+      ),
+      agentCode = Some(UserGenerator.agentCode(userId))
+    )
   }
 
-  private def setUserAsAgent(
-    authenticatedSession: AuthenticatedSession
-  )(implicit requestHeader: RequestHeader): Future[WSResponse] = {
-    val url = s"$baseUrl/agents-external-stubs/users"
+  def buildClientsForAgent(indexAgency: Int, numClients: Int): List[User] = {
+    val clientTypeAndEnrolmentToGenerate: Seq[(ClientType, ServiceKey)] = {
+      val genMethod = GranPermsGenRequest.GenMethodProportional
+      val clientTypes: Seq[ClientType] = pickFromDistribution(
+        genMethod,
+        GranPermsGenRequest.defaultClientTypeDistribution,
+        numClients
+      )
+      val individualEnrolments: Seq[ServiceKey] = pickFromDistribution(
+        genMethod,
+        GranPermsGenRequest.defaultIndividualServiceDistribution,
+        clientTypes.count(_ == User.AG.Individual)
+      )
+      val organisationEnrolments: Seq[ServiceKey] = pickFromDistribution(
+        genMethod,
+        GranPermsGenRequest.defaultOrganisationServiceDistribution,
+        clientTypes.count(_ == User.AG.Organisation)
+      )
+      individualEnrolments.map((User.AG.Individual, _)) ++ organisationEnrolments.map((User.AG.Organisation, _))
+    }
 
-    wsClient
-      .url(url)
-      .withHttpHeaders(authHeaders(authenticatedSession): _*)
-      .put(
-        Json.toJson(
+    clientTypeAndEnrolmentToGenerate.zipWithIndex.toList.map { case ((clientType, service), index: Int) =>
+      val seed = s"$indexAgency-$index"
+
+      val (idKey, idVal) = service match {
+        case "HMRC-MTD-IT"     => ("MTDITID", Generator.mtdbsa(seed).value)
+        case "HMRC-MTD-VAT"    => ("VRN", Generator.vrn(seed).value)
+        case "HMRC-CGT-PD"     => ("CGTPDRef", Generator.cgtPdRef(seed))
+        case "HMRC-PPT-ORG"    => ("EtmpRegistrationNumber", Generator.regex(Common.pptReferencePattern).sample.get)
+        case "HMRC-TERS-ORG"   => ("SAUTR", Generator.utr(seed))
+        case "HMRC-TERSNT-ORG" => ("URN", Generator.urn(seed).value)
+      }
+      clientType match {
+        case User.AG.Individual =>
           UserGenerator
-            .agent(userId = authenticatedSession.userId)
-            .withPrincipalEnrolment(
-              "HMRC-AS-AGENT",
-              "AgentReferenceNumber",
-              Generator.arn(authenticatedSession.userId).value
+            .individual(userId = f"perf-test-$indexAgency%04d-C${index + 1}%05d", confidenceLevel = 250)
+            .withPrincipalEnrolment(service = service, identifierKey = idKey, identifierValue = idVal)
+        case User.AG.Organisation =>
+          UserGenerator
+            .organisation(userId = f"perf-test-$indexAgency%04d-C${index + 1}%05d")
+            .withPrincipalEnrolment(service = service, identifierKey = idKey, identifierValue = idVal)
+      }
+    }
+  }
+
+  private def buildTeamMembersForAgent(indexAgency: Int, teamMembersPerAgent: Int, agentUser: User) =
+    (1 to teamMembersPerAgent).toList.map { index =>
+      UserGenerator
+        .agent(
+          userId = f"perf-test-$indexAgency%04d-A$index%05d",
+          groupId = agentUser.groupId.orNull,
+          agentCode = agentUser.agentCode.orNull,
+          credentialRole = "User"
+        )
+    }
+
+  private def persistUsers(agencyCreationPayload: AgencyCreationPayload): Unit = {
+    (List(agencyCreationPayload.agentUser) ++ agencyCreationPayload.clients ++ agencyCreationPayload.teamMembers)
+      .map(user => UserCreationPayload(user, agencyCreationPayload.planetId))
+      .foreach(userCreationPayload => dataCreationActor ! userCreationPayload)
+
+    logger.info(s"Queued creation of users for '${agencyCreationPayload.agentUser.userId}'")
+  }
+
+  private def persistClientRecords(agencyCreationPayload: AgencyCreationPayload) = {
+    agencyCreationPayload.clients
+      .map(assembleRecord)
+      .collect { case Some(record) => record }
+      .map(record => ClientRecordCreationPayload(record, agencyCreationPayload.planetId))
+      .foreach(clientRecordCreationPayload => dataCreationActor ! clientRecordCreationPayload)
+
+    logger.info(s"Queued creation of client records for '${agencyCreationPayload.agentUser.userId}'")
+  }
+
+  def assembleRecord(client: User): Option[Record] =
+    (for {
+      enrolment   <- client.enrolments.principal.headOption
+      identifiers <- enrolment.identifiers
+      identifier  <- identifiers.headOption
+    } yield enrolment.key match {
+      case "HMRC-MTD-IT" =>
+        Some(
+          BusinessDetailsRecord
+            .generate(identifier.toString)
+            .withMtdbsa(identifier.value)
+            .withBusinessData(
+              Some(Seq(BusinessData.generate(identifier.value).withTradingName(Some("Trading Name"))))
             )
         )
-      )
+      case "HMRC-MTD-VAT" =>
+        Some(
+          VatCustomerInformationRecord(
+            identifier.value,
+            approvedInformation = Some(
+              ApprovedInformation(
+                CustomerDetails(organisationName = Some("VAT CLient"), mandationStatus = "1"),
+                PPOB.seed("PPOB")
+              )
+            )
+          )
+        )
+      case "HMRC-CGT-PD" =>
+        Some(BusinessDetailsRecord.generate(identifier.toString).withCgtPdRef(Some(identifier.value)))
+      case "HMRC-PPT-ORG" =>
+        Some(
+          PPTSubscriptionDisplayRecord
+            .generateWith(
+              client.affinityGroup,
+              Some("Jane"),
+              Some("Doe"),
+              None,
+              identifier.value
+            )
+        )
+      case "HMRC-TERS-ORG" =>
+        Some(BusinessDetailsRecord.generate(identifier.toString))
+      case "HMRC-TERSNT-ORG" =>
+        Some(BusinessDetailsRecord.generate(identifier.toString))
+      case _ => Option.empty[Record]
+    }).flatten
+
+  private def pickFromDistribution[A](method: String, distribution: Map[A, Double], n: Int): Seq[A] = method match {
+    case GranPermsGenRequest.GenMethodRandom =>
+      Seq.fill(n)(pickFromDistributionRandomly(distribution))
+    case GranPermsGenRequest.GenMethodProportional =>
+      pickFromDistributionProportionally[A](distribution, n)
   }
 
-  private def massGenerate(
-    runPrefix: String,
-    index: Int,
-    clientsPerAgent: Int,
-    teamMembersPerAgent: Int,
-    authenticatedSession: AuthenticatedSession
-  )(implicit
-    requestHeader: RequestHeader
-  ): Future[WSResponse] = {
-
-    val granPermsGenRequest = GranPermsGenRequest(
-      s"$runPrefix$index",
-      teamMembersPerAgent,
-      clientsPerAgent,
-      fillFriendlyNames = false,
-      None,
-      None,
-      None,
-      None
-    )
-
-    val url = s"$baseUrl/agents-external-stubs/test/gran-perms/generate-users"
-
-    wsClient
-      .url(url)
-      .withHttpHeaders(authHeaders(authenticatedSession): _*)
-      .withRequestTimeout(Duration(1, MINUTES))
-      .post(
-        Json.toJson(granPermsGenRequest)
-      )
+  private def pickFromDistributionRandomly[A](distribution: Map[A, Double]): A = {
+    require(distribution.nonEmpty)
+    val normalisedDistribution = distribution.mapValues(_ / distribution.values.sum).toSeq
+    val randomNumber = Random.nextDouble()
+    val chosenIndex = normalisedDistribution.map(_._2).scan(0.0)(_ + _).tail.indexWhere(randomNumber < _)
+    if (chosenIndex < 0) // not found - should only ever happen (rarely) due to rounding errors
+      normalisedDistribution.last._1
+    else
+      normalisedDistribution(chosenIndex)._1
   }
 
-  private def baseUrl(implicit requestHeader: RequestHeader): String =
-    s"${if (requestHeader.secure) "https" else "http"}://${requestHeader.host}"
+  private def pickFromDistributionProportionally[A](distribution: Map[A, Double], n: Int): Seq[A] = {
+    require(distribution.nonEmpty)
+    val normalisedDistribution = distribution.mapValues(_ / distribution.values.sum).toSeq
+    val intervalPartition = normalisedDistribution.map(_._2).scan(0.0)(_ + _).tail
+    (0 until n).map { i =>
+      val fractionalIndex = (i.toDouble + 0.5) / n.toDouble
+      val chosenIndex = intervalPartition.indexWhere(fractionalIndex < _)
+      if (chosenIndex < 0) // not found - should only ever happen (rarely) due to rounding errors
+        normalisedDistribution.last._1
+      else
+        normalisedDistribution(chosenIndex)._1
+    }
+  }
 
-  private def authHeaders(authenticatedSession: AuthenticatedSession): Seq[(String, String)] =
-    Seq(
-      HeaderNames.AUTHORIZATION               -> s"Bearer ${authenticatedSession.authToken}",
-      uk.gov.hmrc.http.HeaderNames.xSessionId -> authenticatedSession.sessionId
-    )
+}
+
+object DataCreationActor {
+  def props(usersRepository: UsersRepositoryMongo, recordsRepository: RecordsRepositoryMongo)(implicit
+    executionContext: ExecutionContext
+  ): Props = Props(new DataCreationActor(usersRepository, recordsRepository))
+
+}
+
+class DataCreationActor(usersRepository: UsersRepositoryMongo, recordsRepository: RecordsRepositoryMongo)(implicit
+  executionContext: ExecutionContext
+) extends Actor with Logging {
+
+  import uk.gov.hmrc.agentsexternalstubs.syntax.|>
+
+  override def receive: Receive = {
+    case UserCreationPayload(user: User, planetId: String) =>
+      usersRepository
+        .create(user, planetId)
+        .recover { case ex =>
+          logger.error(s"Could not create user ${user.userId} of $planetId: ${ex.getMessage}")
+        }
+    case ClientRecordCreationPayload(entity: Record, planetId: String) =>
+      val PLANET_ID = "_planetId"
+      val UNIQUE_KEY = "_uniqueKey"
+      val KEYS = "_keys"
+      val TYPE = "_record_type"
+
+      val typeName = Record.typeOf(entity)
+      val json: JsObject = Json
+        .toJson[Record](entity)
+        .as[JsObject]
+        .+(PLANET_ID -> JsString(planetId))
+        .+(TYPE -> JsString(typeName))
+        .+(
+          KEYS -> JsArray(
+            entity.uniqueKey
+              .map(key => entity.lookupKeys :+ key)
+              .getOrElse(entity.lookupKeys)
+              .map(key => JsString(keyOf(key, planetId, typeName)))
+          )
+        )
+        .|> { obj =>
+          entity.uniqueKey
+            .map(uniqueKey => obj.+(UNIQUE_KEY -> JsString(keyOf(uniqueKey, planetId, typeName))))
+            .getOrElse(obj)
+        }
+
+      recordsRepository.rawStore(json)
+  }
+
+  private def keyOf[T <: Record](key: String, planetId: String, recordType: String): String =
+    s"$recordType:${key.replace(" ", "").toLowerCase}@$planetId"
 
 }

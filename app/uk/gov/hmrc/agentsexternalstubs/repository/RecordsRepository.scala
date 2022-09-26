@@ -82,6 +82,22 @@ class RecordsRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
       Index(Seq(UNIQUE_KEY -> Ascending), Some("UniqueKey"), unique = true, sparse = true)
     )
 
+  def rawStore(json: JsObject)(implicit
+    ec: ExecutionContext
+  ): Future[String] = {
+
+    val newId = BSONObjectID.generate().stringify
+    collection
+      .insert(ordered = false)
+      .one(
+        json + (Record.ID -> Json.obj("$oid" -> JsString(newId))) + (UPDATED -> JsNumber(
+          System.currentTimeMillis()
+        ))
+      )
+      .map((_, newId))
+      .flatMap(MongoHelper.interpretWriteResult)
+  }
+
   override def store[T <: Record](entity: T, planetId: String)(implicit
     reads: Reads[T],
     ec: ExecutionContext
