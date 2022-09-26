@@ -17,9 +17,9 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import java.net.URLDecoder
-
 import akka.stream.Materializer
 import akka.util.ByteString
+
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{JsValue, Reads, Writes}
 import play.api.libs.streams.Accumulator
@@ -28,6 +28,7 @@ import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, Id, SpecialCase}
 import uk.gov.hmrc.agentsexternalstubs.repository.SpecialCasesRepository
 import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
+import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.ExecutionContext
@@ -36,6 +37,7 @@ import scala.concurrent.ExecutionContext
 class SpecialCasesController @Inject() (
   specialCasesRepository: SpecialCasesRepository,
   val authenticationService: AuthenticationService,
+  appConfig: AppConfig,
   cc: ControllerComponents
 )(implicit materializer: Materializer, ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
@@ -99,18 +101,38 @@ class SpecialCasesController @Inject() (
 
   final def maybeSpecialCase(action: EssentialAction): EssentialAction = new EssentialAction {
 
-    override def apply(rh: RequestHeader): Accumulator[ByteString, Result] =
+    override def apply(
+      rh: RequestHeader
+    ): Accumulator[ByteString, Result] =
       Accumulator.flatten(withMaybeCurrentSession { maybeSession =>
         val planetId = CurrentPlanetId(maybeSession, rh)
-        val key = SpecialCase.matchKey(rh.method, URLDecoder.decode(rh.uri, "utf-8"))
-        specialCasesRepository.findByMatchKey(key, planetId).map {
-          case None => action(AuthenticatedSession.tagRequest(rh, maybeSession))
-          case Some(specialCase) =>
-            Accumulator.done(specialCase.response.asResult)
+        if (appConfig.specialCasesUseTruncatedRequestUriMatch) {
+          specialCasesRepository.findByPlanetId(planetId)(25).map {
+            _.flatMap { specialCase =>
+              val lengthOfSpecialCase = specialCase.requestMatch.path.length
+              val requestUriKeyToMatch =
+                SpecialCase.matchKey(
+                  rh.method,
+                  URLDecoder
+                    .decode(rh.uri, "utf-8")
+                    .take(lengthOfSpecialCase)
+                )
+              if (specialCase.requestMatch.toKey == requestUriKeyToMatch)
+                Some(Accumulator.done(specialCase.response.asResult))
+              else None
+            }.headOption
+              .getOrElse(action(AuthenticatedSession.tagRequest(rh, maybeSession)))
+          }
+        } else {
+          val key = SpecialCase.matchKey(rh.method, URLDecoder.decode(rh.uri, "utf-8"))
+          specialCasesRepository.findByMatchKey(key, planetId).map {
+            case None => action(AuthenticatedSession.tagRequest(rh, maybeSession))
+            case Some(specialCase) =>
+              Accumulator.done(specialCase.response.asResult)
+          }
         }
       }(Request(rh, ()), ec, hc(rh)))
   }
-
 }
 
 object SpecialCasesController {
