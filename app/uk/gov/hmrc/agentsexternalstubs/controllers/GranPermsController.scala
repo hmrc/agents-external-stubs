@@ -39,12 +39,12 @@ class GranPermsController @Inject() (
   def massGenerateAgentsAndClients: Action[JsValue] =
     Action.async(parse.tolerantJson) { implicit request =>
       withCurrentSession { session =>
-        withPayload[GranPermsGenRequest] { request =>
+        withPayload[GranPermsGenRequest] { genRequest =>
           usersService.findByUserId(session.userId, session.planetId).flatMap {
             case None => Future.successful(Unauthorized("No logged-in user."))
-            case _ if request.numberOfAgents > appConfig.granPermsTestGenMaxAgents =>
+            case _ if genRequest.numberOfAgents > appConfig.granPermsTestGenMaxAgents =>
               Future.successful(BadRequest("Too many agents requested."))
-            case _ if request.numberOfClients > appConfig.granPermsTestGenMaxClients =>
+            case _ if genRequest.numberOfClients > appConfig.granPermsTestGenMaxClients =>
               Future.successful(BadRequest("Too many clients requested."))
             case Some(currentUser) if !currentUser.affinityGroup.contains(User.AG.Agent) =>
               Future.successful(Unauthorized("Currently logged-in user is not an Agent."))
@@ -57,7 +57,7 @@ class GranPermsController @Inject() (
                 .massGenerateAgentsAndClients(
                   planetId = session.planetId,
                   currentUser = currentUser,
-                  genRequest = request
+                  genRequest = genRequest
                 )
                 .map { case (createdAgents, createdClients) =>
                   Created(Json.toJson(GranPermsGenResponse(createdAgents.size, createdClients.size)))

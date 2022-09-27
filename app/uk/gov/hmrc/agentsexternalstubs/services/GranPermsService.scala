@@ -18,6 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 
 import cats.implicits._
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.domain.Nino
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -57,10 +58,20 @@ class GranPermsService @Inject() (
       individualEnrolments.map((User.AG.Individual, _)) ++ organisationEnrolments.map((User.AG.Organisation, _))
     }
     clientTypeAndEnrolmentToGenerate.zipWithIndex.toList.traverse { case ((clientType, enrolmentKey), i: Int) =>
+      def randomNino = {
+        val prefix = Nino.validPrefixes(
+          Random.nextInt(Nino.validPrefixes.length)
+        )
+        val suffix = Nino.validSuffixes(
+          Random.nextInt(Nino.validSuffixes.length)
+        )
+        f"$prefix${i + 1}%06d$suffix"
+      }
+
       val user = clientType match {
         case User.AG.Individual =>
           UserGenerator
-            .individual(userId = idFunction(i), confidenceLevel = 250)
+            .individual(userId = idFunction(i), confidenceLevel = 250, nino = randomNino)
             .withPrincipalEnrolment(service = enrolmentKey, identifierKey = "", identifierValue = "")
         case User.AG.Organisation =>
           UserGenerator
