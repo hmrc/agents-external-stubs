@@ -60,7 +60,7 @@ class GranPermsService @Inject() (
       val user = clientType match {
         case User.AG.Individual =>
           UserGenerator
-            .individual(userId = idFunction(i), confidenceLevel = 250)
+            .individual(userId = idFunction(i), confidenceLevel = 250, nino = f"AB${i + 1}%06dC")
             .withPrincipalEnrolment(service = enrolmentKey, identifierKey = "", identifierValue = "")
         case User.AG.Organisation =>
           UserGenerator
