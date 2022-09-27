@@ -27,9 +27,11 @@ import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{Appr
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository._
 import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
+import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
+import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
@@ -56,9 +58,6 @@ class PerfDataController @Inject() (
 )(implicit ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession with Logging {
 
-  type ClientType = String
-  type ServiceKey = String
-
   private val dataCreationActor: ActorRef =
     actorSystem.actorOf(
       DataCreationActor.props(usersRepository, recordsRepository)
@@ -66,55 +65,72 @@ class PerfDataController @Inject() (
 
   def generate: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withPayload[PerfDataRequest] { perfDataRequest =>
-      dropCollections().map { _ =>
-        process(perfDataRequest)
-      }
+      new Thread {
+        override def run(): Unit = {
+          dropCollections()
+          reapplyIndexes()
+          generateData(perfDataRequest)
+        }
+      }.start()
 
       Future successful Accepted(
         s"Processing can take a while, please check later for creation of " +
-          s"${perfDataRequest.numAgents * (1 + perfDataRequest.clientsPerAgent + perfDataRequest.teamMembersPerAgent)} records"
+          s"${perfDataRequest.numAgents * (1 + perfDataRequest.clientsPerAgent + perfDataRequest.teamMembersPerAgent)} 'users', and " +
+          s"${perfDataRequest.numAgents * perfDataRequest.clientsPerAgent} 'records'"
       )
-
     }
   }
 
-  private def dropCollections(): Future[Unit] =
-    Future {
-      usersRepository.drop
-      logger.info(s"Dropped '${usersRepository.collection.name}' collection if it existed")
-      recordsRepository.drop
-      logger.info(s"Dropped '${recordsRepository.collection.name}' collection if it existed")
-      authenticatedSessionsRepository.drop
-      logger.info(s"Dropped '${authenticatedSessionsRepository.collection.name}' collection if it existed")
-      knownFactsRepository.drop
-      logger.info(s"Dropped '${knownFactsRepository.collection.name}' collection if it existed")
-      specialCasesRepository.drop
-      logger.info(s"Dropped '${specialCasesRepository.collection.name}' collection if it existed")
+  private def dropCollections(): Unit = {
+
+    def dropCollectionOf[R <: ReactiveRepository[_, _]](repository: R): Unit = {
+      repository.drop
+      logger.info(s"Dropped '${repository.collection.name}' collection if it existed")
     }
 
-  private def process(perfDataRequest: PerfDataRequest): Unit = {
+    dropCollectionOf(usersRepository)
+    dropCollectionOf(recordsRepository)
+    dropCollectionOf(authenticatedSessionsRepository)
+    dropCollectionOf(knownFactsRepository)
+    dropCollectionOf(specialCasesRepository)
+  }
 
-    def assembleAgency(indexAgency: Int) = {
-      val planetId = f"perf-test-planet-$indexAgency%03d"
-      val agentUser = buildMainAgentUser(indexAgency)
-      val clients = buildClientsForAgent(indexAgency, perfDataRequest.clientsPerAgent)
-      val teamMembers = buildTeamMembersForAgent(indexAgency, perfDataRequest.teamMembersPerAgent, agentUser)
+  private def reapplyIndexes(): Unit = {
+    usersRepository.ensureIndexes
+    recordsRepository.ensureIndexes
+    authenticatedSessionsRepository.ensureIndexes
+    knownFactsRepository.ensureIndexes
+    specialCasesRepository.ensureIndexes
 
-      AgencyCreationPayload(
-        planetId,
-        agentUser.copy(enrolments = agentUser.enrolments.copy(delegated = clients.flatMap(_.enrolments.principal))),
-        clients,
-        teamMembers
-      )
+    logger.info(s"Re-applied indexes")
+  }
 
-    }
-
+  private def generateData(perfDataRequest: PerfDataRequest): Unit =
     for (indexAgency <- (1 to perfDataRequest.numAgents).toList) {
-      val agencyCreationPayload = assembleAgency(indexAgency)
+      val agencyCreationPayload =
+        assembleAgency(indexAgency, perfDataRequest.clientsPerAgent, perfDataRequest.teamMembersPerAgent)
 
-      Future(persistUsers(agencyCreationPayload))
-      Future(persistClientRecords(agencyCreationPayload))
+      persistUsers(agencyCreationPayload)
+      persistClientRecords(agencyCreationPayload)
     }
+
+  private def assembleAgency(
+    indexAgency: Int,
+    clientsPerAgent: Int,
+    teamMembersPerAgent: Int
+  ): AgencyCreationPayload = {
+    val planetId = f"perf-test-planet-$indexAgency%03d"
+    val agentUser = buildMainAgentUser(indexAgency)
+    val clients = buildClientsForAgent(indexAgency, clientsPerAgent)
+    val teamMembers = buildTeamMembersForAgent(indexAgency, teamMembersPerAgent, agentUser)
+
+    AgencyCreationPayload(
+      planetId,
+      agentUser.copy(enrolments = agentUser.enrolments.copy(delegated = clients.flatMap(_.enrolments.principal))),
+      clients,
+      teamMembers
+    )
+
   }
 
   private def buildMainAgentUser(indexAgency: Int) = {
@@ -142,7 +158,39 @@ class PerfDataController @Inject() (
   }
 
   def buildClientsForAgent(indexAgency: Int, numClients: Int): List[User] = {
-    val clientTypeAndEnrolmentToGenerate: Seq[(ClientType, ServiceKey)] = {
+
+    type ClientType = String
+    type ServiceKey = String
+
+    def generateClient(clientType: ClientType, serviceKey: ServiceKey, index: Int): User = {
+      val seed = System.nanoTime().toString
+
+      val (idKey, idVal) = serviceKey match {
+        case "HMRC-MTD-IT"     => ("MTDITID", Generator.mtdbsa(seed).value)
+        case "HMRC-MTD-VAT"    => ("VRN", Generator.vrn(seed).value)
+        case "HMRC-CGT-PD"     => ("CGTPDRef", Generator.cgtPdRef(seed))
+        case "HMRC-PPT-ORG"    => ("EtmpRegistrationNumber", Generator.regex(Common.pptReferencePattern).sample.get)
+        case "HMRC-TERS-ORG"   => ("SAUTR", Generator.utr(seed))
+        case "HMRC-TERSNT-ORG" => ("URN", Generator.urn(seed).value)
+      }
+
+      clientType match {
+        case User.AG.Individual =>
+          UserGenerator
+            .individual(
+              userId = f"perf-test-$indexAgency%04d-C${index + 1}%05d",
+              confidenceLevel = 250,
+              nino = f"AB${index + 1}%06dC"
+            )
+            .withPrincipalEnrolment(service = serviceKey, identifierKey = idKey, identifierValue = idVal)
+        case User.AG.Organisation =>
+          UserGenerator
+            .organisation(userId = f"perf-test-$indexAgency%04d-C${index + 1}%05d")
+            .withPrincipalEnrolment(service = serviceKey, identifierKey = idKey, identifierValue = idVal)
+      }
+    }
+
+    def clientTypesAndServiceKeys: Seq[(ClientType, ServiceKey)] = {
       val genMethod = GranPermsGenRequest.GenMethodProportional
       val clientTypes: Seq[ClientType] = pickFromDistribution(
         genMethod,
@@ -162,27 +210,29 @@ class PerfDataController @Inject() (
       individualEnrolments.map((User.AG.Individual, _)) ++ organisationEnrolments.map((User.AG.Organisation, _))
     }
 
-    clientTypeAndEnrolmentToGenerate.zipWithIndex.toList.map { case ((clientType, service), index: Int) =>
-      val seed = s"$indexAgency-$index"
+    clientTypesAndServiceKeys.zipWithIndex.toList.foldLeft(List.empty[User]) {
+      case (generatedClientsOfAgent, ((clientType, serviceKey), index: Int)) =>
+        @tailrec
+        def generateUniqueClientForAgent: User = {
+          val generatedClient = generateClient(clientType, serviceKey, index)
 
-      val (idKey, idVal) = service match {
-        case "HMRC-MTD-IT"     => ("MTDITID", Generator.mtdbsa(seed).value)
-        case "HMRC-MTD-VAT"    => ("VRN", Generator.vrn(seed).value)
-        case "HMRC-CGT-PD"     => ("CGTPDRef", Generator.cgtPdRef(seed))
-        case "HMRC-PPT-ORG"    => ("EtmpRegistrationNumber", Generator.regex(Common.pptReferencePattern).sample.get)
-        case "HMRC-TERS-ORG"   => ("SAUTR", Generator.utr(seed))
-        case "HMRC-TERSNT-ORG" => ("URN", Generator.urn(seed).value)
-      }
-      clientType match {
-        case User.AG.Individual =>
-          UserGenerator
-            .individual(userId = f"perf-test-$indexAgency%04d-C${index + 1}%05d", confidenceLevel = 250)
-            .withPrincipalEnrolment(service = service, identifierKey = idKey, identifierValue = idVal)
-        case User.AG.Organisation =>
-          UserGenerator
-            .organisation(userId = f"perf-test-$indexAgency%04d-C${index + 1}%05d")
-            .withPrincipalEnrolment(service = service, identifierKey = idKey, identifierValue = idVal)
-      }
+          generatedClient.enrolments.principal.headOption match {
+            case None =>
+              generateUniqueClientForAgent
+            case Some(enrolment) =>
+              if (
+                generatedClientsOfAgent
+                  .flatMap(_.enrolments.principal)
+                  .exists(_.toEnrolmentKeyTag == enrolment.toEnrolmentKeyTag)
+              ) {
+                generateUniqueClientForAgent
+              } else {
+                generatedClient
+              }
+          }
+        }
+
+        generatedClientsOfAgent :+ generateUniqueClientForAgent
     }
   }
 
@@ -198,21 +248,22 @@ class PerfDataController @Inject() (
     }
 
   private def persistUsers(agencyCreationPayload: AgencyCreationPayload): Unit = {
+    logger.info(s"Creating users for '${agencyCreationPayload.planetId}'")
+
     (List(agencyCreationPayload.agentUser) ++ agencyCreationPayload.clients ++ agencyCreationPayload.teamMembers)
       .map(user => UserCreationPayload(user, agencyCreationPayload.planetId))
       .foreach(userCreationPayload => dataCreationActor ! userCreationPayload)
 
-    logger.info(s"Queued creation of users for '${agencyCreationPayload.agentUser.userId}'")
   }
 
-  private def persistClientRecords(agencyCreationPayload: AgencyCreationPayload) = {
+  private def persistClientRecords(agencyCreationPayload: AgencyCreationPayload): Unit = {
+    logger.info(s"Creating client records for '${agencyCreationPayload.planetId}'")
+
     agencyCreationPayload.clients
       .map(assembleRecord)
       .collect { case Some(record) => record }
       .map(record => ClientRecordCreationPayload(record, agencyCreationPayload.planetId))
       .foreach(clientRecordCreationPayload => dataCreationActor ! clientRecordCreationPayload)
-
-    logger.info(s"Queued creation of client records for '${agencyCreationPayload.agentUser.userId}'")
   }
 
   def assembleRecord(client: User): Option[Record] =
@@ -317,32 +368,39 @@ class DataCreationActor(usersRepository: UsersRepositoryMongo, recordsRepository
           logger.error(s"Could not create user ${user.userId} of $planetId: ${ex.getMessage}")
         }
     case ClientRecordCreationPayload(entity: Record, planetId: String) =>
-      val PLANET_ID = "_planetId"
-      val UNIQUE_KEY = "_uniqueKey"
-      val KEYS = "_keys"
-      val TYPE = "_record_type"
-
-      val typeName = Record.typeOf(entity)
-      val json: JsObject = Json
-        .toJson[Record](entity)
-        .as[JsObject]
-        .+(PLANET_ID -> JsString(planetId))
-        .+(TYPE -> JsString(typeName))
-        .+(
-          KEYS -> JsArray(
-            entity.uniqueKey
-              .map(key => entity.lookupKeys :+ key)
-              .getOrElse(entity.lookupKeys)
-              .map(key => JsString(keyOf(key, planetId, typeName)))
-          )
-        )
-        .|> { obj =>
-          entity.uniqueKey
-            .map(uniqueKey => obj.+(UNIQUE_KEY -> JsString(keyOf(uniqueKey, planetId, typeName))))
-            .getOrElse(obj)
+      recordsRepository
+        .rawStore(recordAsJson(entity, planetId))
+        .map(id => logger.debug(s"Created record of id $id"))
+        .recover { case ex =>
+          logger.error(s"Could not create record for ${entity.uniqueKey} of $planetId: ${ex.getMessage}")
         }
+  }
 
-      recordsRepository.rawStore(json)
+  private def recordAsJson(record: Record, planetId: String): JsObject = {
+    val PLANET_ID = "_planetId"
+    val UNIQUE_KEY = "_uniqueKey"
+    val KEYS = "_keys"
+    val TYPE = "_record_type"
+    val typeName = Record.typeOf(record)
+
+    Json
+      .toJson[Record](record)
+      .as[JsObject]
+      .+(PLANET_ID -> JsString(planetId))
+      .+(TYPE -> JsString(typeName))
+      .+(
+        KEYS -> JsArray(
+          record.uniqueKey
+            .map(key => record.lookupKeys :+ key)
+            .getOrElse(record.lookupKeys)
+            .map(key => JsString(keyOf(key, planetId, typeName)))
+        )
+      )
+      .|> { obj =>
+        record.uniqueKey
+          .map(uniqueKey => obj.+(UNIQUE_KEY -> JsString(keyOf(uniqueKey, planetId, typeName))))
+          .getOrElse(obj)
+      }
   }
 
   private def keyOf[T <: Record](key: String, planetId: String, recordType: String): String =
