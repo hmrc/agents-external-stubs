@@ -63,6 +63,8 @@ class PerfDataController @Inject() (
       DataCreationActor.props(usersRepository, recordsRepository)
     )
 
+  private val AGENT_NINO_OFFSET = 90000
+
   def generate: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withPayload[PerfDataRequest] { perfDataRequest =>
       new Thread {
@@ -70,6 +72,7 @@ class PerfDataController @Inject() (
           dropCollections()
           reapplyIndexes()
           generateData(perfDataRequest)
+          logger.info(s"Done with data generation")
         }
       }.start()
 
@@ -243,7 +246,8 @@ class PerfDataController @Inject() (
           userId = f"perf-test-$indexAgency%04d-A$index%05d",
           groupId = agentUser.groupId.orNull,
           agentCode = agentUser.agentCode.orNull,
-          credentialRole = "User"
+          credentialRole = "User",
+          nino = f"AB${index + AGENT_NINO_OFFSET + 1}%06dC"
         )
     }
 
