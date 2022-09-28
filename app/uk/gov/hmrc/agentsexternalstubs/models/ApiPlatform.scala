@@ -53,9 +53,9 @@ object ApiPlatform {
   ) {
 
     val affinityGroup: String =
-      if (individualDetails.isDefined) User.AG.Individual
-      else if (organisationDetails.isDefined) User.AG.Organisation
-      else User.AG.Agent
+      if (individualDetails.isDefined) AG.Individual
+      else if (organisationDetails.isDefined) AG.Organisation
+      else AG.Agent
 
     val services: Seq[String] = Seq(
       nino.map(_ => "national-insurance"),
@@ -87,36 +87,46 @@ object ApiPlatform {
     implicit lazy val formats3: Format[OrganisationDetails] = Json.format[OrganisationDetails]
     implicit lazy val formats4: Format[TestUser] = Json.format[TestUser]
 
-    def asUser(testUser: TestUser): User = User(
-      userId = testUser.userId,
-      affinityGroup = Option(testUser.affinityGroup),
-      confidenceLevel = if (testUser.affinityGroup == User.AG.Individual) Some(250) else None,
-      credentialStrength = Some("strong"),
-      nino = if (testUser.affinityGroup == User.AG.Individual) testUser.nino.map(Nino.apply) else None,
-      name = (testUser.affinityGroup match {
-        case User.AG.Individual   => testUser.individualDetails.map(d => d.firstName + " " + d.lastName)
-        case User.AG.Organisation => testUser.organisationDetails.map(d => d.name)
-        case _                    => None
-      }).orElse(Option(testUser.userFullName)),
-      dateOfBirth =
-        if (testUser.affinityGroup == User.AG.Individual) testUser.individualDetails.map(_.dateOfBirth) else None,
-      agentFriendlyName = if (testUser.affinityGroup == User.AG.Agent) Some(testUser.userFullName) else None,
-      enrolments = User.Enrolments(principal = mapServicesToEnrolments(testUser)),
-      address = (testUser.affinityGroup match {
-        case User.AG.Individual   => testUser.individualDetails.map(_.address)
-        case User.AG.Organisation => testUser.organisationDetails.map(_.address)
-        case _                    => None
-      }).map(a =>
-        User.Address(
-          line1 = Option(a.line1),
-          line2 = Option(a.line2),
-          postcode = Option(a.postcode),
-          countryCode = Some("GB")
-        )
-      ),
-      additionalInformation =
-        testUser.vatRegistrationDate.map(date => AdditionalInformation(vatRegistrationDate = Some(date)))
-    )
+    def asUserAndGroup(testUser: TestUser): (User, Group) = {
+      val groupId = GroupGenerator.groupId(seed = testUser.hashCode().toString)
+      val user = User(
+        userId = testUser.userId,
+        groupId = Some(groupId),
+        confidenceLevel = if (testUser.affinityGroup == AG.Individual) Some(250) else None,
+        credentialStrength = Some("strong"),
+        nino = if (testUser.affinityGroup == AG.Individual) testUser.nino.map(Nino.apply) else None,
+        name = (testUser.affinityGroup match {
+          case AG.Individual   => testUser.individualDetails.map(d => d.firstName + " " + d.lastName)
+          case AG.Organisation => testUser.organisationDetails.map(d => d.name)
+          case _               => None
+        }).orElse(Option(testUser.userFullName)),
+        dateOfBirth =
+          if (testUser.affinityGroup == AG.Individual) testUser.individualDetails.map(_.dateOfBirth) else None,
+        address = (testUser.affinityGroup match {
+          case AG.Individual   => testUser.individualDetails.map(_.address)
+          case AG.Organisation => testUser.organisationDetails.map(_.address)
+          case _               => None
+        }).map(a =>
+          User.Address(
+            line1 = Option(a.line1),
+            line2 = Option(a.line2),
+            postcode = Option(a.postcode),
+            countryCode = Some("GB")
+          )
+        ),
+        assignedPrincipalEnrolments = mapServicesToEnrolments(testUser).flatMap(_.toEnrolmentKey),
+        additionalInformation =
+          testUser.vatRegistrationDate.map(date => AdditionalInformation(vatRegistrationDate = Some(date)))
+      )
+      val group = Group(
+        groupId = groupId,
+        planetId = "",
+        affinityGroup = testUser.affinityGroup,
+        agentFriendlyName = if (testUser.affinityGroup == AG.Agent) Some(testUser.userFullName) else None,
+        principalEnrolments = mapServicesToEnrolments(testUser)
+      )
+      (user, group)
+    }
 
     def mapServicesToEnrolments(testUser: ApiPlatform.TestUser): Seq[Enrolment] =
       testUser.services

@@ -1,7 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.connectors
 
 import org.scalatestplus.mockito.MockitoSugar
-import org.scalatest.Suite
+import org.scalatest.{BeforeAndAfterEach, Suite}
 import org.scalatest.matchers.should.Matchers
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
@@ -99,9 +99,24 @@ class EnrolmentStoreProxyConnectorISpec
 
     "allocate an enrolment to an agent" in {
       implicit val session = givenAuthenticatedSession()
-      givenEnrolmentAllocationSucceeds("group1", "user1", "HMRC-MTD-IT", "MTDITID", "123456789098765", "bar")
+      val clientCreation = Users.create(
+        UserGenerator
+          .individual()
+          .copy(assignedPrincipalEnrolments = Seq(EnrolmentKey("HMRC-MTD-IT~MTDITID~123456789098765"))),
+        Some(AG.Individual)
+      )
+      clientCreation should haveStatus(201)
+      val agentCreation = Users.create(
+        UserGenerator.agent(userId = "user1", groupId = "group1"),
+        Some(AG.Agent),
+        agentCode = Some("bar")
+      )
+      agentCreation should haveStatus(201)
+
       await(connector.allocateEnrolmentToAgent("group1", "user1", MtdItId("123456789098765"), AgentCode("bar")))
-      verifyEnrolmentAllocationAttempt("group1", "user1", "HMRC-MTD-IT~MTDITID~123456789098765", "bar")
+      Groups.get("group1").json.as[Group].delegatedEnrolments should contain(
+        Enrolment.from(EnrolmentKey("HMRC-MTD-IT~MTDITID~123456789098765"))
+      )
     }
 
     "de-allocate an enrolment from an agent" in {
@@ -133,13 +148,15 @@ trait EnrolmentStoreProxyHelper extends TestRequests with TestStubs with Matcher
       Users.create(
         UserGenerator
           .agent(groupId = groupId)
-          .withPrincipalEnrolment(asEnrolment(taxIdentifier))
+          .withAssignedPrincipalEnrolment(asEnrolment(taxIdentifier).toEnrolmentKey.get),
+        Some(AG.Agent)
       )
     case _ =>
       Users.create(
         UserGenerator
           .individual(groupId = groupId)
-          .withPrincipalEnrolment(asEnrolment(taxIdentifier))
+          .withAssignedPrincipalEnrolment(asEnrolment(taxIdentifier).toEnrolmentKey.get),
+        Some(AG.Individual)
       )
   }
 
@@ -149,7 +166,8 @@ trait EnrolmentStoreProxyHelper extends TestRequests with TestStubs with Matcher
     val result = Users.create(
       UserGenerator
         .agent(groupId = groupId)
-        .withDelegatedEnrolment(asEnrolment(taxIdentifier))
+        .withAssignedDelegatedEnrolment(asEnrolment(taxIdentifier).toEnrolmentKey.get),
+      Some(AG.Agent)
     )
     result should haveStatus(201)
   }
@@ -162,7 +180,8 @@ trait EnrolmentStoreProxyHelper extends TestRequests with TestStubs with Matcher
       val result = Users.create(
         UserGenerator
           .agent(groupId = groupId)
-          .withDelegatedEnrolment(enrolment)
+          .withAssignedDelegatedEnrolment(enrolment.toEnrolmentKey.get),
+        Some(AG.Agent)
       )
       result should haveStatus(201)
     }
@@ -175,40 +194,19 @@ trait EnrolmentStoreProxyHelper extends TestRequests with TestStubs with Matcher
       val result = Users.create(
         UserGenerator
           .agent(userId = userId)
-          .withPrincipalEnrolment(asEnrolment(taxIdentifier))
+          .withAssignedPrincipalEnrolment(asEnrolment(taxIdentifier).toEnrolmentKey.get),
+        Some(AG.Agent)
       )
       result should haveStatus(201)
     case _ =>
       val result = Users.create(
         UserGenerator
           .individual(userId = userId)
-          .withPrincipalEnrolment(asEnrolment(taxIdentifier))
+          .withAssignedPrincipalEnrolment(asEnrolment(taxIdentifier).toEnrolmentKey.get),
+        Some(AG.Individual)
       )
       result should haveStatus(201)
   }
-
-  def givenEnrolmentAllocationSucceeds(
-    groupId: String,
-    userId: String,
-    key: String,
-    identifier: String,
-    value: String,
-    agentCode: String
-  )(implicit authContext: AuthContext): Unit = {
-    val result1 = Users.create(
-      UserGenerator
-        .individual()
-        .withPrincipalEnrolment(key, identifier, value)
-    )
-    result1 should haveStatus(201)
-    val result2 = Users.create(
-      UserGenerator
-        .agent(userId = userId, groupId = groupId, agentCode = agentCode)
-    )
-    result2 should haveStatus(201)
-  }
-
-  def givenEnrolmentDeallocationSucceeds(groupId: String, taxIdentifier: TaxIdentifier, agentCode: String): Unit = ()
 
   def givenEnrolmentDeallocationSucceeds(
     groupId: String,
@@ -219,25 +217,22 @@ trait EnrolmentStoreProxyHelper extends TestRequests with TestStubs with Matcher
   )(implicit authContext: AuthContext): Unit =
     Users.create(
       UserGenerator
-        .agent(groupId = groupId, agentCode = agentCode)
-        .withDelegatedEnrolment(key, identifier, value)
+        .agent(
+          groupId = groupId
+        )
+        .copy(assignedDelegatedEnrolments = Seq(Enrolment(key, identifier, value).toEnrolmentKey.get)),
+      Some(AG.Agent),
+      agentCode = Some(agentCode)
     )
-
-  def verifyEnrolmentAllocationAttempt(groupId: String, userId: String, enrolmentKey: String, agentCode: String)(
-    implicit authContext: AuthContext
-  ) =
-    Users.get(userId).json.as[User].enrolments.delegated.map(_.toEnrolmentKeyTag.get) should contain(enrolmentKey)
 
   def verifyEnrolmentDeallocationAttempt(groupId: String, enrolmentKey: String, agentCode: String)(implicit
     authContext: AuthContext
   ) =
-    Users
-      .getAll(agentCode = Some(agentCode))
+    Groups
+      .get(groupId)
       .json
-      .as[Users]
-      .users
-      .headOption
-      .map(u => Users.get(u.userId).json.as[User].enrolments.delegated.map(_.toEnrolmentKeyTag.get))
-      .get should not contain enrolmentKey
+      .as[Group]
+      .delegatedEnrolments
+      .map(_.toEnrolmentKeyTag.get) should not contain enrolmentKey
 
 }

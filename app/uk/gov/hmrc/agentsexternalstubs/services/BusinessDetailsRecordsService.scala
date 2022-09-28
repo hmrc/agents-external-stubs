@@ -17,14 +17,13 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
 import com.google.inject.Provider
-
-import javax.inject.{Inject, Singleton}
-import uk.gov.hmrc.agentmtdidentifiers.model.{CgtRef, MtdItId, PptRef}
+import uk.gov.hmrc.agentmtdidentifiers.model.{CgtRef, MtdItId}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.BadRequestException
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -50,7 +49,7 @@ class BusinessDetailsRecordsService @Inject() (
     ec: ExecutionContext
   ): Future[Option[BusinessDetailsRecord]] =
     externalUserService
-      .tryLookupExternalUserIfMissingForIdentifier(nino, planetId, usersServiceProvider.get.createUser(_, _))(id =>
+      .tryLookupExternalUserIfMissingForIdentifier(nino, planetId, usersServiceProvider.get.createUser(_, _, _))(id =>
         findByKey[BusinessDetailsRecord](BusinessDetailsRecord.ninoKey(id.value), planetId).map(_.headOption)
       )
 

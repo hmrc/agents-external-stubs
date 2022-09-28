@@ -18,12 +18,13 @@ import scala.concurrent.ExecutionContext
 class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSupport with MongoDB with AuthStubs {
 
   lazy val usersService = app.injector.instanceOf[UsersService]
+  lazy val groupsService = app.injector.instanceOf[GroupsService]
   lazy val authenticationService = app.injector.instanceOf[AuthenticationService]
   lazy val httpPost = app.injector.instanceOf[HttpPost]
   lazy val appConfig = TestAppConfig(wireMockBaseUrlAsString, wireMockPort)
   lazy val authConnector = new MicroserviceAuthConnector(appConfig, httpPost)
   lazy val underTest =
-    new ExternalAuthorisationService(usersService, httpPost, appConfig)
+    new ExternalAuthorisationService(usersService, groupsService, httpPost, appConfig)
 
   val authoriseRequest = AuthoriseRequest(
     Seq.empty,
@@ -76,14 +77,16 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       session.userId shouldBe "AgentFoo"
       session.sessionId shouldBe sessionId
 
-      val userOpt = await(usersService.findByUserId("AgentFoo", sessionOpt.get.planetId))
+      val (userOpt, groupOpt) = await(usersService.findUserAndGroup("AgentFoo", sessionOpt.get.planetId))
       userOpt shouldBe defined
+      groupOpt shouldBe defined
       val user = userOpt.get
+      val group = groupOpt.get
       user.userId shouldBe "AgentFoo"
-      user.enrolments.principal should contain.only(
+      group.principalEnrolments should contain.only(
         Enrolment("HMRC-AS-AGENT", Some(Seq(Identifier("AgentReferenceNumber", "TARN0000001"))))
       )
-      user.affinityGroup shouldBe Some("Agent")
+      group.affinityGroup shouldBe AG.Agent
       user.confidenceLevel shouldBe None
       user.credentialStrength shouldBe None
       user.credentialRole shouldBe Some("Admin")
@@ -91,9 +94,9 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       user.groupId shouldBe Some("foo-group-1")
       user.name shouldBe Some("Foo Bar")
       user.dateOfBirth shouldBe defined
-      user.agentCode shouldBe Some("a")
-      user.agentFriendlyName shouldBe Some("b")
-      user.agentId shouldBe Some("c")
+      group.agentCode shouldBe Some("a")
+      group.agentFriendlyName shouldBe Some("b")
+      group.agentId shouldBe Some("c")
     }
 
     "consult external auth service, and if session exists recreate session and individual user locally" in {
@@ -129,14 +132,16 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       session.userId shouldBe "UserFoo"
       session.sessionId shouldBe sessionId
 
-      val userOpt = await(usersService.findByUserId("UserFoo", sessionOpt.get.planetId))
+      val (userOpt, groupOpt) = await(usersService.findUserAndGroup("UserFoo", sessionOpt.get.planetId))
       userOpt shouldBe defined
+      groupOpt shouldBe defined
       val user = userOpt.get
+      val group = groupOpt.get
       user.userId shouldBe "UserFoo"
-      user.enrolments.principal should contain.only(
+      group.principalEnrolments should contain.only(
         Enrolment("HMRC-MTD-IT", Some(Seq(Identifier("MTDITID", "X12345678909876"))))
       )
-      user.affinityGroup shouldBe Some("Individual")
+      group.affinityGroup shouldBe AG.Individual
       user.confidenceLevel shouldBe Some(250)
       user.credentialStrength shouldBe Some("strong")
       user.credentialRole shouldBe Some("Admin")
@@ -144,9 +149,9 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       user.groupId shouldBe Some("foo-group-2")
       user.name shouldBe Some("Foo Bar")
       user.dateOfBirth shouldBe Some(LocalDate.parse("1993-09-21"))
-      user.agentCode shouldBe None
-      user.agentFriendlyName shouldBe None
-      user.agentId shouldBe None
+      group.agentCode shouldBe None
+      group.agentFriendlyName shouldBe None
+      group.agentId shouldBe None
     }
 
     "consult external auth service, and if session missing do nothing" in {
@@ -170,8 +175,11 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
         usersService.createUser(
           UserGenerator
             .individual("UserFoo", 50, "User")
-            .withPrincipalEnrolment(Enrolment("HMRC-MTD-VAT", Some(Seq(Identifier("VRN", "405985922"))))),
-          planetId
+            .withAssignedPrincipalEnrolment(
+              Enrolment("HMRC-MTD-VAT", Some(Seq(Identifier("VRN", "405985922")))).toEnrolmentKey.get
+            ),
+          planetId,
+          affinityGroup = Some(AG.Individual)
         )
       )
 
@@ -196,15 +204,17 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
         await(underTest.maybeExternalSession(planetId, authenticationService.authenticate)(ec, hc))
       sessionOpt shouldBe defined
 
-      val userOpt = await(usersService.findByUserId("UserFoo", sessionOpt.get.planetId))
+      val (userOpt, groupOpt) = await(usersService.findUserAndGroup("UserFoo", sessionOpt.get.planetId))
       userOpt shouldBe defined
+      groupOpt shouldBe defined
       val user = userOpt.get
+      val group = groupOpt.get
       user.userId shouldBe "UserFoo"
-      user.enrolments.principal should contain.only(
+      group.principalEnrolments should contain.only(
         Enrolment("HMRC-MTD-IT", Some(Seq(Identifier("MTDITID", "X12345678909876")))),
         Enrolment("HMRC-MTD-VAT", Some(Seq(Identifier("VRN", "405985922"))))
       )
-      user.affinityGroup shouldBe Some("Individual")
+      group.affinityGroup shouldBe AG.Individual
       user.confidenceLevel shouldBe Some(50)
       user.credentialStrength shouldBe Some("strong")
       user.credentialRole shouldBe Some("Admin")
@@ -212,9 +222,9 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       user.groupId shouldBe existingUser.groupId
       user.name shouldBe existingUser.name
       user.dateOfBirth shouldBe existingUser.dateOfBirth
-      user.agentCode shouldBe None
-      user.agentFriendlyName shouldBe None
-      user.agentId shouldBe None
+      group.agentCode shouldBe None
+      group.agentFriendlyName shouldBe None
+      group.agentId shouldBe None
     }
 
     "consult external auth service and parse response" in {
@@ -267,21 +277,23 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       session.userId shouldBe "1551815928588520"
       session.sessionId shouldBe sessionId
 
-      val userOpt = await(usersService.findByUserId("1551815928588520", sessionOpt.get.planetId))
+      val (userOpt, groupOpt) = await(usersService.findUserAndGroup("1551815928588520", sessionOpt.get.planetId))
       userOpt shouldBe defined
+      groupOpt shouldBe defined
       val user = userOpt.get
+      val group = groupOpt.get
       user.userId shouldBe "1551815928588520"
-      user.enrolments.principal shouldBe empty
-      user.affinityGroup shouldBe Some("Individual")
+      group.principalEnrolments shouldBe empty
+      group.affinityGroup shouldBe AG.Individual
       user.confidenceLevel shouldBe Some(250)
       user.credentialStrength shouldBe Some("weak")
       user.credentialRole shouldBe Some("Admin")
       user.nino shouldBe Some(Nino("AB123456A"))
       user.groupId shouldBe Some("testGroupId-b1062cdf-c73f-4a3f-b949-d43354399729")
       user.name shouldBe Some("Foo Bar")
-      user.agentCode shouldBe None
-      user.agentFriendlyName shouldBe None
-      user.agentId shouldBe None
+      group.agentCode shouldBe None
+      group.agentFriendlyName shouldBe None
+      group.agentId shouldBe None
     }
   }
 }

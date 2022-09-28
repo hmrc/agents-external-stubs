@@ -124,9 +124,9 @@ object Services {
   }
 
   lazy val servicesByKey: Map[String, Service] = services.map(s => (s.name, s)).toMap
-  lazy val individualServices: Seq[Service] = services.filter(_.affinityGroups.contains(User.AG.Individual))
-  lazy val organisationServices: Seq[Service] = services.filter(_.affinityGroups.contains(User.AG.Organisation))
-  lazy val agentServices: Seq[Service] = services.filter(_.affinityGroups.contains(User.AG.Agent))
-  lazy val nonAgentServices: Seq[Service] = services.filter(s => !s.affinityGroups.contains(User.AG.Individual))
+  lazy val individualServices: Seq[Service] = services.filter(_.affinityGroups.contains(AG.Individual))
+  lazy val organisationServices: Seq[Service] = services.filter(_.affinityGroups.contains(AG.Organisation))
+  lazy val agentServices: Seq[Service] = services.filter(_.affinityGroups.contains(AG.Agent))
+  lazy val nonAgentServices: Seq[Service] = services.filter(s => !s.affinityGroups.contains(AG.Individual))
 
 }

@@ -16,124 +16,306 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import cats.data.Validated.Valid
-import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
+import org.scalatest.Inspectors._
+import uk.gov.hmrc.agentsexternalstubs.support.{UnitSpec, ValidatedMatchers}
 
-class GroupValidatorSpec extends UnitSpec {
+class GroupValidatorSpec extends UnitSpec with ValidatedMatchers {
+
+  val planetId = "myPlanet"
+  val groupId = "myGroupId"
 
   "GroupValidator" should {
-    "validate empty group" in {
-      GroupValidator.validate(Seq()) shouldBe Valid(())
-    }
-    "validate group with users without affinity" in {
-      GroupValidator.validate(Seq(User("foo", credentialRole = Some("Admin")))) shouldBe Valid(())
-      GroupValidator.validate(Seq(User("foo", credentialRole = Some("Admin")), User("bar"))) shouldBe Valid(())
-    }
-    "validate only when group is empty or have one and at most one Admin" in {
-      GroupValidator.validate(Seq(UserGenerator.individual(credentialRole = "Admin"))) shouldBe Valid(())
-      GroupValidator.validate(Seq(UserGenerator.individual(credentialRole = "Admin"), User("foo"))) shouldBe Valid(())
-      GroupValidator.validate(Seq(UserGenerator.agent(credentialRole = "Admin"))) shouldBe Valid(())
-      GroupValidator.validate(Seq(UserGenerator.agent(credentialRole = "Admin"), User("foo"))) shouldBe Valid(())
-
-      GroupValidator.validate(
-        Seq(UserGenerator.individual(credentialRole = "Admin"), UserGenerator.individual(credentialRole = "User"))
-      ) shouldBe Valid(())
-      GroupValidator.validate(
-        Seq(UserGenerator.individual(credentialRole = "Admin"), UserGenerator.individual(credentialRole = "Assistant"))
-      ) shouldBe Valid(())
-      GroupValidator.validate(
-        Seq(
-          UserGenerator.individual(credentialRole = "Admin"),
-          UserGenerator.individual(credentialRole = "User"),
-          UserGenerator.individual(credentialRole = "Assistant")
-        )
-      ) shouldBe Valid(())
-
-      GroupValidator.validate(
-        Seq(
-          UserGenerator.agent(groupId = "A", credentialRole = "Admin"),
-          UserGenerator.agent(groupId = "A", credentialRole = "User")
-        )
-      ) shouldBe Valid(())
-      GroupValidator.validate(
-        Seq(
-          UserGenerator.agent(groupId = "A", credentialRole = "Admin"),
-          UserGenerator.agent(groupId = "A", credentialRole = "Assistant")
-        )
-      ) shouldBe Valid(())
-      GroupValidator.validate(
-        Seq(
-          UserGenerator.agent(groupId = "A", credentialRole = "Admin"),
-          UserGenerator.agent(groupId = "A", credentialRole = "User"),
-          UserGenerator.agent(groupId = "A", credentialRole = "Assistant")
-        )
-      ) shouldBe Valid(())
-
-      GroupValidator.validate(Seq(UserGenerator.individual(credentialRole = "User"))).isInvalid shouldBe true
-    }
-    "validate only if group have at most one Organisation" in {
-      GroupValidator.validate(Seq(UserGenerator.organisation())) shouldBe Valid(())
-      GroupValidator.validate(
-        Seq(UserGenerator.organisation(), UserGenerator.individual(credentialRole = "User"))
-      ) shouldBe Valid(())
-      GroupValidator.validate(
-        Seq(UserGenerator.organisation(), UserGenerator.individual(credentialRole = "Assistant"))
-      ) shouldBe Valid(())
-
-      GroupValidator.validate(Seq(UserGenerator.organisation(), UserGenerator.organisation())).isInvalid shouldBe true
+    "validate only when affinityGroup is none or one of [Individual, Organisation, Agent]" in {
+      GroupValidator.validate(Group(planetId, groupId, affinityGroup = AG.Individual)).isValid shouldBe true
       GroupValidator
-        .validate(Seq(UserGenerator.organisation(), UserGenerator.organisation(), UserGenerator.individual()))
-        .isInvalid shouldBe true
+        .validate(Group(planetId, groupId, affinityGroup = AG.Organisation))
+        .isValid shouldBe true
+      GroupValidator
+        .validate(Group(planetId, groupId, affinityGroup = AG.Agent, agentCode = Some("LMNOPQ234568")))
+        .isValid shouldBe true
+
+      GroupValidator.validate(Group(planetId, groupId, affinityGroup = "Foo")).isValid shouldBe false
+      GroupValidator.validate(Group(planetId, groupId, affinityGroup = "")).isValid shouldBe false
     }
-    "validate only if group is not only consisting of Assistants" in {
-      GroupValidator.validate(
-        Seq(UserGenerator.individual(credentialRole = "Admin"), UserGenerator.individual(credentialRole = "Assistant"))
-      ) shouldBe Valid(())
-      GroupValidator.validate(
-        Seq(UserGenerator.organisation(), UserGenerator.individual(credentialRole = "Assistant"))
-      ) shouldBe Valid(())
+
+    "validate only when agentCode is none or set for an Agent" in {
+      GroupValidator
+        .validate(Group(planetId, groupId, affinityGroup = AG.Agent, agentCode = Some("LMNOPQ234568")))
+        .isValid shouldBe true
 
       GroupValidator
-        .validate(Seq(UserGenerator.individual(credentialRole = "Assistant")))
+        .validate(Group(planetId, groupId, affinityGroup = AG.Agent, agentCode = None))
+        .isValid shouldBe false
+    }
+
+    "validate only when delegatedEnrolments are empty or user is an Agent" in {
+      GroupValidator
+        .validate(Group(planetId, groupId, affinityGroup = AG.Individual, delegatedEnrolments = Seq.empty))
+        .isValid shouldBe true
+
+      GroupValidator
+        .validate(
+          Group(
+            planetId,
+            groupId,
+            affinityGroup = AG.Agent,
+            agentCode = Some("LMNOPQ234568"),
+            delegatedEnrolments = Seq(Enrolment("A"))
+          )
+        )
+        .isValid shouldBe true
+
+      GroupValidator
+        .validate(
+          Group(planetId, groupId, affinityGroup = AG.Individual, delegatedEnrolments = Seq(Enrolment("A")))
+        )
+        .isValid shouldBe false
+      GroupValidator
+        .validate(
+          Group(planetId, groupId, affinityGroup = AG.Organisation, delegatedEnrolments = Seq(Enrolment("A")))
+        )
+        .isValid shouldBe false
+    }
+
+    "validate only when principal enrolments are valid" in {
+      GroupValidator
+        .validate(Group(planetId, groupId, affinityGroup = AG.Individual, principalEnrolments = Seq(Enrolment("A"))))
+        .isValid shouldBe true
+      GroupValidator
+        .validate(
+          Group(planetId, groupId, affinityGroup = AG.Individual, principalEnrolments = Seq(Enrolment("A", "A", null)))
+        )
         .isInvalid shouldBe true
       GroupValidator
         .validate(
-          Seq(
-            UserGenerator.individual(credentialRole = "Assistant"),
-            UserGenerator.individual(credentialRole = "Assistant")
+          Group(planetId, groupId, affinityGroup = AG.Individual, principalEnrolments = Seq(Enrolment("A", "A", "A")))
+        )
+        .isInvalid shouldBe true
+
+      forAll(Services.services) { service =>
+        val enrolment = Generator.get(service.generator)("foo").get
+        GroupValidator
+          .validate(
+            Group(planetId, groupId, affinityGroup = AG.Individual, principalEnrolments = Seq(enrolment))
+          )
+          .isValid shouldBe service.affinityGroups.contains(AG.Individual)
+      }
+    }
+
+    "validate only when principal enrolments are distinct" in {
+      GroupValidator
+        .validate(
+          Group(
+            planetId,
+            groupId,
+            affinityGroup = AG.Individual,
+            principalEnrolments = Seq(Enrolment("A", "A", "A"), Enrolment("A", "A", "A"))
           )
         )
-        .isInvalid shouldBe true
-    }
-    "validate if agents are not in the group with Organisation and Individuals" in {
-      GroupValidator.validate(Seq(UserGenerator.agent(groupId = "A", credentialRole = "Admin"))) shouldBe Valid(())
-      GroupValidator.validate(
-        Seq(UserGenerator.agent(groupId = "A", credentialRole = "Admin"), UserGenerator.agent(groupId = "A"))
-      ) shouldBe Valid(())
-      GroupValidator.validate(Seq(UserGenerator.agent(credentialRole = "Admin"), User("foo"))) shouldBe Valid(())
-
+        .isValid shouldBe false
       GroupValidator
-        .validate(Seq(UserGenerator.individual(credentialRole = "User"), UserGenerator.agent(credentialRole = "Admin")))
-        .isInvalid shouldBe true
-      GroupValidator
-        .validate(Seq(UserGenerator.individual(credentialRole = "Admin"), UserGenerator.agent(credentialRole = "User")))
-        .isInvalid shouldBe true
-      GroupValidator
-        .validate(Seq(UserGenerator.organisation(), UserGenerator.agent(credentialRole = "User")))
-        .isInvalid shouldBe true
-      GroupValidator
-        .validate(Seq(UserGenerator.organisation(), UserGenerator.agent(credentialRole = "Assistant")))
-        .isInvalid shouldBe true
-    }
-    "validate if all Agents in the group share the same agentCode" in {
-      GroupValidator.validate(Seq(UserGenerator.agent(credentialRole = "Admin", agentCode = "A"))) shouldBe Valid(())
-      GroupValidator.validate(
-        Seq(
-          UserGenerator.agent(groupId = "A", credentialRole = "Admin", agentCode = "A"),
-          UserGenerator.agent(groupId = "A", credentialRole = "User", agentCode = "A")
+        .validate(
+          Group(
+            planetId,
+            groupId,
+            affinityGroup = AG.Individual,
+            principalEnrolments = Seq(Enrolment("A"), Enrolment("A"))
+          )
         )
-      ) shouldBe Valid(())
+        .isValid shouldBe false
+      GroupValidator
+        .validate(
+          Group(
+            planetId,
+            groupId,
+            affinityGroup = AG.Individual,
+            principalEnrolments = Seq(Enrolment("A", "A", "A"), Enrolment("A", "B", "B"))
+          )
+        )
+        .isValid shouldBe false
+      GroupValidator
+        .validate(
+          Group(
+            planetId,
+            groupId,
+            affinityGroup = AG.Individual,
+            principalEnrolments = Seq(Enrolment("A", "B", "C1"), Enrolment("A", "B", "C2"))
+          )
+        )
+        .isValid shouldBe false
     }
+
+    "validate only when principal enrolments are valid for an individual" in {
+      val group = Group(planetId, groupId, affinityGroup = AG.Individual)
+      forAll(Services.individualServices) { service =>
+        val enrolment = Generator.get(service.generator)("foo").get
+        GroupValidator
+          .validate(group.copy(principalEnrolments = Seq(enrolment)))
+          .isValid shouldBe true
+      }
+      forAll(Services.services.filter(!_.affinityGroups.contains(AG.Individual))) { service =>
+        val enrolment = Generator.get(service.generator)("foo").get
+        GroupValidator
+          .validate(group.copy(principalEnrolments = Seq(enrolment)))
+          .isValid shouldBe false
+      }
+    }
+
+    "validate only when principal enrolments are valid for an organisation" in {
+      val group = Group(planetId, groupId, affinityGroup = AG.Organisation)
+      forAll(Services.organisationServices) { service =>
+        val enrolment = Generator.get(service.generator)("foo").get
+        GroupValidator
+          .validate(group.copy(principalEnrolments = Seq(enrolment)))
+          .isValid shouldBe true
+      }
+      forAll(Services.services.filter(!_.affinityGroups.contains(AG.Organisation))) { service =>
+        val enrolment = Generator.get(service.generator)("foo").get
+        GroupValidator
+          .validate(group.copy(principalEnrolments = Seq(enrolment)))
+          .isValid shouldBe false
+      }
+    }
+
+    "validate only when principal enrolments are valid for an agent" in {
+      val group = Group(planetId, groupId, affinityGroup = AG.Agent, agentCode = Some("LMNOPQ234568"))
+      forAll(Services.agentServices) { service =>
+        val enrolment = Generator.get(service.generator)("foo").get
+        GroupValidator
+          .validate(group.copy(principalEnrolments = Seq(enrolment)))
+          .isValid shouldBe true
+      }
+      forAll(Services.services.filter(!_.affinityGroups.contains(AG.Agent))) { service =>
+        val enrolment = Generator.get(service.generator)("foo").get
+        GroupValidator
+          .validate(group.copy(principalEnrolments = Seq(enrolment)))
+          .isValid shouldBe false
+      }
+    }
+
+    "validate only when delegated enrolments have distinct values" in {
+      GroupValidator
+        .validate(
+          Group(
+            planetId,
+            groupId,
+            affinityGroup = AG.Agent,
+            agentCode = Some("LMNOPQ234568"),
+            delegatedEnrolments = Seq(
+              Enrolment("HMRC-MTD-VAT", "VRN", "410392784")
+            )
+          )
+        )
+        .isValid shouldBe true
+      GroupValidator
+        .validate(
+          Group(
+            planetId,
+            groupId,
+            affinityGroup = AG.Agent,
+            agentCode = Some("LMNOPQ234568"),
+            delegatedEnrolments = Seq(
+              Enrolment("HMRC-MTD-VAT", "VRN", "410392784"),
+              Enrolment("HMRC-MTD-VAT", "VRN", "410392784")
+            )
+          )
+        )
+        .isValid shouldBe false
+      GroupValidator
+        .validate(
+          Group(
+            planetId,
+            groupId,
+            affinityGroup = AG.Agent,
+            agentCode = Some("LMNOPQ234568"),
+            delegatedEnrolments = Seq(
+              Enrolment("HMRC-MTD-VAT", "VRN", "410392784"),
+              Enrolment("HMRC-MTD-VAT", "VRN", "429754517")
+            )
+          )
+        )
+        .isValid shouldBe true
+      GroupValidator
+        .validate(
+          Group(
+            planetId,
+            groupId,
+            affinityGroup = AG.Agent,
+            agentCode = Some("LMNOPQ234568"),
+            delegatedEnrolments = Seq(
+              Enrolment("HMRC-MTD-VAT", "VRN", "410392784"),
+              Enrolment("HMRC-MTD-VAT", "VRN", "429754517"),
+              Enrolment("HMRC-MTD-VAT", "VRN", "410392784")
+            )
+          )
+        )
+        .isValid shouldBe false
+      GroupValidator
+        .validate(
+          Group(
+            planetId,
+            groupId,
+            affinityGroup = AG.Agent,
+            agentCode = Some("LMNOPQ234568"),
+            delegatedEnrolments = Seq(
+              Enrolment("HMRC-MTD-VAT", "VRN", "410392784"),
+              Enrolment("HMRC-MTD-IT", "MTDITID", "CNOB96766112368"),
+              Enrolment("HMRC-MTD-VAT", "VRN", "410392784")
+            )
+          )
+        )
+        .isValid shouldBe false
+      GroupValidator
+        .validate(
+          Group(
+            planetId,
+            groupId,
+            affinityGroup = AG.Agent,
+            agentCode = Some("LMNOPQ234568"),
+            delegatedEnrolments = Seq(
+              Enrolment("HMRC-MTD-VAT", "VRN", "410392784"),
+              Enrolment("HMRC-MTD-IT", "MTDITID", "CNOB96766112368"),
+              Enrolment("HMRC-MTD-IT", "MTDITID", "CNOB96766112368")
+            )
+          )
+        )
+        .isValid shouldBe false
+    }
+
+    "validate only when delegated enrolment is of Individual or Organisation affinity" in {
+      val group = Group(planetId, groupId, affinityGroup = AG.Agent, agentCode = Some("LMNOPQ234568"))
+      forAll(Services.individualServices) { service =>
+        val enrolment = Generator.get(service.generator)("foo").get
+        GroupValidator
+          .validate(group.copy(delegatedEnrolments = Seq(enrolment)))
+          .isValid shouldBe true
+      }
+      forAll(Services.organisationServices) { service =>
+        val enrolment = Generator.get(service.generator)("foo").get
+        GroupValidator
+          .validate(group.copy(delegatedEnrolments = Seq(enrolment)))
+          .isValid shouldBe true
+      }
+      forAll(Services.agentServices) { service =>
+        val enrolment = Generator.get(service.generator)("foo").get
+        GroupValidator
+          .validate(group.copy(delegatedEnrolments = Seq(enrolment)))
+          .isValid shouldBe false
+      }
+    }
+
+//    "validate only when suspended regimes are all valid regimes or empty" in { // TODO should suspended regimes live on Group?
+//      val user = UserGenerator.agent()
+//      GroupValidator.validate(user.copy(suspendedRegimes = None)).isValid shouldBe true
+//      GroupValidator
+//        .validate(user.copy(suspendedRegimes = Some(Set("ITSA", "VATC"))))
+//        .isValid shouldBe true
+//
+//      GroupValidator.validate(user.copy(suspendedRegimes = Some(Set("foo")))).isValid shouldBe false
+//      GroupValidator
+//        .validate(user.copy(suspendedRegimes = Some(Set("ITSA", "VATC", "foo"))))
+//        .isValid shouldBe false
+//    }
   }
 
 }

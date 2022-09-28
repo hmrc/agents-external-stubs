@@ -5,7 +5,7 @@ import org.scalatest.Suite
 import play.api.Application
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
+import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GroupsService, UsersService}
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
@@ -17,17 +17,32 @@ trait TestStubs {
 
   lazy val authenticationService: AuthenticationService = app.injector.instanceOf[AuthenticationService]
   lazy val userService: UsersService = app.injector.instanceOf[UsersService]
+  lazy val groupsService: GroupsService = app.injector.instanceOf[GroupsService]
 
   def givenAnAuthenticatedUser(
     user: User,
     providerType: String = "GovernmentGateway",
-    planetId: String = UUID.randomUUID().toString
+    planetId: String = UUID.randomUUID().toString,
+    affinityGroup: Option[String],
+    agentCode: Option[String] = None,
+    agentFriendlyName: Option[String] = None
   )(implicit ec: ExecutionContext, timeout: Duration): String =
     await(for {
       authSession <-
         authenticationService
           .authenticate(AuthenticateRequest(UUID.randomUUID().toString, user.userId, "any", providerType, planetId))
-      _ <- userService.tryCreateUser(user, planetId)
+      mUser <- userService.findByUserId(user.userId, planetId)
+      user <- mUser match {
+                case Some(user) => Future.successful(user)
+                case None       => userService.createUser(user, planetId, affinityGroup)
+              }
+      _ <- if (agentCode.isDefined || agentFriendlyName.isDefined)
+             groupsService.updateGroup(
+               user.groupId.get,
+               planetId,
+               _.copy(agentCode = agentCode, agentFriendlyName = agentFriendlyName)
+             )
+           else Future.successful(())
     } yield authSession)
       .getOrElse(throw new Exception("Could not sign in user"))
       .authToken
@@ -38,21 +53,31 @@ trait TestStubs {
     service: String,
     identifierKey: String,
     identifierValue: String
-  )(implicit ec: ExecutionContext, timeout: Duration): Unit =
-    await(addPrincipalEnrolment(userId, planetId, service, identifierKey, identifierValue))
-
-  private def addPrincipalEnrolment(
-    userId: String,
-    planetId: String,
-    service: String,
-    identifierKey: String,
-    identifierValue: String
-  )(implicit ec: ExecutionContext): Future[User] =
-    userService.updateUser(
-      userId,
-      planetId,
-      _.updatePrincipalEnrolments(_ :+ Enrolment(service, Some(Seq(Identifier(identifierKey, identifierValue)))))
-    )
+  )(implicit ec: ExecutionContext, timeout: Duration): Unit = await {
+    userService.findByUserId(userId, planetId).flatMap {
+      case None =>
+        userService.createUser(
+          UserGenerator
+            .individual(userId)
+            .copy(assignedPrincipalEnrolments =
+              Seq(EnrolmentKey(service, Seq(Identifier(identifierKey, identifierValue))))
+            ),
+          planetId,
+          Some(AG.Individual)
+        )
+      case Some(existingUser) =>
+        userService.updateUser(
+          userId,
+          planetId,
+          _.copy(assignedPrincipalEnrolments =
+            existingUser.assignedPrincipalEnrolments :+ EnrolmentKey(
+              service,
+              Seq(Identifier(identifierKey, identifierValue))
+            )
+          )
+        )
+    }
+  }
 
   def givenUserWithStrideRole(userId: String, planetId: String, role: String)(implicit
     ec: ExecutionContext,

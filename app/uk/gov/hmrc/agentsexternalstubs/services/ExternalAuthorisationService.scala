@@ -27,7 +27,12 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 @Singleton
-class ExternalAuthorisationService @Inject() (usersService: UsersService, http: HttpPost, appConfig: AppConfig) {
+class ExternalAuthorisationService @Inject() (
+  usersService: UsersService,
+  groupsService: GroupsService,
+  http: HttpPost,
+  appConfig: AppConfig
+) {
 
   final def maybeExternalSession(
     _planetId: String,
@@ -77,19 +82,26 @@ class ExternalAuthorisationService @Inject() (usersService: UsersService, http: 
             val user = User(
               userId = userId,
               groupId = response.groupIdentifier,
-              affinityGroup = response.affinityGroup,
               confidenceLevel = response.confidenceLevel,
               credentialStrength = response.credentialStrength,
               credentialRole = response.credentialRole,
               nino = response.nino,
-              enrolments = User.Enrolments(principal =
-                response.allEnrolments.map(_.filterNot(_.key == "HMRC-NI")).getOrElse(Seq.empty)
-              ),
               name = response.name.map(_.toString),
               dateOfBirth = response.dateOfBirth,
-              agentCode = response.agentInformation.flatMap(_.agentCode),
-              agentFriendlyName = response.agentInformation.flatMap(_.agentFriendlyName),
-              agentId = response.agentInformation.flatMap(_.agentId)
+              assignedPrincipalEnrolments = response.allEnrolments
+                .map(_.filterNot(_.key == "HMRC-NI"))
+                .fold(Seq.empty[EnrolmentKey])(_.flatMap(_.toEnrolmentKey))
+            )
+            val maybeGroup = response.affinityGroup.map(ag =>
+              Group(
+                groupId = response.groupIdentifier.getOrElse(""),
+                planetId = planetId,
+                affinityGroup = ag,
+                principalEnrolments = response.allEnrolments.map(_.filterNot(_.key == "HMRC-NI")).getOrElse(Seq.empty),
+                agentCode = response.agentInformation.flatMap(_.agentCode),
+                agentFriendlyName = response.agentInformation.flatMap(_.agentFriendlyName),
+                agentId = response.agentInformation.flatMap(_.agentId)
+              )
             )
             for {
               maybeSession <- createNewAuthentication(
@@ -113,9 +125,17 @@ class ExternalAuthorisationService @Inject() (usersService: UsersService, http: 
               _ <- maybeSession match {
                      case Some(session) =>
                        usersService.findByUserId(userId, planetId).flatMap {
-                         case Some(_) =>
-                           usersService
-                             .updateUser(session.userId, session.planetId, existing => merge(existing, user))
+                         case Some(existingUser) =>
+                           (for {
+                             _ <- (existingUser.groupId, maybeGroup) match {
+                                    case (Some(groupId), Some(group)) =>
+                                      groupsService
+                                        .updateGroup(groupId, session.planetId, existing => merge(existing, group))
+                                    case _ => Future.successful(())
+                                  }
+                             _ <- usersService
+                                    .updateUser(session.userId, session.planetId, existing => merge(existing, user))
+                           } yield ())
                              .recover { case NonFatal(e) =>
                                Logger(getClass).warn(
                                  s"Creating user '$userId' on the planet '$planetId' failed with [$e] for an external authorisation ${Json
@@ -131,8 +151,19 @@ class ExternalAuthorisationService @Inject() (usersService: UsersService, http: 
                              }
                          case None =>
                            (for {
-                             fixed <- usersService.checkAndFixUser(user, planetId)
-                             user  <- usersService.createUser(fixed.copy(session.userId), session.planetId)
+                             fixed <- usersService.checkAndFixUser(
+                                        user,
+                                        planetId,
+                                        response.affinityGroup.get
+                                      ) // TODO using Option.get is bad here. Is it guaranteed to be defined?
+                             maybeNewGroup <- maybeGroup.fold(Future.successful(Option.empty[Group]))(group =>
+                                                groupsService.createGroup(group, session.planetId).map(Some(_))
+                                              )
+                             user <- usersService.createUser(
+                                       fixed.copy(userId = session.userId, groupId = maybeNewGroup.map(_.groupId)),
+                                       session.planetId,
+                                       response.affinityGroup
+                                     )
                              _ =
                                Logger(getClass).info(
                                  s"Creating user '$userId' on the planet '$planetId' based on external authorisation ${Json
@@ -172,23 +203,29 @@ class ExternalAuthorisationService @Inject() (usersService: UsersService, http: 
   private def merge(first: User, second: User): User = User(
     userId = first.userId,
     groupId = first.groupId.orElse(second.groupId),
-    affinityGroup = first.affinityGroup.orElse(second.affinityGroup),
     confidenceLevel = first.confidenceLevel.orElse(second.confidenceLevel),
     credentialStrength = first.credentialStrength.orElse(second.credentialStrength),
     credentialRole = first.credentialRole.orElse(second.credentialRole),
     nino = first.nino.orElse(second.nino),
-    enrolments = User.Enrolments(
-      principal = (first.enrolments.principal ++ second.enrolments.principal).distinct,
-      delegated = (first.enrolments.delegated ++ second.enrolments.delegated).distinct
-    ),
     name = first.name.orElse(second.name),
     dateOfBirth = first.dateOfBirth.orElse(second.dateOfBirth),
-    agentCode = first.agentCode.orElse(second.agentCode),
-    agentFriendlyName = first.agentFriendlyName.orElse(second.agentFriendlyName),
-    agentId = first.agentId.orElse(second.agentId),
     recordIds = (first.recordIds ++ second.recordIds).distinct,
     isNonCompliant = first.isNonCompliant,
     planetId = first.planetId
   )
 
+  private def merge(first: Group, second: Group): Group = Group(
+    groupId = first.groupId,
+    planetId = first.planetId,
+    affinityGroup = {
+      require(first.affinityGroup == second.affinityGroup)
+      first.affinityGroup
+    },
+    agentId = first.agentId.orElse(second.agentId),
+    agentCode = first.agentCode.orElse(second.agentCode),
+    agentFriendlyName = first.agentFriendlyName.orElse(second.agentFriendlyName),
+    principalEnrolments = (first.principalEnrolments ++ second.principalEnrolments).distinct,
+    delegatedEnrolments = (first.delegatedEnrolments ++ second.delegatedEnrolments).distinct,
+    suspendedRegimes = first.suspendedRegimes ++ second.suspendedRegimes
+  )
 }

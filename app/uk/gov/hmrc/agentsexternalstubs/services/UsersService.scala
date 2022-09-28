@@ -18,13 +18,13 @@ package uk.gov.hmrc.agentsexternalstubs.services
 
 import cats.data.Validated.{Invalid, Valid}
 import com.github.blemale.scaffeine.Scaffeine
-import play.api.i18n.Lang.logger
+import play.api.i18n.Lang.{defaultLang, logger}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.{KnownFactsRepository, UsersRepository}
-import uk.gov.hmrc.auth.core.UnsupportedCredentialRole
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{BadRequestException, ForbiddenException, NotFoundException}
 
+import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
@@ -34,37 +34,38 @@ class UsersService @Inject() (
   usersRepository: UsersRepository,
   userRecordsService: UserToRecordsSyncService,
   knownFactsRepository: KnownFactsRepository,
-  externalUserService: ExternalUserService
+  externalUserService: ExternalUserService,
+  groupsService: GroupsService
 ) {
 
   def findByUserId(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
     usersRepository.findByUserId(userId, planetId)
 
+  def findUserAndGroup(userId: String, planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[(Option[User], Option[Group])] =
+    for {
+      maybeUser <- usersRepository.findByUserId(userId, planetId)
+      maybeGroup <- maybeUser
+                      .flatMap(_.groupId)
+                      .fold(Future.successful(Option.empty[Group]))(gid => groupsService.findByGroupId(gid, planetId))
+    } yield (maybeUser, maybeGroup)
+
   def findByNino(nino: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
-    externalUserService.tryLookupExternalUserIfMissingForIdentifier(Nino(nino), planetId, createUser(_, _)(ec))(id =>
+    externalUserService.tryLookupExternalUserIfMissingForIdentifier(Nino(nino), planetId, createUser)(id =>
       usersRepository.findByNino(id.value, planetId)
     )
 
-  def findByPlanetId(planetId: String, affinityGroup: Option[String])(
+  def findByPlanetId(planetId: String)(
     limit: Int
-  )(implicit ec: ExecutionContext): Future[Seq[User]] = {
-    require(affinityGroup.isEmpty || affinityGroup.exists(User.AG.all))
-    usersRepository.findByPlanetId(planetId, affinityGroup)(limit)
-  }
+  )(implicit ec: ExecutionContext): Future[Seq[User]] =
+    usersRepository.findByPlanetId(planetId)(limit)
 
   def findByGroupId(groupId: String, planetId: String)(limit: Int)(implicit ec: ExecutionContext): Future[Seq[User]] =
     usersRepository.findByGroupId(groupId, planetId)(limit)
 
   def findAdminByGroupId(groupId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
     usersRepository.findAdminByGroupId(groupId, planetId)
-
-  def findByAgentCode(agentCode: String, planetId: String)(limit: Int)(implicit
-    ec: ExecutionContext
-  ): Future[Seq[User]] =
-    usersRepository.findByAgentCode(agentCode, planetId)(limit)
-
-  def findAdminByAgentCode(agentCode: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
-    usersRepository.findAdminByAgentCode(agentCode, planetId)
 
   def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(implicit
     ec: ExecutionContext
@@ -95,43 +96,68 @@ class UsersService @Inject() (
 
   val usersCache = Scaffeine().maximumSize(1000).expireAfterWrite(10.minutes).build[Int, User]()
 
-  def createUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] = {
+  /** Create a new user. If the group corresponding to the groupId doesn't exist, it will create a group as well
+    * with the affinityGroup provided. (If the group does exist then the affinityGroup parameter has no effect.)
+    * If the new user has any assigned enrolments, corresponding group enrolments will be created.
+    */
+  def createUser(user: User, planetId: String, affinityGroup: Option[String])(implicit
+    ec: ExecutionContext
+  ): Future[User] = {
+    val sanitizedAffinityGroup = affinityGroup.flatMap(AG.sanitize)
+
     val userKey = user.copy(planetId = None, recordIds = Seq.empty).hashCode()
     for {
-      refined <- usersCache
-                   .getIfPresent(userKey)
-                   .map(u => Future.successful(u.copy(planetId = Some(planetId))))
-                   .getOrElse(refineAndValidateUser(user, planetId))
-                   .map(u => u.copy(planetId = Some(planetId)))
-      _ <- usersRepository.create(refined, planetId)
-      _ <- Future.successful(usersCache.put(userKey, refined))
-      _ <- updateKnownFacts(refined, planetId)
-      _ <- userRecordsService.syncUserToRecords(syncRecordId(refined, planetId))(refined)
-    } yield refined
+      maybeExistingGroup <-
+        user.groupId.fold(Future.successful(Option.empty[Group]))(gid => groupsService.findByGroupId(gid, planetId))
+      refinedUser <-
+        usersCache
+          .getIfPresent(userKey)
+          .map(u => Future.successful(u.copy(planetId = Some(planetId))))
+          .getOrElse(
+            refineAndValidateUser(
+              user,
+              planetId,
+              maybeExistingGroup.map(_.affinityGroup).orElse(sanitizedAffinityGroup)
+            )
+          )
+          .map(u => u.copy(planetId = Some(planetId)))
+
+      maybeGroup <- (maybeExistingGroup, sanitizedAffinityGroup) match {
+                      // An existing group id is provided: we assume we want to add a new user to the specified (existing) group.
+                      case (Some(existingGroup), _) => Future.successful(Some(existingGroup))
+                      // If no group id is provided, or doesn't exist, we create a group from scratch
+                      case (None, Some(ag)) =>
+                        val groupId = user.groupId.getOrElse(GroupGenerator.groupId(seed = UUID.randomUUID().toString))
+                        groupsService
+                          .createGroup(
+                            Group(
+                              planetId = planetId,
+                              groupId = groupId,
+                              affinityGroup = ag,
+                              principalEnrolments = refinedUser.assignedPrincipalEnrolments.map(Enrolment.from(_)),
+                              delegatedEnrolments = refinedUser.assignedDelegatedEnrolments.map(Enrolment.from(_))
+                            ),
+                            planetId
+                          )
+                          .map(Some(_))
+                      // If no affinity group is provided, we leave the user without a group (e.g. Stride users)
+                      case (None, None) => Future.successful(None)
+                    }
+      // If we are creating a group from scratch, the credential role MUST be admin as there must be an admin in the group
+      credentialRole = if (maybeExistingGroup.isDefined) refinedUser.credentialRole else Some(User.CR.Admin)
+      newUser = refinedUser.copy(groupId = maybeGroup.map(_.groupId), credentialRole = credentialRole)
+      _ <- usersRepository.create(newUser, planetId)
+      _ = usersCache.put(userKey, newUser)
+      _ <- maybeGroup.fold(Future.successful(()))(group => updateKnownFacts(refinedUser, group, planetId))
+      _ <- maybeGroup.fold(Future.successful(()))(group =>
+             userRecordsService.syncUserToRecords(syncRecordId(refinedUser, planetId), refinedUser, group)
+           )
+    } yield newUser
   }
 
-  def tryCreateUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Either[User, User]] = {
-    val userKey = user.copy(planetId = None, recordIds = Seq.empty).hashCode()
-    for {
-      maybeUser <- findByUserId(user.userId, planetId)
-      result <- maybeUser match {
-                  case Some(user) => Future.successful(Left(user))
-                  case None =>
-                    for {
-                      refined <- usersCache
-                                   .getIfPresent(userKey)
-                                   .map(u => Future.successful(u.copy(planetId = Some(planetId))))
-                                   .getOrElse(refineAndValidateUser(user, planetId))
-                                   .map(u => u.copy(planetId = Some(planetId)))
-                      _ <- usersRepository.create(refined, planetId)
-                      _ <- Future.successful(usersCache.put(userKey, refined))
-                      _ <- updateKnownFacts(refined, planetId)
-                      _ <- userRecordsService.syncUserToRecords(syncRecordId(refined, planetId))(refined)
-                    } yield Right(refined)
-                }
-    } yield result
-  }
-
+  /** Update a user.
+    * If new assigned enrolments are being added to the user, corresponding group enrolments will be created.
+    */
   def updateUser(userId: String, planetId: String, modify: User => User)(implicit ec: ExecutionContext): Future[User] =
     for {
       maybeUser <- findByUserId(userId, planetId)
@@ -139,11 +165,49 @@ class UsersService @Inject() (
                        case Some(existingUser) =>
                          val modified = modify(existingUser).copy(userId = userId, planetId = Some(planetId))
                          if (modified != existingUser) for {
-                           refined <- refineAndValidateUser(modified, planetId)
+                           maybeGroup <- modified.groupId.fold(Future.successful(Option.empty[Group]))(gid =>
+                                           groupsService.findByGroupId(gid, planetId)
+                                         )
+                           refined <- refineAndValidateUser(modified, planetId, maybeGroup.map(_.affinityGroup))
                            _       <- usersRepository.update(refined, planetId)
-                           _       <- updateKnownFacts(refined, planetId)
-                           _       <- userRecordsService.syncUserToRecords(syncRecordId(refined, planetId))(refined)
-                           _ = AuthorisationCache.updateResultsFor(refined, UsersService.this, planetId)
+                           // now add any principal or delegated enrolments the group needs to have in order to maintain consistency
+                           principalEnrolmentsToAdd =
+                             maybeGroup
+                               .fold(Seq.empty[EnrolmentKey])(grp =>
+                                 refined.assignedPrincipalEnrolments.filterNot(ek =>
+                                   grp.principalEnrolments.exists(_.toEnrolmentKey.contains(ek))
+                                 )
+                               )
+                               .map(Enrolment.from(_))
+                           delegatedEnrolmentsToAdd =
+                             maybeGroup
+                               .fold(Seq.empty[EnrolmentKey])(grp =>
+                                 refined.assignedDelegatedEnrolments.filterNot(ek =>
+                                   grp.delegatedEnrolments.exists(_.toEnrolmentKey.contains(ek))
+                                 )
+                               )
+                               .map(Enrolment.from(_))
+                           _ <-
+                             if (
+                               (principalEnrolmentsToAdd.isEmpty && delegatedEnrolmentsToAdd.isEmpty) || maybeGroup.isEmpty
+                             ) Future.successful(())
+                             else
+                               groupsService.updateGroup(
+                                 maybeGroup.get.groupId,
+                                 planetId,
+                                 grp =>
+                                   grp.copy(
+                                     principalEnrolments = grp.principalEnrolments ++ principalEnrolmentsToAdd,
+                                     delegatedEnrolments = grp.delegatedEnrolments ++ delegatedEnrolmentsToAdd
+                                   )
+                               )
+                           _ <-
+                             maybeGroup.fold(Future.successful(()))(group => updateKnownFacts(refined, group, planetId))
+                           _ <- maybeGroup.fold(Future.successful(()))(group =>
+                                  userRecordsService.syncUserToRecords(syncRecordId(refined, planetId), refined, group)
+                                )
+                           _ = AuthorisationCache
+                                 .updateResultsFor(refined, maybeGroup, UsersService.this, groupsService, planetId)
                          } yield refined
                          else Future.successful(existingUser)
                        case None => Future.failed(new NotFoundException(s"User $userId not found"))
@@ -165,42 +229,39 @@ class UsersService @Inject() (
   def deleteUser(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     for {
       maybeUser <- findByUserId(userId, planetId)
+      maybeGroup <- maybeUser
+                      .flatMap(_.groupId)
+                      .fold(Future.successful(Option.empty[Group]))(groupsService.findByGroupId(_, planetId))
       _ <- maybeUser match {
              case Some(user) =>
                for {
                  _ <- checkCanRemoveUser(user, planetId)
                  _ <- usersRepository.delete(user.userId, planetId)
-                 _ <- deleteKnownFacts(user, planetId)
+                 _ <- maybeGroup match {
+                        case Some(group) => deleteKnownFacts(group, planetId)
+                        case None =>
+                          logger.warn(s"Deleting user $userId but the associated group was not found!")
+                          Future.successful(())
+                      }
                  _ <- userRecordsService.syncAfterUserRemoved(user)
                } yield ()
              case None => Future.successful(())
            }
     } yield ()
 
-  def setEnrolmentFriendlyName(user: User, planetId: String, enrolmentKey: EnrolmentKey, friendlyName: String)(implicit
+  private def refineAndValidateUser(user: User, planetId: String, affinityGroup: Option[String])(implicit
     ec: ExecutionContext
-  ): Future[Option[User]] = {
-    logger.info(
-      s"Updating friendly name '$friendlyName', enrolment key '$enrolmentKey', user '${user.userId}', planet '$planetId'"
-    )
-
-    usersRepository.updateFriendlyNameForEnrolment(user, planetId, enrolmentKey, friendlyName) flatMap {
-      case None       => Future.failed(new NotFoundException("enrolment not found"))
-      case Some(user) => Future successful Option(user)
-    }
-  }
-
-  private def refineAndValidateUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] =
+  ): Future[User] =
     if (user.isNonCompliant.contains(true)) {
-      User.validate(user) match {
+      User.validate(user, affinityGroup) match {
         case Right(u)     => Future.successful(u.copy(isNonCompliant = None, complianceIssues = None))
         case Left(issues) => Future.successful(user.copy(isNonCompliant = Some(true), complianceIssues = Some(issues)))
       }
     } else
       for {
-        sanitized <- Future(UserSanitizer.sanitize(user.userId)(user))
+        sanitized <- Future(UserSanitizer(affinityGroup).sanitize(user.userId)(user))
         validated <- User
-                       .validate(sanitized)
+                       .validate(sanitized, affinityGroup)
                        .fold(errors => Future.failed(new BadRequestException(errors.mkString(", "))), Future.successful)
         accepted <- checkCanAcceptUser(validated, planetId).flatMap(
                       _.fold(
@@ -210,20 +271,22 @@ class UsersService @Inject() (
                     )
       } yield accepted
 
-  private def updateKnownFacts(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+  private def updateKnownFacts(user: User, group: Group, planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[Unit] =
     Future
       .sequence(
-        user.enrolments.principal
+        group.principalEnrolments
           .map(_.toEnrolmentKey.flatMap(ek => KnownFacts.generate(ek, user.userId, user.facts)))
           .collect { case Some(x) => x }
           .map(knownFacts => knownFactsRepository.upsert(knownFacts.applyProperties(User.knownFactsOf(user)), planetId))
       )
       .map(_ => ())
 
-  private def deleteKnownFacts(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+  private def deleteKnownFacts(group: Group, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     Future
       .sequence(
-        user.enrolments.principal
+        group.principalEnrolments
           .map(_.toEnrolmentKey)
           .collect { case Some(x) => x }
           .map(enrolmentKey => knownFactsRepository.delete(enrolmentKey, planetId))
@@ -246,7 +309,7 @@ class UsersService @Inject() (
             )
               user.copy(credentialRole = Some(User.CR.Admin))
             else user
-          GroupValidator
+          GroupUsersValidator
             .validate(users.filterNot(_.userId == maybeAdmin.userId) :+ maybeAdmin) match {
             case Valid(())       => Right(maybeAdmin)
             case Invalid(errors) => Left(errors)
@@ -259,7 +322,7 @@ class UsersService @Inject() (
       case None => Future.successful(())
       case Some(groupId) =>
         findByGroupId(groupId, planetId)(101) flatMap { users =>
-          GroupValidator
+          GroupUsersValidator
             .validate(users.filterNot(_.userId == user.userId))
             .fold(
               errors => Future.failed(new BadRequestException(errors.mkString(", "))),
@@ -276,29 +339,40 @@ class UsersService @Inject() (
       case Some(_) =>
         findByUserId(userId, planetId)
           .flatMap {
-            case None                                                                                    => Future.failed(new NotFoundException("USER_ID_DOES_NOT_EXIST"))
-            case Some(user) if user.enrolments.assigned.exists(_.tag.equalsIgnoreCase(enrolmentKey.tag)) =>
+            case None => Future.failed(new NotFoundException("USER_ID_DOES_NOT_EXIST"))
+            case Some(user)
+                if (user.assignedPrincipalEnrolments ++ user.assignedDelegatedEnrolments)
+                  .exists(_.tag.equalsIgnoreCase(enrolmentKey.tag)) =>
               // if the user already has the assignment, return Bad Request as per spec
               Future.failed(new BadRequestException("INVALID_CREDENTIAL_ID"))
             case Some(user) =>
               user.groupId match {
                 case None => Future.failed(new BadRequestException("INVALID_CREDENTIAL_ID"))
                 case Some(groupId) =>
-                  findByGroupId(groupId, planetId)(101).flatMap { members =>
-                    if (
-                      members.exists(m =>
-                        m.isAdmin && (m.enrolments.principal.exists(_.matches(enrolmentKey)) || m.enrolments.delegated
-                          .exists(_.matches(enrolmentKey)))
-                      )
-                    ) {
-                      updateUser(
-                        userId,
-                        planetId,
-                        _.updateAssignedEnrolments(aes => (aes :+ enrolmentKey).distinct)
-                      )
-                    } else {
-                      Future.failed(new ForbiddenException("INVALID_CREDENTIAL_ID"))
-                    }
+                  groupsService.findByGroupId(groupId, planetId).flatMap {
+                    case None => Future.failed(new BadRequestException("INVALID_CREDENTIAL_ID"))
+                    case Some(group) =>
+                      val groupHasPrincipalEnrolment = group.principalEnrolments.exists(_.matches(enrolmentKey))
+                      val groupHasDelegatedEnrolment = group.delegatedEnrolments.exists(_.matches(enrolmentKey))
+                      val groupHasEnrolment = groupHasPrincipalEnrolment || groupHasDelegatedEnrolment
+                      val isPrincipal = groupHasPrincipalEnrolment
+                      if (groupHasEnrolment) {
+                        updateUser(
+                          userId,
+                          planetId,
+                          user =>
+                            if (isPrincipal)
+                              user.copy(assignedPrincipalEnrolments =
+                                (user.assignedPrincipalEnrolments :+ enrolmentKey).distinct
+                              )
+                            else
+                              user.copy(assignedDelegatedEnrolments =
+                                (user.assignedDelegatedEnrolments :+ enrolmentKey).distinct
+                              )
+                        )
+                      } else {
+                        Future.failed(new ForbiddenException("INVALID_CREDENTIAL_ID"))
+                      }
                   }
               }
           }
@@ -317,148 +391,25 @@ class UsersService @Inject() (
               updateUser(
                 userId,
                 planetId,
-                _.updateAssignedEnrolments(aes => aes.filterNot(_.tag == enrolmentKey.tag))
+                u =>
+                  u.copy(
+                    assignedPrincipalEnrolments = u.assignedPrincipalEnrolments.filterNot(_.tag == enrolmentKey.tag),
+                    assignedDelegatedEnrolments = u.assignedDelegatedEnrolments.filterNot(_.tag == enrolmentKey.tag)
+                  )
               )
           }
     }
 
-  /* Group enrolment is assigned to the unique Admin user of the group */
-  def allocateEnrolmentToGroup(
-    userId: String,
-    groupId: String,
-    enrolmentKey: EnrolmentKey,
-    enrolmentType: String,
-    agentCodeOpt: Option[String],
-    planetId: String
-  )(implicit ec: ExecutionContext): Future[User] =
-    knownFactsRepository.findByEnrolmentKey(enrolmentKey, planetId).flatMap {
-      case None => Future.failed(new NotFoundException("ALLOCATION_DOES_NOT_EXIST"))
-      case Some(_) =>
-        findByUserId(userId, planetId)
-          .flatMap {
-            case Some(user) =>
-              (if (user.credentialRole.contains(User.CR.Assistant))
-                 Future.failed(UnsupportedCredentialRole("INVALID_CREDENTIAL_TYPE"))
-               else {
-                 agentCodeOpt match {
-                   case None =>
-                     findAdminByGroupId(groupId, planetId)
-                       .map(_.getOrElse(throw new BadRequestException("INVALID_GROUP_ID")))
-                   case Some(agentCode) =>
-                     findAdminByAgentCode(agentCode, planetId)
-                       .map(_.getOrElse(throw new BadRequestException("INVALID_AGENT_FORMAT")))
-                 }
-               }).flatMap { admin =>
-                if (enrolmentType == "principal")
-                  updateUser(
-                    admin.userId,
-                    planetId,
-                    u => {
-                      val enrolment = Enrolment.from(enrolmentKey)
-                      if (u.enrolments.principal.contains(enrolment)) throw new EnrolmentAlreadyExists
-                      else
-                        u.copy(enrolments =
-                          u.enrolments
-                            .copy(principal = appendEnrolment(u.enrolments.principal, Enrolment.from(enrolmentKey)))
-                        )
-                    }
-                  )
-                else if (enrolmentType == "delegated" && admin.affinityGroup.contains(User.AG.Agent))
-                  findByPrincipalEnrolmentKey(enrolmentKey, planetId).flatMap {
-                    case Some(owner) if !owner.affinityGroup.contains(User.AG.Agent) =>
-                      updateUser(
-                        admin.userId,
-                        planetId,
-                        u => {
-                          val enrolment = Enrolment.from(enrolmentKey)
-                          if (u.enrolments.delegated.contains(enrolment)) throw new EnrolmentAlreadyExists
-                          else {
-                            u.updateDelegatedEnrolments(appendEnrolment(_, Enrolment.from(enrolmentKey)))
-                          }
-                        }
-                      )
-                    case None =>
-                      Future.failed(new BadRequestException("INVALID_QUERY_PARAMETERS"))
-                  }
-                else Future.failed(new BadRequestException("INVALID_QUERY_PARAMETERS"))
-              }
-            case None => Future.failed(new BadRequestException("INVALID_JSON_BODY"))
-          }
-    }
-
-  /* Group enrolment is de-assigned from the unique Admin user of the group */
-  def deallocateEnrolmentFromGroup(
-    groupId: String,
-    enrolmentKey: EnrolmentKey,
-    agentCodeOpt: Option[String],
-    keepAgentAllocations: Option[String],
-    planetId: String
-  )(implicit ec: ExecutionContext): Future[User] =
-    agentCodeOpt match {
-      case None =>
-        findAdminByGroupId(groupId, planetId)
-          .flatMap {
-            case Some(admin) if admin.credentialRole.contains(User.CR.Admin) =>
-              admin.affinityGroup match {
-                case Some(User.AG.Agent) =>
-                  updateUser(
-                    admin.userId,
-                    planetId,
-                    _.updateDelegatedEnrolments(es => removeEnrolment(es, enrolmentKey))
-                  )
-                case _ =>
-                  updateUser(
-                    admin.userId,
-                    planetId,
-                    _.updatePrincipalEnrolments(es => removeEnrolment(es, enrolmentKey))
-                  )
-              }
-
-            case _ => Future.failed(new BadRequestException("INVALID_GROUP_ID"))
-          }
-      case Some(agentCode) =>
-        findAdminByAgentCode(agentCode, planetId)
-          .flatMap {
-            case Some(admin) if admin.credentialRole.contains(User.CR.Admin) =>
-              updateUser(
-                admin.userId,
-                planetId,
-                _.updateDelegatedEnrolments(es => removeEnrolment(es, enrolmentKey))
-              )
-            case _ => Future.failed(new BadRequestException("INVALID_AGENT_FORMAT"))
-          }
-    }
-
-  private def appendEnrolment(enrolments: Seq[Enrolment], enrolment: Enrolment): Seq[Enrolment] =
-    if (
-      enrolments.exists(e => e.key == enrolment.key && e.identifiers.exists(ii => enrolment.identifiers.contains(ii)))
-    ) enrolments
-    else enrolments :+ enrolment
-
-  private def removeEnrolment(enrolments: Seq[Enrolment], key: EnrolmentKey): Seq[Enrolment] =
-    enrolments.filterNot(_.matches(key))
-
-  def checkAndFixUser(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] =
-    user.affinityGroup match {
-      case Some(User.AG.Agent) =>
-        CheckAndFix.checkAndFixAgentCode(user, planetId)
-
-      case Some(User.AG.Individual) =>
+  def checkAndFixUser(user: User, planetId: String, affinityGroup: String)(implicit
+    ec: ExecutionContext
+  ): Future[User] =
+    affinityGroup match {
+      case AG.Individual =>
         CheckAndFix.checkAndFixNino(user, planetId)
-
       case _ => Future.successful(user)
     }
 
   object CheckAndFix {
-
-    def checkAndFixAgentCode(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] =
-      user.agentCode
-        .map(ac =>
-          for {
-            duplicateAgentCode <- usersRepository.findByAgentCode(ac, planetId)(1).map(_.nonEmpty)
-          } yield if (duplicateAgentCode) user.copy(agentCode = Some(UserGenerator.agentCode(user.userId))) else user
-        )
-        .getOrElse(Future.successful(user))
 
     def checkAndFixNino(user: User, planetId: String)(implicit ec: ExecutionContext): Future[User] =
       user.nino
@@ -474,5 +425,3 @@ class UsersService @Inject() (
   def reindexAllUsers(implicit ec: ExecutionContext): Future[String] = usersRepository.reindexAllUsers
 
 }
-
-final class EnrolmentAlreadyExists extends Exception

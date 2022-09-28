@@ -43,13 +43,11 @@ trait UsersRepository {
 
   def findByUserId(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]]
   def findByNino(nino: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]]
-  def findByPlanetId(planetId: String, affinityGroup: Option[String])(limit: Int)(implicit
+  def findByPlanetId(planetId: String)(limit: Int)(implicit
     ec: ExecutionContext
   ): Future[Seq[User]]
   def findByGroupId(groupId: String, planetId: String)(limit: Int)(implicit ec: ExecutionContext): Future[Seq[User]]
   def findAdminByGroupId(groupId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]]
-  def findByAgentCode(agentCode: String, planetId: String)(limit: Int)(implicit ec: ExecutionContext): Future[Seq[User]]
-  def findAdminByAgentCode(agentCode: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]]
   def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(implicit
     ec: ExecutionContext
   ): Future[Option[User]]
@@ -112,14 +110,12 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
   override def findByNino(nino: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
     one[User](Seq(UNIQUE_KEYS -> Option(keyOf(User.ninoIndexKey(nino), planetId))))(User.formats)
 
-  override def findByPlanetId(planetId: String, affinityGroup: Option[String])(
+  override def findByPlanetId(planetId: String)(
     limit: Int
   )(implicit ec: ExecutionContext): Future[Seq[User]] =
     cursor(
       Seq(
-        KEYS -> affinityGroup
-          .map(ag => keyOf(User.affinityGroupKey(ag), planetId))
-          .orElse(Some(planetIdKey(planetId)))
+        KEYS -> Some(planetIdKey(planetId))
       )
     )(User.formats)
       .collect[Seq](maxDocs = limit, err = Cursor.ContOnError[Seq[User]]())
@@ -141,33 +137,18 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
       .collect[Seq](maxDocs = 1, err = Cursor.FailOnError[Seq[User]]())
       .map(_.headOption)
 
-  override def findByAgentCode(agentCode: String, planetId: String)(
-    limit: Int
-  )(implicit ec: ExecutionContext): Future[Seq[User]] =
-    cursor(
-      Seq(KEYS -> Option(keyOf(User.agentCodeIndexKey(agentCode), planetId)))
-    )(User.formats)
-      .collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[User]]())
-
-  override def findAdminByAgentCode(agentCode: String, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[Option[User]] =
-    cursor(
-      Seq(KEYS -> Option(keyOf(User.agentCodeWithCredentialRoleKey(agentCode, User.CR.Admin), planetId)))
-    )(User.formats)
-      .collect[Seq](maxDocs = 1, err = Cursor.FailOnError[Seq[User]]())
-      .map(_.headOption)
-
   override def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(implicit
     ec: ExecutionContext
   ): Future[Option[User]] =
-    one[User](Seq(UNIQUE_KEYS -> Option(keyOf(User.enrolmentIndexKey(enrolmentKey.toString), planetId))))(User.formats)
+    one[User](Seq(KEYS -> Option(keyOf(User.assignedPrincipalEnrolmentIndexKey(enrolmentKey.toString), planetId))))(
+      User.formats
+    )
 
   override def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
     limit: Int
   )(implicit ec: ExecutionContext): Future[Seq[User]] =
     cursor(
-      Seq(KEYS -> Option(keyOf(User.enrolmentIndexKey(enrolmentKey.toString), planetId)))
+      Seq(KEYS -> Option(keyOf(User.assignedDelegatedEnrolmentIndexKey(enrolmentKey.toString), planetId)))
     )(User.formats)
       .collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[User]]())
 
@@ -217,7 +198,7 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
     limit: Int
   )(implicit ec: ExecutionContext): Future[Seq[String]] =
     cursor(
-      Seq(KEYS    -> Option(keyOf(User.enrolmentIndexKey(enrolmentKey.toString), planetId))),
+      Seq(KEYS    -> Option(keyOf(User.assignedDelegatedEnrolmentIndexKey(enrolmentKey.toString), planetId))),
       Seq(USER_ID -> 1)
     )(userIdReads).collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[String]]())
 
@@ -237,7 +218,7 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
     limit: Int
   )(implicit ec: ExecutionContext): Future[Seq[Option[String]]] =
     cursor(
-      Seq(KEYS      -> Option(keyOf(User.enrolmentIndexKey(enrolmentKey.toString), planetId))),
+      Seq(KEYS      -> Option(keyOf(User.assignedDelegatedEnrolmentIndexKey(enrolmentKey.toString), planetId))),
       Seq("groupId" -> 1)
     )(groupIdReads)
       .collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[Option[String]]]())

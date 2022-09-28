@@ -25,7 +25,8 @@ import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubContro
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController._
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.{DuplicateUserException, KnownFactsRepository}
-import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, EnrolmentAlreadyExists, UsersService}
+import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, EnrolmentAlreadyExists, GroupsService, UsersService}
+import uk.gov.hmrc.auth.core.UnsupportedCredentialRole
 import uk.gov.hmrc.http.{BadRequestException, ForbiddenException, NotFoundException}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -37,8 +38,10 @@ import scala.util.control.NonFatal
 class EnrolmentStoreProxyStubController @Inject() (
   val authenticationService: AuthenticationService,
   knownFactsRepository: KnownFactsRepository,
+  usersService: UsersService,
+  groupsService: GroupsService,
   cc: ControllerComponents
-)(implicit usersService: UsersService, executionContext: ExecutionContext)
+)(implicit executionContext: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
   def getUserIds(enrolmentKey: EnrolmentKey, `type`: String): Action[AnyContent] = Action.async { implicit request =>
@@ -66,12 +69,12 @@ class EnrolmentStoreProxyStubController @Inject() (
     withCurrentSession { session =>
       (for {
         principal <- if (`type` == "all" || `type` == "principal")
-                       usersService.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
+                       groupsService.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
                      else Future.successful(None)
         delegated <- if (`type` == "all" || `type` == "delegated")
-                       usersService.findGroupIdsByDelegatedEnrolmentKey(enrolmentKey, session.planetId)(1000)
+                       groupsService.findByDelegatedEnrolmentKey(enrolmentKey, session.planetId)(1000)
                      else Future.successful(Seq.empty)
-      } yield GetGroupIdsResponse.from(principal, delegated.collect { case Some(x) => x })).map {
+      } yield GetGroupIdsResponse.from(principal, delegated)).map {
         case GetGroupIdsResponse(None, None) => NoContent
         case response                        => Ok(RestfulResponse(response))
       }
@@ -143,19 +146,28 @@ class EnrolmentStoreProxyStubController @Inject() (
           .fold(
             error => badRequestF("INVALID_JSON_BODY", error.mkString(", ")),
             _ =>
-              usersService
-                .allocateEnrolmentToGroup(
-                  payload.userId,
-                  groupId,
-                  enrolmentKey,
-                  payload.`type`,
-                  `legacy-agentCode`,
-                  session.planetId
-                )
-                .map(_ => Created)
+              (for {
+                maybeUser <- usersService.findByUserId(payload.userId, session.planetId)
+                user = maybeUser match {
+                         case Some(usr)
+                             if usr.credentialRole.exists(cr => Seq(User.CR.User, User.CR.Admin).contains(cr)) =>
+                           usr
+                         case _ => throw UnsupportedCredentialRole("INVALID_CREDENTIAL_ID")
+                       }
+                _ <- groupsService
+                       .allocateEnrolmentToGroup(
+                         user,
+                         groupId,
+                         enrolmentKey,
+                         payload.`type`,
+                         `legacy-agentCode`,
+                         session.planetId
+                       )
+              } yield Created)
                 .recover {
-                  case _: EnrolmentAlreadyExists => Conflict
-                  case _: DuplicateUserException => Conflict
+                  case _: EnrolmentAlreadyExists                          => Conflict
+                  case _: DuplicateUserException                          => Conflict
+                  case UnsupportedCredentialRole("INVALID_CREDENTIAL_ID") => Forbidden
                 }
           )
       }
@@ -169,7 +181,7 @@ class EnrolmentStoreProxyStubController @Inject() (
     keepAgentAllocations: Option[String]
   ): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
-      usersService
+      groupsService
         .deallocateEnrolmentFromGroup(groupId, enrolmentKey, `legacy-agentCode`, keepAgentAllocations, session.planetId)
         .map(_ => NoContent)
     }(SessionRecordNotFound)
@@ -190,23 +202,25 @@ class EnrolmentStoreProxyStubController @Inject() (
     else if (`max-records`.isDefined && (`max-records`.get < 10 || `max-records`.get > 1000))
       badRequestF("INVALID_MAX_RECORDS")
     else {
-      usersService.findAdminByGroupId(groupId, planetId).flatMap {
+      groupsService.findByGroupId(groupId, planetId).flatMap {
         case None =>
           notFoundF("INVALID_GROUP_ID")
-        case Some(user) =>
+        case Some(group) =>
           val principal = `type` == "principal"
           val getKnownFacts: EnrolmentKey => Future[Option[KnownFacts]] =
             if (principal) knownFactsRepository.findByEnrolmentKey(_, planetId)
             else _ => Future.successful(None)
           val startRecord = `start-record`.getOrElse(1)
-          val enrolments = (if (principal) user.enrolments.principal else user.enrolments.delegated)
+          def assignedEnrolments(user: User) = if (principal) user.assignedPrincipalEnrolments
+          else user.assignedDelegatedEnrolments
+          val enrolments = (if (principal) group.principalEnrolments else group.delegatedEnrolments)
             .filter(e => service.forall(_ == e.key))
-            .filter(e => assignedToUser.forall(user => e.toEnrolmentKey.exists(user.enrolments.assigned.contains(_))))
+            .filter(e => assignedToUser.forall(user => e.toEnrolmentKey.exists(assignedEnrolments(user).contains(_))))
             .slice(startRecord - 1, startRecord - 1 + `max-records`.getOrElse(1000))
           Future
             .sequence(enrolments.map(_.toEnrolmentKey).collect { case Some(x) => x }.map(getKnownFacts))
             .map(_.collect { case Some(x) => x })
-            .map(knownFacts => GetUserEnrolmentsResponse.from(user, startRecord, enrolments, knownFacts))
+            .map(knownFacts => GetUserEnrolmentsResponse.from(startRecord, enrolments, knownFacts))
             .map { response =>
               if (response.totalRecords == 0) NoContent else Ok(Json.toJson(response))
             }
@@ -278,18 +292,20 @@ class EnrolmentStoreProxyStubController @Inject() (
 
   def getDelegatedEnrolments(groupId: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
-      usersService.findByGroupId(groupId, session.planetId)(100).map { users =>
+      for {
+        maybeGroup <- groupsService.findByGroupId(groupId, session.planetId)
+        users      <- usersService.findByGroupId(groupId, session.planetId)(100)
+      } yield {
         val setOfDelegatedEnrolments: Set[Enrolment] =
-          users.foldLeft(Set.empty[Enrolment]) { (accumulatedEnrolments, user) =>
-            accumulatedEnrolments ++ user.enrolments.delegated
-          }
-
+          maybeGroup.fold(Set.empty[Enrolment])(_.delegatedEnrolments.toSet)
         val mapOfEnrolmentsToAssignedUsers: Map[Enrolment, Seq[String]] =
           users
-            .flatMap(user => user.enrolments.assigned.map(enrolmentKey => (Enrolment.from(enrolmentKey), user.userId)))
+            .flatMap(user =>
+              user.assignedDelegatedEnrolments
+                .map(enrolmentKey => (Enrolment.from(enrolmentKey), user.userId))
+            )
             .groupBy(_._1)
             .map(groupedByEnrolment => groupedByEnrolment._1 -> groupedByEnrolment._2.map(_._2))
-
         val enrolmentsToAssignedUsersMergedWithDelegatedEnrolments: Map[Enrolment, Seq[String]] =
           setOfDelegatedEnrolments.foldLeft(mapOfEnrolmentsToAssignedUsers) { (accumulatedMap, delegatedEnrolment) =>
             if (
@@ -329,14 +345,12 @@ class EnrolmentStoreProxyStubController @Inject() (
             .fold(
               error => badRequestF("INVALID_PAYLOAD", error.mkString(", ")),
               _ =>
-                usersService.findAdminByGroupId(groupId, session.planetId).flatMap {
+                groupsService.findByGroupId(groupId, session.planetId).flatMap {
                   case None => notFoundF("INVALID_GROUP_ID")
-                  case Some(user) =>
-                    if (user.groupId.contains(groupId))
-                      usersService
-                        .setEnrolmentFriendlyName(user, session.planetId, enrolmentKey, payload.friendlyName)
-                        .map(_ => NoContent)
-                    else forbiddenF("NO_PERMISSION")
+                  case Some(group) =>
+                    groupsService
+                      .setEnrolmentFriendlyName(group, session.planetId, enrolmentKey, payload.friendlyName)
+                      .map(_ => NoContent)
                 }
             )
         }
@@ -360,10 +374,10 @@ object EnrolmentStoreProxyStubController {
   object GetGroupIdsResponse {
     implicit val writes: Writes[GetGroupIdsResponse] = Json.writes[GetGroupIdsResponse]
 
-    def from(principal: Option[User], delegated: Seq[String]): GetGroupIdsResponse =
+    def from(principal: Option[Group], delegated: Seq[Group]): GetGroupIdsResponse =
       GetGroupIdsResponse(
-        principal.map(u => Seq(u.groupId).collect { case Some(x) => x }),
-        if (delegated.isEmpty) None else Some(delegated.distinct)
+        principal.map(u => Seq(u.groupId)),
+        if (delegated.isEmpty) None else Some(delegated.map(_.groupId).distinct)
       )
   }
 
@@ -431,7 +445,6 @@ object EnrolmentStoreProxyStubController {
     }
 
     def from(
-      user: User,
       startRecord: Int,
       enrolments: Seq[uk.gov.hmrc.agentsexternalstubs.models.Enrolment],
       knownFacts: Seq[KnownFacts]

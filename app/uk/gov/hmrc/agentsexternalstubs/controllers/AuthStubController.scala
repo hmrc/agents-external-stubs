@@ -17,7 +17,6 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import java.util.UUID
-
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.http.HeaderNames
@@ -25,7 +24,7 @@ import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.agentsexternalstubs.connectors.AgentAccessControlConnector
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, AuthorisationCache, UsersService}
+import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, AuthorisationCache, GroupsService, UsersService}
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -35,6 +34,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class AuthStubController @Inject() (
   val authenticationService: AuthenticationService,
   usersService: UsersService,
+  groupsService: GroupsService,
   agentAccessControlConnector: AgentAccessControlConnector,
   appConfig: AppConfig,
   cc: ControllerComponents
@@ -66,19 +66,21 @@ class AuthStubController @Inject() (
                                   for {
                                     maybeUser <-
                                       usersService
-                                        .findByUserId(authenticatedSession.userId, authenticatedSession.planetId)
+                                        .findUserAndGroup(authenticatedSession.userId, authenticatedSession.planetId)
                                     result <- Future(maybeUser match {
-                                                case Some(user) =>
+                                                case (Some(user), maybeGroup) =>
                                                   Authorise.prepareAuthoriseResponse(
                                                     FullAuthoriseContext(
                                                       user,
+                                                      maybeGroup,
                                                       usersService,
+                                                      groupsService,
                                                       authenticatedSession,
                                                       authoriseRequest,
                                                       agentAccessControlConnector
                                                     )
                                                   )
-                                                case None =>
+                                                case _ =>
                                                   Left("SessionRecordNotFound")
                                               }) map { maybeResponse =>
                                                 if (authCacheFlag.isDefined)
@@ -115,35 +117,41 @@ class AuthStubController @Inject() (
   private def withAuthorisedUserAndSession(
     body: (User, AuthenticatedSession) => Future[Result]
   )(implicit request: Request[AnyContent]): Future[Result] =
-    request.headers.get(HeaderNames.AUTHORIZATION) match {
-      case Some(BearerToken(authToken)) =>
-        for {
-          maybeSession <- authenticationService.findByAuthTokenOrLookupExternal(authToken)
-          result <- maybeSession match {
-                      case Some(authenticatedSession) =>
-                        for {
-                          maybeUser <- usersService
-                                         .findByUserId(authenticatedSession.userId, authenticatedSession.planetId)
-                          result <- maybeUser match {
-                                      case Some(user) => body(user, authenticatedSession)
-                                      case None =>
-                                        unauthorizedF("UserRecordNotFound")
-                                    }
-                        } yield result
-                      case None =>
-                        unauthorizedF("SessionRecordNotFound")
-                    }
-        } yield result
-      case Some(token) =>
-        Logger(getClass).warn(s"Unsupported bearer token format $token")
-        unauthorizedF("InvalidBearerToken")
-      case None =>
-        unauthorizedF("MissingBearerToken")
+    withAuthorisedUserGroupAndSession { case (user, _, session) =>
+      body(user, session)
     }
 
+  private def withAuthorisedUserGroupAndSession(
+    body: (User, Group, AuthenticatedSession) => Future[Result]
+  )(implicit request: Request[AnyContent]): Future[Result] = request.headers.get(HeaderNames.AUTHORIZATION) match {
+    case Some(BearerToken(authToken)) =>
+      for {
+        maybeSession <- authenticationService.findByAuthTokenOrLookupExternal(authToken)
+        result <- maybeSession match {
+                    case Some(authenticatedSession) =>
+                      for {
+                        maybeUser <- usersService
+                                       .findUserAndGroup(authenticatedSession.userId, authenticatedSession.planetId)
+                        result <- maybeUser match {
+                                    case (Some(user), Some(group)) => body(user, group, authenticatedSession)
+                                    case _ =>
+                                      unauthorizedF("UserRecordNotFound")
+                                  }
+                      } yield result
+                    case None =>
+                      unauthorizedF("SessionRecordNotFound")
+                  }
+      } yield result
+    case Some(token) =>
+      Logger(getClass).warn(s"Unsupported bearer token format $token")
+      unauthorizedF("InvalidBearerToken")
+    case None =>
+      unauthorizedF("MissingBearerToken")
+  }
+
   val getAuthority: Action[AnyContent] = Action.async { implicit request =>
-    withAuthorisedUserAndSession { (user, session) =>
-      Future.successful(Ok(Json.toJson(Authority.prepareAuthorityResponse(user, session))))
+    withAuthorisedUserGroupAndSession { (user, group, session) =>
+      Future.successful(Ok(Json.toJson(Authority.prepareAuthorityResponse(user, group, session))))
     }
   }
 
@@ -154,25 +162,39 @@ class AuthStubController @Inject() (
   }
 
   val getEnrolments: Action[AnyContent] = Action.async { implicit request =>
-    withAuthorisedUserAndSession { (user, _) =>
-      Future.successful(Ok(Json.toJson(Authority.prepareEnrolmentsResponse(user))))
+    withAuthorisedUserGroupAndSession { (user, group, _) =>
+      Future.successful(Ok(Json.toJson(Authority.prepareEnrolmentsResponse(user, group))))
     }
   }
 
   def getUserByOid(oid: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
-      usersService.findByUserId(oid, session.planetId).map {
-        case Some(user) => ok(Authority.prepareAuthorityResponse(user, session))
-        case None       => notFound(s"User $oid not found on a planet ${session.planetId}")
+      for {
+        maybeUser <- usersService.findByUserId(oid, session.planetId)
+        maybeGroup <- maybeUser
+                        .flatMap(_.groupId)
+                        .fold(Future.successful(Option.empty[Group]))(groupId =>
+                          groupsService.findByGroupId(groupId, session.planetId)
+                        )
+      } yield (maybeUser, maybeGroup) match {
+        case (Some(user), Some(group)) => ok(Authority.prepareAuthorityResponse(user, group, session))
+        case _                         => notFound(s"User $oid not found on a planet ${session.planetId}")
       }
     }(SessionRecordNotFound)
   }
 
   def getEnrolmentsByOid(oid: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
-      usersService.findByUserId(oid, session.planetId).map {
-        case Some(user) => ok(Authority.prepareEnrolmentsResponse(user))
-        case None       => notFound(s"User $oid not found on a planet ${session.planetId}")
+      for {
+        maybeUser <- usersService.findByUserId(oid, session.planetId)
+        maybeGroup <- maybeUser
+                        .flatMap(_.groupId)
+                        .fold(Future.successful(Option.empty[Group]))(groupId =>
+                          groupsService.findByGroupId(groupId, session.planetId)
+                        )
+      } yield (maybeUser, maybeGroup) match {
+        case (Some(user), Some(group)) => ok(Authority.prepareEnrolmentsResponse(user, group))
+        case _                         => notFound(s"User $oid not found on a planet ${session.planetId}")
       }
     }(SessionRecordNotFound)
   }
@@ -210,7 +232,7 @@ object AuthStubController {
 
   object Authority {
 
-    def prepareAuthorityResponse(user: User, session: AuthenticatedSession): Response = Response(
+    def prepareAuthorityResponse(user: User, group: Group, session: AuthenticatedSession): Response = Response(
       uri = s"/auth/oid/${user.userId}",
       confidenceLevel = user.confidenceLevel.getOrElse(50),
       credentialStrength = user.credentialStrength.getOrElse("weak"),
@@ -220,11 +242,11 @@ object AuthStubController {
       lastUpdated = "2017-02-14T11:23:52.955Z",
       loggedInAt = "2017-02-14T11:23:52.955Z",
       enrolments = s"/auth/_enrolments",
-      affinityGroup = user.affinityGroup.getOrElse("none"),
+      affinityGroup = group.affinityGroup,
       correlationId = UUID.randomUUID().toString,
       credId = user.userId,
       credentials = Some(Credentials(user.userId)),
-      accounts = Accounts.from(user)
+      accounts = Accounts.from(user, group)
     )
 
     case class Response(
@@ -265,8 +287,8 @@ object AuthStubController {
 
     object Accounts {
 
-      def from(user: User): Option[Accounts] = user.affinityGroup match {
-        case Some(User.AG.Agent) =>
+      def from(user: User, group: Group): Option[Accounts] = group.affinityGroup match {
+        case AG.Agent =>
           Some(
             Accounts(
               agent = Some(
@@ -274,32 +296,32 @@ object AuthStubController {
                   agentUserRole = user.credentialRole
                     .map { case User.CR.Admin | User.CR.User => "admin"; case User.CR.Assistant => "assistant" }
                     .getOrElse("link"),
-                  agentUserId = user.agentId.getOrElse("link"),
-                  agentCode = user.agentCode.getOrElse("link"),
+                  agentUserId = group.agentId.getOrElse("link"),
+                  agentCode = group.agentCode.getOrElse("link"),
                   link = "link",
-                  payeReference = user.findIdentifierValue("IR-PAYE-AGENT", "IRAgentReference")
+                  payeReference = group.findIdentifierValue("IR-PAYE-AGENT", "IRAgentReference")
                 )
               ),
-              ct = user.findIdentifierValue("IR-CT", "UTR").map(Ct.apply("link", _)),
-              sa = user.findIdentifierValue("IR-SA", "UTR").map(Sa.apply("link", _)),
-              vat = user.findIdentifierValue("HMCE-VATDEC-ORG", "VRN").map(Vat.apply("link", _))
+              ct = group.findIdentifierValue("IR-CT", "UTR").map(Ct.apply("link", _)),
+              sa = group.findIdentifierValue("IR-SA", "UTR").map(Sa.apply("link", _)),
+              vat = group.findIdentifierValue("HMCE-VATDEC-ORG", "VRN").map(Vat.apply("link", _))
             )
           )
-        case Some(User.AG.Individual) =>
+        case AG.Individual =>
           Some(
             Accounts(
-              sa = user.findIdentifierValue("IR-SA", "UTR").map(Sa.apply("link", _)),
+              sa = group.findIdentifierValue("IR-SA", "UTR").map(Sa.apply("link", _)),
               paye = user.nino.map(nino => Paye.apply("link", nino.value.replace(" ", ""))),
-              vat = user.findIdentifierValue("HMCE-VATDEC-ORG", "VRN").map(Vat.apply("link", _))
+              vat = group.findIdentifierValue("HMCE-VATDEC-ORG", "VRN").map(Vat.apply("link", _))
             )
           )
-        case Some(User.AG.Organisation) =>
+        case AG.Organisation =>
           Some(
             Accounts(
-              sa = user.findIdentifierValue("IR-SA", "UTR").map(Sa.apply("link", _)),
-              ct = user.findIdentifierValue("IR-CT", "UTR").map(Ct.apply("link", _)),
-              vat = user.findIdentifierValue("HMCE-VATDEC-ORG", "VRN").map(Vat.apply("link", _)),
-              epaye = user
+              sa = group.findIdentifierValue("IR-SA", "UTR").map(Sa.apply("link", _)),
+              ct = group.findIdentifierValue("IR-CT", "UTR").map(Ct.apply("link", _)),
+              vat = group.findIdentifierValue("HMCE-VATDEC-ORG", "VRN").map(Vat.apply("link", _)),
+              epaye = group
                 .findIdentifierValue("IR-PAYE", "TaxOfficeNumber", "TaxOfficeReference", _ + "/" + _)
                 .map(Epaye.apply("link", _))
             )
@@ -360,13 +382,10 @@ object AuthStubController {
 
     def prepareIdsResponse(user: User): Ids = Ids(user.userId, user.userId)
 
-    def prepareEnrolmentsResponse(user: User): Seq[Enrolment] =
-      if (
-        user.affinityGroup
-          .contains(User.AG.Individual) || user.affinityGroup.contains(User.AG.Organisation) && user.nino.isDefined
-      )
-        user.enrolments.principal :+ Enrolment("HMRC-NI", "NINO", user.nino.get.value)
-      else user.enrolments.principal
+    def prepareEnrolmentsResponse(user: User, group: Group): Seq[Enrolment] =
+      if (group.affinityGroup == AG.Individual || group.affinityGroup == AG.Organisation && user.nino.isDefined)
+        group.principalEnrolments :+ Enrolment("HMRC-NI", "NINO", user.nino.get.value)
+      else group.principalEnrolments
   }
 
 }

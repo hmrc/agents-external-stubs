@@ -24,9 +24,9 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{ControllerComponents, Request, Result}
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, EnrolmentKey}
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, EnrolmentKey, User}
 import uk.gov.hmrc.agentsexternalstubs.repository.{DuplicateUserException, KnownFactsRepository}
-import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
+import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GroupsService, UsersService}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
 
@@ -41,13 +41,16 @@ class EnrolmentStoreProxyStubControllerSpec extends UnitSpec {
     val mockAuthenticationService: AuthenticationService = mock[AuthenticationService]
     val mockKnownFactsRepository: KnownFactsRepository = mock[KnownFactsRepository]
     val mockUsersService: UsersService = mock[UsersService]
+    val mockGroupsService: GroupsService = mock[GroupsService]
     val cc: ControllerComponents = Helpers.stubControllerComponents()
 
     val controller: EnrolmentStoreProxyStubController = new EnrolmentStoreProxyStubController(
       mockAuthenticationService,
       mockKnownFactsRepository,
+      mockUsersService,
+      mockGroupsService,
       cc
-    )(mockUsersService, ex) {
+    )(ex) {
       override def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(
         ifSessionNotFound: => Future[Result]
       )(implicit request: Request[T], ec: ExecutionContext, hc: HeaderCarrier): Future[Result] =
@@ -61,8 +64,11 @@ class EnrolmentStoreProxyStubControllerSpec extends UnitSpec {
   "allocateGroupEnrolment" should {
     "return 409 if mongodb returns DuplicateUserException" in new Setup {
       when(
-        mockUsersService.allocateEnrolmentToGroup(
-          anyString(),
+        mockUsersService.findByUserId(anyString(), anyString())(any[ExecutionContext]())
+      ).thenReturn(Future.successful(Some(User("bar", credentialRole = Some(User.CR.Admin)))))
+      when(
+        mockGroupsService.allocateEnrolmentToGroup(
+          any[User](),
           anyString(),
           any[EnrolmentKey](),
           anyString(),

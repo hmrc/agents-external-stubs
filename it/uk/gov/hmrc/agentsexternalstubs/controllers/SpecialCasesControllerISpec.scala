@@ -5,7 +5,7 @@ import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
 import play.mvc.Http.{HeaderNames, MimeTypes}
 import uk.gov.hmrc.agentsexternalstubs.models.SpecialCase.RequestMatch
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, SpecialCase, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Enrolment, EnrolmentKey, SpecialCase, User, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.repository.SpecialCasesRepository
 import uk.gov.hmrc.agentsexternalstubs.support._
 
@@ -157,8 +157,7 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with MongoDB with Test
 
       "replace an ordinary GET response" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-        val user = UserGenerator.individual(session.userId)
-        Users.update(user)
+        val user = Users.get(session.userId).json.as[User]
         val result1 = CitizenDetailsStub.getCitizen("nino", user.nino.get.value)
         result1 should haveStatus(200)
 
@@ -194,9 +193,16 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with MongoDB with Test
       "replace an ordinary POST response" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
+        val agentCode = "testAgentCode"
+
         val agent = UserGenerator.agent()
-        Users.create(agent)
-        Users.create(UserGenerator.individual().withPrincipalEnrolment("HMRC-MTD-IT", "MTDITID", "RLWA69482506648"))
+        Users.create(agent, Some(AG.Agent), agentCode = Some(agentCode))
+        Users.create(
+          UserGenerator
+            .individual()
+            .withAssignedPrincipalEnrolment(EnrolmentKey("HMRC-MTD-IT~MTDITID~RLWA69482506648")),
+          Some(AG.Individual)
+        )
 
         val result1 = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
           agent.groupId.get,
@@ -205,7 +211,7 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with MongoDB with Test
             |    "userId" : "${agent.userId}",
             |    "type" : "delegated"
             |}""".stripMargin),
-          `legacy-agentCode` = agent.agentCode
+          `legacy-agentCode` = Some(agentCode)
         )
 
         result1 should haveStatus(201)
@@ -215,7 +221,7 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with MongoDB with Test
             requestMatch = SpecialCase.RequestMatch(
               method = "POST",
               path =
-                s"/enrolment-store-proxy/enrolment-store/groups/${agent.groupId.get}/enrolments/HMRC-MTD-IT~MTDITID~RLWA69482506648?legacy-agentCode=${agent.agentCode.get}"
+                s"/enrolment-store-proxy/enrolment-store/groups/${agent.groupId.get}/enrolments/HMRC-MTD-IT~MTDITID~RLWA69482506648?legacy-agentCode=$agentCode"
             ),
             response = SpecialCase.Response(506)
           )
@@ -229,7 +235,7 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with MongoDB with Test
             |    "userId" : "${agent.userId}",
             |    "type" : "delegated"
             |}""".stripMargin),
-          `legacy-agentCode` = agent.agentCode
+          `legacy-agentCode` = Some(agentCode)
         )
 
         result3 should haveStatus(506)

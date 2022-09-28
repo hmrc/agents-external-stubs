@@ -19,7 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{Json, Writes}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, Generator, User}
+import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Generator, Group, User}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -36,9 +36,9 @@ class UserDetailsStubController @Inject() (
 
   def getUser(id: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
-      usersService.findByUserId(id, session.planetId).map {
-        case None       => notFound("NOT_FOUND", s"User $id details are not found")
-        case Some(user) => Ok(RestfulResponse(GetUserResponse.from(user, session)))
+      usersService.findUserAndGroup(id, session.planetId).map {
+        case (Some(user), maybeGroup) => Ok(RestfulResponse(GetUserResponse.from(user, maybeGroup, session)))
+        case _                        => notFound("NOT_FOUND", s"User $id details are not found")
       }
     }(SessionRecordNotFound)
   }
@@ -93,16 +93,16 @@ object UserDetailsStubController {
   object GetUserResponse {
     implicit val writes: Writes[GetUserResponse] = Json.writes[GetUserResponse]
 
-    def from(user: User, session: AuthenticatedSession): GetUserResponse = GetUserResponse(
+    def from(user: User, group: Option[Group], session: AuthenticatedSession): GetUserResponse = GetUserResponse(
       authProviderId = user.userId,
       authProviderType = session.providerType,
-      name = (if (user.affinityGroup.contains(User.AG.Individual)) user.firstName else user.name).getOrElse("John Doe"),
-      lastName = if (user.affinityGroup.contains(User.AG.Individual)) user.lastName else None,
+      name = (if (group.exists(_.affinityGroup == AG.Individual)) user.firstName else user.name).getOrElse("John Doe"),
+      lastName = if (group.exists(_.affinityGroup == AG.Individual)) user.lastName else None,
       email = Generator.email(user.userId),
-      affinityGroup = user.affinityGroup.getOrElse("none"),
-      agentCode = user.agentCode,
-      agentFriendlyName = user.agentFriendlyName,
-      agentId = user.agentId,
+      affinityGroup = group.fold("none")(_.affinityGroup),
+      agentCode = group.flatMap(_.agentCode),
+      agentFriendlyName = group.flatMap(_.agentFriendlyName),
+      agentId = group.flatMap(_.agentId),
       credentialRole = user.credentialRole.getOrElse("User"),
       description = s"Agent Stubs test user on the planet ${user.planetId.getOrElse("?")}",
       postCode = user.address.flatMap(_.postcode),

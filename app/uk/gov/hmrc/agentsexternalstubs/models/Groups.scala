@@ -16,18 +16,11 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import play.api.libs.json.{Format, Json}
+import play.api.libs.json.{Format, Json, Writes}
 
-case class SignInRequest(
-  userId: Option[String],
-  plainTextPassword: Option[String],
-  providerType: Option[String],
-  planetId: Option[String],
-  syncToAuthLoginApi: Option[Boolean] = None,
-  newUserData: Option[User] = None,
-  newUserAffinityGroup: Option[String] = None
-)
+case class Groups(groups: Seq[Group])
 
-object SignInRequest {
-  implicit val formats: Format[SignInRequest] = Json.format[SignInRequest]
+object Groups {
+  implicit val groupFormat: Writes[Group] = Group.format
+  implicit def format: Format[Groups] = Json.format[Groups]
 }

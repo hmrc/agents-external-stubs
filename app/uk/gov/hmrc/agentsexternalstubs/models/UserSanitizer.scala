@@ -17,10 +17,9 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalacheck.Gen
-import uk.gov.hmrc.agentsexternalstubs.models.User.AG.{Agent, Individual, Organisation}
 import uk.gov.hmrc.agentsexternalstubs.models.Validator.Validator
 
-object UserSanitizer extends RecordUtils[User] {
+case class UserSanitizer(affinityGroup: Option[String]) extends RecordUtils[User] {
 
   def sanitize(user: User): User = sanitize(user.userId)(user)
 
@@ -30,23 +29,22 @@ object UserSanitizer extends RecordUtils[User] {
   private val ensureUserHaveName: Update = seed =>
     user =>
       if (user.name.isEmpty)
-        user.affinityGroup match {
-          case Some(Individual) => user.copy(name = Some(UserGenerator.nameForIndividual(seed)))
-          case Some(Agent) =>
+        affinityGroup match {
+          case Some(AG.Individual) => user.copy(name = Some(UserGenerator.nameForIndividual(seed)))
+          case Some(AG.Agent) =>
             user.copy(name = Some(UserGenerator.nameForAgent(seed, user.groupId.getOrElse(seed))))
           case Some(_) => user.copy(name = Some(UserGenerator.nameForOrganisation(seed)))
           case None    => user
         }
       else user
 
-  private val ensureStrideUserHaveNoGatewayEnrolmentsNorAffinityGroupNorOtherData: Update = seed =>
+  private val ensureStrideUserHaveNoGatewayEnrolmentsNorGroupIdNorOtherData: Update = seed =>
     user =>
-      if (user.strideRoles.nonEmpty)
+      if (affinityGroup.isEmpty || user.strideRoles.nonEmpty)
         user.copy(
-          enrolments = User.Enrolments.none,
-          affinityGroup = None,
-          agentCode = None,
-          agentId = None,
+          groupId = None,
+          assignedPrincipalEnrolments = Seq.empty,
+          assignedDelegatedEnrolments = Seq.empty,
           nino = None,
           additionalInformation = None,
           address = None,
@@ -58,82 +56,56 @@ object UserSanitizer extends RecordUtils[User] {
 
   private val ensureAgentsAndIndividualsHaveANino: Update = seed =>
     user =>
-      user.affinityGroup match {
-        case Some(Organisation) => user // APB-6051 Organisations may also have a Nino
-        case Some(_)            => if (user.nino.isEmpty) user.copy(nino = Some(Generator.ninoWithSpaces(seed))) else user
-        case None               => user.copy(nino = None)
+      affinityGroup match {
+        case Some(AG.Organisation) => user // APB-6051 Organisations may also have a Nino
+        case Some(_)               => if (user.nino.isEmpty) user.copy(nino = Some(Generator.ninoWithSpaces(seed))) else user
+        case None                  => user.copy(nino = None)
       }
 
   private val ensureOnlyIndividualUserHaveConfidenceLevel: Update = seed =>
     user =>
-      user.affinityGroup match {
-        case Some(Individual) =>
+      affinityGroup match {
+        case Some(AG.Individual) =>
           if (user.confidenceLevel.isEmpty)
-            user.copy(confidenceLevel = Some(50))
+            user.copy(confidenceLevel = Some(250))
           else user
         case _ => user.copy(confidenceLevel = None)
       }
 
   private val ensureUserHaveCredentialRole: Update = seed =>
     user =>
-      user.affinityGroup match {
-        case Some(Individual | Agent) =>
+      affinityGroup match {
+        case Some(AG.Individual | AG.Agent) =>
           if (user.credentialRole.isEmpty) user.copy(credentialRole = Some(User.CR.User)) else user
-        case Some(Organisation) =>
+        case Some(AG.Organisation) =>
           if (user.credentialRole.isEmpty) user.copy(credentialRole = Some(User.CR.Admin)) else user
         case _ => user.copy(credentialRole = None)
       }
 
   private val ensuresAgentsAndIndividualsHaveDateOfBirth: Update = seed =>
     user =>
-      user.affinityGroup match {
-        case Some(Organisation) => user
+      affinityGroup match {
+        case Some(AG.Organisation) => user
         case Some(_) =>
           if (user.dateOfBirth.isEmpty) user.copy(dateOfBirth = Some(UserGenerator.dateOfBirth(seed))) else user
         case None => user.copy(dateOfBirth = None)
       }
 
+  // ensure user has group id unless there is no affinity group specified (in which case the user is e.g. Stride and there is no group)
   private val ensureUserHaveGroupIdentifier: Update = seed =>
-    user => if (user.groupId.isEmpty) user.copy(groupId = Some(UserGenerator.groupId(seed))) else user
-
-  private val ensureAgentHaveAgentCode: Update = seed =>
     user =>
-      user.affinityGroup match {
-        case Some(Agent) =>
-          if (user.agentCode.isEmpty)
-            user.copy(agentCode = Some(UserGenerator.agentCode(user.groupId.getOrElse(seed))))
-          else user
-        case _ => user.copy(agentCode = None)
-      }
-
-  private val ensureAgentHaveAgentId: Update = _ =>
-    user =>
-      user.affinityGroup match {
-        case Some(Agent) =>
-          if (user.agentId.isEmpty)
-            user.copy(agentId = Some(user.userId))
-          else user
-        case _ => user.copy(agentId = None)
-      }
-
-  private val ensureAgentHaveFriendlyName: Update = seed =>
-    user =>
-      user.affinityGroup match {
-        case Some(Agent) =>
-          if (user.agentFriendlyName.isEmpty)
-            user.copy(agentFriendlyName = Some(UserGenerator.agentFriendlyName(user.groupId.getOrElse(seed))))
-          else user
-        case _ => user.copy(agentFriendlyName = None)
-      }
+      if (user.groupId.isEmpty && affinityGroup.nonEmpty) user.copy(groupId = Some(UserGenerator.groupId(seed)))
+      else user
 
   private val ensurePrincipalEnrolmentKeysAreDistinct: Update = seed =>
     user => {
-      user.updatePrincipalEnrolments(
-        _.groupBy(_.key)
+      user.copy(assignedPrincipalEnrolments =
+        user.assignedPrincipalEnrolments
+          .groupBy(_.service)
           .collect {
-            case (key, es) if es.size == 1 || Services(key).exists(_.flags.multipleEnrolment) => es
-            case (_, es) =>
-              Seq(es.maxBy(_.identifiers.map(_.size).getOrElse(0)))
+            case (key, eks) if eks.size == 1 || Services(key).exists(_.flags.multipleEnrolment) => eks
+            case (_, eks) =>
+              Seq(eks.maxBy(_.identifiers.size))
           }
           .flatten
           .toSeq
@@ -142,17 +114,30 @@ object UserSanitizer extends RecordUtils[User] {
 
   private val ensurePrincipalEnrolmentsHaveIdentifiers: Update = seed =>
     user => {
-      user.updatePrincipalEnrolments(_.groupBy(_.key).flatMap { case (_, es) =>
-        es.zipWithIndex.map { case (e, i) => ensureEnrolmentHaveIdentifier(Generator.variant(seed, i))(e) }
-      }.toSeq)
+      user.copy(assignedPrincipalEnrolments =
+        user.assignedPrincipalEnrolments
+          .groupBy(_.service)
+          .flatMap { case (_, eks) =>
+            eks.zipWithIndex.map { case (ek, i) => ensureEnrolmentKeyHasIdentifier(Generator.variant(seed, i), ek) }
+          }
+          .toSeq
+      )
     }
 
   private val ensureDelegatedEnrolmentsHaveIdentifiers: Update = seed =>
     user => {
-      user.updateDelegatedEnrolments(_.groupBy(_.key).flatMap { case (_, es) =>
-        es.zipWithIndex.map { case (e, i) => ensureEnrolmentHaveIdentifier(Generator.variant(seed, i))(e) }
-      }.toSeq)
+      user.copy(assignedDelegatedEnrolments =
+        user.assignedDelegatedEnrolments
+          .groupBy(_.service)
+          .flatMap { case (_, eks) =>
+            eks.zipWithIndex.map { case (ek, i) => ensureEnrolmentKeyHasIdentifier(Generator.variant(seed, i), ek) }
+          }
+          .toSeq
+      )
     }
+
+  private def ensureEnrolmentKeyHasIdentifier(seed: String, ek: EnrolmentKey): EnrolmentKey =
+    ensureEnrolmentHaveIdentifier(seed)(Enrolment.from(ek)).toEnrolmentKey.get
 
   private val ensureEnrolmentHaveIdentifier: String => Enrolment => Enrolment = seed =>
     e =>
@@ -188,11 +173,11 @@ object UserSanitizer extends RecordUtils[User] {
           address.copy(
             line1 = address.line1.map(_.take(35)).orElse(Some(newAddress.street.take(35))),
             line2 = address.line2.map(_.take(35)).orElse(Some(newAddress.town.take(35))),
-            postcode = UserValidator
+            postcode = UserValidator(affinityGroup)
               .postalCodeValidator(address.postcode)
               .fold(_ => None, _ => address.postcode)
               .orElse(Generator.get(Generator.postcode)(seed)),
-            countryCode = UserValidator
+            countryCode = UserValidator(affinityGroup)
               .countryCodeValidator(address.countryCode)
               .fold(_ => None, _ => address.countryCode)
               .orElse(Some("GB"))
@@ -207,20 +192,17 @@ object UserSanitizer extends RecordUtils[User] {
     Seq(
       ensureUserHaveGroupIdentifier,
       ensureUserHaveName,
-      ensureStrideUserHaveNoGatewayEnrolmentsNorAffinityGroupNorOtherData,
+      ensureStrideUserHaveNoGatewayEnrolmentsNorGroupIdNorOtherData,
       ensureAgentsAndIndividualsHaveANino,
       ensureOnlyIndividualUserHaveConfidenceLevel,
       ensureUserHaveCredentialRole,
       ensuresAgentsAndIndividualsHaveDateOfBirth,
-      ensureAgentHaveAgentCode,
-      ensureAgentHaveAgentId,
-      ensureAgentHaveFriendlyName,
       ensureUserHaveAddress,
       ensurePrincipalEnrolmentKeysAreDistinct,
       ensurePrincipalEnrolmentsHaveIdentifiers,
       ensureDelegatedEnrolmentsHaveIdentifiers
     )
 
-  override val validate: Validator[User] = UserValidator.validate
+  override val validate: Validator[User] = UserValidator(affinityGroup).validate
 
 }

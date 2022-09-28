@@ -21,7 +21,7 @@ import play.api.Logging
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.BusinessData
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.AgencyDetails
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, PPOB}
-import uk.gov.hmrc.agentsexternalstubs.models.{BusinessDetailsRecord, BusinessPartnerRecord, Generator, PPTSubscriptionDisplayRecord, Record, User, VatCustomerInformationRecord}
+import uk.gov.hmrc.agentsexternalstubs.models.{AG, BusinessDetailsRecord, BusinessPartnerRecord, Generator, PPTSubscriptionDisplayRecord, Record, User, VatCustomerInformationRecord}
 import uk.gov.hmrc.agentsexternalstubs.repository.{RecordsRepositoryMongo, UsersRepositoryMongo}
 
 import javax.inject.Inject
@@ -58,8 +58,8 @@ class AgencyCreator @Inject() (usersRepository: UsersRepositoryMongo, recordsRep
       .withIsAnOrganisation(isAnOrganisation = false)
       .withIsAnIndividual(isAnIndividual = true)
       .withAgentReferenceNumber(
-        agencyCreationPayload.agentUser.enrolments.principal.headOption
-          .flatMap(_.identifiers.flatMap(d => d.headOption.map(_.value)))
+        agencyCreationPayload.agentUser.assignedPrincipalEnrolments.headOption
+          .flatMap(_.identifiers.headOption.map(_.value))
       )
       .withAgencyDetails(
         Some(
@@ -87,10 +87,9 @@ class AgencyCreator @Inject() (usersRepository: UsersRepositoryMongo, recordsRep
 
   def assembleClientRecord(client: User): Option[Record] =
     (for {
-      enrolment   <- client.enrolments.principal.headOption
-      identifiers <- enrolment.identifiers
-      identifier  <- identifiers.headOption
-    } yield enrolment.key match {
+      enrolmentKey <- client.assignedPrincipalEnrolments.headOption
+      identifier   <- enrolmentKey.identifiers.headOption
+    } yield enrolmentKey.service match {
       case "HMRC-MTD-IT" =>
         Some(
           BusinessDetailsRecord
@@ -118,7 +117,7 @@ class AgencyCreator @Inject() (usersRepository: UsersRepositoryMongo, recordsRep
         Some(
           PPTSubscriptionDisplayRecord
             .generateWith(
-              client.affinityGroup,
+              if (client.dateOfBirth.nonEmpty) Some(AG.Individual) else Some(AG.Organisation),
               Some("Jane"),
               Some("Doe"),
               None,

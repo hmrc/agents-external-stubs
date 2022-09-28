@@ -24,306 +24,127 @@ class UserSanitizerSpec extends UnitSpec {
 
   "UserSanitizer" should {
     "add missing name to the Individual" in {
-      UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Individual))).name shouldBe Some(
+      UserSanitizer(Some(AG.Individual)).sanitize(User("foo")).name shouldBe Some(
         "Kaylee Phillips"
       )
-      UserSanitizer.sanitize(User("boo", affinityGroup = Some(User.AG.Individual))).name shouldBe Some(
+      UserSanitizer(Some(AG.Individual)).sanitize(User("boo")).name shouldBe Some(
         "Nicholas Isnard"
       )
     }
 
     "add missing name to the Agent" in {
-      UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Agent))).name shouldBe Some("Kaylee Hastings")
-      UserSanitizer.sanitize(User("boo", affinityGroup = Some(User.AG.Agent))).name shouldBe Some("Nicholas Bates")
+      UserSanitizer(Some(AG.Agent)).sanitize(User("foo")).name shouldBe Some("Kaylee Hastings")
+      UserSanitizer(Some(AG.Agent)).sanitize(User("boo")).name shouldBe Some("Nicholas Bates")
     }
 
     "add missing name to the Organisation" in {
-      UserSanitizer.sanitize(User("boo", affinityGroup = Some(User.AG.Organisation))).name shouldBe Some(
+      UserSanitizer(Some(AG.Organisation)).sanitize(User("boo")).name shouldBe Some(
         "Petronical Inc."
       )
-      UserSanitizer.sanitize(User("zoo", affinityGroup = Some(User.AG.Organisation))).name shouldBe Some(
+      UserSanitizer(Some(AG.Organisation)).sanitize(User("zoo")).name shouldBe Some(
         "Markets Mutual Fenos Holdings"
       )
     }
 
     "add missing dateOfBirth to the Individual" in {
-      UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Individual))).dateOfBirth.isDefined shouldBe true
-      UserSanitizer.sanitize(User("boo", affinityGroup = Some(User.AG.Individual))).dateOfBirth.isDefined shouldBe true
+      UserSanitizer(Some(AG.Individual)).sanitize(User("foo")).dateOfBirth.isDefined shouldBe true
+      UserSanitizer(Some(AG.Individual)).sanitize(User("boo")).dateOfBirth.isDefined shouldBe true
     }
 
     "add missing NINO to the Individual" in {
-      UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Individual))).nino shouldBe Some(
+      UserSanitizer(Some(AG.Individual)).sanitize(User("foo")).nino shouldBe Some(
         Nino("XC 93 60 45 D")
       )
-      UserSanitizer.sanitize(User("boo", affinityGroup = Some(User.AG.Individual))).nino shouldBe Some(
+      UserSanitizer(Some(AG.Individual)).sanitize(User("boo")).nino shouldBe Some(
         Nino("AB 61 73 12 C")
       )
     }
 
     "allow NINO for Business" in {
-      UserSanitizer
-        .sanitize(User("foo", affinityGroup = Some(User.AG.Organisation), nino = Some(Nino("XC 93 60 45 D"))))
+      UserSanitizer(Some(AG.Organisation))
+        .sanitize(User("foo", nino = Some(Nino("XC 93 60 45 D"))))
         .nino shouldBe Some(Nino("XC 93 60 45 D"))
-      UserSanitizer
-        .sanitize(User("foo", affinityGroup = Some(User.AG.Agent), nino = Some(Nino("XC 93 60 45 D"))))
+      UserSanitizer(Some(AG.Agent))
+        .sanitize(User("foo", nino = Some(Nino("XC 93 60 45 D"))))
         .nino shouldBe Some(Nino("XC 93 60 45 D"))
-      UserSanitizer
-        .sanitize(User("foo", affinityGroup = Some(User.AG.Individual), nino = Some(Nino("XC 93 60 45 D"))))
+      UserSanitizer(Some(AG.Individual))
+        .sanitize(User("foo", nino = Some(Nino("XC 93 60 45 D"))))
         .nino shouldBe Some(Nino("XC 93 60 45 D"))
     }
 
     "add missing ConfidenceLevel to the Individual" in {
-      UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Individual))).confidenceLevel shouldBe Some(50)
-      UserSanitizer.sanitize(User("boo", affinityGroup = Some(User.AG.Individual))).confidenceLevel shouldBe Some(50)
+      UserSanitizer(Some(AG.Individual)).sanitize(User("foo")).confidenceLevel shouldBe Some(250)
+      UserSanitizer(Some(AG.Individual)).sanitize(User("boo")).confidenceLevel shouldBe Some(250)
     }
 
     "remove ConfidenceLevel if not Individual" in {
-      UserSanitizer
-        .sanitize(User("foo", affinityGroup = Some(User.AG.Organisation), confidenceLevel = Some(100)))
+      UserSanitizer(Some(AG.Organisation))
+        .sanitize(User("foo", confidenceLevel = Some(100)))
         .confidenceLevel shouldBe None
-      UserSanitizer
-        .sanitize(User("foo", affinityGroup = Some(User.AG.Agent), confidenceLevel = Some(100)))
+      UserSanitizer(Some(AG.Agent))
+        .sanitize(User("foo", confidenceLevel = Some(100)))
         .confidenceLevel shouldBe None
     }
 
     "add or remove CredentialRole when appropriate" in {
-      UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Individual))).credentialRole shouldBe Some(
+      UserSanitizer(Some(AG.Individual)).sanitize(User("foo")).credentialRole shouldBe Some(
         User.CR.User
       )
-      UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Agent))).credentialRole shouldBe Some(
+      UserSanitizer(Some(AG.Agent)).sanitize(User("foo")).credentialRole shouldBe Some(
         User.CR.User
       )
-      UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Organisation))).credentialRole shouldBe Some(
+      UserSanitizer(Some(AG.Organisation)).sanitize(User("foo")).credentialRole shouldBe Some(
         User.CR.Admin
       )
-      UserSanitizer.sanitize(User("foo", affinityGroup = None)).credentialRole shouldBe None
-      UserSanitizer
-        .sanitize(User("foo", affinityGroup = Some(User.AG.Organisation), credentialRole = Some(User.CR.User)))
+      UserSanitizer(None).sanitize(User("foo")).credentialRole shouldBe None
+      UserSanitizer(Some(AG.Organisation))
+        .sanitize(User("foo", credentialRole = Some(User.CR.User)))
         .credentialRole shouldBe Some(User.CR.User)
-      UserSanitizer
-        .sanitize(User("foo", affinityGroup = Some(User.AG.Organisation), credentialRole = Some(User.CR.Admin)))
+      UserSanitizer(Some(AG.Organisation))
+        .sanitize(User("foo", credentialRole = Some(User.CR.Admin)))
         .credentialRole shouldBe Some(User.CR.Admin)
-      UserSanitizer
-        .sanitize(User("foo", affinityGroup = None, credentialRole = Some(User.CR.User)))
+      UserSanitizer(None)
+        .sanitize(User("foo", credentialRole = Some(User.CR.User)))
         .credentialRole shouldBe None
     }
 
     "allow DateOfBirth for Business" in {
       val now = LocalDate.now()
-      UserSanitizer
-        .sanitize(User("foo", affinityGroup = Some(User.AG.Individual), dateOfBirth = Some(now)))
+      UserSanitizer(Some(AG.Individual))
+        .sanitize(User("foo", dateOfBirth = Some(now)))
         .dateOfBirth shouldBe Some(now)
-      UserSanitizer
-        .sanitize(User("foo", affinityGroup = Some(User.AG.Organisation), dateOfBirth = Some(now)))
+      UserSanitizer(Some(AG.Organisation))
+        .sanitize(User("foo", dateOfBirth = Some(now)))
         .dateOfBirth shouldBe Some(now)
-      UserSanitizer
-        .sanitize(User("foo", affinityGroup = Some(User.AG.Agent), dateOfBirth = Some(now)))
+      UserSanitizer(Some(AG.Agent))
+        .sanitize(User("foo", dateOfBirth = Some(now)))
         .dateOfBirth shouldBe Some(now)
     }
 
     "add missing GroupIdentifier" in {
-      UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Individual))).groupId.isDefined shouldBe true
-      UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Agent))).groupId.isDefined shouldBe true
-      UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Organisation))).groupId.isDefined shouldBe true
-      UserSanitizer.sanitize(User("foo", affinityGroup = None)).groupId.isDefined shouldBe true
+      UserSanitizer(Some(AG.Individual)).sanitize(User("foo")).groupId.isDefined shouldBe true
+      UserSanitizer(Some(AG.Agent)).sanitize(User("foo")).groupId.isDefined shouldBe true
+      UserSanitizer(Some(AG.Organisation)).sanitize(User("foo")).groupId.isDefined shouldBe true
+      UserSanitizer(None).sanitize(User("foo")).groupId.isDefined shouldBe false
     }
 
-    "add missing AgentCode to Agent" in {
-      UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Agent))).agentCode.isDefined shouldBe true
-    }
-
-    "remove AgentCode from Individual or Organisation" in {
-      UserSanitizer
-        .sanitize(User("foo", affinityGroup = Some(User.AG.Individual), agentCode = Some("foo")))
-        .agentCode
-        .isDefined shouldBe false
-      UserSanitizer
-        .sanitize(User("foo", affinityGroup = Some(User.AG.Organisation), agentCode = Some("foo")))
-        .agentCode
-        .isDefined shouldBe false
-    }
-
-    "add missing friendly name to Agent" in {
-      UserSanitizer.sanitize(User("foo", affinityGroup = Some(User.AG.Agent))).agentFriendlyName.isDefined shouldBe true
-    }
-
-    "add missing identifiers to principal enrolments" in {
-      UserSanitizer
+    "remove irrelevant data if STRIDE role present" in {
+      val sanitized = UserSanitizer(None)
         .sanitize(
           User(
             "foo",
-            affinityGroup = Some(User.AG.Individual),
-            enrolments = User.Enrolments(principal = Seq(Enrolment("HMRC-MTD-IT")))
-          )
-        )
-        .enrolments
-        .principal
-        .flatMap(_.identifiers.get.map(_.key)) should contain.only("MTDITID")
-      UserSanitizer
-        .sanitize(
-          User(
-            "foo",
-            affinityGroup = Some(User.AG.Agent),
-            enrolments = User.Enrolments(principal = Seq(Enrolment("HMRC-AS-AGENT")))
-          )
-        )
-        .enrolments
-        .principal
-        .flatMap(_.identifiers.get.map(_.key)) should contain.only("AgentReferenceNumber")
-    }
-
-    "remove affinity group, principal and delegated enrolments and other data if STRIDE role present" in {
-      val sanitized = UserSanitizer
-        .sanitize(
-          User(
-            "foo",
-            affinityGroup = Some(User.AG.Individual),
-            enrolments = User.Enrolments(
-              principal = Seq(Enrolment("HMRC-AS-AGENT")),
-              delegated = Seq(Enrolment("HMRC-MTD-IT"))
-            ),
             strideRoles = Seq("FOO")
           )
         )
-      sanitized.enrolments.principal shouldBe empty
-      sanitized.enrolments.delegated shouldBe empty
       sanitized.strideRoles shouldBe Seq("FOO")
-      sanitized.affinityGroup shouldBe None
       sanitized.nino shouldBe None
       sanitized.credentialRole shouldBe None
       sanitized.credentialStrength shouldBe None
       sanitized.confidenceLevel shouldBe None
     }
 
-    "remove redundant dangling principal enrolment keys" in {
-      UserSanitizer
-        .sanitize(
-          User(
-            "foo",
-            affinityGroup = Some(User.AG.Individual),
-            enrolments = User.Enrolments(principal = Seq(Enrolment("HMRC-MTD-IT"), Enrolment("HMRC-MTD-IT")))
-          )
-        )
-        .enrolments
-        .principal
-        .flatMap(_.identifiers.get.map(_.key)) shouldBe Seq("MTDITID")
-      UserSanitizer
-        .sanitize(
-          User(
-            "foo",
-            affinityGroup = Some(User.AG.Individual),
-            enrolments = User.Enrolments(principal = Seq(Enrolment("HMRC-MTD-IT"), Enrolment("HMRC-MTD-VAT")))
-          )
-        )
-        .enrolments
-        .principal
-        .flatMap(_.identifiers.get.map(_.key)) should contain theSameElementsAs Seq("MTDITID", "VRN")
-      UserSanitizer
-        .sanitize(
-          User(
-            "foo",
-            affinityGroup = Some(User.AG.Individual),
-            enrolments = User.Enrolments(
-              principal = Seq(
-                Enrolment("HMRC-MTD-IT"),
-                Enrolment("HMRC-MTD-IT", "MTDITID", "CNOB96766112368"),
-                Enrolment("HMRC-MTD-IT")
-              )
-            )
-          )
-        )
-        .enrolments
-        .principal
-        .flatMap(_.identifiers.get.map(_.value)) shouldBe Seq("CNOB96766112368")
-    }
-
-    "add missing identifier names to principal enrolments" in {
-      UserSanitizer
-        .sanitize(
-          User(
-            "foo",
-            affinityGroup = Some(User.AG.Individual),
-            enrolments = User.Enrolments(principal = Seq(Enrolment("HMRC-MTD-IT", "", "123456789")))
-          )
-        )
-        .enrolments
-        .principal
-        .flatMap(_.identifiers.get.map(_.key))
-        .filter(_.nonEmpty) should contain.only("MTDITID")
-    }
-
-    "add missing identifier values to principal enrolments" in {
-      UserSanitizer
-        .sanitize(
-          User(
-            "foo",
-            affinityGroup = Some(User.AG.Individual),
-            enrolments = User.Enrolments(principal = Seq(Enrolment("HMRC-MTD-IT", "MTDITID", "")))
-          )
-        )
-        .enrolments
-        .principal
-        .flatMap(_.identifiers.get.map(_.value))
-        .filter(_.nonEmpty) should not be empty
-    }
-
-    "add missing identifiers to delegated enrolments" in {
-      UserSanitizer
-        .sanitize(
-          User(
-            "foo",
-            affinityGroup = Some(User.AG.Agent),
-            enrolments = User.Enrolments(delegated = Seq(Enrolment("HMRC-MTD-IT")))
-          )
-        )
-        .enrolments
-        .delegated
-        .flatMap(_.identifiers.get.map(_.key)) should contain.only("MTDITID")
-      UserSanitizer
-        .sanitize(
-          User(
-            "foo",
-            affinityGroup = Some(User.AG.Agent),
-            enrolments = User.Enrolments(delegated = Seq(Enrolment("IR-SA")))
-          )
-        )
-        .enrolments
-        .delegated
-        .flatMap(_.identifiers.get.map(_.key)) should contain.only("UTR")
-    }
-
-    "add missing identifier names to delegated enrolments" in {
-      UserSanitizer
-        .sanitize(
-          User(
-            "foo",
-            affinityGroup = Some(User.AG.Agent),
-            enrolments = User.Enrolments(delegated = Seq(Enrolment("HMRC-MTD-IT", "", "123456789")))
-          )
-        )
-        .enrolments
-        .delegated
-        .flatMap(_.identifiers.get.map(_.key))
-        .filter(_.nonEmpty) should contain.only("MTDITID")
-    }
-
-    "add missing identifier values to delegated enrolments" in {
-      UserSanitizer
-        .sanitize(
-          User(
-            "foo",
-            affinityGroup = Some(User.AG.Agent),
-            enrolments = User.Enrolments(delegated = Seq(Enrolment("HMRC-MTD-IT", "MTDITID", "")))
-          )
-        )
-        .enrolments
-        .delegated
-        .flatMap(_.identifiers.get.map(_.value))
-        .filter(_.nonEmpty) should not be empty
-    }
-
     "add missing address" in {
-      val address = UserSanitizer.sanitize(User("foo")).address
+      val address = UserSanitizer(Some(AG.Individual)).sanitize(User("foo")).address
       address shouldBe defined
       address.get.postcode shouldBe defined
       address.get.line1 shouldBe defined
@@ -332,7 +153,10 @@ class UserSanitizerSpec extends UnitSpec {
     }
 
     "add missing address fields" in {
-      val address = UserSanitizer.sanitize(User("foo", address = Some(User.Address(line1 = Some("foo"))))).address
+      val address =
+        UserSanitizer(Some(AG.Individual))
+          .sanitize(User("foo", address = Some(User.Address(line1 = Some("foo")))))
+          .address
       address shouldBe defined
       address.get.postcode shouldBe defined
       address.get.line1 shouldBe defined

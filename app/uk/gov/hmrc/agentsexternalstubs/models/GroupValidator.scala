@@ -15,61 +15,121 @@
  */
 
 package uk.gov.hmrc.agentsexternalstubs.models
+
 import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
 
 object GroupValidator {
 
-  /*
-      Group and User constraints:
-        - Group MUST have one and at most one Admin
-        - Group CAN have at most one Organisation
-        - Group MAY NOT consist of Assistants only
-        - Group CAN have at most 100 users
-        - Organisation MUST be an Admin in the group
-        - Agent MAY NOT be in the group with Organisation and Individuals
-        - All Agents in the group MUST have the same AgentCode
-   */
+  type GroupConstraint = Group => Validated[String, Unit]
 
-  type GroupConstraint = Seq[User] => Validated[String, Unit]
+  val validateAffinityGroup: GroupConstraint = group =>
+    group.affinityGroup match {
+      case AG.Individual | AG.Organisation | AG.Agent => Valid(())
+      case _ =>
+        Invalid("affinityGroup must be none, or one of [Individual, Organisation, Agent]")
+    }
 
-  val groupMustHaveOneAndAtMostOneAdmin: GroupConstraint = users =>
-    if (users.isEmpty || users.count(_.isAdmin) == 1) Valid(())
-    else Invalid("Group MUST have one and at most one Admin")
+  val validateAgentCode: GroupConstraint = group =>
+    group.agentCode match {
+      case Some(_) if group.affinityGroup == AG.Agent => Valid(())
+      case None if group.affinityGroup == AG.Agent =>
+        Invalid("agentCode is required for Agent")
+      case _ => Valid(())
+    }
 
-  val groupCanHaveAtMostOneOrganisation: GroupConstraint = users =>
-    if (users.count(_.isOrganisation) <= 1) Valid(()) else Invalid("Group CAN have at most one Organisation")
+  val validateSuspendedRegimes: GroupConstraint = group => {
+    val validRegimes = Set("ALL", "ITSA", "VATC", "TRS", "CGT", "PPT", "PIR", "AGSV")
+    if (group.suspendedRegimes.isEmpty) Valid(())
+    else
+      group.suspendedRegimes
+        .map(regime =>
+          if (validRegimes.contains(regime)) Valid(())
+          else Invalid(s"suspended regime $regime not valid")
+        )
+        .reduce(_ combine _)
+  }
 
-  val groupMayNotHaveOnlyAssistants: GroupConstraint = users =>
-    if (users.isEmpty || !users.forall(_.isAssistant)) Valid(())
-    else Invalid("Group MAY NOT consist of Assistants only")
+  val validateEachPrincipalEnrolment: GroupConstraint = group =>
+    if (group.principalEnrolments.isEmpty) Valid(())
+    else {
+      group.principalEnrolments
+        .map(e =>
+          Validated
+            .cond(
+              Services(e.key)
+                .map(_.affinityGroups)
+                .forall(_.contains(group.affinityGroup)), // TODO fix unrelated comparison
+              (),
+              s"Service ${e.key} is not available for this user's affinity group"
+            )
+            .andThen(_ => Enrolment.validate(e))
+        )
+        .reduce(_ combine _)
+    }
 
-  val organisationMustBeAnAdminInTheGroup: GroupConstraint = users =>
-    if (users.filter(_.isOrganisation).forall(_.isAdmin)) Valid(())
-    else Invalid("Organisation MUST be an Admin in the group")
+  val validatePrincipalEnrolmentsAreDistinct: GroupConstraint = group =>
+    if (group.principalEnrolments.isEmpty) Valid(())
+    else {
+      val keys = group.principalEnrolments.map(_.key)
+      if (keys.size == keys.distinct.size) Valid(())
+      else {
+        val repeated: Iterable[String] = keys.groupBy(identity).filter { case (_, k) => k.size > 1 }.map(_._2.head)
+        val redundant = repeated.map(r => (r, Services.apply(r))).collect {
+          case (_, Some(s)) if !s.flags.multipleEnrolment => s.name
+          case (r, None)                                  => r
+        }
+        if (redundant.isEmpty) Valid(()) else Invalid(s"Repeated principal enrolments: ${redundant.mkString(", ")}")
+      }
+    }
 
-  val agentMayNotBeInTheGroupWithOrganisationAndIndividuals: GroupConstraint = users =>
-    if (
-      users.isEmpty || (users.filter(_.affinityGroup.isDefined).partition(_.isAgent) match {
-        case (a, na) => a.isEmpty || na.isEmpty
-      })
-    ) Valid(())
-    else Invalid("Agents MAY NOT be in the group with Organisation and Individuals")
+  val validateEachDelegatedEnrolment: GroupConstraint = group =>
+    group.delegatedEnrolments match {
+      case s if s.isEmpty => Valid(())
+      case _ if group.affinityGroup == AG.Agent =>
+        group.delegatedEnrolments
+          .map(e =>
+            Validated
+              .cond(
+                Services(e.key)
+                  .map(_.affinityGroups)
+                  .forall(ag => ag.contains(AG.Individual) || ag.contains(AG.Organisation)),
+                (),
+                s"Enrolment for ${e.key} may not be delegated to an Agent."
+              )
+              .andThen(_ => Enrolment.validate(e))
+          )
+          .reduce(_ combine _)
+      case _ => Invalid("Only Agents can have delegated enrolments")
+    }
 
-  val allAgentsInTheGroupMustShareTheSameAgentCode: GroupConstraint = users =>
-    if (users.filter(_.isAgent).map(_.agentCode).distinct.size <= 1) Valid(())
-    else Invalid("All Agents in the group MUST share the same AgentCode")
+  val validateDelegatedEnrolmentsValuesAreDistinct: GroupConstraint = group =>
+    if (group.delegatedEnrolments.isEmpty) Valid(())
+    else {
+      val results = group.delegatedEnrolments
+        .groupBy(_.key)
+        .collect { case (key, es) if es.size > 1 => (key, es) }
+        .map { case (key, es) =>
+          val keys = es.map(e => e.toEnrolmentKeyTag.getOrElse(e.key))
+          if (keys.size == keys.distinct.size) Valid(())
+          else Invalid(s", $key")
+        }
+      if (results.isEmpty) Valid(())
+      else
+        results
+          .reduce(_ combine _)
+          .leftMap(keys => s"Delegated enrolment values must be distinct $keys")
+    }
 
-  private val constraints: Seq[GroupConstraint] =
-    Seq(
-      groupMustHaveOneAndAtMostOneAdmin,
-      groupCanHaveAtMostOneOrganisation,
-      groupMayNotHaveOnlyAssistants,
-      organisationMustBeAnAdminInTheGroup,
-      agentMayNotBeInTheGroupWithOrganisationAndIndividuals,
-      allAgentsInTheGroupMustShareTheSameAgentCode
-    )
+  private val constraints: Seq[GroupConstraint] = Seq(
+    validateAffinityGroup,
+    validateAgentCode,
+    validateEachPrincipalEnrolment,
+    validatePrincipalEnrolmentsAreDistinct,
+    validateEachDelegatedEnrolment,
+    validateDelegatedEnrolmentsValuesAreDistinct,
+    validateSuspendedRegimes
+  )
 
-  val validate: Seq[User] => Validated[List[String], Unit] = Validator.validate(constraints: _*)
-
+  val validate: Group => Validated[List[String], Unit] = Validator.validate(constraints: _*)
 }

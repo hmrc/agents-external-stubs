@@ -35,7 +35,7 @@ class ExternalUserService @Inject() (apiPlatformTestUserConnector: ApiPlatformTe
   def maybeSyncExternalUserIdentifiedBy[S](
     userIdentifier: S,
     planetId: String,
-    createUser: (User, String) => Future[User]
+    createUser: (User, String, Option[String]) => Future[User] // (user, planetId, affinityGroup)
   )(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[Option[User]] =
     (userIdentifier match {
       case nino: Nino =>
@@ -56,7 +56,13 @@ class ExternalUserService @Inject() (apiPlatformTestUserConnector: ApiPlatformTe
           new IllegalArgumentException(s"Unknown identifier $userIdentifier, expected one of: nino, utr, vrn")
         )
     }).flatMap { apiUserOpt =>
-      apiUserOpt.map(TestUser.asUser).map(user => createUser(user, planetId)) match {
+      apiUserOpt.map(testUser =>
+        createUser(
+          TestUser.asUserAndGroup(testUser)._1,
+          planetId,
+          Some(testUser.affinityGroup)
+        ) // TODO! `asUserAndGroup` returns a group as well but here we are ignoring it. Should we create the group explicitly?
+      ) match {
         case Some(f) =>
           f.map { user =>
             Logger(getClass).info(
@@ -76,7 +82,7 @@ class ExternalUserService @Inject() (apiPlatformTestUserConnector: ApiPlatformTe
   def tryLookupExternalUserIfMissingForIdentifier[S, T](
     userIdentifier: S,
     planetId: String,
-    createUser: (User, String) => Future[User]
+    createUser: (User, String, Option[String]) => Future[User] // (user, planetId, affinityGroup)
   )(maybeResult: S => Future[Option[T]])(implicit ec: ExecutionContext): Future[Option[T]] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
     maybeResult(userIdentifier).flatMap {
@@ -94,7 +100,7 @@ class ExternalUserService @Inject() (apiPlatformTestUserConnector: ApiPlatformTe
   def tryLookupExternalUserIfMissingForEnrolmentKey[T](
     enrolmentKey: EnrolmentKey,
     planetId: String,
-    createUser: (User, String) => Future[User]
+    createUser: (User, String, Option[String]) => Future[User] // (user, planetId, affinityGroup)
   )(maybeResult: => Future[Option[T]])(implicit ec: ExecutionContext): Future[Option[T]] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
     maybeResult.flatMap {
