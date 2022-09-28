@@ -21,6 +21,7 @@ import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.BusinessData
+import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.AgencyDetails
 import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord.Common
 import uk.gov.hmrc.agentsexternalstubs.models.User.{AG, CR, Enrolments}
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, PPOB}
@@ -44,7 +45,7 @@ object PerfDataRequest {
 case class AgencyCreationPayload(planetId: String, agentUser: User, clients: List[User], teamMembers: List[User])
 
 case class UserCreationPayload(user: User, planetId: String)
-case class ClientRecordCreationPayload(record: Record, planetId: String)
+case class RecordCreationPayload(record: Record, planetId: String)
 
 class PerfDataController @Inject() (
   val authenticationService: AuthenticationService,
@@ -79,7 +80,7 @@ class PerfDataController @Inject() (
       Future successful Accepted(
         s"Processing can take a while, please check later for creation of " +
           s"${perfDataRequest.numAgents * (1 + perfDataRequest.clientsPerAgent + perfDataRequest.teamMembersPerAgent)} 'users', and " +
-          s"${perfDataRequest.numAgents * perfDataRequest.clientsPerAgent} 'records'"
+          s"${perfDataRequest.numAgents * (1 + perfDataRequest.clientsPerAgent)} 'records'"
       )
     }
   }
@@ -114,6 +115,7 @@ class PerfDataController @Inject() (
         assembleAgency(indexAgency, perfDataRequest.clientsPerAgent, perfDataRequest.teamMembersPerAgent)
 
       persistUsers(agencyCreationPayload)
+      persistAgentRecord(agencyCreationPayload)
       persistClientRecords(agencyCreationPayload)
     }
 
@@ -160,7 +162,7 @@ class PerfDataController @Inject() (
     )
   }
 
-  def buildClientsForAgent(indexAgency: Int, numClients: Int): List[User] = {
+  private def buildClientsForAgent(indexAgency: Int, numClients: Int): List[User] = {
 
     type ClientType = String
     type ServiceKey = String
@@ -260,17 +262,42 @@ class PerfDataController @Inject() (
 
   }
 
+  private def persistAgentRecord(agencyCreationPayload: AgencyCreationPayload): Unit = {
+    val agentBusinessPartnerRecord = BusinessPartnerRecord
+      .generate(agencyCreationPayload.agentUser.userId)
+      .withBusinessPartnerExists(true)
+      .withIsAnOrganisation(false)
+      .withIsAnIndividual(true)
+      .withAgentReferenceNumber(
+        agencyCreationPayload.agentUser.enrolments.principal.headOption
+          .flatMap(_.identifiers.flatMap(d => d.headOption.map(_.value)))
+      )
+      .withAgencyDetails(
+        Some(
+          AgencyDetails
+            .generate(agencyCreationPayload.agentUser.userId)
+            .withAgencyName(Some("Fancy agency"))
+            .withAgencyEmail(Some(Generator.email(agencyCreationPayload.agentUser.userId)))
+        )
+      )
+
+    dataCreationActor ! RecordCreationPayload(
+      agentBusinessPartnerRecord,
+      agencyCreationPayload.planetId
+    )
+  }
+
   private def persistClientRecords(agencyCreationPayload: AgencyCreationPayload): Unit = {
     logger.info(s"Creating client records for '${agencyCreationPayload.planetId}'")
 
     agencyCreationPayload.clients
-      .map(assembleRecord)
+      .map(assembleClientRecord)
       .collect { case Some(record) => record }
-      .map(record => ClientRecordCreationPayload(record, agencyCreationPayload.planetId))
-      .foreach(clientRecordCreationPayload => dataCreationActor ! clientRecordCreationPayload)
+      .map(record => RecordCreationPayload(record, agencyCreationPayload.planetId))
+      .foreach(recordCreationPayload => dataCreationActor ! recordCreationPayload)
   }
 
-  def assembleRecord(client: User): Option[Record] =
+  def assembleClientRecord(client: User): Option[Record] =
     (for {
       enrolment   <- client.enrolments.principal.headOption
       identifiers <- enrolment.identifiers
@@ -371,7 +398,7 @@ class DataCreationActor(usersRepository: UsersRepositoryMongo, recordsRepository
         .recover { case ex =>
           logger.error(s"Could not create user ${user.userId} of $planetId: ${ex.getMessage}")
         }
-    case ClientRecordCreationPayload(entity: Record, planetId: String) =>
+    case RecordCreationPayload(entity: Record, planetId: String) =>
       recordsRepository
         .rawStore(recordAsJson(entity, planetId))
         .map(id => logger.debug(s"Created record of id $id"))
