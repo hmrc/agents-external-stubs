@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentsexternalstubs.controllers
+package uk.gov.hmrc.agentsexternalstubs.controllers.datagen
 
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
+import uk.gov.hmrc.agentsexternalstubs.controllers.CurrentSession
 import uk.gov.hmrc.agentsexternalstubs.models.{GranPermsGenRequest, GranPermsGenResponse, User}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GranPermsService, UsersService}
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
