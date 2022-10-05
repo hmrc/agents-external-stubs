@@ -324,15 +324,21 @@ class EnrolmentStoreProxyStubController @Inject() (
     Action.async(parse.tolerantJson) { implicit request =>
       withCurrentSession { session =>
         withPayload[SetFriendlyNameRequest] { payload =>
-          usersService.findAdminByGroupId(groupId, session.planetId).flatMap {
-            case None => notFoundF("INVALID_GROUP_ID")
-            case Some(user) =>
-              if (user.groupId.contains(groupId))
-                usersService
-                  .setEnrolmentFriendlyName(user, session.planetId, enrolmentKey, payload.friendlyName)
-                  .map(_ => NoContent)
-              else forbiddenF("NO_PERMISSION")
-          }
+          SetFriendlyNameRequest
+            .validate(payload)
+            .fold(
+              error => badRequestF("INVALID_PAYLOAD", error.mkString(", ")),
+              _ =>
+                usersService.findAdminByGroupId(groupId, session.planetId).flatMap {
+                  case None => notFoundF("INVALID_GROUP_ID")
+                  case Some(user) =>
+                    if (user.groupId.contains(groupId))
+                      usersService
+                        .setEnrolmentFriendlyName(user, session.planetId, enrolmentKey, payload.friendlyName)
+                        .map(_ => NoContent)
+                    else forbiddenF("NO_PERMISSION")
+                }
+            )
         }
       }(SessionRecordNotFound)
     }
@@ -448,7 +454,17 @@ object EnrolmentStoreProxyStubController {
   case class SetFriendlyNameRequest(friendlyName: String)
 
   object SetFriendlyNameRequest {
-    implicit val format: Format[SetFriendlyNameRequest] = Json.format[SetFriendlyNameRequest]
-  }
 
+    implicit val format: Format[SetFriendlyNameRequest] = Json.format[SetFriendlyNameRequest]
+
+    import Validator._
+
+    private val friendlyNamePattern = "^[!%*^()_+\\-={}:;@~#,.?\\[\\]/A-Za-z0-9 ]{0,80}$"
+    private val es19FriendlyNameValidator: Validator[String] =
+      check(_.matches(friendlyNamePattern), s"""Invalid friendlyName, does not matches regex $friendlyNamePattern""")
+
+    val validate: Validator[SetFriendlyNameRequest] = Validator(
+      checkProperty(_.friendlyName, es19FriendlyNameValidator)
+    )
+  }
 }

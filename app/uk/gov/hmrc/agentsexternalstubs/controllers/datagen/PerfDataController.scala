@@ -49,7 +49,6 @@ class PerfDataController @Inject() (
 
   def generate: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withPayload[PerfDataRequest] { perfDataRequest =>
-
       Future {
         dropCollections()
         reapplyIndexes()
