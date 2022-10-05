@@ -1118,12 +1118,22 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
         result should haveStatus(204)
       }
 
-      "return 400 BadRequest if the payload is invalid " in {
+      "return 400 BadRequest if the payload is invalid with wrong key " in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         val result = EnrolmentStoreProxyStub.setEnrolmentFriendlyName(
           "group2",
           "IR-SA~UTR~12345678",
           Json.parse("""{"somethingElse": "..."}""")
+        )
+        result should haveStatus(400)
+      }
+
+      "return 400 BadRequest if the payload is invalid with illegal char " in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        val result = EnrolmentStoreProxyStub.setEnrolmentFriendlyName(
+          "group2",
+          "IR-SA~UTR~12345678",
+          Json.parse("""{"friendlyName": "H & R Higgins"}""")
         )
         result should haveStatus(400)
       }
