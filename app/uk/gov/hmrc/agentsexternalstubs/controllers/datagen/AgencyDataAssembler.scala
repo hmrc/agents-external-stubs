@@ -64,6 +64,7 @@ class AgencyDataAssembler {
     User(
       userId = userId,
       groupId = Some(UserGenerator.groupId(userId)),
+      name = Option(f"Main Agent User $indexAgency%03d"),
       affinityGroup = Some(AG.Agent),
       credentialRole = Some(CR.Admin),
       enrolments = Enrolments(
