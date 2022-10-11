@@ -48,16 +48,15 @@ class AgencyCreator @Inject() (usersRepository: UsersRepositoryMongo, recordsRep
     logger.info(s"Creating users for '${agencyCreationPayload.planetId}'")
 
     (List(agencyCreationPayload.agentUser) ++ agencyCreationPayload.clients ++ agencyCreationPayload.teamMembers)
-      .map(user => UserCreationPayload(user, agencyCreationPayload.planetId))
-      .foreach(userCreationPayload => dataCreationActor ! userCreationPayload)
+      .foreach(user => dataCreationActor ! UserCreationPayload(user, agencyCreationPayload.planetId))
   }
 
   private def persistAgentRecord(agencyCreationPayload: AgencyCreationPayload): Unit = {
     val agentBusinessPartnerRecord = BusinessPartnerRecord
       .generate(agencyCreationPayload.agentUser.userId)
-      .withBusinessPartnerExists(true)
-      .withIsAnOrganisation(false)
-      .withIsAnIndividual(true)
+      .withBusinessPartnerExists(businessPartnerExists = true)
+      .withIsAnOrganisation(isAnOrganisation = false)
+      .withIsAnIndividual(isAnIndividual = true)
       .withAgentReferenceNumber(
         agencyCreationPayload.agentUser.enrolments.principal.headOption
           .flatMap(_.identifiers.flatMap(d => d.headOption.map(_.value)))
@@ -83,8 +82,7 @@ class AgencyCreator @Inject() (usersRepository: UsersRepositoryMongo, recordsRep
     agencyCreationPayload.clients
       .map(assembleClientRecord)
       .collect { case Some(record) => record }
-      .map(record => RecordCreationPayload(record, agencyCreationPayload.planetId))
-      .foreach(recordCreationPayload => dataCreationActor ! recordCreationPayload)
+      .foreach(record => dataCreationActor ! RecordCreationPayload(record, agencyCreationPayload.planetId))
   }
 
   def assembleClientRecord(client: User): Option[Record] =
