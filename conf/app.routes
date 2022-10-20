@@ -110,6 +110,10 @@ GET           /personal-details-validation/:id                                  
 # Personal Details Validation
 POST          /agents-external-stubs/pdv-result/:id/:success                                         @uk.gov.hmrc.agentsexternalstubs.controllers.PersonalDetailsValidationController.pdvResult(id: String, success: Boolean)
 
+# Companies House API Proxy
+GET           /companies-house-api-proxy/company/:companynumber                                      @uk.gov.hmrc.agentsexternalstubs.controllers.CompaniesHouseController.findCompany(companynumber: String)
+GET           /companies-house-api-proxy/company/:companynumber/officers                             @uk.gov.hmrc.agentsexternalstubs.controllers.CompaniesHouseController.findCompanyOfficers(companynumber: String, surname: Option[String])
+
 
 # Authentication
 POST          /agents-external-stubs/sign-in                                                         @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.signIn

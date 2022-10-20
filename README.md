@@ -34,7 +34,8 @@ This service SHOULD NOT be run on PRODUCTION environment.
     * [NI Exemption Registration](#stubbed_api_ni_exemption_registration)
     * [DES and IF](#stubbed_api_des)
     * [Datastream](#stubbed_api_datastream)
-    * [File Upload](#stubbed_api_file-upload)
+    * [File Upload](#stubbed_api_fileupload)
+    * [Companies House API Proxy](#stubbed_api_companieshouse)
 * [Custom API](#custom_api)
     * [Authentication](#custom_api_authentication)
     * [Users Management](#custom_api_users)
@@ -74,6 +75,7 @@ We handle local requests gracefully and do not require existing applications to 
 - listening on 8100 for datastream events
 - listening on 9974 for sso requests
 - listening on 8898 for file-upload requests
+- listening on 9991 for companies-house-api-proxy
 
 You can switch this behaviour off by setting `features.proxies` config property to `false`.
 
@@ -209,6 +211,15 @@ Endpoint | Description
 `POST /file-upload/envelopes` | Creates an envelope
 `POST /file-routing/requests` | Routes an envelope
 `POST /file-upload/upload/envelopes/:envelopeId/files/:fileId` | Uploads a file
+
+### [Companies House API Proxy](https://github.com/hmrc/companies-house-api-proxy) <a name="stubbed_api_companieshouse"></a>
+
+Fetches company and officers information.
+
+Endpoint | Description
+---|---
+`GET /companies-house-api-proxy/company/:companynumber` | Fetch company information of provided number
+`GET /companies-house-api-proxy/company/:companynumber/officers` | Fetch officers' information of provided company number
 
 ## Custom API <a name="custom_api"></a>
 
