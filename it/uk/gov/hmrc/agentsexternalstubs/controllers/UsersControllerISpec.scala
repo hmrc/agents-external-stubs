@@ -1,6 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import org.joda.time.LocalDate
+import org.scalatest.BeforeAndAfterEach
 import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
@@ -48,47 +49,54 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
     "POST /agents-external-stubs/users/" should {
       "store a new user" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
-        val result = Users.create(User("yuwyquhh"))
+        val result = Users.create(User("yuwyquhh"), Some(AG.Individual))
         result should haveStatus(201)
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/yuwyquhh")
       }
 
       "store a new STRIDE user" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
-        val result = Users.create(User("stride").withStrideRole("FOO"))
+        val result = Users.create(User("stride").withStrideRole("FOO"), affinityGroup = None)
         result should haveStatus(201)
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/stride")
       }
 
       "fail if trying to store user with duplicated userId on the same planet" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
-        val result1 = Users.create(User("yuwyquhh"))
+        val result1 = Users.create(User("yuwyquhh"), Some(AG.Individual))
         result1 should haveStatus(201)
         result1.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/yuwyquhh")
-        val result2 = Users.create(User("yuwyquhh"))
+        val result2 = Users.create(User("yuwyquhh"), Some(AG.Individual))
         result2.status shouldBe Status.CONFLICT
       }
 
       "sanitize invalid user and succeed" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
-        val result = Users.create(User("yuwyquhh", nino = Some(Nino("HW827856C"))))
+        val result = Users.create(User("yuwyquhh", nino = Some(Nino("HW827856C"))), Some(AG.Individual))
         result should haveStatus(201)
       }
 
       "make user Admin if none exist in the group" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
-        val result = Users.update(UserGenerator.agent(authSession.userId, credentialRole = User.CR.User))
-        result should haveStatus(202)
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        val result = Users.create(
+          UserGenerator.agent("bar", credentialRole = User.CR.User),
+          affinityGroup = Some(AG.Agent)
+        )
+        result should haveStatus(201)
         Users.get(authSession.userId).json.as[User].credentialRole shouldBe Some(User.CR.Admin)
       }
 
       "return 400 if Admin exists already in the group" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
-        val result1 =
-          Users.update(UserGenerator.agent(authSession.userId, groupId = "group1", credentialRole = User.CR.User))
-        result1 should haveStatus(202)
-        Users.get(authSession.userId).json.as[User].credentialRole shouldBe Some(User.CR.Admin)
-        val result2 = Users.create(UserGenerator.agent("bar", groupId = "group1", credentialRole = User.CR.Admin))
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        val result1 = Users.create(
+          UserGenerator.agent("bar", groupId = "testGroup", credentialRole = User.CR.Admin),
+          affinityGroup = Some(AG.Agent)
+        )
+        result1 should haveStatus(201)
+        val result2 = Users.create(
+          UserGenerator.agent("baz", groupId = "testGroup", credentialRole = User.CR.Admin),
+          affinityGroup = Some(AG.Agent)
+        )
         result2 should haveStatus(400)
       }
     }
@@ -96,44 +104,31 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
     "PUT /agents-external-stubs/users" should {
       "update current user" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
+        val currentUser = userService.findByUserId(authSession.userId, planetId = authSession.planetId).futureValue.get
         val result =
-          Users.updateCurrent(User("7728378273", enrolments = User.Enrolments(principal = Seq(Enrolment("foo")))))
+          Users.updateCurrent(currentUser.copy(name = Some("New Name")))
         result should haveStatus(202)
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/7728378273")
         val result2 = Users.get("7728378273")
-        result2.json.as[User].enrolments.principal should contain(Enrolment("foo"))
-      }
-
-      "update current user with a legacy principalEnrolments" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378276")
-        val userJson = Json.obj(
-          "userId" -> "7728378276",
-          "principalEnrolments" -> Json.arr(
-            Json.obj("key" -> "foo1")
-          )
-        )
-        val result = Users.updateCurrentLegacy(userJson)
-        result should haveStatus(202)
-        result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/7728378276")
-        val result2 = Users.get("7728378276")
-        result2.json.as[User].enrolments.principal should contain(Enrolment("foo1"))
+        result2.json.as[User].name should contain("New Name")
       }
     }
 
     "PUT /agents-external-stubs/users/:userId" should {
       "return 404 if userId not found" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
-        val result = Users.update(User("7728378273", enrolments = User.Enrolments(principal = Seq(Enrolment("foo")))))
+        val result = Users.update(User("7728378273", name = Some("New Name")))
         result should haveStatus(404)
       }
 
       "update an existing user" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
-        val result = Users.update(User("7728378273", enrolments = User.Enrolments(principal = Seq(Enrolment("foo")))))
+        val currentUser = userService.findByUserId(authSession.userId, planetId = authSession.planetId).futureValue.get
+        val result = Users.update(currentUser.copy(name = Some("New Name")))
         result should haveStatus(202)
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/7728378273")
         val result2 = Users.get("7728378273")
-        result2.json.as[User].enrolments.principal should contain(Enrolment("foo"))
+        result2.json.as[User].name should contain("New Name")
       }
     }
 
@@ -151,9 +146,22 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
       }
 
       "return 400 if user can't be removed without breaking group constraint" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
-        Users.update(User(authSession.userId, groupId = Some("group1")))
-        Users.create(UserGenerator.individual(userId = "bar", groupId = "group1", credentialRole = "User"))
+        userService
+          .createUser(
+            User("foo", groupId = Some("group1")),
+            planetId = "testPlanet",
+            affinityGroup = Some(AG.Individual)
+          )
+          .futureValue
+        userService
+          .createUser(
+            UserGenerator.individual(userId = "bar", groupId = "group1", credentialRole = "User"),
+            planetId = "testPlanet",
+            affinityGroup = Some(AG.Individual)
+          )
+          .futureValue
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "testPlanet")
+
         val result = Users.delete(authSession.userId)
         result should haveStatus(400)
       }
@@ -162,48 +170,48 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
     "GET /agents-external-stubs/users" should {
       "return 200 with the list of all users on the current planet only" in {
         val otherPlanetAuthSession: AuthenticatedSession = SignIn.signInAndGetSession("boo")
-        Users.create(UserGenerator.individual("boo1"))(otherPlanetAuthSession)
-        Users.create(UserGenerator.organisation("boo2"))(otherPlanetAuthSession)
+        Users.create(UserGenerator.individual("boo1"), Some(AG.Individual))(otherPlanetAuthSession)
+        Users.create(UserGenerator.organisation("boo2"), Some(AG.Organisation))(otherPlanetAuthSession)
 
         implicit val currentAuthSession: AuthenticatedSession = SignIn.signInAndGetSession()
-        Users.create(UserGenerator.individual("foo1"))
-        Users.create(UserGenerator.organisation("foo2"))
-        Users.create(UserGenerator.agent("foo3"))
+        Users.create(UserGenerator.individual("foo1"), Some(AG.Individual))
+        Users.create(UserGenerator.organisation("foo2"), Some(AG.Organisation))
+        Users.create(UserGenerator.agent("foo3"), Some(AG.Agent))
 
         val result1 = Users.getAll()
         result1 should haveStatus(200)
         val users1 = result1.json.as[Users].users
         users1.size shouldBe 4
         users1.map(_.userId) should contain.only(currentAuthSession.userId, "foo1", "foo2", "foo3")
-        users1.flatMap(_.affinityGroup) should contain.only("Individual", "Agent", "Organisation")
 
         val result2 = Users.getAll()(otherPlanetAuthSession)
         result2 should haveStatus(200)
         val users2 = result2.json.as[Users].users
         users2.size shouldBe 3
         users2.map(_.userId) should contain.only("boo", "boo1", "boo2")
-        users2.flatMap(_.affinityGroup) should contain.only("Individual", "Organisation")
       }
 
       "return 200 with the list of users having given affinity" in {
-        implicit val currentAuthSession: AuthenticatedSession = SignIn.signInAndGetSession()
-        Users.create(UserGenerator.individual("foo1"))
-        Users.create(UserGenerator.organisation("foo2"))
-        Users.create(UserGenerator.agent("foo3"))
+        val planetId = "testPlanet"
+
+        userService.createUser(UserGenerator.individual("foo1"), planetId = planetId, Some(AG.Individual)).futureValue
+        userService.createUser(UserGenerator.individual("foo2"), planetId = planetId, Some(AG.Organisation)).futureValue
+        userService.createUser(UserGenerator.individual("foo3"), planetId = planetId, Some(AG.Agent)).futureValue
+
+        implicit val currentAuthSession: AuthenticatedSession =
+          SignIn.signInAndGetSession(userId = "foo1", planetId = planetId)
 
         val result1 = Users.getAll(affinityGroup = Some("Agent"))
         result1 should haveStatus(200)
         val users1 = result1.json.as[Users].users
         users1.size shouldBe 1
         users1.map(_.userId) should contain.only("foo3")
-        users1.flatMap(_.affinityGroup) should contain.only("Agent")
 
         val result2 = Users.getAll(affinityGroup = Some("Individual"))
         result2 should haveStatus(200)
         val users2 = result2.json.as[Users].users
         users2.size shouldBe 1
         users2.map(_.userId) should contain.only("foo1")
-        users2.flatMap(_.affinityGroup) should contain.only("Individual")
       }
     }
 
@@ -241,11 +249,12 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
         result should haveStatus(201)
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/apitestuser")
         val user = Users.get(userId).json.as[User]
-        user.affinityGroup shouldBe Some(User.AG.Individual)
+        val group = Groups.get(user.groupId.get).json.as[Group]
         user.nino shouldBe Some(nino)
         user.dateOfBirth shouldBe Some(LocalDate.parse("1972-12-23"))
         user.name shouldBe Some("Test User")
-        user.enrolments.principal should contain(Enrolment("IR-SA", "UTR", utr))
+        group.affinityGroup shouldBe AG.Individual
+        group.principalEnrolments should contain(Enrolment("IR-SA", "UTR", utr))
         user.facts("businesspostcode") shouldBe Some("CR12 3XZ")
       }
     }
@@ -285,15 +294,15 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
 
       result should haveStatus(201)
       result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/apitestuser")
-      val user = Users.get(userId).json.as[User]
-      user.affinityGroup shouldBe Some(User.AG.Organisation)
+      val (Some(user), Some(group)) = userService.findUserAndGroup(userId, planetId = authSession.planetId).futureValue
+      group.affinityGroup shouldBe AG.Organisation
       user.nino shouldBe None
       user.dateOfBirth shouldBe None
       user.name shouldBe Some("Test Organisation User")
-      user.enrolments.principal should contain(Enrolment("IR-CT", "UTR", utr))
-      user.enrolments.principal should contain(Enrolment("HMRC-CUS-ORG", "EORINumber", eori))
-      user.enrolments.principal should contain(Enrolment("HMRC-MTD-VAT", "VRN", vrn))
-      user.enrolments.principal should contain(Enrolment("HMCE-VATDEC-ORG", "VATRegNo", vrn))
+      group.principalEnrolments should contain(Enrolment("IR-CT", "UTR", utr))
+      group.principalEnrolments should contain(Enrolment("HMRC-CUS-ORG", "EORINumber", eori))
+      group.principalEnrolments should contain(Enrolment("HMRC-MTD-VAT", "VRN", vrn))
+      group.principalEnrolments should contain(Enrolment("HMCE-VATDEC-ORG", "VATRegNo", vrn))
       user.facts("Postcode") shouldBe Some("CR12 3XZ")
     }
 
@@ -321,12 +330,13 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
       }
       {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
-        val user = Users.get(userId).json.as[User]
-        user.affinityGroup shouldBe Some(User.AG.Agent)
+        val (Some(user), Some(group)) =
+          userService.findUserAndGroup(userId, planetId = authSession.planetId).futureValue
+        group.affinityGroup shouldBe AG.Agent
         user.nino shouldBe Some(Nino("WZ 58 73 41 D"))
         user.dateOfBirth shouldBe defined
         user.name shouldBe Some("API Test User")
-        user.enrolments.principal should contain.only(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", arn))
+        group.principalEnrolments should contain.only(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", arn))
       }
     }
   }

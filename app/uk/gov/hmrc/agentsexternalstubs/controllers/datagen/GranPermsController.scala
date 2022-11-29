@@ -19,7 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers.datagen
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.agentsexternalstubs.controllers.CurrentSession
-import uk.gov.hmrc.agentsexternalstubs.models.{GranPermsGenRequest, GranPermsGenResponse, User}
+import uk.gov.hmrc.agentsexternalstubs.models.{AG, GranPermsGenRequest, GranPermsGenResponse, User}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GranPermsService, UsersService}
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -41,24 +41,26 @@ class GranPermsController @Inject() (
     Action.async(parse.tolerantJson) { implicit request =>
       withCurrentSession { session =>
         withPayload[GranPermsGenRequest] { genRequest =>
-          usersService.findByUserId(session.userId, session.planetId).flatMap {
-            case None => Future.successful(Unauthorized("No logged-in user."))
+          usersService.findUserAndGroup(session.userId, session.planetId).flatMap {
+            case (None, _)       => Future.successful(Unauthorized("No logged-in user."))
+            case (Some(_), None) => Future.successful(Unauthorized("Current logged-in user is not part of a group."))
             case _ if genRequest.numberOfAgents > appConfig.granPermsTestGenMaxAgents =>
               Future.successful(BadRequest("Too many agents requested."))
             case _ if genRequest.numberOfClients > appConfig.granPermsTestGenMaxClients =>
               Future.successful(BadRequest("Too many clients requested."))
-            case Some(currentUser) if !currentUser.affinityGroup.contains(User.AG.Agent) =>
+            case (Some(currentUser), mGroup) if !(mGroup.exists(_.affinityGroup == AG.Agent)) =>
               Future.successful(Unauthorized("Currently logged-in user is not an Agent."))
-            case Some(currentUser) if !currentUser.credentialRole.contains(User.CR.Admin) =>
+            case (Some(currentUser), _) if !currentUser.credentialRole.contains(User.CR.Admin) =>
               Future.successful(Unauthorized("Currently logged-in user is not a group Admin."))
-            case Some(currentUser) if currentUser.groupId.isEmpty =>
+            case (Some(currentUser), _) if currentUser.groupId.isEmpty =>
               Future.successful(BadRequest("Currently logged-in user has no group id."))
-            case Some(currentUser) =>
+            case (Some(currentUser), Some(group)) =>
               granPermsService
                 .massGenerateAgentsAndClients(
                   planetId = session.planetId,
                   currentUser = currentUser,
-                  genRequest = genRequest
+                  genRequest = genRequest,
+                  usersGroup = group
                 )
                 .map { case (createdAgents, createdClients) =>
                   Created(Json.toJson(GranPermsGenResponse(createdAgents.size, createdClients.size)))

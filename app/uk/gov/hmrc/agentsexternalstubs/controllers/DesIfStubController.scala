@@ -47,7 +47,11 @@ class DesIfStubController @Inject() (
   pptSubscriptionDisplayRecordsService: PPTSubscriptionDisplayRecordsService,
   insolvencyService: InsolvencyService,
   cc: ControllerComponents
-)(implicit usersService: UsersService, executionContext: ExecutionContext)
+)(implicit
+  usersService: UsersService,
+  groupsService: GroupsService,
+  executionContext: ExecutionContext
+) // TODO remove the services from the implicit parameter list!
     extends BackendController(cc) with DesCurrentSession {
 
   import DesIfStubController._
@@ -463,26 +467,29 @@ class DesIfStubController @Inject() (
           error => badRequestF(error),
           taxIdentifier => {
             val enrolmentKey = EnrolmentKey("HMRC-TERS-ORG", Seq(Identifier("SAUTR", taxIdentifier)))
-            usersService
-              .findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
-              .map {
-                case Some(record) =>
-                  val maybeUtr =
-                    extractEnrolmentValue("HMRC-TERS-ORG")(record)
-                  val maybeUrn =
-                    extractEnrolmentValue("HMRC-TERSNT-ORG")(record)
-                  val trustDetails = TrustDetailsResponse(
-                    TrustDetails(
-                      maybeUtr,
-                      maybeUrn,
-                      record.name.getOrElse(""),
-                      TrustAddress(record.user.address),
-                      "TERS"
-                    )
+            for {
+              maybeGroup <- groupsService.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
+              maybeAdminUser <- maybeGroup.fold(Future.successful(Option.empty[User]))(g =>
+                                  usersService.findAdminByGroupId(g.groupId, session.planetId)
+                                )
+            } yield (maybeGroup, maybeAdminUser) match {
+              case (Some(group), Some(user)) =>
+                val maybeUtr =
+                  extractEnrolmentValue("HMRC-TERS-ORG")(group)
+                val maybeUrn =
+                  extractEnrolmentValue("HMRC-TERSNT-ORG")(group)
+                val trustDetails = TrustDetailsResponse(
+                  TrustDetails(
+                    maybeUtr,
+                    maybeUrn,
+                    user.name.getOrElse(""),
+                    TrustAddress(user.user.address),
+                    "TERS"
                   )
-                  Ok(Json.toJson(trustDetails))
-                case None => getErrorResponseFor(utr)
-              }
+                )
+                Ok(Json.toJson(trustDetails))
+              case _ => getErrorResponseFor(utr)
+            }
           }
         )
     }(SessionRecordNotFound)
@@ -508,35 +515,37 @@ class DesIfStubController @Inject() (
         .fold(
           error => badRequestF(error),
           taxIdentifier => {
-
             val enrolmentKey = EnrolmentKey(service, Seq(Identifier(key, taxIdentifier)))
-            usersService
-              .findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
-              .map {
-                case Some(record) =>
-                  val maybeUtr =
-                    extractEnrolmentValue(HMRC_TERS_ORG)(record)
-                  val maybeUrn =
-                    extractEnrolmentValue(HMRC_TERSNT_ORG)(record)
-                  val trustDetails = TrustDetailsResponse(
-                    TrustDetails(
-                      maybeUtr,
-                      maybeUrn,
-                      record.name.getOrElse(""),
-                      TrustAddress(record.user.address),
-                      "TERS"
-                    )
+            for {
+              maybeGroup <- groupsService.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
+              maybeAdminUser <- maybeGroup.fold(Future.successful(Option.empty[User]))(g =>
+                                  usersService.findAdminByGroupId(g.groupId, session.planetId)
+                                )
+            } yield (maybeGroup, maybeAdminUser) match {
+              case (Some(group), Some(user)) =>
+                val maybeUtr =
+                  extractEnrolmentValue(HMRC_TERS_ORG)(group)
+                val maybeUrn =
+                  extractEnrolmentValue(HMRC_TERSNT_ORG)(group)
+                val trustDetails = TrustDetailsResponse(
+                  TrustDetails(
+                    maybeUtr,
+                    maybeUrn,
+                    user.name.getOrElse(""),
+                    TrustAddress(user.user.address),
+                    "TERS"
                   )
-                  Ok(Json.toJson(trustDetails))
-                case None => getErrorResponseFor(id)
-              }
+                )
+                Ok(Json.toJson(trustDetails))
+              case _ => getErrorResponseFor(id)
+            }
           }
         )
     }(SessionRecordNotFound)
   }
 
-  private def extractEnrolmentValue(serviceKey: String)(record: User) =
-    record.enrolments.principal
+  private def extractEnrolmentValue(serviceKey: String)(record: Group) =
+    record.principalEnrolments
       .find(_.key == serviceKey)
       .flatMap(_.toEnrolmentKeyTag)
       .map(_.split('~').takeRight(1).mkString)
@@ -551,36 +560,40 @@ class DesIfStubController @Inject() (
               .fold(
                 _ => badRequestF("INVALID_IDVALUE", "Submission has not passed validation. Invalid parameter idValue."),
                 _ =>
-                  usersService
-                    .findByPrincipalEnrolmentKey(
-                      EnrolmentKey("HMRC-CGT-PD", Seq(Identifier("CGTPDRef", cgtRef))),
-                      session.planetId
-                    )
-                    .map {
-                      case Some(record) =>
-                        val tpd = record.affinityGroup match {
-                          case Some("Individual") =>
-                            TypeOfPersonDetails(
-                              "Individual",
-                              Left(IndividualName(record.firstName.getOrElse(""), record.lastName.getOrElse("")))
-                            )
-                          case _ => TypeOfPersonDetails("Trustee", Right(OrganisationName(record.name.getOrElse(""))))
-                        }
+                  for {
+                    maybeGroup <- groupsService.findByPrincipalEnrolmentKey(
+                                    EnrolmentKey("HMRC-CGT-PD", Seq(Identifier("CGTPDRef", cgtRef))),
+                                    session.planetId
+                                  )
+                    maybeAdminUser <- maybeGroup.fold(Future.successful(Option.empty[User]))(g =>
+                                        usersService.findAdminByGroupId(g.groupId, session.planetId)
+                                      )
+                  } yield (maybeGroup, maybeAdminUser) match {
+                    case (Some(group), Some(user)) =>
+                      val tpd = group.affinityGroup match {
+                        case AG.Individual =>
+                          TypeOfPersonDetails(
+                            "Individual",
+                            Left(IndividualName(user.firstName.getOrElse(""), user.lastName.getOrElse("")))
+                          )
+                        case _ => TypeOfPersonDetails("Trustee", Right(OrganisationName(user.name.getOrElse(""))))
+                      }
 
-                        val addressDetails = CgtAddressDetails(
-                          record.address.flatMap(_.line1).getOrElse(""),
-                          record.address.flatMap(_.line2),
-                          record.address.flatMap(_.line3),
-                          record.address.flatMap(_.line4),
-                          record.address.flatMap(_.countryCode).getOrElse(""),
-                          record.address.flatMap(_.postcode)
-                        )
+                      val addressDetails = CgtAddressDetails(
+                        user.address.flatMap(_.line1).getOrElse(""),
+                        user.address.flatMap(_.line2),
+                        user.address.flatMap(_.line3),
+                        user.address.flatMap(_.line4),
+                        user.address.flatMap(_.countryCode).getOrElse(""),
+                        user.address.flatMap(_.postcode)
+                      )
 
-                        val cgtSubscription: CgtSubscription =
-                          CgtSubscription("CGT", SubscriptionDetails(tpd, addressDetails))
-                        Ok(Json.toJson(cgtSubscription))
-                      case None => notFound("NOT_FOUND", "Data not found  for the provided Registration Number.")
-                    }
+                      val cgtSubscription: CgtSubscription =
+                        CgtSubscription("CGT", SubscriptionDetails(tpd, addressDetails))
+                      Ok(Json.toJson(cgtSubscription))
+                    case _ => notFound("NOT_FOUND", "Data not found  for the provided Registration Number.")
+
+                  }
               )
           case ("CGT", _) =>
             badRequestF("INVALID_IDTYPE", "Submission has not passed validation. Invalid parameter idType.")

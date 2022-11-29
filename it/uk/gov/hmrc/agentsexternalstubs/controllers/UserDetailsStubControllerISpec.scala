@@ -1,7 +1,8 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
+import org.scalatest.BeforeAndAfterEach
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, User, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Group, User, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{MongoDB, NotAuthorized, ServerBaseISpec, TestRequests}
 
@@ -9,13 +10,22 @@ class UserDetailsStubControllerISpec extends ServerBaseISpec with MongoDB with T
 
   val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
+  val testPlanet = "testPlanet"
 
   "UserDetailsStubController" when {
 
     "GET /user-details/id/:id" should {
       "respond 200 with individual user data if found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-        Users.update(UserGenerator.individual(userId = session.userId))
+        userService
+          .createUser(
+            UserGenerator.individual(userId = "foo"),
+            planetId = testPlanet,
+            affinityGroup = Some(AG.Individual)
+          )
+          .futureValue
+
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = testPlanet)
+
         val user = Users.get(session.userId).json.as[User]
 
         val result = UserDetailsStub.getUser(session.userId)
@@ -40,8 +50,16 @@ class UserDetailsStubControllerISpec extends ServerBaseISpec with MongoDB with T
       }
 
       "respond 200 with organisation user data if found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-        Users.update(UserGenerator.organisation(userId = session.userId))
+        userService
+          .createUser(
+            UserGenerator.organisation(userId = "foo"),
+            planetId = testPlanet,
+            affinityGroup = Some(AG.Organisation)
+          )
+          .futureValue
+
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = testPlanet)
+
         val user = Users.get(session.userId).json.as[User]
 
         val result = UserDetailsStub.getUser(session.userId)
@@ -66,9 +84,19 @@ class UserDetailsStubControllerISpec extends ServerBaseISpec with MongoDB with T
       }
 
       "respond 200 with agent user data if found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-        Users.update(UserGenerator.agent(userId = session.userId))
+        val newUser = userService
+          .createUser(
+            UserGenerator.agent(userId = "foo"),
+            planetId = testPlanet,
+            affinityGroup = Some(AG.Agent)
+          )
+          .futureValue
+        groupsService.updateGroup(newUser.groupId.get, testPlanet, _.copy(agentFriendlyName = Some("Foo Ltd")))
+
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = testPlanet)
+
         val user = Users.get(session.userId).json.as[User]
+        val group = Groups.get(user.groupId.get).json.as[Group]
 
         val result = UserDetailsStub.getUser(session.userId)
 
@@ -82,9 +110,9 @@ class UserDetailsStubControllerISpec extends ServerBaseISpec with MongoDB with T
             haveProperty[String]("credentialRole", be("Admin")) and
             haveProperty[String]("description") and
             haveProperty[String]("postCode", be(user.address.get.postcode.get)) and
-            haveProperty[String]("agentCode", be(user.agentCode.get)) and
-            haveProperty[String]("agentFriendlyName", be(user.agentFriendlyName.get)) and
-            haveProperty[String]("agentId", be(user.agentId.get)) and
+            haveProperty[String]("agentCode", be(group.agentCode.get)) and
+            haveProperty[String]("agentFriendlyName", be(group.agentFriendlyName.get)) and
+            haveProperty[String]("agentId", be(group.agentId.get)) and
             haveProperty[String]("dateOfBirth", be(user.dateOfBirth.get.toString)) and
             notHaveProperty("lastName")
         )

@@ -1,8 +1,9 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
+import org.scalatest.BeforeAndAfterEach
 import play.api.libs.json.JsObject
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{MongoDB, NotAuthorized, ServerBaseISpec, TestRequests}
 
@@ -10,21 +11,29 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with MongoDB wit
 
   val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
+  private val testPlanetId = "testPlanet"
+  private val testUserId = "testUserId"
 
   "CitizenDetailsStubController" when {
 
     "GET /citizen-details/nino/:nino" should {
       "respond 200 with citizen data if found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-        Users.update(
-          UserGenerator
-            .individual(
-              userId = session.userId,
-              nino = "HW 82 78 56 C",
-              name = "Alan Brian Foo-Foe",
-              dateOfBirth = "1975-12-18"
-            )
-        )
+        val user = userService
+          .createUser(
+            UserGenerator
+              .individual(
+                userId = testUserId,
+                nino = "HW 82 78 56 C",
+                name = "Alan Brian Foo-Foe",
+                dateOfBirth = "1975-12-18"
+              ),
+            planetId = testPlanetId,
+            affinityGroup = Some(AG.Individual)
+          )
+          .futureValue
+
+        implicit val session: AuthenticatedSession =
+          SignIn.signInAndGetSession(user.userId, planetId = user.planetId.get)
 
         val result = CitizenDetailsStub.getCitizen("nino", "HW827856C")
 
@@ -78,10 +87,16 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with MongoDB wit
 
     "GET /citizen-details/:nino/designatory-details" should {
       "return user designatory details for Individuals" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
-        val user = UserGenerator.individual(userId = session.userId)
-        Users.update(user)
+        val user = userService
+          .createUser(
+            UserGenerator.individual(userId = testUserId),
+            planetId = testPlanetId,
+            affinityGroup = Some(AG.Individual)
+          )
+          .futureValue
+
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession(testUserId, planetId = testPlanetId)
 
         val result = CitizenDetailsStub.getDesignatoryDetails(user.nino.get.value)
 
@@ -102,10 +117,16 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with MongoDB wit
       }
 
       "return user designatory details for Agents" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
-        val user = UserGenerator.agent(userId = session.userId)
-        Users.update(user)
+        val user = userService
+          .createUser(
+            UserGenerator.agent(userId = testUserId),
+            planetId = testPlanetId,
+            affinityGroup = Some(AG.Agent)
+          )
+          .futureValue
+
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession(testUserId, planetId = testPlanetId)
 
         val result = CitizenDetailsStub.getDesignatoryDetails(user.nino.get.value)
 
@@ -128,10 +149,16 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with MongoDB wit
 
     "GET /citizen-details/:nino/designatory-details/basic" should {
       "return basic user details" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
-        val user = UserGenerator.individual(userId = session.userId)
-        Users.update(user)
+        val user = userService
+          .createUser(
+            UserGenerator.individual(userId = testUserId),
+            planetId = testPlanetId,
+            affinityGroup = Some(AG.Individual)
+          )
+          .futureValue
+
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession(testUserId, planetId = testPlanetId)
 
         val result = CitizenDetailsStub.getDesignatoryDetailsBasic(user.nino.get.value)
 

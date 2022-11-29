@@ -1,7 +1,8 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
+import org.scalatest.BeforeAndAfterEach
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, User, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, User, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{MongoDB, ServerBaseISpec, TestRequests}
 
@@ -14,10 +15,11 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with MongoDB 
 
     "GET /users-groups-search/users/:userId" should {
       "respond 200 with individual user details if found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
-        Users.update(
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        Users.create(
           UserGenerator
-            .individual(userId = "foo1", name = "Alan Brian Foo-Foe", groupId = "foo-group-1")
+            .individual(userId = "foo1", name = "Alan Brian Foo-Foe", groupId = "foo-group-1"),
+          affinityGroup = Some(AG.Individual)
         )
 
         val result = UsersGroupSearchStub.getUser("foo1")
@@ -37,18 +39,19 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with MongoDB 
       }
 
       "respond 200 with agent user details if found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo2")
-        Users.update(
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        Users.create(
           UserGenerator
             .agent(
               userId = "foo2",
               name = "Alan Brian Foo-Foe",
-              groupId = "foo-group-2",
-              agentCode = "AAABBBCCCDDD",
-              agentFriendlyName = "Foo-Foe Accountants",
-              agentId = "1234567"
-            )
-        )
+              groupId = "foo-group-2"
+            ),
+          affinityGroup = Some(AG.Agent),
+          agentCode = Some("AAABBBCCCDDD"),
+          agentFriendlyName = Some("Foo-Foe Accountants"),
+          agentId = Some("1234567")
+        )(session)
 
         val result = UsersGroupSearchStub.getUser("foo2")
 
@@ -77,11 +80,16 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with MongoDB 
 
     "GET /users-groups-search/groups/:groupId" should {
       "respond 200 with ordinary group details if found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo3")
-        Users.update(
-          UserGenerator
-            .individual(userId = "foo3", name = "Alan Brian Foo-Foe", groupId = "foo-group-3")
-        )
+        userService
+          .createUser(
+            UserGenerator
+              .organisation(userId = "foo3", name = "Alan Brian Foo-Foe", groupId = "foo-group-3"),
+            planetId = "testPlanet2",
+            affinityGroup = Some(AG.Organisation)
+          )
+          .futureValue
+
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo3", planetId = "testPlanet2")
 
         val result = UsersGroupSearchStub.getGroup("foo-group-3")
 
@@ -97,16 +105,17 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with MongoDB 
 
       "respond 200 with agent group details if found" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo4")
-        Users.update(
+        Users.create(
           UserGenerator
             .agent(
               userId = "foo4",
               name = "Alan Brian Foo-Foe",
-              groupId = "foo-group-4",
-              agentCode = "AAABBBCCCDDD",
-              agentFriendlyName = "Foo-Foe Accountants",
-              agentId = "1234567"
-            )
+              groupId = "foo-group-4"
+            ),
+          affinityGroup = Some(AG.Agent),
+          agentCode = Some("AAABBBCCCDDD"),
+          agentFriendlyName = Some("Foo-Foe Accountants"),
+          agentId = Some("1234567")
         )
 
         val result = UsersGroupSearchStub.getGroup("foo-group-4")
@@ -133,16 +142,17 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with MongoDB 
     "GET /users-groups-search/groups?agentCode=:agentCode&agentId=:agentId" should {
       "respond 200 with agent group details if found" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo5")
-        Users.update(
+        Users.create(
           UserGenerator
             .agent(
               userId = "foo5",
               name = "Alan Brian Foo-Foe",
-              groupId = "foo-group-5",
-              agentCode = "ABC123",
-              agentFriendlyName = "Foo-Foe Accountants",
-              agentId = "1234567"
-            )
+              groupId = "foo-group-5"
+            ),
+          affinityGroup = Some(AG.Agent),
+          agentCode = Some("ABC123"),
+          agentFriendlyName = Some("Foo-Foe Accountants"),
+          agentId = Some("1234567")
         )
 
         val result = UsersGroupSearchStub.getGroupByAgentCode("ABC123", "any")
@@ -169,20 +179,23 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with MongoDB 
 
   "GET /users-groups-search/groups/:groupId/users" should {
     "respond 200 with the list of users in the group" in {
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo6-1", planetId = "juniper")
-      Users.update(
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "juniper")
+      Users.create(
         UserGenerator
-          .individual(userId = "foo6-1", name = "A", groupId = "foo-group-6")
+          .individual(userId = "foo6-1", name = "A", groupId = "foo-group-6"),
+        affinityGroup = Some(AG.Individual)
       )
       Users.create(
         UserGenerator
-          .individual(userId = "foo6-2", name = "B", groupId = "foo-group-6")
+          .individual(userId = "foo6-2", name = "B", groupId = "foo-group-6"),
+        affinityGroup = Some(AG.Individual)
       )
 
-      val session2: AuthenticatedSession = SignIn.signInAndGetSession("foo6-1", planetId = "saturn")
+      val session2: AuthenticatedSession = SignIn.signInAndGetSession("bar", planetId = "saturn")
       Users.create(
         UserGenerator
-          .individual(userId = "foo6-3", name = "C", groupId = "foo-group-6")
+          .individual(userId = "foo6-3", name = "C", groupId = "foo-group-6"),
+        affinityGroup = Some(AG.Individual)
       )(session2)
 
       val result = UsersGroupSearchStub.getGroupUsers("foo-group-6")
@@ -194,13 +207,15 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with MongoDB 
 
     "respond 404 if group is empty" in {
       implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo7-1", planetId = "juniper")
-      Users.update(
+      Users.create(
         UserGenerator
-          .individual(userId = "foo7-1", name = "A", groupId = "foo-group-7")
+          .individual(userId = "foo7-1", name = "A", groupId = "foo-group-7"),
+        affinityGroup = Some(AG.Individual)
       )
       Users.create(
         UserGenerator
-          .individual(userId = "foo7-2", name = "B", groupId = "foo-group-7")
+          .individual(userId = "foo7-2", name = "B", groupId = "foo-group-7"),
+        affinityGroup = Some(AG.Individual)
       )
 
       val result = UsersGroupSearchStub.getGroupUsers("foo-group-7-x")

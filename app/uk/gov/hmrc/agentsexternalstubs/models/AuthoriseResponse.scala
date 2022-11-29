@@ -242,8 +242,8 @@ case object NameRetrieve extends Retrieve {
 
   protected[models] def nameFromContext(context: AuthoriseContext): Some[Name] =
     context.affinityGroup match {
-      case Some(User.AG.Individual | User.AG.Agent) => Some(Name.parse(context.name))
-      case _                                        => Some(Name(name = context.name))
+      case Some(AG.Individual | AG.Agent) => Some(Name.parse(context.name))
+      case _                              => Some(Name(name = context.name))
     }
 }
 

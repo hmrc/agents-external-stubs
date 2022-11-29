@@ -4,7 +4,7 @@ import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
 import reactivemongo.api.Cursor
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, Record, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Record, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.repository.{RecordsRepository, UsersRepository}
 import uk.gov.hmrc.agentsexternalstubs.support._
 
@@ -21,8 +21,8 @@ class PlanetsControllerISpec extends ServerBaseISpec with MongoDB with TestReque
       "remove all planet related data and return 204" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         Seq(
-          Users.create(UserGenerator.individual()),
-          Users.create(UserGenerator.agent()),
+          Users.create(UserGenerator.individual(), Some(AG.Individual)),
+          Users.create(UserGenerator.agent(), Some(AG.Agent)),
           Records.createBusinessDetails(Json.parse(validBusinessDetailsPayload)),
           Records.createVatCustomerInformation(Json.parse(validVatCustomerInformationPayload)),
           Records.createLegacyAgent(Json.parse(validLegacyAgentPayload)),
@@ -34,7 +34,7 @@ class PlanetsControllerISpec extends ServerBaseISpec with MongoDB with TestReque
         val result = Planets.destroy(session.planetId)
         result should haveStatus(204)
 
-        await(usersRepository.findByPlanetId(session.planetId, None)(100)).size shouldBe 0
+        await(usersRepository.findByPlanetId(session.planetId)(100)).size shouldBe 0
         await(
           recordsRepository
             .findByPlanetId(session.planetId)

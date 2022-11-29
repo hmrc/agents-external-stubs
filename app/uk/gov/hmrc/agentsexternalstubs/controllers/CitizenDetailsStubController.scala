@@ -21,21 +21,21 @@ import org.joda.time.LocalDate
 import play.api.libs.json.{Format, Json, OFormat}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.agentsexternalstubs.controllers.CitizenDetailsStubController.{GetCitizenResponse, GetDesignatoryDetailsBasicResponse, GetDesignatoryDetailsResponse}
-import uk.gov.hmrc.agentsexternalstubs.models.User.AG._
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, User, UserGenerator}
-import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
+import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Group, User, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GroupsService, UsersService}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import play.api.libs.json.JodaWrites._
 import play.api.libs.json.JodaReads._
 import uk.gov.hmrc.agentmtdidentifiers.model.Utr
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class CitizenDetailsStubController @Inject() (
   val authenticationService: AuthenticationService,
   usersService: UsersService,
+  groupsService: GroupsService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
@@ -62,9 +62,16 @@ class CitizenDetailsStubController @Inject() (
       Nino.isValid(nino) match {
         case false => badRequestF("INVALID_NINO", s"Provided NINO $nino is not valid")
         case true =>
-          usersService.findByNino(nino, session.planetId).map {
-            case None       => notFound("NOT_FOUND", s"Citizen details are not found for $nino")
-            case Some(user) => Ok(RestfulResponse(GetDesignatoryDetailsResponse.from(user, session)))
+          for {
+            maybeUser <- usersService.findByNino(nino, session.planetId)
+            maybeGroup <-
+              maybeUser
+                .flatMap(_.groupId)
+                .fold(Future.successful(Option.empty[Group]))(gid => groupsService.findByGroupId(gid, session.planetId))
+          } yield (maybeUser, maybeGroup) match {
+            case (Some(user), Some(group)) =>
+              Ok(RestfulResponse(GetDesignatoryDetailsResponse.from(user, group.affinityGroup)))
+            case _ => notFound("NOT_FOUND", s"Citizen details are not found for $nino")
           }
       }
     }(SessionRecordNotFound)
@@ -170,20 +177,22 @@ object CitizenDetailsStubController {
 
   object GetDesignatoryDetailsResponse {
 
-    def from(user: User, session: AuthenticatedSession): GetDesignatoryDetailsResponse =
+    def from(user: User, affinityGroup: String): GetDesignatoryDetailsResponse =
       GetDesignatoryDetailsResponse(
         user.userId.reverse,
-        user.affinityGroup
-          .find(ag => ag == Individual || ag == Agent)
-          .map(_ =>
-            Person(
-              firstName = user.firstName,
-              lastName = user.lastName,
-              sex = Some(UserGenerator.sex(user.userId)),
-              nino = user.nino,
-              dateOfBirth = user.dateOfBirth
+        affinityGroup match {
+          case AG.Individual | AG.Agent =>
+            Some(
+              Person(
+                firstName = user.firstName,
+                lastName = user.lastName,
+                sex = Some(UserGenerator.sex(user.userId)),
+                nino = user.nino,
+                dateOfBirth = user.dateOfBirth
+              )
             )
-          ),
+          case _ => None
+        },
         user.address.map(a =>
           Address(
             line1 = a.line1,

@@ -44,24 +44,24 @@ object AuthLoginApi {
 
   object Request {
 
-    def fromUser(user: User): Request =
+    def fromUserAndGroup(user: User, maybeGroup: Option[Group]): Request =
       Request(
         credId = s"${user.userId}${user.planetId.map(planet => s"@$planet").getOrElse("")}",
-        affinityGroup = user.affinityGroup.getOrElse("Individual"),
+        affinityGroup = maybeGroup.fold(AG.Individual)(_.affinityGroup),
         confidenceLevel = user.confidenceLevel,
         credentialStrength = user.credentialStrength.getOrElse("strong"),
         credentialRole = user.credentialRole,
-        enrolments = user.enrolments.principal,
-        delegatedEnrolments = DelegatedEnrolment.from(user),
+        enrolments = maybeGroup.fold(Seq.empty[Enrolment])(group => group.principalEnrolments),
+        delegatedEnrolments = maybeGroup.flatMap(group => DelegatedEnrolment.from(group)),
         gatewayToken = None,
         groupIdentifier = user.groupId,
         nino = user.nino.map(_.value),
         usersName = user.name,
         email = None,
         description = None,
-        agentFriendlyName = user.agentFriendlyName,
-        agentCode = user.agentCode,
-        agentId = user.agentId,
+        agentFriendlyName = maybeGroup.flatMap(_.agentFriendlyName),
+        agentCode = maybeGroup.flatMap(_.agentCode),
+        agentId = maybeGroup.flatMap(_.agentId),
         itmpData = None,
         gatewayInformation = None,
         mdtpInformation = None,
@@ -72,12 +72,12 @@ object AuthLoginApi {
 
     object DelegatedEnrolment {
 
-      def from(user: User): Option[Seq[DelegatedEnrolment]] =
-        if (user.enrolments.delegated.isEmpty)
+      def from(group: Group): Option[Seq[DelegatedEnrolment]] =
+        if (group.delegatedEnrolments.isEmpty)
           None
         else {
           val delegatedEnrolments =
-            user.enrolments.delegated
+            group.delegatedEnrolments
               .map(e =>
                 delegatedAuthRuleFor(e.key).map(rule =>
                   DelegatedEnrolment(e.key, e.identifiers.getOrElse(Seq.empty), rule)

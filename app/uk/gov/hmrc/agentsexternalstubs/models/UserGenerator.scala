@@ -21,8 +21,6 @@ import org.joda.time.format.ISODateTimeFormat
 import org.scalacheck.Gen
 import uk.gov.hmrc.domain.Nino
 
-import java.time.LocalDateTime
-
 object UserGenerator {
 
   import uk.gov.hmrc.agentsexternalstubs.models.Generator._
@@ -56,13 +54,13 @@ object UserGenerator {
     date(dateOfBirthLow, dateOfBirthHigh).seeded(userId).map(d => LocalDate.parse(d.toString)).get
 
   private final val groupIdGen = pattern"9Z9Z-Z9Z9-9Z9Z-Z9Z9".gen
-  def groupId(userId: String): String = groupIdGen.seeded(userId).get
+  def groupId(seed: String): String = groupIdGen.seeded(seed).get
 
   private final val agentCodeGen = pattern"ZZZZZZ999999".gen
-  def agentCode(userId: String): String = agentCodeGen.seeded(userId).get
+  def agentCode(seed: String): String = agentCodeGen.seeded(seed).get
 
   private final val agentIdGen = pattern"999999".gen
-  def agentId(userId: String): String = agentIdGen.seeded(userId).get
+  def agentId(seed: String): String = agentIdGen.seeded(seed).get
 
   def sex(userId: String): String = Gen.oneOf("M", "F").seeded(userId).get
 
@@ -94,7 +92,6 @@ object UserGenerator {
   ): User =
     User(
       userId = userId,
-      affinityGroup = Some(User.AG.Individual),
       confidenceLevel = Option(confidenceLevel),
       credentialRole = Option(credentialRole),
       nino = Option(nino).map(Nino.apply).orElse(Option(ninoWithSpaces(userId))),
@@ -110,23 +107,14 @@ object UserGenerator {
     credentialRole: String = null,
     name: String = null,
     nino: String = null,
-    agentCode: String = null,
-    agentFriendlyName: String = null,
-    agentId: String = null,
-    delegatedEnrolments: Seq[Enrolment] = Seq.empty,
     groupId: String = null
   ): User = {
     val gid = Option(groupId).getOrElse(UserGenerator.groupId(userId))
     User(
       userId = userId,
-      affinityGroup = Some(User.AG.Agent),
       credentialRole = Option(credentialRole),
       name = Option(name).orElse(Option(UserGenerator.nameForAgent(userId, gid))),
       nino = Option(nino).map(Nino.apply).orElse(Option(ninoWithSpaces(userId))),
-      agentCode = Option(agentCode).orElse(Option(UserGenerator.agentCode(gid))),
-      agentFriendlyName = Option(agentFriendlyName).orElse(Option(UserGenerator.agentFriendlyName(gid))),
-      agentId = Option(agentId).orElse(Option(UserGenerator.agentId(gid))),
-      enrolments = User.Enrolments(delegated = delegatedEnrolments),
       groupId = Option(gid)
     )
   }
@@ -134,7 +122,6 @@ object UserGenerator {
   def organisation(userId: String = UUID.randomUUID().toString, name: String = null, groupId: String = null): User =
     User(
       userId = userId,
-      affinityGroup = Some(User.AG.Organisation),
       name = Option(name).orElse(Option(UserGenerator.nameForOrganisation(userId))),
       groupId = Option(groupId).orElse(Option(UserGenerator.groupId(userId))),
       credentialRole = Some(User.CR.Admin)

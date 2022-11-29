@@ -3,6 +3,8 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, urlEqualTo}
 import org.joda.time.LocalDate
+import org.junit.Before
+import org.scalatest.BeforeAndAfterEach
 import play.api.libs.json._
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
@@ -308,9 +310,11 @@ class DesIfStubControllerISpec
     "respond 200" in {
       implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
       val user = UserGenerator
-        .agent("foo", agentFriendlyName = "ABC123")
-        .withPrincipalEnrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567")
-      await(userService.createUser(user, session.planetId))
+        .agent("foo")
+        .copy(assignedPrincipalEnrolments =
+          Seq(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567").toEnrolmentKey.get)
+        )
+      await(userService.createUser(user, session.planetId, Some(AG.Agent)))
 
       await(
         repo.store(
@@ -361,9 +365,12 @@ class DesIfStubControllerISpec
     "return 403 if the agent is suspended" in {
       implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
       val user = UserGenerator
-        .agent("foo", agentFriendlyName = "ABC123")
-        .withPrincipalEnrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567")
-      await(userService.createUser(user.copy(suspendedRegimes = Some(Set("ITSA"))), session.planetId))
+        .agent("foo")
+        .copy(assignedPrincipalEnrolments =
+          Seq(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567").toEnrolmentKey.get)
+        )
+      val storedUser: User = await(userService.createUser(user, session.planetId, Some(AG.Agent)))
+      await(groupsService.updateGroup(storedUser.groupId.get, session.planetId, _.copy(suspendedRegimes = Set("ITSA"))))
 
       await(
         repo.store(
@@ -393,9 +400,11 @@ class DesIfStubControllerISpec
     "respond 200" in {
       implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
       val user = UserGenerator
-        .agent("foo", agentFriendlyName = "ABC123")
-        .withPrincipalEnrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567")
-      await(userService.createUser(user, session.planetId))
+        .agent("foo")
+        .copy(assignedPrincipalEnrolments =
+          Seq(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567").toEnrolmentKey.get)
+        )
+      await(userService.createUser(user, session.planetId, Some(AG.Agent)))
 
       await(
         repo.store(
@@ -452,9 +461,12 @@ class DesIfStubControllerISpec
     "return 403 if the agent is suspended" in {
       implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
       val user = UserGenerator
-        .agent("foo", agentFriendlyName = "ABC123")
-        .withPrincipalEnrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567")
-      await(userService.createUser(user.copy(suspendedRegimes = Some(Set("ITSA"))), session.planetId))
+        .agent("foo")
+        .copy(assignedPrincipalEnrolments =
+          Seq(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567").toEnrolmentKey.get)
+        )
+      val storedUser: User = await(userService.createUser(user, session.planetId, Some(AG.Agent)))
+      await(groupsService.updateGroup(storedUser.groupId.get, session.planetId, _.copy(suspendedRegimes = Set("ITSA"))))
 
       await(
         repo.store(
@@ -484,9 +496,11 @@ class DesIfStubControllerISpec
     "respond 200" in {
       implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
       val user = UserGenerator
-        .agent("foo", agentFriendlyName = "ABC123")
-        .withPrincipalEnrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567")
-      await(userService.createUser(user, session.planetId))
+        .agent("foo")
+        .copy(assignedPrincipalEnrolments =
+          Seq(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567").toEnrolmentKey.get)
+        )
+      await(userService.createUser(user, session.planetId, Some(AG.Agent)))
 
       await(
         repo.store(
@@ -543,9 +557,12 @@ class DesIfStubControllerISpec
     "return 403 if the agent is suspended" in {
       implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
       val user = UserGenerator
-        .agent("foo", agentFriendlyName = "ABC123")
-        .withPrincipalEnrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567")
-      await(userService.createUser(user.copy(suspendedRegimes = Some(Set("ITSA"))), session.planetId))
+        .agent("foo")
+        .copy(assignedPrincipalEnrolments =
+          Seq(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567").toEnrolmentKey.get)
+        )
+      val storedUser: User = await(userService.createUser(user, session.planetId, Some(AG.Agent)))
+      await(groupsService.updateGroup(storedUser.groupId.get, session.planetId, _.copy(suspendedRegimes = Set("ITSA"))))
 
       await(
         repo.store(
@@ -575,9 +592,11 @@ class DesIfStubControllerISpec
     "respond 200" in {
       implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
       val user = UserGenerator
-        .agent("foo", agentFriendlyName = "ABC123")
-        .withPrincipalEnrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567")
-      await(userService.createUser(user, session.planetId))
+        .agent("foo")
+        .copy(assignedPrincipalEnrolments =
+          Seq(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567").toEnrolmentKey.get)
+        )
+      await(userService.createUser(user, session.planetId, Some(AG.Agent)))
 
       await(
         repo.store(
@@ -634,9 +653,12 @@ class DesIfStubControllerISpec
     "return 403 if the agent is suspended" in {
       implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
       val user = UserGenerator
-        .agent("foo", agentFriendlyName = "ABC123")
-        .withPrincipalEnrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567")
-      await(userService.createUser(user.copy(suspendedRegimes = Some(Set("PPT"))), session.planetId))
+        .agent("foo")
+        .copy(assignedPrincipalEnrolments =
+          Seq(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567").toEnrolmentKey.get)
+        )
+      val storedUser: User = await(userService.createUser(user, session.planetId, Some(AG.Agent)))
+      await(groupsService.updateGroup(storedUser.groupId.get, session.planetId, _.copy(suspendedRegimes = Set("PPT"))))
 
       await(
         repo.store(
@@ -732,7 +754,10 @@ class DesIfStubControllerISpec
     "respond 200 with trust details using UTR" in {
       implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
       val enrolmentKey = "HMRC-TERS-ORG~SAUTR~0123456789"
-      Users.create(UserGenerator.organisation("foo1").withPrincipalEnrolment(enrolmentKey))
+      Users.create(
+        UserGenerator.organisation("foo1").copy(assignedPrincipalEnrolments = Seq(EnrolmentKey(enrolmentKey))),
+        Some(AG.Organisation)
+      )
       val trustTaxIdentifier = "0123456789"
 
       val result = DesStub.getTrustKnownFacts(trustTaxIdentifier)
@@ -751,7 +776,10 @@ class DesIfStubControllerISpec
     "respond 400" in {
       implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
       val enrolmentKey = "HMRC-TERSNT-ORG~URN~XXTRUST80000001"
-      Users.create(UserGenerator.organisation("foo1").withPrincipalEnrolment(enrolmentKey))
+      Users.create(
+        UserGenerator.organisation("foo1").copy(assignedPrincipalEnrolments = Seq(EnrolmentKey(enrolmentKey))),
+        Some(AG.Organisation)
+      )
       val trustTaxIdentifier = "XXTRUST80000001"
 
       val result = DesStub.getTrustKnownFactsUrnIncorrectly(trustTaxIdentifier)
@@ -762,7 +790,10 @@ class DesIfStubControllerISpec
       "respond 200 with trust details using UTR" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val enrolmentKey = "HMRC-TERS-ORG~SAUTR~0123456789"
-        Users.create(UserGenerator.organisation("foo1").withPrincipalEnrolment(enrolmentKey))
+        Users.create(
+          UserGenerator.organisation("foo1").copy(assignedPrincipalEnrolments = Seq(EnrolmentKey(enrolmentKey))),
+          Some(AG.Organisation)
+        )
         val utr = "0123456789"
 
         val result = DesStub.getTrustKnownFactsUtr(utr)
@@ -781,7 +812,10 @@ class DesIfStubControllerISpec
       "respond 200 with trust details using URN" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val enrolmentKey = "HMRC-TERSNT-ORG~URN~XXTRUST80000001"
-        Users.create(UserGenerator.organisation("foo1").withPrincipalEnrolment(enrolmentKey))
+        Users.create(
+          UserGenerator.organisation("foo1").copy(assignedPrincipalEnrolments = Seq(EnrolmentKey(enrolmentKey))),
+          Some(AG.Organisation)
+        )
         val urn = "XXTRUST80000001"
 
         val result = DesStub.getTrustKnownFactsUrn(urn)
@@ -1348,10 +1382,13 @@ class DesIfStubControllerISpec
 
   "POST /agents/paye/:agentCode/clients/compare" should {
     "return 200 with agent's epaye client information (employers) for given empRefs" in {
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-      val agent = UserGenerator.agent()
-      Users.updateCurrent(agent).status shouldBe 202
-      val agentCode = agent.agentCode.get
+      userService
+        .createUser(UserGenerator.agent(userId = "agentUser"), planetId = "testPlanet", affinityGroup = Some(AG.Agent))
+        .futureValue
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("agentUser", planetId = "testPlanet")
+
+      val currentUser = Users.get(session.userId).json.as[User]
+      val agentCode = Groups.get(currentUser.groupId.get).json.as[Group].agentCode.get
       val employerAuths = EmployerAuths.generate(agentCode).withAgentCode(agentCode)
       Records.createEmployerAuths(employerAuths).status shouldBe 201
 
@@ -1379,10 +1416,13 @@ class DesIfStubControllerISpec
     }
 
     "return 204 if agent data exists but no matching empRefs found" in {
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-      val agent = UserGenerator.agent()
-      Users.updateCurrent(agent).status shouldBe 202
-      val agentCode = agent.agentCode.get
+      userService
+        .createUser(UserGenerator.agent(userId = "agentUser"), planetId = "testPlanet", affinityGroup = Some(AG.Agent))
+        .futureValue
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("agentUser", planetId = "testPlanet")
+
+      val currentUser = Users.get(session.userId).json.as[User]
+      val agentCode = Groups.get(currentUser.groupId.get).json.as[Group].agentCode.get
       val employerAuths = EmployerAuths.generate(agentCode).withAgentCode(agentCode)
       Records.createEmployerAuths(employerAuths).status shouldBe 201
 
@@ -1403,10 +1443,13 @@ class DesIfStubControllerISpec
 
   "DELETE /agents/paye/:agentCode/clients/:taxOfficeNumber/:taxOfficeReference" should {
     "return 200 after removing given employer auth from agent's data" in {
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-      val agent = UserGenerator.agent()
-      Users.updateCurrent(agent).status shouldBe 202
-      val agentCode = agent.agentCode.get
+      userService
+        .createUser(UserGenerator.agent(userId = "agentUser"), planetId = "testPlanet", affinityGroup = Some(AG.Agent))
+        .futureValue
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("agentUser", planetId = "testPlanet")
+
+      val currentUser = Users.get(session.userId).json.as[User]
+      val agentCode = Groups.get(currentUser.groupId.get).json.as[Group].agentCode.get
       val employerAuths = EmployerAuths(
         agentCode = agentCode,
         empAuthList = Seq(
@@ -1443,10 +1486,13 @@ class DesIfStubControllerISpec
     }
 
     "return 200 after removing the only employer auth from agent's data" in {
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-      val agent = UserGenerator.agent()
-      Users.updateCurrent(agent).status shouldBe 202
-      val agentCode = agent.agentCode.get
+      userService
+        .createUser(UserGenerator.agent(userId = "agentUser"), planetId = "testPlanet", affinityGroup = Some(AG.Agent))
+        .futureValue
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("agentUser", planetId = "testPlanet")
+
+      val currentUser = Users.get(session.userId).json.as[User]
+      val agentCode = Groups.get(currentUser.groupId.get).json.as[Group].agentCode.get
       val employerAuths = EmployerAuths(
         agentCode = agentCode,
         empAuthList = Seq(
@@ -1528,16 +1574,17 @@ class DesIfStubControllerISpec
   "GET /subscriptions/:regime/:idType/:cgtRef" should {
     "return CGT subscription details as expected" in {
       implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
-      val result = Users.update(
-        User(
+      userService
+        .updateUser(
           "7728378273",
-          enrolments = User.Enrolments(principal =
-            Seq(Enrolment("HMRC-CGT-PD", Some(Seq(Identifier("CGTPDRef", "XMCGTP707663428")))))
+          authSession.planetId,
+          _.copy(
+            assignedPrincipalEnrolments =
+              Seq(Enrolment("HMRC-CGT-PD", "CGTPDRef", "XMCGTP707663428").toEnrolmentKey.get)
           )
         )
-      )
-      result should haveStatus(202)
-      result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/7728378273")
+        .futureValue
+
       val result2 = get("/subscriptions/CGT/ZCGT/XMCGTP707663428")
 
       result2 should haveStatus(200)
@@ -1553,16 +1600,16 @@ class DesIfStubControllerISpec
 
     "handle invalid regime" in {
       implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
-      val result = Users.update(
-        User(
+      val result = userService
+        .updateUser(
           "7728378273",
-          enrolments = User.Enrolments(principal =
-            Seq(Enrolment("HMRC-CGT-PD", Some(Seq(Identifier("CGTPDRef", "XMCGTP707663428")))))
+          authSession.planetId,
+          _.copy(assignedPrincipalEnrolments =
+            Seq(Enrolment("HMRC-CGT-PD", "CGTPDRef", "XMCGTP707663428").toEnrolmentKey.get)
           )
         )
-      )
-      result should haveStatus(202)
-      result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/7728378273")
+        .futureValue
+
       val result2 = get("/subscriptions/xxx/ZCGT/XMCGTP707663428")
 
       result2 should haveStatus(400)
@@ -1571,16 +1618,16 @@ class DesIfStubControllerISpec
 
     "handle invalid idType" in {
       implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
-      val result = Users.update(
-        User(
+      val result = userService
+        .updateUser(
           "7728378273",
-          enrolments = User.Enrolments(principal =
-            Seq(Enrolment("HMRC-CGT-PD", Some(Seq(Identifier("CGTPDRef", "XMCGTP707663428")))))
+          authSession.planetId,
+          _.copy(assignedPrincipalEnrolments =
+            Seq(Enrolment("HMRC-CGT-PD", "CGTPDRef", "XMCGTP707663428").toEnrolmentKey.get)
           )
         )
-      )
-      result should haveStatus(202)
-      result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/7728378273")
+        .futureValue
+
       val result2 = get("/subscriptions/CGT/xxx/XMCGTP707663428")
 
       result2 should haveStatus(400)
@@ -1589,16 +1636,16 @@ class DesIfStubControllerISpec
 
     "handle invalid regime and idType" in {
       implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
-      val result = Users.update(
-        User(
+      val result = userService
+        .updateUser(
           "7728378273",
-          enrolments = User.Enrolments(principal =
-            Seq(Enrolment("HMRC-CGT-PD", Some(Seq(Identifier("CGTPDRef", "XMCGTP707663428")))))
+          authSession.planetId,
+          _.copy(assignedPrincipalEnrolments =
+            Seq(Enrolment("HMRC-CGT-PD", "CGTPDRef", "XMCGTP707663428").toEnrolmentKey.get)
           )
         )
-      )
-      result should haveStatus(202)
-      result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/7728378273")
+        .futureValue
+
       val result2 = get("/subscriptions/xxx/yyy/XMCGTP707663428")
 
       result2 should haveStatus(400)

@@ -6,10 +6,12 @@ import play.api.http.{CookiesConfiguration, HeaderNames, MimeTypes}
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.libs.ws.{BodyWritable, WSClient, WSCookie, WSResponse}
 import play.api.mvc.{Cookie, DefaultCookieHeaderEncoding}
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, GranPermsGenRequest, SignInRequest, User}
+import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Enrolment, GranPermsGenRequest, Group, GroupGenerator, SignInRequest, User}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.Authorization
 import play.api.libs.json.JsObject
+
+import scala.concurrent.Future
 
 trait AuthContext {
   self =>
@@ -112,7 +114,8 @@ trait TestRequests extends ScalaFutures {
       password: String = null,
       providerType: String = null,
       planetId: String = null,
-      syncToAuthLoginApi: Boolean = false
+      syncToAuthLoginApi: Boolean = false,
+      affinityGroup: Option[String] = Some(AG.Individual)
     ): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/sign-in?userIdFromPool")
@@ -122,7 +125,8 @@ trait TestRequests extends ScalaFutures {
             Option(password),
             Option(providerType),
             Option(planetId),
-            if (syncToAuthLoginApi) Some(true) else None
+            if (syncToAuthLoginApi) Some(true) else None,
+            newUserAffinityGroup = affinityGroup
           )
         )
         .futureValue
@@ -212,12 +216,43 @@ trait TestRequests extends ScalaFutures {
         .put(Json.toJson(user))
         .futureValue
 
-    def create(user: User)(implicit authContext: AuthContext): WSResponse =
+    // Only use this to add a user to an existing group
+    def unsafeCreate(user: User)(implicit authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/users?userIdFromPool")
         .withHttpHeaders(authContext.headers: _*)
         .post(Json.toJson(user))
         .futureValue
+
+    /*
+     Utility function to create both user and group with the given enrolments.
+     If the user has any assigned enrolments, they will be added to the group's allocated enrolment as well, for consistency.
+     */
+    def create(
+      user: User,
+      affinityGroup: Option[String],
+      agentCode: Option[String] = None,
+      agentFriendlyName: Option[String] = None,
+      agentId: Option[String] = None
+    )(implicit authContext: AuthContext): WSResponse = {
+      val maybeNewGroup = affinityGroup.map(ag =>
+        GroupGenerator
+          .generate(user.planetId.getOrElse(""), affinityGroup = ag, groupId = user.groupId)
+          .copy(
+            agentCode = agentCode,
+            agentFriendlyName = agentFriendlyName,
+            agentId = agentId,
+            principalEnrolments = user.assignedPrincipalEnrolments.map(Enrolment.from(_)),
+            delegatedEnrolments = user.assignedDelegatedEnrolments.map(Enrolment.from(_))
+          )
+      )
+      maybeNewGroup.foreach(newGroup => Groups.create(newGroup))
+      Users.unsafeCreate(
+        user.copy(
+          groupId = maybeNewGroup.map(_.groupId)
+        )
+      )
+    }
 
     def delete(userId: String)(implicit authContext: AuthContext): WSResponse =
       wsClient
@@ -231,6 +266,61 @@ trait TestRequests extends ScalaFutures {
 
     def reindexAllUsers(implicit authContext: AuthContext): WSResponse =
       post("/agents-external-stubs/users/re-index")
+  }
+
+  object Groups {
+
+    def getAll(affinityGroup: Option[String] = None, limit: Option[Int] = None, agentCode: Option[String] = None)(
+      implicit authContext: AuthContext
+    ): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/groups")
+        .withQueryStringParameters(
+          Seq("affinityGroup" -> affinityGroup, "limit" -> limit.toString, "agentCode" -> agentCode).collect {
+            case (name, Some(value: String)) => (name, value)
+          }: _*
+        )
+        .withHttpHeaders(authContext.headers: _*)
+        .get()
+        .futureValue
+
+    def get(groupId: String)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/groups/$groupId")
+        .withHttpHeaders(authContext.headers: _*)
+        .get()
+        .futureValue
+
+    def updateCurrent(group: Group)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/groups")
+        .withHttpHeaders(authContext.headers: _*)
+        .put(Json.toJson(group))
+        .futureValue
+
+    def update(group: Group)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/groups/${group.groupId}")
+        .withHttpHeaders(authContext.headers: _*)
+        .put(Json.toJson(group))
+        .futureValue
+
+    def create(group: Group)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/groups")
+        .withHttpHeaders(authContext.headers: _*)
+        .post(Json.toJson(group))
+        .futureValue
+
+    def delete(groupId: String)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/groups/$groupId")
+        .withHttpHeaders(authContext.headers: _*)
+        .delete()
+        .futureValue
+
+    def reindexAllGroups(implicit authContext: AuthContext): WSResponse =
+      post("/agents-external-stubs/groups/re-index")
   }
 
   object UserDetailsStub {

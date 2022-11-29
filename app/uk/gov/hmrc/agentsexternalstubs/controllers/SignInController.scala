@@ -17,18 +17,18 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import java.util.UUID
-
 import javax.inject.{Inject, Singleton}
 import play.api.http.HeaderNames
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
+import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GroupsService, UsersService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.agentsexternalstubs.connectors.AuthLoginApiConnector
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
+
 import scala.util.Random
 import play.api.Logger
 
@@ -36,6 +36,7 @@ import play.api.Logger
 class SignInController @Inject() (
   val authenticationService: AuthenticationService,
   usersService: UsersService,
+  groupsService: GroupsService,
   authLoginApiConnector: AuthLoginApiConnector,
   appConfig: AppConfig,
   cc: ControllerComponents
@@ -81,16 +82,33 @@ class SignInController @Inject() (
     val userId =
       signInRequest.userId.getOrElse(UserIdGenerator.nextUserIdFor(planetId, userIdFromPool))
 
+    val affinityGroup = signInRequest.newUserAffinityGroup.flatMap(AG.sanitize)
+
     for {
-      maybeUser <- usersService.tryCreateUser(User(userId), planetId)
+      (mExistingUser, mExistingGroup) <-
+        usersService.findUserAndGroup(
+          userId,
+          planetId
+        )
+      (user, mGroup) <- mExistingUser match {
+                          case Some(existingUser) => Future.successful((existingUser, mExistingGroup))
+                          case _ =>
+                            usersService
+                              .createUser(
+                                signInRequest.newUserData.map(_.copy(userId = userId)).getOrElse(User(userId)),
+                                planetId,
+                                affinityGroup = affinityGroup
+                              )
+                              .map((_, Option.empty[Group]))
+                        }
+      isNewUser = mExistingUser.isEmpty
       maybeExistingSession <-
         if (
           appConfig.syncToAuthLoginApi &&
           signInRequest.syncToAuthLoginApi.getOrElse(false)
         ) {
-          val user: User = maybeUser.fold(identity, identity)
           authLoginApiConnector
-            .loginToGovernmentGateway(AuthLoginApi.Request.fromUser(user))
+            .loginToGovernmentGateway(AuthLoginApi.Request.fromUserAndGroup(user, mGroup))
             .map { response =>
               Logger(getClass).info(s"Authenticated user in auth-login-api ${response.sessionAuthorityUri}")
               Some(
@@ -126,25 +144,22 @@ class SignInController @Inject() (
                            )
       result <- Future.successful(maybeNewSession match {
                   case Some(session) =>
-                    maybeUser match {
-                      case Right(user) =>
-                        Created.withHeaders(
-                          HeaderNames.LOCATION                    -> routes.SignInController.session(session.authToken).url,
-                          HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
-                          uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId,
-                          "X-Planet-ID"                           -> planetId,
-                          "X-User-ID"                             -> user.userId
-                        )
-
-                      case Left(user) =>
-                        Accepted.withHeaders(
-                          HeaderNames.LOCATION                    -> routes.SignInController.session(session.authToken).url,
-                          HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
-                          uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId,
-                          "X-Planet-ID"                           -> planetId,
-                          "X-User-ID"                             -> user.userId
-                        )
-
+                    if (isNewUser) {
+                      Created.withHeaders(
+                        HeaderNames.LOCATION                    -> routes.SignInController.session(session.authToken).url,
+                        HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
+                        uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId,
+                        "X-Planet-ID"                           -> planetId,
+                        "X-User-ID"                             -> user.userId
+                      )
+                    } else {
+                      Accepted.withHeaders(
+                        HeaderNames.LOCATION                    -> routes.SignInController.session(session.authToken).url,
+                        HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
+                        uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId,
+                        "X-Planet-ID"                           -> planetId,
+                        "X-User-ID"                             -> user.userId
+                      )
                     }
                   case None => Unauthorized("SESSION_CREATE_FAILED")
                 })

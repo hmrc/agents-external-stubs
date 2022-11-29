@@ -19,7 +19,7 @@ import uk.gov.hmrc.agentmtdidentifiers.model.{CgtRef, MtdItId, SuspensionDetails
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{AgencyDetails, Individual, Organisation}
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, IndividualName}
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
+import uk.gov.hmrc.agentsexternalstubs.repository.{KnownFactsRepository, UsersRepository}
 import uk.gov.hmrc.domain.Nino
 
 import java.time.LocalDate
@@ -36,13 +36,14 @@ class UserToRecordsSyncService @Inject() (
   knownFactsRepository: KnownFactsRepository,
   legacyRelationshipRecordsService: LegacyRelationshipRecordsService,
   employerAuthsRecordsService: EmployerAuthsRecordsService,
-  pptSubscriptionDisplayRecordsService: PPTSubscriptionDisplayRecordsService
+  pptSubscriptionDisplayRecordsService: PPTSubscriptionDisplayRecordsService,
+  usersRepository: UsersRepository
 ) {
 
   type SaveRecordId = String => Future[Unit]
-  type UserRecordsSync = SaveRecordId => PartialFunction[User, Future[Unit]]
+  type UserAndGroupRecordsSync = SaveRecordId => PartialFunction[(User, Group), Future[Unit]]
 
-  final val userRecordsSyncOperations: Seq[UserRecordsSync] = Seq(
+  final val userAndGroupRecordsSyncOperations: Seq[UserAndGroupRecordsSync] = Seq(
     Sync.businessDetailsForMtdItIndividual,
     Sync.pptSubscriptionDisplayRecordForPptReference,
     Sync.vatCustomerInformationForMtdVatIndividual,
@@ -55,15 +56,25 @@ class UserToRecordsSyncService @Inject() (
     Sync.legacyPayeAgentInformation
   )
 
-  final val syncUserToRecords: SaveRecordId => User => Future[Unit] = saveRecordId => {
-    user: User =>
-      Future
-        .sequence(
-          userRecordsSyncOperations
-            .map(f => if (f(saveRecordId).isDefinedAt(user)) f(saveRecordId)(user) else Future.successful(()))
-        )
-        .map(_.reduce((_, _) => ()))
-  }
+  final def syncUserToRecords(saveRecordId: SaveRecordId, user: User, group: Group): Future[Unit] =
+    Future
+      .sequence(
+        userAndGroupRecordsSyncOperations
+          .map(f =>
+            if (f(saveRecordId).isDefinedAt((user, group))) f(saveRecordId)((user, group))
+            else Future.successful(())
+          )
+      )
+      .map(_.reduce((_, _) => ()))
+
+  def syncGroup(group: Group): Future[Unit] = for {
+    users <- usersRepository.findByGroupId(group.groupId, group.planetId)(limit = Int.MaxValue)
+    _ <- Future.traverse(users) { user =>
+           def saveRecordId(recordId: String): Future[Unit] =
+             usersRepository.syncRecordId(user.userId, recordId, group.planetId).map(_ => ())
+           syncUserToRecords(saveRecordId, user, group)
+         }
+  } yield ()
 
   final val syncAfterUserRemoved: User => Future[Unit] =
     user => Future.successful(())
@@ -75,10 +86,10 @@ class UserToRecordsSyncService @Inject() (
     private val dateFormatddMMyy = DateTimeFormatter.ofPattern("dd/MM/yy")
     private val dateFormatyyyyMMdd = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
-    final val MtdItIndividualMatch = User.Matches(_ == User.AG.Individual, "HMRC-MTD-IT")
+    final val MtdItIndividualMatch = Group.Matches(_ == AG.Individual, "HMRC-MTD-IT")
 
-    val businessDetailsForMtdItIndividual: UserRecordsSync = saveRecordId => {
-      case MtdItIndividualMatch(user, mtdbsa) =>
+    val businessDetailsForMtdItIndividual: UserAndGroupRecordsSync = saveRecordId => {
+      case (user, MtdItIndividualMatch(group, mtdbsa)) =>
         val nino = user.nino
           .map(_.value.replace(" ", ""))
           .getOrElse(Generator.ninoNoSpaces(user.userId).value)
@@ -144,10 +155,10 @@ class UserToRecordsSyncService @Inject() (
     }
 
     final val PptReferenceMatch =
-      User.Matches(ag => ag == User.AG.Individual || ag == User.AG.Organisation, "HMRC-PPT-ORG")
+      Group.Matches(ag => ag == AG.Individual || ag == AG.Organisation, "HMRC-PPT-ORG")
 
-    val pptSubscriptionDisplayRecordForPptReference: UserRecordsSync = saveRecordId => {
-      case PptReferenceMatch(user, pptReference) =>
+    val pptSubscriptionDisplayRecordForPptReference: UserAndGroupRecordsSync = saveRecordId => {
+      case (user, PptReferenceMatch(group, pptReference)) =>
         def knownFactsForPptRegDate = knownFactsRepository.findByEnrolmentKey(
           EnrolmentKey.from("HMRC-PPT-ORG", "ETMPREGISTRATIONNUMBER" -> pptReference),
           user.planetId.get
@@ -161,7 +172,7 @@ class UserToRecordsSyncService @Inject() (
         knownFactsForPptRegDate map getPptRegDate flatMap { pptRegistrationDate =>
           val subscriptionDisplayRecord = PPTSubscriptionDisplayRecord
             .generateWith(
-              user.affinityGroup,
+              Some(group.affinityGroup),
               user.firstName,
               user.lastName,
               pptRegistrationDate,
@@ -173,9 +184,9 @@ class UserToRecordsSyncService @Inject() (
         }
     }
 
-    final val CgtMatch = User.Matches(ag => ag == User.AG.Individual || ag == User.AG.Organisation, "HMRC-CGT-PD")
+    final val CgtMatch = Group.Matches(ag => ag == AG.Individual || ag == AG.Organisation, "HMRC-CGT-PD")
 
-    val businessDetailsForCgt: UserRecordsSync = saveRecordId => { case CgtMatch(user, cgtRef) =>
+    val businessDetailsForCgt: UserAndGroupRecordsSync = saveRecordId => { case (user, CgtMatch(group, cgtRef)) =>
       val nino = user.nino
         .map(_.value.replace(" ", ""))
         .getOrElse(Generator.ninoNoSpaces(user.userId).value)
@@ -240,10 +251,10 @@ class UserToRecordsSyncService @Inject() (
       )
     }
 
-    final val MtdVatIndividualMatch = User.Matches(_ == User.AG.Individual, "HMRC-MTD-VAT")
+    final val MtdVatIndividualMatch = Group.Matches(_ == AG.Individual, "HMRC-MTD-VAT")
 
-    val vatCustomerInformationForMtdVatIndividual: UserRecordsSync = saveRecordId => {
-      case MtdVatIndividualMatch(user, vrn) =>
+    val vatCustomerInformationForMtdVatIndividual: UserAndGroupRecordsSync = saveRecordId => {
+      case (user, MtdVatIndividualMatch(group, vrn)) =>
         knownFactsRepository
           .findByEnrolmentKey(EnrolmentKey.from("HMRC-MTD-VAT", "VRN" -> vrn), user.planetId.get)
           .map(
@@ -316,10 +327,10 @@ class UserToRecordsSyncService @Inject() (
           }
     }
 
-    final val MtdVatOrganisationMatch = User.Matches(_ == User.AG.Organisation, "HMRC-MTD-VAT")
+    final val MtdVatOrganisationMatch = Group.Matches(_ == AG.Organisation, "HMRC-MTD-VAT")
 
-    val vatCustomerInformationForMtdVatOrganisation: UserRecordsSync = saveRecordId => {
-      case MtdVatOrganisationMatch(user, vrn) =>
+    val vatCustomerInformationForMtdVatOrganisation: UserAndGroupRecordsSync = saveRecordId => {
+      case (user, MtdVatOrganisationMatch(group, vrn)) =>
         knownFactsRepository
           .findByEnrolmentKey(EnrolmentKey.from("HMRC-MTD-VAT", "VRN" -> vrn), user.planetId.get)
           .map(
@@ -385,75 +396,76 @@ class UserToRecordsSyncService @Inject() (
           }
     }
 
-    final val MtdVatAgentMatch = User.Matches(_ == User.AG.Agent, "HMCE-VAT-AGNT")
+    final val MtdVatAgentMatch = Group.Matches(_ == AG.Agent, "HMCE-VAT-AGNT")
 
-    val vatCustomerInformationForMtdVatAgent: UserRecordsSync = saveRecordId => { case MtdVatAgentMatch(user, vrn) =>
-      knownFactsRepository
-        .findByEnrolmentKey(EnrolmentKey.from("HMCE-VAT-AGNT", "AgentRefNo" -> vrn), user.planetId.get)
-        .map(
-          _.flatMap(
-            _.getVerifierValue("IREFFREGDATE")
-              .map(LocalDate.parse(_, dateFormatddMMyy))
-              .map(date => if (date.isAfter(LocalDate.now())) date.minusYears(100) else date)
-          )
-        )
-        .flatMap { vatRegistrationDateOpt =>
-          val address = user.address
-            .map(a =>
-              if (a.isUKAddress)
-                VatCustomerInformationRecord.UkAddress(
-                  line1 = a.line1.getOrElse("1 Kingdom Road"),
-                  line2 = a.line2.getOrElse("Brighton"),
-                  line3 = a.line3,
-                  line4 = a.line4,
-                  postCode = a.postcode.getOrElse(""),
-                  countryCode = a.countryCode.getOrElse("GB")
-                )
-              else
-                VatCustomerInformationRecord.ForeignAddress(
-                  line1 = a.line1.getOrElse("2 Foreign Road"),
-                  line2 = a.line2.getOrElse("Cork"),
-                  line3 = a.line3,
-                  line4 = a.line4,
-                  postCode = a.postcode,
-                  countryCode = a.countryCode.getOrElse("IE")
-                )
+    val vatCustomerInformationForMtdVatAgent: UserAndGroupRecordsSync = saveRecordId => {
+      case (user, MtdVatAgentMatch(group, vrn)) =>
+        knownFactsRepository
+          .findByEnrolmentKey(EnrolmentKey.from("HMCE-VAT-AGNT", "AgentRefNo" -> vrn), user.planetId.get)
+          .map(
+            _.flatMap(
+              _.getVerifierValue("IREFFREGDATE")
+                .map(LocalDate.parse(_, dateFormatddMMyy))
+                .map(date => if (date.isAfter(LocalDate.now())) date.minusYears(100) else date)
             )
-            .getOrElse(VatCustomerInformationRecord.UkAddress.generate(user.userId))
-
-          Future {
-            VatCustomerInformationRecord
-              .generate(user.userId)
-              .withVrn(vrn)
-              .withApprovedInformation(
-                Some(
-                  ApprovedInformation
-                    .generate(user.userId)
-                    .withCustomerDetails(
-                      CustomerDetails
-                        .generate(user.userId)
-                        .withIndividual(None)
-                        .withDateOfBirth(None)
-                        .withOrganisationName(user.name)
-                        .modifyEffectiveRegistrationDate { case date =>
-                          vatRegistrationDateOpt.map(_.format(dateFormatyyyyMMdd)).orElse(date)
-                        }
-                    )
-                    .modifyPPOB { case ppob =>
-                      ppob.withAddress(address)
-                    }
-                    .withDeregistration(None)
-                )
-              )
-          }.flatMap(record =>
-            vatCustomerInformationRecordsService
-              .store(record, autoFill = false, user.planetId.get)
-              .flatMap(saveRecordId)
           )
-        }
+          .flatMap { vatRegistrationDateOpt =>
+            val address = user.address
+              .map(a =>
+                if (a.isUKAddress)
+                  VatCustomerInformationRecord.UkAddress(
+                    line1 = a.line1.getOrElse("1 Kingdom Road"),
+                    line2 = a.line2.getOrElse("Brighton"),
+                    line3 = a.line3,
+                    line4 = a.line4,
+                    postCode = a.postcode.getOrElse(""),
+                    countryCode = a.countryCode.getOrElse("GB")
+                  )
+                else
+                  VatCustomerInformationRecord.ForeignAddress(
+                    line1 = a.line1.getOrElse("2 Foreign Road"),
+                    line2 = a.line2.getOrElse("Cork"),
+                    line3 = a.line3,
+                    line4 = a.line4,
+                    postCode = a.postcode,
+                    countryCode = a.countryCode.getOrElse("IE")
+                  )
+              )
+              .getOrElse(VatCustomerInformationRecord.UkAddress.generate(user.userId))
+
+            Future {
+              VatCustomerInformationRecord
+                .generate(user.userId)
+                .withVrn(vrn)
+                .withApprovedInformation(
+                  Some(
+                    ApprovedInformation
+                      .generate(user.userId)
+                      .withCustomerDetails(
+                        CustomerDetails
+                          .generate(user.userId)
+                          .withIndividual(None)
+                          .withDateOfBirth(None)
+                          .withOrganisationName(user.name)
+                          .modifyEffectiveRegistrationDate { case date =>
+                            vatRegistrationDateOpt.map(_.format(dateFormatyyyyMMdd)).orElse(date)
+                          }
+                      )
+                      .modifyPPOB { case ppob =>
+                        ppob.withAddress(address)
+                      }
+                      .withDeregistration(None)
+                  )
+                )
+            }.flatMap(record =>
+              vatCustomerInformationRecordsService
+                .store(record, autoFill = false, user.planetId.get)
+                .flatMap(saveRecordId)
+            )
+          }
     }
 
-    val businessPartnerRecordForAnAgent: UserRecordsSync = saveRecordId => { case User.Agent(user) =>
+    val businessPartnerRecordForAnAgent: UserAndGroupRecordsSync = saveRecordId => { case (user, Group.Agent(group)) =>
       val address = user.address
         .map(a =>
           if (a.isUKAddress)
@@ -495,15 +507,15 @@ class UserToRecordsSyncService @Inject() (
               AgencyDetails
                 .generate(user.userId)
                 .withAgencyAddress(Some(address))
-                .withAgencyName(user.agentFriendlyName.map(_.take(40)))
+                .withAgencyName(group.agentFriendlyName.map(_.take(40)))
             )
           )
-          .withSuspensionDetails(SuspensionDetails(user.suspendedRegimes.nonEmpty, user.suspendedRegimes))
+          .withSuspensionDetails(SuspensionDetails(group.suspendedRegimes.nonEmpty, Some(group.suspendedRegimes)))
           .withAddressDetails(address)
       }.flatMap { record =>
         val utr = Generator.utr(user.userId)
         val crn = Generator.crn(user.userId)
-        user
+        group
           .findIdentifierValue("HMRC-AS-AGENT", "AgentReferenceNumber") match {
           case Some(arn) =>
             knownFactsRepository
@@ -528,7 +540,7 @@ class UserToRecordsSyncService @Inject() (
                   .flatMap(saveRecordId)
               }
 
-          case None if user.enrolments.principal.isEmpty =>
+          case None if group.principalEnrolments.isEmpty =>
             val ar = record
               .withUtr(Option(utr))
               .withCrn(Option(crn))
@@ -544,10 +556,10 @@ class UserToRecordsSyncService @Inject() (
       }
     }
 
-    final val IRCTOrganisationMatch = User.Matches(_ == User.AG.Organisation, "IR-CT")
+    final val IRCTOrganisationMatch = Group.Matches(_ == AG.Organisation, "IR-CT")
 
-    val businessPartnerRecordForIRCTOrganisation: UserRecordsSync = saveRecordId => {
-      case IRCTOrganisationMatch(user, utr) =>
+    val businessPartnerRecordForIRCTOrganisation: UserAndGroupRecordsSync = saveRecordId => {
+      case (user, IRCTOrganisationMatch(group, utr)) =>
         knownFactsRepository
           .findByEnrolmentKey(EnrolmentKey.from("IR-CT", "UTR" -> utr), user.planetId.get)
           .map(_.flatMap(_.getVerifierValue("Postcode")))
@@ -582,13 +594,13 @@ class UserToRecordsSyncService @Inject() (
           }
     }
 
-    final val SaAgentMatch = User.Matches(_ == User.AG.Agent, "IR-SA-AGENT")
+    final val SaAgentMatch = Group.Matches(_ == AG.Agent, "IR-SA-AGENT")
 
-    val legacySaAgentRecord: UserRecordsSync = saveRecordId => { case SaAgentMatch(user, saAgentRef) =>
+    val legacySaAgentRecord: UserAndGroupRecordsSync = saveRecordId => { case (user, SaAgentMatch(group, saAgentRef)) =>
       val agentRecord = LegacyAgentRecord(
         agentId = saAgentRef,
-        govAgentId = user.agentId,
-        agentName = user.agentFriendlyName.orElse(user.name).getOrElse("John Doe"),
+        govAgentId = group.agentId,
+        agentName = group.agentFriendlyName.orElse(user.name).getOrElse("John Doe"),
         address1 = user.address.flatMap(_.line1).getOrElse(Generator.address(user.userId).street),
         address2 = user.address.flatMap(_.line2).getOrElse(Generator.address(user.userId).town),
         address3 = user.address.flatMap(_.line3),
@@ -609,7 +621,7 @@ class UserToRecordsSyncService @Inject() (
         id <- legacyRelationshipRecordsService.store(entity, autoFill = false, user.planetId.get)
         _  <- saveRecordId(id)
         _ <- Future.sequence(
-               user.enrolments.delegated
+               group.delegatedEnrolments
                  .filter(_.key == "IR-SA")
                  .map(_.identifierValueOf("UTR"))
                  .map {
@@ -636,62 +648,63 @@ class UserToRecordsSyncService @Inject() (
       } yield ()
     }
 
-    final val PayeAgentMatch = User.Matches(_ == User.AG.Agent, "IR-PAYE-AGENT")
+    final val PayeAgentMatch = Group.Matches(_ == AG.Agent, "IR-PAYE-AGENT")
 
-    val legacyPayeAgentInformation: UserRecordsSync = saveRecordId => { case PayeAgentMatch(user, agentReference) =>
-      val delegatedEmpRefs: Set[EmployerAuths.EmpAuth.EmpRef] = user
-        .findDelegatedIdentifierValues("IR-PAYE")
-        .map(s => EmployerAuths.EmpAuth.EmpRef(s(0), s(1)))
-        .toSet
-      user.agentCode match {
-        case None => Future.successful(())
-        case Some(agentCode) =>
-          for {
-            recordOpt <- employerAuthsRecordsService.getEmployerAuthsByAgentCode(agentCode, user.planetId.get)
-            _ <- recordOpt match {
-                   case Some(existing) =>
-                     val recordEmpRefs: Set[EmployerAuths.EmpAuth.EmpRef] = existing.empAuthList.map(_.empRef).toSet
-                     val empAuthsToAdd = (delegatedEmpRefs -- recordEmpRefs)
-                       .map(empRef =>
-                         EmployerAuths.EmpAuth(
-                           empRef = empRef,
-                           aoRef = EmployerAuths.EmpAuth.AoRef(empRef.districtNumber, "0", "0", empRef.reference),
-                           true,
-                           true,
-                           agentClientRef = Some(agentReference)
+    val legacyPayeAgentInformation: UserAndGroupRecordsSync = saveRecordId => {
+      case (user, PayeAgentMatch(group, agentReference)) =>
+        val delegatedEmpRefs: Set[EmployerAuths.EmpAuth.EmpRef] = group
+          .findDelegatedIdentifierValues("IR-PAYE")
+          .map(s => EmployerAuths.EmpAuth.EmpRef(s(0), s(1)))
+          .toSet
+        group.agentCode match {
+          case None => Future.successful(())
+          case Some(agentCode) =>
+            for {
+              recordOpt <- employerAuthsRecordsService.getEmployerAuthsByAgentCode(agentCode, user.planetId.get)
+              _ <- recordOpt match {
+                     case Some(existing) =>
+                       val recordEmpRefs: Set[EmployerAuths.EmpAuth.EmpRef] = existing.empAuthList.map(_.empRef).toSet
+                       val empAuthsToAdd = (delegatedEmpRefs -- recordEmpRefs)
+                         .map(empRef =>
+                           EmployerAuths.EmpAuth(
+                             empRef = empRef,
+                             aoRef = EmployerAuths.EmpAuth.AoRef(empRef.districtNumber, "0", "0", empRef.reference),
+                             true,
+                             true,
+                             agentClientRef = Some(agentReference)
+                           )
                          )
-                       )
-                       .toSeq
-                     val record = existing.copy(empAuthList = existing.empAuthList ++ empAuthsToAdd)
-                     if (record.empAuthList.nonEmpty)
-                       employerAuthsRecordsService
-                         .store(record, false, user.planetId.get)
-                         .flatMap(saveRecordId)
-                     else
-                       employerAuthsRecordsService
-                         .delete(agentCode, user.planetId.get)
-                         .flatMap(_ => saveRecordId("--" + record.id.get))
-                   case None =>
-                     val empAuthList = delegatedEmpRefs
-                       .map(empRef =>
-                         EmployerAuths.EmpAuth(
-                           empRef = empRef,
-                           aoRef = EmployerAuths.EmpAuth.AoRef(empRef.districtNumber, "0", "0", empRef.reference),
-                           true,
-                           true,
-                           agentClientRef = Some(agentReference)
+                         .toSeq
+                       val record = existing.copy(empAuthList = existing.empAuthList ++ empAuthsToAdd)
+                       if (record.empAuthList.nonEmpty)
+                         employerAuthsRecordsService
+                           .store(record, false, user.planetId.get)
+                           .flatMap(saveRecordId)
+                       else
+                         employerAuthsRecordsService
+                           .delete(agentCode, user.planetId.get)
+                           .flatMap(_ => saveRecordId("--" + record.id.get))
+                     case None =>
+                       val empAuthList = delegatedEmpRefs
+                         .map(empRef =>
+                           EmployerAuths.EmpAuth(
+                             empRef = empRef,
+                             aoRef = EmployerAuths.EmpAuth.AoRef(empRef.districtNumber, "0", "0", empRef.reference),
+                             true,
+                             true,
+                             agentClientRef = Some(agentReference)
+                           )
                          )
-                       )
-                       .toSeq
-                     val record = EmployerAuths(agentCode = agentCode, empAuthList = empAuthList)
-                     if (record.empAuthList.nonEmpty)
-                       employerAuthsRecordsService
-                         .store(record, false, user.planetId.get)
-                         .flatMap(saveRecordId)
-                     else Future.successful("")
-                 }
-          } yield ()
-      }
+                         .toSeq
+                       val record = EmployerAuths(agentCode = agentCode, empAuthList = empAuthList)
+                       if (record.empAuthList.nonEmpty)
+                         employerAuthsRecordsService
+                           .store(record, false, user.planetId.get)
+                           .flatMap(saveRecordId)
+                       else Future.successful("")
+                   }
+            } yield ()
+        }
     }
   }
 

@@ -23,7 +23,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
-import uk.gov.hmrc.agentsexternalstubs.services.UsersService
+import uk.gov.hmrc.agentsexternalstubs.services.{GroupsService, UsersService}
 
 trait AuthoriseContext {
 
@@ -56,7 +56,7 @@ trait AuthoriseContext {
   }.toSet
 }
 
-abstract class AuthoriseUserContext(user: User) extends AuthoriseContext {
+abstract class AuthoriseUserContext(user: User, group: Option[Group]) extends AuthoriseContext {
 
   final val timeout: Duration = 30 seconds
 
@@ -64,7 +64,7 @@ abstract class AuthoriseUserContext(user: User) extends AuthoriseContext {
 
   def strideRoles: Seq[String] = user.strideRoles
 
-  override def affinityGroup: Option[String] = user.affinityGroup
+  override def affinityGroup: Option[String] = group.map(_.affinityGroup)
 
   override def confidenceLevel: Option[Int] = user.confidenceLevel
 
@@ -80,28 +80,32 @@ abstract class AuthoriseUserContext(user: User) extends AuthoriseContext {
 
   override def dateOfBirth: Option[LocalDate] = user.dateOfBirth
 
-  override def agentCode: Option[String] = user.agentCode
+  override def agentCode: Option[String] = group.flatMap(_.agentCode)
 
-  override def agentFriendlyName: Option[String] = user.agentFriendlyName
+  override def agentFriendlyName: Option[String] = group.flatMap(_.agentFriendlyName)
 
-  override def agentId: Option[String] = user.agentId
+  override def agentId: Option[String] = group.flatMap(_.agentId)
 
   override def email: Option[String] = Some(s"event-agents-external-aaaadghuc4fueomsg3kpkvdmry@hmrcdigital.slack.com")
 
   override def internalId: Option[String] = Some(s"${user.userId}@${user.planetId.getOrElse("hmrc")}")
 
   val userService: UsersService
+  val groupsService: GroupsService
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
   override def principalEnrolments: Seq[Enrolment] = {
     val enrolments =
       if (
-        (user.affinityGroup
-          .contains(User.AG.Individual) || user.affinityGroup.contains(User.AG.Organisation)) && user.nino.isDefined
+        group.exists(g => g.affinityGroup == AG.Individual || g.affinityGroup == AG.Organisation) && user.nino.isDefined
       )
-        user.enrolments.principal :+ Enrolment("HMRC-NI", "NINO", nino.get.value)
-      else user.enrolments.principal
+        group.map(_.principalEnrolments).getOrElse(Seq.empty) :+ Enrolment(
+          "HMRC-NI",
+          "NINO",
+          nino.get.value
+        ) // TODO should we use here (and in the rest of this class) the group's enrolments or the user's assigned ones?
+      else group.map(_.principalEnrolments).getOrElse(Seq.empty)
     if (user.isAdmin) enrolments
     else {
       enrolments.toSet
@@ -109,9 +113,9 @@ abstract class AuthoriseUserContext(user: User) extends AuthoriseContext {
           case (Some(groupId), Some(planetId)) =>
             Await
               .result(
-                userService
-                  .findAdminByGroupId(groupId, user.planetId.getOrElse(throw new IllegalStateException()))
-                  .map(_.map(_.enrolments.principal).getOrElse(Seq.empty)),
+                groupsService
+                  .findByGroupId(groupId, planetId)
+                  .map(_.map(_.principalEnrolments).getOrElse(Seq.empty)),
                 timeout
               )
               .toSet
@@ -122,7 +126,7 @@ abstract class AuthoriseUserContext(user: User) extends AuthoriseContext {
   }
 
   override def delegatedEnrolments: Seq[Enrolment] = {
-    val enrolments = user.enrolments.delegated
+    val enrolments = group.map(_.delegatedEnrolments).getOrElse(Seq.empty)
     if (user.isAdmin) enrolments
     else {
       enrolments.toSet
@@ -130,9 +134,9 @@ abstract class AuthoriseUserContext(user: User) extends AuthoriseContext {
           case (Some(groupId), Some(planetId)) =>
             Await
               .result(
-                userService
-                  .findAdminByGroupId(groupId, planetId)
-                  .map(_.map(_.enrolments.delegated).getOrElse(Seq.empty)),
+                groupsService
+                  .findByGroupId(groupId, planetId)
+                  .map(_.map(_.delegatedEnrolments).getOrElse(Seq.empty)),
                 timeout
               )
               .toSet
@@ -145,12 +149,14 @@ abstract class AuthoriseUserContext(user: User) extends AuthoriseContext {
 
 case class FullAuthoriseContext(
   user: User,
+  group: Option[Group],
   userService: UsersService,
+  groupsService: GroupsService,
   authenticatedSession: AuthenticatedSession,
   request: AuthoriseRequest,
   agentAccessControlConnector: AgentAccessControlConnector
 )(implicit ec: ExecutionContext, hc: HeaderCarrier)
-    extends AuthoriseUserContext(user) {
+    extends AuthoriseUserContext(user, group) {
 
   override def providerType: String = authenticatedSession.providerType
   override def planetId: Option[String] = Some(authenticatedSession.planetId)

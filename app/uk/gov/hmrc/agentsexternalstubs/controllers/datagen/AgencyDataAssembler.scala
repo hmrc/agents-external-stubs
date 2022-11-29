@@ -17,8 +17,8 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers.datagen
 
 import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord.Common
-import uk.gov.hmrc.agentsexternalstubs.models.User.{AG, CR, Enrolments}
-import uk.gov.hmrc.agentsexternalstubs.models.{Enrolment, Generator, GranPermsGenRequest, Identifier, User, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.User.{CR, Enrolments}
+import uk.gov.hmrc.agentsexternalstubs.models.{AG, Enrolment, EnrolmentKey, Generator, GranPermsGenRequest, Group, Identifier, User, UserGenerator}
 
 import scala.annotation.tailrec
 import scala.util.Random
@@ -44,7 +44,7 @@ class AgencyDataAssembler {
 
     AgencyCreationPayload(
       planetId,
-      agentUser.copy(enrolments = agentUser.enrolments.copy(delegated = clients.flatMap(_.enrolments.principal))),
+      agentUser.copy(assignedDelegatedEnrolments = clients.flatMap(_.assignedPrincipalEnrolments)),
       clients,
       teamMembers
     )
@@ -53,9 +53,9 @@ class AgencyDataAssembler {
 
   private def buildMainAgentUser(indexAgency: Int) = {
     val principalEnrolments = Seq(
-      Enrolment(
+      EnrolmentKey(
         "HMRC-AS-AGENT",
-        identifiers = Some(Seq(Identifier("AgentReferenceNumber", Generator.arn(indexAgency.toString).value)))
+        identifiers = Seq(Identifier("AgentReferenceNumber", Generator.arn(indexAgency.toString).value))
       )
     )
 
@@ -65,14 +65,8 @@ class AgencyDataAssembler {
       userId = userId,
       groupId = Some(UserGenerator.groupId(userId)),
       name = Option(f"Main Agent User $indexAgency%03d"),
-      affinityGroup = Some(AG.Agent),
       credentialRole = Some(CR.Admin),
-      enrolments = Enrolments(
-        principalEnrolments,
-        Seq.empty,
-        Seq.empty
-      ),
-      agentCode = Some(UserGenerator.agentCode(userId))
+      assignedPrincipalEnrolments = principalEnrolments
     )
   }
 
@@ -91,18 +85,18 @@ class AgencyDataAssembler {
       }
 
       clientType match {
-        case User.AG.Individual =>
+        case AG.Individual =>
           UserGenerator
             .individual(
               userId = f"perf-test-$indexAgency%04d-C${index + 1}%05d",
               confidenceLevel = 250,
               nino = f"AB${index + 1}%06dC"
             )
-            .withPrincipalEnrolment(service = serviceKey, identifierKey = idKey, identifierValue = idVal)
-        case User.AG.Organisation =>
+            .withAssignedPrincipalEnrolment(service = serviceKey, identifierKey = idKey, identifierValue = idVal)
+        case AG.Organisation =>
           UserGenerator
             .organisation(userId = f"perf-test-$indexAgency%04d-C${index + 1}%05d")
-            .withPrincipalEnrolment(service = serviceKey, identifierKey = idKey, identifierValue = idVal)
+            .withAssignedPrincipalEnrolment(service = serviceKey, identifierKey = idKey, identifierValue = idVal)
       }
     }
 
@@ -112,14 +106,14 @@ class AgencyDataAssembler {
         def generateUniqueClientForAgent: User = {
           val generatedClient = generateClient(clientType, serviceKey, index)
 
-          generatedClient.enrolments.principal.headOption match {
+          generatedClient.assignedPrincipalEnrolments.headOption match {
             case None =>
               generateUniqueClientForAgent
             case Some(enrolment) =>
               if (
                 generatedClientsOfAgent
-                  .flatMap(_.enrolments.principal)
-                  .exists(_.toEnrolmentKeyTag == enrolment.toEnrolmentKeyTag)
+                  .flatMap(_.assignedPrincipalEnrolments)
+                  .exists(_.tag == enrolment.tag)
               ) {
                 generateUniqueClientForAgent
               } else {
@@ -138,7 +132,6 @@ class AgencyDataAssembler {
         .agent(
           userId = f"perf-test-$indexAgency%04d-A$index%05d",
           groupId = agentUser.groupId.orNull,
-          agentCode = agentUser.agentCode.orNull,
           credentialRole = "User",
           nino = f"AB${index + AGENT_NINO_OFFSET + 1}%06dC"
         )
@@ -154,14 +147,14 @@ class AgencyDataAssembler {
     val individualEnrolments: Seq[ServiceKey] = pickFromDistribution(
       genMethod,
       GranPermsGenRequest.defaultIndividualServiceDistribution,
-      clientTypes.count(_ == User.AG.Individual)
+      clientTypes.count(_ == AG.Individual)
     )
     val organisationEnrolments: Seq[ServiceKey] = pickFromDistribution(
       genMethod,
       GranPermsGenRequest.defaultOrganisationServiceDistribution,
-      clientTypes.count(_ == User.AG.Organisation)
+      clientTypes.count(_ == AG.Organisation)
     )
-    individualEnrolments.map((User.AG.Individual, _)) ++ organisationEnrolments.map((User.AG.Organisation, _))
+    individualEnrolments.map((AG.Individual, _)) ++ organisationEnrolments.map((AG.Organisation, _))
   }
 
   private def pickFromDistribution[A](method: String, distribution: Map[A, Double], n: Int): Seq[A] = method match {

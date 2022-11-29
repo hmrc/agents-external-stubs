@@ -1,5 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
+import org.scalatest.BeforeAndAfterEach
+
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.UUID
@@ -18,6 +20,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
   implicit val defaultTimeout = 60.seconds
 
   lazy val usersService = app.injector.instanceOf[UsersService]
+  lazy val groupsService = app.injector.instanceOf[GroupsService]
   lazy val userRecordsService = app.injector.instanceOf[UserToRecordsSyncService]
   lazy val businessDetailsRecordsService = app.injector.instanceOf[BusinessDetailsRecordsService]
   lazy val vatCustomerInformationRecordsService = app.injector.instanceOf[VatCustomerInformationRecordsService]
@@ -35,9 +38,9 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
       val planetId = UUID.randomUUID().toString
       val user = UserGenerator
         .individual("foo")
-        .withPrincipalEnrolment("HMRC-MTD-IT", "MTDITID", "123456789098765")
+        .withAssignedPrincipalEnrolment("HMRC-MTD-IT", "MTDITID", "123456789098765")
 
-      val theUser = await(usersService.createUser(user, planetId))
+      val theUser = await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Individual)))
       val result1 = await(businessDetailsRecordsService.getBusinessDetails(theUser.nino.get, planetId))
       result1.map(_.mtdbsa) shouldBe Some("123456789098765")
       val result2 =
@@ -72,9 +75,9 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
       val planetId = UUID.randomUUID().toString
       val user = UserGenerator
         .individual("foo", name = "ABC 123 345")
-        .withPrincipalEnrolment("HMRC-MTD-VAT", "VRN", "123456789")
+        .withAssignedPrincipalEnrolment("HMRC-MTD-VAT", "VRN", "123456789")
 
-      await(usersService.createUser(user, planetId))
+      await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Individual)))
 
       val result = await(vatCustomerInformationRecordsService.getCustomerInformation("123456789", planetId))
       result.flatMap(_.approvedInformation.flatMap(_.customerDetails.individual.flatMap(_.firstName))) shouldBe Some(
@@ -107,8 +110,8 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
       val planetId = UUID.randomUUID().toString
       val user = UserGenerator
         .organisation("foo", name = "ABC123 Corp.")
-        .withPrincipalEnrolment("HMRC-MTD-VAT", "VRN", "923456788")
-      await(usersService.createUser(user, planetId))
+        .withAssignedPrincipalEnrolment("HMRC-MTD-VAT", "VRN", "923456788")
+      await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Organisation)))
 
       val knownFacts = await(
         knownFactsRepository
@@ -156,9 +159,9 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
       val planetId = UUID.randomUUID().toString
       val user = UserGenerator
         .individual("foo")
-        .withPrincipalEnrolment("HMRC-PPT-ORG", "EtmpRegistrationNumber", "XAPPT0004567890")
+        .withAssignedPrincipalEnrolment("HMRC-PPT-ORG", "EtmpRegistrationNumber", "XAPPT0004567890")
 
-      await(usersService.createUser(user, planetId))
+      await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Individual)))
       val result1 =
         await(pptSubscriptionDisplayRecordsService.getPPTSubscriptionDisplayRecord(PptRef("XAPPT0004567890"), planetId))
       result1.map(_.pptReference) shouldBe Some("XAPPT0004567890")
@@ -168,8 +171,8 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
       val planetId = UUID.randomUUID().toString
       val user = UserGenerator
         .agent("foo", name = "ABC123 Corp.")
-        .withPrincipalEnrolment("HMCE-VAT-AGNT", "AgentRefNo", "923456788")
-      await(usersService.createUser(user, planetId))
+        .withAssignedPrincipalEnrolment("HMCE-VAT-AGNT", "AgentRefNo", "923456788")
+      await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Agent)))
 
       val knownFacts = await(
         knownFactsRepository
@@ -216,10 +219,11 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
     "sync hmrc-as-agent agent to agent records" in {
       val planetId = UUID.randomUUID().toString
       val user = UserGenerator
-        .agent("foo", agentFriendlyName = "ABC123")
-        .withPrincipalEnrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "XARN0001230")
+        .agent("foo")
+        .withAssignedPrincipalEnrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "XARN0001230")
 
-      val theUser = await(usersService.createUser(user, planetId))
+      val theUser = await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Agent)))
+      await(groupsService.updateGroup(theUser.groupId.get, planetId, _.copy(agentFriendlyName = Some("ABC123"))))
 
       val knownFacts = await(
         knownFactsRepository
@@ -236,7 +240,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
       ) shouldBe postcodeOpt
       result.map(_.addressDetails.asInstanceOf[UkAddress].postalCode) shouldBe postcodeOpt
 
-      await(usersService.updateUser(user.userId, planetId, user => user.copy(agentFriendlyName = Some("foobar"))))
+      await(groupsService.updateGroup(user.groupId.get, planetId, _.copy(agentFriendlyName = Some("foobar"))))
       val id2 = result.flatMap(_.id)
       id shouldBe id2
       val result2 = await(businessPartnerRecordsService.getBusinessPartnerRecord(Arn("XARN0001230"), planetId))
@@ -252,40 +256,63 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
 
     "sync ir-sa-agent agent to agent records" in {
       val planetId = UUID.randomUUID().toString
+      val groupId = "testGroupId"
+      val group = groupsService
+        .createGroup(
+          GroupGenerator
+            .agent(planetId = planetId, groupId = Some(groupId))
+            .copy(principalEnrolments = Seq(Enrolment("IR-SA-AGENT"))),
+          planetId = planetId
+        )
+        .futureValue
       val user = UserGenerator
-        .agent("foo", agentFriendlyName = "ABC123")
-        .withPrincipalEnrolment(Enrolment("IR-SA-AGENT"))
+        .agent("foo", groupId = groupId)
+        .copy(assignedPrincipalEnrolments = group.principalEnrolments.map(_.toEnrolmentKey.get))
 
-      val theUser = await(usersService.createUser(user, planetId))
-      val saAgentReference = theUser.findIdentifierValue("IR-SA-AGENT", "IRAgentReference").get
+      val theUser = await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Agent)))
+
+      val saAgentReference = group.findIdentifierValue("IR-SA-AGENT", "IRAgentReference").get
 
       val result = await(legacyRelationshipRecordsService.getLegacyAgentByAgentId(saAgentReference, planetId)).get
       result.agentId shouldBe saAgentReference
-      result.govAgentId shouldBe theUser.agentId
+      result.govAgentId shouldBe group.agentId
       result.postcode shouldBe theUser.address.flatMap(_.postcode)
       result.address1 shouldBe theUser.address.flatMap(_.line1).get
       result.address2 shouldBe theUser.address.flatMap(_.line2).get
-      result.agentName shouldBe theUser.agentFriendlyName.get
+      result.agentName shouldBe group.agentFriendlyName.get
     }
 
     "sync ir-sa-agent agent to agent records and create legacy relationships" in {
       val planetId = UUID.randomUUID().toString
-      val user = UserGenerator
-        .agent("foo", agentFriendlyName = "ABC123")
-        .withPrincipalEnrolment(Enrolment("IR-SA-AGENT"))
-        .withDelegatedEnrolment(Enrolment("IR-SA"))
+      val groupId = "testGroupId"
+      val group = groupsService
+        .createGroup(
+          GroupGenerator
+            .agent(planetId = planetId, groupId = Some(groupId))
+            .copy(principalEnrolments = Seq(Enrolment("IR-SA-AGENT")), delegatedEnrolments = Seq(Enrolment("IR-SA"))),
+          planetId = planetId
+        )
+        .futureValue
 
-      val theUser = await(usersService.createUser(user, planetId))
-      val saAgentReference = theUser.findIdentifierValue("IR-SA-AGENT", "IRAgentReference").get
-      val utr = theUser.findDelegatedIdentifierValues("IR-SA", "UTR").head
+      val user = UserGenerator
+        .agent("foo", groupId = groupId)
+        .copy(
+          assignedPrincipalEnrolments = group.principalEnrolments.map(_.toEnrolmentKey.get),
+          assignedDelegatedEnrolments = group.delegatedEnrolments.map(_.toEnrolmentKey.get)
+        )
+
+      val theUser = await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Agent)))
+
+      val saAgentReference = group.findIdentifierValue("IR-SA-AGENT", "IRAgentReference").get
+      val utr = group.findDelegatedIdentifierValues("IR-SA", "UTR").head
 
       val agent = await(legacyRelationshipRecordsService.getLegacyAgentByAgentId(saAgentReference, planetId)).get
       agent.agentId shouldBe saAgentReference
-      agent.govAgentId shouldBe theUser.agentId
+      agent.govAgentId shouldBe group.agentId
       agent.postcode shouldBe theUser.address.flatMap(_.postcode)
       agent.address1 shouldBe theUser.address.flatMap(_.line1).get
       agent.address2 shouldBe theUser.address.flatMap(_.line2).get
-      agent.agentName shouldBe theUser.agentFriendlyName.get
+      agent.agentName shouldBe group.agentFriendlyName.get
 
       val relationship = await(
         legacyRelationshipRecordsService.getLegacyRelationshipByAgentIdAndUtr(saAgentReference, utr, planetId)
@@ -298,9 +325,9 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
       val planetId = UUID.randomUUID().toString
       val user = UserGenerator
         .organisation("foo")
-        .withPrincipalEnrolment("IR-CT", "UTR", "7355748439")
+        .withAssignedPrincipalEnrolment("IR-CT", "UTR", "7355748439")
 
-      await(usersService.createUser(user, planetId))
+      await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Organisation)))
 
       val result = await(businessPartnerRecordsService.getBusinessPartnerRecord(Utr("7355748439"), planetId))
       val id = result.flatMap(_.id)
@@ -323,41 +350,55 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
     "sync ir-paye-agent agent to records when record does not exist" in {
       val planetId = UUID.randomUUID().toString
       val user = UserGenerator
-        .agent("foo", agentFriendlyName = "ABC123")
-        .withPrincipalEnrolment(Enrolment("IR-PAYE-AGENT"))
-        .withDelegatedEnrolment("IR-PAYE~TaxOfficeNumber~123~TaxOfficeReference~123456789")
-        .withDelegatedEnrolment("IR-PAYE~TaxOfficeNumber~321~TaxOfficeReference~987654321")
+        .agent("foo")
+        .withAssignedPrincipalEnrolment(EnrolmentKey("IR-PAYE-AGENT", Seq.empty))
+        .withAssignedDelegatedEnrolment(EnrolmentKey("IR-PAYE~TaxOfficeNumber~123~TaxOfficeReference~123456789"))
+        .withAssignedDelegatedEnrolment(EnrolmentKey("IR-PAYE~TaxOfficeNumber~321~TaxOfficeReference~987654321"))
 
-      val theUser = await(usersService.createUser(user, planetId))
+      val theUser = await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Agent)))
+      val theGroup =
+        await(
+          groupsService.updateGroup(
+            theUser.groupId.get,
+            planetId,
+            _.copy(
+              agentFriendlyName = Some("ABC123")
+            )
+          )
+        )
 
-      val result = await(employerAuthsRecordsService.getEmployerAuthsByAgentCode(theUser.agentCode.get, planetId)).get
+      val result = await(employerAuthsRecordsService.getEmployerAuthsByAgentCode(theGroup.agentCode.get, planetId)).get
       result.empAuthList should have size 2
     }
 
     "do not sync ir-paye-agent agent to records when record does not exist and no delegated enrolments" in {
       val planetId = UUID.randomUUID().toString
       val user = UserGenerator
-        .agent("foo", agentFriendlyName = "ABC123")
-        .withPrincipalEnrolment(Enrolment("IR-PAYE-AGENT"))
+        .agent("foo")
+        .withAssignedPrincipalEnrolment(EnrolmentKey("IR-PAYE-AGENT", Seq.empty))
 
-      val theUser = await(usersService.createUser(user, planetId))
+      val theUser = await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Agent)))
+      val theGroup =
+        await(groupsService.updateGroup(theUser.groupId.get, planetId, _.copy(agentFriendlyName = Some("ABC123"))))
 
-      await(employerAuthsRecordsService.getEmployerAuthsByAgentCode(theUser.agentCode.get, planetId)) shouldBe None
+      await(employerAuthsRecordsService.getEmployerAuthsByAgentCode(theGroup.agentCode.get, planetId)) shouldBe None
     }
 
     "sync ir-paye-agent agent to records when record exists" in {
       val planetId = UUID.randomUUID().toString
       val user = UserGenerator
-        .agent("foo", agentFriendlyName = "ABC123")
-        .withPrincipalEnrolment(Enrolment("IR-PAYE-AGENT"))
-        .withDelegatedEnrolment("IR-PAYE~TaxOfficeNumber~123~TaxOfficeReference~123456789")
-        .withDelegatedEnrolment("IR-PAYE~TaxOfficeNumber~321~TaxOfficeReference~987654321")
+        .agent("foo")
+        .withAssignedPrincipalEnrolment(EnrolmentKey("IR-PAYE-AGENT", Seq.empty))
+        .withAssignedDelegatedEnrolment(EnrolmentKey("IR-PAYE~TaxOfficeNumber~123~TaxOfficeReference~123456789"))
+        .withAssignedDelegatedEnrolment(EnrolmentKey("IR-PAYE~TaxOfficeNumber~321~TaxOfficeReference~987654321"))
+
+      val testAgentCode = "AGENTCODE123"
 
       await(
         employerAuthsRecordsService
           .store(
             EmployerAuths(
-              agentCode = user.agentCode.get,
+              agentCode = testAgentCode,
               empAuthList = Seq(
                 EmployerAuths.EmpAuth(
                   empRef = EmployerAuths.EmpAuth.EmpRef("456", "123456789"),
@@ -372,17 +413,27 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
           )
       )
 
-      val theUser = await(usersService.createUser(user, planetId))
+      val theUser = await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Agent)))
+      val theGroup =
+        await(
+          groupsService.updateGroup(
+            theUser.groupId.get,
+            planetId,
+            _.copy(agentFriendlyName = Some("ABC123"), agentCode = Some(testAgentCode))
+          )
+        )
 
-      val result = await(employerAuthsRecordsService.getEmployerAuthsByAgentCode(theUser.agentCode.get, planetId)).get
+      val result = await(employerAuthsRecordsService.getEmployerAuthsByAgentCode(testAgentCode, planetId)).get
       result.empAuthList should have size 3
     }
 
     "sync ir-paye-agent agent to records when record exists and no delegated enrolments" in {
       val planetId = UUID.randomUUID().toString
       val user = UserGenerator
-        .agent("foo", agentFriendlyName = "ABC123")
-        .withPrincipalEnrolment(Enrolment("IR-PAYE-AGENT"))
+        .agent("foo")
+        .withAssignedPrincipalEnrolment(EnrolmentKey("IR-PAYE-AGENT", Seq.empty))
+
+      val testAgentCode = "AGENTCODE123"
 
       val empAuthList = Seq(
         EmployerAuths.EmpAuth(
@@ -397,7 +448,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
         employerAuthsRecordsService
           .store(
             EmployerAuths(
-              agentCode = user.agentCode.get,
+              agentCode = testAgentCode,
               empAuthList = empAuthList
             ),
             false,
@@ -405,9 +456,16 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
           )
       )
 
-      val theUser = await(usersService.createUser(user, planetId))
+      val theUser = await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Agent)))
+      val theGroup = await(
+        groupsService.updateGroup(
+          theUser.groupId.get,
+          planetId,
+          _.copy(agentFriendlyName = Some("ABC123"), agentCode = Some(testAgentCode))
+        )
+      )
 
-      val result = await(employerAuthsRecordsService.getEmployerAuthsByAgentCode(theUser.agentCode.get, planetId)).get
+      val result = await(employerAuthsRecordsService.getEmployerAuthsByAgentCode(testAgentCode, planetId)).get
       result.empAuthList shouldBe empAuthList
     }
   }

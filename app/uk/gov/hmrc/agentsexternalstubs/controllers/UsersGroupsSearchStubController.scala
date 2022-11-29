@@ -20,8 +20,8 @@ import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{JsArray, JsObject, Json, Writes}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.agentsexternalstubs.controllers.UsersGroupsSearchStubController.{GetGroupResponse, GetUserResponse}
-import uk.gov.hmrc.agentsexternalstubs.models.{Generator, User}
-import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
+import uk.gov.hmrc.agentsexternalstubs.models.{AG, Generator, Group, User}
+import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GroupsService, UsersService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -30,29 +30,37 @@ import scala.concurrent.{ExecutionContext, Future}
 class UsersGroupsSearchStubController @Inject() (
   val authenticationService: AuthenticationService,
   usersService: UsersService,
+  groupsService: GroupsService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
   def getUser(userId: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
-      usersService.findByUserId(userId, session.planetId).map {
-        case Some(user) => NonAuthoritativeInformation(RestfulResponse(GetUserResponse.from(user)))
-        case None       => notFound("USER_NOT_FOUND")
+      for {
+        maybeUser <- usersService.findByUserId(userId, session.planetId)
+        maybeGroup <- maybeUser.fold(Future.successful(Option.empty[Group]))(user =>
+                        groupsService.findByGroupId(user.groupId.getOrElse(""), session.planetId)
+                      )
+      } yield (maybeUser, maybeGroup) match {
+        case (Some(user), Some(group)) =>
+          NonAuthoritativeInformation(RestfulResponse(GetUserResponse.from(user, group)))
+        case _ => notFound("USER_NOT_FOUND")
       }
     }(SessionRecordNotFound)
   }
 
   def getGroup(groupId: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
-      usersService
-        .findByGroupId(groupId, session.planetId)(100)
+      groupsService
+        .findByGroupId(groupId, session.planetId)
         .map(s =>
-          s.find(_.isAgent).orElse(s.find(_.isOrganisation)).orElse(s.headOption) match {
-            case Some(user) =>
+          s.find(_.affinityGroup == AG.Agent)
+            .orElse(s.find(_.affinityGroup == AG.Organisation)) match { // TODO! If the group is individual, return 404! Why this behaviour?
+            case Some(group) =>
               NonAuthoritativeInformation(
                 RestfulResponse(
-                  GetGroupResponse.from(groupId, user),
+                  GetGroupResponse.from(group),
                   Link("users", routes.UsersGroupsSearchStubController.getGroupUsers(groupId).url)
                 )
               )
@@ -84,15 +92,15 @@ class UsersGroupsSearchStubController @Inject() (
 
   def getGroupByAgentCode(agentCode: String, agentId: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
-      usersService
-        .findByAgentCode(agentCode, session.planetId)(100)
+      groupsService
+        .findByAgentCode(agentCode, session.planetId)
         .map(s =>
-          s.find(_.isAgent).orElse(s.find(_.isOrganisation)).orElse(s.headOption) match {
-            case Some(user) =>
+          s.find(_.affinityGroup == AG.Agent).orElse(s.find(_.affinityGroup == AG.Organisation)) match {
+            case Some(group) =>
               NonAuthoritativeInformation(
                 RestfulResponse(
-                  GetGroupResponse.from(user.groupId.getOrElse(""), user),
-                  Link("users", routes.UsersGroupsSearchStubController.getGroupUsers(user.groupId.getOrElse("")).url)
+                  GetGroupResponse.from(group),
+                  Link("users", routes.UsersGroupsSearchStubController.getGroupUsers(group.groupId).url)
                 )
               )
             case None => notFound("GROUP_NOT_FOUND")
@@ -122,7 +130,7 @@ object UsersGroupsSearchStubController {
     name: String,
     userId: Option[String] = None,
     email: Option[String] = None,
-    affinityGroup: Option[String] = None,
+    affinityGroup: String = AG.Individual,
     agentCode: Option[String] = None,
     agentFriendlyName: Option[String] = None,
     agentId: Option[String] = None,
@@ -135,14 +143,14 @@ object UsersGroupsSearchStubController {
   object GetUserResponse {
     implicit val writes: Writes[GetUserResponse] = Json.writes[GetUserResponse]
 
-    def from(user: User): GetUserResponse =
+    def from(user: User, group: Group): GetUserResponse =
       GetUserResponse(
         name = user.name.getOrElse("John Doe"),
         userId = Some(user.userId),
-        affinityGroup = user.affinityGroup,
-        agentCode = user.agentCode,
-        agentFriendlyName = user.agentFriendlyName,
-        agentId = user.agentId,
+        affinityGroup = group.affinityGroup,
+        agentCode = group.agentCode,
+        agentFriendlyName = group.agentFriendlyName,
+        agentId = group.agentId,
         credentialRole = user.credentialRole,
         groupId = user.groupId
       )
@@ -160,8 +168,8 @@ object UsersGroupsSearchStubController {
     * }
     */
   case class GetGroupResponse(
-    groupId: Option[String] = None,
-    affinityGroup: Option[String] = None,
+    groupId: String,
+    affinityGroup: String,
     agentCode: Option[String] = None,
     agentFriendlyName: Option[String] = None,
     agentId: Option[String] = None
@@ -170,13 +178,13 @@ object UsersGroupsSearchStubController {
   object GetGroupResponse {
     implicit val writes: Writes[GetGroupResponse] = Json.writes[GetGroupResponse]
 
-    def from(groupId: String, user: User): GetGroupResponse =
+    def from(group: Group): GetGroupResponse =
       GetGroupResponse(
-        groupId = Some(groupId),
-        affinityGroup = user.affinityGroup,
-        agentCode = user.agentCode,
-        agentFriendlyName = user.agentFriendlyName,
-        agentId = user.agentId
+        groupId = group.groupId,
+        affinityGroup = group.affinityGroup,
+        agentCode = group.agentCode,
+        agentFriendlyName = group.agentFriendlyName,
+        agentId = group.agentId
       )
   }
 

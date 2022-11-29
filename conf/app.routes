@@ -122,14 +122,23 @@ GET           /agents-external-stubs/session                                    
 GET           /agents-external-stubs/sign-out                                                        @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.signOut
 
 # User management
-GET           /agents-external-stubs/users                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.getUsers(affinityGroup: Option[String] ?= None, limit: Option[Int] ?= None, agentCode: Option[String] ?= None)
+GET           /agents-external-stubs/users                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.getUsers(affinityGroup: Option[String] ?= None, limit: Option[Int] ?= None, groupId: Option[String] ?= None, agentCode: Option[String] ?= None)
 GET           /agents-external-stubs/users/:userId                                                   @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.getUser(userId: String)
 PUT           /agents-external-stubs/users                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.updateCurrentUser
 PUT           /agents-external-stubs/users/:userId                                                   @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.updateUser(userId: String)
-POST          /agents-external-stubs/users                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.createUser
+POST          /agents-external-stubs/users                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.createUser(affinityGroup: Option[String])
 POST          /agents-external-stubs/users/api-platform                                              @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.createApiPlatformTestUser
 DELETE        /agents-external-stubs/users/:userId                                                   @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.deleteUser(userId: String)
 POST          /agents-external-stubs/users/re-index                                                  @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.reindexAllUsers()
+
+# Group management
+GET           /agents-external-stubs/groups                                                          @uk.gov.hmrc.agentsexternalstubs.controllers.GroupsController.getGroups(affinityGroup: Option[String] ?= None, limit: Option[Int] ?= None, agentCode: Option[String] ?= None)
+GET           /agents-external-stubs/groups/:groupId                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.GroupsController.getGroup(groupId: String)
+PUT           /agents-external-stubs/groups                                                          @uk.gov.hmrc.agentsexternalstubs.controllers.GroupsController.updateCurrentGroup
+PUT           /agents-external-stubs/groups/:groupId                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.GroupsController.updateGroup(groupId: String)
+POST          /agents-external-stubs/groups                                                          @uk.gov.hmrc.agentsexternalstubs.controllers.GroupsController.createGroup
+DELETE        /agents-external-stubs/groups/:groupId                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.GroupsController.deleteGroup(groupId: String)
+POST          /agents-external-stubs/groups/re-index                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.GroupsController.reindexAllGroups()
 
 # Records management
 GET           /agents-external-stubs/records                                                         @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.getRecords

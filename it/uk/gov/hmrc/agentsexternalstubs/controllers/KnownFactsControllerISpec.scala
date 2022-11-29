@@ -2,7 +2,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Enrolment, EnrolmentKey, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.support._
 
 class KnownFactsControllerISpec extends ServerBaseISpec with MongoDB with TestRequests {
@@ -16,8 +16,15 @@ class KnownFactsControllerISpec extends ServerBaseISpec with MongoDB with TestRe
       "respond 200 with a known facts details" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val enrolmentKey = "HMRC-MTD-IT~MTDITID~XAAA12345678901"
-        Users.create(UserGenerator.individual("foo1").withPrincipalEnrolment(enrolmentKey))
-        Users.create(UserGenerator.agent("foo2").withDelegatedEnrolment(enrolmentKey))
+        val enrolment = Enrolment.from(EnrolmentKey(enrolmentKey))
+        Users.create(
+          UserGenerator.individual("foo1").withAssignedPrincipalEnrolment(enrolment.toEnrolmentKey.get),
+          Some(AG.Individual)
+        )
+        Users.create(
+          UserGenerator.agent("foo2").withAssignedDelegatedEnrolment(enrolment.toEnrolmentKey.get),
+          Some(AG.Agent)
+        )
 
         val result = KnownFacts.getKnownFacts(enrolmentKey)
 
@@ -69,7 +76,10 @@ class KnownFactsControllerISpec extends ServerBaseISpec with MongoDB with TestRe
       "sanitize and update known fact and return 202" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val enrolmentKey = "HMRC-MTD-IT~MTDITID~XAAA12345678901"
-        Users.create(UserGenerator.individual("foo1").withPrincipalEnrolment(enrolmentKey))
+        Users.create(
+          UserGenerator.individual("foo1").withAssignedPrincipalEnrolment(EnrolmentKey(enrolmentKey)),
+          Some(AG.Individual)
+        )
 
         val result = KnownFacts.upsertKnownFacts(
           enrolmentKey,
@@ -107,7 +117,11 @@ class KnownFactsControllerISpec extends ServerBaseISpec with MongoDB with TestRe
       "update single known fact verifier and return 202" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val enrolmentKey = "HMRC-MTD-IT~MTDITID~XAAA12345678901"
-        Users.create(UserGenerator.individual("foo1").withPrincipalEnrolment(enrolmentKey))
+        val enrolment = Enrolment.from(EnrolmentKey(enrolmentKey))
+        Users.create(
+          UserGenerator.individual("foo1").withAssignedPrincipalEnrolment(EnrolmentKey(enrolmentKey)),
+          Some(AG.Individual)
+        )
 
         val result = KnownFacts.upsertKnownFactVerifier(
           enrolmentKey,
@@ -137,7 +151,11 @@ class KnownFactsControllerISpec extends ServerBaseISpec with MongoDB with TestRe
       "remove known fact and return 204" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val enrolmentKey = "HMRC-MTD-IT~MTDITID~XAAA12345678901"
-        Users.create(UserGenerator.individual("foo1").withPrincipalEnrolment(enrolmentKey))
+        val enrolment = Enrolment.from(EnrolmentKey(enrolmentKey))
+        Users.create(
+          UserGenerator.individual("foo1").withAssignedPrincipalEnrolment(EnrolmentKey(enrolmentKey)),
+          Some(AG.Individual)
+        )
 
         val result = KnownFacts.deleteKnownFacts(enrolmentKey)
         result should haveStatus(204)
