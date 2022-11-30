@@ -187,27 +187,32 @@ class UsersService @Inject() (
                                  )
                                )
                                .map(Enrolment.from(_))
-                           _ <-
+                           maybeUpdatedGroup <-
                              if (
                                (principalEnrolmentsToAdd.isEmpty && delegatedEnrolmentsToAdd.isEmpty) || maybeGroup.isEmpty
-                             ) Future.successful(())
+                             ) Future.successful(maybeGroup)
                              else
-                               groupsService.updateGroup(
-                                 maybeGroup.get.groupId,
-                                 planetId,
-                                 grp =>
-                                   grp.copy(
-                                     principalEnrolments = grp.principalEnrolments ++ principalEnrolmentsToAdd,
-                                     delegatedEnrolments = grp.delegatedEnrolments ++ delegatedEnrolmentsToAdd
-                                   )
-                               )
+                               groupsService
+                                 .updateGroup(
+                                   maybeGroup.get.groupId,
+                                   planetId,
+                                   grp =>
+                                     grp.copy(
+                                       principalEnrolments = grp.principalEnrolments ++ principalEnrolmentsToAdd,
+                                       delegatedEnrolments = grp.delegatedEnrolments ++ delegatedEnrolmentsToAdd
+                                     )
+                                 )
+                                 .map(Some(_))
                            _ <-
-                             maybeGroup.fold(Future.successful(()))(group => updateKnownFacts(refined, group, planetId))
-                           _ <- maybeGroup.fold(Future.successful(()))(group =>
+                             maybeUpdatedGroup.fold(Future.successful(()))(group =>
+                               updateKnownFacts(refined, group, planetId)
+                             )
+                           _ <- maybeUpdatedGroup.fold(Future.successful(()))(group =>
                                   userRecordsService.syncUserToRecords(syncRecordId(refined, planetId), refined, group)
                                 )
-                           _ = AuthorisationCache
-                                 .updateResultsFor(refined, maybeGroup, UsersService.this, groupsService, planetId)
+                           _ =
+                             AuthorisationCache
+                               .updateResultsFor(refined, maybeUpdatedGroup, UsersService.this, groupsService, planetId)
                          } yield refined
                          else Future.successful(existingUser)
                        case None => Future.failed(new NotFoundException(s"User $userId not found"))

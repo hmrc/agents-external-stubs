@@ -59,7 +59,7 @@ object GroupValidator {
             .cond(
               Services(e.key)
                 .map(_.affinityGroups)
-                .forall(_.contains(group.affinityGroup)), // TODO fix unrelated comparison
+                .forall(_.contains(group.affinityGroup)),
               (),
               s"Service ${e.key} is not available for this user's affinity group"
             )

@@ -61,7 +61,9 @@ class ExternalUserService @Inject() (apiPlatformTestUserConnector: ApiPlatformTe
           TestUser.asUserAndGroup(testUser)._1,
           planetId,
           Some(testUser.affinityGroup)
-        ) // TODO! `asUserAndGroup` returns a group as well but here we are ignoring it. Should we create the group explicitly?
+        )
+        /* TODO (maybe): We don't create the group explicitly as the logic in UsersService should take care of creating a group for us.
+        By doing this we may be losing some detail (e.g. if an agent friendly name was given). Should we create the group explicitly? */
       ) match {
         case Some(f) =>
           f.map { user =>
