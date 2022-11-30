@@ -55,8 +55,9 @@ class UsersGroupsSearchStubController @Inject() (
       groupsService
         .findByGroupId(groupId, session.planetId)
         .map(s =>
+          // TODO - If affinityGroup == Individual, a 404 results (even though individuals can also be in groups - technically at least). Is this the correct behaviour?
           s.find(_.affinityGroup == AG.Agent)
-            .orElse(s.find(_.affinityGroup == AG.Organisation)) match { // TODO! If the group is individual, return 404! Why this behaviour?
+            .orElse(s.find(_.affinityGroup == AG.Organisation)) match {
             case Some(group) =>
               NonAuthoritativeInformation(
                 RestfulResponse(

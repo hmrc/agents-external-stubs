@@ -46,12 +46,10 @@ class DesIfStubController @Inject() (
   employerAuthsRecordsService: EmployerAuthsRecordsService,
   pptSubscriptionDisplayRecordsService: PPTSubscriptionDisplayRecordsService,
   insolvencyService: InsolvencyService,
-  cc: ControllerComponents
-)(implicit
   usersService: UsersService,
   groupsService: GroupsService,
-  executionContext: ExecutionContext
-) // TODO remove the services from the implicit parameter list!
+  cc: ControllerComponents
+)(implicit executionContext: ExecutionContext)
     extends BackendController(cc) with DesCurrentSession {
 
   import DesIfStubController._

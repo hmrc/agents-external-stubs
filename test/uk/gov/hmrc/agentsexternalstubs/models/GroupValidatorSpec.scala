@@ -304,18 +304,18 @@ class GroupValidatorSpec extends UnitSpec with ValidatedMatchers {
       }
     }
 
-//    "validate only when suspended regimes are all valid regimes or empty" in { // TODO should suspended regimes live on Group?
-//      val user = UserGenerator.agent()
-//      GroupValidator.validate(user.copy(suspendedRegimes = None)).isValid shouldBe true
-//      GroupValidator
-//        .validate(user.copy(suspendedRegimes = Some(Set("ITSA", "VATC"))))
-//        .isValid shouldBe true
-//
-//      GroupValidator.validate(user.copy(suspendedRegimes = Some(Set("foo")))).isValid shouldBe false
-//      GroupValidator
-//        .validate(user.copy(suspendedRegimes = Some(Set("ITSA", "VATC", "foo"))))
-//        .isValid shouldBe false
-//    }
+    "validate only when suspended regimes are all valid regimes or empty" in {
+      val group = Group(planetId, groupId, affinityGroup = AG.Agent, agentCode = Some("LMNOPQ234568"))
+      GroupValidator.validate(group.copy(suspendedRegimes = Set.empty)).isValid shouldBe true
+      GroupValidator
+        .validate(group.copy(suspendedRegimes = Set("ITSA", "VATC")))
+        .isValid shouldBe true
+
+      GroupValidator.validate(group.copy(suspendedRegimes = Set("foo"))).isValid shouldBe false
+      GroupValidator
+        .validate(group.copy(suspendedRegimes = Set("ITSA", "VATC", "foo")))
+        .isValid shouldBe false
+    }
   }
 
 }

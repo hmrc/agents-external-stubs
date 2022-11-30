@@ -9,6 +9,7 @@ import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.connectors.MicroserviceAuthConnector
+import uk.gov.hmrc.agentsexternalstubs.models.User.CR
 import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, EnrolmentKey, User, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
@@ -474,14 +475,14 @@ class AuthStubControllerISpec
         givenAnAuthenticatedUser(
           User(userOrganisationId, groupId = Some(groupId)),
           planetId = userId,
-          affinityGroup = Some(AG.Individual)
+          affinityGroup = Some(AG.Organisation)
         )
         givenUserEnrolledFor(userOrganisationId, planetId = userId, "IR-SA", "UTR", "1234567890")
 
         val authToken: String = givenAnAuthenticatedUser(
-          User(userId, groupId = Some(groupId)),
+          User(userId, groupId = Some(groupId), credentialRole = Some(CR.User)),
           planetId = userId,
-          affinityGroup = Some(AG.Individual)
+          affinityGroup = Some(AG.Organisation)
         )
         givenUserEnrolledFor(userId, planetId = userId, "HMRC-MTD-IT", "MTDITID", "236216873678126")
 

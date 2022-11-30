@@ -62,7 +62,7 @@ class ExternalUserService @Inject() (apiPlatformTestUserConnector: ApiPlatformTe
           planetId,
           Some(testUser.affinityGroup)
         )
-        /* TODO (maybe): We don't create the group explicitly as the logic in UsersService should take care of creating a group for us.
+      /* TODO (maybe): We don't create the group explicitly as the logic in UsersService should take care of creating a group for us.
         By doing this we may be losing some detail (e.g. if an agent friendly name was given). Should we create the group explicitly? */
       ) match {
         case Some(f) =>
