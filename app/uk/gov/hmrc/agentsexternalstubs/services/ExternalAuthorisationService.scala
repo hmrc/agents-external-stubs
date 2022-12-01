@@ -155,7 +155,7 @@ class ExternalAuthorisationService @Inject() (
                                         user,
                                         planetId,
                                         response.affinityGroup.get
-                                      ) // TODO using Option.get is bad here. Is it guaranteed to be defined?
+                                      ) // TODO Use of Option.get is unsafe. Is affinityGroup guaranteed to be defined?
                              maybeNewGroup <- maybeGroup.fold(Future.successful(Option.empty[Group]))(group =>
                                                 groupsService.createGroup(group, session.planetId).map(Some(_))
                                               )

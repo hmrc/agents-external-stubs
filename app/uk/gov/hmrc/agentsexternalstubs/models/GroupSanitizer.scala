@@ -47,10 +47,10 @@ object GroupSanitizer extends RecordUtils[Group] {
     group =>
       group.affinityGroup match {
         case AG.Agent =>
+          import uk.gov.hmrc.smartstub._
+          import uk.gov.hmrc.agentsexternalstubs.models.Generator._
           if (group.agentId.isEmpty)
-            group.copy(agentId =
-              Some(group.groupId)
-            ) // TODO we are reusing the groupId as an agentId (previously we were reusing the userId). No idea if this is valid
+            group.copy(agentId = Some(LegacyRelationshipRecord.agentIdGen.seeded(group.groupId).get))
           else group
         case _ => group.copy(agentId = None)
       }

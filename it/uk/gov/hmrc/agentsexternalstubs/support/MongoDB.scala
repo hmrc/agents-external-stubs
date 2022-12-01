@@ -23,7 +23,7 @@ trait MongoDB extends BeforeAndAfterAll with BeforeAndAfterEach {
     MongoDB.initializeMongo(
       app,
       force = true
-    ) // TODO! Is there a quicker way to wipe the db?
+    ) // TODO - This slows down the tests. Is there a quicker way to wipe the db?
 }
 
 object MongoDB extends Awaiting with Logging {

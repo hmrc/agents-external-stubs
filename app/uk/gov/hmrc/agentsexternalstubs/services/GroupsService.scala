@@ -66,7 +66,7 @@ class GroupsService @Inject() (
   ): Future[Group] = {
     val groupKey = group.copy(planetId = "").hashCode()
     for {
-      refined <- groupsCache // TODO at what stage of group creation should we add a groupId if one is not provided?
+      refined <- groupsCache
                    .getIfPresent(groupKey)
                    .map(g => Future.successful(g.copy(planetId = planetId)))
                    .getOrElse(refineAndValidateGroup(group, planetId))

@@ -27,7 +27,6 @@ class GroupSanitizerSpec extends UnitSpec {
       GroupSanitizer.sanitize(Group(planetId, groupId, affinityGroup = AG.Individual)).groupId.nonEmpty shouldBe true
       GroupSanitizer.sanitize(Group(planetId, groupId, affinityGroup = AG.Organisation)).groupId.nonEmpty shouldBe true
       GroupSanitizer.sanitize(Group(planetId, groupId, affinityGroup = AG.Agent)).groupId.nonEmpty shouldBe true
-//      GroupSanitizer.sanitize(Group(planetId, groupId, affinityGroup = None)).groupId.nonEmpty shouldBe true // TODO should affinityGroup=None be allowed?
     }
 
     "add missing AgentCode to Agent" in {
