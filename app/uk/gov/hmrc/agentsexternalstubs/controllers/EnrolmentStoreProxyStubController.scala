@@ -30,6 +30,7 @@ import uk.gov.hmrc.auth.core.UnsupportedCredentialRole
 import uk.gov.hmrc.http.{BadRequestException, ForbiddenException, NotFoundException}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import java.time.{LocalDate, ZoneId}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -436,8 +437,8 @@ object EnrolmentStoreProxyStubController {
         state = e.state,
         friendlyName = e.friendlyName.getOrElse(""),
         failedActivationCount = 0,
-        activationDate = None,
-        enrolmentDate = None,
+        activationDate = Option(randomDateTimeInTheLastFiveYears),
+        enrolmentDate = Option(randomDateTimeInTheLastFiveYears),
         enrolmentTokenExpiryDate = None,
         identifiers = e.identifiers
           .getOrElse(Seq.empty) ++ kf.map(_.verifiers.map(v => Identifier(v.key, v.value))).getOrElse(Seq.empty)
@@ -459,6 +460,13 @@ object EnrolmentStoreProxyStubController {
         enrolments = ee
       )
     }
+
+    private def randomDateTimeInTheLastFiveYears: DateTime = {
+      val start = LocalDate.now().minusYears(5)
+      val end = LocalDate.now()
+      new DateTime(Generator.date(start, end).sample.get.atStartOfDay(ZoneId.systemDefault).toInstant.toEpochMilli)
+    }
+
     import play.api.libs.json.JodaWrites._
     implicit val writes1: Writes[Enrolment] = Json.writes[Enrolment]
     implicit val writes2: Writes[GetUserEnrolmentsResponse] = Json.writes[GetUserEnrolmentsResponse]
