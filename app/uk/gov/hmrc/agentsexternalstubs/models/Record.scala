@@ -46,9 +46,9 @@ object Record {
     }
   }
 
-  final val writes: Writes[Record] = new Writes[Record] {
+  final val writes: OWrites[Record] = new OWrites[Record] {
 
-    override def writes(record: Record): JsValue =
+    override def writes(record: Record): JsObject =
       toJson(record) match {
         case obj: JsObject =>
           obj
@@ -88,6 +88,6 @@ object Record {
     case other                          => JsError(s"Record type $other not supported")
   }
 
-  implicit val formats: Format[Record] = Format[Record](reads, writes)
+  implicit val formats: OFormat[Record] = OFormat[Record](reads, writes)
 
 }

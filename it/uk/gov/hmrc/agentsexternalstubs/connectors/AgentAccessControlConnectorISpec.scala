@@ -5,13 +5,10 @@ import com.github.tomakehurst.wiremock.client.WireMock._
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
-import uk.gov.hmrc.agentsexternalstubs.support.{MongoDB, ServerBaseISpec, TestRequests, WireMockSupport}
+import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests, WireMockSupport}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpGet}
 
-class AgentAccessControlConnectorISpec
-    extends ServerBaseISpec with MongoDB with TestRequests with TestStubs with WireMockSupport {
-
-  val url = s"http://localhost:$port"
+class AgentAccessControlConnectorISpec extends ServerBaseISpec with TestRequests with TestStubs with WireMockSupport {
 
   lazy val wsClient = app.injector.instanceOf[WSClient]
   lazy val httpGet = app.injector.instanceOf[HttpGet]

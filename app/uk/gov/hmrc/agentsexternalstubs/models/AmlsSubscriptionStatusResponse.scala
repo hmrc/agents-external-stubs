@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import org.joda.time.{LocalDate, LocalDateTime}
 import play.api.libs.json.Json
-import uk.gov.hmrc.http.controllers.RestFormats
+
+import java.time.{LocalDate, LocalDateTime}
 
 case class AmlsSubscriptionStatusResponse(
   processingDate: LocalDateTime,
@@ -34,11 +34,5 @@ case class AmlsSubscriptionStatusResponse(
 )
 
 object AmlsSubscriptionStatusResponse {
-
-  implicit val dateTimeReads = RestFormats.localDateTimeRead
-  implicit val localDateReads = RestFormats.localDateRead
-  implicit val dateTimeWrites = RestFormats.localDateTimeWrite
-  implicit val localDateWrites = RestFormats.localDateWrite
-
   implicit val format = Json.format[AmlsSubscriptionStatusResponse]
 }

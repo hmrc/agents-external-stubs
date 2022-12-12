@@ -5,9 +5,8 @@ import play.api.libs.ws.WSClient
 import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Enrolment, EnrolmentKey, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.support._
 
-class KnownFactsControllerISpec extends ServerBaseISpec with MongoDB with TestRequests {
+class KnownFactsControllerISpec extends ServerBaseISpec with TestRequests {
 
-  val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
 
   "KnownFactsController" when {

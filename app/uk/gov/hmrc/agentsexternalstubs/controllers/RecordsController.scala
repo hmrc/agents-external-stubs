@@ -19,7 +19,6 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import play.api.libs.json.JsValue
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import play.mvc.Http.HeaderNames
-import reactivemongo.api.Cursor
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.services._
@@ -47,8 +46,7 @@ class RecordsController @Inject() (
   val getRecords: Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       recordsRepository
-        .findByPlanetId(session.planetId)
-        .collect[List](1000, Cursor.FailOnError())
+        .findByPlanetId(session.planetId, limit = Some(1000))
         .flatMap(list => okF(list.groupBy(Record.typeOf).mapValues(_.map(Record.toJson))))
     }(SessionRecordNotFound)
   }

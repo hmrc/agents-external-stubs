@@ -15,17 +15,18 @@
  */
 package uk.gov.hmrc.agentsexternalstubs.repository
 
-import java.util.UUID
+import org.mongodb.scala.DuplicateKeyException
+import org.mongodb.scala.model.Filters
 
-import reactivemongo.core.errors.DatabaseException
+import java.util.UUID
 import uk.gov.hmrc.agentsexternalstubs.models.AuthenticatedSession
-import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
+import uk.gov.hmrc.agentsexternalstubs.support.AppBaseISpec
 import play.api.test.Helpers._
 
 import scala.concurrent.Future
 import scala.util.Random
 
-class AuthenticatedSessionsRepositoryISpec extends AppBaseISpec with MongoDB {
+class AuthenticatedSessionsRepositoryISpec extends AppBaseISpec {
 
   lazy val repo: AuthenticatedSessionsRepository = app.injector.instanceOf[AuthenticatedSessionsRepository]
 
@@ -36,7 +37,7 @@ class AuthenticatedSessionsRepositoryISpec extends AppBaseISpec with MongoDB {
 
       await(repo.create(AuthenticatedSession(UUID.randomUUID().toString, "foobar", authToken, "bla", planetId)))
 
-      val result = await(repo.find("planetId" -> planetId))
+      val result = await(repo.collection.find(Filters.equal("planetId", planetId)).toFuture)
 
       result.size shouldBe 1
       result.head.authToken shouldBe authToken
@@ -48,7 +49,7 @@ class AuthenticatedSessionsRepositoryISpec extends AppBaseISpec with MongoDB {
       val planetId = UUID.randomUUID().toString
       await(repo.create(AuthenticatedSession(UUID.randomUUID().toString, "foo", "bar", "bla", planetId)))
 
-      val e = intercept[DatabaseException] {
+      val e = intercept[DuplicateKeyException] {
         await(repo.create(AuthenticatedSession(UUID.randomUUID().toString, "foo", "bar", "ala", planetId)))
       }
 
@@ -69,9 +70,9 @@ class AuthenticatedSessionsRepositoryISpec extends AppBaseISpec with MongoDB {
         )
       )
 
-      await(repo.count) should be >= 100
+      await(repo.collection.countDocuments.toFuture) should be >= 100L
       await(repo.deleteAll(System.currentTimeMillis()))
-      await(repo.count) shouldBe 0
+      await(repo.collection.countDocuments.toFuture) shouldBe 0L
     }
 
     "delete all sessions created before some datetime" in {
@@ -93,9 +94,9 @@ class AuthenticatedSessionsRepositoryISpec extends AppBaseISpec with MongoDB {
       val t0 = System.currentTimeMillis()
       await(fixture)
 
-      await(repo.count) should be >= 100
-      await(repo.deleteAll(t0)) should be >= 50
-      await(repo.count) shouldBe 50
+      await(repo.collection.countDocuments.toFuture) should be >= 100L
+      await(repo.deleteAll(t0)) should be >= 50L
+      await(repo.collection.countDocuments.toFuture) shouldBe 50L
     }
   }
 }

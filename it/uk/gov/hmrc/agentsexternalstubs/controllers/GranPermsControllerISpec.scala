@@ -4,11 +4,10 @@ import org.scalatest.BeforeAndAfterEach
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Enrolment, EnrolmentKey, GranPermsGenRequest, Group, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.services.{GroupsService, UsersService}
-import uk.gov.hmrc.agentsexternalstubs.support.{MongoDB, ServerBaseISpec, TestRequests}
+import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests}
 
-class GranPermsControllerISpec extends ServerBaseISpec with MongoDB with TestRequests {
+class GranPermsControllerISpec extends ServerBaseISpec with TestRequests {
 
-  val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
   lazy val usersService = app.injector.instanceOf[UsersService]
   lazy val groupsService = app.injector.instanceOf[GroupsService]

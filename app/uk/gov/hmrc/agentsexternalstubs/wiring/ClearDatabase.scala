@@ -17,12 +17,14 @@
 package uk.gov.hmrc.agentsexternalstubs.wiring
 
 import akka.actor.{Actor, ActorSystem, Props}
-import javax.inject.{Inject, Singleton}
-import org.joda.time.{DateTime, DateTimeZone, Interval}
 import play.api.Logger
 import uk.gov.hmrc.agentsexternalstubs.repository._
 
-import scala.concurrent.duration.{Duration, FiniteDuration}
+import java.time.temporal.ChronoUnit
+import java.time.{Instant, LocalDateTime, ZoneOffset}
+import java.util.concurrent.TimeUnit
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
@@ -38,14 +40,16 @@ class ClearDatabase @Inject() (
 )(implicit ec: ExecutionContext) {
 
   val interval = Duration(24, "h")
-  val now = DateTime.now(DateTimeZone.UTC)
-  val taskDateTime = now.withTimeAtStartOfDay().withHourOfDay(12).withMinuteOfHour(30)
-  val initialDelay =
-    FiniteDuration(
-      (if (now.isBefore(taskDateTime)) new Interval(now, taskDateTime)
-       else new Interval(now, taskDateTime.plusDays(1))).toDurationMillis,
-      "ms"
-    )
+  val now = Instant.now
+  val taskDateTime: Instant = LocalDateTime
+    .now()
+    .withHour(12)
+    .withMinute(30)
+    .withSecond(0)
+    .toInstant(ZoneOffset.UTC)
+  val initialDelayMillis = (if (now.isBefore(taskDateTime)) java.time.Duration.between(now, taskDateTime)
+                            else java.time.Duration.between(now, taskDateTime.plus(1, ChronoUnit.DAYS))).toMillis
+  val initialDelay = Duration(initialDelayMillis, TimeUnit.MILLISECONDS)
 
   class ClearDatabaseTaskActor(olderThanMilliseconds: Long) extends Actor {
 
@@ -65,7 +69,7 @@ class ClearDatabase @Inject() (
     Logger(getClass).info("Clear database daily task is switched off.")
   }
 
-  def clearDatabase(timestamp: Long): Future[Int] =
+  def clearDatabase(timestamp: Long): Future[Long] =
     Future
       .sequence(
         Seq(

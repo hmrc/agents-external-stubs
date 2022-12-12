@@ -3,14 +3,12 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
-import reactivemongo.api.Cursor
 import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Record, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.repository.{RecordsRepository, UsersRepository}
 import uk.gov.hmrc.agentsexternalstubs.support._
 
-class PlanetsControllerISpec extends ServerBaseISpec with MongoDB with TestRequests with ExampleDesPayloads {
+class PlanetsControllerISpec extends ServerBaseISpec with TestRequests with ExampleDesPayloads {
 
-  val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
   lazy val usersRepository = app.injector.instanceOf[UsersRepository]
   lazy val recordsRepository = app.injector.instanceOf[RecordsRepository]
@@ -37,8 +35,7 @@ class PlanetsControllerISpec extends ServerBaseISpec with MongoDB with TestReque
         await(usersRepository.findByPlanetId(session.planetId)(100)).size shouldBe 0
         await(
           recordsRepository
-            .findByPlanetId(session.planetId)
-            .collect[Seq](maxDocs = 100, err = Cursor.ContOnError[Seq[Record]]())
+            .findByPlanetId(session.planetId, limit = Some(100))
         ).size shouldBe 0
       }
     }

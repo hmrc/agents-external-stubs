@@ -13,24 +13,3 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package uk.gov.hmrc.agentsexternalstubs.repository
-
-import org.mongodb.scala.model.Filters
-import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
-
-import scala.concurrent.{ExecutionContext, Future}
-
-trait DeleteAll[E] {
-  self: PlayMongoRepository[E] =>
-
-  implicit val ec: ExecutionContext
-
-  val UPDATED: String
-
-  def deleteAll(lastUpdatedBefore: Long): Future[Long] =
-    collection
-      .deleteMany(Filters.lt(UPDATED, lastUpdatedBefore))
-      .toFuture()
-      .map(_.getDeletedCount)
-}

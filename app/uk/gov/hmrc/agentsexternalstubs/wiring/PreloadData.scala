@@ -27,11 +27,11 @@ class PreloadData @Inject() (appConfig: AppConfig)(implicit ec: ExecutionContext
 
   if (appConfig.preloadRecordsForDefaultUserIds) {
     Logger(getClass).info("Pre-loading records for default user ids")
-    UserIdGenerator.defaultUserIds.map(_.foreach { userId =>
+    UserIdGenerator.defaultUserIds.foreach { userId =>
       VatCustomerInformationRecord.generate(userId)
       BusinessDetailsRecord.generate(userId)
       BusinessPartnerRecord.generate(userId)
-    })
+    }
 
   }
 

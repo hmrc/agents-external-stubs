@@ -17,12 +17,11 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
 import javax.inject.{Inject, Singleton}
-import org.joda.time.LocalDate
-import reactivemongo.api.Cursor
 import uk.gov.hmrc.agentsexternalstubs.models.RelationshipRecord
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.http.BadRequestException
 
+import java.time.LocalDate
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -74,15 +73,15 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
         .map(r => recordsRepository.store[RelationshipRecord](r, planetId))
     )
 
-  def findByKey(key: String, planetId: String)(implicit ec: ExecutionContext): Future[List[RelationshipRecord]] =
-    recordsRepository.cursor[RelationshipRecord](key, planetId).collect[List](MAX_DOCS, Cursor.FailOnError())
+  def findByKey(key: String, planetId: String)(implicit ec: ExecutionContext): Future[Seq[RelationshipRecord]] =
+    recordsRepository.findByKey[RelationshipRecord](key, planetId, limit = Some(MAX_DOCS))
 
-  def findByKeys(keys: Seq[String], planetId: String)(implicit ec: ExecutionContext): Future[List[RelationshipRecord]] =
-    recordsRepository.cursor[RelationshipRecord](keys, planetId).collect[List](MAX_DOCS, Cursor.FailOnError())
+  def findByKeys(keys: Seq[String], planetId: String)(implicit ec: ExecutionContext): Future[Seq[RelationshipRecord]] =
+    recordsRepository.findByKeys[RelationshipRecord](keys, planetId, limit = Some(MAX_DOCS))
 
   def findByQuery(query: RelationshipRecordQuery, planetId: String)(implicit
     ec: ExecutionContext
-  ): Future[List[RelationshipRecord]] = {
+  ): Future[Seq[RelationshipRecord]] = {
 
     val maybeActiveOnly: RelationshipRecord => Boolean = r => if (query.activeOnly) r.active else true
 

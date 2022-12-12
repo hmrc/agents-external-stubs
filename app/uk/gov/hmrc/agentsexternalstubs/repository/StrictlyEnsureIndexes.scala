@@ -16,44 +16,27 @@
 
 package uk.gov.hmrc.agentsexternalstubs.repository
 
-import reactivemongo.api.indexes.Index
-import reactivemongo.core.errors.GenericDatabaseException
-import uk.gov.hmrc.mongo.ReactiveRepository
+import org.mongodb.scala.model.IndexModel
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
 import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
-trait StrictlyEnsureIndexes[A <: Any, ID <: Any] {
+trait StrictlyEnsureIndexes[A <: Any] { self: PlayMongoRepository[A] =>
 
-  self: ReactiveRepository[A, ID] =>
+  implicit val ec: ExecutionContext
 
-  private def ensureIndexOrFail(index: Index)(implicit ec: ExecutionContext): Future[Boolean] = {
-    val indexInfo = s"""${index.eventualName}, key=${index.key
-      .map { case (k, _) => k }
-      .mkString("+")}, unique=${index.unique}, background=${index.background}, sparse=${index.sparse}"""
-    collection.indexesManager
-      .create(index)
+  override def ensureIndexes: Future[Seq[String]] =
+    collection
+      .createIndexes(indexes)
+      .toFuture
       .map { wr =>
-        if (wr.ok) {
-          logger.info(s"Successfully Created Index ${collection.name}.$indexInfo")
-          true
+        if (indexes.map(_.getOptions.getName).forall(wr.contains(_))) {
+          //println(s"Successfully created Indexes for ${collection.namespace}")
+          wr
         } else {
-          val msg = wr.writeErrors.mkString(", ")
-          if (msg.contains("E11000")) {
-            // this is for backwards compatibility to mongodb 2.6.x
-            throw GenericDatabaseException(msg, wr.code)
-          } else {
-            throw new IllegalStateException(s"Failed to ensure index $indexInfo, error=$msg")
-          }
+          throw new IllegalStateException(s"Failed to ensure indexes for ${collection.namespace}")
         }
       }
-      .recover { case t =>
-        logger.error(message, t)
-        false
-      }
-  }
-
-  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] =
-    Future.sequence(indexes.map(ensureIndexOrFail))
 
 }

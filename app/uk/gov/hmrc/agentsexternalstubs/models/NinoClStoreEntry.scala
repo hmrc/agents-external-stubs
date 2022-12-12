@@ -16,11 +16,11 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import org.joda.time.LocalDateTime
 import play.api.libs.json._
 import play.api.mvc.{PathBindable, QueryStringBindable}
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats._
+
+import java.time.LocalDateTime
 
 case class NinoClStoreEntry(
   credId: String,

@@ -18,12 +18,12 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 import java.util.UUID
 
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
+import uk.gov.hmrc.agentsexternalstubs.support.AppBaseISpec
 import play.api.test.Helpers._
 
 import scala.concurrent.Future
 
-class KnownFactsRepositoryISpec extends AppBaseISpec with MongoDB {
+class KnownFactsRepositoryISpec extends AppBaseISpec {
 
   lazy val repo = app.injector.instanceOf[KnownFactsRepositoryMongo]
 
@@ -80,9 +80,9 @@ class KnownFactsRepositoryISpec extends AppBaseISpec with MongoDB {
         }
       await(Future.sequence(fixture))
 
-      await(repo.count) should be >= 100
+      await(repo.collection.countDocuments.toFuture) should be >= 100L
       await(repo.deleteAll(System.currentTimeMillis()))
-      await(repo.count) shouldBe 0
+      await(repo.collection.countDocuments.toFuture) shouldBe 0L
     }
 
     "delete all known facts created before some datetime" in {
@@ -98,9 +98,9 @@ class KnownFactsRepositoryISpec extends AppBaseISpec with MongoDB {
       val t0 = System.currentTimeMillis()
       await(Future.sequence(fixture))
 
-      await(repo.count) should be >= 100
-      await(repo.deleteAll(t0)) should be >= 50
-      await(repo.count) shouldBe 50
+      await(repo.collection.countDocuments.toFuture) should be >= 100L
+      await(repo.deleteAll(t0)) should be >= 50L
+      await(repo.collection.countDocuments.toFuture) shouldBe 50L
     }
   }
 }

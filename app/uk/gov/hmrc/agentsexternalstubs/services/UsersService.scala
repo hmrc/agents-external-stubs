@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 
 import cats.data.Validated.{Invalid, Valid}
 import com.github.blemale.scaffeine.Scaffeine
-import play.api.i18n.Lang.{defaultLang, logger}
+import play.api.i18n.Lang.logger
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.{KnownFactsRepository, UsersRepository}
 import uk.gov.hmrc.domain.Nino
@@ -427,6 +427,6 @@ class UsersService @Inject() (
 
   }
 
-  def reindexAllUsers(implicit ec: ExecutionContext): Future[String] = usersRepository.reindexAllUsers
+  def reindexAllUsers(implicit ec: ExecutionContext): Future[Boolean] = usersRepository.reindexAllUsers
 
 }

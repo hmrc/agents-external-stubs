@@ -18,24 +18,19 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 import akka.actor.{ActorSystem, Props}
 import org.scalatest.concurrent.Eventually
 import uk.gov.hmrc.agentsexternalstubs.models.{BusinessPartnerRecord, UserGenerator, VatCustomerInformationRecord}
-import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
+import uk.gov.hmrc.agentsexternalstubs.support.AppBaseISpec
 import uk.gov.hmrc.agentsexternalstubs.wiring.ClearDatabase
 import play.api.test.Helpers._
 
 import scala.concurrent.Future
 import scala.util.Random
 
-class ClearDatabaseISpec extends AppBaseISpec with MongoDB with Eventually {
+class ClearDatabaseISpec extends AppBaseISpec with Eventually {
 
   lazy val clearDatabase = app.injector.instanceOf[ClearDatabase]
   lazy val usersRepo = app.injector.instanceOf[UsersRepositoryMongo]
   lazy val recordsRepo = app.injector.instanceOf[RecordsRepositoryMongo]
   lazy val actorSystem = app.injector.instanceOf[ActorSystem]
-
-  override def beforeEach(): Unit = {
-    super.beforeEach()
-    await(usersRepo.drop)
-  }
 
   "clearDatabase" should {
     "remove all documents older than specified timestamp" in {
@@ -51,13 +46,13 @@ class ClearDatabaseISpec extends AppBaseISpec with MongoDB with Eventually {
         }
       await(Future.sequence(fixture))
 
-      await(usersRepo.count) should be >= 100
-      await(recordsRepo.count) should be >= 200
+      await(usersRepo.collection.countDocuments.toFuture) should be >= 100L
+      await(recordsRepo.collection.countDocuments.toFuture) should be >= 200L
 
       await(clearDatabase.clearDatabase(System.currentTimeMillis()))
 
-      await(usersRepo.count) shouldBe 0
-      await(recordsRepo.count) shouldBe 0
+      await(usersRepo.collection.countDocuments.toFuture) shouldBe 0L
+      await(recordsRepo.collection.countDocuments.toFuture) shouldBe 0L
     }
 
     "run a task actor to clear database" in {
@@ -73,14 +68,14 @@ class ClearDatabaseISpec extends AppBaseISpec with MongoDB with Eventually {
         }
       await(Future.sequence(fixture))
 
-      await(usersRepo.count) should be >= 100
-      await(recordsRepo.count) should be >= 200
+      await(usersRepo.collection.countDocuments.toFuture) should be >= 100L
+      await(recordsRepo.collection.countDocuments.toFuture) should be >= 200L
 
       actorSystem.actorOf(Props(new clearDatabase.ClearDatabaseTaskActor(0))) ! "clear"
 
       eventually {
-        await(usersRepo.count) shouldBe 0
-        await(recordsRepo.count) shouldBe 0
+        await(usersRepo.collection.countDocuments.toFuture) shouldBe 0L
+        await(recordsRepo.collection.countDocuments.toFuture) shouldBe 0L
       }
     }
   }

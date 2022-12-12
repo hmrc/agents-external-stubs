@@ -15,10 +15,11 @@
  */
 
 package uk.gov.hmrc.agentsexternalstubs.models
-import org.joda.time.LocalDate
 import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.agentsexternalstubs.models.User.AdditionalInformation
 import uk.gov.hmrc.domain.{EmpRef, Nino}
+
+import java.time.LocalDate
 
 object ApiPlatform {
   /*
@@ -78,9 +79,6 @@ object ApiPlatform {
   case class OrganisationDetails(name: String, address: Address)
 
   object TestUser {
-
-    import play.api.libs.json.JodaWrites._
-    import play.api.libs.json.JodaReads._
 
     implicit lazy val formats1: Format[Address] = Json.format[Address]
     implicit lazy val formats2: Format[IndividualDetails] = Json.format[IndividualDetails]

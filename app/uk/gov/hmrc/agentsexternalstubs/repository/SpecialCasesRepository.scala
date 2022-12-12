@@ -17,89 +17,82 @@
 package uk.gov.hmrc.agentsexternalstubs.repository
 
 import com.google.inject.ImplementedBy
-import play.api.libs.json.Json.toJsFieldJsValueWrapper
+import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes, ReplaceOptions}
 import play.api.libs.json.{OWrites => _, _}
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.indexes.Index
-import reactivemongo.api.indexes.IndexType.Ascending
-import reactivemongo.api.{Cursor, CursorProducer, ReadPreference}
-import reactivemongo.bson.BSONObjectID
-import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
 import uk.gov.hmrc.agentsexternalstubs.models.SpecialCase.internal
 import uk.gov.hmrc.agentsexternalstubs.models.{Id, SpecialCase}
-import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import SpecialCasesRepositoryMongo._
+import org.bson.types.ObjectId
+import uk.gov.hmrc.agentsexternalstubs.syntax.|>
 
 import javax.inject.{Inject, Singleton}
 import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
+object SpecialCasesRepositoryMongo {
+  private final val PLANET_ID = "planetId"
+}
+
 @ImplementedBy(classOf[SpecialCasesRepositoryMongo])
 trait SpecialCasesRepository {
 
-  def findById(id: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[SpecialCase]]
+  def findById(id: String, planetId: String): Future[Option[SpecialCase]]
 
-  def findByMatchKey(key: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[SpecialCase]]
+  def findByMatchKey(key: String, planetId: String): Future[Option[SpecialCase]]
 
-  def findByPlanetId(planetId: String)(limit: Int)(implicit ec: ExecutionContext): Future[Seq[SpecialCase]]
+  def findByPlanetId(planetId: String)(limit: Int): Future[Seq[SpecialCase]]
 
-  def upsert(specialCase: SpecialCase, planetId: String)(implicit ec: ExecutionContext): Future[String]
+  def upsert(specialCase: SpecialCase, planetId: String): Future[String]
 
-  def delete(id: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
+  def delete(id: String, planetId: String): Future[Unit]
 
-  def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit]
+  def destroyPlanet(planetId: String): Future[Unit]
 
-  def deleteAll(createdBefore: Long)(implicit ec: ExecutionContext): Future[Int]
+  def deleteAll(createdBefore: Long): Future[Long]
 }
 
 @Singleton
-class SpecialCasesRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
-    extends ReactiveRepository[SpecialCase, BSONObjectID](
-      "specialCases",
-      mongoComponent.mongoConnector.db,
-      Format(internal.reads, internal.writes),
-      ReactiveMongoFormats.objectIdFormats
-    ) with StrictlyEnsureIndexes[SpecialCase, BSONObjectID] with SpecialCasesRepository with DeleteAll[SpecialCase] {
+class SpecialCasesRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: ExecutionContext)
+    extends PlayMongoRepository[SpecialCase](
+      mongoComponent = mongo,
+      collectionName = "specialCases",
+      domainFormat = Format(internal.reads, internal.writes),
+      indexes = Seq(
+        IndexModel(Indexes.ascending(SpecialCase.UNIQUE_KEY), IndexOptions().name("SpecialCasesByKey").unique(true)),
+        IndexModel(Indexes.ascending(Id.ID, PLANET_ID), IndexOptions().name("SpecialCaseId").unique(true))
+      ),
+      replaceIndexes = false
+    ) with StrictlyEnsureIndexes[SpecialCase] with SpecialCasesRepository with DeleteAll[SpecialCase] {
 
-  private final val PLANET_ID = "planetId"
   final val UPDATED = "_last_updated_at"
 
-  override def indexes = Seq(
-    Index(Seq(SpecialCase.UNIQUE_KEY -> Ascending), Some("SpecialCasesByKey"), unique = true),
-    Index(Seq(Id.ID -> Ascending, PLANET_ID -> Ascending), Some("SpecialCaseId"), unique = true)
-  )
-
-  def findById(id: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[SpecialCase]] =
+  def findById(id: String, planetId: String): Future[Option[SpecialCase]] =
     collection
       .find(
-        Json.obj(Id.ID -> Json.obj("$oid" -> JsString(id)), PLANET_ID -> JsString(planetId)),
-        projection = None
-      )
-      .cursor[SpecialCase](ReadPreference.primary)(
-        implicitly[collection.pack.Reader[SpecialCase]],
-        implicitly[CursorProducer[SpecialCase]]
+        Filters.and(
+          Filters.equal(Id.ID, new ObjectId(id)),
+          Filters.equal(PLANET_ID, planetId)
+        )
       )
       .headOption
 
-  def findByMatchKey(key: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[SpecialCase]] =
+  def findByMatchKey(key: String, planetId: String): Future[Option[SpecialCase]] =
     collection
       .find(
-        Json.obj(SpecialCase.UNIQUE_KEY -> SpecialCase.uniqueKey(key, planetId)),
-        projection = None
+        Filters.equal(SpecialCase.UNIQUE_KEY, SpecialCase.uniqueKey(key, planetId))
       )
-      .cursor[SpecialCase](ReadPreference.primary)(
-        implicitly[collection.pack.Reader[SpecialCase]],
-        implicitly[CursorProducer[SpecialCase]]
-      )
-      .headOption
+      .toFuture
+      .map(_.headOption)
 
-  def findByPlanetId(planetId: String)(limit: Int)(implicit ec: ExecutionContext): Future[Seq[SpecialCase]] =
+  def findByPlanetId(planetId: String)(limit: Int): Future[Seq[SpecialCase]] =
     collection
-      .find(Json.obj(PLANET_ID -> planetId), projection = None)
-      .cursor[SpecialCase]()
-      .collect[Seq](limit, Cursor.FailOnError())
+      .find(Filters.equal(PLANET_ID, planetId))
+      .|>(o => if (limit >= 0) o.limit(limit) else o)
+      .toFuture()
 
-  def upsert(specialCase: SpecialCase, planetId: String)(implicit ec: ExecutionContext): Future[String] =
+  def upsert(specialCase: SpecialCase, planetId: String): Future[String] =
     SpecialCase
       .validate(specialCase)
       .fold(
@@ -108,67 +101,65 @@ class SpecialCasesRepositoryMongo @Inject() (mongoComponent: ReactiveMongoCompon
           specialCase.id match {
             case Some(id) =>
               collection
-                .update(ordered = false)
-                .one(
-                  Json.obj(Id.ID -> Json.obj("$oid" -> JsString(id.value)), PLANET_ID -> JsString(planetId)),
-                  Json
-                    .toJson(specialCase.copy(planetId = Some(planetId)))
-                    .as[JsObject]
-                    .+(UPDATED -> JsNumber(System.currentTimeMillis())),
-                  upsert = false
+                .replaceOne(
+                  filter = Filters.and(
+                    Filters.equal(Id.ID, new ObjectId(id.value)),
+                    Filters.equal(PLANET_ID, planetId)
+                  ),
+                  replacement = specialCase.copy(planetId = Some(planetId)),
+                  ReplaceOptions().upsert(false)
                 )
+                .toFuture
                 .map((_, id.value))
-                .flatMap(MongoHelper.interpretWriteResult)
+                .flatMap(MongoHelper.interpretUpdateResult)
             case None =>
-              val newId = BSONObjectID.generate().stringify
+              val newId = ObjectId.get().toString
               collection
                 .find(
-                  Json.obj(
-                    SpecialCase.UNIQUE_KEY -> JsString(SpecialCase.uniqueKey(specialCase.requestMatch.toKey, planetId))
-                  ),
-                  projection = None
+                  Filters.equal(SpecialCase.UNIQUE_KEY, SpecialCase.uniqueKey(specialCase.requestMatch.toKey, planetId))
                 )
-                .one[SpecialCase]
+                .toFuture
+                .map(_.headOption)
                 .flatMap {
                   case Some(sc) =>
                     collection
-                      .update(ordered = false)
-                      .one(
-                        Json.obj(
-                          Id.ID     -> Json.obj("$oid" -> JsString(sc.id.map(_.value).get)),
-                          PLANET_ID -> JsString(planetId)
+                      .replaceOne(
+                        filter = Filters.and(
+                          Filters.equal(Id.ID, new ObjectId(sc.id.map(_.value).get)),
+                          Filters.equal(PLANET_ID, planetId)
                         ),
-                        Json
-                          .toJson(specialCase.copy(planetId = Some(planetId)))
-                          .as[JsObject]
-                          .+(UPDATED -> JsNumber(System.currentTimeMillis())),
-                        upsert = false
+                        replacement = specialCase.copy(planetId = Some(planetId)),
+                        options = ReplaceOptions().upsert(false)
                       )
+                      .toFuture
                       .map((_, sc.id.map(_.value).get))
-                      .flatMap(MongoHelper.interpretWriteResult)
+                      .flatMap(MongoHelper.interpretUpdateResult)
                   case None =>
                     collection
-                      .insert(ordered = false)
-                      .one(
-                        Json
-                          .toJson(specialCase.copy(planetId = Some(planetId), id = Some(Id(newId))))
-                          .as[JsObject]
-                          .+(UPDATED -> JsNumber(System.currentTimeMillis()))
+                      .insertOne(
+                        specialCase.copy(planetId = Some(planetId), id = Some(Id(newId)))
                       )
+                      .toFuture
                       .map((_, newId))
-                      .flatMap(MongoHelper.interpretWriteResult)
+                      .flatMap(MongoHelper.interpretInsertOneResult)
                 }
           }
       )
 
-  def delete(id: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
-    this
-      .remove(
-        Id.ID     -> Json.obj("$oid" -> JsString(id)),
-        PLANET_ID -> JsString(planetId)
-      )(ec)
+  def delete(id: String, planetId: String): Future[Unit] =
+    collection
+      .deleteOne(
+        Filters.and(
+          Filters.equal(Id.ID, new ObjectId(id)),
+          Filters.equal(PLANET_ID, planetId)
+        )
+      )
+      .toFuture
       .map(_ => ())
 
-  def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
-    remove(PLANET_ID -> Option(planetId)).map(_ => ())
+  def destroyPlanet(planetId: String): Future[Unit] =
+    collection
+      .deleteMany(Filters.equal(PLANET_ID, planetId))
+      .toFuture()
+      .map(_ => ())
 }

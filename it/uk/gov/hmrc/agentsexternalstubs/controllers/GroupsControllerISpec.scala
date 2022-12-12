@@ -9,10 +9,7 @@ import uk.gov.hmrc.agentsexternalstubs.services.GroupsService
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
 
-class GroupsControllerISpec
-    extends ServerBaseISpec with MongoDB with TestRequests with TestStubs with BeforeAndAfterEach {
-
-  val url = s"http://localhost:$port"
+class GroupsControllerISpec extends ServerBaseISpec with TestRequests with TestStubs with BeforeAndAfterEach {
 
   lazy val wsClient = app.injector.instanceOf[WSClient]
   override lazy val groupsService = app.injector.instanceOf[GroupsService]

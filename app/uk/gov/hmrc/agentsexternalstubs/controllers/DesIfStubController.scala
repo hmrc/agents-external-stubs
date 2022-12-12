@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import org.joda.time.{LocalDate, LocalDateTime}
 import play.api.data.Form
 import play.api.data.Forms._
 import play.api.data.validation.{Constraint, Constraints, Invalid, Valid}
@@ -30,7 +29,7 @@ import uk.gov.hmrc.agentsexternalstubs.services._
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import java.time.Instant
+import java.time.{Instant, LocalDate, LocalDateTime}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -772,7 +771,6 @@ object DesIfStubController {
     )
 
     object Relationship {
-      import play.api.libs.json.JodaWrites._
 
       implicit val writes1: Writes[Individual] = Json.writes[Individual]
       implicit val writes2: Writes[Organisation] = Json.writes[Organisation]
@@ -818,7 +816,7 @@ object DesIfStubController {
     case class Response(agents: Seq[Response.LegacyAgent])
 
     object Response {
-      def from(ninoWithAgentList: List[(String, LegacyAgentRecord)]): Response =
+      def from(ninoWithAgentList: Seq[(String, LegacyAgentRecord)]): Response =
         Response(agents = ninoWithAgentList.map { case (nino, agent) => LegacyAgent.from(nino, agent) })
 
       case class LegacyAgent(

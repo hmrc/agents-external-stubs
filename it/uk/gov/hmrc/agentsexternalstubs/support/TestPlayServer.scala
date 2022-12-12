@@ -16,10 +16,10 @@ import java.net.ServerSocket
 import scala.annotation.tailrec
 import scala.concurrent.Await
 
-trait TestPlayServer {
+object TestPlayServer {
 
-  private val testServer: AtomicReference[TestServer] = new AtomicReference[TestServer]()
   private val lock: Lock = new ReentrantLock()
+  private val testServer: AtomicReference[TestServer] = new AtomicReference[TestServer]()
 
   val port: Int = Port.randomAvailable
   val wireMockPort: Int = Port.randomAvailable
@@ -38,7 +38,7 @@ trait TestPlayServer {
     "microservice.services.api-platform-test-user.port"    -> wireMockPort,
     "metrics.enabled"                                      -> false,
     "auditing.enabled"                                     -> false,
-    "mongodb.uri"                                          -> MongoDB.uri,
+    "mongodb.uri"                                          -> "mongodb://127.0.0.1:27017/agents-external-stubs-tests",
     "http.port"                                            -> port,
     "gran-perms-test-gen-max-clients"                      -> 10,
     "gran-perms-test-gen-max-agents"                       -> 5
@@ -52,7 +52,7 @@ trait TestPlayServer {
       .overrides(bind(classOf[DatastreamMetrics]).toProvider(classOf[DisabledDatastreamMetricsProvider]))
       .overrides(bind[Metrics].to[TestMetrics])
 
-  def run(): Unit =
+  def runPlayServer(): Unit =
     if (lock.tryLock()) try if (testServer.get() == null) {
       println(s"Starting TestPlayServer at $port ... ")
       val server = TestServer(port, app)
@@ -63,21 +63,15 @@ trait TestPlayServer {
       testServer.set(server)
       Runtime.getRuntime.addShutdownHook(new Thread(new Runnable {
         override def run(): Unit =
-          stop()
+          if (lock.tryLock()) try if (testServer.get() != null) {
+            println(s"Stopping TestPlayServer at $port ...")
+            testServer.get().stop()
+            testServer.set(null)
+          } finally lock.unlock()
       }))
       println("ready.")
     } finally lock.unlock()
-
-  def stop(): Unit =
-    if (lock.tryLock()) try if (testServer.get() != null) {
-      println(s"Stopping TestPlayServer at $port ...")
-      testServer.get().stop()
-      testServer.set(null)
-    } finally lock.unlock()
-
 }
-
-object TestPlayServer extends TestPlayServer
 
 class TestMetrics extends Metrics {
 

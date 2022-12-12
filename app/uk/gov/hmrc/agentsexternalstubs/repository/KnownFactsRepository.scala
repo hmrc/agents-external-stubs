@@ -17,20 +17,14 @@
 package uk.gov.hmrc.agentsexternalstubs.repository
 
 import com.google.inject.ImplementedBy
-import play.api.libs.json.Json.toJsFieldJsValueWrapper
-import play.api.libs.json._
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.indexes.Index
-import reactivemongo.api.indexes.IndexType.Ascending
-import reactivemongo.api.{CursorProducer, ReadPreference}
-import reactivemongo.bson.BSONObjectID
-import reactivemongo.play.json.ImplicitBSONHandlers
+import org.mongodb.scala.model._
 import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, KnownFacts}
-import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+
 @ImplementedBy(classOf[KnownFactsRepositoryMongo])
 trait KnownFactsRepository {
 
@@ -38,73 +32,67 @@ trait KnownFactsRepository {
     ec: ExecutionContext
   ): Future[Option[KnownFacts]]
 
-  def upsert(knownFacts: KnownFacts, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
+  def upsert(knownFacts: KnownFacts, planetId: String): Future[Unit]
 
-  def delete(enrolmentKey: EnrolmentKey, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
+  def delete(enrolmentKey: EnrolmentKey, planetId: String): Future[Unit]
 
-  def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit]
+  def destroyPlanet(planetId: String): Future[Unit]
 
-  def deleteAll(createdBefore: Long)(implicit ec: ExecutionContext): Future[Int]
+  def deleteAll(createdBefore: Long): Future[Long]
 }
 
 @Singleton
-class KnownFactsRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
-    extends ReactiveRepository[KnownFacts, BSONObjectID](
-      "knownFacts",
-      mongoComponent.mongoConnector.db,
-      KnownFacts.formats,
-      ReactiveMongoFormats.objectIdFormats
-    ) with StrictlyEnsureIndexes[KnownFacts, BSONObjectID] with KnownFactsRepository with DeleteAll[KnownFacts] {
-
-  import ImplicitBSONHandlers._
+class KnownFactsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: ExecutionContext)
+    extends PlayMongoRepository[KnownFacts](
+      mongoComponent = mongo,
+      collectionName = "knownFacts",
+      domainFormat = KnownFacts.formats,
+      indexes = Seq(
+        IndexModel(
+          Indexes.ascending(KnownFacts.UNIQUE_KEY),
+          IndexOptions().name("KnownFactsByEnrolmentKey").unique(true)
+        )
+      ),
+      replaceIndexes = false
+    ) with StrictlyEnsureIndexes[KnownFacts] with KnownFactsRepository with DeleteAll[KnownFacts] {
 
   private final val PLANET_ID = "planetId"
   final val UPDATED = "_last_updated_at"
-
-  override def indexes = Seq(
-    Index(Seq(KnownFacts.UNIQUE_KEY -> Ascending), Some("KnownFactsByEnrolmentKey"), unique = true)
-  )
 
   def findByEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(implicit
     ec: ExecutionContext
   ): Future[Option[KnownFacts]] =
     collection
-      .find[JsObject, JsObject](
-        Json.obj(KnownFacts.UNIQUE_KEY -> KnownFacts.uniqueKey(enrolmentKey.tag, planetId)),
-        None
-      )
-      .cursor[KnownFacts](ReadPreference.primary)(
-        implicitly[collection.pack.Reader[KnownFacts]],
-        implicitly[CursorProducer[KnownFacts]]
-      )
-      .headOption
+      .find(Filters.equal(KnownFacts.UNIQUE_KEY, KnownFacts.uniqueKey(enrolmentKey.tag, planetId)))
+      .toFuture
+      .map(_.headOption)
 
-  def upsert(knownFacts: KnownFacts, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+  def upsert(knownFacts: KnownFacts, planetId: String): Future[Unit] =
     KnownFacts
       .validate(knownFacts)
       .fold(
         errors => Future.failed(new Exception(s"KnownFacts validation failed because $errors")),
         _ =>
           collection
-            .update(ordered = false)
-            .one(
-              Json.obj(KnownFacts.UNIQUE_KEY -> KnownFacts.uniqueKey(knownFacts.enrolmentKey.tag, planetId)),
-              Json
-                .toJson(knownFacts.copy(planetId = Some(planetId)))
-                .as[JsObject]
-                .+(UPDATED -> JsNumber(System.currentTimeMillis())),
-              upsert = true
+            .replaceOne(
+              filter =
+                Filters.equal(KnownFacts.UNIQUE_KEY, KnownFacts.uniqueKey(knownFacts.enrolmentKey.tag, planetId)),
+              replacement = knownFacts.copy(planetId = Some(planetId)),
+              options = ReplaceOptions().upsert(true)
             )
-            .flatMap(MongoHelper.interpretWriteResultUnit)
+            .toFuture
+            .flatMap(MongoHelper.interpretUpdateResultUnit)
       )
 
-  def delete(enrolmentKey: EnrolmentKey, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
-    this
-      .remove(
-        KnownFacts.UNIQUE_KEY -> toJsFieldJsValueWrapper(KnownFacts.uniqueKey(enrolmentKey.tag, planetId))
-      )(ec)
+  def delete(enrolmentKey: EnrolmentKey, planetId: String): Future[Unit] =
+    collection
+      .deleteOne(Filters.equal(KnownFacts.UNIQUE_KEY, KnownFacts.uniqueKey(enrolmentKey.tag, planetId)))
+      .toFuture
       .map(_ => ())
 
-  def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
-    remove(PLANET_ID -> Option(planetId)).map(_ => ())
+  def destroyPlanet(planetId: String): Future[Unit] =
+    collection
+      .deleteMany(Filters.equal(PLANET_ID, planetId))
+      .toFuture
+      .map(_ => ())
 }

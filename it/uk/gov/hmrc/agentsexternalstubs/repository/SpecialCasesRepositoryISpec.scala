@@ -19,10 +19,10 @@ import java.util.UUID
 
 import uk.gov.hmrc.agentsexternalstubs.models.SpecialCase.RequestMatch
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
+import uk.gov.hmrc.agentsexternalstubs.support.AppBaseISpec
 import play.api.test.Helpers._
 
-class SpecialCasesRepositoryISpec extends AppBaseISpec with MongoDB {
+class SpecialCasesRepositoryISpec extends AppBaseISpec {
 
   lazy val repo = app.injector.instanceOf[SpecialCasesRepository]
 
@@ -91,7 +91,7 @@ class SpecialCasesRepositoryISpec extends AppBaseISpec with MongoDB {
 
       Thread.sleep(100)
 
-      await(repo.deleteAll(System.currentTimeMillis())) should be >= 1
+      await(repo.deleteAll(System.currentTimeMillis())) should be >= 1L
 
       val result1 = await(repo.findByMatchKey(key, planetId))
       result1 shouldBe None

@@ -17,20 +17,16 @@
 package uk.gov.hmrc.agentsexternalstubs.repository
 
 import com.google.inject.ImplementedBy
-import play.api.Logger
-import play.api.libs.json.Json.toJsFieldJsValueWrapper
+import com.mongodb.client.model.Updates
+import org.mongodb.scala.DuplicateKeyException
+import org.mongodb.scala.model._
+import org.mongodb.scala.result.DeleteResult
 import play.api.libs.json._
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.commands.WriteResult
-import reactivemongo.api.indexes.Index
-import reactivemongo.api.indexes.IndexType.Ascending
-import reactivemongo.api.{Cursor, CursorProducer, ReadPreference}
-import reactivemongo.bson.{BSONDocument, BSONObjectID}
-import reactivemongo.core.errors.DatabaseException
-import reactivemongo.play.json.ImplicitBSONHandlers
-import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, Identifier, User}
-import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+import play.api.{Logger, Logging}
+import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, User}
+import uk.gov.hmrc.agentsexternalstubs.repository.UsersRepositoryMongo._
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -41,251 +37,167 @@ case class DuplicateUserException(msg: String, key: Option[String] = None) exten
 @ImplementedBy(classOf[UsersRepositoryMongo])
 trait UsersRepository {
 
-  def findByUserId(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]]
-  def findByNino(nino: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]]
-  def findByPlanetId(planetId: String)(limit: Int)(implicit
-    ec: ExecutionContext
-  ): Future[Seq[User]]
-  def findByGroupId(groupId: String, planetId: String)(limit: Int)(implicit ec: ExecutionContext): Future[Seq[User]]
-  def findAdminByGroupId(groupId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]]
-  def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[Option[User]]
-  def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(implicit
-    ec: ExecutionContext
-  ): Future[Seq[User]]
-  def findUserIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(implicit
-    ec: ExecutionContext
-  ): Future[Seq[String]]
-  def findUserIdsByAssignedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(implicit
-    ec: ExecutionContext
-  ): Future[Seq[String]]
-  def findGroupIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(implicit
-    ec: ExecutionContext
+  def findByUserId(userId: String, planetId: String): Future[Option[User]]
+  def findByNino(nino: String, planetId: String): Future[Option[User]]
+  def findByPlanetId(planetId: String)(limit: Int): Future[Seq[User]]
+  def findByGroupId(groupId: String, planetId: String)(limit: Int): Future[Seq[User]]
+  def findAdminByGroupId(groupId: String, planetId: String): Future[Option[User]]
+  def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String): Future[Option[User]]
+  def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int): Future[Seq[User]]
+  def findUserIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int): Future[Seq[String]]
+  def findUserIdsByAssignedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int): Future[Seq[String]]
+  def findGroupIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
+    limit: Int
   ): Future[Seq[Option[String]]]
-  def create(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
-  def update(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
-  def delete(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[WriteResult]
-  def syncRecordId(userId: String, recordId: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
+  def create(user: User, planetId: String): Future[Unit]
+  def update(user: User, planetId: String): Future[Unit]
+  def delete(userId: String, planetId: String): Future[DeleteResult]
+  def syncRecordId(userId: String, recordId: String, planetId: String): Future[Unit]
 
-  def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit]
-  def reindexAllUsers(implicit ec: ExecutionContext): Future[String]
-  def deleteAll(createdBefore: Long)(implicit ec: ExecutionContext): Future[Int]
-  def updateFriendlyNameForEnrolment(user: User, planetId: String, enrolmentKey: EnrolmentKey, friendlyName: String)(
-    implicit ec: ExecutionContext
-  ): Future[Option[User]]
+  def destroyPlanet(planetId: String): Future[Unit]
+  def reindexAllUsers: Future[Boolean]
+  def deleteAll(createdBefore: Long): Future[Long]
 }
 
-@Singleton
-class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
-    extends ReactiveRepository[User, BSONObjectID](
-      "users",
-      mongoComponent.mongoConnector.db,
-      User.formats,
-      ReactiveMongoFormats.objectIdFormats
-    ) with StrictlyEnsureIndexes[User, BSONObjectID] with UsersRepository with DeleteAll[User] {
-
-  import ImplicitBSONHandlers._
-
+object UsersRepositoryMongo {
   private final val UNIQUE_KEYS = "_uniqueKeys"
   private final val KEYS = "_keys"
-  final val UPDATED = "_last_updated_at"
   private final val USER_ID = "userId"
   private final val KEY_USER_ID = "keyUserId"
   private final val PLANET_ID = "planetId"
   private final val KEY_PLANET_ID = "keyPlanetId"
+}
+
+@Singleton
+class UsersRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: ExecutionContext)
+    extends PlayMongoRepository[JsonAbuse[User]](
+      mongoComponent = mongo,
+      collectionName = "users",
+      domainFormat = JsonAbuse.format[User](false),
+      indexes = Seq(
+        IndexModel(Indexes.ascending(KEYS), IndexOptions().name("Keys")),
+        IndexModel(Indexes.ascending(UNIQUE_KEYS), IndexOptions().name("UniqueKeys").unique(true).sparse(true)),
+        IndexModel(Indexes.ascending(USER_ID), IndexOptions().name(KEY_USER_ID)),
+        IndexModel(Indexes.ascending(PLANET_ID), IndexOptions().name(KEY_PLANET_ID))
+      ),
+      replaceIndexes = false
+    ) with StrictlyEnsureIndexes[JsonAbuse[User]] with UsersRepository with DeleteAll[JsonAbuse[User]] with Logging {
+
+  final val UPDATED = "_last_updated_at"
 
   private def keyOf(key: String, planetId: String): String = s"${key.replace(" ", "")}@$planetId"
-  override def indexes: Seq[Index] =
-    Seq(
-      Index(Seq(KEYS -> Ascending), Some("Keys")),
-      Index(Seq(UNIQUE_KEYS -> Ascending), Some("UniqueKeys"), unique = true, sparse = true),
-      Index(Seq(USER_ID -> Ascending), Some(KEY_USER_ID)),
-      Index(Seq(PLANET_ID -> Ascending), Some(KEY_PLANET_ID))
-    )
 
-  override def findByUserId(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
-    one[User](Seq(UNIQUE_KEYS -> Option(keyOf(User.userIdKey(userId), planetId))))(User.formats)
+  override def findByUserId(userId: String, planetId: String): Future[Option[User]] =
+    collection.find(Filters.equal(UNIQUE_KEYS, keyOf(User.userIdKey(userId), planetId))).headOption.map(_.map(_.value))
 
-  override def findByNino(nino: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
-    one[User](Seq(UNIQUE_KEYS -> Option(keyOf(User.ninoIndexKey(nino), planetId))))(User.formats)
+  override def findByNino(nino: String, planetId: String): Future[Option[User]] =
+    collection.find(Filters.equal(UNIQUE_KEYS, keyOf(User.ninoIndexKey(nino), planetId))).headOption.map(_.map(_.value))
 
   override def findByPlanetId(planetId: String)(
     limit: Int
-  )(implicit ec: ExecutionContext): Future[Seq[User]] =
-    cursor(
-      Seq(
-        KEYS -> Some(planetIdKey(planetId))
-      )
-    )(User.formats)
-      .collect[Seq](maxDocs = limit, err = Cursor.ContOnError[Seq[User]]())
+  ): Future[Seq[User]] =
+    collection.find(Filters.equal(KEYS, planetIdKey(planetId))).limit(limit).toFuture.map(_.map(_.value))
 
   override def findByGroupId(groupId: String, planetId: String)(
     limit: Int
-  )(implicit ec: ExecutionContext): Future[Seq[User]] =
-    cursor(
-      Seq(KEYS -> Option(keyOf(User.groupIdIndexKey(groupId), planetId)))
-    )(User.formats)
-      .collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[User]]())
+  ): Future[Seq[User]] =
+    collection
+      .find(Filters.equal(KEYS, keyOf(User.groupIdIndexKey(groupId), planetId)))
+      .limit(limit)
+      .toFuture
+      .map(_.map(_.value))
 
-  override def findAdminByGroupId(groupId: String, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[Option[User]] =
-    cursor(
-      Seq(KEYS -> Option(keyOf(User.groupIdWithCredentialRoleKey(groupId, User.CR.Admin), planetId)))
-    )(User.formats)
-      .collect[Seq](maxDocs = 1, err = Cursor.FailOnError[Seq[User]]())
-      .map(_.headOption)
+  override def findAdminByGroupId(groupId: String, planetId: String): Future[Option[User]] =
+    collection
+      .find(Filters.equal(KEYS, keyOf(User.groupIdWithCredentialRoleKey(groupId, User.CR.Admin), planetId)))
+      .headOption
+      .map(_.map(_.value))
 
-  override def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[Option[User]] =
-    one[User](Seq(KEYS -> Option(keyOf(User.assignedPrincipalEnrolmentIndexKey(enrolmentKey.toString), planetId))))(
-      User.formats
-    )
+  override def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String): Future[Option[User]] =
+    collection
+      .find(Filters.equal(KEYS, keyOf(User.assignedPrincipalEnrolmentIndexKey(enrolmentKey.toString), planetId)))
+      .headOption
+      .map(_.map(_.value))
 
   override def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
     limit: Int
-  )(implicit ec: ExecutionContext): Future[Seq[User]] =
-    cursor(
-      Seq(KEYS -> Option(keyOf(User.assignedDelegatedEnrolmentIndexKey(enrolmentKey.toString), planetId)))
-    )(User.formats)
-      .collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[User]]())
-
-  override def updateFriendlyNameForEnrolment(
-    user: User,
-    planetId: String,
-    enrolmentKey: EnrolmentKey,
-    friendlyName: String
-  )(implicit
-    ec: ExecutionContext
-  ): Future[Option[User]] = {
-
-    def update(enrolmentType: String, identifier: Identifier): Future[Option[User]] = {
-      val selector = BSONDocument(
-        PLANET_ID                                      -> planetId,
-        USER_ID                                        -> user.userId,
-        s"enrolments.$enrolmentType.identifiers.key"   -> identifier.key,
-        s"enrolments.$enrolmentType.identifiers.value" -> identifier.value
-      )
-      val modifier = BSONDocument(
-        "$set" -> BSONDocument(s"enrolments.$enrolmentType.$$.friendlyName" -> friendlyName)
-      )
-
-      collection
-        .findAndUpdate(selector, modifier, fetchNewObject = true, upsert = false)
-        .map(_.result[User])
-    }
-
-    enrolmentKey.identifiers.headOption match {
-      case None =>
-        Future successful None
-      case Some(identifier) =>
-        update("principal", identifier) flatMap {
-          case None =>
-            update("delegated", identifier)
-          case Some(updatedUser) =>
-            Future successful Option(updatedUser)
-        }
-    }
-  }
-
-  private val userIdReads = new Reads[String] {
-    override def reads(json: JsValue): JsResult[String] = JsSuccess((json \ USER_ID).as[String])
-  }
+  ): Future[Seq[User]] =
+    collection
+      .find(Filters.equal(KEYS, keyOf(User.assignedDelegatedEnrolmentIndexKey(enrolmentKey.toString), planetId)))
+      .limit(limit)
+      .toFuture
+      .map(_.map(_.value))
 
   override def findUserIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
     limit: Int
-  )(implicit ec: ExecutionContext): Future[Seq[String]] =
-    cursor(
-      Seq(KEYS    -> Option(keyOf(User.assignedDelegatedEnrolmentIndexKey(enrolmentKey.toString), planetId))),
-      Seq(USER_ID -> 1)
-    )(userIdReads).collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[String]]())
+  ): Future[Seq[String]] =
+    collection
+      .find(
+        Filters.equal(KEYS, keyOf(User.assignedDelegatedEnrolmentIndexKey(enrolmentKey.toString), planetId))
+      )
+      .limit(limit)
+      .toFuture
+      .map(_.map(_.value.userId))
 
   override def findUserIdsByAssignedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
     limit: Int
-  )(implicit ec: ExecutionContext): Future[Seq[String]] =
-    cursor(
-      Seq(KEYS    -> Option(keyOf(User.assignedPrincipalEnrolmentIndexKey(enrolmentKey.toString), planetId))),
-      Seq(USER_ID -> 1)
-    )(userIdReads).collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[String]]())
-
-  private val groupIdReads = new Reads[Option[String]] {
-    override def reads(json: JsValue): JsResult[Option[String]] = JsSuccess((json \ "groupId").asOpt[String])
-  }
+  ): Future[Seq[String]] =
+    collection
+      .find(
+        filter = Filters.and(
+          Filters.equal("assignedEnrolments", enrolmentKey.toString),
+          Filters.equal(KEYS, planetIdKey(planetId))
+        )
+      )
+      .limit(limit)
+      .toFuture
+      .map(_.map(_.value.userId))
 
   override def findGroupIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
     limit: Int
-  )(implicit ec: ExecutionContext): Future[Seq[Option[String]]] =
-    cursor(
-      Seq(KEYS      -> Option(keyOf(User.assignedDelegatedEnrolmentIndexKey(enrolmentKey.toString), planetId))),
-      Seq("groupId" -> 1)
-    )(groupIdReads)
-      .collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[Option[String]]]())
-
-  private val toJsWrapper: PartialFunction[(String, Option[String]), (String, Json.JsValueWrapper)] = {
-    case (name, Some(value)) => name -> toJsFieldJsValueWrapper(value)
-  }
-
-  private def one[T](query: Seq[(String, Option[String])], projection: Seq[(String, Int)] = Seq.empty)(
-    reader: collection.pack.Reader[T]
-  )(implicit ec: ExecutionContext): Future[Option[T]] =
+  ): Future[Seq[Option[String]]] =
     collection
-      .find(
-        Json.obj(query.collect(toJsWrapper): _*),
-        if (projection.isEmpty) None
-        else Some(Json.obj(projection.map(option => option._1 -> toJsFieldJsValueWrapper(option._2)): _*))
-      )
-      .one[T](readPreference = ReadPreference.primary)(reader, ec)
-
-  private def cursor[T](query: Seq[(String, Option[String])], projection: Seq[(String, Int)] = Seq.empty)(
-    reader: collection.pack.Reader[T]
-  ): Cursor[T] =
-    collection
-      .find(
-        Json.obj(query.collect(toJsWrapper): _*),
-        if (projection.isEmpty) None
-        else Some(Json.obj(projection.map(option => option._1 -> toJsFieldJsValueWrapper(option._2)): _*))
-      )
-      .cursor[T](readPreference = ReadPreference.primary)(reader, implicitly[CursorProducer[T]])
+      .find(Filters.equal(KEYS, keyOf(User.assignedDelegatedEnrolmentIndexKey(enrolmentKey.toString), planetId)))
+      .limit(limit)
+      .toFuture
+      .map(_.map(_.value.groupId))
 
   private def planetIdKey(planetId: String): String = s"planet:$planetId"
 
-  private def serializeUser(user: User, planetId: String): JsObject = {
-    val json = Json
-      .toJson[User](user.copy(planetId = Some(planetId)))
-      .as[JsObject]
-      .+(KEYS -> JsArray(user.lookupKeys.map(key => JsString(keyOf(key, planetId))) :+ JsString(planetIdKey(planetId))))
-      .+(UNIQUE_KEYS -> JsArray(user.uniqueKeys.map(key => JsString(keyOf(key, planetId)))))
-    json
-  }
+  private def serializeUser(user: User, planetId: String): JsonAbuse[User] =
+    JsonAbuse(user.copy(planetId = Some(planetId)))
+      .addField(
+        KEYS,
+        JsArray(user.lookupKeys.map(key => JsString(keyOf(key, planetId))) :+ JsString(planetIdKey(planetId)))
+      )
+      .addField(UNIQUE_KEYS, JsArray(user.uniqueKeys.map(key => JsString(keyOf(key, planetId)))))
 
-  override def create(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+  override def create(user: User, planetId: String): Future[Unit] =
     collection
-      .insert(ordered = false)
-      .one(serializeUser(user, planetId).+(UPDATED -> JsNumber(System.currentTimeMillis())))
+      .insertOne(serializeUser(user, planetId).addField(UPDATED, JsNumber(System.currentTimeMillis())))
+      .toFuture
       .map(_ => ())
       .recoverWith {
-        case e: DatabaseException if e.code.contains(11000) =>
+        case e: DuplicateKeyException if e.getMessage.contains("11000") =>
           throwDuplicatedException(e, user, planetId)
       }
 
-  override def update(user: User, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+  override def update(user: User, planetId: String): Future[Unit] =
     collection
-      .update(ordered = false)
-      .one(
-        Json.obj(UNIQUE_KEYS                    -> keyOf(User.userIdKey(user.userId), planetId)),
-        serializeUser(user, planetId).+(UPDATED -> JsNumber(System.currentTimeMillis())),
-        upsert = true
+      .replaceOne(
+        filter = Filters.equal(UNIQUE_KEYS, keyOf(User.userIdKey(user.userId), planetId)),
+        replacement = serializeUser(user, planetId).addField(UPDATED, JsNumber(System.currentTimeMillis())),
+        ReplaceOptions().upsert(true)
       )
-      .map(wr => logger.info(s"User update was OK?: ${wr.ok}"))
+      .toFuture
+      .map(wr => logger.info(s"User update was OK?: ${wr.getModifiedCount}"))
       .recoverWith {
-        case e: DatabaseException if e.code.contains(11000) =>
+        case e: DuplicateKeyException if e.getMessage.contains("11000") =>
           throwDuplicatedException(e, user, planetId)
       }
 
-  override def delete(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[WriteResult] =
-    remove(UNIQUE_KEYS -> keyOf(User.userIdKey(userId), planetId))
+  override def delete(userId: String, planetId: String): Future[DeleteResult] =
+    collection.deleteOne(Filters.equal(UNIQUE_KEYS, keyOf(User.userIdKey(userId), planetId))).toFuture
 
   private final val keyValueRegex = """\skey\:\s\{\s\w*\:\s\"(.*?)\"\s\}""".r
 
@@ -296,8 +208,8 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
         .map(_.group(1))
     else None
 
-  private def throwDuplicatedException(e: DatabaseException, user: User, planetId: String): Future[Unit] =
-    throw extractKey(e.getMessage()) match {
+  private def throwDuplicatedException(e: DuplicateKeyException, user: User, planetId: String): Future[Unit] =
+    throw extractKey(e.getMessage) match {
       case Some(key) =>
         val prefix = key.takeWhile(_ != ':')
         val value = key.dropWhile(_ != ':').drop(1).takeWhile(_ != '@')
@@ -309,7 +221,7 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
           Some(key)
         )
       case None =>
-        DuplicateUserException(e.getMessage())
+        DuplicateUserException(e.getMessage)
     }
 
   private val duplicatedUserMessageByKeyPrefix: Map[String, (String, String) => String] = Map(
@@ -328,72 +240,42 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
     )
   )
 
-  def syncRecordId(userId: String, recordId: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+  def syncRecordId(userId: String, recordId: String, planetId: String): Future[Unit] =
     if (recordId.nonEmpty) {
       if (recordId.startsWith("--")) {
         collection
-          .update(ordered = false)
-          .one(
-            Json.obj(UNIQUE_KEYS -> keyOf(User.userIdKey(userId), planetId)),
-            Json.obj("$pull"     -> Json.obj("recordIds" -> recordId.substring(2)))
+          .updateOne(
+            filter = Filters.equal(UNIQUE_KEYS, keyOf(User.userIdKey(userId), planetId)),
+            update = Updates.pull("recordIds", recordId.substring(2))
           )
-          .flatMap(MongoHelper.interpretWriteResultUnit)
+          .toFuture
+          .flatMap(MongoHelper.interpretUpdateResultUnit)
       } else {
         collection
-          .update(ordered = false)
-          .one(
-            Json.obj(UNIQUE_KEYS -> keyOf(User.userIdKey(userId), planetId)),
-            Json.obj("$push"     -> Json.obj("recordIds" -> recordId))
+          .updateOne(
+            filter = Filters.equal(UNIQUE_KEYS, keyOf(User.userIdKey(userId), planetId)),
+            update = Updates.push("recordIds", recordId)
           )
-          .flatMap(MongoHelper.interpretWriteResultUnit)
+          .toFuture
+          .flatMap(MongoHelper.interpretUpdateResultUnit)
       }
     } else Future.failed(new Exception("Empty recordId"))
 
-  def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
-    remove(KEYS -> Option(planetIdKey(planetId))).map(_ => ())
+  def destroyPlanet(planetId: String): Future[Unit] =
+    collection.deleteMany(Filters.equal(KEYS, planetIdKey(planetId))).toFuture.map(_ => ())
 
-  private val idReads = new Reads[String] {
-    override def reads(json: JsValue): JsResult[String] = JsSuccess((json \ "_id" \ "$oid").as[String])
-  }
-
-  override def reindexAllUsers(implicit ec: ExecutionContext): Future[String] = {
+  override def reindexAllUsers: Future[Boolean] = {
     val logger = Logger("uk.gov.hmrc.agentsexternalstubs.re-indexing")
-    cursor(Seq(), Seq("_id" -> 1))(idReads)
-      .collect[Seq](maxDocs = -1, err = Cursor.FailOnError())
-      .flatMap(ids =>
-        collection.indexesManager
-          .dropAll()
-          .flatMap { ic =>
-            logger.info(s"Existing $ic indexes has been dropped.")
-            ensureIndexes.flatMap(_ =>
-              Future
-                .sequence(ids.map { id =>
-                  findById(BSONObjectID.parse(id).get).flatMap {
-                    case Some(user) =>
-                      collection
-                        .update(ordered = false)
-                        .one(
-                          Json.obj("_id" -> Json.obj("$oid" -> JsString(id))),
-                          serializeUser(user, user.planetId.get),
-                          upsert = false
-                        )
-                        .map(_ => 1)
-                        .recover { case NonFatal(e) =>
-                          logger.warn(s"User ${user.userId}@${user.planetId.get} re-indexing failed: ${e.getMessage}")
-                          0
-                        }
-                    case None => Future.successful(0)
-                  }
-
-                })
-            )
-          }
-          .map { l =>
-            val msg = s"${l.sum} out of ${ids.size} users has been re-indexed"
-            logger.info(msg)
-            msg
-          }
-      )
+    (for {
+      _ <- collection.dropIndexes().toFuture()
+      _ <- collection.createIndexes(this.indexes).toFuture()
+    } yield {
+      logger.info(s"Users have been re-indexed")
+      true
+    }).recover { case NonFatal(e) =>
+      logger
+        .warn(s"Users re-indexing failed: ${e.getMessage}")
+      false
+    }
   }
-
 }

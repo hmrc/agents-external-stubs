@@ -18,19 +18,13 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 import java.util.UUID
 
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
+import uk.gov.hmrc.agentsexternalstubs.support.AppBaseISpec
 import uk.gov.hmrc.domain.Nino
 import play.api.test.Helpers._
 
-class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
+class UsersRepositoryISpec extends AppBaseISpec {
 
   lazy val repo = app.injector.instanceOf[UsersRepositoryMongo]
-
-  override def beforeEach(): Unit = {
-    super.beforeEach()
-    await(repo.drop)
-    await(repo.ensureIndexes)
-  }
 
   "store" should {
     "store a simple user" in {
@@ -214,7 +208,7 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       await(repo.findByPlanetId(planetId)(100)).size shouldBe 2
       await(repo.findByPlanetId(planetId2)(100)).size shouldBe 2
 
-      await(repo.deleteAll(t0)) should be >= 1
+      await(repo.deleteAll(t0)) should be >= 1L
 
       await(repo.findByPlanetId(planetId)(100)).size shouldBe 0
       await(repo.findByPlanetId(planetId2)(100)).size shouldBe 1

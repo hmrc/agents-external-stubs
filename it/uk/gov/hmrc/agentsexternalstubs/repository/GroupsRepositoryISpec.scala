@@ -17,11 +17,11 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
+import uk.gov.hmrc.agentsexternalstubs.support.AppBaseISpec
 
 import java.util.UUID
 
-class GroupsRepositoryISpec extends AppBaseISpec with MongoDB {
+class GroupsRepositoryISpec extends AppBaseISpec {
 
   lazy val repo = app.injector.instanceOf[GroupsRepositoryMongo]
 
@@ -371,7 +371,7 @@ class GroupsRepositoryISpec extends AppBaseISpec with MongoDB {
       await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 2
       await(repo.findByPlanetId(planetId2, None)(100)).size shouldBe 2
 
-      await(repo.deleteAll(t0)) should be >= 1
+      await(repo.deleteAll(t0)) should be >= 1L
 
       await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 0
       await(repo.findByPlanetId(planetId2, None)(100)).size shouldBe 1
