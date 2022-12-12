@@ -16,10 +16,11 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import org.joda.time.LocalDate
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
 import uk.gov.hmrc.agentsexternalstubs.support.ValidatedMatchers
+
+import java.time.LocalDate
 
 class UserValidatorSpec extends UnitSpec with ValidatedMatchers {
 

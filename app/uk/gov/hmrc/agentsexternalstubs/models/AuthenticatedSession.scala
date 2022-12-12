@@ -20,7 +20,6 @@ import play.api.libs.json.Format
 import play.api.libs.json.Json.format
 import play.api.libs.typedmap.TypedKey
 import play.api.mvc.{Request, RequestHeader}
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
 case class AuthenticatedSession(
   sessionId: String,
@@ -31,7 +30,7 @@ case class AuthenticatedSession(
   createdAt: Long = System.currentTimeMillis()
 )
 
-object AuthenticatedSession extends ReactiveMongoFormats {
+object AuthenticatedSession {
 
   val TAG_SESSION_ID = "AuthenticatedSession-Planet-ID"
   val TAG_USER_ID = "AuthenticatedSession-User-ID"

@@ -18,19 +18,13 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 import java.util.UUID
 
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
+import uk.gov.hmrc.agentsexternalstubs.support.AppBaseISpec
 import uk.gov.hmrc.domain.Nino
 import play.api.test.Helpers._
 
-class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
+class UsersRepositoryISpec extends AppBaseISpec {
 
   lazy val repo = app.injector.instanceOf[UsersRepositoryMongo]
-
-  override def beforeEach(): Unit = {
-    super.beforeEach()
-    await(repo.drop)
-    await(repo.ensureIndexes)
-  }
 
   "store" should {
     "store a simple user" in {
@@ -181,43 +175,6 @@ class UsersRepositoryISpec extends AppBaseISpec with MongoDB {
       await(repo.delete("foo", planetId2))
       await(repo.findByPlanetId(planetId)(100)).size shouldBe 1
       await(repo.findByPlanetId(planetId2)(100)).size shouldBe 0
-    }
-  }
-
-  "deleteAll" should {
-    "remove all users from the database" in {
-      val planetId = UUID.randomUUID().toString
-      val planetId2 = UUID.randomUUID().toString
-
-      await(repo.create(User("boo"), planetId))
-      await(repo.create(User("foo"), planetId))
-      await(repo.create(User("foo"), planetId2))
-      await(repo.create(User("zoo"), planetId2))
-      await(repo.findByPlanetId(planetId)(100)).size shouldBe 2
-      await(repo.findByPlanetId(planetId2)(100)).size shouldBe 2
-
-      await(repo.deleteAll(System.currentTimeMillis()))
-      await(repo.findByPlanetId(planetId)(100)).size shouldBe 0
-      await(repo.findByPlanetId(planetId2)(100)).size shouldBe 0
-    }
-
-    "remove all users created more than some timestamp" ignore {
-      val planetId = UUID.randomUUID().toString
-      val planetId2 = UUID.randomUUID().toString
-
-      await(repo.create(User("boo"), planetId))
-      await(repo.create(User("foo"), planetId))
-      await(repo.create(User("foo"), planetId2))
-      val t0 = System.currentTimeMillis()
-      Thread.sleep(100)
-      await(repo.create(User("zoo"), planetId2))
-      await(repo.findByPlanetId(planetId)(100)).size shouldBe 2
-      await(repo.findByPlanetId(planetId2)(100)).size shouldBe 2
-
-      await(repo.deleteAll(t0)) should be >= 1
-
-      await(repo.findByPlanetId(planetId)(100)).size shouldBe 0
-      await(repo.findByPlanetId(planetId2)(100)).size shouldBe 1
     }
   }
 

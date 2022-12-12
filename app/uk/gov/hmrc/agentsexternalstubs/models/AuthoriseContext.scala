@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import org.joda.time.LocalDate
 import uk.gov.hmrc.agentsexternalstubs.connectors.AgentAccessControlConnector
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
@@ -24,6 +23,8 @@ import uk.gov.hmrc.http.HeaderCarrier
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
 import uk.gov.hmrc.agentsexternalstubs.services.{GroupsService, UsersService}
+
+import java.time.LocalDate
 
 trait AuthoriseContext {
 

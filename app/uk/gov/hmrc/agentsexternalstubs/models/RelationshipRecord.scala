@@ -15,10 +15,12 @@
  */
 
 package uk.gov.hmrc.agentsexternalstubs.models
-import org.joda.time.LocalDate
 import org.scalacheck.Gen
 import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.agentsexternalstubs.models.CreateUpdateAgentRelationshipPayload.Common
+
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 case class RelationshipRecord(
   regime: String,
@@ -50,9 +52,6 @@ case class RelationshipRecord(
 }
 
 object RelationshipRecord extends RecordUtils[RelationshipRecord] {
-
-  import play.api.libs.json.JodaWrites._
-  import play.api.libs.json.JodaReads._
 
   implicit val formats: Format[RelationshipRecord] = Json.format[RelationshipRecord]
   implicit val recordType: RecordMetaData[RelationshipRecord] = RecordMetaData[RelationshipRecord](RelationshipRecord)
@@ -104,7 +103,10 @@ object RelationshipRecord extends RecordUtils[RelationshipRecord] {
           endDate = entity.endDate.orElse(
             Generator.get(
               Generator
-                .date(entity.startDate.map(_.toString("yyyy")).getOrElse("1980").toInt - 1, 2018)
+                .date(
+                  entity.startDate.map(_.format(DateTimeFormatter.ofPattern("yyyy"))).getOrElse("1980").toInt - 1,
+                  2018
+                )
                 .map(d => LocalDate.parse(d.toString))
             )(seed)
           )

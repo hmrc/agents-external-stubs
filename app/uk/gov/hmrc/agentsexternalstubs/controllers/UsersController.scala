@@ -184,7 +184,7 @@ class UsersController @Inject() (
 
   def reindexAllUsers(): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { _ =>
-      usersService.reindexAllUsers.map(msg => Ok(msg))
+      usersService.reindexAllUsers.map(result => Ok(result.toString))
     }(SessionRecordNotFound)
   }
 }

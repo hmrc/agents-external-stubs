@@ -3,11 +3,9 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import play.api.libs.json.JsObject
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.support.{MongoDB, ServerBaseISpec, TestRequests}
+import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests}
 
-class ConfigControllerISpec extends ServerBaseISpec with MongoDB with TestRequests {
-
-  val url = s"http://localhost:$port"
+class ConfigControllerISpec extends ServerBaseISpec with TestRequests {
 
   lazy val wsClient = app.injector.instanceOf[WSClient]
 

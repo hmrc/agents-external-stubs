@@ -19,10 +19,10 @@ import java.util.UUID
 
 import uk.gov.hmrc.agentsexternalstubs.models.SpecialCase.RequestMatch
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
+import uk.gov.hmrc.agentsexternalstubs.support.AppBaseISpec
 import play.api.test.Helpers._
 
-class SpecialCasesRepositoryISpec extends AppBaseISpec with MongoDB {
+class SpecialCasesRepositoryISpec extends AppBaseISpec {
 
   lazy val repo = app.injector.instanceOf[SpecialCasesRepository]
 
@@ -74,24 +74,6 @@ class SpecialCasesRepositoryISpec extends AppBaseISpec with MongoDB {
       await(repo.findByMatchKey(key, planetId)) shouldBe defined
 
       await(repo.delete(id, planetId))
-
-      val result1 = await(repo.findByMatchKey(key, planetId))
-      result1 shouldBe None
-      val result2 = await(repo.findById(id, planetId))
-      result2 shouldBe None
-    }
-
-    "delete all entities" in {
-      val planetId = UUID.randomUUID().toString
-      val entity = SpecialCase(RequestMatch("/test2"), SpecialCase.Response(404), Some(planetId))
-      val key = entity.requestMatch.toKey
-
-      val id = await(repo.upsert(entity, planetId))
-      await(repo.findByMatchKey(key, planetId)) shouldBe defined
-
-      Thread.sleep(100)
-
-      await(repo.deleteAll(System.currentTimeMillis())) should be >= 1
 
       val result1 = await(repo.findByMatchKey(key, planetId))
       result1 shouldBe None

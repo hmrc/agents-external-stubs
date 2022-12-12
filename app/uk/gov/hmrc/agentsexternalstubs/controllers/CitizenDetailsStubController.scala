@@ -17,7 +17,6 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import javax.inject.{Inject, Singleton}
-import org.joda.time.LocalDate
 import play.api.libs.json.{Format, Json, OFormat}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.agentsexternalstubs.controllers.CitizenDetailsStubController.{GetCitizenResponse, GetDesignatoryDetailsBasicResponse, GetDesignatoryDetailsResponse}
@@ -25,10 +24,10 @@ import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Group, 
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GroupsService, UsersService}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import play.api.libs.json.JodaWrites._
-import play.api.libs.json.JodaReads._
 import uk.gov.hmrc.agentmtdidentifiers.model.Utr
 
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -140,7 +139,7 @@ object CitizenDetailsStubController {
       GetCitizenResponse(
         name = Names(current = convertName(user.name)),
         ids = Ids(nino = user.nino, sautr = Some(Utr("1234567890"))),
-        dateOfBirth = user.dateOfBirth.map(_.toString("ddMMyyyy"))
+        dateOfBirth = user.dateOfBirth.map(_.format(DateTimeFormatter.ofPattern("ddMMyyyy")))
       )
 
   }

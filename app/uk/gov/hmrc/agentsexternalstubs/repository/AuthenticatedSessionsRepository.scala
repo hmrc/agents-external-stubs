@@ -16,93 +16,74 @@
 
 package uk.gov.hmrc.agentsexternalstubs.repository
 
-import javax.inject.{Inject, Singleton}
-import play.api.libs.json.Json
-import play.api.libs.json.Json.toJsFieldJsValueWrapper
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.commands.WriteResult
-import reactivemongo.api.indexes.Index
-import reactivemongo.api.indexes.IndexType.Ascending
-import reactivemongo.api.{Cursor, CursorProducer, ReadPreference}
-import reactivemongo.bson.{BSONDocument, BSONObjectID}
-import reactivemongo.play.json.ImplicitBSONHandlers
-import uk.gov.hmrc.agentsexternalstubs.models.AuthenticatedSession
-import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
+import org.mongodb.scala.result.DeleteResult
 
+import javax.inject.{Inject, Singleton}
+import uk.gov.hmrc.agentsexternalstubs.models.AuthenticatedSession
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+
+import java.util.concurrent.TimeUnit
 import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class AuthenticatedSessionsRepository @Inject() (mongoComponent: ReactiveMongoComponent)
-    extends ReactiveRepository[AuthenticatedSession, BSONObjectID](
-      "authenticated-sessions",
-      mongoComponent.mongoConnector.db,
-      AuthenticatedSession.formats,
-      ReactiveMongoFormats.objectIdFormats
-    ) with StrictlyEnsureIndexes[AuthenticatedSession, BSONObjectID] with DeleteAll[AuthenticatedSession] {
+class AuthenticatedSessionsRepository @Inject() (mongo: MongoComponent)(implicit val ec: ExecutionContext)
+    extends PlayMongoRepository[AuthenticatedSession](
+      mongoComponent = mongo,
+      collectionName = "authenticated-sessions",
+      domainFormat = AuthenticatedSession.formats,
+      indexes = Seq(
+        IndexModel(
+          Indexes.ascending("authToken"),
+          IndexOptions().unique(true).name("AuthenticatedSessions").expireAfter(900, TimeUnit.SECONDS)
+        ),
+        IndexModel(Indexes.ascending("sessionId"), IndexOptions().unique(true).name("SessionIds")),
+        IndexModel(Indexes.ascending("userId"), IndexOptions().name("AuthenticatedUsers"))
+      ),
+      replaceIndexes = true
+    ) {
 
   final val UPDATED = "createdAt"
 
-  import ImplicitBSONHandlers._
-
   def findByAuthToken(authToken: String)(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
-    one[AuthenticatedSession](Seq("authToken" -> Option(authToken)))(AuthenticatedSession.formats)
+    one[AuthenticatedSession](Seq("authToken" -> authToken))
 
   def findBySessionId(sessionId: String)(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
-    one[AuthenticatedSession](Seq("sessionId" -> Option(sessionId)))(AuthenticatedSession.formats)
+    one[AuthenticatedSession](Seq("sessionId" -> sessionId))
 
   def findByPlanetId(planetId: String)(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
-    one[AuthenticatedSession](Seq("planetId" -> Option(planetId)))(AuthenticatedSession.formats)
+    one[AuthenticatedSession](Seq("planetId" -> planetId))
 
-  def findByUserId(userId: String)(implicit ec: ExecutionContext): Future[List[AuthenticatedSession]] =
-    cursor[AuthenticatedSession](Seq("userId" -> Option(userId)))(AuthenticatedSession.formats)
-      .collect[List](maxDocs = 1000, err = Cursor.FailOnError())
-
-  override def indexes = Seq(
-    Index(
-      Seq("authToken" -> Ascending),
-      Some("AuthenticatedSessions"),
-      unique = true,
-      options = BSONDocument("expireAfterSeconds" -> 900)
-    ),
-    Index(Seq("sessionId" -> Ascending), Some("SessionIds"), unique = true),
-    Index(Seq("userId" -> Ascending), Some("AuthenticatedUsers"))
-  )
+  def findByUserId(userId: String)(implicit ec: ExecutionContext): Future[Seq[AuthenticatedSession]] =
+    collection
+      .find(Filters.equal("userId", userId))
+      .limit(1000)
+      .toFuture
 
   def create(authenticatedSession: AuthenticatedSession)(implicit ec: ExecutionContext): Future[Unit] =
-    insert(authenticatedSession).map(_ => ())
+    collection
+      .insertOne(authenticatedSession)
+      .toFuture()
+      .map(_ => ())
 
-  def delete(sessionId: String)(implicit ec: ExecutionContext): Future[WriteResult] =
-    remove("authToken" -> sessionId)
+  def delete(sessionId: String)(implicit ec: ExecutionContext): Future[DeleteResult] =
+    collection
+      .deleteOne(Filters.equal("authToken", sessionId))
+      .toFuture()
 
   def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
-    remove("planetId" -> Option(planetId)).map(_ => ())
-
-  private val toJsWrapper: PartialFunction[(String, Option[String]), (String, Json.JsValueWrapper)] = {
-    case (name, Some(value)) => name -> toJsFieldJsValueWrapper(value)
-  }
-
-  private def one[T](query: Seq[(String, Option[String])], projection: Seq[(String, Int)] = Seq.empty)(
-    reader: collection.pack.Reader[T]
-  )(implicit ec: ExecutionContext): Future[Option[T]] =
     collection
-      .find(
-        Json.obj(query.collect(toJsWrapper): _*),
-        if (projection.isEmpty) None
-        else Some(Json.obj(projection.map(option => option._1 -> toJsFieldJsValueWrapper(option._2)): _*))
-      )
-      .one[T](readPreference = ReadPreference.primary)(reader, ec)
+      .deleteMany(Filters.equal("planetId", planetId))
+      .toFuture()
+      .map(_ => ())
 
-  private def cursor[T](query: Seq[(String, Option[String])], projection: Seq[(String, Int)] = Seq.empty)(
-    reader: collection.pack.Reader[T]
-  ): Cursor[T] =
+  private def one[T](
+    query: Seq[(String, String)]
+  )(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
     collection
-      .find(
-        Json.obj(query.collect(toJsWrapper): _*),
-        if (projection.isEmpty) None
-        else Some(Json.obj(projection.map(option => option._1 -> toJsFieldJsValueWrapper(option._2)): _*))
-      )
-      .cursor[T](readPreference = ReadPreference.primary)(reader, implicitly[CursorProducer[T]])
-
+      .find(Filters.and(query.map { case (field, value) => Filters.equal(field, value) }: _*))
+      .toFuture
+      .map(_.headOption)
 }

@@ -109,8 +109,8 @@ class GroupsService @Inject() (
            }
     } yield ()
 
-  def syncRecordId(group: Group, planetId: String)(recordId: String)(implicit ec: ExecutionContext): Future[Unit] =
-    groupsRepository.syncRecordId(group.groupId, recordId, planetId).map(_ => ())
+//  def syncRecordId(group: Group, planetId: String)(recordId: String)(implicit ec: ExecutionContext): Future[Unit] =
+//    groupsRepository.syncRecordId(group.groupId, recordId, planetId).map(_ => ())
 
   def setEnrolmentFriendlyName(group: Group, planetId: String, enrolmentKey: EnrolmentKey, friendlyName: String)(
     implicit ec: ExecutionContext
@@ -272,7 +272,7 @@ class GroupsService @Inject() (
         .getOrElse(Future.successful(group))
   }
 
-  def reindexAllGroups(implicit ec: ExecutionContext): Future[String] = groupsRepository.reindexAllGroups
+  def reindexAllGroups(implicit ec: ExecutionContext): Future[Boolean] = groupsRepository.reindexAllGroups
 
 }
 

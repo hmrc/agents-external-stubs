@@ -1,14 +1,12 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import org.scalatest.BeforeAndAfterEach
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Group, User, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
-import uk.gov.hmrc.agentsexternalstubs.support.{MongoDB, NotAuthorized, ServerBaseISpec, TestRequests}
+import uk.gov.hmrc.agentsexternalstubs.support.{NotAuthorized, ServerBaseISpec, TestRequests}
 
-class UserDetailsStubControllerISpec extends ServerBaseISpec with MongoDB with TestRequests with TestStubs {
+class UserDetailsStubControllerISpec extends ServerBaseISpec with TestRequests with TestStubs {
 
-  val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
   val testPlanet = "testPlanet"
 

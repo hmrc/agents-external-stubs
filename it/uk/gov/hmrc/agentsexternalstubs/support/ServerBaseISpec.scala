@@ -8,7 +8,7 @@ import play.api.Application
 import scala.concurrent.ExecutionContext
 
 abstract class ServerBaseISpec
-    extends BaseISpec with BeforeAndAfterAll with ScalaFutures with JsonMatchers with WSResponseMatchers {
+    extends BaseISpec with BeforeAndAfterAll with ScalaFutures with JsonMatchers with WSResponseMatchers with MongoDB {
 
   val playServer: TestPlayServer = TestPlayServer
   def port: Int = playServer.port
@@ -20,6 +20,8 @@ abstract class ServerBaseISpec
   }
 
   override lazy val app: Application = playServer.app
+
+  val url = s"http://localhost:$port"
 
   import scala.concurrent.duration._
   implicit val defaultTimeout: FiniteDuration = 30.seconds

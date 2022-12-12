@@ -17,11 +17,11 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
+import uk.gov.hmrc.agentsexternalstubs.support.AppBaseISpec
 
 import java.util.UUID
 
-class GroupsRepositoryISpec extends AppBaseISpec with MongoDB {
+class GroupsRepositoryISpec extends AppBaseISpec {
 
   lazy val repo = app.injector.instanceOf[GroupsRepositoryMongo]
 
@@ -338,43 +338,6 @@ class GroupsRepositoryISpec extends AppBaseISpec with MongoDB {
       await(repo.delete("foo", planetId2))
       await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 1
       await(repo.findByPlanetId(planetId2, None)(100)).size shouldBe 0
-    }
-  }
-
-  "deleteAll" should {
-    "remove all groups from the database" in {
-      val planetId = UUID.randomUUID().toString
-      val planetId2 = UUID.randomUUID().toString
-
-      await(repo.create(Group(planetId, "boo", AG.Individual), planetId))
-      await(repo.create(Group(planetId, "foo", AG.Individual), planetId))
-      await(repo.create(Group(planetId2, "foo", AG.Individual), planetId2))
-      await(repo.create(Group(planetId2, "zoo", AG.Individual), planetId2))
-      await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 2
-      await(repo.findByPlanetId(planetId2, None)(100)).size shouldBe 2
-
-      await(repo.deleteAll(System.currentTimeMillis()))
-      await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 0
-      await(repo.findByPlanetId(planetId2, None)(100)).size shouldBe 0
-    }
-
-    "remove all groups created more than some timestamp" ignore {
-      val planetId = UUID.randomUUID().toString
-      val planetId2 = UUID.randomUUID().toString
-
-      await(repo.create(Group(planetId, "boo", AG.Individual), planetId))
-      await(repo.create(Group(planetId, "foo", AG.Individual), planetId))
-      await(repo.create(Group(planetId2, "foo", AG.Individual), planetId2))
-      val t0 = System.currentTimeMillis()
-      Thread.sleep(100)
-      await(repo.create(Group(planetId2, "zoo", AG.Individual), planetId2))
-      await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 2
-      await(repo.findByPlanetId(planetId2, None)(100)).size shouldBe 2
-
-      await(repo.deleteAll(t0)) should be >= 1
-
-      await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 0
-      await(repo.findByPlanetId(planetId2, None)(100)).size shouldBe 1
     }
   }
 

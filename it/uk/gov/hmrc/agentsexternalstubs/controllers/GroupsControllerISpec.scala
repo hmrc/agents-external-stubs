@@ -9,10 +9,7 @@ import uk.gov.hmrc.agentsexternalstubs.services.GroupsService
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
 
-class GroupsControllerISpec
-    extends ServerBaseISpec with MongoDB with TestRequests with TestStubs with BeforeAndAfterEach {
-
-  val url = s"http://localhost:$port"
+class GroupsControllerISpec extends ServerBaseISpec with TestRequests with TestStubs with BeforeAndAfterEach {
 
   lazy val wsClient = app.injector.instanceOf[WSClient]
   override lazy val groupsService = app.injector.instanceOf[GroupsService]
@@ -234,7 +231,7 @@ class GroupsControllerISpec
       implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
       val result = Groups.reindexAllGroups
       result.status shouldBe 200
-      result.body should include("groups has been re-indexed")
+      result.body should include("true")
     }
   }
 }

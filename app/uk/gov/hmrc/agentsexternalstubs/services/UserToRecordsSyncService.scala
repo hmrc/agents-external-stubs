@@ -307,7 +307,7 @@ class UserToRecordsSyncService @Inject() (
                                 .withLastName(user.lastName)
                             )
                           )
-                          .withDateOfBirth(user.dateOfBirth.map(_.toString("yyyy-MM-dd")))
+                          .withDateOfBirth(user.dateOfBirth.map(_.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))))
                           .modifyEffectiveRegistrationDate { case date =>
                             vatRegistrationDateOpt.map(_.format(dateFormatyyyyMMdd)).orElse(date)
                           }

@@ -48,8 +48,6 @@ object Generator extends Names with Temporal with Companies with Addresses {
   def regex(regex: String): Gen[String] =
     knownRegex.getOrElse(regex, RegexpGen.from(regex).retryUntil(s => s.matches(regex)))
 
-  def toJodaDate(date: java.time.LocalDate): org.joda.time.LocalDate = org.joda.time.LocalDate.parse(date.toString)
-
   lazy val booleanGen: Gen[Boolean] = Gen.frequency(80 -> Gen.const(true), 20 -> Gen.const(false))
 
   case class OptionGenStrategy(someFrequency: Int)

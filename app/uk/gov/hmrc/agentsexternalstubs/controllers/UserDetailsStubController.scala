@@ -23,6 +23,7 @@ import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Generat
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import java.time.format.DateTimeFormatter
 import scala.concurrent.ExecutionContext
 @Singleton
 class UserDetailsStubController @Inject() (
@@ -106,7 +107,7 @@ object UserDetailsStubController {
       credentialRole = user.credentialRole.getOrElse("User"),
       description = s"Agent Stubs test user on the planet ${user.planetId.getOrElse("?")}",
       postCode = user.address.flatMap(_.postcode),
-      dateOfBirth = user.dateOfBirth.map(_.toString("yyyy-MM-dd"))
+      dateOfBirth = user.dateOfBirth.map(_.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
     )
   }
 

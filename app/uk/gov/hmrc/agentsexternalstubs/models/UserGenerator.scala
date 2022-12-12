@@ -16,10 +16,11 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 import java.util.UUID
-import org.joda.time.LocalDate
-import org.joda.time.format.ISODateTimeFormat
 import org.scalacheck.Gen
 import uk.gov.hmrc.domain.Nino
+
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 object UserGenerator {
 
@@ -97,7 +98,7 @@ object UserGenerator {
       nino = Option(nino).map(Nino.apply).orElse(Option(ninoWithSpaces(userId))),
       name = Option(name).orElse(Option(UserGenerator.nameForIndividual(userId))),
       dateOfBirth = Option(dateOfBirth)
-        .map(LocalDate.parse(_, ISODateTimeFormat.date()))
+        .map(LocalDate.parse(_, DateTimeFormatter.ISO_DATE))
         .orElse(Option(UserGenerator.dateOfBirth(userId))),
       groupId = Option(groupId).orElse(Option(UserGenerator.groupId(userId)))
     )

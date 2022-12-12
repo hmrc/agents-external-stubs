@@ -17,22 +17,22 @@
 package uk.gov.hmrc.agentsexternalstubs.connectors
 
 import java.net.URL
-
 import com.kenshoo.play.metrics.Metrics
+
 import javax.inject.{Inject, Singleton}
-import org.joda.time.LocalDate
-import org.joda.time.format._
 import play.api.libs.json.{JsPath, Reads}
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http._
 
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import scala.concurrent.{ExecutionContext, Future}
 
 case class CitizenDateOfBirth(dateOfBirth: Option[LocalDate])
 
 object CitizenDateOfBirth {
-  val format = DateTimeFormat.forPattern("ddMMyyyy")
+  val format = DateTimeFormatter.ofPattern("ddMMyyyy")
   implicit val reads: Reads[CitizenDateOfBirth] =
     (JsPath \ "dateOfBirth")
       .readNullable[String]

@@ -18,10 +18,8 @@ import uk.gov.hmrc.domain.{AgentCode, TaxIdentifier}
 
  */
 
-class EnrolmentStoreProxyConnectorISpec
-    extends ServerBaseISpec with MongoDB with EnrolmentStoreProxyHelper with MockitoSugar {
+class EnrolmentStoreProxyConnectorISpec extends ServerBaseISpec with EnrolmentStoreProxyHelper with MockitoSugar {
 
-  val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
   lazy val connector = app.injector.instanceOf[EnrolmentStoreProxyConnector]
 

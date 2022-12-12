@@ -17,10 +17,12 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import cats.data.Validated.{Invalid, Valid}
-import org.joda.time.LocalDate
 import play.api.libs.json._
 import uk.gov.hmrc.agentsexternalstubs.models.User.AdditionalInformation
 import uk.gov.hmrc.domain.Nino
+
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 case class User(
   userId: String,
@@ -83,9 +85,6 @@ case class User(
 
 object User {
 
-  import play.api.libs.json.JodaWrites._
-  import play.api.libs.json.JodaReads._
-
   case class Address(
     line1: Option[String] = None,
     line2: Option[String] = None,
@@ -122,18 +121,6 @@ object User {
     delegated: Seq[Enrolment] = Seq.empty,
     assigned: Seq[EnrolmentKey] = Seq.empty
   )
-
-  object Enrolments {
-    import play.api.libs.functional.syntax._
-    implicit val reads: Reads[Enrolments] = (
-      (JsPath \ "principal").readNullable[Seq[Enrolment]].map(_.getOrElse(Seq.empty)) and
-        (JsPath \ "delegated").readNullable[Seq[Enrolment]].map(_.getOrElse(Seq.empty)) and
-        (JsPath \ "assigned").readNullable[Seq[EnrolmentKey]].map(_.getOrElse(Seq.empty))
-    )(Enrolments.apply _)
-    implicit val writes: Writes[Enrolments] = Json.writes[Enrolments]
-
-    val none = Enrolments(Seq.empty, Seq.empty, Seq.empty)
-  }
 
   def validate(user: User, affinityGroup: Option[String]): Either[List[String], User] =
     UserValidator(affinityGroup).validate(user) match {
@@ -198,9 +185,9 @@ object User {
   implicit val reads: Reads[User] = reads(tolerateEnrolmentKeysWithNoIdentifiers = false)
   val tolerantReads: Reads[User] = reads(tolerateEnrolmentKeysWithNoIdentifiers = true)
 
-  implicit val writes: Writes[User] = Json.writes[User]
+  implicit val writes: OWrites[User] = Json.writes[User]
 
-  val formats = Format(reads, writes)
+  val formats = OFormat(reads, writes)
 
   def parseUserIdAtPlanetId(credId: String, defaultPlanetId: => String): (String, String) = {
     val at = credId.indexOf('@')
@@ -211,7 +198,7 @@ object User {
   def knownFactsOf(user: User): Map[String, String] = {
     val postcodeOpt = user.address.flatMap(_.postcode)
     val vatRegDateOpt = user.additionalInformation
-      .flatMap(_.vatRegistrationDate.map(_.toString("dd/MM/yy")))
+      .flatMap(_.vatRegistrationDate.map(_.format(DateTimeFormatter.ofPattern("dd/MM/yy"))))
     Seq(
       "PostCode"            -> postcodeOpt,
       "BusinessPostcode"    -> postcodeOpt,

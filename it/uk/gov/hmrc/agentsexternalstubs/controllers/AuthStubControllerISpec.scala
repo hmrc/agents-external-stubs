@@ -23,10 +23,8 @@ import uk.gov.hmrc.http.Authorization
 
 import scala.concurrent.Future
 
-class AuthStubControllerISpec
-    extends ServerBaseISpec with MongoDB with TestRequests with TestStubs with WireMockSupport {
+class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with TestStubs with WireMockSupport {
 
-  val url = s"http://localhost:$port"
   lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
 
   val authConnector: AuthConnector = app.injector.instanceOf[MicroserviceAuthConnector]

@@ -8,15 +8,14 @@ import uk.gov.hmrc.agentmtdidentifiers.model.Utr
 import uk.gov.hmrc.agentsexternalstubs.models.ApiPlatform.TestUser
 import uk.gov.hmrc.agentsexternalstubs.models.Generator
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
-import uk.gov.hmrc.agentsexternalstubs.support.{MongoDB, ServerBaseISpec, TestRequests, WireMockSupport}
+import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests, WireMockSupport}
 import uk.gov.hmrc.domain.{Nino, Vrn}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpGet}
 
 class ApiPlatformTestUserConnectorISpec
-    extends ServerBaseISpec with MongoDB with TestRequests with TestStubs with WireMockSupport
+    extends ServerBaseISpec with TestRequests with TestStubs with WireMockSupport
     with ExampleApiPlatformTestUserResponses {
 
-  val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
   lazy val httpGet = app.injector.instanceOf[HttpGet]
   lazy val connector = new ApiPlatformTestUserConnector(TestAppConfig(wireMockBaseUrlAsString, wireMockPort), httpGet)

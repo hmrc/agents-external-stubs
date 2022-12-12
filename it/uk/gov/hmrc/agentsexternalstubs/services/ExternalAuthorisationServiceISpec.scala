@@ -1,8 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
 import java.util.UUID
-
-import org.joda.time.LocalDate
 import uk.gov.hmrc.agentsexternalstubs.connectors.{MicroserviceAuthConnector, TestAppConfig}
 import uk.gov.hmrc.agentsexternalstubs.controllers.BearerToken
 import uk.gov.hmrc.agentsexternalstubs.models._
@@ -13,9 +11,10 @@ import uk.gov.hmrc.http.{Authorization, SessionId}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpPost}
 import play.api.test.Helpers._
 
+import java.time.LocalDate
 import scala.concurrent.ExecutionContext
 
-class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSupport with MongoDB with AuthStubs {
+class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSupport with AuthStubs {
 
   lazy val usersService = app.injector.instanceOf[UsersService]
   lazy val groupsService = app.injector.instanceOf[GroupsService]

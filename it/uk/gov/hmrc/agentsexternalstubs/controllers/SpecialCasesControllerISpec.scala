@@ -9,9 +9,8 @@ import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Enrolme
 import uk.gov.hmrc.agentsexternalstubs.repository.SpecialCasesRepository
 import uk.gov.hmrc.agentsexternalstubs.support._
 
-class SpecialCasesControllerISpec extends ServerBaseISpec with MongoDB with TestRequests {
+class SpecialCasesControllerISpec extends ServerBaseISpec with TestRequests {
 
-  val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
   lazy val repo = app.injector.instanceOf[SpecialCasesRepository]
 

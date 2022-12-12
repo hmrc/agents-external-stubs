@@ -8,7 +8,7 @@ import play.api.Application
 import scala.concurrent.ExecutionContext
 
 abstract class AppBaseISpec
-    extends BaseISpec with ScalaFutures with JsonMatchers with WSResponseMatchers with BeforeAndAfterEach {
+    extends BaseISpec with ScalaFutures with JsonMatchers with WSResponseMatchers with MongoDB with BeforeAndAfterEach {
 
   override lazy val app: Application = TestPlayServer.app
   val port: Int = TestPlayServer.port

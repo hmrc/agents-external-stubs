@@ -17,99 +17,74 @@
 package uk.gov.hmrc.agentsexternalstubs.repository
 
 import com.google.inject.ImplementedBy
+import org.bson.types.ObjectId
+import org.mongodb.scala.model._
 import play.api.libs.json.Json.toJsFieldJsValueWrapper
 import play.api.libs.json.{OWrites => _, _}
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.indexes.Index
-import reactivemongo.api.indexes.IndexType.Ascending
-import reactivemongo.api.{Cursor, CursorProducer, ReadPreference}
-import reactivemongo.bson.BSONObjectID
-import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
 import uk.gov.hmrc.agentsexternalstubs.models.Record.TYPE
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository._
 import uk.gov.hmrc.agentsexternalstubs.syntax.|>
-import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
-@ImplementedBy(classOf[RecordsRepositoryMongo])
-trait RecordsRepository {
-
-  def store[T <: Record](entity: T, planetId: String)(implicit reads: Reads[T], ec: ExecutionContext): Future[String]
-
-  def cursor[T <: Record](key: String, planetId: String)(implicit
-    reads: Reads[T],
-    ec: ExecutionContext,
-    recordType: RecordMetaData[T]
-  ): Cursor[T]
-
-  def cursor[T <: Record](keys: Seq[String], planetId: String)(implicit
-    reads: Reads[T],
-    ec: ExecutionContext,
-    recordType: RecordMetaData[T]
-  ): Cursor[T]
-
-  def findById[T <: Record](id: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[T]]
-
-  def findByPlanetId(planetId: String)(implicit ec: ExecutionContext): Cursor[Record]
-
-  def remove(id: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit]
-
-  def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit]
-
-  def deleteAll(createdBefore: Long)(implicit ec: ExecutionContext): Future[Int]
-}
-
-@Singleton
-class RecordsRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
-    extends ReactiveRepository[Record, BSONObjectID](
-      "records",
-      mongoComponent.mongoConnector.db,
-      Record.formats,
-      ReactiveMongoFormats.objectIdFormats
-    ) with StrictlyEnsureIndexes[Record, BSONObjectID] with RecordsRepository with DeleteAll[Record] {
-
+object RecordsRepository {
   final val PLANET_ID = "_planetId"
   final val UNIQUE_KEY = "_uniqueKey"
   final val KEYS = "_keys"
+}
+
+@ImplementedBy(classOf[RecordsRepositoryMongo])
+trait RecordsRepository {
+
+  def store[T <: Record](entity: T, planetId: String)(implicit reads: Reads[T]): Future[String]
+
+  def findByKey[T <: Record](key: String, planetId: String, limit: Option[Int])(implicit
+    reads: Reads[T],
+    recordType: RecordMetaData[T]
+  ): Future[Seq[T]]
+
+  def findByKeys[T <: Record](keys: Seq[String], planetId: String, limit: Option[Int])(implicit
+    reads: Reads[T],
+    recordType: RecordMetaData[T]
+  ): Future[Seq[T]]
+
+  def findById[T <: Record](id: String, planetId: String): Future[Option[T]]
+
+  def findByPlanetId(planetId: String, limit: Option[Int] = None): Future[Seq[Record]]
+
+  def remove(id: String, planetId: String): Future[Unit]
+
+  def destroyPlanet(planetId: String): Future[Unit]
+}
+
+@Singleton
+class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: ExecutionContext)
+    extends PlayMongoRepository[JsonAbuse[Record]](
+      mongoComponent = mongo,
+      collectionName = "records",
+      domainFormat = JsonAbuse.format[Record](true),
+      indexes = Seq(
+        IndexModel(Indexes.ascending(KEYS), IndexOptions().name("Keys")),
+        IndexModel(Indexes.ascending(UNIQUE_KEY), IndexOptions().name("UniqueKey").unique(true).sparse(true))
+      ),
+      extraCodecs = Seq(Codecs.playFormatCodec(Record.formats)),
+      replaceIndexes = true
+    ) with RecordsRepository {
+
   final val UPDATED = "_last_updated_at"
 
-  override def indexes =
-    Seq(
-      Index(Seq(KEYS -> Ascending), Some("Keys")),
-      Index(Seq(UNIQUE_KEY -> Ascending), Some("UniqueKey"), unique = true, sparse = true)
-    )
-
-  def rawStore(json: JsObject)(implicit
-    ec: ExecutionContext
-  ): Future[String] = {
-
-    val newId = BSONObjectID.generate().stringify
-    collection
-      .insert(ordered = false)
-      .one(
-        json + (Record.ID -> Json.obj("$oid" -> JsString(newId))) + (UPDATED -> JsNumber(
-          System.currentTimeMillis()
-        ))
-      )
-      .map((_, newId))
-      .flatMap(MongoHelper.interpretWriteResult)
-  }
-
-  override def store[T <: Record](entity: T, planetId: String)(implicit
-    reads: Reads[T],
-    ec: ExecutionContext
-  ): Future[String] = {
+  override def store[T <: Record](entity: T, planetId: String)(implicit reads: Reads[T]): Future[String] = {
     val typeName = Record.typeOf(entity)
-    val json = Json
-      .toJson[Record](entity)
-      .as[JsObject]
-      .+(PLANET_ID -> JsString(planetId))
-      .+(TYPE -> JsString(typeName))
-      .+(
-        KEYS -> JsArray(
+    val entityWithExtraJson = JsonAbuse(entity: Record)
+      .addField(PLANET_ID, JsString(planetId))
+      .addField(TYPE, JsString(typeName))
+      .addField(
+        KEYS,
+        JsArray(
           entity.uniqueKey
             .map(key => entity.lookupKeys :+ key)
             .getOrElse(entity.lookupKeys)
@@ -118,123 +93,128 @@ class RecordsRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
       )
       .|> { obj =>
         entity.uniqueKey
-          .map(uniqueKey => obj.+(UNIQUE_KEY -> JsString(keyOf(uniqueKey, planetId, typeName))))
+          .map(uniqueKey => obj.addField(UNIQUE_KEY, JsString(keyOf(uniqueKey, planetId, typeName))))
           .getOrElse(obj)
       }
 
     ((entity.id, entity.uniqueKey) match {
       case (None, None) =>
-        val newId = BSONObjectID.generate().stringify
+        val newId = ObjectId.get().toString
         collection
-          .insert(ordered = false)
-          .one(
-            json + (Record.ID -> Json.obj("$oid" -> JsString(newId))) + (UPDATED -> JsNumber(
-              System.currentTimeMillis()
-            ))
+          .insertOne(
+            entityWithExtraJson
+              .addField(Record.ID, Json.toJson(Id(newId))(Id.internalFormats))
+              .addField(UPDATED, JsNumber(System.currentTimeMillis()))
           )
+          .toFuture
           .map((_, newId))
+          .flatMap(MongoHelper.interpretInsertOneResult)
       case (Some(id), _) =>
         collection
-          .update(ordered = false)
-          .one(
-            Json.obj(Record.ID -> Json.obj("$oid" -> JsString(id))),
-            json + (UPDATED -> JsNumber(System.currentTimeMillis())),
-            upsert = true
+          .replaceOne(
+            filter = Filters.equal(Record.ID, new ObjectId(id)),
+            replacement = entityWithExtraJson.addField(UPDATED, JsNumber(System.currentTimeMillis())),
+            ReplaceOptions().upsert(true)
           )
+          .toFuture
           .map((_, id))
+          .flatMap(MongoHelper.interpretUpdateResult)
       case (None, Some(uniqueKey)) =>
         collection
-          .find(Json.obj(UNIQUE_KEY -> JsString(keyOf(uniqueKey, planetId, typeName))), projection = None)
-          .one[JsObject]
-          .map(recordOpt =>
-            recordOpt.flatMap(r => (r \ "_id" \ "$oid").asOpt[String]).getOrElse(BSONObjectID.generate().stringify)
-          )
-          .flatMap(recordId =>
-            collection
-              .update(ordered = false)
-              .one(
-                Json.obj(Record.ID -> Json.obj("$oid" -> JsString(recordId))),
-                json
-                  .+(Record.ID -> Json.obj("$oid" -> JsString(recordId)))
-                  .+(UPDATED -> JsNumber(System.currentTimeMillis())),
-                upsert = true
-              )
-              .map((_, recordId))
-          )
-    }).flatMap(MongoHelper.interpretWriteResult)
-
+          .find(Filters.equal(UNIQUE_KEY, keyOf(uniqueKey, planetId, typeName)))
+          .headOption
+          .map(_.flatMap(_.value.id))
+          .flatMap {
+            case Some(recordId) =>
+              collection
+                .replaceOne(
+                  Filters.equal(Record.ID, new ObjectId(recordId)),
+                  entityWithExtraJson
+                    .addField(Record.ID, Json.obj("$oid" -> JsString(recordId)))
+                    .addField(UPDATED, JsNumber(System.currentTimeMillis())),
+                  ReplaceOptions().upsert(true)
+                )
+                .toFuture
+                .map(_ => recordId)
+            case None =>
+              val newId = ObjectId.get().toString
+              collection
+                .insertOne(
+                  entityWithExtraJson
+                    .addField(Record.ID, Json.obj("$oid" -> JsString(newId)))
+                    .addField(UPDATED, JsNumber(System.currentTimeMillis()))
+                )
+                .toFuture
+                .map(_ => newId)
+          }
+    })
   }
 
-  override def cursor[T <: Record](key: String, planetId: String)(implicit
+  def rawStore(record: JsonAbuse[Record]): Future[String] = {
+    val newId = ObjectId.get().toString
+    collection
+      .insertOne(
+        record
+          .addField(Record.ID, Json.obj("$oid" -> JsString(newId)))
+          .addField(UPDATED, JsNumber(System.currentTimeMillis()))
+      )
+      .toFuture
+      .map((_, newId))
+      .flatMap(MongoHelper.interpretInsertOneResult)
+  }
+
+  override def findByKey[T <: Record](key: String, planetId: String, limit: Option[Int])(implicit
     reads: Reads[T],
-    ec: ExecutionContext,
     recordType: RecordMetaData[T]
-  ): Cursor[T] =
+  ): Future[Seq[T]] =
+    collection
+      .find(Filters.equal(KEYS, keyOf(key, planetId, recordType.typeName)))
+      .|>(o => if (limit.exists(_ >= 0)) o.limit(limit.get) else o)
+      .toFuture
+      .map(_.map(_.value.asInstanceOf[T]))
+
+  override def findByKeys[T <: Record](keys: Seq[String], planetId: String, limit: Option[Int])(implicit
+    reads: Reads[T],
+    recordType: RecordMetaData[T]
+  ): Future[Seq[T]] =
+    collection
+      .find(Filters.in(KEYS, keys.map(key => keyOf(key, planetId, recordType.typeName)): _*))
+      .|>(o => if (limit.exists(_ >= 0)) o.limit(limit.get) else o)
+      .toFuture
+      .map(_.map(_.value.asInstanceOf[T]))
+
+  override def findById[T <: Record](id: String, planetId: String): Future[Option[T]] =
     collection
       .find(
-        JsObject(Seq(KEYS -> JsString(keyOf(key, planetId, recordType.typeName)))),
-        Some(Json.obj(recordType.fieldNames.map(option => option -> toJsFieldJsValueWrapper(JsNumber(1))): _*))
+        Filters.and(
+          Filters.equal(Record.ID, new ObjectId(id)),
+          Filters.equal(PLANET_ID, planetId)
+        )
       )
-      .cursor[T](ReadPreference.primary)(
-        implicitly[collection.pack.Reader[Record]].map(_.asInstanceOf[T]),
-        implicitly[CursorProducer[T]]
-      )
+      .map(_.value.asInstanceOf[T])
+      .headOption()
 
-  override def cursor[T <: Record](keys: Seq[String], planetId: String)(implicit
-    reads: Reads[T],
-    ec: ExecutionContext,
-    recordType: RecordMetaData[T]
-  ): Cursor[T] =
+  override def findByPlanetId(planetId: String, limit: Option[Int] = None): Future[Seq[Record]] =
     collection
-      .find(
-        JsObject(
-          Seq(
-            KEYS -> JsObject(
-              Seq("$in" -> JsArray(keys.map(key => JsString(keyOf(key, planetId, recordType.typeName)))))
-            )
-          )
-        ),
-        Some(Json.obj(recordType.fieldNames.map(option => option -> toJsFieldJsValueWrapper(JsNumber(1))): _*))
-      )
-      .cursor[T](ReadPreference.primary)(
-        implicitly[collection.pack.Reader[Record]].map(_.asInstanceOf[T]),
-        implicitly[CursorProducer[T]]
-      )
+      .find(Filters.equal(PLANET_ID, planetId))
+      .|>(o => if (limit.exists(_ >= 0)) o.limit(limit.get) else o)
+      .toFuture
+      .map(_.map(_.value))
 
-  override def findById[T <: Record](id: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[T]] =
+  override def remove(id: String, planetId: String): Future[Unit] =
     collection
-      .find[JsObject, JsObject](
-        Json.obj(Record.ID -> Json.obj("$oid" -> JsString(id)), PLANET_ID -> JsString(planetId)),
-        None
+      .deleteOne(
+        Filters.and(
+          Filters.equal("_id", new ObjectId(id)),
+          Filters.equal(PLANET_ID, planetId)
+        )
       )
-      .cursor[T](ReadPreference.primary)(
-        implicitly[collection.pack.Reader[Record]].map(_.asInstanceOf[T]),
-        implicitly[CursorProducer[T]]
-      )
-      .headOption
-
-  override def findByPlanetId(planetId: String)(implicit ec: ExecutionContext): Cursor[Record] =
-    collection
-      .find[JsObject, JsObject](
-        JsObject(Seq(PLANET_ID -> JsString(planetId))),
-        None
-      )
-      .cursor[Record](ReadPreference.primary)(
-        implicitly[collection.pack.Reader[Record]],
-        implicitly[CursorProducer[Record]]
-      )
-
-  override def remove(id: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
-    this
-      .remove(
-        Record.ID -> toJsFieldJsValueWrapper(Json.obj("$oid" -> JsString(id))),
-        PLANET_ID -> toJsFieldJsValueWrapper(JsString(planetId))
-      )
+      .toFuture
       .map(_ => ())
 
   private def keyOf[T <: Record](key: String, planetId: String, recordType: String): String =
     s"$recordType:${key.replace(" ", "").toLowerCase}@$planetId"
 
-  def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
-    remove(PLANET_ID -> Option(planetId)).map(_ => ())
+  def destroyPlanet(planetId: String): Future[Unit] =
+    collection.deleteMany(Filters.equal(PLANET_ID, planetId)).toFuture.map(_ => ())
 }

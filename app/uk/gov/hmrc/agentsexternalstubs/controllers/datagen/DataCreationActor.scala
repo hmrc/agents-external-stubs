@@ -18,9 +18,9 @@ package uk.gov.hmrc.agentsexternalstubs.controllers.datagen
 
 import akka.actor.{Actor, Props}
 import play.api.Logging
-import play.api.libs.json.{JsArray, JsObject, JsString, Json}
+import play.api.libs.json.{JsArray, JsString}
 import uk.gov.hmrc.agentsexternalstubs.models.{Group, Record, User}
-import uk.gov.hmrc.agentsexternalstubs.repository.{GroupsRepositoryMongo, RecordsRepositoryMongo, UsersRepositoryMongo}
+import uk.gov.hmrc.agentsexternalstubs.repository.{GroupsRepositoryMongo, JsonAbuse, RecordsRepositoryMongo, UsersRepositoryMongo}
 
 import scala.concurrent.ExecutionContext
 
@@ -72,20 +72,19 @@ class DataCreationActor(
 
   }
 
-  private def recordAsJson(record: Record, planetId: String): JsObject = {
+  private def recordAsJson(record: Record, planetId: String): JsonAbuse[Record] = {
     val PLANET_ID = "_planetId"
     val UNIQUE_KEY = "_uniqueKey"
     val KEYS = "_keys"
     val TYPE = "_record_type"
     val typeName = Record.typeOf(record)
 
-    Json
-      .toJson[Record](record)
-      .as[JsObject]
-      .+(PLANET_ID -> JsString(planetId))
-      .+(TYPE -> JsString(typeName))
-      .+(
-        KEYS -> JsArray(
+    JsonAbuse(record)
+      .addField(PLANET_ID, JsString(planetId))
+      .addField(TYPE, JsString(typeName))
+      .addField(
+        KEYS,
+        JsArray(
           record.uniqueKey
             .map(key => record.lookupKeys :+ key)
             .getOrElse(record.lookupKeys)
@@ -94,7 +93,7 @@ class DataCreationActor(
       )
       .|> { obj =>
         record.uniqueKey
-          .map(uniqueKey => obj.+(UNIQUE_KEY -> JsString(keyOf(uniqueKey, planetId, typeName))))
+          .map(uniqueKey => obj.addField(UNIQUE_KEY, JsString(keyOf(uniqueKey, planetId, typeName))))
           .getOrElse(obj)
       }
   }
