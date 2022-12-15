@@ -324,8 +324,7 @@ class EnrolmentStoreProxyStubController @Inject() (
         val assignedClients = enrolmentsToAssignedUsersMergedWithDelegatedEnrolments
           .map(enrolmentToUserIds =>
             AssignedClient(
-              enrolmentToUserIds._1.key,
-              enrolmentToUserIds._1.identifiers.toSeq.flatten.map(i => MtdIdentifier(i.key, i.value)),
+              enrolmentToUserIds._1.toEnrolmentKey.get.toString,
               None,
               if (enrolmentToUserIds._2.size == 1) enrolmentToUserIds._2.head
               else enrolmentToUserIds._2.size.toString
