@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.agentsexternalstubs.repository
 
-import org.mongodb.scala.model.IndexModel
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
 import scala.collection.Seq

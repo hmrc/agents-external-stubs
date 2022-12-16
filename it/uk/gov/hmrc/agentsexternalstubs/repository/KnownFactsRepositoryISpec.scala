@@ -70,37 +70,5 @@ class KnownFactsRepositoryISpec extends AppBaseISpec {
         await(repo.upsert(knownFacts, planetId))
       }
     }
-
-    "delete all known facts" in {
-      val fixture = Stream
-        .continually(p.sample.get)
-        .take(100)
-        .map { seed =>
-          repo.upsert(KnownFacts.generate(EnrolmentKey(s"IR-SA~UTR~$seed"), seed, _ => None).get, seed)
-        }
-      await(Future.sequence(fixture))
-
-      await(repo.collection.countDocuments.toFuture) should be >= 100L
-      await(repo.deleteAll(System.currentTimeMillis()))
-      await(repo.collection.countDocuments.toFuture) shouldBe 0L
-    }
-
-    "delete all known facts created before some datetime" in {
-      def fixture: Seq[Future[Unit]] =
-        Stream
-          .continually(p.sample.get)
-          .take(50)
-          .map { seed =>
-            repo.upsert(KnownFacts.generate(EnrolmentKey(s"IR-SA~UTR~$seed"), seed, _ => None).get, seed)
-          }
-      await(Future.sequence(fixture))
-      Thread.sleep(100)
-      val t0 = System.currentTimeMillis()
-      await(Future.sequence(fixture))
-
-      await(repo.collection.countDocuments.toFuture) should be >= 100L
-      await(repo.deleteAll(t0)) should be >= 50L
-      await(repo.collection.countDocuments.toFuture) shouldBe 50L
-    }
   }
 }

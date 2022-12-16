@@ -74,8 +74,8 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
         IndexModel(Indexes.ascending(GROUP_ID), IndexOptions().name("keyGroupId")),
         IndexModel(Indexes.ascending(PLANET_ID), IndexOptions().name("keyPlanetId"))
       ),
-      replaceIndexes = false
-    ) with StrictlyEnsureIndexes[JsonAbuse[Group]] with GroupsRepository with DeleteAll[JsonAbuse[Group]] with Logging {
+      replaceIndexes = true
+    ) with StrictlyEnsureIndexes[JsonAbuse[Group]] with GroupsRepository with Logging {
 
   final val UPDATED = "_last_updated_at"
 
@@ -133,6 +133,7 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
   ): Future[Option[Group]] = {
 
     def update(enrolmentType: String, identifier: Identifier): Future[Option[Group]] = {
+      // TODO can we speed this query up by using keys?
       val filter = Filters.and(
         Filters.equal(PLANET_ID, planetId),
         Filters.equal(GROUP_ID, group.groupId),

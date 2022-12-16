@@ -37,8 +37,6 @@ trait KnownFactsRepository {
   def delete(enrolmentKey: EnrolmentKey, planetId: String): Future[Unit]
 
   def destroyPlanet(planetId: String): Future[Unit]
-
-  def deleteAll(createdBefore: Long): Future[Long]
 }
 
 @Singleton
@@ -53,8 +51,8 @@ class KnownFactsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val e
           IndexOptions().name("KnownFactsByEnrolmentKey").unique(true)
         )
       ),
-      replaceIndexes = false
-    ) with StrictlyEnsureIndexes[KnownFacts] with KnownFactsRepository with DeleteAll[KnownFacts] {
+      replaceIndexes = true
+    ) with StrictlyEnsureIndexes[KnownFacts] with KnownFactsRepository {
 
   private final val PLANET_ID = "planetId"
   final val UPDATED = "_last_updated_at"

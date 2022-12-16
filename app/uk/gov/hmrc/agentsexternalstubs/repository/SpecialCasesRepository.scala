@@ -49,8 +49,6 @@ trait SpecialCasesRepository {
   def delete(id: String, planetId: String): Future[Unit]
 
   def destroyPlanet(planetId: String): Future[Unit]
-
-  def deleteAll(createdBefore: Long): Future[Long]
 }
 
 @Singleton
@@ -63,8 +61,8 @@ class SpecialCasesRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val
         IndexModel(Indexes.ascending(SpecialCase.UNIQUE_KEY), IndexOptions().name("SpecialCasesByKey").unique(true)),
         IndexModel(Indexes.ascending(Id.ID, PLANET_ID), IndexOptions().name("SpecialCaseId").unique(true))
       ),
-      replaceIndexes = false
-    ) with StrictlyEnsureIndexes[SpecialCase] with SpecialCasesRepository with DeleteAll[SpecialCase] {
+      replaceIndexes = true
+    ) with StrictlyEnsureIndexes[SpecialCase] with SpecialCasesRepository {
 
   final val UPDATED = "_last_updated_at"
 

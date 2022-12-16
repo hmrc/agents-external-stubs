@@ -231,7 +231,7 @@ class GroupsControllerISpec extends ServerBaseISpec with TestRequests with TestS
       implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
       val result = Groups.reindexAllGroups
       result.status shouldBe 200
-      result.body should include("groups has been re-indexed")
+      result.body should include("true")
     }
   }
 }

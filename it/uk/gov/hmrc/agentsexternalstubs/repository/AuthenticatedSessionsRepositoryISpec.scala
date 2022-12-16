@@ -55,48 +55,5 @@ class AuthenticatedSessionsRepositoryISpec extends AppBaseISpec {
 
       e.getMessage() should include("E11000")
     }
-
-    "delete all sessions" in {
-      await(
-        Future.sequence(
-          Stream
-            .continually(Random.nextString(32))
-            .take(100)
-            .map(seed =>
-              repo.create(
-                AuthenticatedSession(UUID.randomUUID().toString, seed, UUID.randomUUID().toString, seed, seed)
-              )
-            )
-        )
-      )
-
-      await(repo.collection.countDocuments.toFuture) should be >= 100L
-      await(repo.deleteAll(System.currentTimeMillis()))
-      await(repo.collection.countDocuments.toFuture) shouldBe 0L
-    }
-
-    "delete all sessions created before some datetime" in {
-      def fixture: Future[Unit] =
-        Future
-          .sequence(
-            Stream
-              .continually(Random.nextString(32))
-              .take(50)
-              .map(seed =>
-                repo.create(
-                  AuthenticatedSession(UUID.randomUUID().toString, seed, UUID.randomUUID().toString, seed, seed)
-                )
-              )
-          )
-          .map(_.reduce((_, _) => ()))
-
-      await(fixture)
-      val t0 = System.currentTimeMillis()
-      await(fixture)
-
-      await(repo.collection.countDocuments.toFuture) should be >= 100L
-      await(repo.deleteAll(t0)) should be >= 50L
-      await(repo.collection.countDocuments.toFuture) shouldBe 50L
-    }
   }
 }

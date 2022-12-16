@@ -1,7 +1,5 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
-import org.scalatest.BeforeAndAfterEach
-
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.UUID

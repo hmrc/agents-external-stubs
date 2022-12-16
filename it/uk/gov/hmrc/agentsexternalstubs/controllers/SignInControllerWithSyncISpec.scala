@@ -3,7 +3,6 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import play.api.libs.ws.WSClient
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.support.{AuthContext, ServerBaseISpec, TestRequests}
-import uk.gov.hmrc.agentsexternalstubs.support.TestPlayServer
 import uk.gov.hmrc.agentsexternalstubs.support.WireMockSupport
 
 class SignInControllerWithSyncISpec extends ServerBaseISpec with TestRequests with WireMockSupport {

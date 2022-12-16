@@ -20,8 +20,6 @@ import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
 import org.mongodb.scala.result.DeleteResult
 
 import javax.inject.{Inject, Singleton}
-import play.api.libs.json.Json
-import play.api.libs.json.Json.toJsFieldJsValueWrapper
 import uk.gov.hmrc.agentsexternalstubs.models.AuthenticatedSession
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
@@ -44,8 +42,8 @@ class AuthenticatedSessionsRepository @Inject() (mongo: MongoComponent)(implicit
         IndexModel(Indexes.ascending("sessionId"), IndexOptions().unique(true).name("SessionIds")),
         IndexModel(Indexes.ascending("userId"), IndexOptions().name("AuthenticatedUsers"))
       ),
-      replaceIndexes = false
-    ) with StrictlyEnsureIndexes[AuthenticatedSession] with DeleteAll[AuthenticatedSession] {
+      replaceIndexes = true
+    ) with StrictlyEnsureIndexes[AuthenticatedSession] {
 
   final val UPDATED = "createdAt"
 
@@ -67,7 +65,7 @@ class AuthenticatedSessionsRepository @Inject() (mongo: MongoComponent)(implicit
   def create(authenticatedSession: AuthenticatedSession)(implicit ec: ExecutionContext): Future[Unit] =
     collection
       .insertOne(authenticatedSession)
-      .toFuture
+      .toFuture()
       .map(_ => ())
 
   def delete(sessionId: String)(implicit ec: ExecutionContext): Future[DeleteResult] =

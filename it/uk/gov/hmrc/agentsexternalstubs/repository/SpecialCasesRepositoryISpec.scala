@@ -81,24 +81,6 @@ class SpecialCasesRepositoryISpec extends AppBaseISpec {
       result2 shouldBe None
     }
 
-    "delete all entities" in {
-      val planetId = UUID.randomUUID().toString
-      val entity = SpecialCase(RequestMatch("/test2"), SpecialCase.Response(404), Some(planetId))
-      val key = entity.requestMatch.toKey
-
-      val id = await(repo.upsert(entity, planetId))
-      await(repo.findByMatchKey(key, planetId)) shouldBe defined
-
-      Thread.sleep(100)
-
-      await(repo.deleteAll(System.currentTimeMillis())) should be >= 1L
-
-      val result1 = await(repo.findByMatchKey(key, planetId))
-      result1 shouldBe None
-      val result2 = await(repo.findById(id, planetId))
-      result2 shouldBe None
-    }
-
     "find all entities on the planet" in {
       val planetId = UUID.randomUUID().toString
       val entity1 = SpecialCase(RequestMatch("/test1", "GET"), SpecialCase.Response(200), Some(planetId))

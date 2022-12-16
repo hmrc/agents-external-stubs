@@ -95,12 +95,12 @@ lazy val root = (project in file("."))
   )
   .configs(IntegrationTest)
   .settings(
-    IntegrationTest / Keys.fork := false,
+    IntegrationTest / Keys.fork := true,
     Defaults.itSettings,
     IntegrationTest / unmanagedSourceDirectories += baseDirectory(_ / "it").value,
     IntegrationTest / parallelExecution := false,
     IntegrationTest / scalafmtOnCompile := true
-  )
+)
   .enablePlugins(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin)
 
 inConfig(IntegrationTest)(org.scalafmt.sbt.ScalafmtPlugin.scalafmtConfigSettings)

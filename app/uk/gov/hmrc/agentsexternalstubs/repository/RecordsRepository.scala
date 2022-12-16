@@ -18,7 +18,6 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 
 import com.google.inject.ImplementedBy
 import org.bson.types.ObjectId
-import org.mongodb.scala.Observable
 import org.mongodb.scala.model._
 import play.api.libs.json.Json.toJsFieldJsValueWrapper
 import play.api.libs.json.{OWrites => _, _}
@@ -60,8 +59,6 @@ trait RecordsRepository {
   def remove(id: String, planetId: String): Future[Unit]
 
   def destroyPlanet(planetId: String): Future[Unit]
-
-  def deleteAll(createdBefore: Long): Future[Long]
 }
 
 @Singleton
@@ -69,14 +66,14 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
     extends PlayMongoRepository[JsonAbuse[Record]](
       mongoComponent = mongo,
       collectionName = "records",
-      domainFormat = JsonAbuse.format[Record](false),
+      domainFormat = JsonAbuse.format[Record](true),
       indexes = Seq(
         IndexModel(Indexes.ascending(KEYS), IndexOptions().name("Keys")),
         IndexModel(Indexes.ascending(UNIQUE_KEY), IndexOptions().name("UniqueKey").unique(true).sparse(true))
       ),
       extraCodecs = Seq(Codecs.playFormatCodec(Record.formats)),
-      replaceIndexes = false
-    ) with StrictlyEnsureIndexes[JsonAbuse[Record]] with RecordsRepository with DeleteAll[JsonAbuse[Record]] {
+      replaceIndexes = true
+    ) with StrictlyEnsureIndexes[JsonAbuse[Record]] with RecordsRepository {
 
   final val UPDATED = "_last_updated_at"
 
@@ -106,7 +103,7 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
         collection
           .insertOne(
             entityWithExtraJson
-              .addField(Record.ID, Json.obj("$oid" -> JsString(newId)))
+              .addField(Record.ID, Json.toJson(Id(newId))(Id.internalFormats))
               .addField(UPDATED, JsNumber(System.currentTimeMillis()))
           )
           .toFuture
@@ -126,26 +123,31 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
         collection
           .find(Filters.equal(UNIQUE_KEY, keyOf(uniqueKey, planetId, typeName)))
           .headOption
-          .map(
-            _.flatMap(_.extraFields.get("_id"))
-              .flatMap((json: JsValue) => (json \ "$oid").asOpt[String])
-              .getOrElse(ObjectId.get().toString)
-          )
-          .flatMap(recordId =>
-            collection
-              .replaceOne(
-                Filters.equal(Record.ID, new ObjectId(recordId)),
-                entityWithExtraJson
-                  .addField(Record.ID, Json.obj("$oid" -> JsString(recordId)))
-                  .addField(UPDATED, JsNumber(System.currentTimeMillis())),
-                ReplaceOptions().upsert(true)
-              )
-              .toFuture
-              .map((_, recordId))
-              .flatMap(MongoHelper.interpretUpdateResult)
-          )
+          .map(_.flatMap(_.value.id))
+          .flatMap {
+            case Some(recordId) =>
+              collection
+                .replaceOne(
+                  Filters.equal(Record.ID, new ObjectId(recordId)),
+                  entityWithExtraJson
+                    .addField(Record.ID, Json.obj("$oid" -> JsString(recordId)))
+                    .addField(UPDATED, JsNumber(System.currentTimeMillis())),
+                  ReplaceOptions().upsert(true)
+                )
+                .toFuture
+                .map(_ => recordId)
+            case None =>
+              val newId = ObjectId.get().toString
+              collection
+                .insertOne(
+                  entityWithExtraJson
+                    .addField(Record.ID, Json.obj("$oid" -> JsString(newId)))
+                    .addField(UPDATED, JsNumber(System.currentTimeMillis()))
+                )
+                .toFuture
+                .map(_ => newId)
+          }
     })
-
   }
 
   def rawStore(record: JsonAbuse[Record]): Future[String] = {
@@ -176,7 +178,7 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
     recordType: RecordMetaData[T]
   ): Future[Seq[T]] =
     collection
-      .find(Filters.in(KEYS, keys.map(key => keyOf(key, planetId, recordType.typeName))))
+      .find(Filters.in(KEYS, keys.map(key => keyOf(key, planetId, recordType.typeName)): _*))
       .|>(o => if (limit.exists(_ >= 0)) o.limit(limit.get) else o)
       .toFuture
       .map(_.map(_.value.asInstanceOf[T]))

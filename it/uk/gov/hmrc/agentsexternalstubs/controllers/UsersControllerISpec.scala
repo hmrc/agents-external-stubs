@@ -344,7 +344,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
       val result = Users.reindexAllUsers
       result.status shouldBe 200
-      result.body should include("users has been re-indexed")
+      result.body should include("true")
     }
   }
 }

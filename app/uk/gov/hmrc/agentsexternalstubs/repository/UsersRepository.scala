@@ -56,7 +56,6 @@ trait UsersRepository {
 
   def destroyPlanet(planetId: String): Future[Unit]
   def reindexAllUsers: Future[Boolean]
-  def deleteAll(createdBefore: Long): Future[Long]
 }
 
 object UsersRepositoryMongo {
@@ -80,8 +79,8 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: Ex
         IndexModel(Indexes.ascending(USER_ID), IndexOptions().name(KEY_USER_ID)),
         IndexModel(Indexes.ascending(PLANET_ID), IndexOptions().name(KEY_PLANET_ID))
       ),
-      replaceIndexes = false
-    ) with StrictlyEnsureIndexes[JsonAbuse[User]] with UsersRepository with DeleteAll[JsonAbuse[User]] with Logging {
+      replaceIndexes = true
+    ) with StrictlyEnsureIndexes[JsonAbuse[User]] with UsersRepository with Logging {
 
   final val UPDATED = "_last_updated_at"
 
