@@ -3,12 +3,13 @@ package uk.gov.hmrc.agentsexternalstubs.support
 import java.util.UUID
 import akka.stream.Materializer
 import com.kenshoo.play.metrics.{DisabledMetricsFilter, Metrics, MetricsFilter}
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
-import org.scalatestplus.play.guice.GuiceOneServerPerSuite
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, TestData}
+import org.scalatestplus.play.guice.{GuiceOneAppPerTest, GuiceOneServerPerSuite}
 import play.api.Application
 import play.api.i18n.{Lang, Messages, MessagesApi}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.ws.WSClient
 import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.twirl.api.HtmlFormat
@@ -20,14 +21,18 @@ import uk.gov.hmrc.play.audit.http.connector.DatastreamMetrics
 import uk.gov.hmrc.play.bootstrap.audit.DisabledDatastreamMetricsProvider
 import uk.gov.hmrc.play.bootstrap.graphite.GraphiteMetricsModule
 
-abstract class BaseISpec extends UnitSpec with CleanMongoCollectionSupport with GuiceOneServerPerSuite {
+import scala.concurrent.Await
 
+abstract class BaseISpec extends UnitSpec with CleanMongoCollectionSupport with GuiceOneAppPerTest {
+
+  val port: Int = Port.randomAvailable
   val wireMockPort: Int = Port.randomAvailable
   lazy val url = s"http://localhost:$port"
 
-  override lazy val app: Application = {
+  override def newAppForTest(testData: TestData): Application = {
 
     def configuration: Seq[(String, Any)] = Seq(
+      "http.port"                                              -> port,
       "microservice.services.auth.port"                        -> Port.randomAvailable,
       "microservice.services.citizen-details.port"             -> Port.randomAvailable,
       "microservice.services.users-groups-search.port"         -> Port.randomAvailable,
@@ -61,8 +66,12 @@ abstract class BaseISpec extends UnitSpec with CleanMongoCollectionSupport with 
         .overrides(bind[Metrics].to[TestMetrics])
         .overrides(bind[MongoComponent].toInstance(mongoComponent))
 
-    appBuilder.build()
+    val app = appBuilder.build()
 
+//    val wsClient = app.injector.instanceOf[WSClient]
+//    import scala.concurrent.duration._
+//    Await.result(wsClient.url(s"http://localhost:$port/ping/ping").withRequestTimeout(5.seconds).get(), 5.seconds)
+    app
   }
 
   protected implicit lazy val materializer: Materializer = app.materializer
