@@ -75,7 +75,7 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
         IndexModel(Indexes.ascending(PLANET_ID), IndexOptions().name("keyPlanetId"))
       ),
       replaceIndexes = true
-    ) with StrictlyEnsureIndexes[JsonAbuse[Group]] with GroupsRepository with Logging {
+    ) with GroupsRepository with Logging {
 
   final val UPDATED = "_last_updated_at"
 

@@ -52,7 +52,7 @@ class KnownFactsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val e
         )
       ),
       replaceIndexes = true
-    ) with StrictlyEnsureIndexes[KnownFacts] with KnownFactsRepository {
+    ) with KnownFactsRepository {
 
   private final val PLANET_ID = "planetId"
   final val UPDATED = "_last_updated_at"

@@ -73,7 +73,7 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
       ),
       extraCodecs = Seq(Codecs.playFormatCodec(Record.formats)),
       replaceIndexes = true
-    ) with StrictlyEnsureIndexes[JsonAbuse[Record]] with RecordsRepository {
+    ) with RecordsRepository {
 
   final val UPDATED = "_last_updated_at"
 

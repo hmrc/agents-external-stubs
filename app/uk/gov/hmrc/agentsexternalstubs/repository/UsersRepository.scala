@@ -80,7 +80,7 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: Ex
         IndexModel(Indexes.ascending(PLANET_ID), IndexOptions().name(KEY_PLANET_ID))
       ),
       replaceIndexes = true
-    ) with StrictlyEnsureIndexes[JsonAbuse[User]] with UsersRepository with Logging {
+    ) with UsersRepository with Logging {
 
   final val UPDATED = "_last_updated_at"
 

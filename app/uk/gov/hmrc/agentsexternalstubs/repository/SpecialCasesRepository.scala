@@ -62,7 +62,7 @@ class SpecialCasesRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val
         IndexModel(Indexes.ascending(Id.ID, PLANET_ID), IndexOptions().name("SpecialCaseId").unique(true))
       ),
       replaceIndexes = true
-    ) with StrictlyEnsureIndexes[SpecialCase] with SpecialCasesRepository {
+    ) with SpecialCasesRepository {
 
   final val UPDATED = "_last_updated_at"
 

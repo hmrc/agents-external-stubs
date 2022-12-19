@@ -43,7 +43,7 @@ class AuthenticatedSessionsRepository @Inject() (mongo: MongoComponent)(implicit
         IndexModel(Indexes.ascending("userId"), IndexOptions().name("AuthenticatedUsers"))
       ),
       replaceIndexes = true
-    ) with StrictlyEnsureIndexes[AuthenticatedSession] {
+    ) {
 
   final val UPDATED = "createdAt"
 
