@@ -21,27 +21,31 @@ import play.api.Logging
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.BusinessData
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.AgencyDetails
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, PPOB}
-import uk.gov.hmrc.agentsexternalstubs.models.{AG, BusinessDetailsRecord, BusinessPartnerRecord, Generator, PPTSubscriptionDisplayRecord, Record, User, VatCustomerInformationRecord}
-import uk.gov.hmrc.agentsexternalstubs.repository.{RecordsRepositoryMongo, UsersRepositoryMongo}
+import uk.gov.hmrc.agentsexternalstubs.models.{AG, BusinessDetailsRecord, BusinessPartnerRecord, Enrolment, Generator, Group, PPTSubscriptionDisplayRecord, Record, User, VatCustomerInformationRecord}
+import uk.gov.hmrc.agentsexternalstubs.repository.{GroupsRepositoryMongo, RecordsRepositoryMongo, UsersRepositoryMongo}
 
 import javax.inject.Inject
 import scala.concurrent.ExecutionContext
 
-class AgencyCreator @Inject() (usersRepository: UsersRepositoryMongo, recordsRepository: RecordsRepositoryMongo)(
-  implicit
+class AgencyCreator @Inject() (
+  usersRepository: UsersRepositoryMongo,
+  recordsRepository: RecordsRepositoryMongo,
+  groupsRepository: GroupsRepositoryMongo
+)(implicit
   actorSystem: ActorSystem,
   executionContext: ExecutionContext
 ) extends Logging {
 
   private val dataCreationActor: ActorRef =
     actorSystem.actorOf(
-      DataCreationActor.props(usersRepository, recordsRepository)
+      DataCreationActor.props(usersRepository, recordsRepository, groupsRepository)
     )
 
   def create(agencyCreationPayload: AgencyCreationPayload): Unit = {
     persistUsers(agencyCreationPayload)
     persistAgentRecord(agencyCreationPayload)
     persistClientRecords(agencyCreationPayload)
+    persistGroups(agencyCreationPayload)
   }
 
   private def persistUsers(agencyCreationPayload: AgencyCreationPayload): Unit = {
@@ -83,6 +87,22 @@ class AgencyCreator @Inject() (usersRepository: UsersRepositoryMongo, recordsRep
       .map(assembleClientRecord)
       .collect { case Some(record) => record }
       .foreach(record => dataCreationActor ! RecordCreationPayload(record, agencyCreationPayload.planetId))
+  }
+
+  private def persistGroups(agencyCreationPayload: AgencyCreationPayload): Unit = {
+    logger.info(s"Creating groups for '${agencyCreationPayload.planetId}'")
+
+    agencyCreationPayload.agentUser.groupId.foreach { groupId =>
+      val agentGroup = Group(
+        planetId = agencyCreationPayload.planetId,
+        groupId = groupId,
+        affinityGroup = AG.Agent,
+        principalEnrolments = agencyCreationPayload.agentUser.assignedPrincipalEnrolments.map(Enrolment.from),
+        delegatedEnrolments = agencyCreationPayload.clients.flatMap(_.assignedPrincipalEnrolments).map(Enrolment.from)
+      )
+
+      dataCreationActor ! GroupCreationPayload(agentGroup, agencyCreationPayload.planetId)
+    }
   }
 
   def assembleClientRecord(client: User): Option[Record] =

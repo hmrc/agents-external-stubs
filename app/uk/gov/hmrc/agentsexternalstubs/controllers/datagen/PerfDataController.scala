@@ -58,8 +58,9 @@ class PerfDataController @Inject() (
 
       Future successful Accepted(
         s"Processing can take a while, please check later for creation of " +
-          s"${perfDataRequest.numAgents * (1 + perfDataRequest.clientsPerAgent + perfDataRequest.teamMembersPerAgent)} 'users', and " +
-          s"${perfDataRequest.numAgents * (1 + perfDataRequest.clientsPerAgent)} 'records'"
+          s"${perfDataRequest.numAgents * (1 + perfDataRequest.clientsPerAgent + perfDataRequest.teamMembersPerAgent)} 'user(s)', " +
+          s"${perfDataRequest.numAgents * (1 + perfDataRequest.clientsPerAgent)} 'record(s)', and " +
+          s"${perfDataRequest.numAgents} 'group(s)'"
       )
     }
   }

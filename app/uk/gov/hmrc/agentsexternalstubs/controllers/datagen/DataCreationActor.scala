@@ -19,22 +19,31 @@ package uk.gov.hmrc.agentsexternalstubs.controllers.datagen
 import akka.actor.{Actor, Props}
 import play.api.Logging
 import play.api.libs.json.{JsArray, JsObject, JsString, Json}
-import uk.gov.hmrc.agentsexternalstubs.models.{Record, User}
-import uk.gov.hmrc.agentsexternalstubs.repository.{RecordsRepositoryMongo, UsersRepositoryMongo}
+import uk.gov.hmrc.agentsexternalstubs.models.{Group, Record, User}
+import uk.gov.hmrc.agentsexternalstubs.repository.{GroupsRepositoryMongo, RecordsRepositoryMongo, UsersRepositoryMongo}
 
 import scala.concurrent.ExecutionContext
 
 case class UserCreationPayload(user: User, planetId: String)
 case class RecordCreationPayload(record: Record, planetId: String)
+case class GroupCreationPayload(group: Group, planetId: String)
 
 object DataCreationActor {
-  def props(usersRepository: UsersRepositoryMongo, recordsRepository: RecordsRepositoryMongo)(implicit
+  def props(
+    usersRepository: UsersRepositoryMongo,
+    recordsRepository: RecordsRepositoryMongo,
+    groupsRepository: GroupsRepositoryMongo
+  )(implicit
     executionContext: ExecutionContext
-  ): Props = Props(new DataCreationActor(usersRepository, recordsRepository))
+  ): Props = Props(new DataCreationActor(usersRepository, recordsRepository, groupsRepository))
 
 }
 
-class DataCreationActor(usersRepository: UsersRepositoryMongo, recordsRepository: RecordsRepositoryMongo)(implicit
+class DataCreationActor(
+  usersRepository: UsersRepositoryMongo,
+  recordsRepository: RecordsRepositoryMongo,
+  groupsRepository: GroupsRepositoryMongo
+)(implicit
   executionContext: ExecutionContext
 ) extends Actor with Logging {
 
@@ -54,6 +63,13 @@ class DataCreationActor(usersRepository: UsersRepositoryMongo, recordsRepository
         .recover { case ex =>
           logger.error(s"Could not create record for ${entity.uniqueKey} of $planetId: ${ex.getMessage}")
         }
+    case GroupCreationPayload(group: Group, planetId: String) =>
+      groupsRepository
+        .create(group, planetId)
+        .recover { case ex =>
+          logger.error(s"Could not create group ${group.groupId} of $planetId: ${ex.getMessage}")
+        }
+
   }
 
   private def recordAsJson(record: Record, planetId: String): JsObject = {

@@ -16,16 +16,17 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers.datagen
 
+import play.api.Logging
 import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord.Common
-import uk.gov.hmrc.agentsexternalstubs.models.User.{CR, Enrolments}
-import uk.gov.hmrc.agentsexternalstubs.models.{AG, Enrolment, EnrolmentKey, Generator, GranPermsGenRequest, Group, Identifier, User, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.User.CR
+import uk.gov.hmrc.agentsexternalstubs.models._
 
 import scala.annotation.tailrec
 import scala.util.Random
 
 case class AgencyCreationPayload(planetId: String, agentUser: User, clients: List[User], teamMembers: List[User])
 
-class AgencyDataAssembler {
+class AgencyDataAssembler extends Logging {
 
   private type ClientType = String
   private type ServiceKey = String
@@ -38,6 +39,9 @@ class AgencyDataAssembler {
     teamMembersPerAgent: Int
   ): AgencyCreationPayload = {
     val planetId = f"perf-test-planet-$indexAgency%03d"
+
+    logger.info(s"Assembling data for '$planetId'. Can take a while...")
+
     val agentUser = buildMainAgentUser(indexAgency)
     val clients = buildClientsForAgent(indexAgency, clientsPerAgent)
     val teamMembers = buildTeamMembersForAgent(indexAgency, teamMembersPerAgent, agentUser)

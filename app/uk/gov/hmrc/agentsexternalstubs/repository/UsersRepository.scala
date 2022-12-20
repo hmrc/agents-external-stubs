@@ -206,8 +206,8 @@ class UsersRepositoryMongo @Inject() (mongoComponent: ReactiveMongoComponent)
     limit: Int
   )(implicit ec: ExecutionContext): Future[Seq[String]] =
     cursor(
-      Seq("enrolments.assigned" -> Option(enrolmentKey.toString), KEYS -> Option(planetIdKey(planetId))),
-      Seq(USER_ID               -> 1)
+      Seq(KEYS    -> Option(keyOf(User.assignedPrincipalEnrolmentIndexKey(enrolmentKey.toString), planetId))),
+      Seq(USER_ID -> 1)
     )(userIdReads).collect[Seq](maxDocs = limit, err = Cursor.FailOnError[Seq[String]]())
 
   private val groupIdReads = new Reads[Option[String]] {

@@ -38,7 +38,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoD
           val json = result.json
 
           (json \ "clients").as[Seq[AssignedClient]] shouldBe Seq(
-            AssignedClient("IR-SA", Seq(MtdIdentifier("UTR", "12345678")), None, "foo1")
+            AssignedClient("IR-SA~UTR~12345678", None, "foo1")
           )
         }
       }
