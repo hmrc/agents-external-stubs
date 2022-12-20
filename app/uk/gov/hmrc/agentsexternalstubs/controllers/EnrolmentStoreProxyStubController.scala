@@ -55,7 +55,7 @@ class EnrolmentStoreProxyStubController @Inject() (
                        enrolmentKey.service match {
                          case "IR-PAYE" | "IR-SA" =>
                            usersService.findUserIdsByDelegatedEnrolmentKey(enrolmentKey, session.planetId)(1000)
-                         case _ => usersService.findUserIdsByAssignedEnrolmentKey(enrolmentKey, session.planetId)(1000)
+                         case _ => usersService.findUserIdsByDelegatedEnrolmentKey(enrolmentKey, session.planetId)(1000)
                        }
                      } else Future.successful(Seq.empty)
       } yield GetUserIdsResponse.from(principal, delegated)).map {
