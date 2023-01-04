@@ -152,7 +152,7 @@ class GroupsController @Inject() (
 
   def reindexAllGroups(): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { _ =>
-      groupsService.reindexAllGroups.map(msg => Ok(msg))
+      groupsService.reindexAllGroups.map(result => Ok(result.toString))
     }(SessionRecordNotFound)
   }
 }

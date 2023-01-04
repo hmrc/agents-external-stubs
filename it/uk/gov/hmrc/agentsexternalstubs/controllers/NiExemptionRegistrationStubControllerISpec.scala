@@ -5,11 +5,10 @@ import play.api.libs.ws.WSClient
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{Organisation, UkAddress}
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, BusinessPartnerRecord, Generator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
-import uk.gov.hmrc.agentsexternalstubs.support.{MongoDB, ServerBaseISpec, TestRequests}
+import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests}
 
-class NiExemptionRegistrationStubControllerISpec extends ServerBaseISpec with MongoDB with TestRequests with TestStubs {
+class NiExemptionRegistrationStubControllerISpec extends ServerBaseISpec with TestRequests with TestStubs {
 
-  val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
 
   "NiExemptionRegistrationStub" should {

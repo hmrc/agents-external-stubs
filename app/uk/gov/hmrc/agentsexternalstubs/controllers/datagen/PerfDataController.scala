@@ -22,7 +22,7 @@ import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.agentsexternalstubs.controllers.CurrentSession
 import uk.gov.hmrc.agentsexternalstubs.repository._
 import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
-import uk.gov.hmrc.mongo.ReactiveRepository
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
@@ -54,7 +54,7 @@ class PerfDataController @Inject() (
         reapplyIndexes()
         generateData(perfDataRequest)
         logger.info(s"Done with data generation")
-      }(scala.concurrent.ExecutionContext.global)
+      }
 
       Future successful Accepted(
         s"Processing can take a while, please check later for creation of " +
@@ -67,9 +67,9 @@ class PerfDataController @Inject() (
 
   private def dropCollections(): Unit = {
 
-    def dropCollectionOf[R <: ReactiveRepository[_, _]](repository: R): Unit = {
-      repository.drop
-      logger.info(s"Dropped '${repository.collection.name}' collection if it existed")
+    def dropCollectionOf[R <: PlayMongoRepository[_]](repository: R): Unit = {
+      repository.collection.drop
+      logger.info(s"Dropped '${repository.collectionName}' collection if it existed")
     }
 
     dropCollectionOf(usersRepository)

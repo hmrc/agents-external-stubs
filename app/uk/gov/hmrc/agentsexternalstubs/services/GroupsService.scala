@@ -34,29 +34,21 @@ class GroupsService @Inject() (
   userToRecordsSyncService: UserToRecordsSyncService
 ) {
 
-  def findByGroupId(groupId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[Group]] =
+  def findByGroupId(groupId: String, planetId: String): Future[Option[Group]] =
     groupsRepository.findByGroupId(groupId, planetId)
 
-  def findByPlanetId(planetId: String, affinityGroup: Option[String])(
-    limit: Int
-  )(implicit ec: ExecutionContext): Future[Seq[Group]] = {
+  def findByPlanetId(planetId: String, affinityGroup: Option[String])(limit: Int): Future[Seq[Group]] = {
     require(affinityGroup.isEmpty || affinityGroup.exists(AG.all))
     groupsRepository.findByPlanetId(planetId, affinityGroup)(limit)
   }
 
-  def findByAgentCode(agentCode: String, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[Option[Group]] =
+  def findByAgentCode(agentCode: String, planetId: String): Future[Option[Group]] =
     groupsRepository.findByAgentCode(agentCode, planetId)
 
-  def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[Option[Group]] =
+  def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String): Future[Option[Group]] =
     groupsRepository.findByPrincipalEnrolmentKey(enrolmentKey, planetId)
 
-  def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(implicit
-    ec: ExecutionContext
-  ): Future[Seq[Group]] =
+  def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int): Future[Seq[Group]] =
     groupsRepository.findByDelegatedEnrolmentKey(enrolmentKey, planetId)(limit)
 
   val groupsCache = Scaffeine().maximumSize(1000).expireAfterWrite(10.minutes).build[Int, Group]()
@@ -108,9 +100,6 @@ class GroupsService @Inject() (
              case None => Future.successful(())
            }
     } yield ()
-
-  def syncRecordId(group: Group, planetId: String)(recordId: String)(implicit ec: ExecutionContext): Future[Unit] =
-    groupsRepository.syncRecordId(group.groupId, recordId, planetId).map(_ => ())
 
   def setEnrolmentFriendlyName(group: Group, planetId: String, enrolmentKey: EnrolmentKey, friendlyName: String)(
     implicit ec: ExecutionContext
@@ -197,7 +186,6 @@ class GroupsService @Inject() (
             }
           else Future.failed(new BadRequestException("INVALID_QUERY_PARAMETERS"))
         }
-      case None => Future.failed(new BadRequestException("INVALID_JSON_BODY"))
     }
 
   /* Group enrolment is de-assigned from the unique Admin user of the group */
@@ -272,7 +260,7 @@ class GroupsService @Inject() (
         .getOrElse(Future.successful(group))
   }
 
-  def reindexAllGroups(implicit ec: ExecutionContext): Future[String] = groupsRepository.reindexAllGroups
+  def reindexAllGroups: Future[Boolean] = groupsRepository.reindexAllGroups
 
 }
 

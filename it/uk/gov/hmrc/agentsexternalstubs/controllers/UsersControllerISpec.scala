@@ -1,7 +1,5 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import org.joda.time.LocalDate
-import org.scalatest.BeforeAndAfterEach
 import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
@@ -12,9 +10,9 @@ import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
 import uk.gov.hmrc.domain.Nino
 
-class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequests with TestStubs {
+import java.time.LocalDate
 
-  val url = s"http://localhost:$port"
+class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestStubs {
 
   lazy val wsClient = app.injector.instanceOf[WSClient]
   lazy val usersService = app.injector.instanceOf[UsersService]
@@ -346,7 +344,7 @@ class UsersControllerISpec extends ServerBaseISpec with MongoDB with TestRequest
       implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
       val result = Users.reindexAllUsers
       result.status shouldBe 200
-      result.body should include("users has been re-indexed")
+      result.body should include("true")
     }
   }
 }

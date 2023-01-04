@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import cats.data.Validated.{Invalid, Valid}
-import play.api.libs.json.{Format, Json}
+import play.api.libs.json.{Json, OFormat}
 
 case class Group(
   planetId: String,
@@ -71,7 +71,7 @@ case class Group(
 }
 
 object Group {
-  implicit val format: Format[Group] = Json.format[Group]
+  implicit val format: OFormat[Group] = Json.format[Group]
 
   def validate(group: Group): Either[List[String], Group] =
     GroupValidator.validate(group) match {

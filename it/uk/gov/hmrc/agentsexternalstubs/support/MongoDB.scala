@@ -1,13 +1,15 @@
 package uk.gov.hmrc.agentsexternalstubs.support
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.locks.{Lock, ReentrantLock}
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, TestSuite}
 import play.api.{Application, Logging}
-import reactivemongo.api.FailoverStrategy
 import uk.gov.hmrc.agentsexternalstubs.repository._
-import uk.gov.hmrc.mongo.{Awaiting, MongoConnector}
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
-import scala.concurrent.duration._
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.locks.{Lock, ReentrantLock}
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 
 trait MongoDB extends BeforeAndAfterAll with BeforeAndAfterEach {
   me: TestSuite =>
@@ -19,14 +21,16 @@ trait MongoDB extends BeforeAndAfterAll with BeforeAndAfterEach {
     MongoDB.initializeMongo(app)
   }
 
-  override def beforeEach() =
+  override def beforeEach() = {
+    super.beforeEach()
     MongoDB.initializeMongo(
       app,
       force = true
     ) // TODO - This slows down the tests. Is there a quicker way to wipe the db?
+  }
 }
 
-object MongoDB extends Awaiting with Logging {
+object MongoDB extends Logging {
 
   private val lock: Lock = new ReentrantLock()
   private val initialized: AtomicBoolean = new AtomicBoolean(false)
@@ -37,18 +41,17 @@ object MongoDB extends Awaiting with Logging {
   def initializeMongo(app: Application, force: Boolean = false): Unit =
     if (lock.tryLock()) try if (!initialized.get() || force) {
       logger.debug("Initializing MongoDB ... ")
-      val mongo = MongoConnector(
-        uri,
-        failoverStrategy = Some(FailoverStrategy.default),
-        dbTimeout = Some(FiniteDuration.apply(4000, "ms"))
-      ).db()
-      await(mongo.drop())
-      await(app.injector.instanceOf[AuthenticatedSessionsRepository].ensureIndexes)
-      await(app.injector.instanceOf[UsersRepositoryMongo].ensureIndexes)
-      await(app.injector.instanceOf[GroupsRepositoryMongo].ensureIndexes)
-      await(app.injector.instanceOf[RecordsRepositoryMongo].ensureIndexes)
-      await(app.injector.instanceOf[KnownFactsRepositoryMongo].ensureIndexes)
-      await(app.injector.instanceOf[SpecialCasesRepositoryMongo].ensureIndexes)
+      val mongoComponent: MongoComponent = MongoComponent(uri)
+      Await.result(mongoComponent.database.drop().toFuture, Duration("10s"))
+      val repos: Seq[PlayMongoRepository[_]] = Seq(
+        app.injector.instanceOf[AuthenticatedSessionsRepository],
+        app.injector.instanceOf[UsersRepositoryMongo],
+        app.injector.instanceOf[GroupsRepositoryMongo],
+        app.injector.instanceOf[RecordsRepositoryMongo],
+        app.injector.instanceOf[KnownFactsRepositoryMongo],
+        app.injector.instanceOf[SpecialCasesRepositoryMongo]
+      )
+      Await.result(Future.sequence(repos.map(_.ensureIndexes)), Duration("10s"))
       initialized.set(true)
       logger.debug("MongoDB ready.")
     } finally lock.unlock()

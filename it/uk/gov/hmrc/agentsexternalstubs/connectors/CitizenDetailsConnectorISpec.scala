@@ -1,16 +1,16 @@
 package uk.gov.hmrc.agentsexternalstubs.connectors
 
-import org.joda.time.LocalDate
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
-import uk.gov.hmrc.agentsexternalstubs.support.{MongoDB, ServerBaseISpec, TestRequests}
+import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests}
 import uk.gov.hmrc.domain.Nino
 
-class CitizenDetailsConnectorISpec extends ServerBaseISpec with MongoDB with TestRequests with TestStubs {
+import java.time.LocalDate
 
-  val url = s"http://localhost:$port"
+class CitizenDetailsConnectorISpec extends ServerBaseISpec with TestRequests with TestStubs {
+
   lazy val wsClient = app.injector.instanceOf[WSClient]
   lazy val connector = app.injector.instanceOf[CitizenDetailsConnector]
 

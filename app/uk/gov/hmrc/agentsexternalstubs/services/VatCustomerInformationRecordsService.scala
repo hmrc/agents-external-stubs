@@ -32,9 +32,7 @@ class VatCustomerInformationRecordsService @Inject() (
   usersServiceProvider: Provider[UsersService]
 ) extends RecordsService {
 
-  def store(record: VatCustomerInformationRecord, autoFill: Boolean, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[String] = {
+  def store(record: VatCustomerInformationRecord, autoFill: Boolean, planetId: String): Future[String] = {
     val entity = if (autoFill) VatCustomerInformationRecord.sanitize(record.vrn)(record) else record
     VatCustomerInformationRecord
       .validate(entity)

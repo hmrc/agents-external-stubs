@@ -25,8 +25,7 @@ import uk.gov.hmrc.domain.Nino
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class UserToRecordsSyncService @Inject() (
@@ -38,7 +37,7 @@ class UserToRecordsSyncService @Inject() (
   employerAuthsRecordsService: EmployerAuthsRecordsService,
   pptSubscriptionDisplayRecordsService: PPTSubscriptionDisplayRecordsService,
   usersRepository: UsersRepository
-) {
+)(implicit ec: ExecutionContext) {
 
   type SaveRecordId = String => Future[Unit]
   type UserAndGroupRecordsSync = SaveRecordId => PartialFunction[(User, Group), Future[Unit]]
@@ -307,7 +306,7 @@ class UserToRecordsSyncService @Inject() (
                                 .withLastName(user.lastName)
                             )
                           )
-                          .withDateOfBirth(user.dateOfBirth.map(_.toString("yyyy-MM-dd")))
+                          .withDateOfBirth(user.dateOfBirth.map(_.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))))
                           .modifyEffectiveRegistrationDate { case date =>
                             vatRegistrationDateOpt.map(_.format(dateFormatyyyyMMdd)).orElse(date)
                           }

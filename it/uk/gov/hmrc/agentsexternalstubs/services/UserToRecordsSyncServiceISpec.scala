@@ -1,7 +1,5 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
-import org.scalatest.BeforeAndAfterEach
-
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.UUID
@@ -15,7 +13,7 @@ import play.api.test.Helpers._
 
 import scala.concurrent.duration._
 
-class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
+class UserToRecordsSyncServiceISpec extends AppBaseISpec {
 
   implicit val defaultTimeout = 60.seconds
 
@@ -414,14 +412,13 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
       )
 
       val theUser = await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Agent)))
-      val theGroup =
-        await(
-          groupsService.updateGroup(
-            theUser.groupId.get,
-            planetId,
-            _.copy(agentFriendlyName = Some("ABC123"), agentCode = Some(testAgentCode))
-          )
+      await(
+        groupsService.updateGroup(
+          theUser.groupId.get,
+          planetId,
+          _.copy(agentFriendlyName = Some("ABC123"), agentCode = Some(testAgentCode))
         )
+      )
 
       val result = await(employerAuthsRecordsService.getEmployerAuthsByAgentCode(testAgentCode, planetId)).get
       result.empAuthList should have size 3
@@ -457,7 +454,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec with MongoDB {
       )
 
       val theUser = await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Agent)))
-      val theGroup = await(
+      await(
         groupsService.updateGroup(
           theUser.groupId.get,
           planetId,

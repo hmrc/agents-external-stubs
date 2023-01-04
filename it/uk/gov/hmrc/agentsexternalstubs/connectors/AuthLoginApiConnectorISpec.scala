@@ -7,14 +7,12 @@ import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
-import uk.gov.hmrc.agentsexternalstubs.support.{MongoDB, ServerBaseISpec, TestRequests, WireMockSupport}
+import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests, WireMockSupport}
 import uk.gov.hmrc.http.{HttpGet, HttpPost}
 import uk.gov.hmrc.http.HeaderCarrier
 
-class AuthLoginApiConnectorISpec
-    extends ServerBaseISpec with MongoDB with TestRequests with TestStubs with WireMockSupport {
+class AuthLoginApiConnectorISpec extends ServerBaseISpec with TestRequests with TestStubs with WireMockSupport {
 
-  val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
   lazy val httpPostWithGet = app.injector.instanceOf[HttpPost with HttpGet]
   lazy val connector = new AuthLoginApiConnector(TestAppConfig(wireMockBaseUrlAsString, wireMockPort), httpPostWithGet)

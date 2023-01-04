@@ -27,21 +27,29 @@ trait TestPlayServer {
   lazy val app: Application = appBuilder.build()
 
   def configuration: Seq[(String, Any)] = Seq(
-    "microservice.services.auth.port"                      -> Port.randomAvailable,
-    "microservice.services.citizen-details.port"           -> Port.randomAvailable,
-    "microservice.services.users-groups-search.port"       -> Port.randomAvailable,
-    "microservice.services.enrolment-store-proxy.port"     -> Port.randomAvailable,
-    "microservice.services.tax-enrolments.port"            -> Port.randomAvailable,
-    "microservice.services.des.port"                       -> Port.randomAvailable,
-    "microservice.services.ni-exemption-registration.port" -> Port.randomAvailable,
-    "microservice.services.agent-access-control.port"      -> wireMockPort,
-    "microservice.services.api-platform-test-user.port"    -> wireMockPort,
-    "metrics.enabled"                                      -> false,
-    "auditing.enabled"                                     -> false,
-    "mongodb.uri"                                          -> MongoDB.uri,
-    "http.port"                                            -> port,
-    "gran-perms-test-gen-max-clients"                      -> 10,
-    "gran-perms-test-gen-max-agents"                       -> 5
+    "microservice.services.auth.port"                        -> Port.randomAvailable,
+    "microservice.services.citizen-details.port"             -> Port.randomAvailable,
+    "microservice.services.users-groups-search.port"         -> Port.randomAvailable,
+    "microservice.services.enrolment-store-proxy.port"       -> Port.randomAvailable,
+    "microservice.services.tax-enrolments.port"              -> Port.randomAvailable,
+    "microservice.services.des.port"                         -> Port.randomAvailable,
+    "microservice.services.ni-exemption-registration.port"   -> Port.randomAvailable,
+    "microservice.services.companies-house-api-proxy.port"   -> Port.randomAvailable,
+    "microservice.services.sso.port"                         -> Port.randomAvailable,
+    "microservice.services.file-upload.port"                 -> Port.randomAvailable,
+    "microservice.services.file-upload-frontend.port"        -> Port.randomAvailable,
+    "microservice.services.user-details.port"                -> Port.randomAvailable,
+    "microservice.services.personal-details-validation.port" -> Port.randomAvailable,
+    "microservice.services.identity-verification.port"       -> Port.randomAvailable,
+    "auditing.consumer.baseUri.port"                         -> Port.randomAvailable,
+    "microservice.services.agent-access-control.port"        -> wireMockPort,
+    "microservice.services.api-platform-test-user.port"      -> wireMockPort,
+    "metrics.enabled"                                        -> false,
+    "auditing.enabled"                                       -> false,
+    "mongodb.uri"                                            -> MongoDB.uri,
+    "http.port"                                              -> port,
+    "gran-perms-test-gen-max-clients"                        -> 10,
+    "gran-perms-test-gen-max-agents"                         -> 5
   )
 
   protected def appBuilder: GuiceApplicationBuilder =

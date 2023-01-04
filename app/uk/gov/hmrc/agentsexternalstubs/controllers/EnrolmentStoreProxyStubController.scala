@@ -17,10 +17,9 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import cats.data.Validated
-import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
-import uk.gov.hmrc.agentmtdidentifiers.model.{AssignedClient, GroupDelegatedEnrolments, Identifier => MtdIdentifier}
+import uk.gov.hmrc.agentmtdidentifiers.model.{AssignedClient, GroupDelegatedEnrolments}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.SetKnownFactsRequest.Legacy
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController._
 import uk.gov.hmrc.agentsexternalstubs.models._
@@ -30,7 +29,7 @@ import uk.gov.hmrc.auth.core.UnsupportedCredentialRole
 import uk.gov.hmrc.http.{BadRequestException, ForbiddenException, NotFoundException}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import java.time.{LocalDate, ZoneId}
+import java.time.{Instant, LocalDate, ZoneId}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -422,10 +421,10 @@ object EnrolmentStoreProxyStubController {
       service: String,
       state: String,
       friendlyName: String,
-      enrolmentDate: Option[DateTime],
+      enrolmentDate: Option[Instant],
       failedActivationCount: Int,
-      activationDate: Option[DateTime],
-      enrolmentTokenExpiryDate: Option[DateTime],
+      activationDate: Option[Instant],
+      enrolmentTokenExpiryDate: Option[Instant],
       identifiers: Seq[Identifier]
     )
 
@@ -460,13 +459,12 @@ object EnrolmentStoreProxyStubController {
       )
     }
 
-    private def randomDateTimeInTheLastFiveYears: DateTime = {
+    private def randomDateTimeInTheLastFiveYears: Instant = {
       val start = LocalDate.now().minusYears(5)
       val end = LocalDate.now()
-      new DateTime(Generator.date(start, end).sample.get.atStartOfDay(ZoneId.systemDefault).toInstant.toEpochMilli)
+      Generator.date(start, end).sample.get.atStartOfDay(ZoneId.systemDefault).toInstant
     }
 
-    import play.api.libs.json.JodaWrites._
     implicit val writes1: Writes[Enrolment] = Json.writes[Enrolment]
     implicit val writes2: Writes[GetUserEnrolmentsResponse] = Json.writes[GetUserEnrolmentsResponse]
   }

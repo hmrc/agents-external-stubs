@@ -1,17 +1,14 @@
 package uk.gov.hmrc.agentsexternalstubs.support
 
-import java.util.UUID
 import org.scalatest.concurrent.ScalaFutures
 import play.api.http.{CookiesConfiguration, HeaderNames, MimeTypes}
-import play.api.libs.json.{JsValue, Json, Writes}
+import play.api.libs.json.{JsObject, JsValue, Json, Writes}
 import play.api.libs.ws.{BodyWritable, WSClient, WSCookie, WSResponse}
 import play.api.mvc.{Cookie, DefaultCookieHeaderEncoding}
-import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Enrolment, GranPermsGenRequest, Group, GroupGenerator, SignInRequest, User}
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.http.Authorization
-import play.api.libs.json.JsObject
+import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.http.{Authorization, HeaderCarrier}
 
-import scala.concurrent.Future
+import java.util.UUID
 
 trait AuthContext {
   self =>

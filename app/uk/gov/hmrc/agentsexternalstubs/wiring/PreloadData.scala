@@ -16,22 +16,21 @@
 
 package uk.gov.hmrc.agentsexternalstubs.wiring
 
-import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import uk.gov.hmrc.agentsexternalstubs.models.{BusinessDetailsRecord, BusinessPartnerRecord, UserIdGenerator, VatCustomerInformationRecord}
 
-import scala.concurrent.ExecutionContext
+import javax.inject.{Inject, Singleton}
 
 @Singleton
-class PreloadData @Inject() (appConfig: AppConfig)(implicit ec: ExecutionContext) {
+class PreloadData @Inject() (appConfig: AppConfig) {
 
   if (appConfig.preloadRecordsForDefaultUserIds) {
     Logger(getClass).info("Pre-loading records for default user ids")
-    UserIdGenerator.defaultUserIds.map(_.foreach { userId =>
+    UserIdGenerator.defaultUserIds.foreach { userId =>
       VatCustomerInformationRecord.generate(userId)
       BusinessDetailsRecord.generate(userId)
       BusinessPartnerRecord.generate(userId)
-    })
+    }
 
   }
 

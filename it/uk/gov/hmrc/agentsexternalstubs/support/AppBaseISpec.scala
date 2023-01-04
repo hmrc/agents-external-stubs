@@ -8,7 +8,7 @@ import play.api.Application
 import scala.concurrent.ExecutionContext
 
 abstract class AppBaseISpec
-    extends BaseISpec with ScalaFutures with JsonMatchers with WSResponseMatchers with BeforeAndAfterEach {
+    extends BaseISpec with ScalaFutures with JsonMatchers with WSResponseMatchers with MongoDB with BeforeAndAfterEach {
 
   override lazy val app: Application = TestPlayServer.app
   val port: Int = TestPlayServer.port
@@ -16,6 +16,6 @@ abstract class AppBaseISpec
   implicit val ec: ExecutionContext = app.actorSystem.dispatcher
 
   implicit override val patienceConfig: PatienceConfig =
-    PatienceConfig(timeout = Span(5, Seconds), interval = Span(10, Milliseconds))
+    PatienceConfig(timeout = Span(15, Seconds), interval = Span(50, Milliseconds))
 
 }

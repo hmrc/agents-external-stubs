@@ -4,9 +4,8 @@ import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.agentsexternalstubs.support._
 
-class ProxyControllerISpec extends ServerBaseISpec with MongoDB with TestRequests with WireMockSupport {
+class ProxyControllerISpec extends ServerBaseISpec with TestRequests with WireMockSupport {
 
-  val url = s"http://localhost:$port"
   lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
 
   "ProxyController" when {

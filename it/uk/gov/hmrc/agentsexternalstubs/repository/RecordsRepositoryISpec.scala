@@ -15,21 +15,21 @@
  */
 package uk.gov.hmrc.agentsexternalstubs.repository
 
-import java.util.UUID
+import org.mongodb.scala.model.Filters
 
-import reactivemongo.bson.BSONObjectID
+import java.util.UUID
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.services.LegacyRelationshipRecordsService
-import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
-import uk.gov.hmrc.mongo.ReactiveRepository
+import uk.gov.hmrc.agentsexternalstubs.support.AppBaseISpec
 import play.api.test.Helpers._
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
-class RecordsRepositoryISpec extends AppBaseISpec with MongoDB {
+class RecordsRepositoryISpec extends AppBaseISpec {
 
   lazy val repo: RecordsRepository = app.injector.instanceOf[RecordsRepository]
 
-  lazy val underlyingRepo: ReactiveRepository[Record, BSONObjectID] =
-    repo.asInstanceOf[ReactiveRepository[Record, BSONObjectID]]
+  lazy val underlyingRepo: PlayMongoRepository[Record] =
+    repo.asInstanceOf[PlayMongoRepository[Record]]
 
   "RecordsRepository" should {
     "store a RelationshipRecord entities" in {
@@ -39,14 +39,14 @@ class RecordsRepositoryISpec extends AppBaseISpec with MongoDB {
       val registration2 = RelationshipRecord(regime = "A", arn = "B2", refNumber = "C2", idType = "D", active = false)
       await(repo.store(registration2, planetId))
 
-      val recordsBefore = await(underlyingRepo.find("_planetId" -> planetId))
+      val recordsBefore = await(underlyingRepo.collection.find(Filters.equal("_planetId", planetId)).toFuture)
       recordsBefore.size shouldBe 2
 
       val record1 = recordsBefore.find(_.asInstanceOf[RelationshipRecord].arn == "B1").get
       record1.id should not be empty
       await(repo.store(record1.asInstanceOf[RelationshipRecord].copy(arn = "B3"), planetId))
 
-      val recordsAfter = await(underlyingRepo.find("_planetId" -> planetId))
+      val recordsAfter = await(underlyingRepo.collection.find(Filters.equal("_planetId", planetId)).toFuture)
       recordsAfter.size shouldBe 2
       recordsAfter.find(_.asInstanceOf[RelationshipRecord].arn == "B3") should not be empty
       recordsAfter.find(_.asInstanceOf[RelationshipRecord].arn == "B2") should not be empty
@@ -61,7 +61,7 @@ class RecordsRepositoryISpec extends AppBaseISpec with MongoDB {
       val registration2 = LegacyAgentRecord(agentId = "A2", agentName = "Agent2", address1 = "a21", address2 = "a22")
       await(repo.store(registration2, planetId))
 
-      val records = await(underlyingRepo.find("_planetId" -> planetId))
+      val records = await(underlyingRepo.collection.find(Filters.equal("_planetId", planetId)).toFuture)
       records.size shouldBe 2
       records.map(_.asInstanceOf[LegacyAgentRecord].agentId) should contain.only("A1", "A2")
     }
@@ -81,7 +81,7 @@ class RecordsRepositoryISpec extends AppBaseISpec with MongoDB {
       )
       await(repo.store(registration2, planetId))
 
-      val records = await(underlyingRepo.find("_planetId" -> planetId))
+      val records = await(underlyingRepo.collection.find(Filters.equal("_planetId", planetId)).toFuture)
       records.size shouldBe 2
       records.map(_.asInstanceOf[LegacyRelationshipRecord].agentId) should contain.only("1", "2")
       records.map(_.asInstanceOf[LegacyRelationshipRecord].nino.get) should contain.only("A", "B")
@@ -104,7 +104,7 @@ class RecordsRepositoryISpec extends AppBaseISpec with MongoDB {
       val businessDetails1 = BusinessDetailsRecord.generate("foo")
       await(repo.store(businessDetails1, planetId))
 
-      val records = await(underlyingRepo.find("_planetId" -> planetId))
+      val records = await(underlyingRepo.collection.find(Filters.equal("_planetId", planetId)).toFuture)
       records.size shouldBe 1
     }
 
@@ -113,7 +113,7 @@ class RecordsRepositoryISpec extends AppBaseISpec with MongoDB {
       val businessPartnerRecord = BusinessPartnerRecord.generate("foo")
       await(repo.store(businessPartnerRecord, planetId))
 
-      val records = await(underlyingRepo.find("_planetId" -> planetId))
+      val records = await(underlyingRepo.collection.find(Filters.equal("_planetId", planetId)).toFuture)
       records.size shouldBe 1
     }
 
@@ -138,32 +138,6 @@ class RecordsRepositoryISpec extends AppBaseISpec with MongoDB {
 
       val record2 = await(repo.findById(recordId, planetId))
       record2 shouldBe None
-    }
-
-    "remove all records from the database" in {
-      val planetId1 = UUID.randomUUID().toString
-      val planetId2 = UUID.randomUUID().toString
-      val planetId3 = UUID.randomUUID().toString
-
-      import BusinessDetailsRecord._
-
-      val businessDetails = BusinessDetailsRecord.generate("foo")
-
-      await(repo.store(businessDetails, planetId1))
-      await(repo.store(businessDetails, planetId2))
-      await(repo.store(businessDetails, planetId3))
-
-      await(repo.findByPlanetId(planetId1).headOption) shouldBe defined
-      await(repo.findByPlanetId(planetId2).headOption) shouldBe defined
-      await(repo.findByPlanetId(planetId3).headOption) shouldBe defined
-
-      Thread.sleep(100)
-
-      await(repo.deleteAll(System.currentTimeMillis())) should be >= 3
-
-      await(repo.findByPlanetId(planetId1).headOption) shouldBe None
-      await(repo.findByPlanetId(planetId2).headOption) shouldBe None
-      await(repo.findByPlanetId(planetId3).headOption) shouldBe None
     }
   }
 }

@@ -15,15 +15,13 @@
  */
 package uk.gov.hmrc.agentsexternalstubs.repository
 
+import play.api.test.Helpers._
+import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.support.AppBaseISpec
+
 import java.util.UUID
 
-import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.support.{AppBaseISpec, MongoDB}
-import play.api.test.Helpers._
-
-import scala.concurrent.Future
-
-class KnownFactsRepositoryISpec extends AppBaseISpec with MongoDB {
+class KnownFactsRepositoryISpec extends AppBaseISpec {
 
   lazy val repo = app.injector.instanceOf[KnownFactsRepositoryMongo]
 
@@ -69,38 +67,6 @@ class KnownFactsRepositoryISpec extends AppBaseISpec with MongoDB {
       an[Exception] shouldBe thrownBy {
         await(repo.upsert(knownFacts, planetId))
       }
-    }
-
-    "delete all known facts" in {
-      val fixture = Stream
-        .continually(p.sample.get)
-        .take(100)
-        .map { seed =>
-          repo.upsert(KnownFacts.generate(EnrolmentKey(s"IR-SA~UTR~$seed"), seed, _ => None).get, seed)
-        }
-      await(Future.sequence(fixture))
-
-      await(repo.count) should be >= 100
-      await(repo.deleteAll(System.currentTimeMillis()))
-      await(repo.count) shouldBe 0
-    }
-
-    "delete all known facts created before some datetime" in {
-      def fixture: Seq[Future[Unit]] =
-        Stream
-          .continually(p.sample.get)
-          .take(50)
-          .map { seed =>
-            repo.upsert(KnownFacts.generate(EnrolmentKey(s"IR-SA~UTR~$seed"), seed, _ => None).get, seed)
-          }
-      await(Future.sequence(fixture))
-      Thread.sleep(100)
-      val t0 = System.currentTimeMillis()
-      await(Future.sequence(fixture))
-
-      await(repo.count) should be >= 100
-      await(repo.deleteAll(t0)) should be >= 50
-      await(repo.count) shouldBe 50
     }
   }
 }

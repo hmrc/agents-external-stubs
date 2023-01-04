@@ -28,9 +28,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class PPTSubscriptionDisplayRecordsService @Inject() (
   val recordsRepository: RecordsRepository
 ) extends RecordsService {
-  def store(record: PPTSubscriptionDisplayRecord, autoFill: Boolean, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[String] = {
+  def store(record: PPTSubscriptionDisplayRecord, autoFill: Boolean, planetId: String): Future[String] = {
     val entity = if (autoFill) PPTSubscriptionDisplayRecord.sanitize(record.pptReference)(record) else record
     PPTSubscriptionDisplayRecord
       .validate(entity)

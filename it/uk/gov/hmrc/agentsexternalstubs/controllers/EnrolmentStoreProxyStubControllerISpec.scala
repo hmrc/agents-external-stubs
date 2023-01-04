@@ -8,11 +8,10 @@ import uk.gov.hmrc.agentmtdidentifiers.model.{Identifier => MtdIdentifier}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.SetKnownFactsRequest
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
-import uk.gov.hmrc.agentsexternalstubs.support.{AuthContext, MongoDB, ServerBaseISpec, TestRequests}
+import uk.gov.hmrc.agentsexternalstubs.support.{AuthContext, ServerBaseISpec, TestRequests}
 
-class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with MongoDB with TestRequests with TestStubs {
+class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRequests with TestStubs {
 
-  val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
 
   "EnrolmentStoreProxyStubController" when {

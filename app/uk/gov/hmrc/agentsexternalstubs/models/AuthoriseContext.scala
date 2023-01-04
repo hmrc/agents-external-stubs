@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import org.joda.time.LocalDate
 import uk.gov.hmrc.agentsexternalstubs.connectors.AgentAccessControlConnector
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
@@ -24,6 +23,8 @@ import uk.gov.hmrc.http.HeaderCarrier
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
 import uk.gov.hmrc.agentsexternalstubs.services.{GroupsService, UsersService}
+
+import java.time.LocalDate
 
 trait AuthoriseContext {
 
@@ -58,7 +59,9 @@ trait AuthoriseContext {
 
 abstract class AuthoriseUserContext(user: User, group: Option[Group]) extends AuthoriseContext {
 
-  final val timeout: Duration = 30 seconds
+  implicit val ec: ExecutionContext
+
+  final val timeout: Duration = 30.seconds
 
   override def userId: String = user.userId
 
@@ -92,8 +95,6 @@ abstract class AuthoriseUserContext(user: User, group: Option[Group]) extends Au
 
   val userService: UsersService
   val groupsService: GroupsService
-
-  import scala.concurrent.ExecutionContext.Implicits.global
 
   override def principalEnrolments: Seq[Enrolment] = {
     val enrolments =
@@ -155,7 +156,7 @@ case class FullAuthoriseContext(
   authenticatedSession: AuthenticatedSession,
   request: AuthoriseRequest,
   agentAccessControlConnector: AgentAccessControlConnector
-)(implicit ec: ExecutionContext, hc: HeaderCarrier)
+)(implicit val ec: ExecutionContext, hc: HeaderCarrier)
     extends AuthoriseUserContext(user, group) {
 
   override def providerType: String = authenticatedSession.providerType

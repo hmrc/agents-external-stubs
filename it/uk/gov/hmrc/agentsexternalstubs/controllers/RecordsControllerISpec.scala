@@ -7,10 +7,8 @@ import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, BusinessDet
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
 
-class RecordsControllerISpec
-    extends ServerBaseISpec with MongoDB with TestRequests with TestStubs with ExampleDesPayloads {
+class RecordsControllerISpec extends ServerBaseISpec with TestRequests with TestStubs with ExampleDesPayloads {
 
-  val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
 
   "RecordsController" when {

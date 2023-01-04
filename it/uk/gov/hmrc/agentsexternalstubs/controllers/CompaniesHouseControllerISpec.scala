@@ -5,9 +5,8 @@ import play.api.libs.ws.WSClient
 import uk.gov.hmrc.agentsexternalstubs.models.AuthenticatedSession
 import uk.gov.hmrc.agentsexternalstubs.support._
 
-class CompaniesHouseControllerISpec extends ServerBaseISpec with MongoDB with TestRequests {
+class CompaniesHouseControllerISpec extends ServerBaseISpec with TestRequests {
 
-  val url = s"http://localhost:$port"
   lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
 
   "Calling" when {

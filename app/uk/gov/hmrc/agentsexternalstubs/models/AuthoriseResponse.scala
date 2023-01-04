@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import org.joda.time.LocalDate
 import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.domain.Nino
 
+import java.time.LocalDate
 import scala.concurrent.ExecutionContext
 
 case class AuthoriseResponse(
@@ -44,8 +44,6 @@ case class AuthoriseResponse(
 )
 
 object AuthoriseResponse {
-  import play.api.libs.json.JodaWrites._
-  import play.api.libs.json.JodaReads._
   implicit val formats: Format[AuthoriseResponse] = Json.format[AuthoriseResponse]
 }
 

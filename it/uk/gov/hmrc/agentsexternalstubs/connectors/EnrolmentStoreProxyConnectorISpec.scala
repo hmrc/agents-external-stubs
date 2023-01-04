@@ -1,8 +1,8 @@
 package uk.gov.hmrc.agentsexternalstubs.connectors
 
-import org.scalatestplus.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfterEach, Suite}
+import org.scalatest.Suite
 import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Vrn}
@@ -18,10 +18,8 @@ import uk.gov.hmrc.domain.{AgentCode, TaxIdentifier}
 
  */
 
-class EnrolmentStoreProxyConnectorISpec
-    extends ServerBaseISpec with MongoDB with EnrolmentStoreProxyHelper with MockitoSugar {
+class EnrolmentStoreProxyConnectorISpec extends ServerBaseISpec with EnrolmentStoreProxyHelper with MockitoSugar {
 
-  val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
   lazy val connector = app.injector.instanceOf[EnrolmentStoreProxyConnector]
 

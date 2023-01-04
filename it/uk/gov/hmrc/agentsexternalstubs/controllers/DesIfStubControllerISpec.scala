@@ -2,13 +2,9 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, urlEqualTo}
-import org.joda.time.LocalDate
-import org.junit.Before
-import org.scalatest.BeforeAndAfterEach
 import play.api.libs.json._
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
-import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.connectors.ExampleApiPlatformTestUserResponses
 import uk.gov.hmrc.agentsexternalstubs.controllers.ErrorResponse._
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.Individual
@@ -20,11 +16,12 @@ import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
 import uk.gov.hmrc.domain.{Nino, Vrn}
 
+import java.time.LocalDate
+
 class DesIfStubControllerISpec
-    extends ServerBaseISpec with MongoDB with TestRequests with TestStubs with ExampleDesPayloads with WireMockSupport
+    extends ServerBaseISpec with TestRequests with TestStubs with ExampleDesPayloads with WireMockSupport
     with ExampleApiPlatformTestUserResponses {
 
-  val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
   lazy val repo = app.injector.instanceOf[RecordsRepository]
   lazy val controller = app.injector.instanceOf[DesIfStubController]
@@ -1600,7 +1597,7 @@ class DesIfStubControllerISpec
 
     "handle invalid regime" in {
       implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
-      val result = userService
+      userService
         .updateUser(
           "7728378273",
           authSession.planetId,
@@ -1618,7 +1615,7 @@ class DesIfStubControllerISpec
 
     "handle invalid idType" in {
       implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
-      val result = userService
+      userService
         .updateUser(
           "7728378273",
           authSession.planetId,
@@ -1636,7 +1633,7 @@ class DesIfStubControllerISpec
 
     "handle invalid regime and idType" in {
       implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
-      val result = userService
+      userService
         .updateUser(
           "7728378273",
           authSession.planetId,

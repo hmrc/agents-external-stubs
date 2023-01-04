@@ -6,7 +6,6 @@ import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests}
 
 class SsoDomainControllerISpec extends ServerBaseISpec with TestRequests {
 
-  val url = s"http://localhost:$port"
   lazy val wsClient = app.injector.instanceOf[WSClient]
 
   "SsoValidateDomainController" when {

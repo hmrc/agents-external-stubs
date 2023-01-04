@@ -64,7 +64,7 @@ class EnrolmentStoreProxyStubControllerSpec extends UnitSpec {
   "allocateGroupEnrolment" should {
     "return 409 if mongodb returns DuplicateUserException" in new Setup {
       when(
-        mockUsersService.findByUserId(anyString(), anyString())(any[ExecutionContext]())
+        mockUsersService.findByUserId(anyString(), anyString())
       ).thenReturn(Future.successful(Some(User("bar", credentialRole = Some(User.CR.Admin)))))
       when(
         mockGroupsService.allocateEnrolmentToGroup(

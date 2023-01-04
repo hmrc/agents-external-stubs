@@ -19,7 +19,7 @@ lazy val scoverageSettings = {
 lazy val compileDeps = Seq(
   ws,
   "uk.gov.hmrc"          %% "bootstrap-backend-play-28" % "7.12.0",
-  "uk.gov.hmrc"          %% "simple-reactivemongo"      % "8.1.0-play-28",
+  "uk.gov.hmrc.mongo"    %% "hmrc-mongo-play-28"        % "0.74.0",
   "uk.gov.hmrc"          %% "agent-mtd-identifiers"     % "0.52.0-play-28",
   "com.kenshoo"          %% "metrics-play"              % "2.7.3_0.8.2",
   "uk.gov.hmrc"          %% "domain"                    % "7.0.0-play-28",
@@ -28,17 +28,16 @@ lazy val compileDeps = Seq(
   "uk.gov.hmrc"          %% "stub-data-generator"       % "0.5.3",
   "io.github.wolfendale" %% "scalacheck-gen-regexp"     % "0.1.3",
   "com.typesafe.play"    %% "play-json"                 % "2.9.2",
-  "com.typesafe.play"    %% "play-json-joda"            % "2.9.2",
   ws
 )
 
 def testDeps(scope: String) = Seq(
-  "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0"         % scope,
-  "org.scalatestplus"      %% "mockito-3-12"       % "3.2.10.0"      % scope,
-  "uk.gov.hmrc"            %% "reactivemongo-test" % "5.1.0-play-28" % scope,
-  "com.github.tomakehurst"  % "wiremock-jre8"      % "2.26.1"        % scope,
-  "com.github.pathikrit"   %% "better-files"       % "3.9.1"         % scope,
-  "com.vladsch.flexmark"    % "flexmark-all"       % "0.35.10"       % scope
+  "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0"    % scope,
+  "org.scalatestplus"      %% "mockito-3-12"       % "3.2.10.0" % scope,
+  "uk.gov.hmrc.mongo" %% "hmrc-mongo-test-play-28" % "0.74.0"   % scope,
+  "com.github.tomakehurst"  % "wiremock-jre8"      % "2.26.1"   % scope,
+  "com.github.pathikrit"   %% "better-files"       % "3.9.1"    % scope,
+  "com.vladsch.flexmark"    % "flexmark-all"       % "0.35.10"  % scope
 )
 
 val jettyVersion = "9.2.24.v20180105"
@@ -60,11 +59,6 @@ val jettyOverrides = Set(
   "org.eclipse.jetty.websocket" % "websocket-client"   % jettyVersion % IntegrationTest
 )
 
-def tmpMacWorkaround(): Seq[ModuleID] =
-  if (sys.props.get("os.name").fold(false)(_.toLowerCase.contains("mac")))
-    Seq("org.reactivemongo" % "reactivemongo-shaded-native" % "0.16.1-osx-x86-64" % "runtime,test,it")
-  else Seq()
-
 lazy val root = (project in file("."))
   .settings(
     name := "agents-external-stubs",
@@ -84,7 +78,7 @@ lazy val root = (project in file("."))
     resolvers ++= Seq(
       Resolver.typesafeRepo("releases"),
     ),
-    libraryDependencies ++= tmpMacWorkaround() ++ compileDeps ++ testDeps("test") ++ testDeps("it"),
+    libraryDependencies ++= compileDeps ++ testDeps("test") ++ testDeps("it"),
     libraryDependencies ++= Seq(
       compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.7" cross CrossVersion.full),
       "com.github.ghik" % "silencer-lib" % "1.7.7" % Provided cross CrossVersion.full
@@ -101,12 +95,12 @@ lazy val root = (project in file("."))
   )
   .configs(IntegrationTest)
   .settings(
-    IntegrationTest / Keys.fork := true,
     Defaults.itSettings,
+    IntegrationTest / Keys.fork := false,
     IntegrationTest / unmanagedSourceDirectories += baseDirectory(_ / "it").value,
     IntegrationTest / parallelExecution := false,
     IntegrationTest / scalafmtOnCompile := true
-  )
+)
   .enablePlugins(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin)
 
 inConfig(IntegrationTest)(org.scalafmt.sbt.ScalafmtPlugin.scalafmtConfigSettings)
