@@ -17,14 +17,11 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 
 import org.mongodb.scala.MongoWriteException
 import org.mongodb.scala.model.Filters
-
-import java.util.UUID
+import play.api.test.Helpers._
 import uk.gov.hmrc.agentsexternalstubs.models.AuthenticatedSession
 import uk.gov.hmrc.agentsexternalstubs.support.AppBaseISpec
-import play.api.test.Helpers._
 
-import scala.concurrent.Future
-import scala.util.Random
+import java.util.UUID
 
 class AuthenticatedSessionsRepositoryISpec extends AppBaseISpec {
 

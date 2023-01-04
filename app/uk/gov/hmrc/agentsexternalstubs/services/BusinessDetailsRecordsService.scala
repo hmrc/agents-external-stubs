@@ -33,9 +33,7 @@ class BusinessDetailsRecordsService @Inject() (
   usersServiceProvider: Provider[UsersService]
 ) extends RecordsService {
 
-  def store(record: BusinessDetailsRecord, autoFill: Boolean, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[String] = {
+  def store(record: BusinessDetailsRecord, autoFill: Boolean, planetId: String): Future[String] = {
     val entity = if (autoFill) BusinessDetailsRecord.sanitize(record.safeId)(record) else record
     BusinessDetailsRecord
       .validate(entity)

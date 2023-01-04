@@ -19,7 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import cats.data.Validated
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
-import uk.gov.hmrc.agentmtdidentifiers.model.{AssignedClient, GroupDelegatedEnrolments, Identifier => MtdIdentifier}
+import uk.gov.hmrc.agentmtdidentifiers.model.{AssignedClient, GroupDelegatedEnrolments}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.SetKnownFactsRequest.Legacy
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController._
 import uk.gov.hmrc.agentsexternalstubs.models._

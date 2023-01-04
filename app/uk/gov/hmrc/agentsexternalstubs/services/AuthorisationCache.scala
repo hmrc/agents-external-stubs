@@ -96,7 +96,8 @@ case class SimplifiedAuthoriseContext(
   userService: UsersService,
   groupsService: GroupsService,
   planetId: Option[String]
-) extends AuthoriseUserContext(user, group) {
+)(implicit val ec: ExecutionContext)
+    extends AuthoriseUserContext(user, group) {
 
   override def userId: String = user.userId
   override def providerType: String = "GovernmentGateway"

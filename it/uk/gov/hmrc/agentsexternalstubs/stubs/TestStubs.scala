@@ -1,13 +1,12 @@
 package uk.gov.hmrc.agentsexternalstubs.stubs
 
-import java.util.UUID
 import org.scalatest.Suite
 import play.api.Application
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GroupsService, UsersService}
 
-import scala.concurrent.duration.Duration
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 trait TestStubs {
@@ -26,7 +25,7 @@ trait TestStubs {
     affinityGroup: Option[String],
     agentCode: Option[String] = None,
     agentFriendlyName: Option[String] = None
-  )(implicit ec: ExecutionContext, timeout: Duration): String =
+  )(implicit ec: ExecutionContext): String =
     await(for {
       authSession <-
         authenticationService
@@ -53,7 +52,7 @@ trait TestStubs {
     service: String,
     identifierKey: String,
     identifierValue: String
-  )(implicit ec: ExecutionContext, timeout: Duration): Unit = await {
+  )(implicit ec: ExecutionContext): Unit = await {
     userService.findByUserId(userId, planetId).flatMap {
       case None =>
         userService.createUser(
@@ -80,8 +79,7 @@ trait TestStubs {
   }
 
   def givenUserWithStrideRole(userId: String, planetId: String, role: String)(implicit
-    ec: ExecutionContext,
-    timeout: Duration
+    ec: ExecutionContext
   ): Unit =
     await(addStrideRole(userId, planetId, role))
 

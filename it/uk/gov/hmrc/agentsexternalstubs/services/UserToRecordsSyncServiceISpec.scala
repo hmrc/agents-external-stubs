@@ -412,14 +412,13 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
       )
 
       val theUser = await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Agent)))
-      val theGroup =
-        await(
-          groupsService.updateGroup(
-            theUser.groupId.get,
-            planetId,
-            _.copy(agentFriendlyName = Some("ABC123"), agentCode = Some(testAgentCode))
-          )
+      await(
+        groupsService.updateGroup(
+          theUser.groupId.get,
+          planetId,
+          _.copy(agentFriendlyName = Some("ABC123"), agentCode = Some(testAgentCode))
         )
+      )
 
       val result = await(employerAuthsRecordsService.getEmployerAuthsByAgentCode(testAgentCode, planetId)).get
       result.empAuthList should have size 3
@@ -455,7 +454,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
       )
 
       val theUser = await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Agent)))
-      val theGroup = await(
+      await(
         groupsService.updateGroup(
           theUser.groupId.get,
           planetId,

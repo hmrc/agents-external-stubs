@@ -26,9 +26,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class EmployerAuthsRecordsService @Inject() (val recordsRepository: RecordsRepository) extends RecordsService {
 
-  def store(record: EmployerAuths, autoFill: Boolean, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[String] = {
+  def store(record: EmployerAuths, autoFill: Boolean, planetId: String): Future[String] = {
     val entity = if (autoFill) EmployerAuths.sanitize(record.agentCode)(record) else record
     EmployerAuths
       .validate(entity)

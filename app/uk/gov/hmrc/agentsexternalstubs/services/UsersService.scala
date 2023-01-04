@@ -38,7 +38,7 @@ class UsersService @Inject() (
   groupsService: GroupsService
 ) {
 
-  def findByUserId(userId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
+  def findByUserId(userId: String, planetId: String): Future[Option[User]] =
     usersRepository.findByUserId(userId, planetId)
 
   def findUserAndGroup(userId: String, planetId: String)(implicit
@@ -56,15 +56,13 @@ class UsersService @Inject() (
       usersRepository.findByNino(id.value, planetId)
     )
 
-  def findByPlanetId(planetId: String)(
-    limit: Int
-  )(implicit ec: ExecutionContext): Future[Seq[User]] =
+  def findByPlanetId(planetId: String)(limit: Int): Future[Seq[User]] =
     usersRepository.findByPlanetId(planetId)(limit)
 
-  def findByGroupId(groupId: String, planetId: String)(limit: Int)(implicit ec: ExecutionContext): Future[Seq[User]] =
+  def findByGroupId(groupId: String, planetId: String)(limit: Int): Future[Seq[User]] =
     usersRepository.findByGroupId(groupId, planetId)(limit)
 
-  def findAdminByGroupId(groupId: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
+  def findAdminByGroupId(groupId: String, planetId: String): Future[Option[User]] =
     usersRepository.findAdminByGroupId(groupId, planetId)
 
   def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(implicit
@@ -74,23 +72,19 @@ class UsersService @Inject() (
       usersRepository.findByPrincipalEnrolmentKey(enrolmentKey, planetId)
     }
 
-  def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(implicit
-    ec: ExecutionContext
-  ): Future[Seq[User]] =
+  def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int): Future[Seq[User]] =
     usersRepository.findByDelegatedEnrolmentKey(enrolmentKey, planetId)(limit)
 
-  def findUserIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(implicit
-    ec: ExecutionContext
+  def findUserIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
+    limit: Int
   ): Future[Seq[String]] =
     usersRepository.findUserIdsByDelegatedEnrolmentKey(enrolmentKey, planetId)(limit)
 
-  def findUserIdsByAssignedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(implicit
-    ec: ExecutionContext
-  ): Future[Seq[String]] =
+  def findUserIdsByAssignedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int): Future[Seq[String]] =
     usersRepository.findUserIdsByAssignedEnrolmentKey(enrolmentKey, planetId)(limit)
 
-  def findGroupIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int)(implicit
-    ec: ExecutionContext
+  def findGroupIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
+    limit: Int
   ): Future[Seq[Option[String]]] =
     usersRepository.findGroupIdsByDelegatedEnrolmentKey(enrolmentKey, planetId)(limit)
 
@@ -427,6 +421,6 @@ class UsersService @Inject() (
 
   }
 
-  def reindexAllUsers(implicit ec: ExecutionContext): Future[Boolean] = usersRepository.reindexAllUsers
+  def reindexAllUsers: Future[Boolean] = usersRepository.reindexAllUsers
 
 }

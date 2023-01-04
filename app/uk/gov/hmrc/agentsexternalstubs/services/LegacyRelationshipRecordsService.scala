@@ -26,9 +26,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class LegacyRelationshipRecordsService @Inject() (recordsRepository: RecordsRepository) {
 
-  def store(record: LegacyRelationshipRecord, autoFill: Boolean, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[String] = {
+  def store(record: LegacyRelationshipRecord, autoFill: Boolean, planetId: String): Future[String] = {
     val entity = if (autoFill) LegacyRelationshipRecord.sanitize(record.agentId)(record) else record
     LegacyRelationshipRecord
       .validate(entity)
@@ -38,9 +36,7 @@ class LegacyRelationshipRecordsService @Inject() (recordsRepository: RecordsRepo
       )
   }
 
-  def store(record: LegacyAgentRecord, autoFill: Boolean, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[String] = {
+  def store(record: LegacyAgentRecord, autoFill: Boolean, planetId: String): Future[String] = {
     val entity = if (autoFill) LegacyAgentRecord.sanitize(record.agentId)(record) else record
     LegacyAgentRecord
       .validate(entity)
@@ -67,12 +63,10 @@ class LegacyRelationshipRecordsService @Inject() (recordsRepository: RecordsRepo
   ): Future[Option[LegacyRelationshipRecord]] =
     findRelationshipsByKey(LegacyRelationshipRecord.agentIdAndUtrKey(agentId, utr), planetId).map(_.headOption)
 
-  def getLegacyRelationship(id: String, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[Option[LegacyRelationshipRecord]] =
+  def getLegacyRelationship(id: String, planetId: String): Future[Option[LegacyRelationshipRecord]] =
     recordsRepository.findById[LegacyRelationshipRecord](id, planetId)
 
-  def getLegacyAgent(id: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[LegacyAgentRecord]] =
+  def getLegacyAgent(id: String, planetId: String): Future[Option[LegacyAgentRecord]] =
     recordsRepository.findById[LegacyAgentRecord](id, planetId)
 
   def getLegacyAgentByAgentId(saAgentRef: String, planetId: String)(implicit

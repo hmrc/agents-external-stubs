@@ -16,6 +16,6 @@ abstract class AppBaseISpec
   implicit val ec: ExecutionContext = app.actorSystem.dispatcher
 
   implicit override val patienceConfig: PatienceConfig =
-    PatienceConfig(timeout = Span(5, Seconds), interval = Span(10, Milliseconds))
+    PatienceConfig(timeout = Span(15, Seconds), interval = Span(50, Milliseconds))
 
 }

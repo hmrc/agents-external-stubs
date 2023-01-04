@@ -5,7 +5,7 @@ import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
 import play.mvc.Http.{HeaderNames, MimeTypes}
 import uk.gov.hmrc.agentsexternalstubs.models.SpecialCase.RequestMatch
-import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Enrolment, EnrolmentKey, SpecialCase, User, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.SpecialCasesRepository
 import uk.gov.hmrc.agentsexternalstubs.support._
 
@@ -18,7 +18,7 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with TestRequests {
   implicit val writes: Writes[SpecialCase] = SpecialCase.external.writes
 
   import scala.concurrent.duration._
-  override implicit val defaultTimeout = 30 seconds
+  override implicit val defaultTimeout = 30.seconds
 
   "SpecialCasesController" when {
 

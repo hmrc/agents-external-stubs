@@ -47,33 +47,33 @@ class AuthenticatedSessionsRepository @Inject() (mongo: MongoComponent)(implicit
 
   final val UPDATED = "createdAt"
 
-  def findByAuthToken(authToken: String)(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
+  def findByAuthToken(authToken: String): Future[Option[AuthenticatedSession]] =
     one[AuthenticatedSession](Seq("authToken" -> authToken))
 
-  def findBySessionId(sessionId: String)(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
+  def findBySessionId(sessionId: String): Future[Option[AuthenticatedSession]] =
     one[AuthenticatedSession](Seq("sessionId" -> sessionId))
 
-  def findByPlanetId(planetId: String)(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
+  def findByPlanetId(planetId: String): Future[Option[AuthenticatedSession]] =
     one[AuthenticatedSession](Seq("planetId" -> planetId))
 
-  def findByUserId(userId: String)(implicit ec: ExecutionContext): Future[Seq[AuthenticatedSession]] =
+  def findByUserId(userId: String): Future[Seq[AuthenticatedSession]] =
     collection
       .find(Filters.equal("userId", userId))
       .limit(1000)
       .toFuture
 
-  def create(authenticatedSession: AuthenticatedSession)(implicit ec: ExecutionContext): Future[Unit] =
+  def create(authenticatedSession: AuthenticatedSession): Future[Unit] =
     collection
       .insertOne(authenticatedSession)
       .toFuture()
       .map(_ => ())
 
-  def delete(sessionId: String)(implicit ec: ExecutionContext): Future[DeleteResult] =
+  def delete(sessionId: String): Future[DeleteResult] =
     collection
       .deleteOne(Filters.equal("authToken", sessionId))
       .toFuture()
 
-  def destroyPlanet(planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+  def destroyPlanet(planetId: String): Future[Unit] =
     collection
       .deleteMany(Filters.equal("planetId", planetId))
       .toFuture()
@@ -81,7 +81,7 @@ class AuthenticatedSessionsRepository @Inject() (mongo: MongoComponent)(implicit
 
   private def one[T](
     query: Seq[(String, String)]
-  )(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
+  ): Future[Option[AuthenticatedSession]] =
     collection
       .find(Filters.and(query.map { case (field, value) => Filters.equal(field, value) }: _*))
       .toFuture

@@ -15,13 +15,11 @@
  */
 package uk.gov.hmrc.agentsexternalstubs.repository
 
-import java.util.UUID
-
+import play.api.test.Helpers._
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.support.AppBaseISpec
-import play.api.test.Helpers._
 
-import scala.concurrent.Future
+import java.util.UUID
 
 class KnownFactsRepositoryISpec extends AppBaseISpec {
 

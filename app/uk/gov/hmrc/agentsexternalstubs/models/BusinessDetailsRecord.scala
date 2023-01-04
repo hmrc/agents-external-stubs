@@ -20,8 +20,6 @@ import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json._
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord._
 
-import java.time.LocalDate
-
 /** ----------------------------------------------------------------------------
   * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
   * How to regenerate? Run this command in the project root directory:
@@ -95,8 +93,8 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
 
   def cgtPdRefKey(key: String): String = s"""cgtPdRef:${key.toUpperCase}"""
 
-  import Validator._
   import Generator.GenOps._
+  import Validator._
 
   val safeIdValidator: Validator[String] =
     check(_.lengthMinMaxInclusive(1, 16), "Invalid length of safeId, should be between 1 and 16 inclusive")

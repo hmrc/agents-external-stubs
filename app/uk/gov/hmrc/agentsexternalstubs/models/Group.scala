@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import cats.data.Validated.{Invalid, Valid}
-import play.api.libs.json.{Format, Json, OFormat}
+import play.api.libs.json.{Json, OFormat}
 
 case class Group(
   planetId: String,

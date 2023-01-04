@@ -2,12 +2,9 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, urlEqualTo}
-
-import java.time.LocalDate
 import play.api.libs.json.JsObject
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
-import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.connectors.MicroserviceAuthConnector
 import uk.gov.hmrc.agentsexternalstubs.models.User.CR
 import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, EnrolmentKey, User, UserGenerator}
@@ -15,12 +12,12 @@ import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
 import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
 import uk.gov.hmrc.auth.core.authorise.EmptyPredicate
-import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials, EmptyRetrieval, GGCredId, LegacyCredentials, Name}
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
+import uk.gov.hmrc.auth.core.retrieve._
 import uk.gov.hmrc.auth.core.{Nino => NinoPredicate, _}
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.http.Authorization
+import uk.gov.hmrc.http.{Authorization, HeaderCarrier}
 
+import java.time.LocalDate
 import scala.concurrent.Future
 
 class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with TestStubs with WireMockSupport {

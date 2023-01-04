@@ -29,9 +29,7 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
 
   private val MAX_DOCS = 1000
 
-  def store(record: RelationshipRecord, autoFill: Boolean, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[String] = {
+  def store(record: RelationshipRecord, autoFill: Boolean, planetId: String): Future[String] = {
     val entity = if (autoFill) RelationshipRecord.sanitize(record.arn)(record) else record
     RelationshipRecord
       .validate(entity)
@@ -73,10 +71,10 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
         .map(r => recordsRepository.store[RelationshipRecord](r, planetId))
     )
 
-  def findByKey(key: String, planetId: String)(implicit ec: ExecutionContext): Future[Seq[RelationshipRecord]] =
+  def findByKey(key: String, planetId: String): Future[Seq[RelationshipRecord]] =
     recordsRepository.findByKey[RelationshipRecord](key, planetId, limit = Some(MAX_DOCS))
 
-  def findByKeys(keys: Seq[String], planetId: String)(implicit ec: ExecutionContext): Future[Seq[RelationshipRecord]] =
+  def findByKeys(keys: Seq[String], planetId: String): Future[Seq[RelationshipRecord]] =
     recordsRepository.findByKeys[RelationshipRecord](keys, planetId, limit = Some(MAX_DOCS))
 
   def findByQuery(query: RelationshipRecordQuery, planetId: String)(implicit

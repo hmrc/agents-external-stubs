@@ -1,8 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import org.scalatest.BeforeAndAfterEach
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Enrolment, EnrolmentKey, GranPermsGenRequest, Group, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.services.{GroupsService, UsersService}
 import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests}
 

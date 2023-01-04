@@ -19,21 +19,19 @@ import play.api.libs.json.Reads
 import uk.gov.hmrc.agentsexternalstubs.models.{Record, RecordMetaData}
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 trait RecordsService {
 
   def recordsRepository: RecordsRepository
 
   protected def findByKey[T <: Record](key: String, planetId: String)(implicit
-    ec: ExecutionContext,
     recordType: RecordMetaData[T],
     reads: Reads[T]
   ): Future[Seq[T]] =
     recordsRepository.findByKey[T](key, planetId, limit = Some(1000))
 
   protected def findByKeys[T <: Record](keys: Seq[String], planetId: String)(implicit
-    ec: ExecutionContext,
     recordType: RecordMetaData[T],
     reads: Reads[T]
   ): Future[Seq[T]] =

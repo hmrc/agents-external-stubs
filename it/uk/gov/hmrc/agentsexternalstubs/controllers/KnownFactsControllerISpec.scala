@@ -116,7 +116,6 @@ class KnownFactsControllerISpec extends ServerBaseISpec with TestRequests {
       "update single known fact verifier and return 202" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val enrolmentKey = "HMRC-MTD-IT~MTDITID~XAAA12345678901"
-        val enrolment = Enrolment.from(EnrolmentKey(enrolmentKey))
         Users.create(
           UserGenerator.individual("foo1").withAssignedPrincipalEnrolment(EnrolmentKey(enrolmentKey)),
           Some(AG.Individual)
@@ -150,7 +149,6 @@ class KnownFactsControllerISpec extends ServerBaseISpec with TestRequests {
       "remove known fact and return 204" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val enrolmentKey = "HMRC-MTD-IT~MTDITID~XAAA12345678901"
-        val enrolment = Enrolment.from(EnrolmentKey(enrolmentKey))
         Users.create(
           UserGenerator.individual("foo1").withAssignedPrincipalEnrolment(EnrolmentKey(enrolmentKey)),
           Some(AG.Individual)

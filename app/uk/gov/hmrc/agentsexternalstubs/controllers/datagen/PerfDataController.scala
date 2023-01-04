@@ -54,7 +54,7 @@ class PerfDataController @Inject() (
         reapplyIndexes()
         generateData(perfDataRequest)
         logger.info(s"Done with data generation")
-      }(scala.concurrent.ExecutionContext.global)
+      }
 
       Future successful Accepted(
         s"Processing can take a while, please check later for creation of " +
