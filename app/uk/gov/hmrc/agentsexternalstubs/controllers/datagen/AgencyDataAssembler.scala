@@ -88,18 +88,21 @@ class AgencyDataAssembler extends Logging {
         case "HMRC-TERSNT-ORG" => ("URN", Generator.urn(seed).value)
       }
 
+      val userId = f"perf-test-$indexAgency%04d-C${index + 1}%05d"
+
       clientType match {
         case AG.Individual =>
           UserGenerator
             .individual(
-              userId = f"perf-test-$indexAgency%04d-C${index + 1}%05d",
+              userId = userId,
+              groupId = UserGenerator.groupId(userId),
               confidenceLevel = 250,
               nino = f"AB${index + 1}%06dC"
             )
             .withAssignedPrincipalEnrolment(service = serviceKey, identifierKey = idKey, identifierValue = idVal)
         case AG.Organisation =>
           UserGenerator
-            .organisation(userId = f"perf-test-$indexAgency%04d-C${index + 1}%05d")
+            .organisation(userId = userId, groupId = UserGenerator.groupId(userId))
             .withAssignedPrincipalEnrolment(service = serviceKey, identifierKey = idKey, identifierValue = idVal)
       }
     }

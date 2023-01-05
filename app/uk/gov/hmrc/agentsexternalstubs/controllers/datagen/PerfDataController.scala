@@ -42,6 +42,7 @@ class PerfDataController @Inject() (
   authenticatedSessionsRepository: AuthenticatedSessionsRepository,
   knownFactsRepository: KnownFactsRepositoryMongo,
   specialCasesRepository: SpecialCasesRepositoryMongo,
+  groupsRepository: GroupsRepositoryMongo,
   agencyDataAssembler: AgencyDataAssembler,
   agencyCreator: AgencyCreator
 )(implicit ec: ExecutionContext)
@@ -60,7 +61,7 @@ class PerfDataController @Inject() (
         s"Processing can take a while, please check later for creation of " +
           s"${perfDataRequest.numAgents * (1 + perfDataRequest.clientsPerAgent + perfDataRequest.teamMembersPerAgent)} 'user(s)', " +
           s"${perfDataRequest.numAgents * (1 + perfDataRequest.clientsPerAgent)} 'record(s)', and " +
-          s"${perfDataRequest.numAgents} 'group(s)'"
+          s"${perfDataRequest.numAgents * (1 + perfDataRequest.clientsPerAgent)} 'group(s)'"
       )
     }
   }
@@ -77,6 +78,7 @@ class PerfDataController @Inject() (
     dropCollectionOf(authenticatedSessionsRepository)
     dropCollectionOf(knownFactsRepository)
     dropCollectionOf(specialCasesRepository)
+    dropCollectionOf(groupsRepository)
   }
 
   private def reapplyIndexes(): Unit = {
@@ -85,6 +87,7 @@ class PerfDataController @Inject() (
     authenticatedSessionsRepository.ensureIndexes
     knownFactsRepository.ensureIndexes
     specialCasesRepository.ensureIndexes
+    groupsRepository.ensureIndexes
 
     logger.info(s"Re-applied indexes")
   }
