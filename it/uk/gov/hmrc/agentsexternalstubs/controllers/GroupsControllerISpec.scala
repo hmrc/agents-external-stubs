@@ -14,6 +14,8 @@ class GroupsControllerISpec extends ServerBaseISpec with TestRequests with TestS
   lazy val wsClient = app.injector.instanceOf[WSClient]
   override lazy val groupsService = app.injector.instanceOf[GroupsService]
 
+  private val aValidEnrolment = Enrolment("HMRC-MTD-VAT", "VRN", "123456789")
+
   "GroupsController" when {
 
     "GET /agents-external-stubs/groups/:groupId" should {
@@ -80,11 +82,11 @@ class GroupsControllerISpec extends ServerBaseISpec with TestRequests with TestS
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
         val group = GroupGenerator.generate(authSession.planetId, AG.Individual, groupId = Some("someGroupId"))
         Groups.create(group)
-        val result = Groups.updateCurrent(group.copy(principalEnrolments = Seq(Enrolment("foo"))))
+        val result = Groups.updateCurrent(group.copy(principalEnrolments = Seq(aValidEnrolment)))
         result should haveStatus(202)
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/groups/someGroupId")
         val result2 = Groups.get("someGroupId")
-        result2.json.as[Group].principalEnrolments should contain(Enrolment("foo"))
+        result2.json.as[Group].principalEnrolments should contain(aValidEnrolment)
       }
     }
 
@@ -96,7 +98,7 @@ class GroupsControllerISpec extends ServerBaseISpec with TestRequests with TestS
             authSession.planetId,
             "7728378273",
             affinityGroup = AG.Individual,
-            principalEnrolments = Seq(Enrolment("foo"))
+            principalEnrolments = Seq(aValidEnrolment)
           )
         )
         result should haveStatus(404)
@@ -106,11 +108,11 @@ class GroupsControllerISpec extends ServerBaseISpec with TestRequests with TestS
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
         val group = Group(authSession.planetId, "7728378273", AG.Individual)
         Groups.create(group)
-        val result = Groups.update(group.copy(principalEnrolments = Seq(Enrolment("foo"))))
+        val result = Groups.update(group.copy(principalEnrolments = Seq(aValidEnrolment)))
         result should haveStatus(202)
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/groups/7728378273")
         val result2 = Groups.get("7728378273")
-        result2.json.as[Group].principalEnrolments should contain(Enrolment("foo"))
+        result2.json.as[Group].principalEnrolments should contain(aValidEnrolment)
       }
     }
 

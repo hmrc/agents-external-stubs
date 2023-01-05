@@ -96,4 +96,18 @@ object Enrolment {
 
   implicit val format: Format[Enrolment] = Format(reads, writes)
 
+  // Space-saving format to facilitate large volumes of delegated enrolments (for performance tests)
+  val tinyFormat: Format[Enrolment] = (
+    (JsPath \ "ek").format[EnrolmentKey] and
+      (JsPath \ "st").formatNullable[String] and
+      (JsPath \ "fn").formatNullable[String]
+  ).apply(
+    (ek, st, fn) => Enrolment.from(ek).copy(state = st.getOrElse(Enrolment.ACTIVATED), friendlyName = fn),
+    enr =>
+      (
+        enr.toEnrolmentKey.getOrElse(throw new IllegalArgumentException("Invalid enrolment key")),
+        if (enr.state == Enrolment.ACTIVATED) None else Some(enr.state),
+        enr.friendlyName
+      )
+  )
 }
