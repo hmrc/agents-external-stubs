@@ -98,10 +98,26 @@ class AgencyCreator @Inject() (
         groupId = groupId,
         affinityGroup = AG.Agent,
         principalEnrolments = agencyCreationPayload.agentUser.assignedPrincipalEnrolments.map(Enrolment.from),
-        delegatedEnrolments = agencyCreationPayload.clients.flatMap(_.assignedPrincipalEnrolments).map(Enrolment.from)
+        delegatedEnrolments = agencyCreationPayload.clients.zipWithIndex.flatMap { case (client, index) =>
+          client.assignedPrincipalEnrolments
+            .map(ek => Enrolment.from(ek).copy(friendlyName = Some(s"Client ${index + 1}")))
+        }
       )
 
       dataCreationActor ! GroupCreationPayload(agentGroup, agencyCreationPayload.planetId)
+    }
+
+    agencyCreationPayload.clients.foreach { client =>
+      client.groupId.foreach { groupId =>
+        val clientGroup = Group(
+          planetId = agencyCreationPayload.planetId,
+          groupId = groupId,
+          affinityGroup = AG.Individual,
+          principalEnrolments = client.assignedPrincipalEnrolments.map(Enrolment.from)
+        )
+
+        dataCreationActor ! GroupCreationPayload(clientGroup, agencyCreationPayload.planetId)
+      }
     }
   }
 

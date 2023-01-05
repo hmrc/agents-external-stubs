@@ -22,13 +22,11 @@ lazy val compileDeps = Seq(
   "uk.gov.hmrc.mongo"    %% "hmrc-mongo-play-28"        % "0.74.0",
   "uk.gov.hmrc"          %% "agent-mtd-identifiers"     % "0.52.0-play-28",
   "com.kenshoo"          %% "metrics-play"              % "2.7.3_0.8.2",
-  "uk.gov.hmrc"          %% "domain"                    % "7.0.0-play-28",
   "com.github.blemale"   %% "scaffeine"                 % "4.0.1",
   "org.typelevel"        %% "cats-core"                 % "2.6.1",
   "uk.gov.hmrc"          %% "stub-data-generator"       % "0.5.3",
   "io.github.wolfendale" %% "scalacheck-gen-regexp"     % "0.1.3",
-  "com.typesafe.play"    %% "play-json"                 % "2.9.2",
-  ws
+  "com.typesafe.play"    %% "play-json"                 % "2.9.2"
 )
 
 def testDeps(scope: String) = Seq(
