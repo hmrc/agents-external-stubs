@@ -25,6 +25,9 @@ class GroupsRepositoryISpec extends AppBaseISpec {
 
   lazy val repo = app.injector.instanceOf[GroupsRepositoryMongo]
 
+  private val aValidEnrolment = Enrolment("HMRC-MTD-VAT", "VRN", "123456789")
+  private val anotherValidEnrolment = Enrolment("HMRC-PPT-ORG", "EtmpRegistrationNumber", "XAPPT0000012345")
+
   "store" should {
     "store a simple group" in {
       val planetId = UUID.randomUUID().toString
@@ -51,13 +54,14 @@ class GroupsRepositoryISpec extends AppBaseISpec {
 
     "store a group with simple principal enrolment" in {
       val planetId = UUID.randomUUID().toString
+
       await(
         repo.create(
           Group(
             planetId = planetId,
             groupId = "889foo",
             affinityGroup = AG.Individual,
-            principalEnrolments = Seq(Enrolment("foobar"))
+            principalEnrolments = Seq(aValidEnrolment)
           ),
           planetId
         )
@@ -67,7 +71,7 @@ class GroupsRepositoryISpec extends AppBaseISpec {
 
       result.size shouldBe 1
       result.head.groupId shouldBe "889foo"
-      result.head.principalEnrolments shouldBe Seq(Enrolment("foobar"))
+      result.head.principalEnrolments shouldBe Seq(aValidEnrolment)
     }
 
     "not allow groups with the same principal enrolment on a same planet" in {
@@ -107,13 +111,14 @@ class GroupsRepositoryISpec extends AppBaseISpec {
       val planetId1 = UUID.randomUUID().toString
       val planetId2 = UUID.randomUUID().toString
       val planetId3 = UUID.randomUUID().toString
+
       await(
         repo.create(
           Group(
             planetId1,
             "1foo",
             affinityGroup = AG.Individual,
-            principalEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("A", "1")))))
+            principalEnrolments = Seq(aValidEnrolment)
           ),
           planetId1
         )
@@ -124,7 +129,7 @@ class GroupsRepositoryISpec extends AppBaseISpec {
             planetId2,
             "foo2",
             affinityGroup = AG.Individual,
-            principalEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("A", "1")))))
+            principalEnrolments = Seq(aValidEnrolment)
           ),
           planetId2
         )
@@ -135,10 +140,7 @@ class GroupsRepositoryISpec extends AppBaseISpec {
             planetId3,
             "foo2",
             affinityGroup = AG.Individual,
-            principalEnrolments = Seq(
-              Enrolment("foobar", Some(Seq(Identifier("A", "1")))),
-              Enrolment("barfoo", Some(Seq(Identifier("B", "2"))))
-            )
+            principalEnrolments = Seq(aValidEnrolment, anotherValidEnrolment)
           ),
           planetId3
         )
@@ -155,13 +157,14 @@ class GroupsRepositoryISpec extends AppBaseISpec {
 
     "store a group with single principal enrolment" in {
       val planetId = UUID.randomUUID().toString
+
       await(
         repo.create(
           Group(
             planetId,
             "abcfoo",
             affinityGroup = AG.Individual,
-            principalEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))
+            principalEnrolments = Seq(aValidEnrolment)
           ),
           planetId
         )
@@ -171,21 +174,19 @@ class GroupsRepositoryISpec extends AppBaseISpec {
 
       result.size shouldBe 1
       result.head.groupId shouldBe "abcfoo"
-      result.head.principalEnrolments shouldBe Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))
+      result.head.principalEnrolments shouldBe Seq(aValidEnrolment)
     }
 
     "store a group with multiple principal enrolments" in {
       val planetId = UUID.randomUUID().toString
+
       await(
         repo.create(
           Group(
             planetId,
             "foo888",
             affinityGroup = AG.Individual,
-            principalEnrolments = Seq(
-              Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))),
-              Enrolment("barefoot", Some(Seq(Identifier("foo", "foo345"))))
-            )
+            principalEnrolments = Seq(aValidEnrolment, anotherValidEnrolment)
           ),
           planetId
         )
@@ -195,22 +196,19 @@ class GroupsRepositoryISpec extends AppBaseISpec {
 
       result.size shouldBe 1
       result.head.groupId shouldBe "foo888"
-      result.head.principalEnrolments shouldBe
-        Seq(
-          Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))),
-          Enrolment("barefoot", Some(Seq(Identifier("foo", "foo345"))))
-        )
+      result.head.principalEnrolments shouldBe Seq(aValidEnrolment, anotherValidEnrolment)
     }
 
     "store a group with single delegated enrolment" in {
       val planetId = UUID.randomUUID().toString
+
       await(
         repo.create(
           Group(
             planetId,
             "abcfoo",
             affinityGroup = AG.Agent,
-            delegatedEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))
+            delegatedEnrolments = Seq(aValidEnrolment)
           ),
           planetId
         )
@@ -221,18 +219,19 @@ class GroupsRepositoryISpec extends AppBaseISpec {
       result.size shouldBe 1
       result.head.groupId shouldBe "abcfoo"
       result.head.principalEnrolments shouldBe Seq.empty
-      result.head.delegatedEnrolments shouldBe Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))
+      result.head.delegatedEnrolments shouldBe Seq(aValidEnrolment)
     }
 
     "allow different groups with same delegated enrolment" in {
       val planetId = UUID.randomUUID().toString
+
       await(
         repo.create(
           Group(
             planetId,
             "abcfoo1",
             affinityGroup = AG.Agent,
-            delegatedEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))
+            delegatedEnrolments = Seq(aValidEnrolment)
           ),
           planetId
         )
@@ -243,7 +242,7 @@ class GroupsRepositoryISpec extends AppBaseISpec {
             planetId,
             "abcfoo2",
             affinityGroup = AG.Agent,
-            delegatedEnrolments = Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))
+            delegatedEnrolments = Seq(aValidEnrolment)
           ),
           planetId
         )
@@ -254,7 +253,7 @@ class GroupsRepositoryISpec extends AppBaseISpec {
       result.size shouldBe 2
       result.head.groupId shouldBe "abcfoo1"
       result.head.principalEnrolments shouldBe Seq.empty
-      result.head.delegatedEnrolments shouldBe Seq(Enrolment("foobar", Some(Seq(Identifier("bar", "boo123")))))
+      result.head.delegatedEnrolments shouldBe Seq(aValidEnrolment)
     }
 
     "allow duplicate groupsId to be created for different planetIds" in {
@@ -286,16 +285,15 @@ class GroupsRepositoryISpec extends AppBaseISpec {
   "update" should {
     "update an existing group" in {
       val planetId = UUID.randomUUID().toString
+
       await(repo.create(Group(planetId, "foo", AG.Individual), planetId))
       await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 1
 
-      await(
-        repo.update(Group(planetId, "foo", AG.Individual, principalEnrolments = Seq(Enrolment("foobar"))), planetId)
-      )
+      await(repo.update(Group(planetId, "foo", AG.Individual, principalEnrolments = Seq(aValidEnrolment)), planetId))
       await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 1
 
       val groupFoo = await(repo.findByGroupId("foo", planetId))
-      groupFoo.map(_.principalEnrolments) shouldBe Some(Seq(Enrolment("foobar")))
+      groupFoo.map(_.principalEnrolments) shouldBe Some(Seq(aValidEnrolment))
     }
 
     "respect provided planetId" in {
@@ -307,14 +305,14 @@ class GroupsRepositoryISpec extends AppBaseISpec {
 
       await(
         repo.update(
-          Group(planetId, "foo", AG.Individual, principalEnrolments = Seq(Enrolment("foobar"))),
+          Group(planetId, "foo", AG.Individual, principalEnrolments = Seq(aValidEnrolment)),
           planetId
         )
       )
       await(repo.findByPlanetId(planetId, None)(100)).size shouldBe 1
 
       val groupFoo = await(repo.findByGroupId("foo", planetId))
-      groupFoo.map(_.principalEnrolments) shouldBe Some(Seq(Enrolment("foobar")))
+      groupFoo.map(_.principalEnrolments) shouldBe Some(Seq(aValidEnrolment))
 
       await(repo.findByGroupId("foo", planetId2)) shouldBe None
     }
@@ -387,7 +385,6 @@ class GroupsRepositoryISpec extends AppBaseISpec {
   "findByGroupId" should {
     "return group having provided groupId and planetId" in {
       val planetId = UUID.randomUUID().toString
-      val planetId2 = UUID.randomUUID().toString
 
       await(repo.create(Group(planetId, "foo", affinityGroup = AG.Individual), planetId = planetId))
       await(repo.create(Group(planetId, "bar", affinityGroup = AG.Individual), planetId = planetId))
@@ -447,7 +444,7 @@ class GroupsRepositoryISpec extends AppBaseISpec {
             planetId,
             "foo1",
             affinityGroup = AG.Agent,
-            principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+            principalEnrolments = Seq(aValidEnrolment)
           ),
           planetId = planetId
         )
@@ -458,7 +455,7 @@ class GroupsRepositoryISpec extends AppBaseISpec {
             planetId,
             "foo2",
             affinityGroup = AG.Agent,
-            delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+            delegatedEnrolments = Seq(aValidEnrolment)
           ),
           planetId = planetId
         )
@@ -469,7 +466,7 @@ class GroupsRepositoryISpec extends AppBaseISpec {
             planetId,
             "foo3",
             affinityGroup = AG.Agent,
-            principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "222")))))
+            principalEnrolments = Seq(anotherValidEnrolment)
           ),
           planetId = planetId
         )
@@ -480,17 +477,17 @@ class GroupsRepositoryISpec extends AppBaseISpec {
             planetId2,
             "foo4",
             affinityGroup = AG.Agent,
-            principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+            principalEnrolments = Seq(aValidEnrolment)
           ),
           planetId = planetId2
         )
       )
 
       val result1 =
-        await(repo.findByPrincipalEnrolmentKey(EnrolmentKey.from("FOO", "AAA" -> "111"), planetId = planetId))
+        await(repo.findByPrincipalEnrolmentKey(aValidEnrolment.toEnrolmentKey.get, planetId = planetId))
       result1.isDefined shouldBe true
       result1.get.groupId shouldBe "foo1"
-      result1.get.principalEnrolments should contain.only(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+      result1.get.principalEnrolments should contain.only(aValidEnrolment)
     }
   }
 
@@ -505,7 +502,7 @@ class GroupsRepositoryISpec extends AppBaseISpec {
             planetId,
             "foo1",
             affinityGroup = AG.Agent,
-            delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+            delegatedEnrolments = Seq(aValidEnrolment)
           ),
           planetId = planetId
         )
@@ -516,7 +513,7 @@ class GroupsRepositoryISpec extends AppBaseISpec {
             planetId,
             "foo3",
             affinityGroup = AG.Agent,
-            principalEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+            principalEnrolments = Seq(aValidEnrolment)
           ),
           planetId = planetId
         )
@@ -527,7 +524,7 @@ class GroupsRepositoryISpec extends AppBaseISpec {
             planetId,
             "foo2",
             affinityGroup = AG.Agent,
-            delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+            delegatedEnrolments = Seq(aValidEnrolment)
           ),
           planetId = planetId
         )
@@ -538,19 +535,17 @@ class GroupsRepositoryISpec extends AppBaseISpec {
             planetId2,
             "foo4",
             affinityGroup = AG.Agent,
-            delegatedEnrolments = Seq(Enrolment("FOO", Some(Seq(Identifier("AAA", "111")))))
+            delegatedEnrolments = Seq(aValidEnrolment)
           ),
           planetId = planetId2
         )
       )
 
       val result1 =
-        await(repo.findByDelegatedEnrolmentKey(EnrolmentKey.from("FOO", "AAA" -> "111"), planetId = planetId)(10))
+        await(repo.findByDelegatedEnrolmentKey(aValidEnrolment.toEnrolmentKey.get, planetId = planetId)(10))
       result1.size shouldBe 2
       result1.map(_.groupId) should contain.only("foo1", "foo2")
-      result1.flatMap(_.delegatedEnrolments).distinct should contain.only(
-        Enrolment("FOO", Some(Seq(Identifier("AAA", "111"))))
-      )
+      result1.flatMap(_.delegatedEnrolments).distinct should contain.only(aValidEnrolment)
     }
   }
 }

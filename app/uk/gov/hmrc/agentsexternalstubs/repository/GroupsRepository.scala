@@ -66,7 +66,8 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
     extends PlayMongoRepository[JsonAbuse[Group]](
       mongoComponent = mongo,
       collectionName = "groups",
-      domainFormat = JsonAbuse.format[Group](false),
+      domainFormat =
+        JsonAbuse.format[Group](false)(Group.compressedFormat /* use space-saving Enrolment Json representation */ ),
       indexes = Seq(
         IndexModel(Indexes.ascending(KEYS), IndexOptions().name("Keys")),
         IndexModel(Indexes.ascending(UNIQUE_KEYS), IndexOptions().name("UniqueKeys").unique(true).sparse(true)),
@@ -80,9 +81,9 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
 
   private def keyOf(key: String, planetId: String): String = s"${key.replace(" ", "")}@$planetId"
 
-  def groupIdIndexKey(groupId: String): String = s"gid:$groupId"
-  def principalEnrolmentIndexKey(key: String): String = s"penr:${key.toLowerCase}"
-  def delegatedEnrolmentIndexKey(key: String): String = s"denr:${key.toLowerCase}"
+  private def groupIdIndexKey(groupId: String): String = s"gid:$groupId"
+  private def principalEnrolmentIndexKey(key: String): String = s"penr:${key.toLowerCase}"
+  private def delegatedEnrolmentIndexKey(key: String): String = s"denr:${key.toLowerCase}"
 
   override def findByPlanetId(planetId: String, affinityGroup: Option[String])(
     limit: Int
@@ -143,20 +144,20 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
       }
 
       // Should use a lens but don't want to introduce a library dependency just for this
-      def getEnrolments(group: JsonAbuse[Group]): Seq[Enrolment] = enrolmentType match {
-        case "principal" => group.value.principalEnrolments
-        case "delegated" => group.value.delegatedEnrolments
+      def getEnrolments(group: Group): Seq[Enrolment] = enrolmentType match {
+        case "principal" => group.principalEnrolments
+        case "delegated" => group.delegatedEnrolments
       }
-      def setEnrolments(group: JsonAbuse[Group], enrolments: Seq[Enrolment]): JsonAbuse[Group] = enrolmentType match {
-        case "principal" => group.copy(value = group.value.copy(principalEnrolments = enrolments))
-        case "delegated" => group.copy(value = group.value.copy(delegatedEnrolments = enrolments))
+      def setEnrolments(group: Group, enrolments: Seq[Enrolment]): Group = enrolmentType match {
+        case "principal" => group.copy(principalEnrolments = enrolments)
+        case "delegated" => group.copy(delegatedEnrolments = enrolments)
       }
 
       // N.B. The double mongo query below was originally written as a single 'update' query using positional operator
       // e.g. Updates.set(s"${enrolmentType}Enrolments.$$.friendlyName", friendlyName)
       // which should be faster, but I just could NOT get positional operators to work with the new Mongo driver :(
       // Feel free to try again to make that work if better performance is required.
-      collection.find(filter).headOption.flatMap {
+      collection.find(filter).map(_.value).headOption.flatMap {
         case None        => Future.successful(Option.empty[Group])
         case Some(group) =>
           // Find the relevant enrolment and set its friendly name
@@ -167,7 +168,7 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
           collection
             .findOneAndReplace(
               filter = Filters.equal(UNIQUE_KEYS, keyOf(groupIdIndexKey(group.value.groupId), planetId)),
-              replacement = updatedGroup
+              replacement = serializeGroup(updatedGroup, planetId)
             )
             .toFutureOption
             .map(_.map(_.value))

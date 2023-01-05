@@ -73,6 +73,11 @@ case class Group(
 object Group {
   implicit val format: OFormat[Group] = Json.format[Group]
 
+  val compressedFormat: OFormat[Group] = {
+    implicit val enrolmentFormat = Enrolment.tinyFormat // Use the space-saving Json representation for Enrolment
+    Json.format[Group]
+  }
+
   def validate(group: Group): Either[List[String], Group] =
     GroupValidator.validate(group) match {
       case Valid(())       => Right(group)

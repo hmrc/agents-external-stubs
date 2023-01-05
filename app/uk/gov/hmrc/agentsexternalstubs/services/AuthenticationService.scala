@@ -60,7 +60,7 @@ class AuthenticationService @Inject() (
   def findBySessionId(sessionId: String)(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
     authenticatedSessionCache.getOption(sessionId, authSessionRepository.findBySessionId(sessionId))
 
-  def findByPlanetId(planetId: String)(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
+  def findByPlanetId(planetId: String): Future[Option[AuthenticatedSession]] =
     authSessionRepository.findByPlanetId(planetId)
 
   def authenticate(
