@@ -38,7 +38,7 @@ class AgencyDataAssembler extends Logging {
     clientsPerAgent: Int,
     teamMembersPerAgent: Int
   ): AgencyCreationPayload = {
-    val planetId = f"perf-test-planet-$indexAgency%03d"
+    val planetId = f"p-$indexAgency%03d"
 
     logger.info(s"Assembling data for '$planetId'. Can take a while...")
 
