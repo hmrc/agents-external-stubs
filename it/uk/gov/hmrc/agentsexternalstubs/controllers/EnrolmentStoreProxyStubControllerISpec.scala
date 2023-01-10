@@ -4,7 +4,7 @@ import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentmtdidentifiers.model.AssignedClient
-import uk.gov.hmrc.agentmtdidentifiers.model.{Identifier => MtdIdentifier}
+import uk.gov.hmrc.agentmtdidentifiers.model.{Identifier => _}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.SetKnownFactsRequest
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
@@ -338,9 +338,13 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
 
         val group: Group = await(groupsService.findByGroupId("group1", session.planetId)).get
         group.principalEnrolments should contain.only(Enrolment("IR-SA", "UTR", "12345678"))
+
+        // The user specified in the request should now have the new enrolment assigned to them
+        val user: User = await(userService.findByUserId("00000000123166122235", session.planetId)).get
+        user.assignedPrincipalEnrolments should contain.only(EnrolmentKey("IR-SA~UTR~12345678"))
       }
 
-      "allocate delegated enrolment to the agent identified by groupId" in {
+      "allocate delegated enrolment to the group identified by groupId" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         Users.create(UserGenerator.agent(userId = "0000000021313132", groupId = "group1"), Some(AG.Agent))
         Users.create(
@@ -352,7 +356,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
           "group1",
           "IR-SA~UTR~12345678",
           Json.parse("""{
-            |    "userId" : "foo",
+            |    "userId" : "0000000021313132",
             |    "type" :         "delegated"
             |}""".stripMargin)
         )
@@ -361,6 +365,10 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
 
         val group: Group = await(groupsService.findByGroupId("group1", session.planetId)).get
         group.delegatedEnrolments should contain.only(Enrolment("IR-SA", "UTR", "12345678"))
+
+        // The user specified in the request should now have the new enrolment assigned to them
+        val user: User = await(userService.findByUserId("0000000021313132", session.planetId)).get
+        user.assignedDelegatedEnrolments should contain.only(EnrolmentKey("IR-SA~UTR~12345678"))
       }
 
       "fail to allocate delegated enrolment to the agent if enrolment does not exist" in {
@@ -389,7 +397,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         group.delegatedEnrolments.isEmpty shouldBe true
       }
 
-      "allocate delegated enrolment to the agent identified by legacy-agentCode" in {
+      "allocate delegated enrolment to the group identified by legacy-agentCode" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         Users.create(
           UserGenerator.agent(userId = "0000000021313132", groupId = "group1"),
@@ -414,7 +422,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
           "group2",
           "IR-SA~UTR~12345678",
           Json.parse("""{
-            |    "userId" : "foo",
+            |    "userId" : "0000000021313132",
             |    "type" :         "delegated"
             |}""".stripMargin),
           `legacy-agentCode` = Some("ABC123")
@@ -424,6 +432,10 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
 
         val group = await(groupsService.findByGroupId("group1", session.planetId)).get
         group.delegatedEnrolments should contain.only(Enrolment("IR-SA", "UTR", "12345678"))
+
+        // The user specified in the request should now have the new enrolment assigned to them
+        val user: User = await(userService.findByUserId("0000000021313132", session.planetId)).get
+        user.assignedDelegatedEnrolments should contain.only(EnrolmentKey("IR-SA~UTR~12345678"))
       }
 
       "fail to allocate delegated enrolment to the agent (identified by legacy-agentCode) if enrolment does not exist" in {
