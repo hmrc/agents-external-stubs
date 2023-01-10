@@ -28,7 +28,12 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-case class PerfDataRequest(numAgents: Int, clientsPerAgent: Int, teamMembersPerAgent: Int)
+case class PerfDataRequest(
+  numAgents: Int,
+  clientsPerAgent: Int,
+  teamMembersPerAgent: Int,
+  populateFriendlyNames: Boolean
+)
 
 object PerfDataRequest {
   implicit val format: OFormat[PerfDataRequest] = Json.format[PerfDataRequest]
@@ -48,6 +53,16 @@ class PerfDataController @Inject() (
 )(implicit ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession with Logging {
 
+  /** Accepts a JSON payload like:
+    * <pre>
+    * {
+    * "numAgents": 1,
+    * "clientsPerAgent": 100,
+    * "teamMembersPerAgent": 2,
+    * "populateFriendlyNames": true
+    * }
+    * </pre>
+    */
   def generate: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withPayload[PerfDataRequest] { perfDataRequest =>
       Future {
@@ -98,7 +113,8 @@ class PerfDataController @Inject() (
         agencyDataAssembler.build(
           indexAgency,
           perfDataRequest.clientsPerAgent,
-          perfDataRequest.teamMembersPerAgent
+          perfDataRequest.teamMembersPerAgent,
+          perfDataRequest.populateFriendlyNames
         )
 
       agencyCreator.create(agencyCreationPayload)

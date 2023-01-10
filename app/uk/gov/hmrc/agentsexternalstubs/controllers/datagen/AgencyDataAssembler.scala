@@ -24,7 +24,13 @@ import uk.gov.hmrc.agentsexternalstubs.models._
 import scala.annotation.tailrec
 import scala.util.Random
 
-case class AgencyCreationPayload(planetId: String, agentUser: User, clients: List[User], teamMembers: List[User])
+case class AgencyCreationPayload(
+  planetId: String,
+  agentUser: User,
+  clients: List[User],
+  teamMembers: List[User],
+  populateFriendlyNames: Boolean
+)
 
 class AgencyDataAssembler extends Logging {
 
@@ -36,7 +42,8 @@ class AgencyDataAssembler extends Logging {
   def build(
     indexAgency: Int,
     clientsPerAgent: Int,
-    teamMembersPerAgent: Int
+    teamMembersPerAgent: Int,
+    populateFriendlyNames: Boolean
   ): AgencyCreationPayload = {
     val planetId = f"p-$indexAgency%03d"
 
@@ -50,7 +57,8 @@ class AgencyDataAssembler extends Logging {
       planetId,
       agentUser.copy(assignedDelegatedEnrolments = clients.flatMap(_.assignedPrincipalEnrolments)),
       clients,
-      teamMembers
+      teamMembers,
+      populateFriendlyNames
     )
 
   }

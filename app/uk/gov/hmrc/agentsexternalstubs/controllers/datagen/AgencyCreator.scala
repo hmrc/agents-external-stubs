@@ -90,7 +90,9 @@ class AgencyCreator @Inject() (
   }
 
   private def persistGroups(agencyCreationPayload: AgencyCreationPayload): Unit = {
-    logger.info(s"Creating groups for '${agencyCreationPayload.planetId}'")
+    logger.info(
+      s"Creating groups for '${agencyCreationPayload.planetId}'. Auto-populating friendly name for clients: ${agencyCreationPayload.populateFriendlyNames}"
+    )
 
     agencyCreationPayload.agentUser.groupId.foreach { groupId =>
       val agentGroup = Group(
@@ -100,7 +102,11 @@ class AgencyCreator @Inject() (
         principalEnrolments = agencyCreationPayload.agentUser.assignedPrincipalEnrolments.map(Enrolment.from),
         delegatedEnrolments = agencyCreationPayload.clients.zipWithIndex.flatMap { case (client, index) =>
           client.assignedPrincipalEnrolments
-            .map(ek => Enrolment.from(ek).copy(friendlyName = Some(s"Client ${index + 1}")))
+            .map(ek =>
+              if (agencyCreationPayload.populateFriendlyNames)
+                Enrolment.from(ek).copy(friendlyName = Some(s"Client ${index + 1}"))
+              else Enrolment.from(ek)
+            )
         }
       )
 
