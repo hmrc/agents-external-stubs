@@ -163,6 +163,13 @@ class EnrolmentStoreProxyStubController @Inject() (
                          `legacy-agentCode`,
                          session.planetId
                        )
+                // Assign the new enrolment to the user specified in the payload (as per EACD behaviour spec)
+                _ <- usersService
+                       .assignEnrolmentToUser(
+                         userId = payload.userId,
+                         enrolmentKey = enrolmentKey,
+                         planetId = session.planetId
+                       )
               } yield Created)
                 .recover {
                   case _: EnrolmentAlreadyExists                          => Conflict
