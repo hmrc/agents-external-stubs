@@ -105,6 +105,7 @@ class AgencyDataAssembler extends Logging {
               userId = userId,
               groupId = UserGenerator.groupId(userId),
               confidenceLevel = 250,
+              credentialRole = User.CR.Admin,
               nino = f"AB${index + 1}%06dC"
             )
             .withAssignedPrincipalEnrolment(service = serviceKey, identifierKey = idKey, identifierValue = idVal)
