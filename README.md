@@ -146,6 +146,7 @@ Endpoint | Description
 `DELETE /enrolment-store-proxy/enrolment-store/groups/:groupId/enrolments/:enrolmentKey` | de-allocate an enrolment from a group (agent)
 `GET /enrolment-store-proxy/enrolment-store/users/:userId/enrolments` | get a list of enrolments assigned to a user, this is capable of returning both principle and delegated enrolments.
 `GET /enrolment-store-proxy/enrolment-store/groups/:groupId/enrolments` | get a list of enrolments allocated for a group, this is capable of returning both principle and delegated enrolments.
+`PUT /enrolment-store-proxy/enrolment-store/groups/:groupId/enrolments/:enrolmentKey/friendly_name` | Update an enrolment's friendly name. Note, only works for delegated enrolments.
 
 ### [Tax Enrolments](https://github.com/hmrc/tax-enrolments) <a name="stubbed_api_tax_enrolments"></a>
 

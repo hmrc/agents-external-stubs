@@ -1248,27 +1248,27 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
     }
 
     "PUT /tax-enrolments/groups/:groupId/enrolments/:enrolmentKey/friendly_name" should {
-      "update a principal enrolment belonging to the groupId with the friendlyName specified in the request" in {
-        userService
-          .createUser(
-            UserGenerator
-              .individual(userId = "testUserId", groupId = "group2")
-              .copy(assignedPrincipalEnrolments = Seq(EnrolmentKey("IR-SA~UTR~12345678"))),
-            planetId = "testPlanet",
-            affinityGroup = Some(AG.Individual)
-          )
-          .futureValue
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("testUserId", planetId = "testPlanet")
-
-        val result = EnrolmentStoreProxyStub.setEnrolmentFriendlyName(
-          "group2",
-          "IR-SA~UTR~12345678",
-          Json.parse("""{"friendlyName": "friendlyHugs"}""")
-        )
-
-        result should haveStatus(204)
-
-      }
+//      "update a principal enrolment belonging to the groupId with the friendlyName specified in the request" in {
+//        userService
+//          .createUser(
+//            UserGenerator
+//              .individual(userId = "testUserId", groupId = "group2")
+//              .copy(assignedPrincipalEnrolments = Seq(EnrolmentKey("IR-SA~UTR~12345678"))),
+//            planetId = "testPlanet",
+//            affinityGroup = Some(AG.Individual)
+//          )
+//          .futureValue
+//        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("testUserId", planetId = "testPlanet")
+//
+//        val result = EnrolmentStoreProxyStub.setEnrolmentFriendlyName(
+//          "group2",
+//          "IR-SA~UTR~12345678",
+//          Json.parse("""{"friendlyName": "friendlyHugs"}""")
+//        )
+//
+//        result should haveStatus(204)
+//
+//      }
 
       "update a delegated enrolment belonging to the groupId with the friendlyName specified in the request" in {
         userService
