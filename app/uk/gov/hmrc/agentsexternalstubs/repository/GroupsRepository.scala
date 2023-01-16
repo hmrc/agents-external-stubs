@@ -22,7 +22,7 @@ import org.mongodb.scala.model._
 import org.mongodb.scala.result.DeleteResult
 import play.api.libs.json._
 import play.api.{Logger, Logging}
-import uk.gov.hmrc.agentsexternalstubs.models.{Enrolment, EnrolmentKey, Group, Identifier}
+import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, Group}
 import uk.gov.hmrc.agentsexternalstubs.repository.GroupsRepositoryMongo._
 import uk.gov.hmrc.agentsexternalstubs.syntax.|>
 import uk.gov.hmrc.mongo.MongoComponent
@@ -46,7 +46,7 @@ trait GroupsRepository {
     planetId: String,
     enrolmentKey: EnrolmentKey,
     friendlyName: String
-  ): Future[Option[Group]]
+  ): Future[Option[Unit]]
   def create(group: Group, planetId: String): Future[Unit]
   def update(group: Group, planetId: String): Future[Unit]
   def delete(groupId: String, planetId: String): Future[DeleteResult]
@@ -130,63 +130,27 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
     planetId: String,
     enrolmentKey: EnrolmentKey,
     friendlyName: String
-  ): Future[Option[Group]] = {
-
-    def update(enrolmentType: String, identifier: Identifier): Future[Option[Group]] = {
-      val filter = enrolmentType match {
-        case "principal" =>
-          Filters.equal(UNIQUE_KEYS, keyOf(principalEnrolmentIndexKey(enrolmentKey.toString), planetId))
-        case "delegated" =>
-          Filters.and(
-            Filters.equal(UNIQUE_KEYS, keyOf(groupIdIndexKey(group.groupId), planetId)),
-            Filters.equal(KEYS, keyOf(delegatedEnrolmentIndexKey(enrolmentKey.toString), planetId))
-          )
-      }
-
-      // Should use a lens but don't want to introduce a library dependency just for this
-      def getEnrolments(group: Group): Seq[Enrolment] = enrolmentType match {
-        case "principal" => group.principalEnrolments
-        case "delegated" => group.delegatedEnrolments
-      }
-      def setEnrolments(group: Group, enrolments: Seq[Enrolment]): Group = enrolmentType match {
-        case "principal" => group.copy(principalEnrolments = enrolments)
-        case "delegated" => group.copy(delegatedEnrolments = enrolments)
-      }
-
-      // N.B. The double mongo query below was originally written as a single 'update' query using positional operator
-      // e.g. Updates.set(s"${enrolmentType}Enrolments.$$.friendlyName", friendlyName)
-      // which should be faster, but I just could NOT get positional operators to work with the new Mongo driver :(
-      // Feel free to try again to make that work if better performance is required.
-      collection.find(filter).map(_.value).headOption.flatMap {
-        case None        => Future.successful(Option.empty[Group])
-        case Some(group) =>
-          // Find the relevant enrolment and set its friendly name
-          val enrolments = getEnrolments(group)
-          val updatedEnrolments = enrolments
-            .map(e => if (e.toEnrolmentKey.contains(enrolmentKey)) e.copy(friendlyName = Some(friendlyName)) else e)
-          val updatedGroup = setEnrolments(group, updatedEnrolments)
-          collection
-            .findOneAndReplace(
-              filter = Filters.equal(UNIQUE_KEYS, keyOf(groupIdIndexKey(group.value.groupId), planetId)),
-              replacement = serializeGroup(updatedGroup, planetId)
-            )
-            .toFutureOption
-            .map(_.map(_.value))
-      }
-    }
-
+  ): Future[Option[Unit]] =
     enrolmentKey.identifiers.headOption match {
       case None =>
         Future.successful(None)
-      case Some(identifier) =>
-        update("principal", identifier) flatMap {
-          case None =>
-            update("delegated", identifier)
-          case Some(updatedGroup) =>
-            Future.successful(Some(updatedGroup))
-        }
+      case Some(_) =>
+        val selectDelegatedEnrolmentToUpdate = Filters.and(
+          Filters.equal(UNIQUE_KEYS, keyOf(groupIdIndexKey(group.groupId), planetId)),
+          Filters.equal(KEYS, keyOf(delegatedEnrolmentIndexKey(enrolmentKey.toString), planetId)),
+          Filters.equal("delegatedEnrolments.ek", enrolmentKey.toString)
+        )
+
+        val updateValue = Updates.set("delegatedEnrolments.$.fn", friendlyName)
+
+        collection
+          .findOneAndUpdate(selectDelegatedEnrolmentToUpdate, updateValue)
+          .toFutureOption()
+          .map {
+            case Some(_) => Some(())
+            case None    => None
+          }
     }
-  }
 
   override def findByAgentCode(agentCode: String, planetId: String): Future[Option[Group]] =
     collection
