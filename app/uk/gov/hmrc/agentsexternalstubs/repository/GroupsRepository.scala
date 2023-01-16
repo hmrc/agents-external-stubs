@@ -181,9 +181,9 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
       case Some(identifier) =>
         update("principal", identifier) flatMap {
           case None =>
+            Future.successful(None)
+          case Some(_) =>
             update("delegated", identifier)
-          case Some(updatedGroup) =>
-            Future.successful(Some(updatedGroup))
         }
     }
   }
