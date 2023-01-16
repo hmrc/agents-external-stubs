@@ -138,7 +138,7 @@ class AgencyCreator @Inject() (
             .generate(identifier.toString)
             .withMtdbsa(identifier.value)
             .withBusinessData(
-              Some(Seq(BusinessData.generate(identifier.value).withTradingName(Some("Trading Name"))))
+              Some(Seq(BusinessData.generate(identifier.value).withTradingName(Generator.tradingNameGen.sample)))
             )
         )
       case "HMRC-MTD-VAT" =>
@@ -147,7 +147,7 @@ class AgencyCreator @Inject() (
             identifier.value,
             approvedInformation = Some(
               ApprovedInformation(
-                CustomerDetails(organisationName = Some("VAT CLient"), mandationStatus = "1"),
+                CustomerDetails(organisationName = Generator.tradingNameGen.sample, mandationStatus = "1"),
                 PPOB.seed("PPOB")
               )
             )
@@ -160,8 +160,8 @@ class AgencyCreator @Inject() (
           PPTSubscriptionDisplayRecord
             .generateWith(
               if (client.dateOfBirth.nonEmpty) Some(AG.Individual) else Some(AG.Organisation),
-              Some("Jane"),
-              Some("Doe"),
+              Generator.forename().sample,
+              Generator.surname.sample,
               None,
               identifier.value
             )
