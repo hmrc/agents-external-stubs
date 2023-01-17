@@ -144,12 +144,9 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
         val updateValue = Updates.set("delegatedEnrolments.$.fn", friendlyName)
 
         collection
-          .findOneAndUpdate(selectDelegatedEnrolmentToUpdate, updateValue)
-          .toFutureOption()
-          .map {
-            case Some(_) => Some(())
-            case None    => None
-          }
+          .updateOne(selectDelegatedEnrolmentToUpdate, updateValue)
+          .toFuture()
+          .map(updateResult => if (updateResult.getModifiedCount == 1L) Some(()) else None)
     }
 
   override def findByAgentCode(agentCode: String, planetId: String): Future[Option[Group]] =
