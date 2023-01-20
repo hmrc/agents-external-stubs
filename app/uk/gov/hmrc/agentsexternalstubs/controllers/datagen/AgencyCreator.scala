@@ -42,6 +42,12 @@ class AgencyCreator @Inject() (
     )
 
   def create(agencyCreationPayload: AgencyCreationPayload): Unit = {
+    logger.info(s"Deleting any existing data for '${agencyCreationPayload.planetId}'")
+
+    usersRepository.destroyPlanet(agencyCreationPayload.planetId)
+    recordsRepository.destroyPlanet(agencyCreationPayload.planetId)
+    groupsRepository.destroyPlanet(agencyCreationPayload.planetId)
+
     persistUsers(agencyCreationPayload)
     persistAgentRecord(agencyCreationPayload)
     persistClientRecords(agencyCreationPayload)

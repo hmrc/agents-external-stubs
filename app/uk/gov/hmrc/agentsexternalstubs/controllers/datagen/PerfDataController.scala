@@ -22,18 +22,18 @@ import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.agentsexternalstubs.controllers.CurrentSession
 import uk.gov.hmrc.agentsexternalstubs.repository._
 import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
-import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-case class PerfDataRequest(
-  numAgents: Int,
-  clientsPerAgent: Int,
-  teamMembersPerAgent: Int,
-  populateFriendlyNames: Boolean
-)
+case class Agency(clients: Int, teamMembers: Int)
+
+object Agency {
+  implicit val format: OFormat[Agency] = Json.format[Agency]
+}
+
+case class PerfDataRequest(agencies: Seq[Agency], populateFriendlyNames: Boolean)
 
 object PerfDataRequest {
   implicit val format: OFormat[PerfDataRequest] = Json.format[PerfDataRequest]
@@ -56,45 +56,46 @@ class PerfDataController @Inject() (
   /** Accepts a JSON payload like:
     * <pre>
     * {
-    * "numAgents": 1,
-    * "clientsPerAgent": 100,
-    * "teamMembersPerAgent": 2,
-    * "populateFriendlyNames": true
+    *  "agencies": [
+    *   {
+    *    "clients": 10,
+    *    "teamMembers": 3
+    *   },
+    *   {
+    *    "clients": 460,
+    *    "teamMembers": 21
+    *   }
+    *  ],
+    *  "populateFriendlyNames": false
     * }
     * </pre>
     */
   def generate: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withPayload[PerfDataRequest] { perfDataRequest =>
       Future {
-        dropCollections()
-        reapplyIndexes()
         generateData(perfDataRequest)
+        reapplyIndexes()
         logger.info(s"Done with data generation")
       }
 
       Future successful Accepted(
-        s"Processing can take a while, please check later for creation of " +
-          s"${perfDataRequest.numAgents * (1 + perfDataRequest.clientsPerAgent + perfDataRequest.teamMembersPerAgent)} 'user(s)', " +
-          s"${perfDataRequest.numAgents * (1 + perfDataRequest.clientsPerAgent)} 'record(s)', and " +
-          s"${perfDataRequest.numAgents * (1 + perfDataRequest.clientsPerAgent)} 'group(s)'"
+        s"Processing can take a while, please check later for creation of ${perfDataRequest.agencies.size} agent(s)."
       )
     }
   }
 
-  private def dropCollections(): Unit = {
+  private def generateData(perfDataRequest: PerfDataRequest): Unit =
+    perfDataRequest.agencies.zipWithIndex foreach { case (agency, indexAgency) =>
+      val agencyCreationPayload =
+        agencyDataAssembler.build(
+          indexAgency + 1,
+          agency.clients,
+          agency.teamMembers,
+          perfDataRequest.populateFriendlyNames
+        )
 
-    def dropCollectionOf[R <: PlayMongoRepository[_]](repository: R): Unit = {
-      repository.collection.drop
-      logger.info(s"Dropped '${repository.collectionName}' collection if it existed")
+      agencyCreator.create(agencyCreationPayload)
     }
-
-    dropCollectionOf(usersRepository)
-    dropCollectionOf(recordsRepository)
-    dropCollectionOf(authenticatedSessionsRepository)
-    dropCollectionOf(knownFactsRepository)
-    dropCollectionOf(specialCasesRepository)
-    dropCollectionOf(groupsRepository)
-  }
 
   private def reapplyIndexes(): Unit = {
     usersRepository.ensureIndexes
@@ -106,18 +107,5 @@ class PerfDataController @Inject() (
 
     logger.info(s"Re-applied indexes")
   }
-
-  private def generateData(perfDataRequest: PerfDataRequest): Unit =
-    for (indexAgency <- (1 to perfDataRequest.numAgents).toList) {
-      val agencyCreationPayload =
-        agencyDataAssembler.build(
-          indexAgency,
-          perfDataRequest.clientsPerAgent,
-          perfDataRequest.teamMembersPerAgent,
-          perfDataRequest.populateFriendlyNames
-        )
-
-      agencyCreator.create(agencyCreationPayload)
-    }
 
 }
