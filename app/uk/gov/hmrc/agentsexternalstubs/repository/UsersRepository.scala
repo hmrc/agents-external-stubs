@@ -19,6 +19,8 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 import com.google.inject.ImplementedBy
 import com.mongodb.client.model.Updates
 import org.mongodb.scala.MongoWriteException
+import org.mongodb.scala.model.Filters.equal
+import org.mongodb.scala.model.Projections.{excludeId, fields, include}
 import org.mongodb.scala.model._
 import org.mongodb.scala.result.DeleteResult
 import play.api.libs.json._
@@ -130,24 +132,26 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: Ex
   override def findUserIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
     limit: Int
   ): Future[Seq[String]] =
-    collection
+    mongo.database
+      .getCollection("users")
       .find(
-        Filters.equal(KEYS, keyOf(User.assignedDelegatedEnrolmentIndexKey(enrolmentKey.toString), planetId))
+        equal(KEYS, keyOf(User.assignedDelegatedEnrolmentIndexKey(enrolmentKey.toString), planetId))
       )
-      .limit(limit)
-      .toFuture
-      .map(_.map(_.value.userId))
+      .projection(fields(include("userId"), excludeId()))
+      .toFuture()
+      .map(_.map(_.getString("userId")))
 
   override def findUserIdsByAssignedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
     limit: Int
   ): Future[Seq[String]] =
-    collection
-      .find(filter =
-        Filters.equal(KEYS, keyOf(User.assignedPrincipalEnrolmentIndexKey(enrolmentKey.toString), planetId))
+    mongo.database
+      .getCollection("users")
+      .find(
+        equal(KEYS, keyOf(User.assignedPrincipalEnrolmentIndexKey(enrolmentKey.toString), planetId))
       )
-      .limit(limit)
-      .toFuture
-      .map(_.map(_.value.userId))
+      .projection(fields(include("userId"), excludeId()))
+      .toFuture()
+      .map(_.map(_.getString("userId")))
 
   override def findGroupIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
     limit: Int
