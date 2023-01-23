@@ -42,7 +42,7 @@ trait GroupsRepository {
   def findByAgentCode(agentCode: String, planetId: String): Future[Option[Group]]
   def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int): Future[Seq[Group]]
   def updateFriendlyNameForEnrolment(
-    group: Group,
+    groupId: String,
     planetId: String,
     enrolmentKey: EnrolmentKey,
     friendlyName: String
@@ -126,7 +126,7 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
       .map(_.map(_.value))
 
   override def updateFriendlyNameForEnrolment(
-    group: Group,
+    groupId: String,
     planetId: String,
     enrolmentKey: EnrolmentKey,
     friendlyName: String
@@ -136,7 +136,7 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
         Future.successful(None)
       case Some(_) =>
         val selectDelegatedEnrolmentToUpdate = Filters.and(
-          Filters.equal(UNIQUE_KEYS, keyOf(groupIdIndexKey(group.groupId), planetId)),
+          Filters.equal(UNIQUE_KEYS, keyOf(groupIdIndexKey(groupId), planetId)),
           Filters.equal(KEYS, keyOf(delegatedEnrolmentIndexKey(enrolmentKey.toString), planetId)),
           Filters.equal("delegatedEnrolments.ek", enrolmentKey.toString)
         )

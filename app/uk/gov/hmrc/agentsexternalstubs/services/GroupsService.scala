@@ -101,14 +101,14 @@ class GroupsService @Inject() (
            }
     } yield ()
 
-  def setEnrolmentFriendlyName(group: Group, planetId: String, enrolmentKey: EnrolmentKey, friendlyName: String)(
+  def setEnrolmentFriendlyName(groupId: String, planetId: String, enrolmentKey: EnrolmentKey, friendlyName: String)(
     implicit ec: ExecutionContext
   ): Future[Option[Unit]] = {
     logger.info(
-      s"Updating friendly name '$friendlyName', enrolment key '$enrolmentKey', group '${group.groupId}', planet '$planetId'"
+      s"Updating friendly name '$friendlyName', enrolment key '$enrolmentKey', group '$groupId', planet '$planetId'"
     )
 
-    groupsRepository.updateFriendlyNameForEnrolment(group, planetId, enrolmentKey, friendlyName) flatMap {
+    groupsRepository.updateFriendlyNameForEnrolment(groupId, planetId, enrolmentKey, friendlyName) flatMap {
       case None    => Future.failed(new NotFoundException("enrolment not found"))
       case Some(_) => Future successful Some(())
     }
