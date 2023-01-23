@@ -351,13 +351,9 @@ class EnrolmentStoreProxyStubController @Inject() (
             .fold(
               error => badRequestF("INVALID_PAYLOAD", error.mkString(", ")),
               _ =>
-                groupsService.findByGroupId(groupId, session.planetId).flatMap {
-                  case None => notFoundF("INVALID_GROUP_ID")
-                  case Some(group) =>
-                    groupsService
-                      .setEnrolmentFriendlyName(group, session.planetId, enrolmentKey, payload.friendlyName)
-                      .map(_ => NoContent)
-                }
+                groupsService
+                  .setEnrolmentFriendlyName(groupId, session.planetId, enrolmentKey, payload.friendlyName)
+                  .map(_ => NoContent)
             )
         }
       }(SessionRecordNotFound)
