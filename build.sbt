@@ -81,7 +81,6 @@ lazy val root = (project in file("."))
       compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.7" cross CrossVersion.full),
       "com.github.ghik" % "silencer-lib" % "1.7.7" % Provided cross CrossVersion.full
     ),
-    publishingSettings,
     scoverageSettings,
     Compile / unmanagedResourceDirectories  += baseDirectory.value / "resources",
     routesImport ++= Seq(
