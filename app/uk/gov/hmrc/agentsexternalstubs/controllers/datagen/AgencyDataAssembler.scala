@@ -120,6 +120,12 @@ class AgencyDataAssembler extends Logging {
       case (generatedClientsOfAgent, ((clientType, serviceKey), index: Int)) =>
         @tailrec
         def generateUniqueClientForAgent: User = {
+
+          val countGeneratedClients = generatedClientsOfAgent.size
+          if (countGeneratedClients % 1000 == 0 && countGeneratedClients > 0) {
+            logger.info(s"Assembled client count: $countGeneratedClients ...")
+          }
+
           val generatedClient = generateClient(clientType, serviceKey, index)
 
           generatedClient.assignedPrincipalEnrolments.headOption match {
