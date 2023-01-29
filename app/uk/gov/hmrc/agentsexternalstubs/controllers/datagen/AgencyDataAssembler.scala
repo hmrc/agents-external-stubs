@@ -122,8 +122,8 @@ class AgencyDataAssembler extends Logging {
         def generateUniqueClientForAgent: User = {
 
           val countGeneratedClients = generatedClientsOfAgent.size
-          if (countGeneratedClients % 1000 == 0 && countGeneratedClients > 0) {
-            logger.info(s"Assembled client count: $countGeneratedClients ...")
+          if (countGeneratedClients % 5000 == 0 && countGeneratedClients > 0) {
+            logger.info(s"Assembled clients: $countGeneratedClients ...")
           }
 
           val generatedClient = generateClient(clientType, serviceKey, index)

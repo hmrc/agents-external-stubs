@@ -22,7 +22,7 @@ import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.BusinessData
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.AgencyDetails
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, PPOB}
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.repository.{GroupsRepositoryMongo, JsonAbuse, RecordsRepositoryMongo, UsersRepositoryMongo}
+import uk.gov.hmrc.agentsexternalstubs.repository.{GroupsRepositoryMongo, JsonAbuse, KnownFactsRepository, RecordsRepositoryMongo, UsersRepositoryMongo}
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -30,7 +30,8 @@ import scala.concurrent.{ExecutionContext, Future}
 class AgencyCreator @Inject() (
   usersRepository: UsersRepositoryMongo,
   recordsRepository: RecordsRepositoryMongo,
-  groupsRepository: GroupsRepositoryMongo
+  groupsRepository: GroupsRepositoryMongo,
+  knownFactsRepository: KnownFactsRepository
 )(implicit executionContext: ExecutionContext)
     extends Logging {
 
@@ -41,6 +42,7 @@ class AgencyCreator @Inject() (
       _ <- usersRepository.destroyPlanet(agencyCreationPayload.planetId)
       _ <- recordsRepository.destroyPlanet(agencyCreationPayload.planetId)
       _ <- groupsRepository.destroyPlanet(agencyCreationPayload.planetId)
+      _ <- knownFactsRepository.destroyPlanet(agencyCreationPayload.planetId)
 
       _ <- persistUsers(agencyCreationPayload)
       _ <- persistAgentRecord(agencyCreationPayload)
@@ -118,6 +120,18 @@ class AgencyCreator @Inject() (
       s"Creating groups for '${agencyCreationPayload.planetId}'. Auto-populating friendly name for clients: ${agencyCreationPayload.populateFriendlyNames}"
     )
 
+    def updateKnownFacts(user: User, group: Group, planetId: String): Future[Unit] =
+      Future
+        .sequence(
+          group.principalEnrolments
+            .map(_.toEnrolmentKey.flatMap(ek => KnownFacts.generate(ek, user.userId, user.facts)))
+            .collect { case Some(x) => x }
+            .map(knownFacts =>
+              knownFactsRepository.upsert(knownFacts.applyProperties(User.knownFactsOf(user)), planetId)
+            )
+        )
+        .map(_ => ())
+
     def persistAgentGroup: Future[Unit] = agencyCreationPayload.agentUser.groupId match {
       case Some(groupId) =>
         val agentGroup = Group(
@@ -137,6 +151,7 @@ class AgencyCreator @Inject() (
 
         groupsRepository
           .create(agentGroup, agencyCreationPayload.planetId)
+          .flatMap(_ => updateKnownFacts(agencyCreationPayload.agentUser, agentGroup, agencyCreationPayload.planetId))
           .recover { case ex =>
             logger.error(
               s"Could not create group ${agentGroup.groupId} of ${agencyCreationPayload.planetId}: ${ex.getMessage}"
@@ -159,6 +174,7 @@ class AgencyCreator @Inject() (
 
           groupsRepository
             .create(clientGroup, agencyCreationPayload.planetId)
+            .flatMap(_ => updateKnownFacts(client, clientGroup, agencyCreationPayload.planetId))
             .recover { case ex =>
               logger.error(
                 s"Could not create group ${clientGroup.groupId} of ${agencyCreationPayload.planetId}: ${ex.getMessage}"
