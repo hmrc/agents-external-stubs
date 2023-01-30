@@ -16,52 +16,57 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers.datagen
 
-import akka.actor.{ActorRef, ActorSystem}
 import play.api.Logging
+import play.api.libs.json.{JsArray, JsString}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.BusinessData
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.AgencyDetails
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, PPOB}
-import uk.gov.hmrc.agentsexternalstubs.models.{AG, BusinessDetailsRecord, BusinessPartnerRecord, Enrolment, Generator, Group, PPTSubscriptionDisplayRecord, Record, User, VatCustomerInformationRecord}
-import uk.gov.hmrc.agentsexternalstubs.repository.{GroupsRepositoryMongo, RecordsRepositoryMongo, UsersRepositoryMongo}
+import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.repository.{GroupsRepositoryMongo, JsonAbuse, KnownFactsRepository, RecordsRepositoryMongo, UsersRepositoryMongo}
 
 import javax.inject.Inject
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 class AgencyCreator @Inject() (
   usersRepository: UsersRepositoryMongo,
   recordsRepository: RecordsRepositoryMongo,
-  groupsRepository: GroupsRepositoryMongo
-)(implicit
-  actorSystem: ActorSystem,
-  executionContext: ExecutionContext
-) extends Logging {
+  groupsRepository: GroupsRepositoryMongo,
+  knownFactsRepository: KnownFactsRepository
+)(implicit executionContext: ExecutionContext)
+    extends Logging {
 
-  private val dataCreationActor: ActorRef =
-    actorSystem.actorOf(
-      DataCreationActor.props(usersRepository, recordsRepository, groupsRepository)
-    )
-
-  def create(agencyCreationPayload: AgencyCreationPayload): Unit = {
+  def create(agencyCreationPayload: AgencyCreationPayload): Future[Unit] = {
     logger.info(s"Deleting any existing data for '${agencyCreationPayload.planetId}'")
 
-    usersRepository.destroyPlanet(agencyCreationPayload.planetId)
-    recordsRepository.destroyPlanet(agencyCreationPayload.planetId)
-    groupsRepository.destroyPlanet(agencyCreationPayload.planetId)
+    for {
+      _ <- usersRepository.destroyPlanet(agencyCreationPayload.planetId)
+      _ <- recordsRepository.destroyPlanet(agencyCreationPayload.planetId)
+      _ <- groupsRepository.destroyPlanet(agencyCreationPayload.planetId)
+      _ <- knownFactsRepository.destroyPlanet(agencyCreationPayload.planetId)
 
-    persistUsers(agencyCreationPayload)
-    persistAgentRecord(agencyCreationPayload)
-    persistClientRecords(agencyCreationPayload)
-    persistGroups(agencyCreationPayload)
+      _ <- persistUsers(agencyCreationPayload)
+      _ <- persistAgentRecord(agencyCreationPayload)
+      _ <- persistClientRecords(agencyCreationPayload)
+      _ <- persistGroups(agencyCreationPayload)
+    } yield ()
   }
 
-  private def persistUsers(agencyCreationPayload: AgencyCreationPayload): Unit = {
+  private def persistUsers(agencyCreationPayload: AgencyCreationPayload): Future[Unit] = {
     logger.info(s"Creating users for '${agencyCreationPayload.planetId}'")
 
-    (List(agencyCreationPayload.agentUser) ++ agencyCreationPayload.clients ++ agencyCreationPayload.teamMembers)
-      .foreach(user => dataCreationActor ! UserCreationPayload(user, agencyCreationPayload.planetId))
+    val usersToCreate =
+      List(agencyCreationPayload.agentUser) ++ agencyCreationPayload.clients ++ agencyCreationPayload.teamMembers
+
+    executeSerially(usersToCreate) { user =>
+      usersRepository
+        .create(user, agencyCreationPayload.planetId)
+        .recover { case ex =>
+          logger.error(s"Could not create user ${user.userId} of ${agencyCreationPayload.planetId}: ${ex.getMessage}")
+        }
+    }
   }
 
-  private def persistAgentRecord(agencyCreationPayload: AgencyCreationPayload): Unit = {
+  private def persistAgentRecord(agencyCreationPayload: AgencyCreationPayload): Future[Unit] = {
     val agentBusinessPartnerRecord = BusinessPartnerRecord
       .generate(agencyCreationPayload.agentUser.userId)
       .withBusinessPartnerExists(businessPartnerExists = true)
@@ -80,56 +85,109 @@ class AgencyCreator @Inject() (
         )
       )
 
-    dataCreationActor ! RecordCreationPayload(
-      agentBusinessPartnerRecord,
-      agencyCreationPayload.planetId
-    )
+    recordsRepository
+      .rawStore(recordAsJson(agentBusinessPartnerRecord, agencyCreationPayload.planetId))
+      .map(id => logger.debug(s"Created record of id $id"))
+      .recover { case ex =>
+        logger.error(
+          s"Could not create record for ${agentBusinessPartnerRecord.uniqueKey} of ${agencyCreationPayload.planetId}: ${ex.getMessage}"
+        )
+      }
+
   }
 
-  private def persistClientRecords(agencyCreationPayload: AgencyCreationPayload): Unit = {
+  private def persistClientRecords(agencyCreationPayload: AgencyCreationPayload): Future[Unit] = {
     logger.info(s"Creating client records for '${agencyCreationPayload.planetId}'")
 
-    agencyCreationPayload.clients
+    val records = agencyCreationPayload.clients
       .map(assembleClientRecord)
       .collect { case Some(record) => record }
-      .foreach(record => dataCreationActor ! RecordCreationPayload(record, agencyCreationPayload.planetId))
+
+    executeSerially(records) { record =>
+      recordsRepository
+        .rawStore(recordAsJson(record, agencyCreationPayload.planetId))
+        .map(id => logger.debug(s"Created record of id $id"))
+        .recover { case ex =>
+          logger.error(
+            s"Could not create record for ${record.uniqueKey} of ${agencyCreationPayload.planetId}: ${ex.getMessage}"
+          )
+        }
+    }
   }
 
-  private def persistGroups(agencyCreationPayload: AgencyCreationPayload): Unit = {
+  private def persistGroups(agencyCreationPayload: AgencyCreationPayload): Future[Unit] = {
     logger.info(
       s"Creating groups for '${agencyCreationPayload.planetId}'. Auto-populating friendly name for clients: ${agencyCreationPayload.populateFriendlyNames}"
     )
 
-    agencyCreationPayload.agentUser.groupId.foreach { groupId =>
-      val agentGroup = Group(
-        planetId = agencyCreationPayload.planetId,
-        groupId = groupId,
-        affinityGroup = AG.Agent,
-        principalEnrolments = agencyCreationPayload.agentUser.assignedPrincipalEnrolments.map(Enrolment.from),
-        delegatedEnrolments = agencyCreationPayload.clients.zipWithIndex.flatMap { case (client, index) =>
-          client.assignedPrincipalEnrolments
-            .map(ek =>
-              if (agencyCreationPayload.populateFriendlyNames)
-                Enrolment.from(ek).copy(friendlyName = Some(s"Client ${index + 1}"))
-              else Enrolment.from(ek)
+    def updateKnownFacts(user: User, group: Group, planetId: String): Future[Unit] =
+      Future
+        .sequence(
+          group.principalEnrolments
+            .map(_.toEnrolmentKey.flatMap(ek => KnownFacts.generate(ek, user.userId, user.facts)))
+            .collect { case Some(x) => x }
+            .map(knownFacts =>
+              knownFactsRepository.upsert(knownFacts.applyProperties(User.knownFactsOf(user)), planetId)
             )
-        }
-      )
+        )
+        .map(_ => ())
 
-      dataCreationActor ! GroupCreationPayload(agentGroup, agencyCreationPayload.planetId)
-    }
-
-    agencyCreationPayload.clients.foreach { client =>
-      client.groupId.foreach { groupId =>
-        val clientGroup = Group(
+    def persistAgentGroup: Future[Unit] = agencyCreationPayload.agentUser.groupId match {
+      case Some(groupId) =>
+        val agentGroup = Group(
           planetId = agencyCreationPayload.planetId,
           groupId = groupId,
-          affinityGroup = AG.Individual,
-          principalEnrolments = client.assignedPrincipalEnrolments.map(Enrolment.from)
+          affinityGroup = AG.Agent,
+          principalEnrolments = agencyCreationPayload.agentUser.assignedPrincipalEnrolments.map(Enrolment.from),
+          delegatedEnrolments = agencyCreationPayload.clients.zipWithIndex.flatMap { case (client, index) =>
+            client.assignedPrincipalEnrolments
+              .map(ek =>
+                if (agencyCreationPayload.populateFriendlyNames)
+                  Enrolment.from(ek).copy(friendlyName = Some(s"Client ${index + 1}"))
+                else Enrolment.from(ek)
+              )
+          }
         )
 
-        dataCreationActor ! GroupCreationPayload(clientGroup, agencyCreationPayload.planetId)
+        groupsRepository
+          .create(agentGroup, agencyCreationPayload.planetId)
+          .flatMap(_ => updateKnownFacts(agencyCreationPayload.agentUser, agentGroup, agencyCreationPayload.planetId))
+          .recover { case ex =>
+            logger.error(
+              s"Could not create group ${agentGroup.groupId} of ${agencyCreationPayload.planetId}: ${ex.getMessage}"
+            )
+          }
+
+      case _ =>
+        Future successful (())
+    }
+
+    def persistClientGroups: Future[Unit] = executeSerially(agencyCreationPayload.clients) { client =>
+      client.groupId match {
+        case Some(groupId) =>
+          val clientGroup = Group(
+            planetId = agencyCreationPayload.planetId,
+            groupId = groupId,
+            affinityGroup = AG.Individual,
+            principalEnrolments = client.assignedPrincipalEnrolments.map(Enrolment.from)
+          )
+
+          groupsRepository
+            .create(clientGroup, agencyCreationPayload.planetId)
+            .flatMap(_ => updateKnownFacts(client, clientGroup, agencyCreationPayload.planetId))
+            .recover { case ex =>
+              logger.error(
+                s"Could not create group ${clientGroup.groupId} of ${agencyCreationPayload.planetId}: ${ex.getMessage}"
+              )
+            }
+        case _ =>
+          Future successful (())
       }
+
+    }
+
+    persistAgentGroup flatMap { _ =>
+      persistClientGroups
     }
   }
 
@@ -178,4 +236,42 @@ class AgencyCreator @Inject() (
         Some(BusinessDetailsRecord.generate(identifier.toString))
       case _ => Option.empty[Record]
     }).flatten
+
+  private def recordAsJson(record: Record, planetId: String): JsonAbuse[Record] = {
+    import uk.gov.hmrc.agentsexternalstubs.syntax.|>
+
+    val PLANET_ID = "_planetId"
+    val UNIQUE_KEY = "_uniqueKey"
+    val KEYS = "_keys"
+    val TYPE = "_record_type"
+    val typeName = Record.typeOf(record)
+
+    JsonAbuse(record)
+      .addField(PLANET_ID, JsString(planetId))
+      .addField(TYPE, JsString(typeName))
+      .addField(
+        KEYS,
+        JsArray(
+          record.uniqueKey
+            .map(key => record.lookupKeys :+ key)
+            .getOrElse(record.lookupKeys)
+            .map(key => JsString(keyOf(key, planetId, typeName)))
+        )
+      )
+      .|> { obj =>
+        record.uniqueKey
+          .map(uniqueKey => obj.addField(UNIQUE_KEY, JsString(keyOf(uniqueKey, planetId, typeName))))
+          .getOrElse(obj)
+      }
+  }
+
+  private def keyOf[T <: Record](key: String, planetId: String, recordType: String): String =
+    s"$recordType:${key.replace(" ", "").toLowerCase}@$planetId"
+
+  def executeSerially[A](list: Iterable[A])(fn: A => Future[Unit]): Future[Unit] =
+    list.foldLeft(Future successful (())) { (accFutureList, nextItem) =>
+      accFutureList.flatMap { _ =>
+        fn(nextItem)
+      }
+    }
 }

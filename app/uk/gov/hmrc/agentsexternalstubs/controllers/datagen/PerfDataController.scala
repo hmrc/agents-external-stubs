@@ -25,7 +25,8 @@ import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 case class Agency(clients: Int, teamMembers: Int)
 
@@ -94,7 +95,7 @@ class PerfDataController @Inject() (
           perfDataRequest.populateFriendlyNames
         )
 
-      agencyCreator.create(agencyCreationPayload)
+      Await.result(agencyCreator.create(agencyCreationPayload), 15.minutes)
     }
 
   private def reapplyIndexes(): Unit = {
