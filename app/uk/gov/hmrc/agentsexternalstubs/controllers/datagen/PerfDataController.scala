@@ -30,11 +30,12 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 
 case class Agency(clients: Int, teamMembers: Int)
 
-object Agency {
-  implicit val format: OFormat[Agency] = Json.format[Agency]
+case class AgencyRepeat(clients: Int, teamMembers: Int, times: Int)
+object AgencyRepeat {
+  implicit val format: OFormat[AgencyRepeat] = Json.format[AgencyRepeat]
 }
 
-case class PerfDataRequest(agencies: Seq[Agency], populateFriendlyNames: Boolean)
+case class PerfDataRequest(agencies: Seq[AgencyRepeat], populateFriendlyNames: Boolean)
 
 object PerfDataRequest {
   implicit val format: OFormat[PerfDataRequest] = Json.format[PerfDataRequest]
@@ -60,11 +61,13 @@ class PerfDataController @Inject() (
     *  "agencies": [
     *   {
     *    "clients": 10,
-    *    "teamMembers": 3
+    *    "teamMembers": 3,
+    *    "times": 5
     *   },
     *   {
     *    "clients": 460,
-    *    "teamMembers": 21
+    *    "teamMembers": 21,
+    *    "times": 20
     *   }
     *  ],
     *  "populateFriendlyNames": false
@@ -73,26 +76,31 @@ class PerfDataController @Inject() (
     */
   def generate: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withPayload[PerfDataRequest] { perfDataRequest =>
+      val agencies = perfDataRequest.agencies.flatMap { agencyRepeat =>
+        (1 to (if (agencyRepeat.times < 1) 1 else agencyRepeat.times))
+          .map(_ => Agency(agencyRepeat.clients, agencyRepeat.teamMembers))
+      }
+
       Future {
-        generateData(perfDataRequest)
+        generateData(agencies, perfDataRequest.populateFriendlyNames)
         reapplyIndexes()
         logger.info(s"Done with data generation")
       }
 
       Future successful Accepted(
-        s"Processing can take a while, please check later for creation of ${perfDataRequest.agencies.size} agent(s)."
+        s"Processing can take a while, please check later for creation of ${agencies.size} agent(s)."
       )
     }
   }
 
-  private def generateData(perfDataRequest: PerfDataRequest): Unit =
-    perfDataRequest.agencies.zipWithIndex foreach { case (agency, indexAgency) =>
+  private def generateData(agencies: Seq[Agency], populateFriendlyNames: Boolean): Unit =
+    agencies.zipWithIndex foreach { case (agency, indexAgency) =>
       val agencyCreationPayload =
         agencyDataAssembler.build(
           indexAgency + 1,
           agency.clients,
           agency.teamMembers,
-          perfDataRequest.populateFriendlyNames
+          populateFriendlyNames
         )
 
       Await.result(agencyCreator.create(agencyCreationPayload), 15.minutes)
