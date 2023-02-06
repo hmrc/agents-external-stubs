@@ -97,6 +97,42 @@ To achieve high volume throughput and low latency required for performance testi
 * `features.preloadRecordsForDefaultUserIds` - to preload record template caches with entities generated for the default user ids pool, this will work well with `userIdFromPool` query parameter attached to the sign-in and create user requests,
 * `features.clearOldMongoDbDocumentsDaily` - to clear stubs database daily at 12:30 AM UTC.
 
+## Bulk Data Generation (without using frontend)
+
+Data can be generated for multiple agents, each with multiple clients and team members.
+
+This datagen is triggered by **POST**ing a JSON payload at URLs like:
+* Local: http://localhost:9009/agents-external-stubs/test/gran-perms/generate-perf-data
+* Staging (using [Orchestrator Curl](https://orchestrator.tools.staging.tax.service.gov.uk/job/curl-microservice/)): https://agents-external-stubs.protected.mdtp/agents-external-stubs/test/gran-perms/generate-perf-data
+
+An example of the JSON payload looks like:
+```json
+{
+  "agencies": [
+    {
+      "clients": 300,
+      "teamMembers": 20,
+      "times": 4
+    },
+    {
+      "clients": 1000,
+      "teamMembers": 15,
+      "times": 3
+    }
+  ],
+  "populateFriendlyNames": false
+}
+```
+The above example will create 7 agencies in total:
+* 4 agencies, each with 300 clients and 20 team members
+* 3 agencies, each with 1000 clients and 15 team members
+
+The `populateFriendlyNames` field determines whether to populate friendly names for the generated clients, used in Granular Permissions.
+
+The above example will create the 7 agencies having:
+* their own planets named `p-001` through `p-007` respectively
+* the main agent user named `perf-test-agent-001` through `perf-test-agent-007` respectively 
+
 ## Stubbed APIs <a name="stubbed_api"></a>
 
 ### [Auth](https://github.com/hmrc/auth) <a name="stubbed_api_auth"></a>
