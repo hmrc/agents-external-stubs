@@ -1000,7 +1000,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
-        an[InternalError] shouldBe thrownBy {
+        an[InsufficientEnrolments] shouldBe thrownBy {
           await(
             authorised(
               Enrolment("HMRC-MTD-IT")
@@ -1029,7 +1029,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
-        an[InternalError] shouldBe thrownBy {
+        an[InsufficientEnrolments] shouldBe thrownBy {
           await(
             authorised(
               Enrolment("HMRC-MTD-VAT")
@@ -1085,7 +1085,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
-        an[InternalError] shouldBe thrownBy {
+        an[InsufficientEnrolments] shouldBe thrownBy {
           await(
             authorised(
               Enrolment("HMRC-MTD-VAT")
@@ -1141,7 +1141,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
-        an[InternalError] shouldBe thrownBy {
+        an[InsufficientEnrolments] shouldBe thrownBy {
           await(
             authorised(
               Enrolment("HMRC-NI")
@@ -1197,7 +1197,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
-        an[InternalError] shouldBe thrownBy {
+        an[InsufficientEnrolments] shouldBe thrownBy {
           await(
             authorised(
               Enrolment("IR-SA")
@@ -1255,7 +1255,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
-        an[InternalError] shouldBe thrownBy {
+        an[InsufficientEnrolments] shouldBe thrownBy {
           await(
             authorised(
               Enrolment("HMRC-TERS-ORG")
@@ -1311,7 +1311,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
         implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken")))
 
-        an[InternalError] shouldBe thrownBy {
+        an[InsufficientEnrolments] shouldBe thrownBy {
           await(
             authorised(
               Enrolment("HMRC-CGT-PD")
