@@ -332,7 +332,7 @@ class UsersService @Inject() (
 
   def assignEnrolmentToUser(userId: String, enrolmentKey: EnrolmentKey, planetId: String)(implicit
     ec: ExecutionContext
-  ): Future[User] =
+  ): Future[Unit] =
     knownFactsRepository.findByEnrolmentKey(enrolmentKey, planetId).flatMap {
       case None => Future.failed(new NotFoundException("ALLOCATION_DOES_NOT_EXIST"))
       case Some(_) =>
@@ -356,19 +356,8 @@ class UsersService @Inject() (
                       val groupHasEnrolment = groupHasPrincipalEnrolment || groupHasDelegatedEnrolment
                       val isPrincipal = groupHasPrincipalEnrolment
                       if (groupHasEnrolment) {
-                        updateUser(
-                          userId,
-                          planetId,
-                          user =>
-                            if (isPrincipal)
-                              user.copy(assignedPrincipalEnrolments =
-                                (user.assignedPrincipalEnrolments :+ enrolmentKey).distinct
-                              )
-                            else
-                              user.copy(assignedDelegatedEnrolments =
-                                (user.assignedDelegatedEnrolments :+ enrolmentKey).distinct
-                              )
-                        )
+                        usersRepository
+                          .assignEnrolment(userId, group.groupId, group.planetId, enrolmentKey, isPrincipal)
                       } else {
                         Future.failed(new ForbiddenException("INVALID_CREDENTIAL_ID"))
                       }

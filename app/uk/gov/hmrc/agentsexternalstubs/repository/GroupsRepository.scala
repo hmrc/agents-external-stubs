@@ -22,11 +22,12 @@ import org.mongodb.scala.model._
 import org.mongodb.scala.result.DeleteResult
 import play.api.libs.json._
 import play.api.{Logger, Logging}
-import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, Group}
+import uk.gov.hmrc.agentsexternalstubs.models.{Enrolment, EnrolmentKey, Group}
 import uk.gov.hmrc.agentsexternalstubs.repository.GroupsRepositoryMongo._
 import uk.gov.hmrc.agentsexternalstubs.syntax.|>
+import uk.gov.hmrc.http.BadRequestException
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -47,6 +48,11 @@ trait GroupsRepository {
     enrolmentKey: EnrolmentKey,
     friendlyName: String
   ): Future[Option[Unit]]
+  def addDelegatedEnrolment(
+    groupId: String,
+    planetId: String,
+    enrolment: Enrolment
+  ): Future[Unit]
   def create(group: Group, planetId: String): Future[Unit]
   def update(group: Group, planetId: String): Future[Unit]
   def delete(groupId: String, planetId: String): Future[DeleteResult]
@@ -74,7 +80,8 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
         IndexModel(Indexes.ascending(GROUP_ID), IndexOptions().name("keyGroupId")),
         IndexModel(Indexes.ascending(PLANET_ID), IndexOptions().name("keyPlanetId"))
       ),
-      replaceIndexes = true
+      replaceIndexes = true,
+      extraCodecs = Seq(Codecs.playFormatCodec(Enrolment.tinyFormat))
     ) with GroupsRepository with Logging {
 
   final val UPDATED = "_last_updated_at"
@@ -124,6 +131,24 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
       .|>(o => if (limit >= 0) o.limit(limit) else o)
       .toFuture
       .map(_.map(_.value))
+
+  override def addDelegatedEnrolment(
+    groupId: String,
+    planetId: String,
+    enrolment: Enrolment
+  ): Future[Unit] =
+    collection
+      .updateOne(
+        Filters.equal(UNIQUE_KEYS, keyOf(groupIdIndexKey(groupId), planetId)),
+        Updates
+          .combine(
+            Updates.addToSet("delegatedEnrolments", enrolment),
+            Updates
+              .addToSet(KEYS, keyOf(delegatedEnrolmentIndexKey(enrolment.toEnrolmentKeyTag.getOrElse("")), planetId))
+          )
+      )
+      .toFuture()
+      .map(_ => ())
 
   override def updateFriendlyNameForEnrolment(
     groupId: String,
