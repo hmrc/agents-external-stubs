@@ -358,19 +358,6 @@ class UsersService @Inject() (
                       if (groupHasEnrolment) {
                         usersRepository
                           .assignEnrolment(userId, group.groupId, group.planetId, enrolmentKey, isPrincipal)
-//                        updateUser(
-//                          userId,
-//                          planetId,
-//                          user =>
-//                            if (isPrincipal)
-//                              user.copy(assignedPrincipalEnrolments =
-//                                (user.assignedPrincipalEnrolments :+ enrolmentKey).distinct
-//                              )
-//                            else
-//                              user.copy(assignedDelegatedEnrolments =
-//                                (user.assignedDelegatedEnrolments :+ enrolmentKey).distinct
-//                              )
-//                        )
                       } else {
                         Future.failed(new ForbiddenException("INVALID_CREDENTIAL_ID"))
                       }
