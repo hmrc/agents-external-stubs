@@ -48,6 +48,13 @@ trait UsersRepository {
   def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int): Future[Seq[User]]
   def findUserIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int): Future[Seq[String]]
   def findUserIdsByAssignedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int): Future[Seq[String]]
+  def assignEnrolment(
+    userId: String,
+    groupId: String,
+    planetId: String,
+    enrolmentKey: EnrolmentKey,
+    isPrincipal: Boolean
+  ): Future[Unit]
   def findGroupIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
     limit: Int
   ): Future[Seq[Option[String]]]
@@ -161,6 +168,30 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: Ex
       .limit(limit)
       .toFuture
       .map(_.map(_.value.groupId))
+
+  override def assignEnrolment(
+    userId: String,
+    groupId: String,
+    planetId: String,
+    enrolmentKey: EnrolmentKey,
+    isPrincipal: Boolean
+  ): Future[Unit] = {
+    val (fieldName, keyToAdd) =
+      if (isPrincipal)
+        ("assignedPrincipalEnrolments", keyOf(User.assignedPrincipalEnrolmentIndexKey(enrolmentKey.tag), planetId))
+      else ("assignedDelegatedEnrolments", keyOf(User.assignedDelegatedEnrolmentIndexKey(enrolmentKey.tag), planetId))
+
+    collection
+      .updateOne(
+        Filters.and(
+          Filters.equal(KEYS, keyOf(User.groupIdIndexKey(groupId), planetId)),
+          Filters.equal(UNIQUE_KEYS, keyOf(User.userIdKey(userId), planetId))
+        ),
+        Updates.combine(Updates.addToSet(fieldName, enrolmentKey.tag), Updates.addToSet(KEYS, keyToAdd))
+      )
+      .toFuture()
+      .map(_ => ())
+  }
 
   private def planetIdKey(planetId: String): String = s"planet:$planetId"
 
