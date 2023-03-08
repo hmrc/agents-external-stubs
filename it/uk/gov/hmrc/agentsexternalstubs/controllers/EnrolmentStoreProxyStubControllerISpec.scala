@@ -650,12 +650,33 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         group.principalEnrolments.isEmpty shouldBe true
       }
 
-      "deallocate delegated enrolment from the group identified by groupId" in {
+      "deallocate delegated enrolment from the group identified by groupId (and unassign enrolment from all users)" in {
+        val enrolmentKey = EnrolmentKey("IR-SA~UTR~12345678")
         userService
           .createUser(
             UserGenerator
               .agent(userId = "foo1", groupId = "group1")
-              .withAssignedDelegatedEnrolment(EnrolmentKey("IR-SA~UTR~12345678")),
+              .withAssignedDelegatedEnrolment(enrolmentKey),
+            planetId = "testPlanet",
+            affinityGroup = Some(AG.Agent)
+          )
+          .futureValue
+        // create another user belonging to the same group, with the same assigned delegated enrolment
+        userService
+          .createUser(
+            UserGenerator
+              .agent(userId = "foo2", groupId = "group1")
+              .withAssignedDelegatedEnrolment(enrolmentKey),
+            planetId = "testPlanet",
+            affinityGroup = Some(AG.Agent)
+          )
+          .futureValue
+        // create a third user belonging to a DIFFERENT group, with the same assigned delegated enrolment
+        userService
+          .createUser(
+            UserGenerator
+              .agent(userId = "anotherFoo", groupId = "anotherGroup")
+              .withAssignedDelegatedEnrolment(enrolmentKey),
             planetId = "testPlanet",
             affinityGroup = Some(AG.Agent)
           )
@@ -663,12 +684,26 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
 
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1", planetId = "testPlanet")
 
-        val result = EnrolmentStoreProxyStub.deallocateEnrolmentFromGroup("group1", "IR-SA~UTR~12345678")
+        // check that the two users to which we have assigned the delegated enrolment, show up in the query
+        userService
+          .findUserIdsByAssignedDelegatedEnrolmentKey(enrolmentKey, "testPlanet")
+          .futureValue
+          .toSet shouldBe Set("foo1", "foo2", "anotherFoo")
+
+        val result = EnrolmentStoreProxyStub.deallocateEnrolmentFromGroup("group1", enrolmentKey.tag)
 
         result should haveStatus(204)
 
         val group: Group = await(groupsService.findByGroupId("group1", session.planetId)).get
         group.delegatedEnrolments.isEmpty shouldBe true
+
+        // Check that the two group users to which we have assigned the delegated enrolment, no longer have the assignment.
+        // However, it should have been unassigned only from the users of the group from which we unallocated the enrolment:
+        // if someone in a DIFFERENT group had that enrolment assigned, they should still have it
+        userService
+          .findUserIdsByAssignedDelegatedEnrolmentKey(enrolmentKey, "testPlanet")
+          .futureValue
+          .toSet shouldBe Set("anotherFoo")
       }
 
       "deallocate delegated enrolment from the group identified by legacy-AgentCode" in {

@@ -42,12 +42,16 @@ trait UsersRepository {
   def findByUserId(userId: String, planetId: String): Future[Option[User]]
   def findByNino(nino: String, planetId: String): Future[Option[User]]
   def findByPlanetId(planetId: String)(limit: Int): Future[Seq[User]]
-  def findByGroupId(groupId: String, planetId: String)(limit: Int): Future[Seq[User]]
+  def findByGroupId(groupId: String, planetId: String)(limit: Option[Int]): Future[Seq[User]]
   def findAdminByGroupId(groupId: String, planetId: String): Future[Option[User]]
   def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String): Future[Option[User]]
   def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int): Future[Seq[User]]
-  def findUserIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int): Future[Seq[String]]
-  def findUserIdsByAssignedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int): Future[Seq[String]]
+  def findUserIdsByAssignedDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
+    limit: Option[Int]
+  ): Future[Seq[String]]
+  def findUserIdsByAssignedPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
+    limit: Option[Int]
+  ): Future[Seq[String]]
   def assignEnrolment(
     userId: String,
     groupId: String,
@@ -107,11 +111,11 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: Ex
     collection.find(Filters.equal(KEYS, planetIdKey(planetId))).limit(limit).toFuture.map(_.map(_.value))
 
   override def findByGroupId(groupId: String, planetId: String)(
-    limit: Int
+    limit: Option[Int]
   ): Future[Seq[User]] =
     collection
       .find(Filters.equal(KEYS, keyOf(User.groupIdIndexKey(groupId), planetId)))
-      .limit(limit)
+      .limit(limit.getOrElse(0))
       .toFuture
       .map(_.map(_.value))
 
@@ -136,26 +140,28 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: Ex
       .toFuture
       .map(_.map(_.value))
 
-  override def findUserIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
-    limit: Int
+  override def findUserIdsByAssignedDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
+    limit: Option[Int]
   ): Future[Seq[String]] =
     mongo.database
       .getCollection("users")
       .find(
         equal(KEYS, keyOf(User.assignedDelegatedEnrolmentIndexKey(enrolmentKey.toString), planetId))
       )
+      .limit(limit.getOrElse(0))
       .projection(fields(include("userId"), excludeId()))
       .toFuture()
       .map(_.map(_.getString("userId")))
 
-  override def findUserIdsByAssignedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
-    limit: Int
+  override def findUserIdsByAssignedPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
+    limit: Option[Int]
   ): Future[Seq[String]] =
     mongo.database
       .getCollection("users")
       .find(
         equal(KEYS, keyOf(User.assignedPrincipalEnrolmentIndexKey(enrolmentKey.toString), planetId))
       )
+      .limit(limit.getOrElse(0))
       .projection(fields(include("userId"), excludeId()))
       .toFuture()
       .map(_.map(_.getString("userId")))

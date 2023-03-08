@@ -221,7 +221,7 @@ class UsersRepositoryISpec extends AppBaseISpec {
       await(repo.create(User("zoo", groupId = Some("ABC")), planetId = planetId2))
       await(repo.findByPlanetId(planetId)(100)).size shouldBe 2
 
-      val result1 = await(repo.findByGroupId(groupId = "ABC", planetId = planetId)(10))
+      val result1 = await(repo.findByGroupId(groupId = "ABC", planetId = planetId)(limit = Some(10)))
       result1.size shouldBe 2
       result1.flatMap(_.groupId) should contain("ABC")
       result1.map(_.userId) should contain("foo")

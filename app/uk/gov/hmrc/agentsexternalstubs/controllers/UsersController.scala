@@ -52,17 +52,17 @@ class UsersController @Inject() (
           "You cannot query users by both groupId and agentCode at the same time."
         )
         (if (groupId.isDefined)
-           usersService.findByGroupId(groupId.get, session.planetId)(limit.getOrElse(100))
+           usersService.findByGroupId(groupId.get, session.planetId)(limit.orElse(Some(100)))
          else if (agentCode.isDefined)
            groupsService.findByAgentCode(agentCode.get, session.planetId).flatMap {
-             case Some(group) => usersService.findByGroupId(group.groupId, session.planetId)(limit.getOrElse(100))
+             case Some(group) => usersService.findByGroupId(group.groupId, session.planetId)(limit.orElse(Some(100)))
              case None        => Future.successful(Seq.empty[User])
            }
          else if (affinityGroup.isDefined) {
            for { // TODO note that this will probably be slow. Consider whether we really want to search users by affinity group (a property that no longer pertains to User)
              groups <- groupsService.findByPlanetId(session.planetId, affinityGroup)(limit.getOrElse(100))
              users <- Future.traverse(groups)(group =>
-                        usersService.findByGroupId(group.groupId, session.planetId)(limit.getOrElse(100))
+                        usersService.findByGroupId(group.groupId, session.planetId)(limit.orElse(Some(100)))
                       )
            } yield users.flatten.take(limit.getOrElse(100))
          } else

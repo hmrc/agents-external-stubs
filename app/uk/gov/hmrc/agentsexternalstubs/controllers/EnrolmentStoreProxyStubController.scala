@@ -53,8 +53,17 @@ class EnrolmentStoreProxyStubController @Inject() (
         delegated <- if (`type` == "all" || `type` == "delegated") {
                        enrolmentKey.service match {
                          case "IR-PAYE" | "IR-SA" =>
-                           usersService.findUserIdsByDelegatedEnrolmentKey(enrolmentKey, session.planetId)(1000)
-                         case _ => usersService.findUserIdsByDelegatedEnrolmentKey(enrolmentKey, session.planetId)(1000)
+                           usersService.findUserIdsByAssignedDelegatedEnrolmentKey(
+                             enrolmentKey,
+                             session.planetId,
+                             limit = Some(1000)
+                           )
+                         case _ =>
+                           usersService.findUserIdsByAssignedDelegatedEnrolmentKey(
+                             enrolmentKey,
+                             session.planetId,
+                             limit = Some(1000)
+                           )
                        }
                      } else Future.successful(Seq.empty)
       } yield GetUserIdsResponse.from(principal, delegated)).map {
@@ -184,13 +193,36 @@ class EnrolmentStoreProxyStubController @Inject() (
   def deallocateGroupEnrolment(
     groupId: String,
     enrolmentKey: EnrolmentKey,
-    `legacy-agentCode`: Option[String],
-    keepAgentAllocations: Option[String]
+    `legacy-agentCode`: Option[String]
   ): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
-      groupsService
-        .deallocateEnrolmentFromGroup(groupId, enrolmentKey, `legacy-agentCode`, keepAgentAllocations, session.planetId)
-        .map(_ => NoContent)
+      for {
+        // First unassign the enrolment from any users belonging to this group
+        groupUsers <- usersService.findByGroupId(groupId, session.planetId)(limit = None)
+        usersWithAssignment = groupUsers.filter(user =>
+                                user.assignedPrincipalEnrolments.contains(enrolmentKey)
+                                  || user.assignedDelegatedEnrolments.contains(enrolmentKey)
+                              )
+        _ <- Future.traverse(usersWithAssignment)(user =>
+               usersService.updateUser(
+                 user.userId,
+                 session.planetId,
+                 u =>
+                   u.copy(
+                     assignedPrincipalEnrolments = u.assignedPrincipalEnrolments.filterNot(_.tag == enrolmentKey.tag),
+                     assignedDelegatedEnrolments = u.assignedDelegatedEnrolments.filterNot(_.tag == enrolmentKey.tag)
+                   )
+               )
+             )
+
+        // Now remove the allocated enrolment from the group
+        _ <- groupsService.deallocateEnrolmentFromGroup(
+               groupId,
+               enrolmentKey,
+               `legacy-agentCode`,
+               session.planetId
+             )
+      } yield NoContent
     }(SessionRecordNotFound)
   }
 
@@ -301,7 +333,7 @@ class EnrolmentStoreProxyStubController @Inject() (
     withCurrentSession { session =>
       for {
         maybeGroup <- groupsService.findByGroupId(groupId, session.planetId)
-        users      <- usersService.findByGroupId(groupId, session.planetId)(100)
+        users      <- usersService.findByGroupId(groupId, session.planetId)(limit = Some(100))
       } yield {
         val setOfDelegatedEnrolments: Set[Enrolment] =
           maybeGroup.fold(Set.empty[Enrolment])(_.delegatedEnrolments.toSet)

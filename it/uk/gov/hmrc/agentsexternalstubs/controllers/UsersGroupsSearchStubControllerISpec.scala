@@ -1,6 +1,5 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import org.scalatest.BeforeAndAfterEach
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, User, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
