@@ -59,7 +59,7 @@ class UsersService @Inject() (
   def findByPlanetId(planetId: String)(limit: Int): Future[Seq[User]] =
     usersRepository.findByPlanetId(planetId)(limit)
 
-  def findByGroupId(groupId: String, planetId: String)(limit: Int): Future[Seq[User]] =
+  def findByGroupId(groupId: String, planetId: String)(limit: Option[Int]): Future[Seq[User]] =
     usersRepository.findByGroupId(groupId, planetId)(limit)
 
   def findAdminByGroupId(groupId: String, planetId: String): Future[Option[User]] =
@@ -75,13 +75,19 @@ class UsersService @Inject() (
   def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int): Future[Seq[User]] =
     usersRepository.findByDelegatedEnrolmentKey(enrolmentKey, planetId)(limit)
 
-  def findUserIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
-    limit: Int
+  def findUserIdsByAssignedDelegatedEnrolmentKey(
+    enrolmentKey: EnrolmentKey,
+    planetId: String,
+    limit: Option[Int] = None
   ): Future[Seq[String]] =
-    usersRepository.findUserIdsByDelegatedEnrolmentKey(enrolmentKey, planetId)(limit)
+    usersRepository.findUserIdsByAssignedDelegatedEnrolmentKey(enrolmentKey, planetId)(limit)
 
-  def findUserIdsByAssignedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int): Future[Seq[String]] =
-    usersRepository.findUserIdsByAssignedEnrolmentKey(enrolmentKey, planetId)(limit)
+  def findUserIdsByAssignedPrincipalEnrolmentKey(
+    enrolmentKey: EnrolmentKey,
+    planetId: String,
+    limit: Option[Int] = None
+  ): Future[Seq[String]] =
+    usersRepository.findUserIdsByAssignedPrincipalEnrolmentKey(enrolmentKey, planetId)(limit)
 
   def findGroupIdsByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
     limit: Int
@@ -298,7 +304,7 @@ class UsersService @Inject() (
     user.groupId match {
       case None => Future.successful(Right(user))
       case Some(groupId) =>
-        findByGroupId(groupId, planetId)(101).map { users =>
+        findByGroupId(groupId, planetId)(limit = Some(101)).map { users => // TODO magic number: 101 (limit) Why?
           val maybeAdmin =
             if (
               !user.credentialRole.contains(User.CR.Assistant) && (!users.exists(_.isAdmin) || users
@@ -320,7 +326,7 @@ class UsersService @Inject() (
     user.groupId match {
       case None => Future.successful(())
       case Some(groupId) =>
-        findByGroupId(groupId, planetId)(101) flatMap { users =>
+        findByGroupId(groupId, planetId)(limit = Some(101)) flatMap { users => // TODO magic number: 101 (limit) Why?
           GroupUsersValidator
             .validate(users.filterNot(_.userId == user.userId))
             .fold(

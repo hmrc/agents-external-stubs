@@ -67,7 +67,7 @@ class UserToRecordsSyncService @Inject() (
       .map(_.reduce((_, _) => ()))
 
   def syncGroup(group: Group): Future[Unit] = for {
-    users <- usersRepository.findByGroupId(group.groupId, group.planetId)(limit = Int.MaxValue)
+    users <- usersRepository.findByGroupId(group.groupId, group.planetId)(limit = None)
     _ <- Future.traverse(users) { user =>
            def saveRecordId(recordId: String): Future[Unit] =
              usersRepository.syncRecordId(user.userId, recordId, group.planetId).map(_ => ())

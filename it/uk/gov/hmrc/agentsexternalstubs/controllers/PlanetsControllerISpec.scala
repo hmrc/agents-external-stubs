@@ -3,7 +3,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Record, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.repository.{RecordsRepository, UsersRepository}
 import uk.gov.hmrc.agentsexternalstubs.support._
 

@@ -184,12 +184,10 @@ class GroupsService @Inject() (
         }
     }
 
-  /* Group enrolment is de-assigned from the unique Admin user of the group */
   def deallocateEnrolmentFromGroup(
     groupId: String,
     enrolmentKey: EnrolmentKey,
     agentCodeOpt: Option[String],
-    keepAgentAllocations: Option[String],
     planetId: String
   )(implicit ec: ExecutionContext): Future[Group] =
     agentCodeOpt match {

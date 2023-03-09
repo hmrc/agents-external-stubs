@@ -80,7 +80,7 @@ class UsersGroupsSearchStubController @Inject() (
         Future.successful(notFound("GROUP_NOT_FOUND"))
       } else {
         usersService
-          .findByGroupId(groupId, session.planetId)(100)
+          .findByGroupId(groupId, session.planetId)(Some(100))
           .map {
             case users if users.isEmpty =>
               notFound("GROUP_NOT_FOUND")
@@ -91,7 +91,7 @@ class UsersGroupsSearchStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def getGroupByAgentCode(agentCode: String, agentId: String): Action[AnyContent] = Action.async { implicit request =>
+  def getGroupByAgentCode(agentCode: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       groupsService
         .findByAgentCode(agentCode, session.planetId)
