@@ -23,7 +23,7 @@ lazy val compileDeps = Seq(
   "com.kenshoo"          %% "metrics-play"              % "2.7.3_0.8.2",
   "com.github.blemale"   %% "scaffeine"                 % "4.0.1",
   "org.typelevel"        %% "cats-core"                 % "2.6.1",
-  "uk.gov.hmrc"          %% "stub-data-generator"       % "0.1.0",
+  "uk.gov.hmrc"          %% "stub-data-generator"       % "1.0.0",
   "io.github.wolfendale" %% "scalacheck-gen-regexp"     % "0.1.3",
   "com.typesafe.play"    %% "play-json"                 % "2.9.2"
 )
