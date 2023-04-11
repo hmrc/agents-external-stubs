@@ -26,6 +26,8 @@ import scala.util.Random
 
 case class AgencyCreationPayload(
   planetId: String,
+  agentCode: String,
+  agentId: String,
   agentUser: User,
   clients: List[User],
   teamMembers: List[User],
@@ -52,9 +54,13 @@ class AgencyDataAssembler extends Logging {
     val agentUser = buildMainAgentUser(indexAgency)
     val clients = buildClientsForAgent(indexAgency, clientsPerAgent)
     val teamMembers = buildTeamMembersForAgent(indexAgency, teamMembersPerAgent, agentUser)
+    val agentCode = UserGenerator.agentCode(indexAgency.toString)
+    val agentId = UserGenerator.agentId(indexAgency.toString)
 
     AgencyCreationPayload(
       planetId,
+      agentCode,
+      agentId,
       agentUser.copy(assignedDelegatedEnrolments = clients.flatMap(_.assignedPrincipalEnrolments)),
       clients,
       teamMembers,

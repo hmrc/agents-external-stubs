@@ -19,11 +19,14 @@ package uk.gov.hmrc.agentsexternalstubs.controllers.datagen
 import play.api.Logging
 import play.api.libs.json.{JsArray, JsString}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.BusinessData
+import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.BusinessData.BusinessAddressDetails
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.AgencyDetails
+import uk.gov.hmrc.agentsexternalstubs.models.User.Address
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, PPOB}
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.repository.{GroupsRepositoryMongo, JsonAbuse, KnownFactsRepository, RecordsRepositoryMongo, UsersRepositoryMongo}
+import uk.gov.hmrc.agentsexternalstubs.repository._
 
+import java.time.LocalDate
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -48,6 +51,7 @@ class AgencyCreator @Inject() (
       _ <- persistAgentRecord(agencyCreationPayload)
       _ <- persistClientRecords(agencyCreationPayload)
       _ <- persistGroups(agencyCreationPayload)
+      _ <- persistRelationshipRecords(agencyCreationPayload)
     } yield ()
   }
 
@@ -96,6 +100,94 @@ class AgencyCreator @Inject() (
 
   }
 
+  private def persistRelationshipRecords(agencyCreationPayload: AgencyCreationPayload): Future[Unit] = {
+    logger.info(s"Creating relationship records for '${agencyCreationPayload.planetId}'")
+
+    val arn = agencyCreationPayload.agentUser.assignedPrincipalEnrolments.headOption.map(_.tag.split('~').last).get
+
+    val records = agencyCreationPayload.clients
+      .map(client => assembleRelationshipRecord(client, arn))
+      .collect { case Some(record) => record }
+
+    executeSerially(records) { record =>
+      recordsRepository
+        .rawStore(recordAsJson(record, agencyCreationPayload.planetId))
+        .map(id => logger.debug(s"Created record of id $id"))
+        .recover { case ex =>
+          logger.error(
+            s"Could not create record for ${record.uniqueKey} of ${agencyCreationPayload.planetId}: ${ex.getMessage}"
+          )
+        }
+    }
+  }
+
+  def assembleRelationshipRecord(client: User, arn: String): Option[RelationshipRecord] =
+    for {
+      enrolmentKey <- client.assignedPrincipalEnrolments.headOption
+      identifier   <- enrolmentKey.identifiers.headOption
+    } yield enrolmentKey.service match {
+      case "HMRC-MTD-IT" =>
+        RelationshipRecord(
+          regime = "ITSA",
+          arn = arn,
+          idType = "none",
+          refNumber = identifier.value,
+          relationshipType = Some("ZA01"),
+          authProfile = Some("ALL00001"),
+          startDate = Some(LocalDate.now)
+        )
+      case "HMRC-MTD-VAT" =>
+        RelationshipRecord(
+          regime = "VATC",
+          arn = arn,
+          idType = "VRN",
+          refNumber = identifier.value,
+          relationshipType = Some("ZA01"),
+          authProfile = Some("ALL00001"),
+          startDate = Some(LocalDate.now)
+        )
+      case "HMRC-CGT-PD" =>
+        RelationshipRecord(
+          regime = "CGT",
+          arn = arn,
+          idType = "ZCGT",
+          refNumber = identifier.value,
+          relationshipType = Some("ZA01"),
+          authProfile = Some("ALL00001"),
+          startDate = Some(LocalDate.now)
+        )
+      case "HMRC-PPT-ORG" =>
+        RelationshipRecord(
+          regime = "PPT",
+          arn = arn,
+          idType = "ZPPT",
+          refNumber = identifier.value,
+          relationshipType = Some("ZA01"),
+          authProfile = Some("ALL00001"),
+          startDate = Some(LocalDate.now)
+        )
+      case "HMRC-TERS-ORG" =>
+        RelationshipRecord(
+          regime = "TRS",
+          arn = arn,
+          idType = "UTR",
+          refNumber = identifier.value,
+          relationshipType = Some("ZA01"),
+          authProfile = Some("ALL00001"),
+          startDate = Some(LocalDate.now)
+        )
+      case "HMRC-TERSNT-ORG" =>
+        RelationshipRecord(
+          regime = "TRS",
+          arn = arn,
+          idType = "URN",
+          refNumber = identifier.value,
+          relationshipType = Some("ZA01"),
+          authProfile = Some("ALL00001"),
+          startDate = Some(LocalDate.now)
+        )
+    }
+
   private def persistClientRecords(agencyCreationPayload: AgencyCreationPayload): Future[Unit] = {
     logger.info(s"Creating client records for '${agencyCreationPayload.planetId}'")
 
@@ -138,6 +230,8 @@ class AgencyCreator @Inject() (
           planetId = agencyCreationPayload.planetId,
           groupId = groupId,
           affinityGroup = AG.Agent,
+          agentId = Some(agencyCreationPayload.agentId),
+          agentCode = Some(agencyCreationPayload.agentCode),
           principalEnrolments = agencyCreationPayload.agentUser.assignedPrincipalEnrolments.map(Enrolment.from),
           delegatedEnrolments = agencyCreationPayload.clients.zipWithIndex.flatMap { case (client, index) =>
             client.assignedPrincipalEnrolments
@@ -206,6 +300,9 @@ class AgencyCreator @Inject() (
                 Seq(
                   BusinessData
                     .generate(identifier.value)
+                    .withBusinessAddressDetails(
+                      BusinessAddressDetails.gen.sample
+                    )
                     .withTradingName(
                       Generator.tradingNameGen.suchThat(_.nonEmpty).suchThat(_.length <= 105).sample orElse (Option(
                         "Trading Name"
@@ -226,7 +323,8 @@ class AgencyCreator @Inject() (
                     Generator.tradingNameGen.suchThat(_.nonEmpty).suchThat(_.length <= 105).sample orElse (Option(
                       "Trading Name"
                     )),
-                  mandationStatus = "1"
+                  mandationStatus = "1",
+                  effectiveRegistrationDate = Generator.date(1970, 2022).sample.map(_.toString)
                 ),
                 PPOB.seed("PPOB")
               )
@@ -242,7 +340,7 @@ class AgencyCreator @Inject() (
               if (client.dateOfBirth.nonEmpty) Some(AG.Individual) else Some(AG.Organisation),
               Generator.forename().suchThat(_.nonEmpty).sample,
               Generator.surname.suchThat(_.nonEmpty).sample,
-              None,
+              Generator.date(2020, 2022).sample.map(_.toString),
               identifier.value
             )
         )
