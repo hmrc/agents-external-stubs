@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.JsValue
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models.{ApiPlatform, User, UserIdGenerator, Users}
 import uk.gov.hmrc.agentsexternalstubs.repository.DuplicateUserException
@@ -128,9 +128,13 @@ class UsersController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def createUser(affinityGroup: Option[String]): Action[JsValue] =
+  /** In order to create a user, the stubs platform needs to know the planet id.
+    * This is either assumed from the session of the logged-in user, or supplied explicitly.
+    * The value supplied explicitly, if any, takes precedence.
+    */
+  def createUser(affinityGroup: Option[String], planetId: Option[String] = None): Action[JsValue] =
     Action.async(parse.tolerantJson) { implicit request =>
-      withCurrentSession { session =>
+      def doCreateUser(planetId: String): Future[Result] = {
         implicit val userReads =
           User.tolerantReads // tolerant Reads needed to allow enrolments without identifiers (to be populated by the sanitizer)
         withPayload[User] { newUser =>
@@ -139,10 +143,10 @@ class UsersController @Inject() (
               newUser.copy(
                 userId =
                   if (newUser.userId == null)
-                    UserIdGenerator.nextUserIdFor(session.planetId, request.getQueryString(userIdFromPool).isDefined)
+                    UserIdGenerator.nextUserIdFor(planetId, request.getQueryString(userIdFromPool).isDefined)
                   else newUser.userId
               ),
-              session.planetId,
+              planetId,
               affinityGroup
             )
             .map(theUser =>
@@ -153,7 +157,15 @@ class UsersController @Inject() (
               Conflict(msg)
             }
         }
-      }(SessionRecordNotFound)
+      }
+
+      withCurrentSession { session =>
+        doCreateUser(planetId.getOrElse(session.planetId))
+      }(ifSessionNotFound = planetId match {
+        case Some(planetId) => doCreateUser(planetId)
+        case None =>
+          Future.successful(BadRequest("Cannot create user without either an active session or a specified planetId"))
+      })
     }
 
   def deleteUser(userId: String): Action[AnyContent] = Action.async { implicit request =>
