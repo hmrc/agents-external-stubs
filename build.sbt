@@ -1,5 +1,4 @@
 import sbt._
-import uk.gov.hmrc.SbtAutoBuildPlugin
 
 ThisBuild / libraryDependencySchemes += "org.typelevel" %% "cats-core" % "always"
 
@@ -14,28 +13,6 @@ lazy val scoverageSettings = {
     Test / parallelExecution := false
   )
 }
-
-lazy val compileDeps = Seq(
-  ws,
-  "uk.gov.hmrc"          %% "bootstrap-backend-play-28" % "7.14.0",
-  "uk.gov.hmrc.mongo"    %% "hmrc-mongo-play-28"        % "1.0.0",
-  "uk.gov.hmrc"          %% "agent-mtd-identifiers"     % "0.56.0-play-28",
-  "com.kenshoo"          %% "metrics-play"              % "2.7.3_0.8.2",
-  "com.github.blemale"   %% "scaffeine"                 % "4.0.1",
-  "org.typelevel"        %% "cats-core"                 % "2.6.1",
-  "uk.gov.hmrc"          %% "stub-data-generator"       % "1.0.0",
-  "io.github.wolfendale" %% "scalacheck-gen-regexp"     % "0.1.3",
-  "com.typesafe.play"    %% "play-json"                 % "2.9.2"
-)
-
-def testDeps(scope: String) = Seq(
-  "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0"    % scope,
-  "org.scalatestplus"      %% "mockito-3-12"       % "3.2.10.0" % scope,
-  "uk.gov.hmrc.mongo" %% "hmrc-mongo-test-play-28" % "1.0.0"   % scope,
-  "com.github.tomakehurst"  % "wiremock-jre8"      % "2.26.1"   % scope,
-  "com.github.pathikrit"   %% "better-files"       % "3.9.1"    % scope,
-  "com.vladsch.flexmark"    % "flexmark-all"       % "0.35.10"  % scope
-)
 
 val jettyVersion = "9.2.24.v20180105"
 
@@ -75,7 +52,7 @@ lazy val root = (project in file("."))
     resolvers ++= Seq(
       Resolver.typesafeRepo("releases"),
     ),
-    libraryDependencies ++= compileDeps ++ testDeps("test") ++ testDeps("it"),
+    libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test,
     libraryDependencies ++= Seq(
       compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.7" cross CrossVersion.full),
       "com.github.ghik" % "silencer-lib" % "1.7.7" % Provided cross CrossVersion.full
@@ -97,6 +74,7 @@ lazy val root = (project in file("."))
     IntegrationTest / parallelExecution := false,
     IntegrationTest / scalafmtOnCompile := true
 )
-  .enablePlugins(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin)
+  .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
+  .disablePlugins(JUnitXmlReportPlugin)  //To prevent https://github.com/scalatest/scalatest/issues/1427
 
 inConfig(IntegrationTest)(org.scalafmt.sbt.ScalafmtPlugin.scalafmtConfigSettings)
