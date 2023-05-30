@@ -25,7 +25,6 @@ import play.api.{Logger, Logging}
 import uk.gov.hmrc.agentsexternalstubs.models.{Enrolment, EnrolmentKey, Group}
 import uk.gov.hmrc.agentsexternalstubs.repository.GroupsRepositoryMongo._
 import uk.gov.hmrc.agentsexternalstubs.syntax.|>
-import uk.gov.hmrc.http.BadRequestException
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
@@ -72,8 +71,9 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
     extends PlayMongoRepository[JsonAbuse[Group]](
       mongoComponent = mongo,
       collectionName = "groups",
-      domainFormat =
-        JsonAbuse.format[Group](false)(Group.compressedFormat /* use space-saving Enrolment Json representation */ ),
+      domainFormat = JsonAbuse.format[Group](extractExtraFieldsOnRead = false)(
+        Group.compressedFormat /* use space-saving Enrolment Json representation */
+      ),
       indexes = Seq(
         IndexModel(Indexes.ascending(KEYS), IndexOptions().name("Keys")),
         IndexModel(Indexes.ascending(UNIQUE_KEYS), IndexOptions().name("UniqueKeys").unique(true).sparse(true)),
