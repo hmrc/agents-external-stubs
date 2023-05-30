@@ -6,7 +6,7 @@ import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests}
 
 class SsoDomainControllerISpec extends ServerBaseISpec with TestRequests {
 
-  lazy val wsClient = app.injector.instanceOf[WSClient]
+  lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
 
   "SsoValidateDomainController" when {
 
@@ -19,7 +19,7 @@ class SsoDomainControllerISpec extends ServerBaseISpec with TestRequests {
     }
 
     "GET /sso/domains" should {
-      "returns whitelisted domains" in {
+      "returns allowlisted domains" in {
         val response = SsoGetDomains.getDomains
         response.status shouldBe 200
         Json
