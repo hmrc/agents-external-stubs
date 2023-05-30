@@ -14,25 +14,6 @@ lazy val scoverageSettings = {
   )
 }
 
-val jettyVersion = "9.2.24.v20180105"
-
-val jettyOverrides = Set(
-  "org.eclipse.jetty"           % "jetty-server"       % jettyVersion % IntegrationTest,
-  "org.eclipse.jetty"           % "jetty-servlet"      % jettyVersion % IntegrationTest,
-  "org.eclipse.jetty"           % "jetty-security"     % jettyVersion % IntegrationTest,
-  "org.eclipse.jetty"           % "jetty-servlets"     % jettyVersion % IntegrationTest,
-  "org.eclipse.jetty"           % "jetty-continuation" % jettyVersion % IntegrationTest,
-  "org.eclipse.jetty"           % "jetty-webapp"       % jettyVersion % IntegrationTest,
-  "org.eclipse.jetty"           % "jetty-xml"          % jettyVersion % IntegrationTest,
-  "org.eclipse.jetty"           % "jetty-client"       % jettyVersion % IntegrationTest,
-  "org.eclipse.jetty"           % "jetty-http"         % jettyVersion % IntegrationTest,
-  "org.eclipse.jetty"           % "jetty-io"           % jettyVersion % IntegrationTest,
-  "org.eclipse.jetty"           % "jetty-util"         % jettyVersion % IntegrationTest,
-  "org.eclipse.jetty.websocket" % "websocket-api"      % jettyVersion % IntegrationTest,
-  "org.eclipse.jetty.websocket" % "websocket-common"   % jettyVersion % IntegrationTest,
-  "org.eclipse.jetty.websocket" % "websocket-client"   % jettyVersion % IntegrationTest
-)
-
 lazy val root = (project in file("."))
   .settings(
     name := "agents-external-stubs",
@@ -46,17 +27,16 @@ lazy val root = (project in file("."))
       "-deprecation",
       "-feature",
       "-unchecked",
-      "-language:implicitConversions",
-      "-P:silencer:pathFilters=views;routes"),
+      "-Wconf:src=target/.*:s", // silence warnings from compiled files
+      "-Wconf:src=routes/.*:s", // silence warnings from routes files
+      "-Wconf:src=*html:w", // silence html warnings as they are wrong
+      "-language:implicitConversions"
+    ),
     PlayKeys.playDefaultPort := 9009,
     resolvers ++= Seq(
       Resolver.typesafeRepo("releases"),
     ),
     libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test,
-    libraryDependencies ++= Seq(
-      compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.7" cross CrossVersion.full),
-      "com.github.ghik" % "silencer-lib" % "1.7.7" % Provided cross CrossVersion.full
-    ),
     scoverageSettings,
     Compile / unmanagedResourceDirectories  += baseDirectory.value / "resources",
     routesImport ++= Seq(
