@@ -3,8 +3,8 @@ import sbt._
 
 object AppDependencies {
 
-  private val bootstrapVer = "7.14.0"
-  private val mongoVer = "1.0.0"
+  private val bootstrapVer = "7.15.0"
+  private val mongoVer = "1.2.0"
   
   lazy val compile = Seq(
     ws,
@@ -18,6 +18,7 @@ object AppDependencies {
     "io.github.wolfendale" %% "scalacheck-gen-regexp"     % "0.1.3",
     "com.typesafe.play"    %% "play-json"                 % "2.9.2"
   )
+
   lazy val test = Seq(
     "org.scalatestplus.play" %% "scalatestplus-play"        % "5.1.0"      % "test, it",
     "org.scalatestplus"      %% "mockito-3-12"              % "3.2.10.0"   % "test, it",

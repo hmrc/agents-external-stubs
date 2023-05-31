@@ -840,6 +840,6 @@ trait CookieConverter {
       cookie.path.getOrElse("/"),
       cookie.domain,
       cookie.secure,
-      false
+      httpOnly = false
     )
 }

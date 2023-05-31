@@ -21,7 +21,6 @@ import play.api.libs.json.{JsArray, JsString}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.BusinessData
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.BusinessData.BusinessAddressDetails
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.AgencyDetails
-import uk.gov.hmrc.agentsexternalstubs.models.User.Address
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, PPOB}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository._
@@ -304,9 +303,9 @@ class AgencyCreator @Inject() (
                       BusinessAddressDetails.gen.sample
                     )
                     .withTradingName(
-                      Generator.tradingNameGen.suchThat(_.nonEmpty).suchThat(_.length <= 105).sample orElse (Option(
+                      Generator.tradingNameGen.suchThat(_.nonEmpty).suchThat(_.length <= 105).sample orElse Option(
                         "Trading Name"
-                      ))
+                      )
                     )
                 )
               )
@@ -320,9 +319,9 @@ class AgencyCreator @Inject() (
               ApprovedInformation(
                 CustomerDetails(
                   organisationName =
-                    Generator.tradingNameGen.suchThat(_.nonEmpty).suchThat(_.length <= 105).sample orElse (Option(
+                    Generator.tradingNameGen.suchThat(_.nonEmpty).suchThat(_.length <= 105).sample orElse Option(
                       "Trading Name"
-                    )),
+                    ),
                   mandationStatus = "1",
                   effectiveRegistrationDate = Generator.date(1970, 2022).sample.map(_.toString)
                 ),
