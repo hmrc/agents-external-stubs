@@ -36,8 +36,8 @@ class CountryByCountryController @Inject() (cc: ControllerComponents)(implicit e
     */
   def displaySubscriptionForCbC: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withPayload[DisplaySubscriptionForCbCRequestPayload] { payload =>
-      if (CbcId.isValid(payload.requestDetail.IDNumber)) {
-        response(payload.requestDetail.IDNumber)
+      if (CbcId.isValid(payload.displaySubscriptionForCbCRequest.requestDetail.IDNumber)) {
+        response(payload.displaySubscriptionForCbCRequest.requestDetail.IDNumber)
       } else {
         Future.successful(BadRequest("invalid cbcId"))
       }
@@ -45,7 +45,7 @@ class CountryByCountryController @Inject() (cc: ControllerComponents)(implicit e
   }
 
   private def response(cbcId: String): Future[Result] =
-    findResource(s"/resources/country-by-country/response-template.json")
+    findResource(s"/resources/country-by-country/full-response-template.json")
       .map(
         _.map(
           _.replaceAll("%%%COUNTRY_BY_COUNTRY_ID%%%", cbcId)

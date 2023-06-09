@@ -51,7 +51,7 @@ case class CbCRequestCommon(
   receiptDate: LocalDateTime,
   acknowledgementReference: String = "8493893huer3ruihuow",
   originatingSystem: String = "MDTP",
-  requestParameters: Option[Map[String, String]]
+  requestParameters: Option[Map[String, String]] = None // TODO fix error.expected.jsobject
 )
 
 object CbCRequestCommon {
@@ -60,22 +60,24 @@ object CbCRequestCommon {
 
 case class CbCRequestDetail(
   IDType: String = "CbC",
-  IDNumber: String = "YUDD789429"
+  IDNumber: String = "XACBC0123456789"
 )
 
 object CbCRequestDetail {
   implicit val format: OFormat[CbCRequestDetail] = Json.format[CbCRequestDetail]
 }
 
-/** Request payload originating from MTDP to display a Country by Country subscription
-  * */
-case class DisplaySubscriptionForCbCRequestPayload(
-  requestCommon: CbCRequestCommon,
-  requestDetail: CbCRequestDetail
-)
+case class DisplaySubscriptionForCbCRequest(requestCommon: CbCRequestCommon, requestDetail: CbCRequestDetail)
+
+object DisplaySubscriptionForCbCRequest {
+  implicit val format: OFormat[DisplaySubscriptionForCbCRequest] = Json.format[DisplaySubscriptionForCbCRequest]
+}
+
+/** Request payload originating from MTDP to display a Country by Country subscription */
+case class DisplaySubscriptionForCbCRequestPayload(displaySubscriptionForCbCRequest: DisplaySubscriptionForCbCRequest)
 
 object DisplaySubscriptionForCbCRequestPayload {
-  implicit val format: Format[DisplaySubscriptionForCbCRequestPayload] =
+  implicit val format: OFormat[DisplaySubscriptionForCbCRequestPayload] =
     Json.format[DisplaySubscriptionForCbCRequestPayload]
 }
 
@@ -160,12 +162,14 @@ object CbCResponseDetail {
   implicit val format: OFormat[CbCResponseDetail] = Json.format[CbCResponseDetail]
 }
 
-/** Response from EIS/ETMP for Country by Country subscription
-  */
-case class DisplaySubscriptionForCbC(
-  responseCommon: CbCResponseCommon,
-  responseDetails: CbCResponseDetail
-)
+case class DisplaySubscriptionForCbCResponse(responseCommon: CbCResponseCommon, responseDetails: CbCResponseDetail)
+
+object DisplaySubscriptionForCbCResponse {
+  implicit val format: OFormat[DisplaySubscriptionForCbCResponse] = Json.format[DisplaySubscriptionForCbCResponse]
+}
+
+/** Response from EIS/ETMP for Country by Country subscription */
+case class DisplaySubscriptionForCbC(displaySubscriptionForCbCResponse: DisplaySubscriptionForCbCResponse)
 
 object DisplaySubscriptionForCbC {
   implicit val format: OFormat[DisplaySubscriptionForCbC] = Json.format[DisplaySubscriptionForCbC]
@@ -175,7 +179,7 @@ object DisplaySubscriptionForCbC {
 //
 // Seed
 //  cbcId: CbcId = "YUDD789429",
-//  requestParameters: Option[Map[String, String]]
+//  ?? requestParameters: Option[Map[String, String]]
 //
 // Outputs Uk or nonUK, with or without trading name - but contacts seem mandatory?
 
