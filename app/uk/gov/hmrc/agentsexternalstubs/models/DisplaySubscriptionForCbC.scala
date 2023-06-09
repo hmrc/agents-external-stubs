@@ -16,11 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import org.scalacheck.Gen
-import play.api.libs.json.{Format, Json, OFormat}
-import uk.gov.hmrc.agentmtdidentifiers.model.CbcId
-import uk.gov.hmrc.agentsexternalstubs.models
-import uk.gov.hmrc.agentsexternalstubs.models.Validator.Validator
+import play.api.libs.json.{Json, OFormat}
 
 import java.time.LocalDateTime
 
@@ -83,36 +79,6 @@ object DisplaySubscriptionForCbCRequestPayload {
 
 // ************************************ //
 
-//   JSON sample response
-//  {
-//    "displaySubscriptionForCbCResponse": {
-//      "responseCommon": {
-//        "status": "OK",
-//        "processingDate": "2020-08-09T11:23:45Z"
-//      },
-//      "responseDetail": {
-//        "subscriptionID": "yu789428932",
-//        "tradingName": "Tools for Traders",
-//        "isGBUser": true,
-//        "primaryContact": [
-//          {
-//            "email": "Tim@toolsfortraders.com",
-//            "phone": "078803423883",
-//            "mobile": "078803423883",
-//            "individual": {
-//            "lastName": "Taylor",
-//            "firstName": "Tim"}
-//          }
-//        ],
-//        "secondaryContact": [
-//          {
-//            "email": "contact@toolsfortraders.com",
-//            "organisation": {"organisationName": "Tools for Traders Limited"}
-//          }
-//        ]
-//      }
-//    }
-//  }
 case class IndividualContact(
   firstName: String,
   lastName: String,
@@ -174,36 +140,3 @@ case class DisplaySubscriptionForCbC(displaySubscriptionForCbCResponse: DisplayS
 object DisplaySubscriptionForCbC {
   implicit val format: OFormat[DisplaySubscriptionForCbC] = Json.format[DisplaySubscriptionForCbC]
 }
-
-// TODO: Generate a DisplaySubscriptionForCbCRecord
-//
-// Seed
-//  cbcId: CbcId = "YUDD789429",
-//  ?? requestParameters: Option[Map[String, String]]
-//
-// Outputs Uk or nonUK, with or without trading name - but contacts seem mandatory?
-
-//case class CbcSubscriptionDisplayRecord(
-//                                         id: Option[String] = None,
-//                                         cbcId: String,
-//                                         tradingName: Option[String],
-//                                         isGBUser: Boolean
-//                                       ) extends Record {
-//
-//  override def uniqueKey: Option[String] = Option(cbcId).map(CbcSubscriptionDisplayRecord.uniqueKey)
-//  override def lookupKeys: Seq[String] =
-//    Seq(Option(cbcId).map(CbcSubscriptionDisplayRecord.cbcIdKey)).collect { case Some(x) => x }
-//  override def withId(id: Option[String]): CbcSubscriptionDisplayRecord = copy(id = id)
-//
-//  def withCbcId(cbcId: String): CbcSubscriptionDisplayRecord = copy(cbcId = cbcId)
-//
-//}
-//
-//object CbcSubscriptionDisplayRecord extends RecordUtils[CbcSubscriptionDisplayRecord] {
-//  def uniqueKey(key: String): String = s"""cbcId:${key.toUpperCase}"""
-//  def CbcIdKey(key: String): String = s"""cbcId:${key.toUpperCase}"""
-//
-//  override val gen: Gen[CbcSubscriptionDisplayRecord] = _
-//  override val validate: Validator[CbcSubscriptionDisplayRecord] = _
-//  override val sanitizers: Seq[models.CbcSubscriptionDisplayRecord.Update] = _
-//}

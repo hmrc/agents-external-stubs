@@ -30,8 +30,6 @@ import scala.io.Source
 class CountryByCountryController @Inject() (cc: ControllerComponents)(implicit ec: ExecutionContext)
     extends BackendController(cc) with HttpHelpers {
 
-  def generateCbcRecord(): Unit = {}
-
   /** MTDP -> EIS -> ETMP
     */
   def displaySubscriptionForCbC: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
