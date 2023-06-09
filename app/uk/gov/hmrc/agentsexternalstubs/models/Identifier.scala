@@ -17,6 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 import play.api.libs.json.{Format, Json}
 
+// TODO delete this file? it is identical to the agent-mtd-identifiers version
 case class Identifier(key: String, value: String) {
   override def toString: String = s"$key~${value.replace(" ", "")}"
 }

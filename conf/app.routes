@@ -55,7 +55,7 @@ DELETE        /tax-enrolments/users/:userId/enrolments/:enrolmentKey            
 ## ES19 Call: via tax-enrolments update friendly name
 PUT           /tax-enrolments/groups/:groupId/enrolments/:enrolmentKey/friendly_name                 @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.setEnrolmentFriendlyName(groupId: String, enrolmentKey: EnrolmentKey)
 
-
+## DES/IF stubs
 GET           /registration/relationship/utr/:utr                                                    @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getLegacyRelationshipsByUtr(utr: String)
 GET           /registration/relationship/nino/:nino                                                  @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getLegacyRelationshipsByNino(nino: String)
 GET           /registration/business-details/:idType/:idNumber                                       @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getBusinessDetails(idType: String, idNumber: String)
@@ -114,6 +114,8 @@ POST          /agents-external-stubs/pdv-result/:id/:success                    
 GET           /companies-house-api-proxy/company/:companynumber                                      @uk.gov.hmrc.agentsexternalstubs.controllers.CompaniesHouseController.findCompany(companynumber: String)
 GET           /companies-house-api-proxy/company/:companynumber/officers                             @uk.gov.hmrc.agentsexternalstubs.controllers.CompaniesHouseController.findCompanyOfficers(companynumber: String, surname: Option[String])
 
+# Display Subscription For CbC - /dac/dct50d/v1 via Enterprise Integration System
+POST          /agents-external-stubs/cbc                                                              @uk.gov.hmrc.agentsexternalstubs.controllers.CountryByCountryController.displaySubscriptionForCbC
 
 # Authentication
 POST          /agents-external-stubs/sign-in                                                         @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.signIn
