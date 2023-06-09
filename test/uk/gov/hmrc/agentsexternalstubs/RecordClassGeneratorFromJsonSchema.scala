@@ -23,7 +23,6 @@ import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.agentsexternalstubs.JsonSchema._
 import uk.gov.hmrc.agentsexternalstubs.RecordCodeRenderer.Context.safeName
 
-import scala.annotation.tailrec
 import scala.io.Source
 import scala.util.matching.Regex
 
