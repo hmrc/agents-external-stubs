@@ -43,9 +43,9 @@ object RecordClassGeneratorFromJsonSchema extends App {
   val source = args(0)
   val sink = args(1)
   val className = args(2)
-  require(source != null && !source.isEmpty)
-  require(sink != null && !sink.isEmpty)
-  require(className != null && !className.isEmpty)
+  require(source != null && source.nonEmpty)
+  require(sink != null && sink.nonEmpty)
+  require(className != null && className.nonEmpty)
 
   val options = args.drop(3)
 
@@ -536,7 +536,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
           })
 
         case b: BooleanDefinition => "Generator.booleanGen"
-        case a: ArrayDefinition   => s"Generator.nonEmptyListOfMaxN(1,${generateValueGenerator(a.item, context, false)})"
+        case a: ArrayDefinition   => s"Generator.nonEmptyListOfMaxN(1,${generateValueGenerator(a.item, context, wrapOption = false)})"
         case o: ObjectDefinition  => s"${o.typeName}.gen"
 
         case o: OneOfDefinition =>

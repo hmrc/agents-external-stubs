@@ -1,0 +1,31 @@
+{
+  "displaySubscriptionForCbCResponse": {
+    "responseCommon": {
+      "status": "OK",
+      "processingDate": "2020-08-09T11:23:45Z"
+    },  "responseDetail": {
+      "subscriptionID": "%%%COUNTRY_BY_COUNTRY_ID%%%",
+      "tradingName": "%%%TRADING_NAME%%%",
+      "isGBUser": true,
+      "primaryContact": [
+        {
+          "email": "Tim@toolsfortraders.com",
+          "phone": "078803423883",
+          "mobile": "078803423883",
+          "individual": {
+            "lastName": "Taylor",
+            "firstName": "Tim"
+          }
+        }
+      ],
+      "secondaryContact": [
+        {
+          "email": "contact@toolsfortraders.com",
+          "organisation": {
+            "organisationName": "Tools for Traders Limited"
+          }
+        }
+      ]
+    }
+  }
+}
