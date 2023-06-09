@@ -114,8 +114,8 @@ POST          /agents-external-stubs/pdv-result/:id/:success                    
 GET           /companies-house-api-proxy/company/:companynumber                                      @uk.gov.hmrc.agentsexternalstubs.controllers.CompaniesHouseController.findCompany(companynumber: String)
 GET           /companies-house-api-proxy/company/:companynumber/officers                             @uk.gov.hmrc.agentsexternalstubs.controllers.CompaniesHouseController.findCompanyOfficers(companynumber: String, surname: Option[String])
 
-# Display Subscription For CbC - /dac/dct50d/v1 via Enterprise Integration System
-POST          /agents-external-stubs/cbc                                                              @uk.gov.hmrc.agentsexternalstubs.controllers.CountryByCountryController.displaySubscriptionForCbC
+# Display Subscription For CbC - via Enterprise Integration System
+POST          /dac/dct50d/v1                                                                         @uk.gov.hmrc.agentsexternalstubs.controllers.CountryByCountryController.displaySubscriptionForCbC
 
 # Authentication
 POST          /agents-external-stubs/sign-in                                                         @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.signIn
