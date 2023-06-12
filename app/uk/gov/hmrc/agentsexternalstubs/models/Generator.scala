@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 import java.time.format.DateTimeFormatter
 import org.scalacheck.Gen
-import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, PptRef, Urn, UtrCheck, Vrn}
+import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, CbcId, MtdItId, PptRef, Urn, UtrCheck, Vrn}
 import uk.gov.hmrc.domain.{Modulus11Check, Modulus23Check, Nino}
 import uk.gov.hmrc.smartstub.{Addresses, Companies, Names, Temporal, ToLong}
 import wolfendale.scalacheck.regexp.RegexpGen
@@ -43,6 +43,7 @@ object Generator extends Names with Temporal with Companies with Addresses {
 
   def pattern(pattern: String): Gen[String] =
     knownPatterns.getOrElse(pattern, PatternContext(StringContext(pattern)).pattern())
+
   def patternValue(pat: String, seed: String): String = pattern(pat).seeded(seed).get
 
   def regex(regex: String): Gen[String] =
@@ -122,6 +123,9 @@ object Generator extends Names with Temporal with Companies with Addresses {
   lazy val singleStrGen: Gen[String] = pattern"Z".gen
   lazy val pptReferenceGen: Gen[String] = pattern"9999999".gen.map(s"X${singleStrGen}PPT000" + _)
   def pptReference(seed: String): PptRef = pptReferenceGen.map(PptRef.apply).seeded(seed).get
+
+  lazy val cbcIdGen: Gen[String] = pattern"9999999999".gen.map(s"X${singleStrGen}CBC" + _)
+  def cbcId(seed: String): CbcId = cbcIdGen.map(CbcId.apply).seeded(seed).get
 
   lazy val vrnGen: Gen[String] = pattern"9999999".gen.map(VrnChecksum.apply).retryUntil(Vrn.isValid)
   def vrn(seed: String): Vrn = vrnGen.map(Vrn.apply).seeded(seed).get
@@ -225,6 +229,7 @@ object Generator extends Names with Temporal with Companies with Addresses {
     "urn"             -> urnGen,
     "cgtPdRef"        -> cgtPdRefGen,
     "pptReference"    -> pptReferenceGen,
+    "cbcId"           -> cbcIdGen,
     "mtditid"         -> mtdbsaGen,
     "vrn"             -> vrnGen,
     "eori"            -> eoriGen,
