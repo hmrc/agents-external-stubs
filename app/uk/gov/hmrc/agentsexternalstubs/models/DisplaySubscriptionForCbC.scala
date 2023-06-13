@@ -43,7 +43,7 @@ import java.time.LocalDateTime
 
 case class CbCRequestCommon(
   regime: String = "CbC",
-  conversationID: String = "d3937a26-a4ec-4f11-bd8d-a93fc0265701",
+  conversationID: Option[String] = Some("d3937a26-a4ec-4f11-bd8d-a93fc0265701"),
   receiptDate: LocalDateTime,
   acknowledgementReference: String = "8493893huer3ruihuow",
   originatingSystem: String = "MDTP",
