@@ -41,13 +41,19 @@ import java.time.LocalDateTime
 //    } }
 //  }
 
+case class CbCRequestParams(paramName: String, paramValue: String)
+
+object CbCRequestParams {
+  implicit val format: OFormat[CbCRequestParams] = Json.format[CbCRequestParams]
+}
+
 case class CbCRequestCommon(
   regime: String = "CbC",
   conversationID: String = "d3937a26-a4ec-4f11-bd8d-a93fc0265701",
   receiptDate: LocalDateTime,
   acknowledgementReference: String = "8493893huer3ruihuow",
   originatingSystem: String = "MDTP",
-  requestParameters: Option[Map[String, String]] = None // TODO fix error.expected.jsobject
+  requestParameters: Option[Array[CbCRequestParams]] = None
 )
 
 object CbCRequestCommon {
@@ -128,15 +134,52 @@ object CbCResponseDetail {
   implicit val format: OFormat[CbCResponseDetail] = Json.format[CbCResponseDetail]
 }
 
-case class DisplaySubscriptionForCbCResponse(responseCommon: CbCResponseCommon, responseDetails: CbCResponseDetail)
+case class DisplaySubscriptionForCbCResponse(responseCommon: CbCResponseCommon, responseDetail: CbCResponseDetail)
 
 object DisplaySubscriptionForCbCResponse {
   implicit val format: OFormat[DisplaySubscriptionForCbCResponse] = Json.format[DisplaySubscriptionForCbCResponse]
 }
 
-/** Response from EIS/ETMP for Country by Country subscription */
+/** Happy response from EIS/ETMP for Country by Country subscription */
 case class DisplaySubscriptionForCbC(displaySubscriptionForCbCResponse: DisplaySubscriptionForCbCResponse)
 
 object DisplaySubscriptionForCbC {
   implicit val format: OFormat[DisplaySubscriptionForCbC] = Json.format[DisplaySubscriptionForCbC]
 }
+
+// JSON sample for error
+//  {
+//  "errorDetail": {
+//    "timestamp": "2016-10-10T13:52:16Z",
+//    "correlationId": "d60de98c-f499-47f5-b2d6-e80966e8d19e",
+//    "errorCode": "409",
+//    "errorMessage": "Duplicate submission",
+//    "source": "Back End",
+//    "sourceFaultDetail": {
+//      "detail": [
+//       "Duplicate submission"
+//     ]
+//    }
+//  }}
+
+case class CbCSourceFaultDetail(detail: Array[String])
+
+case class CbCErrorDetail(
+                         timestamp: LocalDateTime,
+                         correlationId: String = "d60de98c-f499-47f5-b2d6-e80966e8d19e",
+                         errorCode: String,
+                         errorMessage: String,
+                         source: String,
+                         sourceFaultDetail: CbCSourceFaultDetail
+                         )
+
+/** Error response from EIS/ETMP for Country by Country subscription */
+case class DisplaySubscriptionForCbCError(errorDetail: CbCErrorDetail)
+
+object DisplaySubscriptionForCbCError {
+  implicit val format: OFormat[DisplaySubscriptionForCbCError] = Json.format[DisplaySubscriptionForCbCError]
+}
+
+//******************************//
+
+
