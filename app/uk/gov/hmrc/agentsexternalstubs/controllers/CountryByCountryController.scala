@@ -47,6 +47,7 @@ class CountryByCountryController @Inject() (cc: ControllerComponents)(implicit e
         _.map(
           _.replaceAll("%%%COUNTRY_BY_COUNTRY_ID%%%", cbcId)
             .replaceAll("%%%TRADING_NAME%%%", Generator.company.sample.get)
+            .replaceAll("%%%EMAIL_ADDRESS%%%", Generator.email(cbcId))
         )
       )
       .map(_.fold[Result](NotFound)(jsonStr => Ok(Json.parse(jsonStr))))

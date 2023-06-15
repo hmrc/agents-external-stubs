@@ -8,7 +8,7 @@
       "isGBUser": false,
       "primaryContact": [
         {
-          "email": "Tim@toolsfortraders.com",
+          "email": "%%%EMAIL_ADDRESS%%%",
           "individual": {
             "lastName": "Taylor",
             "firstName": "Tim"
