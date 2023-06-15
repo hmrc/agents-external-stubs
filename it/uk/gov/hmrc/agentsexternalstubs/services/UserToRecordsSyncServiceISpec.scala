@@ -488,7 +488,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
       result1.map(_.cbcId) shouldBe Some("XACBC4940653845")
 
       val result2 = await(usersService.findByUserId(user.userId, planetId))
-      result2.map(_.recordIds.size) shouldBe 1
+      result2.map(_.recordIds.size).get shouldBe 1
     }
 
     "sync hmrc-cbc-nonuk-org organisation to cbc subscription records" in {
@@ -505,7 +505,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
       result1.map(_.cbcId) shouldBe Some("XACBC4940653849")
 
       val result2 = await(usersService.findByUserId(user.userId, planetId))
-      result2.map(_.recordIds.size) shouldBe 1
+      result2.map(_.recordIds.size).get shouldBe 1
     }
 
   }
