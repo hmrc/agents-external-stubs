@@ -7,7 +7,7 @@ import uk.gov.hmrc.agentsexternalstubs.support._
 
 class KnownFactsControllerISpec extends ServerBaseISpec with TestRequests {
 
-  lazy val wsClient = app.injector.instanceOf[WSClient]
+  lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
 
   "KnownFactsController" when {
 

@@ -699,8 +699,8 @@ class UserToRecordsSyncService @Inject() (
                            EmployerAuths.EmpAuth(
                              empRef = empRef,
                              aoRef = EmployerAuths.EmpAuth.AoRef(empRef.districtNumber, "0", "0", empRef.reference),
-                             true,
-                             true,
+                             `Auth_64-8` = true,
+                             Auth_OAA = true,
                              agentClientRef = Some(agentReference)
                            )
                          )
@@ -708,7 +708,7 @@ class UserToRecordsSyncService @Inject() (
                        val record = existing.copy(empAuthList = existing.empAuthList ++ empAuthsToAdd)
                        if (record.empAuthList.nonEmpty)
                          employerAuthsRecordsService
-                           .store(record, false, user.planetId.get)
+                           .store(record, autoFill = false, user.planetId.get)
                            .flatMap(saveRecordId)
                        else
                          employerAuthsRecordsService
@@ -720,8 +720,8 @@ class UserToRecordsSyncService @Inject() (
                            EmployerAuths.EmpAuth(
                              empRef = empRef,
                              aoRef = EmployerAuths.EmpAuth.AoRef(empRef.districtNumber, "0", "0", empRef.reference),
-                             true,
-                             true,
+                             `Auth_64-8` = true,
+                             Auth_OAA = true,
                              agentClientRef = Some(agentReference)
                            )
                          )
@@ -729,7 +729,7 @@ class UserToRecordsSyncService @Inject() (
                        val record = EmployerAuths(agentCode = agentCode, empAuthList = empAuthList)
                        if (record.empAuthList.nonEmpty)
                          employerAuthsRecordsService
-                           .store(record, false, user.planetId.get)
+                           .store(record, autoFill = false, user.planetId.get)
                            .flatMap(saveRecordId)
                        else Future.successful("")
                    }

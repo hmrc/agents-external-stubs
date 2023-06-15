@@ -409,12 +409,12 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
                 EmployerAuths.EmpAuth(
                   empRef = EmployerAuths.EmpAuth.EmpRef("456", "123456789"),
                   aoRef = EmployerAuths.EmpAuth.AoRef("456", "1", "2", "123456789"),
-                  true,
-                  false
+                  `Auth_64-8` = true,
+                  Auth_OAA = false
                 )
               )
             ),
-            false,
+            autoFill = false,
             planetId
           )
       )
@@ -444,8 +444,8 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
         EmployerAuths.EmpAuth(
           empRef = EmployerAuths.EmpAuth.EmpRef("456", "123456789"),
           aoRef = EmployerAuths.EmpAuth.AoRef("456", "1", "2", "123456789"),
-          true,
-          false
+          `Auth_64-8` = true,
+          Auth_OAA = false
         )
       )
 
@@ -456,7 +456,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
               agentCode = testAgentCode,
               empAuthList = empAuthList
             ),
-            false,
+            autoFill = false,
             planetId
           )
       )

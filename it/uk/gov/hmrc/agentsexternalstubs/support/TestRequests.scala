@@ -776,6 +776,21 @@ trait TestRequests extends ScalaFutures {
         .withHttpHeaders(authContext.headers: _*)
         .get
         .futureValue
+
+    def createCbcSubscriptionRecord[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/records/cbc-subscription")
+        .withHttpHeaders(authContext.headers: _*)
+        .post[T](payload)
+        .futureValue
+
+    def generateCbcSubscriptionRecord(seed: String, minimal: Boolean)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/records/cbc-subscription/generate")
+        .withQueryStringParameters("seed" -> seed, "minimal" -> minimal.toString)
+        .withHttpHeaders(authContext.headers: _*)
+        .get
+        .futureValue
   }
 
   object KnownFacts {
