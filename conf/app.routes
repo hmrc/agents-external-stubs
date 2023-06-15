@@ -164,6 +164,8 @@ POST          /agents-external-stubs/records/employer-auths                     
 GET           /agents-external-stubs/records/employer-auths/generate                                 @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generateEmployerAuths(seed: Option[String] ?= None, minimal: Boolean ?= false)
 POST          /agents-external-stubs/records/ppt-subscription                                        @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.storePPTSubscriptionDisplayRecord(autoFill: Boolean ?= true)
 GET           /agents-external-stubs/records/ppt-subscription/generate                               @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generatePPTSubscriptionDisplayRecord(seed: Option[String] ?= None, ninimal: Boolean ?= false)
+POST          /agents-external-stubs/records/cbc-subscription                                        @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.storeCbcSubscriptionRecord(autoFill: Boolean ?= true)
+GET           /agents-external-stubs/records/cbc-subscription/generate                               @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generateCbcSubscriptionRecord(seed: Option[String] ?= None, ninimal: Boolean ?= false)
 
 # Known facts management
 POST          /agents-external-stubs/known-facts                                                     @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.createKnownFacts

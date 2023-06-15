@@ -36,6 +36,7 @@ class UserToRecordsSyncService @Inject() (
   legacyRelationshipRecordsService: LegacyRelationshipRecordsService,
   employerAuthsRecordsService: EmployerAuthsRecordsService,
   pptSubscriptionDisplayRecordsService: PPTSubscriptionDisplayRecordsService,
+  cbcSubscriptionRecordsService: CbCSubscriptionRecordsService,
   usersRepository: UsersRepository
 )(implicit ec: ExecutionContext) {
 
@@ -52,7 +53,8 @@ class UserToRecordsSyncService @Inject() (
     Sync.businessPartnerRecordForAnAgent,
     Sync.legacySaAgentRecord,
     Sync.businessPartnerRecordForIRCTOrganisation,
-    Sync.legacyPayeAgentInformation
+    Sync.legacyPayeAgentInformation,
+    Sync.cbcSubscriptionRecord
   )
 
   final def syncUserToRecords(saveRecordId: SaveRecordId, user: User, group: Group): Future[Unit] =
@@ -151,6 +153,35 @@ class UserToRecordsSyncService @Inject() (
                 .flatMap(saveRecordId)
             )
         )
+    }
+
+    final val CbcUkMatch = Group.Matches(ag => ag == AG.Organisation, "HMRC-CBC-ORG")
+    final val CbcNonUkMatch = Group.Matches(ag => ag == AG.Organisation, "HMRC-CBC-NONUK-ORG")
+
+    val cbcSubscriptionRecord: UserAndGroupRecordsSync = saveRecordId => {
+      case (user, CbcUkMatch(_, cbcId)) =>
+        // TODO construct enrolment key to find email eg. HMRC-CBC-ORG~UTR~4478078113~cbcId~XACBC4940653845
+        val cbcRecord = CbcSubscriptionRecord.generateWith(cbcId, "ukcbc@gov.uk", isUK = true)
+
+        cbcSubscriptionRecordsService
+          .store(cbcRecord, autoFill = false, user.planetId.get)
+          .flatMap(saveRecordId)
+
+      case (user, CbcNonUkMatch(_, cbcId)) =>
+        def getCbcKnownFactsEmail = knownFactsRepository
+          .findByEnrolmentKey(
+            EnrolmentKey.from("HMRC-CBC-NONUK-ORG", "cbcId" -> cbcId),
+            user.planetId.get
+          )
+          .map(kf => kf.fold(Option.empty[String])(_.getVerifierValue("Email")))
+
+        getCbcKnownFactsEmail flatMap { email =>
+          val cbcRecord = CbcSubscriptionRecord.generateWith(cbcId, email.getOrElse("nonukcbc@gov.uk"), isUK = false)
+
+          cbcSubscriptionRecordsService
+            .store(cbcRecord, autoFill = false, user.planetId.get)
+            .flatMap(saveRecordId)
+        }
     }
 
     final val PptReferenceMatch =

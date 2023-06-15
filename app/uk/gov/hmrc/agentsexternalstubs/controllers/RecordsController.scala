@@ -37,6 +37,7 @@ class RecordsController @Inject() (
   relationshipRecordsService: RelationshipRecordsService,
   employerAuthRecordsService: EmployerAuthsRecordsService,
   pptSubscriptionDisplayRecordsService: PPTSubscriptionDisplayRecordsService,
+  cbCSubscriptionRecordsService: CbCSubscriptionRecordsService,
   recordsRepository: RecordsRepository,
   val authenticationService: AuthenticationService,
   cc: ControllerComponents
@@ -240,6 +241,17 @@ class RecordsController @Inject() (
       }(SessionRecordNotFound)
   }
 
+  def storeCbcSubscriptionRecord(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) {
+    implicit request =>
+      withCurrentSession { session =>
+        withPayload[CbcSubscriptionRecord](record =>
+          cbCSubscriptionRecordsService
+            .store(record, autoFill, session.planetId)
+            .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))))
+        )
+      }(SessionRecordNotFound)
+  }
+
   def generateRelationship(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] = Action.async {
     implicit request =>
       withCurrentSession { session =>
@@ -267,6 +279,16 @@ class RecordsController @Inject() (
         val record = PPTSubscriptionDisplayRecord.seed(seed)
         val result = if (minimal) record else PPTSubscriptionDisplayRecord.sanitize(seed)(record)
         okF(result, Link("create", routes.RecordsController.storePPTSubscriptionDisplayRecord(minimal).url))
+      }(SessionRecordNotFound)
+    }
+
+  def generateCbcSubscriptionRecord(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] =
+    Action.async { implicit request =>
+      withCurrentSession { session =>
+        val seed = seedOpt.getOrElse(session.sessionId)
+        val record = CbcSubscriptionRecord.seed(seed)
+        val result = if (minimal) record else CbcSubscriptionRecord.sanitize(seed)(record)
+        okF(result, Link("create", routes.RecordsController.storeCbcSubscriptionRecord(minimal).url))
       }(SessionRecordNotFound)
     }
 
