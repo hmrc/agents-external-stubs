@@ -159,8 +159,10 @@ class UserToRecordsSyncService @Inject() (
     final val CbcNonUkMatch = Group.Matches(ag => ag == AG.Organisation, "HMRC-CBC-NONUK-ORG")
 
     val cbcSubscriptionRecord: UserAndGroupRecordsSync = saveRecordId => {
-      case (user, CbcUkMatch(_, cbcId)) =>
-        // TODO construct enrolment key to find email eg. HMRC-CBC-ORG~UTR~4478078113~cbcId~XACBC4940653845
+      case (user, CbcUkMatch(_, _)) =>
+        // TODO construct full enrolment key to find email? eg. HMRC-CBC-ORG~UTR~4478078113~cbcId~XACBC4940653845
+        val enrolmentKey = user.assignedPrincipalEnrolments.filter(_.service.contains("HMRC-CBC-ORG")).head
+        val cbcId = enrolmentKey.identifiers.filter(_.key == "cbcId").map(id => id.value).head
         val cbcRecord = CbcSubscriptionRecord.generateWith(cbcId, "ukcbc@gov.uk", isUK = true)
 
         cbcSubscriptionRecordsService
