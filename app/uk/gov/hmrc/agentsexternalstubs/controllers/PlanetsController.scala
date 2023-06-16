@@ -34,6 +34,7 @@ class PlanetsController @Inject() (
   recordsRepository: RecordsRepository,
   specialCasesRepository: SpecialCasesRepository,
   authSessionRepository: AuthenticatedSessionsRepository,
+  groupsRepository: GroupsRepository,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
     extends BackendController(cc) {
@@ -49,7 +50,8 @@ class PlanetsController @Inject() (
           usersRepository.destroyPlanet(planetId),
           recordsRepository.destroyPlanet(planetId),
           knownFactsRepository.destroyPlanet(planetId),
-          specialCasesRepository.destroyPlanet(planetId)
+          specialCasesRepository.destroyPlanet(planetId),
+          groupsRepository.destroyPlanet(planetId)
         )
       )
       .map { _ =>
