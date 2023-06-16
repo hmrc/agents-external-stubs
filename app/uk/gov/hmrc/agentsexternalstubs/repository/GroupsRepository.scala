@@ -264,7 +264,7 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
 
   def destroyPlanet(planetId: String): Future[Unit] =
     collection
-      .deleteMany(filter = Filters.equal(PLANET_ID, planetIdKey(planetId)))
+      .deleteMany(filter = Filters.equal(KEYS, planetIdKey(planetId)))
       .toFuture()
       .map(_ => ())
 
