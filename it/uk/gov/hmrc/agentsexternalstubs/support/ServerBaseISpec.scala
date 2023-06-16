@@ -29,6 +29,6 @@ abstract class ServerBaseISpec
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.global
 
   implicit override val patienceConfig: PatienceConfig =
-    PatienceConfig(timeout = Span(15, Seconds), interval = Span(50, Milliseconds))
+    PatienceConfig(timeout = Span(20, Seconds), interval = Span(50, Milliseconds))
 
 }

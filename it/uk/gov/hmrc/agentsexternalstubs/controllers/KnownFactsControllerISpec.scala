@@ -12,19 +12,23 @@ class KnownFactsControllerISpec extends ServerBaseISpec with TestRequests {
   "KnownFactsController" when {
 
     "GET /agents-external-stubs/known-facts/:enrolmentKey" should {
-      //TODO inspect flaky test?
+      //TODO - fix flaky test?
       "respond 200 with a known facts details" in {
+        // <_< issue is here on sign in, but why just here, it's used all over the place
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
         val enrolmentKey = "HMRC-MTD-IT~MTDITID~XAAA12345678901"
         val enrolment = Enrolment.from(EnrolmentKey(enrolmentKey))
-        Users.create(
-          UserGenerator.individual("foo1").withAssignedPrincipalEnrolment(enrolment.toEnrolmentKey.get),
-          Some(AG.Individual)
-        )
-        Users.create(
-          UserGenerator.agent("foo2").withAssignedDelegatedEnrolment(enrolment.toEnrolmentKey.get),
-          Some(AG.Agent)
-        )
+        Seq(
+          Users.create(
+            UserGenerator.individual("foo1").withAssignedPrincipalEnrolment(enrolment.toEnrolmentKey.get),
+            Some(AG.Individual)
+          ),
+          Users.create(
+            UserGenerator.agent("foo2").withAssignedDelegatedEnrolment(enrolment.toEnrolmentKey.get),
+            Some(AG.Agent)
+          )
+        ).map(_ should haveStatus(201))
 
         val result = KnownFacts.getKnownFacts(enrolmentKey)
 
