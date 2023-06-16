@@ -7,11 +7,12 @@ import uk.gov.hmrc.agentsexternalstubs.support._
 
 class KnownFactsControllerISpec extends ServerBaseISpec with TestRequests {
 
-  lazy val wsClient = app.injector.instanceOf[WSClient]
+  lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
 
   "KnownFactsController" when {
 
     "GET /agents-external-stubs/known-facts/:enrolmentKey" should {
+      //TODO inspect flaky test?
       "respond 200 with a known facts details" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val enrolmentKey = "HMRC-MTD-IT~MTDITID~XAAA12345678901"

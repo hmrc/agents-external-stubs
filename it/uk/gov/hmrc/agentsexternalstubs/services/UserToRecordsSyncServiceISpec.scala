@@ -3,7 +3,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.UUID
-import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, PptRef, Utr}
+import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, CbcId, MtdItId, PptRef, Utr}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.UkAddress
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
@@ -15,18 +15,26 @@ import scala.concurrent.duration._
 
 class UserToRecordsSyncServiceISpec extends AppBaseISpec {
 
-  implicit val defaultTimeout = 60.seconds
+  implicit val defaultTimeout: FiniteDuration = 60.seconds
 
-  lazy val usersService = app.injector.instanceOf[UsersService]
-  lazy val groupsService = app.injector.instanceOf[GroupsService]
-  lazy val userRecordsService = app.injector.instanceOf[UserToRecordsSyncService]
-  lazy val businessDetailsRecordsService = app.injector.instanceOf[BusinessDetailsRecordsService]
-  lazy val vatCustomerInformationRecordsService = app.injector.instanceOf[VatCustomerInformationRecordsService]
-  lazy val businessPartnerRecordsService = app.injector.instanceOf[BusinessPartnerRecordsService]
-  lazy val legacyRelationshipRecordsService = app.injector.instanceOf[LegacyRelationshipRecordsService]
-  lazy val employerAuthsRecordsService = app.injector.instanceOf[EmployerAuthsRecordsService]
-  lazy val knownFactsRepository = app.injector.instanceOf[KnownFactsRepository]
-  lazy val pptSubscriptionDisplayRecordsService = app.injector.instanceOf[PPTSubscriptionDisplayRecordsService]
+  lazy val usersService: UsersService = app.injector.instanceOf[UsersService]
+  lazy val groupsService: GroupsService = app.injector.instanceOf[GroupsService]
+  lazy val userRecordsService: UserToRecordsSyncService = app.injector.instanceOf[UserToRecordsSyncService]
+  lazy val businessDetailsRecordsService: BusinessDetailsRecordsService =
+    app.injector.instanceOf[BusinessDetailsRecordsService]
+  lazy val vatCustomerInformationRecordsService: VatCustomerInformationRecordsService =
+    app.injector.instanceOf[VatCustomerInformationRecordsService]
+  lazy val businessPartnerRecordsService: BusinessPartnerRecordsService =
+    app.injector.instanceOf[BusinessPartnerRecordsService]
+  lazy val legacyRelationshipRecordsService: LegacyRelationshipRecordsService =
+    app.injector.instanceOf[LegacyRelationshipRecordsService]
+  lazy val employerAuthsRecordsService: EmployerAuthsRecordsService =
+    app.injector.instanceOf[EmployerAuthsRecordsService]
+  lazy val knownFactsRepository: KnownFactsRepository = app.injector.instanceOf[KnownFactsRepository]
+  lazy val pptSubscriptionDisplayRecordsService: PPTSubscriptionDisplayRecordsService =
+    app.injector.instanceOf[PPTSubscriptionDisplayRecordsService]
+  lazy val cbcSubscriptionRecordsService: CbCSubscriptionRecordsService =
+    app.injector.instanceOf[CbCSubscriptionRecordsService]
 
   private val formatter1 = DateTimeFormatter.ofPattern("dd/MM/yy")
   private val formatter2 = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -401,12 +409,12 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
                 EmployerAuths.EmpAuth(
                   empRef = EmployerAuths.EmpAuth.EmpRef("456", "123456789"),
                   aoRef = EmployerAuths.EmpAuth.AoRef("456", "1", "2", "123456789"),
-                  true,
-                  false
+                  `Auth_64-8` = true,
+                  Auth_OAA = false
                 )
               )
             ),
-            false,
+            autoFill = false,
             planetId
           )
       )
@@ -436,8 +444,8 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
         EmployerAuths.EmpAuth(
           empRef = EmployerAuths.EmpAuth.EmpRef("456", "123456789"),
           aoRef = EmployerAuths.EmpAuth.AoRef("456", "1", "2", "123456789"),
-          true,
-          false
+          `Auth_64-8` = true,
+          Auth_OAA = false
         )
       )
 
@@ -448,7 +456,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
               agentCode = testAgentCode,
               empAuthList = empAuthList
             ),
-            false,
+            autoFill = false,
             planetId
           )
       )
@@ -465,5 +473,40 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
       val result = await(employerAuthsRecordsService.getEmployerAuthsByAgentCode(testAgentCode, planetId)).get
       result.empAuthList shouldBe empAuthList
     }
+
+    "sync hmrc-cbc-org organisation to cbc subscription records" in {
+      val planetId = UUID.randomUUID().toString
+      val user = UserGenerator
+        .organisation("foo")
+        .withAssignedPrincipalEnrolment(
+          EnrolmentKey("HMRC-CBC-ORG", Seq(Identifier("UTR", "4478078113"), Identifier("cbcId", "XACBC4940653845")))
+        )
+
+      await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Organisation)))
+      val result1 =
+        await(cbcSubscriptionRecordsService.getCbcSubscriptionRecord(CbcId("XACBC4940653845"), planetId))
+      result1.map(_.cbcId) shouldBe Some("XACBC4940653845")
+
+      val result2 = await(usersService.findByUserId(user.userId, planetId))
+      result2.map(_.recordIds.size).get shouldBe 1
+    }
+
+    "sync hmrc-cbc-nonuk-org organisation to cbc subscription records" in {
+      val planetId = UUID.randomUUID().toString
+      val user = UserGenerator
+        .organisation("foo")
+        .withAssignedPrincipalEnrolment(
+          EnrolmentKey("HMRC-CBC-NONUK-ORG", Seq(Identifier("cbcId", "XACBC4940653849")))
+        )
+
+      await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Organisation)))
+      val result1 =
+        await(cbcSubscriptionRecordsService.getCbcSubscriptionRecord(CbcId("XACBC4940653849"), planetId))
+      result1.map(_.cbcId) shouldBe Some("XACBC4940653849")
+
+      val result2 = await(usersService.findByUserId(user.userId, planetId))
+      result2.map(_.recordIds.size).get shouldBe 1
+    }
+
   }
 }

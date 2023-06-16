@@ -9,7 +9,7 @@
       "isGBUser": true,
       "primaryContact": [
         {
-          "email": "Tim@toolsfortraders.com",
+          "email": "%%%EMAIL_ADDRESS%%%",
           "phone": "078803423883",
           "mobile": "078803423883",
           "individual": {

@@ -9,7 +9,7 @@ import uk.gov.hmrc.agentsexternalstubs.support._
 
 class RecordsControllerISpec extends ServerBaseISpec with TestRequests with TestStubs with ExampleDesPayloads {
 
-  lazy val wsClient = app.injector.instanceOf[WSClient]
+  lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
 
   "RecordsController" when {
 
@@ -245,6 +245,28 @@ class RecordsControllerISpec extends ServerBaseISpec with TestRequests with Test
         result should haveStatus(200)
         result should haveValidJsonBody(
           haveProperty[String]("pptReference")
+        )
+      }
+    }
+
+    "GET /agents-external-stubs/records/cbc-subscription/generate" should {
+      "respond 200 with a minimal auto-generated entity" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = Records.generateCbcSubscriptionRecord("foo", minimal = true)
+        result should haveStatus(200)
+        result should haveValidJsonBody(
+          haveProperty[String]("cbcId")
+        )
+      }
+
+      "respond 200 with a complete auto-generated entity" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = Records.generateCbcSubscriptionRecord("foo", minimal = false)
+        result should haveStatus(200)
+        result should haveValidJsonBody(
+          haveProperty[String]("cbcId")
         )
       }
     }
