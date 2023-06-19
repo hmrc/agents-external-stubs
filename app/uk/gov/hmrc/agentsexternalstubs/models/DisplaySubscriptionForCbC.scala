@@ -276,12 +276,11 @@ object CbcSubscriptionRecord extends RecordUtils[CbcSubscriptionRecord] {
     secondaryContact = secondaryContact
   )
 
-  def generateWith(cbcId: String, email: String, isUK: Boolean): CbcSubscriptionRecord =
+  def generateWith(cbcId: String, isUK: Boolean): CbcSubscriptionRecord =
     CbcSubscriptionRecord
       .generate(CbcSubscriptionRecord.getClass.getSimpleName)
       .withCbcId(cbcId)
       .withIsUK(isUK)
-      .withEmail(email)
 
   override val validate: Validator[CbcSubscriptionRecord] = Validator(
     checkProperty(_.cbcId, check(CbcId.isValid, s"invalid cbcId")),

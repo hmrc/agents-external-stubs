@@ -160,30 +160,21 @@ class UserToRecordsSyncService @Inject() (
 
     val cbcSubscriptionRecord: UserAndGroupRecordsSync = saveRecordId => {
       case (user, CbcUkMatch(_, _)) =>
-        // TODO construct full enrolment key to find email? eg. HMRC-CBC-ORG~UTR~4478078113~cbcId~XACBC4940653845
         val enrolmentKey = user.assignedPrincipalEnrolments.filter(_.service.contains("HMRC-CBC-ORG")).head
         val cbcId = enrolmentKey.identifiers.filter(_.key == "cbcId").map(id => id.value).head
-        val cbcRecord = CbcSubscriptionRecord.generateWith(cbcId, "ukcbc@gov.uk", isUK = true)
-
+        val cbcRecord = CbcSubscriptionRecord.generateWith(cbcId, isUK = true)
+        // TODO update known facts repo to match record (primary contact email)
         cbcSubscriptionRecordsService
           .store(cbcRecord, autoFill = false, user.planetId.get)
           .flatMap(saveRecordId)
 
       case (user, CbcNonUkMatch(_, cbcId)) =>
-        def getCbcKnownFactsEmail = knownFactsRepository
-          .findByEnrolmentKey(
-            EnrolmentKey.from("HMRC-CBC-NONUK-ORG", "cbcId" -> cbcId),
-            user.planetId.get
-          )
-          .map(kf => kf.fold(Option.empty[String])(_.getVerifierValue("Email")))
+        val cbcRecord = CbcSubscriptionRecord.generateWith(cbcId, isUK = false)
+        // TODO update known facts repo to match record (primary contact email)
 
-        getCbcKnownFactsEmail flatMap { email =>
-          val cbcRecord = CbcSubscriptionRecord.generateWith(cbcId, email.getOrElse("nonukcbc@gov.uk"), isUK = false)
-
-          cbcSubscriptionRecordsService
-            .store(cbcRecord, autoFill = false, user.planetId.get)
-            .flatMap(saveRecordId)
-        }
+        cbcSubscriptionRecordsService
+          .store(cbcRecord, autoFill = false, user.planetId.get)
+          .flatMap(saveRecordId)
     }
 
     final val PptReferenceMatch =
