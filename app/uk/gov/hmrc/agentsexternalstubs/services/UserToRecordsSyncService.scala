@@ -158,23 +158,47 @@ class UserToRecordsSyncService @Inject() (
     final val CbcUkMatch = Group.Matches(ag => ag == AG.Organisation, "HMRC-CBC-ORG")
     final val CbcNonUkMatch = Group.Matches(ag => ag == AG.Organisation, "HMRC-CBC-NONUK-ORG")
 
+    private def getKnownFacts(enrolmentKey: EnrolmentKey, planetId: String): Future[Option[KnownFacts]] = {
+      knownFactsRepository.findByEnrolmentKey(enrolmentKey, planetId)
+    }
+
     val cbcSubscriptionRecord: UserAndGroupRecordsSync = saveRecordId => {
       case (user, CbcUkMatch(_, _)) =>
         val enrolmentKey = user.assignedPrincipalEnrolments.filter(_.service.contains("HMRC-CBC-ORG")).head
         val cbcId = enrolmentKey.identifiers.filter(_.key == "cbcId").map(id => id.value).head
         val cbcRecord = CbcSubscriptionRecord.generateWith(cbcId, isUK = true)
-        // TODO update known facts repo to match record (primary contact email)
-        cbcSubscriptionRecordsService
-          .store(cbcRecord, autoFill = false, user.planetId.get)
-          .flatMap(saveRecordId)
+
+        // overrides email with value generated from record
+        def updateKnownFacts(knownFacts: Option[KnownFacts]) = {
+          val updatedKnownFacts = Seq(KnownFact("Email", cbcRecord.primaryContact.email))
+          knownFactsRepository.upsert(
+            knownFacts.get.copy(verifiers = updatedKnownFacts),
+            user.planetId.get)
+        }
+
+        getKnownFacts(enrolmentKey, user.planetId.get) map updateKnownFacts flatMap { _ =>
+          cbcSubscriptionRecordsService
+            .store(cbcRecord, autoFill = false, user.planetId.get)
+            .flatMap(saveRecordId)
+        }
 
       case (user, CbcNonUkMatch(_, cbcId)) =>
+        val enrolmentKey = user.assignedPrincipalEnrolments.filter(_.service.contains("HMRC-CBC-NONUK-ORG")).head
         val cbcRecord = CbcSubscriptionRecord.generateWith(cbcId, isUK = false)
-        // TODO update known facts repo to match record (primary contact email)
 
-        cbcSubscriptionRecordsService
-          .store(cbcRecord, autoFill = false, user.planetId.get)
-          .flatMap(saveRecordId)
+        // overrides email with value generated from record
+        def updateKnownFacts(knownFacts: Option[KnownFacts]) = {
+          val updatedKnownFacts = knownFacts.get.verifiers.filterNot(_.key == "Email") ++ Seq(KnownFact("Email", cbcRecord.primaryContact.email))
+          knownFactsRepository.upsert(
+            knownFacts.get.copy(verifiers = updatedKnownFacts),
+            user.planetId.get)
+        }
+
+        getKnownFacts(enrolmentKey, user.planetId.get) map updateKnownFacts flatMap { _ =>
+          cbcSubscriptionRecordsService
+            .store(cbcRecord, autoFill = false, user.planetId.get)
+            .flatMap(saveRecordId)
+        }
     }
 
     final val PptReferenceMatch =
