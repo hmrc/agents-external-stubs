@@ -6,7 +6,7 @@
     },  "responseDetail": {
       "subscriptionID": "%%%COUNTRY_BY_COUNTRY_ID%%%",
       "tradingName": "%%%TRADING_NAME%%%",
-      "isGBUser": true,
+      "isGBUser": false,
       "primaryContact": [
         {
           "email": "%%%EMAIL_ADDRESS%%%",
