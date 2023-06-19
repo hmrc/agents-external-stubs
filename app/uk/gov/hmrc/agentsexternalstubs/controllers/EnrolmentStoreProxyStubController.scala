@@ -22,6 +22,7 @@ import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.agentmtdidentifiers.model.{AssignedClient, GroupDelegatedEnrolments}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.SetKnownFactsRequest.Legacy
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController._
+import uk.gov.hmrc.agentsexternalstubs.models.Validator.{Validator, check, checkProperty}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.{DuplicateUserException, KnownFactsRepository}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, EnrolmentAlreadyExists, GroupsService, UsersService}
@@ -111,11 +112,11 @@ class EnrolmentStoreProxyStubController @Inject() (
         .map(_ => Created)
         .recover {
           case e: NotFoundException =>
-            notFound(e.getMessage())
+            notFound(e.getMessage)
           case e: BadRequestException =>
-            badRequest(e.getMessage())
+            badRequest(e.getMessage)
           case e: ForbiddenException =>
-            forbidden(e.getMessage())
+            forbidden(e.getMessage)
         }
     }(SessionRecordNotFound)
   }
@@ -127,9 +128,9 @@ class EnrolmentStoreProxyStubController @Inject() (
         .map(_ => NoContent)
         .recover {
           case e: NotFoundException =>
-            notFound(e.getMessage())
+            notFound(e.getMessage)
           case e: BadRequestException =>
-            badRequest(e.getMessage())
+            badRequest(e.getMessage)
         }
     }(SessionRecordNotFound)
   }
@@ -381,9 +382,76 @@ class EnrolmentStoreProxyStubController @Inject() (
         }
       }(SessionRecordNotFound)
     }
+
+  /** ES20 - ES allows for a list of known facts (identifiers and verifiers)
+    *
+    *  But for CbC we assume it is 1 verifier (email) to get multiple identifiers (UTR and cbcId),
+    *  this will allow us to construct the full enrolment key for HMRC-CBC-ORG
+    */
+  def queryEnrolmentsFromKnownFacts: Action[JsValue] =
+    Action.async(parse.tolerantJson) { implicit request =>
+      withCurrentSession { session =>
+        withPayload[EnrolmentsFromKnownFactsRequest] { payload =>
+          EnrolmentsFromKnownFactsRequest
+            .validate(payload)
+            .fold(
+              error => badRequestF("INVALID_PAYLOAD", error.mkString(", ")),
+              _ =>
+                knownFactsRepository
+                  .findByVerifier(payload.knownFacts.head, session.planetId)
+                  .map(knownFact =>
+                    if (knownFact.isDefined) {
+                      Ok(
+                        Json.toJson(
+                          EnrolmentsFromKnownFactsResponse(
+                            payload.service,
+                            Seq(
+                              IdentifiersVerifiers(
+                                knownFact.get.enrolmentKey.identifiers,
+                                knownFact.get.verifiers
+                              )
+                            )
+                          )
+                        )
+                      )
+                    } else {
+                      NoContent
+                    }
+                  )
+            )
+        }
+      }(SessionRecordNotFound)
+    }
 }
 
 object EnrolmentStoreProxyStubController {
+
+  //matches response from ES20
+  case class IdentifiersVerifiers(identifiers: Seq[Identifier], verifiers: Seq[KnownFact])
+
+  object IdentifiersVerifiers {
+    implicit val formats: OFormat[IdentifiersVerifiers] = Json.format[IdentifiersVerifiers]
+  }
+
+  case class EnrolmentsFromKnownFactsResponse(service: String, enrolments: Seq[IdentifiersVerifiers])
+
+  object EnrolmentsFromKnownFactsResponse {
+    implicit val formats: OFormat[EnrolmentsFromKnownFactsResponse] = Json.format[EnrolmentsFromKnownFactsResponse]
+  }
+
+  case class EnrolmentsFromKnownFactsRequest(service: String, knownFacts: Seq[KnownFact])
+
+  object EnrolmentsFromKnownFactsRequest {
+    implicit val formats: OFormat[EnrolmentsFromKnownFactsRequest] = Json.format[EnrolmentsFromKnownFactsRequest]
+
+    private val serviceValidator: Validator[String] =
+      check(Services(_).isDefined, s"INVALID_SERVICE")
+
+    val validate: Validator[EnrolmentsFromKnownFactsRequest] = Validator(
+      checkProperty(_.service, serviceValidator),
+      check(_.knownFacts.nonEmpty, "INVALID_JSON")
+    )
+  }
 
   case class GetUserIdsResponse(principalUserIds: Option[Seq[String]], delegatedUserIds: Option[Seq[String]])
 
