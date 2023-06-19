@@ -57,6 +57,8 @@ trait GroupsRepository {
   def delete(groupId: String, planetId: String): Future[DeleteResult]
 //  def syncRecordId(groupId: String, recordId: String, planetId: String): Future[Unit]
   def reindexAllGroups: Future[Boolean]
+
+  def destroyPlanet(planetId: String): Future[Unit]
 }
 
 object GroupsRepositoryMongo {
