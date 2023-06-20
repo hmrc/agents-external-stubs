@@ -63,7 +63,7 @@ object CbCRequestCommon {
   implicit val format: OFormat[CbCRequestCommon] = Json.format[CbCRequestCommon]
 
   val cbcRegimeValidator: Validator[String] = check(_.equals("CbC"), s"invalid regime, only CbC supported")
-  val cbcOriginSystemValidator: Validator[String] = check(_.equals("CbC"), s"invalid origin, only MDTP supported")
+  val cbcOriginSystemValidator: Validator[String] = check(_.equals("MDTP"), s"invalid origin, only MDTP supported")
 
   val validate: Validator[CbCRequestCommon] = Validator(
     checkProperty(_.regime, cbcRegimeValidator),
@@ -228,11 +228,10 @@ case class DisplaySubscriptionForCbC(displaySubscriptionForCbCResponse: DisplayS
 object DisplaySubscriptionForCbC {
   implicit val format: OFormat[DisplaySubscriptionForCbC] = Json.format[DisplaySubscriptionForCbC]
 
-  def fromRecord(record: CbcSubscriptionRecord): DisplaySubscriptionForCbC = {
+  def fromRecord(record: CbcSubscriptionRecord): DisplaySubscriptionForCbC =
     DisplaySubscriptionForCbC(
       DisplaySubscriptionForCbCResponse.fromRecord(record)
     )
-  }
 }
 
 // JSON sample for error
