@@ -19,7 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents, Result}
 import uk.gov.hmrc.agentmtdidentifiers.model.CbcId
-import uk.gov.hmrc.agentsexternalstubs.models.{CbcSubscriptionRecord, DisplaySubscriptionForCbCRequestPayload, Generator}
+import uk.gov.hmrc.agentsexternalstubs.models.{CbcSubscriptionRecord, DisplaySubscriptionForCbCRequestPayload, DisplaySubscriptionForCbCResponse, Generator}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, CbCSubscriptionRecordsService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -51,44 +51,17 @@ class CountryByCountryController @Inject() (
                 .flatMap(maybeRecord =>
                   maybeRecord.fold(
                     errorResponse(NOT_FOUND)
-                  )(record => responseFromRecord(record))
+                  )(record =>
+                    Future.successful(
+                      Ok(Json.toJson(DisplaySubscriptionForCbCResponse.fromRecord(record)))
+                    )
+                  )
                 )
             }
           )
       }
     )(SessionRecordNotFound)
   }
-
-  private def responseFromRecord(record: CbcSubscriptionRecord) =
-    if (record.tradingName.isDefined) {
-      findResource(s"/resources/country-by-country/full-response-template.json")
-        .map(
-          _.map(
-            _.replaceAll("%%%COUNTRY_BY_COUNTRY_ID%%%", record.cbcId)
-              .replaceAll("%%%TRADING_NAME%%%", record.tradingName.getOrElse(""))
-              .replaceAll("%%%EMAIL_ADDRESS%%%", record.primaryContact.email)
-              .replaceAll(s"%%%IS_GB%%%", s"${record.isGBUser}")
-          )
-        )
-        .map(
-          _.fold[Result](InternalServerError(Json.parse("full response not found")))(jsonStr => Ok(Json.parse(jsonStr)))
-        )
-    } else {
-      findResource(s"/resources/country-by-country/partial-response-template.json")
-        .map(
-          _.map(
-            _.replaceAll("%%%COUNTRY_BY_COUNTRY_ID%%%", record.cbcId)
-              .replaceAll("%%%EMAIL_ADDRESS%%%", record.primaryContact.email)
-              .replaceAll("%%%TRADING_NAME%%%", Generator.company.sample.get)
-              .replaceAll(s"%%%IS_GB%%%", s"${record.isGBUser}")
-          )
-        )
-        .map(
-          _.fold[Result](InternalServerError(Json.parse("partial response not found")))(jsonStr =>
-            Ok(Json.parse(jsonStr))
-          )
-        )
-    }
 
   private def errorResponse(
     code: Int,
@@ -112,17 +85,6 @@ class CountryByCountryController @Inject() (
           }
         )
       )
-
-  private def placeholderResponse(cbcId: String): Future[Result] =
-    findResource(s"/resources/country-by-country/full-response-template.json")
-      .map(
-        _.map(
-          _.replaceAll("%%%COUNTRY_BY_COUNTRY_ID%%%", cbcId)
-            .replaceAll("%%%TRADING_NAME%%%", Generator.company.sample.get)
-            .replaceAll("%%%EMAIL_ADDRESS%%%", Generator.email(cbcId))
-        )
-      )
-      .map(_.fold[Result](NotFound)(jsonStr => Ok(Json.parse(jsonStr))))
 
   private def findResource(resourcePath: String): Future[Option[String]] = Future {
     Option(getClass.getResourceAsStream(resourcePath))

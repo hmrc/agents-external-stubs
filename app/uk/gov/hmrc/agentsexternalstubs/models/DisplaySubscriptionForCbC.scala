@@ -207,6 +207,19 @@ case class DisplaySubscriptionForCbCResponse(responseCommon: CbCResponseCommon, 
 
 object DisplaySubscriptionForCbCResponse {
   implicit val format: OFormat[DisplaySubscriptionForCbCResponse] = Json.format[DisplaySubscriptionForCbCResponse]
+
+  def fromRecord(record: CbcSubscriptionRecord): DisplaySubscriptionForCbCResponse =
+    DisplaySubscriptionForCbCResponse(
+      CbCResponseCommon("OK", None, LocalDateTime.now(), None),
+      CbCResponseDetail(
+        record.cbcId,
+        record.tradingName,
+        record.isGBUser,
+        record.primaryContact,
+        record.secondaryContact
+      )
+    )
+
 }
 
 /** Happy response from EIS/ETMP for Country by Country subscription */
