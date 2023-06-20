@@ -34,6 +34,7 @@ This service SHOULD NOT be run on PRODUCTION environment.
     * [Datastream](#stubbed_api_datastream)
     * [File Upload](#stubbed_api_fileupload)
     * [Companies House API Proxy](#stubbed_api_companieshouse)
+    * [Enterprise Integration System](#stubbed_eis)
 * [Custom API](#custom_api)
     * [Authentication](#custom_api_authentication)
     * [Users Management](#custom_api_users)
@@ -256,6 +257,14 @@ Endpoint | Description
 `GET /companies-house-api-proxy/company/:companynumber` | Fetch company information of provided number
 `GET /companies-house-api-proxy/company/:companynumber/officers` | Fetch officers' information of provided company number
 
+### Enterprise Integration System <a name="stubbed_eis"></a>
+Used in country by country reporting (CbC)
+
+Endpoint | Description
+---|---
+POST `/dac/dct50d/v1` | Display country by country subscription
+
+
 ## Custom API <a name="custom_api"></a>
 
 ### Authentication <a name="custom_api_authentication"></a>
@@ -457,39 +466,33 @@ Response | Description
 
 ### Test Master Records Management <a name="custom_api_records"></a>
 
-#### GET /agents-external-stubs/records
-Returns all records on the planet grouped by the type, 
-e.g. [records response](docs/records.md).
+#### Generic
+Endpoint | Description
+---|---
+GET /agents-external-stubs/records | Returns all records on the planet grouped by the type, e.g. [records response](docs/records.md).
+GET /agents-external-stubs/records/:recordId | Returns a record by its ID
+PUT /agents-external-stubs/records/:recordId | Updates the record
+DELETE /agents-external-stubs/records/:recordId  | Removes the record
 
-#### GET /agents-external-stubs/records/:recordId
-Returns a record by its ID
+#### Specific record types 
 
-#### PUT /agents-external-stubs/records/:recordId
-Updates the record
+Specific records have two endpoints:
+#### POST `/agents-external-stubs/records/:recordType`
+Takes payload of that record and stores it in our records collection.
+#### GET `/agents-external-stubs/records/:recordType/generate`
+Generates a payload for that record type and calls the POST endpoint to store it
 
-#### DELETE /agents-external-stubs/records/:recordId
-Removes the record
-
-#### POST /agents-external-stubs/records/business-partner-record
-#### GET /agents-external-stubs/records/business-partner-record/generate
-
-#### POST /agents-external-stubs/records/business-details
-#### GET /agents-external-stubs/records/business-details/generate
-
-#### POST /agents-external-stubs/records/vat-customer-information
-#### GET /agents-external-stubs/records/vat-customer-information/generate
-
-#### POST /agents-external-stubs/records/relationship
-#### GET /agents-external-stubs/records/relationship/generate
-
-#### POST /agents-external-stubs/records/legacy-agent
-#### GET /agents-external-stubs/records/legacy-agent/generate
-
-#### POST /agents-external-stubs/records/legacy-relationship
-#### GET /agents-external-stubs/records/legacy-relationship/generate
-
-#### POST /agents-external-stubs/records/employer-auths
-#### GET /agents-external-stubs/records/employer-auths/generate
+Record Type / Url | Description 
+---|---
+business-partner-record |
+business-details | stored in DES
+vat-customer-information | VAT info stored in DES
+relationship | agent-client relationship
+legacy-agent | legacy agent record
+legacy-relationship | legacy agent-client relationship
+employer-auths |
+ppt-subscription | Plastic packaging tax subscription stored in IF
+cbc-subscription | Country by country subscription stored in ETMP
 
 ### Test Known Facts Management <a name="custom_api_known_facts"></a>
 

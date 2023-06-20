@@ -39,6 +39,8 @@ GET           /enrolment-store-proxy/enrolment-store/groups/:groupId/delegated  
 PUT           /enrolment-store-proxy/enrolment-store/groups/:groupId/enrolments/:enrolmentKey/friendly_name @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.setEnrolmentFriendlyName(groupId: String, enrolmentKey: EnrolmentKey)
 POST          /enrolment-store-proxy/enrolment-store/users/:userId/enrolments/:enrolmentKey                 @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.assignUser(userId: String, enrolmentKey: EnrolmentKey)
 DELETE        /enrolment-store-proxy/enrolment-store/users/:userId/enrolments/:enrolmentKey                 @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.deassignUser(userId: String, enrolmentKey: EnrolmentKey)
+## ES20 Call: query known facts by verifiers/identifiers
+POST          /enrolment-store-proxy/enrolment-store/enrolments                                             @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.queryEnrolmentsFromKnownFacts
 
 # Tax Enrolments stubs
 ## ES8 Call: via tax-enrolments allocate an enrolment
