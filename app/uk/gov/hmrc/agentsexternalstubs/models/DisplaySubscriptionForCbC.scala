@@ -61,6 +61,15 @@ case class CbCRequestCommon(
 
 object CbCRequestCommon {
   implicit val format: OFormat[CbCRequestCommon] = Json.format[CbCRequestCommon]
+
+  val cbcRegimeValidator: Validator[String] = check(_.equals("CbC"), s"invalid regime, only CbC supported")
+  val cbcOriginSystemValidator: Validator[String] = check(_.equals("CbC"), s"invalid origin, only MDTP supported")
+
+  val validate: Validator[CbCRequestCommon] = Validator(
+    checkProperty(_.regime, cbcRegimeValidator),
+    checkProperty(_.originatingSystem, cbcOriginSystemValidator)
+  )
+
 }
 
 case class CbCRequestDetail(
@@ -70,6 +79,13 @@ case class CbCRequestDetail(
 
 object CbCRequestDetail {
   implicit val format: OFormat[CbCRequestDetail] = Json.format[CbCRequestDetail]
+
+  val idTypeValidator: Validator[String] = check(_.equals("CbC"), s"invalid id type")
+
+  val validate: Validator[CbCRequestDetail] = Validator(
+    checkProperty(_.IDNumber, check(CbcId.isValid, s"invalid cbcId")),
+    checkProperty(_.IDType, idTypeValidator)
+  )
 }
 
 case class DisplaySubscriptionForCbCRequest(requestCommon: CbCRequestCommon, requestDetail: CbCRequestDetail)
@@ -84,6 +100,11 @@ case class DisplaySubscriptionForCbCRequestPayload(displaySubscriptionForCbCRequ
 object DisplaySubscriptionForCbCRequestPayload {
   implicit val format: OFormat[DisplaySubscriptionForCbCRequestPayload] =
     Json.format[DisplaySubscriptionForCbCRequestPayload]
+
+  val validate: Validator[DisplaySubscriptionForCbCRequestPayload] = Validator(
+    checkProperty(_.displaySubscriptionForCbCRequest.requestDetail, CbCRequestDetail.validate),
+    checkProperty(_.displaySubscriptionForCbCRequest.requestCommon, CbCRequestCommon.validate)
+  )
 }
 
 // ************************************ //
