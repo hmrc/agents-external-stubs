@@ -227,6 +227,12 @@ case class DisplaySubscriptionForCbC(displaySubscriptionForCbCResponse: DisplayS
 
 object DisplaySubscriptionForCbC {
   implicit val format: OFormat[DisplaySubscriptionForCbC] = Json.format[DisplaySubscriptionForCbC]
+
+  def fromRecord(record: CbcSubscriptionRecord): DisplaySubscriptionForCbC = {
+    DisplaySubscriptionForCbC(
+      DisplaySubscriptionForCbCResponse.fromRecord(record)
+    )
+  }
 }
 
 // JSON sample for error

@@ -19,7 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents, Result}
 import uk.gov.hmrc.agentmtdidentifiers.model.CbcId
-import uk.gov.hmrc.agentsexternalstubs.models.{CbcSubscriptionRecord, DisplaySubscriptionForCbCRequestPayload, DisplaySubscriptionForCbCResponse, Generator}
+import uk.gov.hmrc.agentsexternalstubs.models.{DisplaySubscriptionForCbC, DisplaySubscriptionForCbCRequestPayload}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, CbCSubscriptionRecordsService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -53,7 +53,7 @@ class CountryByCountryController @Inject() (
                     errorResponse(NOT_FOUND)
                   )(record =>
                     Future.successful(
-                      Ok(Json.toJson(DisplaySubscriptionForCbCResponse.fromRecord(record)))
+                      Ok(Json.toJson(DisplaySubscriptionForCbC.fromRecord(record)))
                     )
                   )
                 )
