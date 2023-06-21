@@ -158,9 +158,8 @@ class UserToRecordsSyncService @Inject() (
     final val CbcUkMatch = Group.Matches(ag => ag == AG.Organisation, "HMRC-CBC-ORG")
     final val CbcNonUkMatch = Group.Matches(ag => ag == AG.Organisation, "HMRC-CBC-NONUK-ORG")
 
-    private def getKnownFacts(enrolmentKey: EnrolmentKey, planetId: String): Future[Option[KnownFacts]] = {
+    private def getKnownFacts(enrolmentKey: EnrolmentKey, planetId: String): Future[Option[KnownFacts]] =
       knownFactsRepository.findByEnrolmentKey(enrolmentKey, planetId)
-    }
 
     val cbcSubscriptionRecord: UserAndGroupRecordsSync = saveRecordId => {
       case (user, CbcUkMatch(_, _)) =>
@@ -171,9 +170,7 @@ class UserToRecordsSyncService @Inject() (
         // overrides email with value generated from record
         def updateKnownFacts(knownFacts: Option[KnownFacts]) = {
           val updatedKnownFacts = Seq(KnownFact("Email", cbcRecord.primaryContact.email))
-          knownFactsRepository.upsert(
-            knownFacts.get.copy(verifiers = updatedKnownFacts),
-            user.planetId.get)
+          knownFactsRepository.upsert(knownFacts.get.copy(verifiers = updatedKnownFacts), user.planetId.get)
         }
 
         getKnownFacts(enrolmentKey, user.planetId.get) map updateKnownFacts flatMap { _ =>
@@ -188,10 +185,10 @@ class UserToRecordsSyncService @Inject() (
 
         // overrides email with value generated from record
         def updateKnownFacts(knownFacts: Option[KnownFacts]) = {
-          val updatedKnownFacts = knownFacts.get.verifiers.filterNot(_.key == "Email") ++ Seq(KnownFact("Email", cbcRecord.primaryContact.email))
-          knownFactsRepository.upsert(
-            knownFacts.get.copy(verifiers = updatedKnownFacts),
-            user.planetId.get)
+          val updatedKnownFacts = knownFacts.get.verifiers.filterNot(_.key == "Email") ++ Seq(
+            KnownFact("Email", cbcRecord.primaryContact.email)
+          )
+          knownFactsRepository.upsert(knownFacts.get.copy(verifiers = updatedKnownFacts), user.planetId.get)
         }
 
         getKnownFacts(enrolmentKey, user.planetId.get) map updateKnownFacts flatMap { _ =>

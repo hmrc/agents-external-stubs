@@ -484,7 +484,7 @@ Generates a payload for that record type and calls the POST endpoint to store it
 
 Record Type / Url | Description 
 ---|---
-business-partner-record |
+business-partner-record | for an agency, stored in DES
 business-details | stored in DES
 vat-customer-information | VAT info stored in DES
 relationship | agent-client relationship

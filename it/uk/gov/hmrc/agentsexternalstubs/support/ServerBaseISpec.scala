@@ -8,13 +8,8 @@ import play.api.Application
 import scala.concurrent.ExecutionContext
 
 abstract class ServerBaseISpec
-    extends BaseISpec
-      with BeforeAndAfterAll
-      with ScalaFutures
-      with JsonMatchers
-      with WSResponseMatchers
-      with MongoDB
-      with IntegrationPatience {
+    extends BaseISpec with BeforeAndAfterAll with ScalaFutures with JsonMatchers with WSResponseMatchers with MongoDB
+    with IntegrationPatience {
 
   val playServer: TestPlayServer = TestPlayServer
   def port: Int = playServer.port

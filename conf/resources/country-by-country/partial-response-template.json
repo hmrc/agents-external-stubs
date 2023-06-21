@@ -5,7 +5,7 @@
       "processingDate": "2020-08-09T11:23:45Z"
     },  "responseDetail": {
       "subscriptionID": "%%%COUNTRY_BY_COUNTRY_ID%%%",
-      "isGBUser": false,
+      "isGBUser": %%%IS_GB%%%,
       "primaryContact": [
         {
           "email": "%%%EMAIL_ADDRESS%%%",
