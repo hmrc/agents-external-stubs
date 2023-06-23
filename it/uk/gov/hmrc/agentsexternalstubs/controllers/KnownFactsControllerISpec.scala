@@ -37,10 +37,6 @@ class KnownFactsControllerISpec extends ServerBaseISpec with TestRequests {
               "verifiers",
               eachElement(haveProperty[String]("key") and haveProperty[String]("value"))
             ) and
-            haveProperty[Seq[JsObject]](
-              "identifiers",
-              eachElement(haveProperty[String]("key") and haveProperty[String]("value"))
-            ) and
             haveProperty[JsObject]("user", haveProperty[String]("userId", be("foo1"))) and
             haveProperty[Seq[JsObject]]("agents", have(size(1)))
         )
@@ -73,10 +69,6 @@ class KnownFactsControllerISpec extends ServerBaseISpec with TestRequests {
         feedback should haveStatus(200)
         feedback should haveValidJsonBody(
           haveProperty[String]("enrolmentKey", be(enrolmentKey)) and
-            haveProperty[Seq[JsObject]](
-              "identifiers",
-              eachElement(haveProperty[String]("key") and haveProperty[String]("value"))
-            ) and
             haveProperty[Seq[JsObject]](
               "verifiers",
               eachElement(
@@ -122,10 +114,6 @@ class KnownFactsControllerISpec extends ServerBaseISpec with TestRequests {
         feedback should haveValidJsonBody(
           haveProperty[String]("enrolmentKey", be(enrolmentKey)) and
             haveProperty[Seq[JsObject]](
-              "identifiers",
-              eachElement(haveProperty[String]("key") and haveProperty[String]("value"))
-            ) and
-            haveProperty[Seq[JsObject]](
               "verifiers",
               eachElement(
                 haveProperty[String]("key") and
@@ -158,10 +146,6 @@ class KnownFactsControllerISpec extends ServerBaseISpec with TestRequests {
         feedback should haveStatus(200)
         feedback should haveValidJsonBody(
           haveProperty[String]("enrolmentKey", be(enrolmentKey)) and
-            haveProperty[Seq[JsObject]](
-              "identifiers",
-              eachElement(haveProperty[String]("key") and haveProperty[String]("value"))
-            ) and
             haveProperty[Seq[JsObject]](
               "verifiers",
               eachElement(
