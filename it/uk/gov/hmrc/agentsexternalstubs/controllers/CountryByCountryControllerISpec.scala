@@ -1,6 +1,6 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import play.api.libs.json.{JsBoolean, JsObject, Json}
+import play.api.libs.json.{JsBoolean, JsObject}
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, CbCRequestCommon, CbCRequestDetail,  CbcSubscriptionRecord, DisplaySubscriptionForCbCRequest, DisplaySubscriptionForCbCRequestPayload}
 import uk.gov.hmrc.agentsexternalstubs.support._

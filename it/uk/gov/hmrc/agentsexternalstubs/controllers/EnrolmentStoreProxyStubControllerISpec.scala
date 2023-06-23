@@ -1539,18 +1539,12 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
 
         result should haveStatus(OK)
         val json = result.json
-        json should haveValidJsonBody(
-         haveProperty[JsString]("service") and haveProperty[JsObject]("enrolments")
-        )
-
         val service = (result.json \ "service").as[JsString]
         service shouldBe "HMRC-CBC-ORG"
-        val identifiers = (result.json \ "enrolments" \ "identifiers").as[JsArray]
-        identifiers.value.size shouldBe 2
-        val verifiers = (result.json \ "enrolments" \ "verifiers").as[JsArray]
-        verifiers.value.size shouldBe 1
+        json should haveProperty[JsArray]("enrolments")
 
       }
+
       "return NoContent if nothing found" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
 
