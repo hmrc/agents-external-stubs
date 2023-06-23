@@ -5,6 +5,7 @@ import play.api.http.{CookiesConfiguration, HeaderNames, MimeTypes}
 import play.api.libs.json.{JsObject, JsValue, Json, Writes}
 import play.api.libs.ws.{BodyWritable, WSClient, WSCookie, WSResponse}
 import play.api.mvc.{Cookie, DefaultCookieHeaderEncoding}
+import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.EnrolmentsFromKnownFactsRequest
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.http.{Authorization, HeaderCarrier}
 
@@ -416,6 +417,11 @@ trait TestRequests extends ScalaFutures {
       authContext: AuthContext
     ): WSResponse =
       put(s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey", payload)
+
+    def queryKnownFacts(payload: EnrolmentsFromKnownFactsRequest)(implicit
+      authContext: AuthContext
+    ): WSResponse =
+      post(s"/enrolment-store-proxy/enrolment-store/enrolments", payload)
 
     def removeKnownFacts(enrolmentKey: String)(implicit authContext: AuthContext): WSResponse =
       delete(s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey")

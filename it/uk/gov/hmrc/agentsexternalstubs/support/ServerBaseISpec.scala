@@ -2,7 +2,6 @@ package uk.gov.hmrc.agentsexternalstubs.support
 
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
-import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.Application
 
 import scala.concurrent.ExecutionContext
@@ -28,8 +27,5 @@ abstract class ServerBaseISpec
   implicit val defaultTimeout: FiniteDuration = 30.seconds
 
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.global
-
-  override val patienceConfig: PatienceConfig =
-    PatienceConfig(timeout = scaled(Span(20, Seconds)), interval = scaled(Span(150, Millis)))
 
 }

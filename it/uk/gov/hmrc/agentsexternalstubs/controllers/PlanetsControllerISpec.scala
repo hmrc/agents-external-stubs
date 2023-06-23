@@ -36,6 +36,12 @@ class PlanetsControllerISpec extends ServerBaseISpec with TestRequests with Exam
           Records.createRelationship(Json.parse(validRelationshipPayload)),
           KnownFacts.createKnownFacts(Json.parse(s"""
             |{ "enrolmentKey": "${enrolmentKey.toString}",
+            |  "identifiers": [
+            |   {
+            |     "key": "MTDITID",
+            |     "value": XAAA12345678901
+            |   }
+            |  ]
             | "verifiers": [
             |   {
             |     "key": "NINO",

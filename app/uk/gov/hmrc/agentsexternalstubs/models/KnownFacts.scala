@@ -19,7 +19,12 @@ import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
 import play.api.libs.json._
 
-case class KnownFacts(enrolmentKey: EnrolmentKey, verifiers: Seq[KnownFact], planetId: Option[String] = None) {
+case class KnownFacts(
+  enrolmentKey: EnrolmentKey,
+  identifiers: Seq[Identifier],
+  verifiers: Seq[KnownFact],
+  planetId: Option[String] = None
+) {
 
   override def toString: String = s"$enrolmentKey~${verifiers.sorted.mkString("~")}"
 
@@ -33,11 +38,13 @@ object KnownFacts {
 
   val UNIQUE_KEY = "_unique_key"
   val VERIFIERS_KEYS = "_verifiers_keys"
+  val IDENTIFIER_KEYS = "_identifiers_keys"
 
   type Transformer = JsObject => JsObject
 
   def uniqueKey(enrolmentKey: String, planetId: String): String = s"$enrolmentKey@$planetId"
   def verifierKey(knownFact: KnownFact, planetId: String): String = s"$knownFact@$planetId"
+  def identifierKey(identifier: Identifier, planetId: String): String = s"$identifier@$planetId"
 
   private def planetIdOf(json: JsObject): String =
     (json \ "planetId").asOpt[String].getOrElse(Planet.DEFAULT)
@@ -58,12 +65,22 @@ object KnownFacts {
     }
   }
 
+  private final val addIdentifierKeys: Transformer = json => {
+    val identifiers = (json \ "identifiers").as[Seq[Identifier]]
+    if (identifiers.isEmpty) json
+    else {
+      val planetId = planetIdOf(json)
+      val keys = identifiers.map(key => identifierKey(key, planetId))
+      if (keys.isEmpty) json else json + ((IDENTIFIER_KEYS, JsArray(keys.map(JsString))))
+    }
+  }
+
   implicit val reads: Reads[KnownFacts] = Json.reads[KnownFacts]
   implicit val writes: OWrites[KnownFacts] = Json
     .writes[KnownFacts]
-    .transform(addUniqueKey.andThen(addVerifiersKeys))
+    .transform(addUniqueKey.andThen(addVerifiersKeys).andThen(addIdentifierKeys))
 
-  val formats = Format(reads, writes)
+  val formats: Format[KnownFacts] = Format(reads, writes)
 
   import Validator.Implicits._
 
@@ -112,7 +129,7 @@ object KnownFacts {
           .collect { case Some(x) =>
             x
           }
-      KnownFacts(enrolmentKey, verifiers)
+      KnownFacts(enrolmentKey, enrolmentKey.identifiers, verifiers)
     }
 
   val knownFactSanitizer: Service => String => KnownFact => KnownFact = service =>

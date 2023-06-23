@@ -88,7 +88,7 @@ class EnrolmentStoreProxyStubController @Inject() (
       withCurrentSession { session =>
         withPayload[SetKnownFactsRequest] { payload =>
           knownFactsRepository
-            .upsert(KnownFacts(enrolmentKey, payload.verifiers), session.planetId)
+            .upsert(KnownFacts(enrolmentKey, enrolmentKey.identifiers, payload.verifiers), session.planetId)
             .map(_ => NoContent)
         }
       }(SessionRecordNotFound)
@@ -385,8 +385,8 @@ class EnrolmentStoreProxyStubController @Inject() (
 
   /** ES20 - ES allows for a list of known facts (identifiers and verifiers)
     *
-    *  But for CbC we assume it is 1 verifier (email) to get multiple identifiers (UTR and cbcId),
-    *  this will allow us to construct the full enrolment key for HMRC-CBC-ORG
+    *  Assume it is 1 identifier (cbcId) to get multiple identifiers (UTR and cbcId),
+    *  to allow us to construct the full enrolment key for HMRC-CBC-ORG
     */
   def queryEnrolmentsFromKnownFacts: Action[JsValue] =
     Action.async(parse.tolerantJson) { implicit request =>
@@ -398,7 +398,7 @@ class EnrolmentStoreProxyStubController @Inject() (
               error => badRequestF("INVALID_PAYLOAD", error.mkString(", ")),
               _ =>
                 knownFactsRepository
-                  .findByVerifier(payload.knownFacts.head, session.planetId)
+                  .findByIdentifier(payload.knownFacts.head, session.planetId)
                   .map(knownFact =>
                     if (knownFact.isDefined) {
                       Ok(
@@ -406,7 +406,7 @@ class EnrolmentStoreProxyStubController @Inject() (
                           EnrolmentsFromKnownFactsResponse(
                             payload.service,
                             Seq(
-                              IdentifiersVerifiers(
+                              IdentifiersAndVerifiers(
                                 knownFact.get.enrolmentKey.identifiers,
                                 knownFact.get.verifiers
                               )
@@ -427,19 +427,20 @@ class EnrolmentStoreProxyStubController @Inject() (
 object EnrolmentStoreProxyStubController {
 
   //matches response from ES20
-  case class IdentifiersVerifiers(identifiers: Seq[Identifier], verifiers: Seq[KnownFact])
+  case class IdentifiersAndVerifiers(identifiers: Seq[Identifier], verifiers: Seq[KnownFact])
 
-  object IdentifiersVerifiers {
-    implicit val formats: OFormat[IdentifiersVerifiers] = Json.format[IdentifiersVerifiers]
+  object IdentifiersAndVerifiers {
+    implicit val formats: OFormat[IdentifiersAndVerifiers] = Json.format[IdentifiersAndVerifiers]
   }
 
-  case class EnrolmentsFromKnownFactsResponse(service: String, enrolments: Seq[IdentifiersVerifiers])
+  case class EnrolmentsFromKnownFactsResponse(service: String, enrolments: Seq[IdentifiersAndVerifiers])
 
   object EnrolmentsFromKnownFactsResponse {
     implicit val formats: OFormat[EnrolmentsFromKnownFactsResponse] = Json.format[EnrolmentsFromKnownFactsResponse]
   }
 
-  case class EnrolmentsFromKnownFactsRequest(service: String, knownFacts: Seq[KnownFact])
+  // Note: knownFacts could be identifiers or verifiers in ES20
+  case class EnrolmentsFromKnownFactsRequest(service: String, knownFacts: Seq[Identifier])
 
   object EnrolmentsFromKnownFactsRequest {
     implicit val formats: OFormat[EnrolmentsFromKnownFactsRequest] = Json.format[EnrolmentsFromKnownFactsRequest]

@@ -1,18 +1,18 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsArray, JsObject, JsString, Json}
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentmtdidentifiers.model.AssignedClient
 import uk.gov.hmrc.agentmtdidentifiers.model.{Identifier => _}
-import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.SetKnownFactsRequest
+import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.{EnrolmentsFromKnownFactsRequest, SetKnownFactsRequest}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{AuthContext, ServerBaseISpec, TestRequests}
 
 class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRequests with TestStubs {
 
-  lazy val wsClient = app.injector.instanceOf[WSClient]
+  lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
 
   "EnrolmentStoreProxyStubController" when {
 
@@ -1512,6 +1512,50 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         result should haveStatus(404)
       }
 
+    }
+
+    "POST /enrolment-store-proxy/enrolment-store/enrolments (ES20)" should {
+      val cbcId = "XECBC0666272111"
+      val enrolmentKey = s"HMRC-CBC-ORG~UTR~8989040376~cbcId~$cbcId"
+
+      def setKnownFacts()(implicit ac: AuthContext) = EnrolmentStoreProxyStub
+        .setKnownFacts(
+          enrolmentKey,
+          SetKnownFactsRequest
+            .generate(enrolmentKey, _ => None)
+            .getOrElse(throw new Exception("Could not generate known facts"))
+        )
+
+      "return OK with matching identifiers and verifiers" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        setKnownFacts()
+
+        val result = EnrolmentStoreProxyStub.queryKnownFacts(
+          EnrolmentsFromKnownFactsRequest(
+            "HMRC-CBC-ORG",
+            Seq(Identifier("cbcId", cbcId))
+          )
+        )
+
+        result should haveStatus(OK)
+        val json = result.json
+        json.as[JsObject] should haveProperty[JsString]("service", be("HMRC-CBC-ORG"))
+        json.as[JsObject] should haveProperty[JsObject]("enrolments")
+        val identifiers = (result.json \ "enrolments" \ "identifiers").as[JsArray]
+        identifiers.value.size shouldBe 2
+        val verifiers = (result.json \ "enrolments" \ "verifiers").as[JsArray]
+        verifiers.value.size shouldBe 1
+
+      }
+      "return NoContent if nothing found" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+
+        val result = EnrolmentStoreProxyStub.queryKnownFacts(
+          EnrolmentsFromKnownFactsRequest("HMRC-CBC-ORG", Seq(Identifier("cbcId", cbcId)))
+        )
+
+        result should haveStatus(NO_CONTENT)
+      }
     }
   }
 }
