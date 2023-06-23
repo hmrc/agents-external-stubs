@@ -6,11 +6,13 @@ import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, CbCRequestC
 import uk.gov.hmrc.agentsexternalstubs.support._
 
 import java.time.LocalDateTime
+import java.util.UUID
 
 class CountryByCountryControllerISpec extends ServerBaseISpec with TestRequests {
 
   lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
   val cbcId = "XACBC1234567890"
+  val acknowledgementReference: String = UUID.randomUUID().toString.replace("-", "")
 
   "CountryByCountryController" when {
 
@@ -31,7 +33,7 @@ class CountryByCountryControllerISpec extends ServerBaseISpec with TestRequests 
         val result = post[DisplaySubscriptionForCbCRequest](
           s"/dac/dct50d/v1",
           DisplaySubscriptionForCbCRequest(
-            CbCRequestCommon("CbC", None, LocalDateTime.now()),
+            CbCRequestCommon("CbC", None, LocalDateTime.now(), acknowledgementReference),
             CbCRequestDetail(IDNumber = cbcId)
           )
         )
@@ -55,7 +57,7 @@ class CountryByCountryControllerISpec extends ServerBaseISpec with TestRequests 
         val result = post[DisplaySubscriptionForCbCRequest](
           s"/dac/dct50d/v1",
           DisplaySubscriptionForCbCRequest(
-            CbCRequestCommon("CbC", None, LocalDateTime.now()),
+            CbCRequestCommon("CbC", None, LocalDateTime.now(), acknowledgementReference),
             CbCRequestDetail(IDNumber = cbcId)
           )
         )
@@ -74,10 +76,13 @@ class CountryByCountryControllerISpec extends ServerBaseISpec with TestRequests 
       "respond BAD_REQUEST with error response if invalid payload" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
-        val result = post[DisplaySubscriptionForCbCRequest](s"/dac/dct50d/v1", DisplaySubscriptionForCbCRequest(
-          CbCRequestCommon("bad payload", None, LocalDateTime.now()),
-          CbCRequestDetail(IDNumber = "foo")
-        ))
+        val result = post[DisplaySubscriptionForCbCRequest](
+          s"/dac/dct50d/v1",
+          DisplaySubscriptionForCbCRequest(
+            CbCRequestCommon("bad payload", None, LocalDateTime.now(), acknowledgementReference),
+            CbCRequestDetail(IDNumber = "foo")
+          )
+        )
 
         result should haveStatus(400)
         val json = result.json
