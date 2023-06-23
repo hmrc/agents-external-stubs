@@ -1539,8 +1539,12 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
 
         result should haveStatus(OK)
         val json = result.json
-        json.as[JsObject] should haveProperty[JsString]("service", be("HMRC-CBC-ORG"))
-        json.as[JsObject] should haveProperty[JsObject]("enrolments")
+        json should haveValidJsonBody(
+         haveProperty[JsString]("service") and haveProperty[JsObject]("enrolments")
+        )
+
+        val service = (result.json \ "service").as[JsString]
+        service shouldBe "HMRC-CBC-ORG"
         val identifiers = (result.json \ "enrolments" \ "identifiers").as[JsArray]
         identifiers.value.size shouldBe 2
         val verifiers = (result.json \ "enrolments" \ "verifiers").as[JsArray]

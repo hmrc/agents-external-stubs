@@ -12,9 +12,7 @@ class KnownFactsControllerISpec extends ServerBaseISpec with TestRequests {
   "KnownFactsController" when {
 
     "GET /agents-external-stubs/known-facts/:enrolmentKey" should {
-      //TODO - fix flaky test?
       "respond 200 with a known facts details" in {
-        // <_< issue is here on sign in, but why just here, it's used all over the place
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val enrolmentKey = "HMRC-MTD-IT~MTDITID~XAAA12345678901"
@@ -39,6 +37,10 @@ class KnownFactsControllerISpec extends ServerBaseISpec with TestRequests {
               "verifiers",
               eachElement(haveProperty[String]("key") and haveProperty[String]("value"))
             ) and
+            haveProperty[Seq[JsObject]](
+              "identifiers",
+              eachElement(haveProperty[String]("key") and haveProperty[String]("value"))
+            ) and
             haveProperty[JsObject]("user", haveProperty[String]("userId", be("foo1"))) and
             haveProperty[Seq[JsObject]]("agents", have(size(1)))
         )
@@ -52,6 +54,12 @@ class KnownFactsControllerISpec extends ServerBaseISpec with TestRequests {
 
         val result = KnownFacts.createKnownFacts(Json.parse(s"""
           |{ "enrolmentKey": "$enrolmentKey",
+          |  "identifiers": [
+          |   {
+          |     "key": "MTDITID",
+          |     "value": "XAAA12345678901"
+          |   }
+          |  ],
           | "verifiers": [
           |   {
           |     "key": "NINO",
@@ -65,6 +73,10 @@ class KnownFactsControllerISpec extends ServerBaseISpec with TestRequests {
         feedback should haveStatus(200)
         feedback should haveValidJsonBody(
           haveProperty[String]("enrolmentKey", be(enrolmentKey)) and
+            haveProperty[Seq[JsObject]](
+              "identifiers",
+              eachElement(haveProperty[String]("key") and haveProperty[String]("value"))
+            ) and
             haveProperty[Seq[JsObject]](
               "verifiers",
               eachElement(
@@ -89,6 +101,12 @@ class KnownFactsControllerISpec extends ServerBaseISpec with TestRequests {
           enrolmentKey,
           Json.parse(s"""
             |{ "enrolmentKey": "$enrolmentKey",
+            |  "identifiers": [
+            |   {
+            |     "key": "MTDITID",
+            |     "value": "XAAA12345678901"
+            |   }
+            |  ],
             | "verifiers": [
             |   {
             |     "key": "NINO",
@@ -103,6 +121,10 @@ class KnownFactsControllerISpec extends ServerBaseISpec with TestRequests {
         feedback should haveStatus(200)
         feedback should haveValidJsonBody(
           haveProperty[String]("enrolmentKey", be(enrolmentKey)) and
+            haveProperty[Seq[JsObject]](
+              "identifiers",
+              eachElement(haveProperty[String]("key") and haveProperty[String]("value"))
+            ) and
             haveProperty[Seq[JsObject]](
               "verifiers",
               eachElement(
@@ -136,6 +158,10 @@ class KnownFactsControllerISpec extends ServerBaseISpec with TestRequests {
         feedback should haveStatus(200)
         feedback should haveValidJsonBody(
           haveProperty[String]("enrolmentKey", be(enrolmentKey)) and
+            haveProperty[Seq[JsObject]](
+              "identifiers",
+              eachElement(haveProperty[String]("key") and haveProperty[String]("value"))
+            ) and
             haveProperty[Seq[JsObject]](
               "verifiers",
               eachElement(

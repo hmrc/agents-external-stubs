@@ -2,7 +2,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.json.{JsBoolean, JsObject, Json}
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, CbCRequestCommon, CbCRequestDetail, CbCResponseCommon, CbCResponseDetail, CbcSubscriptionRecord, DisplaySubscriptionForCbC, DisplaySubscriptionForCbCRequest, DisplaySubscriptionForCbCResponse}
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, CbCRequestCommon, CbCRequestDetail,  CbcSubscriptionRecord, DisplaySubscriptionForCbCRequest, DisplaySubscriptionForCbCRequestPayload}
 import uk.gov.hmrc.agentsexternalstubs.support._
 
 import java.time.LocalDateTime
@@ -30,12 +30,15 @@ class CountryByCountryControllerISpec extends ServerBaseISpec with TestRequests 
         )
         createRecord should haveStatus(201)
 
-        val result = post[DisplaySubscriptionForCbCRequest](
+        val result = post[DisplaySubscriptionForCbCRequestPayload](
           s"/dac/dct50d/v1",
-          DisplaySubscriptionForCbCRequest(
-            CbCRequestCommon("CbC", None, LocalDateTime.now(), acknowledgementReference),
-            CbCRequestDetail(IDNumber = cbcId)
+          DisplaySubscriptionForCbCRequestPayload(
+            DisplaySubscriptionForCbCRequest(
+              CbCRequestCommon("CbC", None, LocalDateTime.now(), acknowledgementReference),
+              CbCRequestDetail(IDNumber = cbcId)
+            )
           )
+
         )
 
         result should haveStatus(200)
@@ -54,11 +57,13 @@ class CountryByCountryControllerISpec extends ServerBaseISpec with TestRequests 
       "respond NOT_FOUND with error response if no record" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
-        val result = post[DisplaySubscriptionForCbCRequest](
+        val result = post[DisplaySubscriptionForCbCRequestPayload](
           s"/dac/dct50d/v1",
-          DisplaySubscriptionForCbCRequest(
-            CbCRequestCommon("CbC", None, LocalDateTime.now(), acknowledgementReference),
-            CbCRequestDetail(IDNumber = cbcId)
+          DisplaySubscriptionForCbCRequestPayload(
+            DisplaySubscriptionForCbCRequest(
+              CbCRequestCommon("CbC", None, LocalDateTime.now(), acknowledgementReference),
+              CbCRequestDetail(IDNumber = cbcId)
+            )
           )
         )
 
@@ -76,11 +81,13 @@ class CountryByCountryControllerISpec extends ServerBaseISpec with TestRequests 
       "respond BAD_REQUEST with error response if invalid payload" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
-        val result = post[DisplaySubscriptionForCbCRequest](
+        val result = post[DisplaySubscriptionForCbCRequestPayload](
           s"/dac/dct50d/v1",
-          DisplaySubscriptionForCbCRequest(
-            CbCRequestCommon("bad payload", None, LocalDateTime.now(), acknowledgementReference),
-            CbCRequestDetail(IDNumber = "foo")
+          DisplaySubscriptionForCbCRequestPayload(
+            DisplaySubscriptionForCbCRequest(
+              CbCRequestCommon("bad payload", None, LocalDateTime.now(), acknowledgementReference),
+              CbCRequestDetail(IDNumber = "foo")
+            )
           )
         )
 

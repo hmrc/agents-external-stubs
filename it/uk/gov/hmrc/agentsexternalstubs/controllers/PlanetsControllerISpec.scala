@@ -39,9 +39,9 @@ class PlanetsControllerISpec extends ServerBaseISpec with TestRequests with Exam
             |  "identifiers": [
             |   {
             |     "key": "MTDITID",
-            |     "value": XAAA12345678901
+            |     "value": "XAAA12345678901"
             |   }
-            |  ]
+            |  ],
             | "verifiers": [
             |   {
             |     "key": "NINO",
