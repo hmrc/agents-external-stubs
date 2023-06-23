@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import javax.inject.{Inject, Singleton}
-import play.api.libs.json.{JsValue, Json, OWrites}
+import play.api.libs.json.{JsValue, Json, OWrites, Reads}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, KnownFact, KnownFacts, User}
@@ -152,6 +152,7 @@ object KnownFactsController {
 
   object EnrolmentInfo {
     implicit val writes: OWrites[EnrolmentInfo] = Json.writes[EnrolmentInfo]
+    implicit val reads: Reads[EnrolmentInfo] = Json.reads[EnrolmentInfo]
   }
 
   def addVerifier(verifiers: Seq[KnownFact], knownFact: KnownFact): Seq[KnownFact] =

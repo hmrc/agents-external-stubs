@@ -2,7 +2,8 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Enrolment, EnrolmentKey, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.EnrolmentInfo
+import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Enrolment, EnrolmentKey, KnownFact, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.support._
 
 class KnownFactsControllerISpec extends ServerBaseISpec with TestRequests {
@@ -123,9 +124,7 @@ class KnownFactsControllerISpec extends ServerBaseISpec with TestRequests {
             haveProperty[JsObject]("user", haveProperty[String]("userId")) and
             haveProperty[Seq[JsObject]]("agents")
         )
-        feedback.json.as[uk.gov.hmrc.agentsexternalstubs.models.KnownFacts].getVerifierValue("NINO") shouldBe Some(
-          "AB087054B"
-        )
+        feedback.json.as[EnrolmentInfo].verifiers.head shouldBe KnownFact("NINO", "AB087054B")
       }
     }
 
@@ -156,9 +155,7 @@ class KnownFactsControllerISpec extends ServerBaseISpec with TestRequests {
               )
             )
         )
-        feedback.json.as[uk.gov.hmrc.agentsexternalstubs.models.KnownFacts].getVerifierValue("NINO") shouldBe Some(
-          "AB087054B"
-        )
+        feedback.json.as[EnrolmentInfo].verifiers.head shouldBe KnownFact("NINO", "AB087054B")
       }
     }
 
