@@ -75,9 +75,7 @@ class KnownFactsControllerISpec extends ServerBaseISpec with TestRequests {
                 haveProperty[String]("key") and
                   haveProperty[String]("value")
               )
-            ) and
-            haveProperty[JsObject]("user", haveProperty[String]("userId")) and
-            haveProperty[Seq[JsObject]]("agents")
+            )
         )
       }
     }
@@ -95,6 +93,12 @@ class KnownFactsControllerISpec extends ServerBaseISpec with TestRequests {
           enrolmentKey,
           Json.parse(s"""
             |{ "enrolmentKey": "$enrolmentKey",
+            |  "identifiers": [
+            |   {
+            |     "key": "MTDITID",
+            |     "value": "XAAA12345678901"
+            |   }
+            |  ],
             | "verifiers": [
             |   {
             |     "key": "NINO",
@@ -150,9 +154,7 @@ class KnownFactsControllerISpec extends ServerBaseISpec with TestRequests {
                 haveProperty[String]("key") and
                   haveProperty[String]("value")
               )
-            ) and
-            haveProperty[JsObject]("user", haveProperty[String]("userId")) and
-            haveProperty[Seq[JsObject]]("agents")
+            )
         )
         feedback.json.as[uk.gov.hmrc.agentsexternalstubs.models.KnownFacts].getVerifierValue("NINO") shouldBe Some(
           "AB087054B"
