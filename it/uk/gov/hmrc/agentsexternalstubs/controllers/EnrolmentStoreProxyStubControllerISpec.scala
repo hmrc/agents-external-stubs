@@ -5,7 +5,7 @@ import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentmtdidentifiers.model.AssignedClient
 import uk.gov.hmrc.agentmtdidentifiers.model.{Identifier => _}
-import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.{EnrolmentsFromKnownFactsRequest, SetKnownFactsRequest}
+import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.{EnrolmentsFromKnownFactsRequest, IdentifiersAndVerifiers, SetKnownFactsRequest}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{AuthContext, ServerBaseISpec, TestRequests}
@@ -1538,10 +1538,9 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         )
 
         result should haveStatus(OK)
-        val json = result.json
         val service = (result.json \ "service").as[JsString]
         service shouldBe "HMRC-CBC-ORG"
-        json should haveProperty[JsArray]("enrolments")
+        val enrolments = (result.json \ "enrolments").as[JsArray]
 
       }
 

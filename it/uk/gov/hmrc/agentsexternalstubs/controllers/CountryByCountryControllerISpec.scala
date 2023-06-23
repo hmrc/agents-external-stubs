@@ -2,7 +2,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.json.{JsBoolean, JsObject}
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, CbCRequestCommon, CbCRequestDetail,  CbcSubscriptionRecord, DisplaySubscriptionForCbCRequest, DisplaySubscriptionForCbCRequestPayload}
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, CbCRequestCommon, CbCRequestDetail, CbcSubscriptionRecord, DisplaySubscriptionForCbCRequest, DisplaySubscriptionForCbCRequestPayload}
 import uk.gov.hmrc.agentsexternalstubs.support._
 
 import java.time.LocalDateTime
@@ -38,7 +38,6 @@ class CountryByCountryControllerISpec extends ServerBaseISpec with TestRequests 
               CbCRequestDetail(IDNumber = cbcId)
             )
           )
-
         )
 
         result should haveStatus(200)
