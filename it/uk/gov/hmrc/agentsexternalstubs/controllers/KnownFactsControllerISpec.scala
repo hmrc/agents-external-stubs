@@ -93,12 +93,6 @@ class KnownFactsControllerISpec extends ServerBaseISpec with TestRequests {
           enrolmentKey,
           Json.parse(s"""
             |{ "enrolmentKey": "$enrolmentKey",
-            |  "identifiers": [
-            |   {
-            |     "key": "MTDITID",
-            |     "value": "XAAA12345678901"
-            |   }
-            |  ],
             | "verifiers": [
             |   {
             |     "key": "NINO",
