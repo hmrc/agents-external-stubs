@@ -152,7 +152,7 @@ object KnownFactsController {
 
   object EnrolmentInfo {
     implicit val writes: OWrites[EnrolmentInfo] = Json.writes[EnrolmentInfo]
-    implicit val reads: Reads[EnrolmentInfo] = Json.reads[EnrolmentInfo]
+    implicit val reads: Reads[EnrolmentInfo] = Json.reads[EnrolmentInfo] // just for ISpec
   }
 
   def addVerifier(verifiers: Seq[KnownFact], knownFact: KnownFact): Seq[KnownFact] =
