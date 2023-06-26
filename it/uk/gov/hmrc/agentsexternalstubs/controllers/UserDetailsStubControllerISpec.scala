@@ -7,7 +7,7 @@ import uk.gov.hmrc.agentsexternalstubs.support.{NotAuthorized, ServerBaseISpec, 
 
 class UserDetailsStubControllerISpec extends ServerBaseISpec with TestRequests with TestStubs {
 
-  lazy val wsClient = app.injector.instanceOf[WSClient]
+  lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
   val testPlanet = "testPlanet"
 
   "UserDetailsStubController" when {

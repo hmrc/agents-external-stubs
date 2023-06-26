@@ -52,7 +52,7 @@ object CbCRequestParams {
 
 case class CbCRequestCommon(
   regime: String = "CbC",
-  conversationID: Option[String] = Some("d3937a26-a4ec-4f11-bd8d-a93fc0265701"),
+  conversationID: Option[String] = None,
   receiptDate: LocalDateTime,
   acknowledgementReference: String = "8493893huer3ruihuow",
   originatingSystem: String = "MDTP",
@@ -74,7 +74,7 @@ object CbCRequestCommon {
 
 case class CbCRequestDetail(
   IDType: String = "CbC",
-  IDNumber: String = "XACBC0123456789"
+  IDNumber: String
 )
 
 object CbCRequestDetail {

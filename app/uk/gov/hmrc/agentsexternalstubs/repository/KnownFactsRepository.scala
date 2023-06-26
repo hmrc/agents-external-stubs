@@ -18,8 +18,8 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 
 import com.google.inject.ImplementedBy
 import org.mongodb.scala.model._
-import uk.gov.hmrc.agentsexternalstubs.models.KnownFacts.verifierKey
-import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, KnownFact, KnownFacts}
+import uk.gov.hmrc.agentsexternalstubs.models.KnownFacts.{identifierKey, verifierKey}
+import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, Identifier, KnownFact, KnownFacts}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
@@ -32,6 +32,8 @@ trait KnownFactsRepository {
   def findByEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(implicit
     ec: ExecutionContext
   ): Future[Option[KnownFacts]]
+
+  def findByIdentifier(identifier: Identifier, planetId: String): Future[Option[KnownFacts]]
 
   def findByVerifier(knownFacts: KnownFact, planetId: String): Future[Option[KnownFacts]]
 
@@ -65,6 +67,12 @@ class KnownFactsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val e
   ): Future[Option[KnownFacts]] =
     collection
       .find(Filters.equal(KnownFacts.UNIQUE_KEY, KnownFacts.uniqueKey(enrolmentKey.tag, planetId)))
+      .toFuture
+      .map(_.headOption)
+
+  override def findByIdentifier(identifier: Identifier, planetId: String): Future[Option[KnownFacts]] =
+    collection
+      .find(Filters.equal(KnownFacts.IDENTIFIER_KEYS, identifierKey(identifier, planetId)))
       .toFuture
       .map(_.headOption)
 

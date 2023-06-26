@@ -15,6 +15,7 @@
  */
 package uk.gov.hmrc.agentsexternalstubs.repository
 
+import org.scalacheck.Gen
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.support.AppBaseISpec
@@ -23,9 +24,9 @@ import java.util.UUID
 
 class KnownFactsRepositoryISpec extends AppBaseISpec {
 
-  lazy val repo = app.injector.instanceOf[KnownFactsRepositoryMongo]
+  lazy val repo: KnownFactsRepositoryMongo = app.injector.instanceOf[KnownFactsRepositoryMongo]
 
-  val p = Generator.pattern("9999999999")
+  val p: Gen[String] = Generator.pattern("9999999999")
 
   "KnownFactsRepository" should {
     "create or update an entity" in {
@@ -33,6 +34,7 @@ class KnownFactsRepositoryISpec extends AppBaseISpec {
       val knownFacts1: KnownFacts =
         KnownFacts(
           enrolmentKey = EnrolmentKey("IR-SA~UTR~1234567890"),
+          identifiers = Seq(Identifier("UTR", "1234567890")),
           verifiers = Seq(KnownFact("Postcode", "TF2 6NU"), KnownFact("NINO", "AB123456X")),
           planetId = Some(planetId)
         )
@@ -45,6 +47,7 @@ class KnownFactsRepositoryISpec extends AppBaseISpec {
       val knownFacts2: KnownFacts =
         KnownFacts(
           enrolmentKey = EnrolmentKey("IR-SA~UTR~1234567890"),
+          identifiers = Seq(Identifier("UTR", "1234567890")),
           verifiers = Seq(KnownFact("NINO", "AB123654X")),
           planetId = Some(planetId)
         )
@@ -60,6 +63,7 @@ class KnownFactsRepositoryISpec extends AppBaseISpec {
       val knownFacts: KnownFacts =
         KnownFacts(
           enrolmentKey = EnrolmentKey("IR-SA~UTR~1234567890"),
+          identifiers = Seq(Identifier("UTR", "1234567890")),
           verifiers = Seq(KnownFact("DateOfBirth", "2000-01-01"), KnownFact("NINO", "AB123456X")),
           planetId = Some(planetId)
         )

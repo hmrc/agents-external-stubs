@@ -14,8 +14,8 @@ import java.time.LocalDate
 
 class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestStubs {
 
-  lazy val wsClient = app.injector.instanceOf[WSClient]
-  lazy val usersService = app.injector.instanceOf[UsersService]
+  lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
+  lazy val usersService: UsersService = app.injector.instanceOf[UsersService]
 
   "UsersController" when {
 

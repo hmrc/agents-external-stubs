@@ -2,7 +2,6 @@ package uk.gov.hmrc.agentsexternalstubs.support
 
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
-import org.scalatest.time.{Milliseconds, Seconds, Span}
 import play.api.Application
 
 import scala.concurrent.ExecutionContext

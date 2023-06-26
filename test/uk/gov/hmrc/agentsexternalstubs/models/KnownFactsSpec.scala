@@ -22,10 +22,14 @@ import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
 class KnownFactsSpec extends UnitSpec with ValidatedMatchers {
 
   "KnownFacts" should {
+    val enrolmentKeyHMRCMTDIT = EnrolmentKey.parse("HMRC-MTD-IT~MTDITID~X12345678909876").right.get
+    val enrolmentKeyVAT = EnrolmentKey.parse("HMRC-MTD-VAT~VRN~750296137").right.get
+
     "run sanitize and return same entity if no issue found" in {
       val knownFacts =
         KnownFacts(
-          EnrolmentKey.parse("HMRC-MTD-IT~MTDITID~X12345678909876").right.get,
+          enrolmentKeyHMRCMTDIT,
+          enrolmentKeyHMRCMTDIT.identifiers,
           Seq(KnownFact("NINO", "AB087054B"), KnownFact("businesspostcode", "BN14 7BU")),
           Some("")
         )
@@ -34,7 +38,8 @@ class KnownFactsSpec extends UnitSpec with ValidatedMatchers {
     "generate missing verifier value" in {
       val knownFacts =
         KnownFacts(
-          EnrolmentKey.parse("HMRC-MTD-IT~MTDITID~X12345678909876").right.get,
+          enrolmentKeyHMRCMTDIT,
+          enrolmentKeyHMRCMTDIT.identifiers,
           Seq(KnownFact("NINO", ""), KnownFact("businesspostcode", "")),
           Some("")
         )
@@ -45,7 +50,8 @@ class KnownFactsSpec extends UnitSpec with ValidatedMatchers {
     "add missing verifier" in {
       val knownFacts =
         KnownFacts(
-          EnrolmentKey.parse("HMRC-MTD-IT~MTDITID~X12345678909876").right.get,
+          enrolmentKeyHMRCMTDIT,
+          enrolmentKeyHMRCMTDIT.identifiers,
           Seq(KnownFact("NINO", "AB087054B")),
           Some("")
         )
@@ -56,7 +62,8 @@ class KnownFactsSpec extends UnitSpec with ValidatedMatchers {
     "add missing verifiers" in {
       val knownFacts =
         KnownFacts(
-          EnrolmentKey.parse("HMRC-MTD-VAT~VRN~750296137").right.get,
+          enrolmentKeyVAT,
+          enrolmentKeyVAT.identifiers,
           Seq.empty,
           Some("")
         )
