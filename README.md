@@ -605,7 +605,7 @@ Destroy the test planet and all the data there
 
 ## Running the app locally
 
-    sm --start AGENTS_STUBS -f
+    sm --start AGENTS_STUBS -r
 
 or
 

@@ -137,6 +137,9 @@ object User {
     def withAssignedPrincipalEnrolment(service: String, identifierKey: String, identifierValue: String): User =
       withAssignedPrincipalEnrolment(EnrolmentKey(service, Seq(Identifier(identifierKey, identifierValue))))
 
+    def withAssignedPrincipalEnrolment(service: String, identifiers: Seq[Identifier]): User =
+      withAssignedPrincipalEnrolment(EnrolmentKey(service, identifiers))
+
     def withAssignedDelegatedEnrolment(enrolmentKey: EnrolmentKey): User =
       user.copy(assignedDelegatedEnrolments = user.assignedDelegatedEnrolments ++ Seq(enrolmentKey))
 
