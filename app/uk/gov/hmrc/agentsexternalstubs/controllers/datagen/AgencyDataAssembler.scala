@@ -88,18 +88,21 @@ class AgencyDataAssembler extends Logging {
     )
   }
 
-  private def buildClientsForAgent(indexAgency: Int, numClients: Int): List[User] = {
+  def buildClientsForAgent(indexAgency: Int, numClients: Int): List[User] = {
 
     def generateClient(clientType: ClientType, serviceKey: ServiceKey, index: Int): User = {
       val seed = System.nanoTime().toString
-
-      val (idKey, idVal) = serviceKey match {
-        case "HMRC-MTD-IT"     => ("MTDITID", Generator.mtdbsa(seed).value)
-        case "HMRC-MTD-VAT"    => ("VRN", Generator.vrn(seed).value)
-        case "HMRC-CGT-PD"     => ("CGTPDRef", Generator.cgtPdRef(seed))
-        case "HMRC-PPT-ORG"    => ("EtmpRegistrationNumber", Generator.regex(Common.pptReferencePattern).sample.get)
-        case "HMRC-TERS-ORG"   => ("SAUTR", Generator.utr(seed))
-        case "HMRC-TERSNT-ORG" => ("URN", Generator.urn(seed).value)
+      val identifiers: Seq[Identifier] = serviceKey match {
+        case "HMRC-MTD-IT"  => Seq(Identifier("MTDITID", Generator.mtdbsa(seed).value))
+        case "HMRC-MTD-VAT" => Seq(Identifier("VRN", Generator.vrn(seed).value))
+        case "HMRC-CBC-ORG" =>
+          Seq(Identifier("UTR", Generator.utr(seed)), Identifier("cbcId", Generator.cbcId(seed).value))
+        case "HMRC-CBC-NONUK-ORG" => Seq(Identifier("cbcId", Generator.cbcId(seed).value))
+        case "HMRC-CGT-PD"        => Seq(Identifier("CGTPDRef", Generator.cgtPdRef(seed)))
+        case "HMRC-PPT-ORG" =>
+          Seq(Identifier("EtmpRegistrationNumber", Generator.regex(Common.pptReferencePattern).sample.get))
+        case "HMRC-TERS-ORG"   => Seq(Identifier("SAUTR", Generator.utr(seed)))
+        case "HMRC-TERSNT-ORG" => Seq(Identifier("URN", Generator.urn(seed).value))
       }
 
       val userId = f"perf-test-$indexAgency%04d-C${index + 1}%05d"
@@ -114,11 +117,11 @@ class AgencyDataAssembler extends Logging {
               credentialRole = User.CR.Admin,
               nino = f"AB${index + 1}%06dC"
             )
-            .withAssignedPrincipalEnrolment(service = serviceKey, identifierKey = idKey, identifierValue = idVal)
+            .withAssignedPrincipalEnrolment(service = serviceKey, identifiers)
         case AG.Organisation =>
           UserGenerator
             .organisation(userId = userId, groupId = UserGenerator.groupId(userId))
-            .withAssignedPrincipalEnrolment(service = serviceKey, identifierKey = idKey, identifierValue = idVal)
+            .withAssignedPrincipalEnrolment(service = serviceKey, identifiers)
       }
     }
 
