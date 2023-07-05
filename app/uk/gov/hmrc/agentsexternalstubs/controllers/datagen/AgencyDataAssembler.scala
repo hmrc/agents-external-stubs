@@ -88,14 +88,14 @@ class AgencyDataAssembler extends Logging {
     )
   }
 
-  private def buildClientsForAgent(indexAgency: Int, numClients: Int): List[User] = {
+  def buildClientsForAgent(indexAgency: Int, numClients: Int): List[User] = {
 
     def generateClient(clientType: ClientType, serviceKey: ServiceKey, index: Int): User = {
       val seed = System.nanoTime().toString
       val identifiers: Seq[Identifier] = serviceKey match {
         case "HMRC-MTD-IT"  => Seq(Identifier("MTDITID", Generator.mtdbsa(seed).value))
         case "HMRC-MTD-VAT" => Seq(Identifier("VRN", Generator.vrn(seed).value))
-        case "HMRC-CBC-NONUK-ORG" =>
+        case "HMRC-CBC-ORG" =>
           Seq(Identifier("UTR", Generator.utr(seed)), Identifier("cbcId", Generator.cbcId(seed).value))
         case "HMRC-CBC-NONUK-ORG" => Seq(Identifier("cbcId", Generator.cbcId(seed).value))
         case "HMRC-CGT-PD"        => Seq(Identifier("CGTPDRef", Generator.cgtPdRef(seed)))
