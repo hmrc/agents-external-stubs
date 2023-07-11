@@ -135,6 +135,7 @@ class EnrolmentStoreProxyStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
+  // ES8
   def allocateGroupEnrolment(
     groupId: String,
     enrolmentKey: EnrolmentKey,
