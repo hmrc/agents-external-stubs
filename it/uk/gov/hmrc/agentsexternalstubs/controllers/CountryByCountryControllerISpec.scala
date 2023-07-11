@@ -47,7 +47,7 @@ class CountryByCountryControllerISpec extends ServerBaseISpec with TestRequests 
         responseCommon should haveProperty[String]("status", be("OK"))
         responseCommon should haveProperty[LocalDateTime]("processingDate")
         val responseDetail = (result.json \ "displaySubscriptionForCbCResponse" \ "responseDetail").as[JsObject]
-        responseDetail should haveProperty[String]("cbcId", be(cbcId))
+        responseDetail should haveProperty[String]("subscriptionID", be(cbcId))
         responseDetail should haveProperty[JsBoolean]("isGBUser")
         val primaryContact = (responseDetail \ "primaryContact").as[JsObject]
         primaryContact should haveProperty[String]("email", be(email))
