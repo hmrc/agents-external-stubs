@@ -135,6 +135,7 @@ class EnrolmentStoreProxyStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
+  // ES8
   def allocateGroupEnrolment(
     groupId: String,
     enrolmentKey: EnrolmentKey,
@@ -399,24 +400,18 @@ class EnrolmentStoreProxyStubController @Inject() (
               _ =>
                 knownFactsRepository
                   .findByIdentifier(payload.knownFacts.head, session.planetId)
-                  .map(knownFact =>
-                    if (knownFact.isDefined) {
-                      Ok(
-                        Json.toJson(
-                          EnrolmentsFromKnownFactsResponse(
-                            payload.service,
-                            Seq(
-                              IdentifiersAndVerifiers(
-                                knownFact.get.enrolmentKey.identifiers,
-                                knownFact.get.verifiers
-                              )
-                            )
+                  .map(knownFacts =>
+                    knownFacts.fold(NoContent)(knownFact =>
+                      if (payload.service == knownFact.enrolmentKey.service) {
+                        Ok(
+                          Json.toJson(
+                            EnrolmentsFromKnownFactsResponse.fromKnownFacts(knownFact)
                           )
                         )
-                      )
-                    } else {
-                      NoContent
-                    }
+                      } else {
+                        NoContent
+                      }
+                    )
                   )
             )
         }
@@ -437,6 +432,17 @@ object EnrolmentStoreProxyStubController {
 
   object EnrolmentsFromKnownFactsResponse {
     implicit val formats: OFormat[EnrolmentsFromKnownFactsResponse] = Json.format[EnrolmentsFromKnownFactsResponse]
+
+    def fromKnownFacts(knownFacts: KnownFacts): EnrolmentsFromKnownFactsResponse =
+      EnrolmentsFromKnownFactsResponse(
+        knownFacts.enrolmentKey.service,
+        Seq(
+          IdentifiersAndVerifiers(
+            knownFacts.enrolmentKey.identifiers,
+            knownFacts.verifiers
+          )
+        )
+      )
   }
 
   // Note: knownFacts could be identifiers or verifiers in ES20

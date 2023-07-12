@@ -192,7 +192,7 @@ object CbCResponseCommon {
 }
 
 case class CbCResponseDetail(
-  cbcId: String,
+  subscriptionID: String,
   tradingName: Option[String],
   isGBUser: Boolean,
   primaryContact: CbcContactInformation,
