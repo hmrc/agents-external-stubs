@@ -17,9 +17,9 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import uk.gov.hmrc.agentsexternalstubs.controllers.datagen.AgencyDataAssembler
-import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
+import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 
-class AgencyDataAssemblerSpec extends UnitSpec {
+class AgencyDataAssemblerSpec extends BaseUnitSpec {
 
   "build AgencyCreationPayload with correct data" in {
     val assembler = new AgencyDataAssembler

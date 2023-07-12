@@ -17,9 +17,9 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalatest.Inspectors._
-import uk.gov.hmrc.agentsexternalstubs.support.{UnitSpec, ValidatedMatchers}
+import uk.gov.hmrc.agentsexternalstubs.support.{BaseUnitSpec, ValidatedMatchers}
 
-class GroupValidatorSpec extends UnitSpec with ValidatedMatchers {
+class GroupValidatorSpec extends BaseUnitSpec with ValidatedMatchers {
 
   val planetId = "myPlanet"
   val groupId = "myGroupId"

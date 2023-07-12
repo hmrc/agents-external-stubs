@@ -17,12 +17,12 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
+import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 import uk.gov.hmrc.agentsexternalstubs.support.ValidatedMatchers
 
 import java.time.LocalDate
 
-class UserValidatorSpec extends UnitSpec with ValidatedMatchers {
+class UserValidatorSpec extends BaseUnitSpec with ValidatedMatchers {
 
   "UserValidator" should {
     "validate only when affinityGroup is none or one of [Individual, Organisation, Agent]" in {

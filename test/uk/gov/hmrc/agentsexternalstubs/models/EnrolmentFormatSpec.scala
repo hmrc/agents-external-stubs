@@ -16,11 +16,11 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
+import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 
-class EnrolmentFormatSpec extends UnitSpec {
+class EnrolmentFormatSpec extends BaseUnitSpec {
 
-  val testEnrolment = Enrolment(
+  val testEnrolment: Enrolment = Enrolment(
     key = "HMRC-MTD-VAT",
     identifiers = Some(Seq(Identifier("VRN", "123456789"))),
     state = Enrolment.ACTIVATED,

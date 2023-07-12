@@ -19,13 +19,13 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import org.scalatest.Inspectors
 import play.api.libs.json.Json
 import uk.gov.hmrc.agentsexternalstubs.support.ValidatedMatchers
-import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
+import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 
-class RecordSpec extends UnitSpec with ValidatedMatchers {
+class RecordSpec extends BaseUnitSpec with ValidatedMatchers {
 
-  val seeds = "foeba".permutations.toSeq
+  val seeds: Seq[String] = "foeba".permutations.toSeq
 
-  val registrationEntity =
+  val registrationEntity: RelationshipRecord =
     RelationshipRecord(
       regime = "ITSA",
       arn = "ZARN1234567",

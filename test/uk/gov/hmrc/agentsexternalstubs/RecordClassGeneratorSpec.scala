@@ -17,9 +17,9 @@
 package uk.gov.hmrc.agentsexternalstubs
 
 import uk.gov.hmrc.agentsexternalstubs.support.ValidatedMatchers
-import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
+import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 
-class RecordClassGeneratorSpec extends UnitSpec with ValidatedMatchers with KnownFieldGenerators {
+class RecordClassGeneratorSpec extends BaseUnitSpec with ValidatedMatchers with KnownFieldGenerators {
 
   "KnownFieldGenerators" should {
     "find a generator for a common field name" in {

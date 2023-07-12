@@ -17,9 +17,9 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import cats.data.Validated.Valid
-import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
+import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 
-class GroupUsersValidatorSpec extends UnitSpec {
+class GroupUsersValidatorSpec extends BaseUnitSpec {
 
   "GroupValidator" should {
     "validate empty group" in {

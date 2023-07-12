@@ -18,9 +18,9 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import play.api.libs.json.Json
 import uk.gov.hmrc.agentsexternalstubs.support.ExampleDesPayload
-import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
+import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 
-class VatKnownFactsSpec extends UnitSpec with ExampleDesPayload {
+class VatKnownFactsSpec extends BaseUnitSpec with ExampleDesPayload {
 
   "VatKnownFacts" should {
     "create an instance of VatKnownFacts given an instance of vatCustomerInformation" in {

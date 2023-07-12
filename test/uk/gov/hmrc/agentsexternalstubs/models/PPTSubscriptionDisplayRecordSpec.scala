@@ -18,11 +18,11 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalatest.Inspectors
 import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord.LegalEntityDetails.CustomerDetails
-import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
+import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 
-class PPTSubscriptionDisplayRecordSpec extends UnitSpec {
+class PPTSubscriptionDisplayRecordSpec extends BaseUnitSpec {
 
-  val seeds = "foeba".permutations.toSeq
+  val seeds: Seq[String] = "foeba".permutations.toSeq
 
   "CustomerDetails" should {
 
