@@ -121,10 +121,16 @@ object Generator extends Names with Temporal with Companies with Addresses {
   def urn(seed: String): Urn = urnGen.map(Urn.apply).seeded(seed).get
 
   lazy val singleStrGen: Gen[String] = pattern"Z".gen
-  lazy val pptReferenceGen: Gen[String] = pattern"9999999".gen.map(s"X${singleStrGen}PPT000" + _)
+  lazy val pptReferenceGen: Gen[String] = for {
+    digits    <- pattern"9999999"
+    character <- singleStrGen
+  } yield s"X${character}PPT000$digits"
   def pptReference(seed: String): PptRef = pptReferenceGen.map(PptRef.apply).seeded(seed).get
 
-  lazy val cbcIdGen: Gen[String] = pattern"9999999999".gen.map(s"X${singleStrGen}CBC" + _)
+  lazy val cbcIdGen: Gen[String] = for {
+    digits    <- pattern"9999999999"
+    character <- singleStrGen
+  } yield s"X${character}CBC$digits"
   def cbcId(seed: String): CbcId = cbcIdGen.map(CbcId.apply).seeded(seed).get
 
   lazy val vrnGen: Gen[String] = pattern"9999999".gen.map(VrnChecksum.apply).retryUntil(Vrn.isValid)
