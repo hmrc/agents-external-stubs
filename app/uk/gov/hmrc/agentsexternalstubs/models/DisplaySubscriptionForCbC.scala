@@ -317,7 +317,7 @@ object CbcSubscriptionRecord extends RecordUtils[CbcSubscriptionRecord] {
 
   def generateWith(cbcId: String, isUK: Boolean): CbcSubscriptionRecord =
     CbcSubscriptionRecord
-      .generate(CbcSubscriptionRecord.getClass.getSimpleName)
+      .generate(cbcId + isUK.toString) // create the generator seed out of the combination of cbc id and uk status
       .withCbcId(cbcId)
       .withIsUK(isUK)
 
