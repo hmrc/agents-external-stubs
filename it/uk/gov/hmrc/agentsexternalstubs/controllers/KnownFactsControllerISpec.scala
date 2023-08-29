@@ -16,73 +16,73 @@ class KnownFactsControllerISpec extends ServerBaseISpec with TestRequests {
       //TODO fix flakey test in jenkins
       // - patience config @ 20secs is more consistent?
       // currently approx 1/5 sucess chance
-//      "respond 200 with a known facts details" in {
-//        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-//
-//        val enrolmentKey = "HMRC-MTD-IT~MTDITID~XAAA12345678901"
-//        val enrolment = Enrolment.from(EnrolmentKey(enrolmentKey))
-//        Seq(
-//          Users.create(
-//            UserGenerator.individual("foo1").withAssignedPrincipalEnrolment(enrolment.toEnrolmentKey.get),
-//            Some(AG.Individual)
-//          ),
-//          Users.create(
-//            UserGenerator.agent("foo2").withAssignedDelegatedEnrolment(enrolment.toEnrolmentKey.get),
-//            Some(AG.Agent)
-//          )
-//        ).map(_ should haveStatus(201))
-//
-//        val result = KnownFacts.getKnownFacts(enrolmentKey)
-//
-//        result should haveStatus(200)
-//        result should haveValidJsonBody(
-//          haveProperty[String]("enrolmentKey", be(enrolmentKey)) and
-//            haveProperty[Seq[JsObject]](
-//              "verifiers",
-//              eachElement(haveProperty[String]("key") and haveProperty[String]("value"))
-//            ) and
-//            haveProperty[JsObject]("user", haveProperty[String]("userId", be("foo1"))) and
-//            haveProperty[Seq[JsObject]]("agents", have(size(1)))
-//        )
-//      }
+      "respond 200 with a known facts details" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val enrolmentKey = "HMRC-MTD-IT~MTDITID~XAAA12345678901"
+        val enrolment = Enrolment.from(EnrolmentKey(enrolmentKey))
+        Seq(
+          Users.create(
+            UserGenerator.individual("foo1").withAssignedPrincipalEnrolment(enrolment.toEnrolmentKey.get),
+            Some(AG.Individual)
+          ),
+          Users.create(
+            UserGenerator.agent("foo2").withAssignedDelegatedEnrolment(enrolment.toEnrolmentKey.get),
+            Some(AG.Agent)
+          )
+        ).map(_ should haveStatus(201))
+
+        val result = KnownFacts.getKnownFacts(enrolmentKey)
+
+        result should haveStatus(200)
+        result should haveValidJsonBody(
+          haveProperty[String]("enrolmentKey", be(enrolmentKey)) and
+            haveProperty[Seq[JsObject]](
+              "verifiers",
+              eachElement(haveProperty[String]("key") and haveProperty[String]("value"))
+            ) and
+            haveProperty[JsObject]("user", haveProperty[String]("userId", be("foo1"))) and
+            haveProperty[Seq[JsObject]]("agents", have(size(1)))
+        )
+      }
     }
 
     "POST /agents-external-stubs/known-facts" should {
       //TODO fix flakey test in jenkins, again seeing very low success chance for build (1/6)
-//      "create a sanitized known fact and return 201" in {
-//        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-//        val enrolmentKey = "HMRC-MTD-IT~MTDITID~XAAA12345678901"
-//
-//        val result = KnownFacts.createKnownFacts(Json.parse(s"""
-//          |{ "enrolmentKey": "$enrolmentKey",
-//          |  "identifiers": [
-//          |   {
-//          |     "key": "MTDITID",
-//          |     "value": "XAAA12345678901"
-//          |   }
-//          |  ],
-//          | "verifiers": [
-//          |   {
-//          |     "key": "NINO",
-//          |     "value": ""
-//          |   }
-//          |  ]
-//          |} """.stripMargin))
-//        result should haveStatus(201)
-//
-//        val feedback = KnownFacts.getKnownFacts(enrolmentKey)
-//        feedback should haveStatus(200)
-//        feedback should haveValidJsonBody(
-//          haveProperty[String]("enrolmentKey", be(enrolmentKey)) and
-//            haveProperty[Seq[JsObject]](
-//              "verifiers",
-//              eachElement(
-//                haveProperty[String]("key") and
-//                  haveProperty[String]("value")
-//              )
-//            )
-//        )
-//      }
+      "create a sanitized known fact and return 201" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val enrolmentKey = "HMRC-MTD-IT~MTDITID~XAAA12345678901"
+
+        val result = KnownFacts.createKnownFacts(Json.parse(s"""
+          |{ "enrolmentKey": "$enrolmentKey",
+          |  "identifiers": [
+          |   {
+          |     "key": "MTDITID",
+          |     "value": "XAAA12345678901"
+          |   }
+          |  ],
+          | "verifiers": [
+          |   {
+          |     "key": "NINO",
+          |     "value": ""
+          |   }
+          |  ]
+          |} """.stripMargin))
+        result should haveStatus(201)
+
+        val feedback = KnownFacts.getKnownFacts(enrolmentKey)
+        feedback should haveStatus(200)
+        feedback should haveValidJsonBody(
+          haveProperty[String]("enrolmentKey", be(enrolmentKey)) and
+            haveProperty[Seq[JsObject]](
+              "verifiers",
+              eachElement(
+                haveProperty[String]("key") and
+                  haveProperty[String]("value")
+              )
+            )
+        )
+      }
     }
 
     "PUT /agents-external-stubs/known-facts/:enrolmentKey" should {
