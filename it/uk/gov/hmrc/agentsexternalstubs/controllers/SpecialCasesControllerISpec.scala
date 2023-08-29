@@ -17,9 +17,6 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with TestRequests {
   implicit val reads: Reads[SpecialCase] = SpecialCase.external.reads
   implicit val writes: Writes[SpecialCase] = SpecialCase.external.writes
 
-  import scala.concurrent.duration._
-  override implicit val defaultTimeout = 30.seconds
-
   "SpecialCasesController" when {
 
     "GET /agents-external-stubs/special-cases" should {
