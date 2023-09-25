@@ -1131,12 +1131,21 @@ class DesIfStubControllerISpec
       )
       createResult should haveStatus(201)
 
+      val json = createResult.json
+      val recordId = ((json \ "_links")(0) \ "href").as[String].split("/").last
+
       val result = DesStub.subscribeToAgentServicesWithUtr("0123456789", Json.parse(validAgentSubmission))
       result should haveStatus(200)
       result should haveValidJsonBody(
         haveProperty[String]("safeId"),
         haveProperty[String]("agentRegistrationNumber")
       )
+
+      val record = Records.getRecord(recordId).json.as[BusinessPartnerRecord]
+
+      record.agencyDetails.get.agencyEmail shouldBe Some("hmrc@hmrc.gsi.gov.uk")
+      record.agencyDetails.get.agencyTelephone shouldBe Some("01332752856")
+
     }
 
     "return 400 if utr not valid" in {

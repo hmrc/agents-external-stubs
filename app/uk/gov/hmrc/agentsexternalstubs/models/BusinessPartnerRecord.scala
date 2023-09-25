@@ -401,7 +401,8 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
   case class AgencyDetails(
     agencyName: Option[String] = None,
     agencyAddress: Option[AgencyDetails.AgencyAddress] = None,
-    agencyEmail: Option[String] = None
+    agencyEmail: Option[String] = None,
+    agencyTelephone: Option[String] = None
   ) {
 
     def withAgencyName(agencyName: Option[String]): AgencyDetails = copy(agencyName = agencyName)
@@ -416,6 +417,10 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     def withAgencyEmail(agencyEmail: Option[String]): AgencyDetails = copy(agencyEmail = agencyEmail)
     def modifyAgencyEmail(pf: PartialFunction[Option[String], Option[String]]): AgencyDetails =
       if (pf.isDefinedAt(agencyEmail)) copy(agencyEmail = pf(agencyEmail)) else this
+    def withAgencyTelephoneNumber(agencyTelephone: Option[String]): AgencyDetails =
+      copy(agencyTelephone = agencyTelephone)
+    def modifyAgencyTelephoneNumber(pf: PartialFunction[Option[String], Option[String]]): AgencyDetails =
+      if (pf.isDefinedAt(agencyTelephone)) copy(agencyTelephone = pf(agencyTelephone)) else this
   }
 
   object AgencyDetails extends RecordUtils[AgencyDetails] {
@@ -425,11 +430,14 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     val agencyAddressValidator: Validator[Option[AgencyAddress]] = checkIfSome(identity, AgencyAddress.validate)
     val agencyEmailValidator: Validator[Option[String]] =
       check(_.lengthMinMaxInclusive(1, 132), "Invalid length of agencyEmail, should be between 1 and 132 inclusive")
+    val agencyTelephoneValidator: Validator[Option[String]] =
+      check(_.lengthMinMaxInclusive(5, 25), "Invalid length of agencyTelephone, should be between 5 and 25 ")
 
     override val validate: Validator[AgencyDetails] = Validator(
       checkProperty(_.agencyName, agencyNameValidator),
       checkProperty(_.agencyAddress, agencyAddressValidator),
-      checkProperty(_.agencyEmail, agencyEmailValidator)
+      checkProperty(_.agencyEmail, agencyEmailValidator),
+      checkProperty(_.agencyTelephone, agencyTelephoneValidator)
     )
 
     override val gen: Gen[AgencyDetails] = Gen const AgencyDetails(
@@ -466,7 +474,19 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
             )
         )
 
-    override val sanitizers: Seq[Update] = Seq(agencyNameSanitizer, agencyAddressSanitizer, agencyEmailSanitizer)
+    val agencyTelephoneSanitizer: Update = seed =>
+      entity =>
+        entity.copy(
+          agencyTelephone = agencyTelephoneValidator(entity.agencyTelephone)
+            .fold(_ => None, _ => entity.agencyTelephone)
+            .orElse(
+              Generator
+                .get(Generator.ukPhoneNumber.suchThat(_.length >= 5).suchThat(_.length <= 32))(seed)
+            )
+        )
+
+    override val sanitizers: Seq[Update] =
+      Seq(agencyNameSanitizer, agencyAddressSanitizer, agencyEmailSanitizer, agencyTelephoneSanitizer)
 
     implicit val formats: Format[AgencyDetails] = Json.format[AgencyDetails]
 
@@ -534,15 +554,15 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
   }
 
   case class ContactDetails(
-    phoneNumber: Option[String] = None,
+    primaryPhoneNumber: Option[String] = None,
     mobileNumber: Option[String] = None,
     faxNumber: Option[String] = None,
     emailAddress: Option[String] = None
   ) {
 
-    def withPhoneNumber(phoneNumber: Option[String]): ContactDetails = copy(phoneNumber = phoneNumber)
+    def withPhoneNumber(phoneNumber: Option[String]): ContactDetails = copy(primaryPhoneNumber = phoneNumber)
     def modifyPhoneNumber(pf: PartialFunction[Option[String], Option[String]]): ContactDetails =
-      if (pf.isDefinedAt(phoneNumber)) copy(phoneNumber = pf(phoneNumber)) else this
+      if (pf.isDefinedAt(primaryPhoneNumber)) copy(primaryPhoneNumber = pf(primaryPhoneNumber)) else this
     def withMobileNumber(mobileNumber: Option[String]): ContactDetails = copy(mobileNumber = mobileNumber)
     def modifyMobileNumber(pf: PartialFunction[Option[String], Option[String]]): ContactDetails =
       if (pf.isDefinedAt(mobileNumber)) copy(mobileNumber = pf(mobileNumber)) else this
@@ -572,7 +592,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
       check(_.lengthMinMaxInclusive(1, 132), "Invalid length of emailAddress, should be between 1 and 132 inclusive")
 
     override val validate: Validator[ContactDetails] = Validator(
-      checkProperty(_.phoneNumber, phoneNumberValidator),
+      checkProperty(_.primaryPhoneNumber, phoneNumberValidator),
       checkProperty(_.mobileNumber, mobileNumberValidator),
       checkProperty(_.faxNumber, faxNumberValidator),
       checkProperty(_.emailAddress, emailAddressValidator)
@@ -584,8 +604,8 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     val phoneNumberSanitizer: Update = seed =>
       entity =>
         entity.copy(
-          phoneNumber = phoneNumberValidator(entity.phoneNumber)
-            .fold(_ => None, _ => entity.phoneNumber)
+          primaryPhoneNumber = phoneNumberValidator(entity.primaryPhoneNumber)
+            .fold(_ => None, _ => entity.primaryPhoneNumber)
             .orElse(Generator.get(Generator.ukPhoneNumber.suchThat(_.length >= 1).suchThat(_.length <= 24))(seed))
         )
 

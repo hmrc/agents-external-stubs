@@ -23,7 +23,7 @@ import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, PptRef, Utr}
 import uk.gov.hmrc.agentsexternalstubs.models.TrustDetailsResponse.getErrorResponseFor
-import uk.gov.hmrc.agentsexternalstubs.models.{BusinessPartnerRecord, SubscribeAgentServicesPayload, _}
+import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.services._
 import uk.gov.hmrc.domain.Nino
@@ -888,6 +888,7 @@ object DesIfStubController {
               .withAgencyName(Option(payload.agencyName))
               .withAgencyAddress(Some(address))
               .withAgencyEmail(payload.agencyEmail)
+              .withAgencyTelephoneNumber(payload.telephoneNumber)
           )
         )
         .modifyContactDetails { case Some(contactDetails) =>
