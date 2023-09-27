@@ -17,9 +17,9 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import uk.gov.hmrc.agentsexternalstubs.support.ValidatedMatchers
-import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
+import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 
-class KnownFactsSpec extends UnitSpec with ValidatedMatchers {
+class KnownFactsSpec extends BaseUnitSpec with ValidatedMatchers {
 
   "KnownFacts" should {
     val enrolmentKeyHMRCMTDIT = EnrolmentKey.parse("HMRC-MTD-IT~MTDITID~X12345678909876").right.get

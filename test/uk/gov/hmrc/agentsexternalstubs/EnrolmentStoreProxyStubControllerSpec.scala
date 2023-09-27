@@ -28,11 +28,11 @@ import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, EnrolmentKe
 import uk.gov.hmrc.agentsexternalstubs.repository.{DuplicateUserException, KnownFactsRepository}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GroupsService, UsersService}
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
+import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class EnrolmentStoreProxyStubControllerSpec extends UnitSpec {
+class EnrolmentStoreProxyStubControllerSpec extends BaseUnitSpec {
 
   trait Setup {
 

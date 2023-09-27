@@ -18,9 +18,9 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import play.api.libs.json.{JsArray, Json}
 import uk.gov.hmrc.agentsexternalstubs.support.ValidatedMatchers
-import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
+import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 
-class ServicesSpec extends UnitSpec with ValidatedMatchers {
+class ServicesSpec extends BaseUnitSpec with ValidatedMatchers {
 
   "Services" should {
     "read services definitions at bootstrap" in {

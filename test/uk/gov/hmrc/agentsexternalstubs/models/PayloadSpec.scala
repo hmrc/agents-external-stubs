@@ -18,9 +18,9 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import play.api.libs.json.Json
 
-import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
+import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 
-class PayloadSpec extends UnitSpec {
+class PayloadSpec extends BaseUnitSpec {
 
   "SetKnownFactsRequest" should {
     "parse payload" in {

@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
+import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 
-class GroupSanitizerSpec extends UnitSpec {
+class GroupSanitizerSpec extends BaseUnitSpec {
   private val planetId = "myPlanetId"
   private val groupId = "myGroupId"
 

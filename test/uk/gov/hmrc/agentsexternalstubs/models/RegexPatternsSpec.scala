@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
+import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 
-class RegexPatternsSpec extends UnitSpec {
+class RegexPatternsSpec extends BaseUnitSpec {
 
   "RegexPatterns" should {
     "validate nino" in {

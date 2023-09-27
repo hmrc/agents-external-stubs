@@ -17,11 +17,11 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
+import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 
 import java.time.LocalDate
 
-class UserSanitizerSpec extends UnitSpec {
+class UserSanitizerSpec extends BaseUnitSpec {
 
   "UserSanitizer" should {
     "add missing name to the Individual" in {

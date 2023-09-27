@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import uk.gov.hmrc.agentsexternalstubs.support.UnitSpec
+import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 
-class EnrolmentKeySpec extends UnitSpec {
+class EnrolmentKeySpec extends BaseUnitSpec {
 
   "EnrolmentKey.parse" should {
     "return EnrolmentKey if string format and content are valid" in {
