@@ -117,7 +117,7 @@ GET           /companies-house-api-proxy/company/:companynumber                 
 GET           /companies-house-api-proxy/company/:companynumber/officers                             @uk.gov.hmrc.agentsexternalstubs.controllers.CompaniesHouseController.findCompanyOfficers(companynumber: String, surname: Option[String])
 
 # Display Subscription For CbC - via Enterprise Integration System (EIS)
-POST          /dac/dct50d/v1                                                                         @uk.gov.hmrc.agentsexternalstubs.controllers.CountryByCountryController.displaySubscriptionForCbC
+POST          /dac6/dct50d/v1                                                                         @uk.gov.hmrc.agentsexternalstubs.controllers.CountryByCountryController.displaySubscriptionForCbC
 
 # Authentication
 POST          /agents-external-stubs/sign-in                                                         @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.signIn

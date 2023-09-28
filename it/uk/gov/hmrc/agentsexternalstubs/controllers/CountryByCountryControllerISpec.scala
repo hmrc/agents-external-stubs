@@ -16,7 +16,7 @@ class CountryByCountryControllerISpec extends ServerBaseISpec with TestRequests 
 
   "CountryByCountryController" when {
 
-    "POST /dac/dct50d/v1 (display cbc subscription) " should {
+    "POST /dac6/dct50d/v1 (display cbc subscription) " should {
       "respond 200 with country by country subscription details" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val email = "test@foo.uk"
@@ -31,7 +31,7 @@ class CountryByCountryControllerISpec extends ServerBaseISpec with TestRequests 
         createRecord should haveStatus(201)
 
         val result = post[DisplaySubscriptionForCbCRequestPayload](
-          s"/dac/dct50d/v1",
+          s"/dac6/dct50d/v1",
           DisplaySubscriptionForCbCRequestPayload(
             DisplaySubscriptionForCbCRequest(
               CbCRequestCommon("CbC", None, LocalDateTime.now(), acknowledgementReference),
@@ -57,7 +57,7 @@ class CountryByCountryControllerISpec extends ServerBaseISpec with TestRequests 
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = post[DisplaySubscriptionForCbCRequestPayload](
-          s"/dac/dct50d/v1",
+          s"/dac6/dct50d/v1",
           DisplaySubscriptionForCbCRequestPayload(
             DisplaySubscriptionForCbCRequest(
               CbCRequestCommon("CbC", None, LocalDateTime.now(), acknowledgementReference),
@@ -81,7 +81,7 @@ class CountryByCountryControllerISpec extends ServerBaseISpec with TestRequests 
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = post[DisplaySubscriptionForCbCRequestPayload](
-          s"/dac/dct50d/v1",
+          s"/dac6/dct50d/v1",
           DisplaySubscriptionForCbCRequestPayload(
             DisplaySubscriptionForCbCRequest(
               CbCRequestCommon("bad payload", None, LocalDateTime.now(), acknowledgementReference),
