@@ -262,7 +262,7 @@ Used in country by country reporting (CbC)
 
 Endpoint | Description
 ---|---
-POST `/dac/dct50d/v1` | Display country by country subscription
+POST `/dac6/dct50d/v1` | Display country by country subscription
 
 
 ## Custom API <a name="custom_api"></a>
