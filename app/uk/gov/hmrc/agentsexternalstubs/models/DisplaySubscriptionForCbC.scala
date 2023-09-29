@@ -24,9 +24,9 @@ import uk.gov.hmrc.agentsexternalstubs.models.Validator.{Validator, check, check
 import java.time.LocalDateTime
 
 //  JSON sample for request to EIS
-//  { "displaySubscriptionForCbCRequest":{
+//  { "displaySubscriptionForCBCRequest":{
 //      "requestCommon": {
-//      "regime": "CbC",
+//      "regime": "CBC",
 //      "conversationID": "d3937a26-a4ec-4f11-bd8d-a93fc0265701",
 //      "receiptDate": "2020-09-15T09:38:00Z",
 //      "acknowledgementReference": "8493893huer3ruihuow",
@@ -39,7 +39,7 @@ import java.time.LocalDateTime
 //      ]
 //    },
 //    "requestDetail": {
-//      "IDType": "CbC",
+//      "IDType": "CBC",
 //      "IDNumber": "YUDD789429"
 //    } }
 //  }
@@ -51,7 +51,7 @@ object CbCRequestParams {
 }
 
 case class CbCRequestCommon(
-  regime: String = "CbC",
+  regime: String = "CBC",
   conversationID: Option[String] = None,
   receiptDate: LocalDateTime,
   acknowledgementReference: String = "8493893huer3ruihuow",
@@ -62,7 +62,7 @@ case class CbCRequestCommon(
 object CbCRequestCommon {
   implicit val format: OFormat[CbCRequestCommon] = Json.format[CbCRequestCommon]
 
-  val cbcRegimeValidator: Validator[String] = check(_.equals("CbC"), s"invalid regime, only CbC supported")
+  val cbcRegimeValidator: Validator[String] = check(_.equals("CBC"), s"invalid regime, only CbC supported")
   val cbcOriginSystemValidator: Validator[String] = check(_.equals("MDTP"), s"invalid origin, only MDTP supported")
 
   val validate: Validator[CbCRequestCommon] = Validator(
@@ -73,14 +73,14 @@ object CbCRequestCommon {
 }
 
 case class CbCRequestDetail(
-  IDType: String = "CbC",
+  IDType: String = "CBC",
   IDNumber: String
 )
 
 object CbCRequestDetail {
   implicit val format: OFormat[CbCRequestDetail] = Json.format[CbCRequestDetail]
 
-  val idTypeValidator: Validator[String] = check(_.equals("CbC"), s"invalid id type")
+  val idTypeValidator: Validator[String] = check(_.equals("CBC"), s"invalid id type")
 
   val validate: Validator[CbCRequestDetail] = Validator(
     checkProperty(_.IDNumber, check(CbcId.isValid, s"invalid cbcId")),
@@ -88,22 +88,22 @@ object CbCRequestDetail {
   )
 }
 
-case class DisplaySubscriptionForCbCRequest(requestCommon: CbCRequestCommon, requestDetail: CbCRequestDetail)
+case class DisplaySubscriptionForCBCRequest(requestCommon: CbCRequestCommon, requestDetail: CbCRequestDetail)
 
-object DisplaySubscriptionForCbCRequest {
-  implicit val format: OFormat[DisplaySubscriptionForCbCRequest] = Json.format[DisplaySubscriptionForCbCRequest]
+object DisplaySubscriptionForCBCRequest {
+  implicit val format: OFormat[DisplaySubscriptionForCBCRequest] = Json.format[DisplaySubscriptionForCBCRequest]
 }
 
 /** Request payload originating from MTDP to display a Country by Country subscription */
-case class DisplaySubscriptionForCbCRequestPayload(displaySubscriptionForCbCRequest: DisplaySubscriptionForCbCRequest)
+case class DisplaySubscriptionForCbCRequestPayload(displaySubscriptionForCBCRequest: DisplaySubscriptionForCBCRequest)
 
 object DisplaySubscriptionForCbCRequestPayload {
   implicit val format: OFormat[DisplaySubscriptionForCbCRequestPayload] =
     Json.format[DisplaySubscriptionForCbCRequestPayload]
 
   val validate: Validator[DisplaySubscriptionForCbCRequestPayload] = Validator(
-    checkProperty(_.displaySubscriptionForCbCRequest.requestDetail, CbCRequestDetail.validate),
-    checkProperty(_.displaySubscriptionForCbCRequest.requestCommon, CbCRequestCommon.validate)
+    checkProperty(_.displaySubscriptionForCBCRequest.requestDetail, CbCRequestDetail.validate),
+    checkProperty(_.displaySubscriptionForCBCRequest.requestCommon, CbCRequestCommon.validate)
   )
 }
 
@@ -195,21 +195,21 @@ case class CbCResponseDetail(
   subscriptionID: String,
   tradingName: Option[String],
   isGBUser: Boolean,
-  primaryContact: CbcContactInformation,
-  secondaryContact: CbcContactInformation
+  primaryContact: Seq[CbcContactInformation],
+  secondaryContact: Seq[CbcContactInformation]
 )
 
 object CbCResponseDetail {
   implicit val format: OFormat[CbCResponseDetail] = Json.format[CbCResponseDetail]
 }
 
-case class DisplaySubscriptionForCbCResponse(responseCommon: CbCResponseCommon, responseDetail: CbCResponseDetail)
+case class DisplaySubscriptionForCBCResponse(responseCommon: CbCResponseCommon, responseDetail: CbCResponseDetail)
 
-object DisplaySubscriptionForCbCResponse {
-  implicit val format: OFormat[DisplaySubscriptionForCbCResponse] = Json.format[DisplaySubscriptionForCbCResponse]
+object DisplaySubscriptionForCBCResponse {
+  implicit val format: OFormat[DisplaySubscriptionForCBCResponse] = Json.format[DisplaySubscriptionForCBCResponse]
 
-  def fromRecord(record: CbcSubscriptionRecord): DisplaySubscriptionForCbCResponse =
-    DisplaySubscriptionForCbCResponse(
+  def fromRecord(record: CbcSubscriptionRecord): DisplaySubscriptionForCBCResponse =
+    DisplaySubscriptionForCBCResponse(
       CbCResponseCommon("OK", None, LocalDateTime.now(), None),
       CbCResponseDetail(
         record.cbcId,
@@ -223,14 +223,14 @@ object DisplaySubscriptionForCbCResponse {
 }
 
 /** Happy response from EIS/ETMP for Country by Country subscription */
-case class DisplaySubscriptionForCbC(displaySubscriptionForCbCResponse: DisplaySubscriptionForCbCResponse)
+case class DisplaySubscriptionForCbC(displaySubscriptionForCBCResponse: DisplaySubscriptionForCBCResponse)
 
 object DisplaySubscriptionForCbC {
   implicit val format: OFormat[DisplaySubscriptionForCbC] = Json.format[DisplaySubscriptionForCbC]
 
   def fromRecord(record: CbcSubscriptionRecord): DisplaySubscriptionForCbC =
     DisplaySubscriptionForCbC(
-      DisplaySubscriptionForCbCResponse.fromRecord(record)
+      DisplaySubscriptionForCBCResponse.fromRecord(record)
     )
 }
 
@@ -280,8 +280,8 @@ case class CbcSubscriptionRecord(
   cbcId: String,
   tradingName: Option[String],
   isGBUser: Boolean,
-  primaryContact: CbcContactInformation,
-  secondaryContact: CbcContactInformation
+  primaryContact: Seq[CbcContactInformation],
+  secondaryContact: Seq[CbcContactInformation]
 ) extends Record {
 
   override def uniqueKey: Option[String] = Option(cbcId).map(CbcSubscriptionRecord.uniqueKey)
@@ -291,7 +291,8 @@ case class CbcSubscriptionRecord(
 
   def withCbcId(cbcId: String): CbcSubscriptionRecord = copy(cbcId = cbcId)
   def withIsUK(isUK: Boolean): CbcSubscriptionRecord = copy(isGBUser = isUK)
-  def withEmail(email: String): CbcSubscriptionRecord = copy(primaryContact = primaryContact.copy(email = email))
+  def withEmail(email: String): CbcSubscriptionRecord =
+    copy(primaryContact = List(primaryContact.head.copy(email = email)))
 
 }
 
@@ -311,8 +312,8 @@ object CbcSubscriptionRecord extends RecordUtils[CbcSubscriptionRecord] {
     cbcId = cbcId,
     tradingName = tradingName,
     isGBUser = isGBUser,
-    primaryContact = primaryContact,
-    secondaryContact = secondaryContact
+    primaryContact = List(primaryContact),
+    secondaryContact = List(secondaryContact)
   )
 
   def generateWith(cbcId: String, isUK: Boolean): CbcSubscriptionRecord =
@@ -323,8 +324,8 @@ object CbcSubscriptionRecord extends RecordUtils[CbcSubscriptionRecord] {
 
   override val validate: Validator[CbcSubscriptionRecord] = Validator(
     checkProperty(_.cbcId, check(CbcId.isValid, s"invalid cbcId")),
-    checkProperty(_.primaryContact, CbcContactInformation.validate),
-    checkProperty(_.secondaryContact, CbcContactInformation.validate)
+    checkProperty(_.primaryContact.head, CbcContactInformation.validate),
+    checkProperty(_.secondaryContact.head, CbcContactInformation.validate)
   )
   override val sanitizers = Seq()
 

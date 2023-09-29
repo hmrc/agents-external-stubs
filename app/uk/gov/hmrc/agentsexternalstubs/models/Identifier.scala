@@ -24,5 +24,5 @@ case class Identifier(key: String, value: String) {
 
 object Identifier {
   implicit val format: Format[Identifier] = Json.format[Identifier]
-  implicit val ordering: Ordering[Identifier] = Ordering.by(_.key)
+  implicit val ordering: Ordering[Identifier] = Ordering.by(_.key.toLowerCase)
 }

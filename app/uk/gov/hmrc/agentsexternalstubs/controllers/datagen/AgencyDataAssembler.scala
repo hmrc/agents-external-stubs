@@ -96,7 +96,7 @@ class AgencyDataAssembler extends Logging {
         case "HMRC-MTD-IT"  => Seq(Identifier("MTDITID", Generator.mtdbsa(seed).value))
         case "HMRC-MTD-VAT" => Seq(Identifier("VRN", Generator.vrn(seed).value))
         case "HMRC-CBC-ORG" =>
-          Seq(Identifier("UTR", Generator.utr(seed)), Identifier("cbcId", Generator.cbcId(seed).value))
+          Seq(Identifier("cbcId", Generator.cbcId(seed).value), Identifier("UTR", Generator.utr(seed)))
         case "HMRC-CBC-NONUK-ORG" => Seq(Identifier("cbcId", Generator.cbcId(seed).value))
         case "HMRC-CGT-PD"        => Seq(Identifier("CGTPDRef", Generator.cgtPdRef(seed)))
         case "HMRC-PPT-ORG" =>

@@ -45,7 +45,7 @@ class CountryByCountryController @Inject() (
             errors => // add other error responses? 409, 503
               errorResponse(400, "Invalid JSON document", errors.toString()),
             _ => {
-              val cbcId = payload.displaySubscriptionForCbCRequest.requestDetail.IDNumber
+              val cbcId = payload.displaySubscriptionForCBCRequest.requestDetail.IDNumber
               cbCSubscriptionRecordsService
                 .getCbcSubscriptionRecord(CbcId(cbcId), session.planetId)
                 .flatMap(maybeRecord =>

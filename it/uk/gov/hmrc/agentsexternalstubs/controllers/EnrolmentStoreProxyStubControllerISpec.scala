@@ -1516,7 +1516,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
 
     "POST /enrolment-store-proxy/enrolment-store/enrolments (ES20)" should {
       val cbcId = "XECBC0666272111"
-      val enrolmentKey = s"HMRC-CBC-ORG~UTR~8989040376~cbcId~$cbcId"
+      val enrolmentKey = s"HMRC-CBC-ORG~cbcId~$cbcId~UTR~8989040376"
 
       def setKnownFacts()(implicit ac: AuthContext) = EnrolmentStoreProxyStub
         .setKnownFacts(
