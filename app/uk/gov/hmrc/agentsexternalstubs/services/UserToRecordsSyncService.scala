@@ -169,7 +169,7 @@ class UserToRecordsSyncService @Inject() (
 
         // overrides email with value generated from record
         def updateKnownFacts(knownFacts: Option[KnownFacts]) = {
-          val updatedKnownFacts = Seq(KnownFact("Email", cbcRecord.primaryContact.email))
+          val updatedKnownFacts = Seq(KnownFact("Email", cbcRecord.primaryContact.head.email))
           knownFactsRepository.upsert(knownFacts.get.copy(verifiers = updatedKnownFacts), user.planetId.get)
         }
 
@@ -186,7 +186,7 @@ class UserToRecordsSyncService @Inject() (
         // overrides email with value generated from record
         def updateKnownFacts(knownFacts: Option[KnownFacts]) = {
           val updatedKnownFacts = knownFacts.get.verifiers.filterNot(_.key == "Email") ++ Seq(
-            KnownFact("Email", cbcRecord.primaryContact.email)
+            KnownFact("Email", cbcRecord.primaryContact.head.email)
           )
           knownFactsRepository.upsert(knownFacts.get.copy(verifiers = updatedKnownFacts), user.planetId.get)
         }
