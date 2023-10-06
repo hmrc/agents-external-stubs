@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentsexternalstubs.models
-import java.util.UUID
+package uk.gov.hmrc.agentsexternalstubs.models.admin
+
 import org.scalacheck.Gen
 import uk.gov.hmrc.domain.Nino
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.UUID
 
 object UserGenerator {
 
@@ -38,6 +39,7 @@ object UserGenerator {
   val nameForAgentGen: Gen[String] = for {
     f <- forename().suchThat(_.length > 0); s <- surname.suchThat(_.length > 0)
   } yield s"$f $s"
+
   def nameForAgent(userId: String, groupId: String): String =
     s"${forename().suchThat(_.length > 0).seeded(userId).getOrElse("Agent")} ${surname.suchThat(_.length > 0).seeded(groupId).getOrElse("Cooper")}"
 
@@ -55,12 +57,15 @@ object UserGenerator {
     date(dateOfBirthLow, dateOfBirthHigh).seeded(userId).map(d => LocalDate.parse(d.toString)).get
 
   private final val groupIdGen = pattern"9Z9Z-Z9Z9-9Z9Z-Z9Z9".gen
+
   def groupId(seed: String): String = groupIdGen.seeded(seed).get
 
   private final val agentCodeGen = pattern"ZZZZZZ999999".gen
+
   def agentCode(seed: String): String = agentCodeGen.seeded(seed).get
 
   private final val agentIdGen = pattern"999999".gen
+
   def agentId(seed: String): String = agentIdGen.seeded(seed).get
 
   def sex(userId: String): String = Gen.oneOf("M", "F").seeded(userId).get
@@ -79,6 +84,7 @@ object UserGenerator {
                 " & " + ln
               )
   } yield s"$ln$suffix"
+
   def agentFriendlyName(userId: String): String =
     agencyNameGen.seeded(userId + "_agent").get
 

@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentsexternalstubs.controllers
+package uk.gov.hmrc.agentsexternalstubs.controllers.admin
 
 import org.scalamock.scalatest.MockFactory
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{AnyContentAsEmpty, ControllerComponents, Result}
-import play.api.test.{FakeHeaders, FakeRequest, Helpers}
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, EnrolmentKey, KnownFact, KnownFacts, User}
+import play.api.test.{FakeRequest, Helpers}
+import uk.gov.hmrc.agentsexternalstubs.models.admin.User
+import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, KnownFact, KnownFacts}
 import uk.gov.hmrc.agentsexternalstubs.repository.{KnownFactsRepository, UsersRepository}
 import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
 import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
@@ -37,16 +38,6 @@ class KnownFactsControllerSpec extends BaseUnitSpec with MockFactory {
     val controllerComponents: ControllerComponents = Helpers.stubControllerComponents()
     implicit val eC: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
     implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
-
-    val authSessionHeaders: FakeHeaders = FakeHeaders(
-      Seq(
-        AuthenticatedSession.TAG_SESSION_ID    -> "session123",
-        AuthenticatedSession.TAG_USER_ID       -> "userId",
-        AuthenticatedSession.TAG_AUTH_TOKEN    -> "good",
-        AuthenticatedSession.TAG_PROVIDER_TYPE -> "off",
-        AuthenticatedSession.TAG_PLANET_ID     -> "earth467"
-      )
-    )
 
     def jsRequest(method: String, uri: String, jsonBody: JsValue): FakeRequest[JsValue] =
       FakeRequest[JsValue](method, uri, authSessionHeaders, jsonBody).withSession(SessionKeys.authToken -> "Bearer XYZ")
@@ -140,7 +131,7 @@ class KnownFactsControllerSpec extends BaseUnitSpec with MockFactory {
       //given
       expectUpsertKnownFacts
 
-      val jsonPayload = Json.parse(s"""
+      val jsonPayload: JsValue = Json.parse(s"""
         |{ "enrolmentKey": "$enrolmentKeyStr",
         |  "identifiers": [
         |   {

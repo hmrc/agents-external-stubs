@@ -21,7 +21,7 @@ import javax.inject.{Inject, Singleton}
 import play.api.http.HeaderNames
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GroupsService, UsersService}
+import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -31,12 +31,12 @@ import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 
 import scala.util.Random
 import play.api.Logger
+import uk.gov.hmrc.agentsexternalstubs.models.admin.{AG, Group, User, UserIdGenerator}
 
 @Singleton
 class SignInController @Inject() (
   val authenticationService: AuthenticationService,
   usersService: UsersService,
-  groupsService: GroupsService,
   authLoginApiConnector: AuthLoginApiConnector,
   appConfig: AppConfig,
   cc: ControllerComponents

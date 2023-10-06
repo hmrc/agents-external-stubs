@@ -18,7 +18,8 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.json.JsValue
 import play.api.mvc.{Action, ControllerComponents}
-import uk.gov.hmrc.agentsexternalstubs.models.{NinoClStoreEntry, User}
+import uk.gov.hmrc.agentsexternalstubs.models.NinoClStoreEntry
+import uk.gov.hmrc.agentsexternalstubs.models.admin.User
 import uk.gov.hmrc.agentsexternalstubs.repository.DuplicateUserException
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.domain.Nino

@@ -16,8 +16,7 @@
 package uk.gov.hmrc.agentsexternalstubs.repository
 
 import java.util.UUID
-
-import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.admin.{User, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.support.AppBaseISpec
 import uk.gov.hmrc.domain.Nino
 import play.api.test.Helpers._

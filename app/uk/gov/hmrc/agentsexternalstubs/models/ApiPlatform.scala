@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 import play.api.libs.json.{Format, Json}
-import uk.gov.hmrc.agentsexternalstubs.models.User.AdditionalInformation
+import uk.gov.hmrc.agentsexternalstubs.models.admin.User.AdditionalInformation
+import uk.gov.hmrc.agentsexternalstubs.models.admin.{AG, Group, GroupGenerator, User}
 import uk.gov.hmrc.domain.{EmpRef, Nino}
 
 import java.time.LocalDate
@@ -87,7 +88,7 @@ object ApiPlatform {
 
     def asUserAndGroup(testUser: TestUser): (User, Group) = {
       val groupId = GroupGenerator.groupId(seed = testUser.hashCode().toString)
-      val user = User(
+      val user = admin.User(
         userId = testUser.userId,
         groupId = Some(groupId),
         confidenceLevel = if (testUser.affinityGroup == AG.Individual) Some(250) else None,

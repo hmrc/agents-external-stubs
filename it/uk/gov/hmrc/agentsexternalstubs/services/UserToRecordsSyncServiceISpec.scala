@@ -10,6 +10,7 @@ import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.agentsexternalstubs.support._
 import uk.gov.hmrc.domain.Nino
 import play.api.test.Helpers._
+import uk.gov.hmrc.agentsexternalstubs.models.admin.{AG, GroupGenerator, UserGenerator}
 
 import scala.concurrent.duration._
 

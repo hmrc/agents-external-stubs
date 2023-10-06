@@ -2,7 +2,8 @@ package uk.gov.hmrc.agentsexternalstubs.connectors
 
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Group, User, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.admin.{AG, Group, User, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.AuthenticatedSession
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests}
 

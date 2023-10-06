@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentsexternalstubs.models
-import play.api.libs.json.{Format, Json, Writes}
+package uk.gov.hmrc.agentsexternalstubs.models.admin
 
-case class Users(users: Seq[User])
-
-object Users {
-  implicit val userWrites: Writes[User] = User.writes
-  implicit def format: Format[Users] = Json.format[Users]
+object Planet {
+  val DEFAULT: String = "hmrc"
 }

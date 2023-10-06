@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentsexternalstubs.models
+package uk.gov.hmrc.agentsexternalstubs.models.admin
+
 import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
+import uk.gov.hmrc.agentsexternalstubs.models.{Enrolment, Services, Validator}
 
 case class UserValidator(affinityGroup: Option[String]) {
 

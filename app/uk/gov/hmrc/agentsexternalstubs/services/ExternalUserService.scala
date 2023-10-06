@@ -21,7 +21,8 @@ import play.api.Logger
 import uk.gov.hmrc.agentmtdidentifiers.model.Utr
 import uk.gov.hmrc.agentsexternalstubs.connectors.ApiPlatformTestUserConnector
 import uk.gov.hmrc.agentsexternalstubs.models.ApiPlatform.TestUser
-import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, Planet, User}
+import uk.gov.hmrc.agentsexternalstubs.models.admin.{Planet, User}
+import uk.gov.hmrc.agentsexternalstubs.models.EnrolmentKey
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.domain.{Nino, SaUtr, Vrn}
 import uk.gov.hmrc.http.HeaderCarrier

@@ -21,8 +21,10 @@ import play.api.Logger
 import play.api.libs.json.Json
 import uk.gov.hmrc.agentsexternalstubs.controllers.BearerToken
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.admin.{Group, User}
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.http.{HeaderCarrier, HttpPost, Upstream4xxResponse, Upstream5xxResponse}
+
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 

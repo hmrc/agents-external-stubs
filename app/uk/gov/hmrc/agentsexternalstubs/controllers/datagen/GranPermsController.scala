@@ -19,7 +19,8 @@ package uk.gov.hmrc.agentsexternalstubs.controllers.datagen
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.agentsexternalstubs.controllers.CurrentSession
-import uk.gov.hmrc.agentsexternalstubs.models.{AG, GranPermsGenRequest, GranPermsGenResponse, User}
+import uk.gov.hmrc.agentsexternalstubs.models.admin._
+import uk.gov.hmrc.agentsexternalstubs.models.{GranPermsGenRequest, GranPermsGenResponse}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GranPermsService, UsersService}
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController

@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentsexternalstubs.models
+package uk.gov.hmrc.agentsexternalstubs.models.admin
 
 import cats.data.Validated.{Invalid, Valid}
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.agentsexternalstubs.models.Enrolment
 
 case class Group(
   planetId: String,

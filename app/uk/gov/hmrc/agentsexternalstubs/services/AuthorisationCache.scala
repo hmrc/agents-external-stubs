@@ -17,11 +17,11 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 import java.util.concurrent.ConcurrentHashMap
 import java.util.function.BiFunction
-
 import com.github.blemale.scaffeine.{Cache, Scaffeine}
 import uk.gov.hmrc.agentsexternalstubs.controllers.AuthStubController.Authorise
 import uk.gov.hmrc.agentsexternalstubs.models.Retrieve.MaybeResponse
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.admin.{Group, User}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._

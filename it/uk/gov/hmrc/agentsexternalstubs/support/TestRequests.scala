@@ -7,6 +7,7 @@ import play.api.libs.ws.{BodyWritable, WSClient, WSCookie, WSResponse}
 import play.api.mvc.{Cookie, DefaultCookieHeaderEncoding}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.EnrolmentsFromKnownFactsRequest
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.admin.{AG, Group, GroupGenerator, User}
 import uk.gov.hmrc.http.{Authorization, HeaderCarrier}
 
 import java.util.UUID

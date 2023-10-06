@@ -18,8 +18,9 @@ package uk.gov.hmrc.agentsexternalstubs.controllers.datagen
 
 import play.api.Logging
 import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord.Common
-import uk.gov.hmrc.agentsexternalstubs.models.User.CR
+import uk.gov.hmrc.agentsexternalstubs.models.admin.User.CR
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.admin.{AG, User, UserGenerator}
 
 import scala.annotation.tailrec
 import scala.util.Random

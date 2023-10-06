@@ -24,7 +24,8 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{ControllerComponents, Request, Result}
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, EnrolmentKey, User}
+import uk.gov.hmrc.agentsexternalstubs.models.admin.User
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, EnrolmentKey}
 import uk.gov.hmrc.agentsexternalstubs.repository.{DuplicateUserException, KnownFactsRepository}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GroupsService, UsersService}
 import uk.gov.hmrc.http.HeaderCarrier

@@ -24,6 +24,7 @@ import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.agentsexternalstubs.connectors.AgentAccessControlConnector
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.admin.{AG, Group, User}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, AuthorisationCache, GroupsService, UsersService}
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController

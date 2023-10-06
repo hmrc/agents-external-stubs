@@ -4,7 +4,8 @@ import play.api.libs.json.{JsObject, Json, Reads, Writes}
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
 import play.mvc.Http.{HeaderNames, MimeTypes}
-import uk.gov.hmrc.agentsexternalstubs.models.SpecialCase.RequestMatch
+import uk.gov.hmrc.agentsexternalstubs.models.admin.SpecialCase.RequestMatch
+import uk.gov.hmrc.agentsexternalstubs.models.admin._
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.SpecialCasesRepository
 import uk.gov.hmrc.agentsexternalstubs.support._

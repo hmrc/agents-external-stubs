@@ -17,7 +17,8 @@
 package uk.gov.hmrc.agentsexternalstubs.wiring
 
 import play.api.Logger
-import uk.gov.hmrc.agentsexternalstubs.models.{BusinessDetailsRecord, BusinessPartnerRecord, UserIdGenerator, VatCustomerInformationRecord}
+import uk.gov.hmrc.agentsexternalstubs.models.admin.UserIdGenerator
+import uk.gov.hmrc.agentsexternalstubs.models.{BusinessDetailsRecord, BusinessPartnerRecord, VatCustomerInformationRecord}
 
 import javax.inject.{Inject, Singleton}
 

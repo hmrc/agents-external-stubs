@@ -23,7 +23,7 @@ import play.api.http.{HttpConfiguration, HttpErrorHandler, HttpFilters}
 import play.api.mvc._
 import play.api.routing.Router
 import play.core.WebCommands
-import uk.gov.hmrc.agentsexternalstubs.controllers.SpecialCasesController
+import uk.gov.hmrc.agentsexternalstubs.controllers.admin.SpecialCasesController
 
 class SpecialCasesRequestHandler @Inject() (
   webCommands: WebCommands,

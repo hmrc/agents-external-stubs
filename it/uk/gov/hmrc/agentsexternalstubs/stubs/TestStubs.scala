@@ -4,6 +4,7 @@ import org.scalatest.Suite
 import play.api.Application
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.admin.{AG, User, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GroupsService, UsersService}
 
 import java.util.UUID

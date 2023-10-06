@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentsexternalstubs.models
+package uk.gov.hmrc.agentsexternalstubs.models.admin
 
 import org.scalacheck.Gen
 import uk.gov.hmrc.agentsexternalstubs.models.Validator.Validator
+import uk.gov.hmrc.agentsexternalstubs.models._
 
 case class UserSanitizer(affinityGroup: Option[String]) extends RecordUtils[User] {
 

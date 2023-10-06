@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentsexternalstubs.controllers
+package uk.gov.hmrc.agentsexternalstubs.controllers.admin
 
 import play.api.libs.json.JsValue
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import play.mvc.Http.HeaderNames
-import uk.gov.hmrc.agentsexternalstubs.models.{Group, GroupGenerator, Groups}
+import uk.gov.hmrc.agentsexternalstubs.controllers.{CurrentSession, Link, RestfulResponse}
+import uk.gov.hmrc.agentsexternalstubs.models.admin.{Group, GroupGenerator, Groups}
 import uk.gov.hmrc.agentsexternalstubs.repository.DuplicateGroupException
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GroupsService, UsersService}
 import uk.gov.hmrc.http.NotFoundException

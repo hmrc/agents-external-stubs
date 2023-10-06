@@ -17,6 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import uk.gov.hmrc.agentsexternalstubs.controllers.datagen.AgencyDataAssembler
+import uk.gov.hmrc.agentsexternalstubs.models.admin._
 import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 
 class AgencyDataAssemblerSpec extends BaseUnitSpec {

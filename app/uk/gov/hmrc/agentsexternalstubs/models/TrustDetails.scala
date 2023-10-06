@@ -19,7 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import play.api.libs.json.{Format, Json}
 import play.api.mvc.Result
 import uk.gov.hmrc.agentsexternalstubs.controllers.HttpHelpers
-import uk.gov.hmrc.agentsexternalstubs.models.User.Address
+import uk.gov.hmrc.agentsexternalstubs.models.admin.User.Address
 
 case class TrustAddress(
   line1: String,

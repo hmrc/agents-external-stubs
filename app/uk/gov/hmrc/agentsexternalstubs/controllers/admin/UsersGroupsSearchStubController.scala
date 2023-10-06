@@ -14,16 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentsexternalstubs.controllers
+package uk.gov.hmrc.agentsexternalstubs.controllers.admin
 
-import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{JsArray, JsObject, Json, Writes}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.agentsexternalstubs.controllers.UsersGroupsSearchStubController.{GetGroupResponse, GetUserResponse}
-import uk.gov.hmrc.agentsexternalstubs.models.{AG, Generator, Group, User}
+import uk.gov.hmrc.agentsexternalstubs.controllers.admin.UsersGroupsSearchStubController.{GetGroupResponse, GetUserResponse}
+import uk.gov.hmrc.agentsexternalstubs.controllers.{CurrentSession, Link, RestfulResponse}
+import uk.gov.hmrc.agentsexternalstubs.models.admin.{AG, Group, User}
+import uk.gov.hmrc.agentsexternalstubs.models.Generator
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GroupsService, UsersService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton

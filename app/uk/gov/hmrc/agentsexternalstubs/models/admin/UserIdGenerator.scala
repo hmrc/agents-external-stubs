@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentsexternalstubs.models
-import java.util.concurrent.ConcurrentHashMap
+package uk.gov.hmrc.agentsexternalstubs.models.admin
 
+import java.util.concurrent.ConcurrentHashMap
 import scala.io.Source
 import scala.util.Random
 
@@ -55,7 +55,9 @@ object UserIdGenerator {
 
   private class UserIdIterator(userIds: Seq[String]) extends Iterator[String] {
     @volatile var i = 0
+
     override def hasNext: Boolean = i < userIds.length - 1
+
     override def next(): String = {
       val id = userIds(i)
       i = i + 1

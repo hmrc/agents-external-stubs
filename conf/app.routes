@@ -13,7 +13,7 @@ GET           /auth/oid/:oid                                                    
 GET           /auth/oid/:oid/enrolments                                                              @uk.gov.hmrc.agentsexternalstubs.controllers.AuthStubController.getEnrolmentsByOid(oid:String)
 
 # User details stubs
-GET           /user-details/id/:id                                                                   @uk.gov.hmrc.agentsexternalstubs.controllers.UserDetailsStubController.getUser(id: String)
+GET           /user-details/id/:id                                                                   @uk.gov.hmrc.agentsexternalstubs.controllers.admin.UserDetailsStubController.getUser(id: String)
 
 # Citizen details stubs
 GET           /citizen-details/:nino/designatory-details/basic                                       @uk.gov.hmrc.agentsexternalstubs.controllers.CitizenDetailsStubController.getDesignatoryDetailsBasic(nino: String)
@@ -21,10 +21,10 @@ GET           /citizen-details/:nino/designatory-details                        
 GET           /citizen-details/:idName/:taxId                                                        @uk.gov.hmrc.agentsexternalstubs.controllers.CitizenDetailsStubController.getCitizen(idName: String, taxId: String)
 
 # Users Groups Search stubs
-GET           /users-groups-search/users/:userId                                                     @uk.gov.hmrc.agentsexternalstubs.controllers.UsersGroupsSearchStubController.getUser(userId: String)
-GET           /users-groups-search/groups/:groupId                                                   @uk.gov.hmrc.agentsexternalstubs.controllers.UsersGroupsSearchStubController.getGroup(groupId: String)
-GET           /users-groups-search/groups/:groupId/users                                             @uk.gov.hmrc.agentsexternalstubs.controllers.UsersGroupsSearchStubController.getGroupUsers(groupId: String)
-GET           /users-groups-search/groups                                                            @uk.gov.hmrc.agentsexternalstubs.controllers.UsersGroupsSearchStubController.getGroupByAgentCode(agentCode: String)
+GET           /users-groups-search/users/:userId                                                     @uk.gov.hmrc.agentsexternalstubs.controllers.admin.UsersGroupsSearchStubController.getUser(userId: String)
+GET           /users-groups-search/groups/:groupId                                                   @uk.gov.hmrc.agentsexternalstubs.controllers.admin.UsersGroupsSearchStubController.getGroup(groupId: String)
+GET           /users-groups-search/groups/:groupId/users                                             @uk.gov.hmrc.agentsexternalstubs.controllers.admin.UsersGroupsSearchStubController.getGroupUsers(groupId: String)
+GET           /users-groups-search/groups                                                            @uk.gov.hmrc.agentsexternalstubs.controllers.admin.UsersGroupsSearchStubController.getGroupByAgentCode(agentCode: String)
 
 # Enrolment Store Proxy stubs
 GET           /enrolment-store-proxy/enrolment-store/enrolments/:enrolmentKey/users                         @uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.getUserIds(enrolmentKey: EnrolmentKey, `type`: String ?= "all")
@@ -126,23 +126,23 @@ GET           /agents-external-stubs/session                                    
 GET           /agents-external-stubs/sign-out                                                        @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.signOut
 
 # User management
-GET           /agents-external-stubs/users                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.getUsers(affinityGroup: Option[String] ?= None, limit: Option[Int] ?= None, groupId: Option[String] ?= None, agentCode: Option[String] ?= None)
-GET           /agents-external-stubs/users/:userId                                                   @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.getUser(userId: String)
-PUT           /agents-external-stubs/users                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.updateCurrentUser
-PUT           /agents-external-stubs/users/:userId                                                   @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.updateUser(userId: String)
-POST          /agents-external-stubs/users                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.createUser(affinityGroup: Option[String], planetId: Option[String] ?= None)
-POST          /agents-external-stubs/users/api-platform                                              @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.createApiPlatformTestUser
-DELETE        /agents-external-stubs/users/:userId                                                   @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.deleteUser(userId: String)
-POST          /agents-external-stubs/users/re-index                                                  @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.reindexAllUsers()
+GET           /agents-external-stubs/users                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.admin.UsersController.getUsers(affinityGroup: Option[String] ?= None, limit: Option[Int] ?= None, groupId: Option[String] ?= None, agentCode: Option[String] ?= None)
+GET           /agents-external-stubs/users/:userId                                                   @uk.gov.hmrc.agentsexternalstubs.controllers.admin.UsersController.getUser(userId: String)
+PUT           /agents-external-stubs/users                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.admin.UsersController.updateCurrentUser
+PUT           /agents-external-stubs/users/:userId                                                   @uk.gov.hmrc.agentsexternalstubs.controllers.admin.UsersController.updateUser(userId: String)
+POST          /agents-external-stubs/users                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.admin.UsersController.createUser(affinityGroup: Option[String], planetId: Option[String] ?= None)
+POST          /agents-external-stubs/users/api-platform                                              @uk.gov.hmrc.agentsexternalstubs.controllers.admin.UsersController.createApiPlatformTestUser
+DELETE        /agents-external-stubs/users/:userId                                                   @uk.gov.hmrc.agentsexternalstubs.controllers.admin.UsersController.deleteUser(userId: String)
+POST          /agents-external-stubs/users/re-index                                                  @uk.gov.hmrc.agentsexternalstubs.controllers.admin.UsersController.reindexAllUsers()
 
 # Group management
-GET           /agents-external-stubs/groups                                                          @uk.gov.hmrc.agentsexternalstubs.controllers.GroupsController.getGroups(affinityGroup: Option[String] ?= None, limit: Option[Int] ?= None, agentCode: Option[String] ?= None)
-GET           /agents-external-stubs/groups/:groupId                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.GroupsController.getGroup(groupId: String)
-PUT           /agents-external-stubs/groups                                                          @uk.gov.hmrc.agentsexternalstubs.controllers.GroupsController.updateCurrentGroup
-PUT           /agents-external-stubs/groups/:groupId                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.GroupsController.updateGroup(groupId: String)
-POST          /agents-external-stubs/groups                                                          @uk.gov.hmrc.agentsexternalstubs.controllers.GroupsController.createGroup
-DELETE        /agents-external-stubs/groups/:groupId                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.GroupsController.deleteGroup(groupId: String)
-POST          /agents-external-stubs/groups/re-index                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.GroupsController.reindexAllGroups()
+GET           /agents-external-stubs/groups                                                          @uk.gov.hmrc.agentsexternalstubs.controllers.admin.GroupsController.getGroups(affinityGroup: Option[String] ?= None, limit: Option[Int] ?= None, agentCode: Option[String] ?= None)
+GET           /agents-external-stubs/groups/:groupId                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.admin.GroupsController.getGroup(groupId: String)
+PUT           /agents-external-stubs/groups                                                          @uk.gov.hmrc.agentsexternalstubs.controllers.admin.GroupsController.updateCurrentGroup
+PUT           /agents-external-stubs/groups/:groupId                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.admin.GroupsController.updateGroup(groupId: String)
+POST          /agents-external-stubs/groups                                                          @uk.gov.hmrc.agentsexternalstubs.controllers.admin.GroupsController.createGroup
+DELETE        /agents-external-stubs/groups/:groupId                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.admin.GroupsController.deleteGroup(groupId: String)
+POST          /agents-external-stubs/groups/re-index                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.admin.GroupsController.reindexAllGroups()
 
 # Records management
 GET           /agents-external-stubs/records                                                         @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.getRecords
@@ -170,19 +170,19 @@ POST          /agents-external-stubs/records/cbc-subscription                   
 GET           /agents-external-stubs/records/cbc-subscription/generate                               @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generateCbcSubscriptionRecord(seed: Option[String] ?= None, ninimal: Boolean ?= false)
 
 # Known facts management
-POST          /agents-external-stubs/known-facts                                                     @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.createKnownFacts
-GET           /agents-external-stubs/known-facts/:enrolmentKey                                       @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.getKnownFacts(enrolmentKey: EnrolmentKey)
-PUT           /agents-external-stubs/known-facts/:enrolmentKey                                       @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.upsertKnownFacts(enrolmentKey: EnrolmentKey)
-PUT           /agents-external-stubs/known-facts/:enrolmentKey/verifier                              @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.upsertKnownFactVerifier(enrolmentKey: EnrolmentKey)
-DELETE        /agents-external-stubs/known-facts/:enrolmentKey                                       @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.deleteKnownFacts(enrolmentKey: EnrolmentKey)
-POST          /agents-external-stubs/known-facts/regime/PAYE/:agentId                                @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.createPAYEKnownFacts(agentId: String)
+POST          /agents-external-stubs/known-facts                                                     @uk.gov.hmrc.agentsexternalstubs.controllers.admin.KnownFactsController.createKnownFacts
+GET           /agents-external-stubs/known-facts/:enrolmentKey                                       @uk.gov.hmrc.agentsexternalstubs.controllers.admin.KnownFactsController.getKnownFacts(enrolmentKey: EnrolmentKey)
+PUT           /agents-external-stubs/known-facts/:enrolmentKey                                       @uk.gov.hmrc.agentsexternalstubs.controllers.admin.KnownFactsController.upsertKnownFacts(enrolmentKey: EnrolmentKey)
+PUT           /agents-external-stubs/known-facts/:enrolmentKey/verifier                              @uk.gov.hmrc.agentsexternalstubs.controllers.admin.KnownFactsController.upsertKnownFactVerifier(enrolmentKey: EnrolmentKey)
+DELETE        /agents-external-stubs/known-facts/:enrolmentKey                                       @uk.gov.hmrc.agentsexternalstubs.controllers.admin.KnownFactsController.deleteKnownFacts(enrolmentKey: EnrolmentKey)
+POST          /agents-external-stubs/known-facts/regime/PAYE/:agentId                                @uk.gov.hmrc.agentsexternalstubs.controllers.admin.KnownFactsController.createPAYEKnownFacts(agentId: String)
 
 # Special cases management
-GET           /agents-external-stubs/special-cases                                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SpecialCasesController.getAllSpecialCases
-POST          /agents-external-stubs/special-cases                                                   @uk.gov.hmrc.agentsexternalstubs.controllers.SpecialCasesController.createSpecialCase
-GET           /agents-external-stubs/special-cases/:id                                               @uk.gov.hmrc.agentsexternalstubs.controllers.SpecialCasesController.getSpecialCase(id: String)
-PUT           /agents-external-stubs/special-cases/:id                                               @uk.gov.hmrc.agentsexternalstubs.controllers.SpecialCasesController.updateSpecialCase(id: String)
-DELETE        /agents-external-stubs/special-cases/:id                                               @uk.gov.hmrc.agentsexternalstubs.controllers.SpecialCasesController.deleteSpecialCase(id: String)
+GET           /agents-external-stubs/special-cases                                                   @uk.gov.hmrc.agentsexternalstubs.controllers.admin.SpecialCasesController.getAllSpecialCases
+POST          /agents-external-stubs/special-cases                                                   @uk.gov.hmrc.agentsexternalstubs.controllers.admin.SpecialCasesController.createSpecialCase
+GET           /agents-external-stubs/special-cases/:id                                               @uk.gov.hmrc.agentsexternalstubs.controllers.admin.SpecialCasesController.getSpecialCase(id: String)
+PUT           /agents-external-stubs/special-cases/:id                                               @uk.gov.hmrc.agentsexternalstubs.controllers.admin.SpecialCasesController.updateSpecialCase(id: String)
+DELETE        /agents-external-stubs/special-cases/:id                                               @uk.gov.hmrc.agentsexternalstubs.controllers.admin.SpecialCasesController.deleteSpecialCase(id: String)
 
 #File Upload urls
 POST          /file-upload/envelopes                                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.FileUploadController.createEnvelope()
@@ -194,10 +194,10 @@ POST          /agents-external-stubs/test/gran-perms/generate-users             
 POST          /agents-external-stubs/test/gran-perms/generate-perf-data                              @uk.gov.hmrc.agentsexternalstubs.controllers.datagen.PerfDataController.generate
 
 # Config management
-GET           /agents-external-stubs/config/services                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.ConfigController.getServices
+GET           /agents-external-stubs/config/services                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.admin.ConfigController.getServices
 
 # Planets management
-DELETE        /agents-external-stubs/planets/:planetId                                               @uk.gov.hmrc.agentsexternalstubs.controllers.PlanetsController.destroy(planetId: String)
+DELETE        /agents-external-stubs/planets/:planetId                                               @uk.gov.hmrc.agentsexternalstubs.controllers.admin.PlanetsController.destroy(planetId: String)
 
 # Generic proxy
 GET           /*path                                                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.ProxyController.proxyPassTo(path: String)

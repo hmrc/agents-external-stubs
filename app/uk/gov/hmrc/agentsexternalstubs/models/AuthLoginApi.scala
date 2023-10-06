@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 import play.api.libs.json.{Format, Json, Reads}
+import uk.gov.hmrc.agentsexternalstubs.models.admin.{AG, Group, User}
 
 object AuthLoginApi {
 

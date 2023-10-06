@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 import java.util.Base64
-
 import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.agentsexternalstubs.models.RegexPatterns.Matcher
+import uk.gov.hmrc.agentsexternalstubs.models.admin.AG
 
 import scala.io.Source
 import java.io._

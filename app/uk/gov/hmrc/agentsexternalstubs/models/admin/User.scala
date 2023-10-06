@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentsexternalstubs.models
+package uk.gov.hmrc.agentsexternalstubs.models.admin
 
 import cats.data.Validated.{Invalid, Valid}
 import play.api.libs.json._
-import uk.gov.hmrc.agentsexternalstubs.models.User.AdditionalInformation
+import uk.gov.hmrc.agentsexternalstubs.models.admin.User.AdditionalInformation
+import uk.gov.hmrc.agentsexternalstubs.models.{Enrolment, EnrolmentKey, Generator, Identifier}
 import uk.gov.hmrc.domain.Nino
 
 import java.time.LocalDate

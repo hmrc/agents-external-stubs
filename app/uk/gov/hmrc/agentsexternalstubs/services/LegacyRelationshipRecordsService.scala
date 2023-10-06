@@ -16,8 +16,10 @@
 
 package uk.gov.hmrc.agentsexternalstubs.services
 
+import uk.gov.hmrc.agentsexternalstubs.models.admin.UserGenerator
+
 import javax.inject.{Inject, Singleton}
-import uk.gov.hmrc.agentsexternalstubs.models.{Generator, LegacyAgentRecord, LegacyRelationshipRecord, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.{Generator, LegacyAgentRecord, LegacyRelationshipRecord}
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.http.BadRequestException
 

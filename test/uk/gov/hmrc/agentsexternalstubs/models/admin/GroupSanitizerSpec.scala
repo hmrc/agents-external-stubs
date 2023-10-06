@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentsexternalstubs.models
+package uk.gov.hmrc.agentsexternalstubs.models.admin
 
+import uk.gov.hmrc.agentsexternalstubs.models.Enrolment
 import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 
 class GroupSanitizerSpec extends BaseUnitSpec {

@@ -5,6 +5,7 @@ import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.admin.{AG, Group, Planet, User, UserGenerator, Users}
 import uk.gov.hmrc.agentsexternalstubs.services.UsersService
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
@@ -140,7 +141,8 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       "create a new user on a specified planet even if the caller is unauthenticated" in {
         val result = wsClient
           .url(s"$url/agents-external-stubs/users?affinityGroup=Individual&planetId=bar")
-          .withHttpHeaders(Seq.empty: _*) // no headers: unauthenticated
+          // no headers: unauthenticated
+          .withHttpHeaders(Seq.empty: _*)
           .post(Json.toJson(User("foo")))
           .futureValue
         result should haveStatus(201)
@@ -150,7 +152,8 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       "not create a user if the caller is unauthenticated and planetId is not specified" in {
         val result = wsClient
           .url(s"$url/agents-external-stubs/users?affinityGroup=Individual")
-          .withHttpHeaders(Seq.empty: _*) // no headers: unauthenticated
+          // no headers: unauthenticated
+          .withHttpHeaders(Seq.empty: _*)
           .post(Json.toJson(User("foo")))
           .futureValue
         result should haveStatus(400)

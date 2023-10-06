@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentsexternalstubs.models
-import java.net.URLEncoder
+package uk.gov.hmrc.agentsexternalstubs.models.admin
 
 import akka.util.ByteString
 import play.api.http.HttpEntity
 import play.api.libs.json._
 import play.api.mvc.{ResponseHeader, Result}
 import play.mvc.Http.HeaderNames
+import uk.gov.hmrc.agentsexternalstubs.models.{Id, Validator}
+
+import java.net.URLEncoder
 
 case class SpecialCase(
   requestMatch: SpecialCase.RequestMatch,

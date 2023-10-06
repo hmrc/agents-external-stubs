@@ -5,6 +5,7 @@ import play.api.http.Status
 import play.api.libs.ws.WSClient
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.admin.{AG, Group, GroupGenerator, Groups, User, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.services.GroupsService
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._

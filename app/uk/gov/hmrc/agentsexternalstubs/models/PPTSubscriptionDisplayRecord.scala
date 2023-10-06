@@ -21,6 +21,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord.ChangeOfCircumstanceDetails.DeregistrationDetails
 import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord.LegalEntityDetails.CustomerDetails
 import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord._
+import uk.gov.hmrc.agentsexternalstubs.models.admin.AG
 import uk.gov.hmrc.smartstub.{Female, Male, Names}
 
 import java.text.SimpleDateFormat

@@ -25,7 +25,8 @@ import org.mongodb.scala.model._
 import org.mongodb.scala.result.DeleteResult
 import play.api.libs.json._
 import play.api.{Logger, Logging}
-import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, User}
+import uk.gov.hmrc.agentsexternalstubs.models.EnrolmentKey
+import uk.gov.hmrc.agentsexternalstubs.models.admin.User
 import uk.gov.hmrc.agentsexternalstubs.repository.UsersRepositoryMongo._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository

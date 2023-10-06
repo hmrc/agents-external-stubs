@@ -17,10 +17,10 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
 import java.util.UUID
-
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticateRequest, AuthenticatedSession, Planet}
+import uk.gov.hmrc.agentsexternalstubs.models.admin.Planet
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticateRequest, AuthenticatedSession}
 import uk.gov.hmrc.agentsexternalstubs.repository.AuthenticatedSessionsRepository
 import uk.gov.hmrc.http.HeaderCarrier
 

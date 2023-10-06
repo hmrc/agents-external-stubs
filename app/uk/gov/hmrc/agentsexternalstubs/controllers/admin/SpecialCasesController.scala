@@ -14,23 +14,24 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentsexternalstubs.controllers
+package uk.gov.hmrc.agentsexternalstubs.controllers.admin
 
-import java.net.URLDecoder
 import akka.stream.Materializer
 import akka.util.ByteString
-
-import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{JsValue, Reads, Writes}
 import play.api.libs.streams.Accumulator
 import play.api.mvc._
 import play.mvc.Http.HeaderNames
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, Id, SpecialCase}
+import uk.gov.hmrc.agentsexternalstubs.controllers.{CurrentPlanetId, CurrentSession}
+import uk.gov.hmrc.agentsexternalstubs.models.admin.SpecialCase
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, Id}
 import uk.gov.hmrc.agentsexternalstubs.repository.SpecialCasesRepository
 import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import java.net.URLDecoder
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 @Singleton

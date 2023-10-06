@@ -21,12 +21,23 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.mvc.Result
-import play.api.test.Helpers
+import play.api.test.{FakeHeaders, Helpers}
 import play.api.test.Helpers.defaultAwaitTimeout
+import uk.gov.hmrc.agentsexternalstubs.models.AuthenticatedSession
 
 import scala.concurrent.Future
 
 trait BaseUnitSpec extends AnyWordSpecLike with Matchers with OptionValues with ScalaFutures {
+  val authSessionHeaders: FakeHeaders = FakeHeaders(
+    Seq(
+      AuthenticatedSession.TAG_SESSION_ID    -> "session123",
+      AuthenticatedSession.TAG_USER_ID       -> "userId",
+      AuthenticatedSession.TAG_AUTH_TOKEN    -> "good",
+      AuthenticatedSession.TAG_PROVIDER_TYPE -> "off",
+      AuthenticatedSession.TAG_PLANET_ID     -> "earth467"
+    )
+  )
+
   // the following is a collection of useful methods that should minimise
   // the changes required when migrating away from hmrctest, which is now deprecated.
   def status(result: Result): Int = result.header.status

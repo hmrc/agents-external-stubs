@@ -17,6 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import uk.gov.hmrc.agentsexternalstubs.connectors.AgentAccessControlConnector
+import uk.gov.hmrc.agentsexternalstubs.models.admin.{AG, Group, User}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
 

@@ -18,6 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalacheck.Gen
 import play.api.libs.json.{Format, Json}
+import uk.gov.hmrc.agentsexternalstubs.models.admin.UserGenerator
 case class LegacyAgentRecord(
   agentId: String,
   agentOwnRef: Option[String] = None,

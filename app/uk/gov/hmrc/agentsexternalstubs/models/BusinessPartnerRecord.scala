@@ -21,6 +21,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.agentmtdidentifiers.model.SuspensionDetails
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord._
 import uk.gov.hmrc.agentsexternalstubs.models.Validator.checkProperty
+import uk.gov.hmrc.agentsexternalstubs.models.admin.UserGenerator
 
 /** ----------------------------------------------------------------------------
   * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED

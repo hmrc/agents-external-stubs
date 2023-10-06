@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentsexternalstubs.models
+package uk.gov.hmrc.agentsexternalstubs.models.admin
 
 import org.scalacheck.Gen
 import uk.gov.hmrc.agentsexternalstubs.models.Validator.Validator
+import uk.gov.hmrc.agentsexternalstubs.models._
 
 object GroupSanitizer extends RecordUtils[Group] {
 
@@ -47,8 +48,8 @@ object GroupSanitizer extends RecordUtils[Group] {
     group =>
       group.affinityGroup match {
         case AG.Agent =>
-          import uk.gov.hmrc.smartstub._
           import uk.gov.hmrc.agentsexternalstubs.models.Generator._
+          import uk.gov.hmrc.smartstub._
           if (group.agentId.isEmpty)
             group.copy(agentId = Some(LegacyRelationshipRecord.agentIdGen.seeded(group.groupId).get))
           else group

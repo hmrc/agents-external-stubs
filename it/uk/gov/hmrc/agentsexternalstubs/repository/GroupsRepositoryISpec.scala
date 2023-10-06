@@ -17,6 +17,7 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.admin.{AG, Group}
 import uk.gov.hmrc.agentsexternalstubs.support.AppBaseISpec
 
 import java.util.UUID

@@ -19,8 +19,9 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 import com.google.inject.ImplementedBy
 import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes, ReplaceOptions}
 import play.api.libs.json.{OWrites => _, _}
-import uk.gov.hmrc.agentsexternalstubs.models.SpecialCase.internal
-import uk.gov.hmrc.agentsexternalstubs.models.{Id, SpecialCase}
+import uk.gov.hmrc.agentsexternalstubs.models.admin.SpecialCase
+import uk.gov.hmrc.agentsexternalstubs.models.admin.SpecialCase.internal
+import uk.gov.hmrc.agentsexternalstubs.models.Id
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import SpecialCasesRepositoryMongo._

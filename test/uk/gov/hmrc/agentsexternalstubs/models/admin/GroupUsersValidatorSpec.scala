@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentsexternalstubs.models
+package uk.gov.hmrc.agentsexternalstubs.models.admin
 
 import cats.data.Validated.Valid
 import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec

@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentsexternalstubs.models
+package uk.gov.hmrc.agentsexternalstubs.models.admin
 
 import org.scalatest.Inspectors._
+import uk.gov.hmrc.agentsexternalstubs.models.{Enrolment, Generator, Services}
 import uk.gov.hmrc.agentsexternalstubs.support.{BaseUnitSpec, ValidatedMatchers}
 
 class GroupValidatorSpec extends BaseUnitSpec with ValidatedMatchers {

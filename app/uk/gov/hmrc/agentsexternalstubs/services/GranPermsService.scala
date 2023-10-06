@@ -18,6 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 
 import cats.implicits._
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.admin.{AG, Group, User, UserGenerator}
 import uk.gov.hmrc.domain.Nino
 
 import javax.inject.{Inject, Singleton}

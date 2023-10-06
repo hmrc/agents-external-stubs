@@ -17,6 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import play.api.libs.json.{Format, Json}
+import uk.gov.hmrc.agentsexternalstubs.models.admin.AG
 import uk.gov.hmrc.domain.Nino
 
 import java.time.LocalDate

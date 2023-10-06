@@ -17,6 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import play.api.libs.json.{Format, Json}
+import uk.gov.hmrc.agentsexternalstubs.models.admin.User
 
 case class SignInRequest(
   userId: Option[String],

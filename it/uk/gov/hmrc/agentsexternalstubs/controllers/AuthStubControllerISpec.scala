@@ -6,8 +6,9 @@ import play.api.libs.json.JsObject
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentsexternalstubs.connectors.MicroserviceAuthConnector
-import uk.gov.hmrc.agentsexternalstubs.models.User.CR
-import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, EnrolmentKey, User, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.admin.User.CR
+import uk.gov.hmrc.agentsexternalstubs.models.admin.{AG, User, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, EnrolmentKey}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
 import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
@@ -157,7 +158,11 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
       "authorise if user authenticated with the OneTimeLogin provider" in {
         val authToken: String =
-          givenAnAuthenticatedUser(User(randomId), providerType = "OneTimeLogin", affinityGroup = Some(AG.Individual))
+          givenAnAuthenticatedUser(
+            User(randomId),
+            providerType = "OneTimeLogin",
+            affinityGroup = Some(AG.Individual)
+          )
         await(
           authConnector
             .authorise[Unit](AuthProviders(AuthProvider.OneTimeLogin), EmptyRetrieval)(
@@ -242,7 +247,8 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
       "throw InsufficientEnrolments if user not enrolled with expected identifier key" in {
         val id = randomId
-        val authToken: String = givenAnAuthenticatedUser(User(id), planetId = id, affinityGroup = Some(AG.Individual))
+        val authToken: String =
+          givenAnAuthenticatedUser(User(id), planetId = id, affinityGroup = Some(AG.Individual))
         givenUserEnrolledFor(
           id,
           planetId = id,
@@ -263,7 +269,8 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
       "throw InsufficientEnrolments if user not enrolled with expected identifier value" in {
         val id = randomId
-        val authToken: String = givenAnAuthenticatedUser(User(id), planetId = id, affinityGroup = Some(AG.Individual))
+        val authToken: String =
+          givenAnAuthenticatedUser(User(id), planetId = id, affinityGroup = Some(AG.Individual))
         givenUserEnrolledFor(id, planetId = id, "HMRC-MTD-IT", "MTDITID", "236216873678126")
         an[InsufficientEnrolments] shouldBe thrownBy {
           await(
@@ -278,7 +285,8 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
       "throw InsufficientEnrolments if user does not have NINO" in {
         val id = randomId
-        val authToken: String = givenAnAuthenticatedUser(User(id), planetId = id, affinityGroup = Some(AG.Individual))
+        val authToken: String =
+          givenAnAuthenticatedUser(User(id), planetId = id, affinityGroup = Some(AG.Individual))
         an[InsufficientEnrolments] shouldBe thrownBy {
           await(
             authConnector
@@ -318,7 +326,8 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
       "retrieve authorisedEnrolments" in {
         val id = randomId
-        val authToken: String = givenAnAuthenticatedUser(User(id), planetId = id, affinityGroup = Some(AG.Individual))
+        val authToken: String =
+          givenAnAuthenticatedUser(User(id), planetId = id, affinityGroup = Some(AG.Individual))
         givenUserEnrolledFor(id, planetId = id, "HMRC-MTD-IT", "MTDITID", "236216873678126")
         givenUserEnrolledFor(id, planetId = id, "IR-SA", "UTR", "1234567890")
 
@@ -442,7 +451,8 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
       "retrieve allEnrolments" in {
         val id = randomId
-        val authToken: String = givenAnAuthenticatedUser(User(id), planetId = id, affinityGroup = Some(AG.Individual))
+        val authToken: String =
+          givenAnAuthenticatedUser(User(id), planetId = id, affinityGroup = Some(AG.Individual))
         givenUserEnrolledFor(id, planetId = id, "HMRC-MTD-IT", "MTDITID", "236216873678126")
         givenUserEnrolledFor(id, planetId = id, "IR-SA", "UTR", "1234567890")
 
@@ -814,7 +824,10 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
       "retrieve groupIdentifier" in {
         val authToken: String =
-          givenAnAuthenticatedUser(User(randomId, groupId = Some("AAA-999-XXX")), affinityGroup = Some(AG.Individual))
+          givenAnAuthenticatedUser(
+            User(randomId, groupId = Some("AAA-999-XXX")),
+            affinityGroup = Some(AG.Individual)
+          )
 
         val groupIdentifierOpt = await(
           authConnector
