@@ -3,7 +3,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.UUID
-import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, CbcId, MtdItId, PptRef, Utr}
+import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, CbcId, Identifier, MtdItId, PptRef, Utr}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.UkAddress
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository

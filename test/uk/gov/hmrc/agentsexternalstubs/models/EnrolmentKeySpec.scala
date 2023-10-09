@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
+import uk.gov.hmrc.agentmtdidentifiers.model.Identifier
 import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 
 class EnrolmentKeySpec extends BaseUnitSpec {

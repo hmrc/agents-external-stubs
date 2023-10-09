@@ -29,7 +29,7 @@ import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, Enrolmen
 import uk.gov.hmrc.auth.core.UnsupportedCredentialRole
 import uk.gov.hmrc.http.{BadRequestException, ForbiddenException, NotFoundException}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-
+import uk.gov.hmrc.agentmtdidentifiers.model.Identifier
 import java.time.{Instant, LocalDate, ZoneId}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}

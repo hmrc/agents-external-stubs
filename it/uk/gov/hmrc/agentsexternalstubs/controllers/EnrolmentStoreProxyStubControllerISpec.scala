@@ -1,10 +1,9 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import play.api.libs.json.{JsArray, JsObject, JsString, Json}
+import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentmtdidentifiers.model.AssignedClient
-import uk.gov.hmrc.agentmtdidentifiers.model.{Identifier => _}
+import uk.gov.hmrc.agentmtdidentifiers.model.{AssignedClient, Identifier}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.{EnrolmentsFromKnownFactsRequest, IdentifiersAndVerifiers, SetKnownFactsRequest}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs

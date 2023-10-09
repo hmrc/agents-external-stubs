@@ -3,8 +3,9 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
+import uk.gov.hmrc.agentmtdidentifiers.model.Identifier
 import uk.gov.hmrc.agentsexternalstubs.controllers.SpecialCasesController.writes
-import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, EnrolmentKey, Identifier, SpecialCase, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, EnrolmentKey, SpecialCase, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.repository.{AuthenticatedSessionsRepository, GroupsRepository, KnownFactsRepository, RecordsRepository, SpecialCasesRepository, UsersRepository}
 import uk.gov.hmrc.agentsexternalstubs.support._
 

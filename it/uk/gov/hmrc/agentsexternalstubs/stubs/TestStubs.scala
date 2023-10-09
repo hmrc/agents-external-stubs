@@ -3,6 +3,7 @@ package uk.gov.hmrc.agentsexternalstubs.stubs
 import org.scalatest.Suite
 import play.api.Application
 import play.api.test.Helpers._
+import uk.gov.hmrc.agentmtdidentifiers.model.Identifier
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GroupsService, UsersService}
 

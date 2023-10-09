@@ -18,6 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
 import play.api.libs.json._
+import uk.gov.hmrc.agentmtdidentifiers.model.Identifier
 
 case class KnownFacts(
   enrolmentKey: EnrolmentKey,

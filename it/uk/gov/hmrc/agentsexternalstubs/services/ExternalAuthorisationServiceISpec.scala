@@ -10,6 +10,7 @@ import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{Authorization, SessionId}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpPost}
 import play.api.test.Helpers._
+import uk.gov.hmrc.agentmtdidentifiers.model.Identifier
 
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext

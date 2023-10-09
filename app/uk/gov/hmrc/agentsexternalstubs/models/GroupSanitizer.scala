@@ -18,6 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalacheck.Gen
 import uk.gov.hmrc.agentsexternalstubs.models.Validator.Validator
+import uk.gov.hmrc.agentmtdidentifiers.model.Identifier
 
 object GroupSanitizer extends RecordUtils[Group] {
 

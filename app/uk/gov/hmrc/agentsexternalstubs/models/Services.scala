@@ -15,12 +15,12 @@
  */
 
 package uk.gov.hmrc.agentsexternalstubs.models
-import java.util.Base64
 
+import java.util.Base64
+import uk.gov.hmrc.agentmtdidentifiers.model.Identifier
 import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.agentsexternalstubs.models.RegexPatterns.Matcher
-
 import scala.io.Source
 import java.io._
 import java.nio.charset.StandardCharsets
@@ -52,9 +52,9 @@ object Service {
   case class Identifier(name: String, description: String, regex: String, pattern: Option[String])
       extends IdentifierLike {
 
-    val generator: Gen[uk.gov.hmrc.agentsexternalstubs.models.Identifier] =
+    val generator: Gen[uk.gov.hmrc.agentmtdidentifiers.model.Identifier] =
       valueGenerator.map(value =>
-        uk.gov.hmrc.agentsexternalstubs.models.Identifier(
+        uk.gov.hmrc.agentmtdidentifiers.model.Identifier(
           name,
           if (value.nonEmpty) value else throw new Exception(s"Could not generate value for an identifier $name")
         )

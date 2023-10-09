@@ -20,7 +20,7 @@ import cats.data.Validated.{Invalid, Valid}
 import play.api.libs.json._
 import uk.gov.hmrc.agentsexternalstubs.models.User.AdditionalInformation
 import uk.gov.hmrc.domain.Nino
-
+import uk.gov.hmrc.agentmtdidentifiers.model.Identifier
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 

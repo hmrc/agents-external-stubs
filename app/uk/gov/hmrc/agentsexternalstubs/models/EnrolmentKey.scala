@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 import play.api.libs.json._
+import uk.gov.hmrc.agentmtdidentifiers.model.Identifier
 
 case class EnrolmentKey(service: String, identifiers: Seq[Identifier]) {
   def isSingle: Boolean = identifiers.size == 1

@@ -15,6 +15,7 @@
  */
 
 package uk.gov.hmrc.agentsexternalstubs.models
+import uk.gov.hmrc.agentmtdidentifiers.model.Identifier
 import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
 import play.api.libs.json._

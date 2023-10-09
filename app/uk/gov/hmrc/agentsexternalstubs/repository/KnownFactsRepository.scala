@@ -18,8 +18,9 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 
 import com.google.inject.ImplementedBy
 import org.mongodb.scala.model._
+import uk.gov.hmrc.agentmtdidentifiers.model.Identifier
 import uk.gov.hmrc.agentsexternalstubs.models.KnownFacts.{identifierKey, verifierKey}
-import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, Identifier, KnownFact, KnownFacts}
+import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, KnownFact, KnownFacts}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 

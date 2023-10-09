@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import play.api.libs.json.Reads._
 import play.api.libs.json._
-
+import uk.gov.hmrc.agentmtdidentifiers.model.Identifier
 import scala.reflect.ClassTag
 
 case class AuthoriseRequest(authorise: Seq[Predicate], retrieve: Seq[String])
