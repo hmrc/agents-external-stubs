@@ -10,7 +10,7 @@ object AppDependencies {
     ws,
     "uk.gov.hmrc"          %% "bootstrap-backend-play-28" % bootstrapVer,
     "uk.gov.hmrc.mongo"    %% "hmrc-mongo-play-28"        % mongoVer,
-    "uk.gov.hmrc"          %% "agent-mtd-identifiers"     % "1.13.0",
+    "uk.gov.hmrc"          %% "agent-mtd-identifiers"     % "1.14.0",
     "com.kenshoo"          %% "metrics-play"              % "2.7.3_0.8.2",
     "com.github.blemale"   %% "scaffeine"                 % "4.0.1",
     "org.typelevel"        %% "cats-core"                 % "2.6.1",
