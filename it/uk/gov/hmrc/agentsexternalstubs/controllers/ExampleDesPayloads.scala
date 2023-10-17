@@ -1,5 +1,8 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
+import play.api.libs.json.Json
+import uk.gov.hmrc.agentsexternalstubs.models.Pillar2Record
+
 trait ExampleDesPayloads {
 
   val trustDetailsPayload =
@@ -527,4 +530,15 @@ trait ExampleDesPayloads {
       |}
       |""".stripMargin
 
+  val validPillar2SubscriptionPayload = Json
+    .toJson(
+      Pillar2Record(
+        "XAPLR2222222222",
+        Pillar2Record.UpeDetails(None, None, "OrgName", "2000-01-01"),
+        Pillar2Record.AccountingPeriod("2023-01-01", "2023-12-31"),
+        Pillar2Record.UpeCorrespAddressDetails("1 North Street", countryCode = "GB"),
+        Pillar2Record.ContactDetails("Some Name", None, "name@email.com")
+      )
+    )
+    .toString
 }

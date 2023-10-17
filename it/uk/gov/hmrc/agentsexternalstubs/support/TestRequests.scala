@@ -610,6 +610,10 @@ trait TestRequests extends ScalaFutures {
       authContext: AuthContext
     ): WSResponse =
       get(s"/plastic-packaging-tax/subscriptions/$regime/$pptReferenceNumber/display")
+
+    def getPillar2Record(plrReference: String)(implicit authContext: AuthContext): WSResponse =
+      get(s"/pillar2/subscription?plrReference=$plrReference")
+
   }
 
   object DataStreamStubs {
@@ -769,6 +773,13 @@ trait TestRequests extends ScalaFutures {
     def createPPTSubscriptionDisplayRecord[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/ppt-subscription")
+        .withHttpHeaders(authContext.headers: _*)
+        .post[T](payload)
+        .futureValue
+
+    def createPillar2Record[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/records/pillar2-subscription")
         .withHttpHeaders(authContext.headers: _*)
         .post[T](payload)
         .futureValue

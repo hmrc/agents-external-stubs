@@ -1723,6 +1723,32 @@ class DesIfStubControllerISpec
     }
   }
 
+  "GET /pillar2/subscription" should {
+    "return Pillar2Record" in {
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      val createResult = Records.createPillar2Record(Json.parse(validPillar2SubscriptionPayload))
+      createResult should haveStatus(201)
+
+      val result = DesStub.getPillar2Record("XAPLR2222222222")
+      result should haveStatus(200)
+      val json = result.json
+      json.as[JsObject] should haveProperty[JsObject]("primaryContactDetails")
+      // not testing all other properties one by one!
+    }
+
+    "return 404 Not Found" in {
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      val result = DesStub.getPillar2Record("XAPLR0000000404")
+      result should haveStatus(404)
+    }
+
+    "return bad request when the Pillar2 reference is invalid" in {
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      val result = DesStub.getPillar2Record("ILLEGAL")
+      result should haveStatus(400)
+    }
+  }
+
   private def vatRecordGenerator(vrn: String, insolvent: Boolean = false): VatCustomerInformationRecord =
     VatCustomerInformationRecord
       .generate("userId")

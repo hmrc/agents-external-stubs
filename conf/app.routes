@@ -75,6 +75,7 @@ POST          /agents/paye/:agentCode/clients/compare                           
 DELETE        /agents/paye/:agentCode/clients/:taxOfficeNumber/:taxOfficeReference                   @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.removeLegacyAgentClientPayeRelationship(agentCode: String, taxOfficeNumber: String, taxOfficeReference: String)
 GET           /corporation-tax/identifiers/:idType/:idValue                                          @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getCtReference(idType: String, idValue: String)
 GET           /plastic-packaging-tax/subscriptions/:regime/:pptReferenceNumber/display               @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getPPTSubscriptionDisplay(regime: String, pptReferenceNumber: String)
+GET           /pillar2/subscription                                                                  @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getPillar2PPTSubscriptionDetails(plrReference: String)
 
 GET           /trusts/agent-known-fact-check/:trustTaxIdentifier                                     @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getTrustKnownFacts(trustTaxIdentifier: String)
 GET           /trusts/agent-known-fact-check/UTR/:utr                                                @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getTrustKnownFactsUTR(utr: String)
@@ -168,6 +169,8 @@ POST          /agents-external-stubs/records/ppt-subscription                   
 GET           /agents-external-stubs/records/ppt-subscription/generate                               @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generatePPTSubscriptionDisplayRecord(seed: Option[String] ?= None, ninimal: Boolean ?= false)
 POST          /agents-external-stubs/records/cbc-subscription                                        @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.storeCbcSubscriptionRecord(autoFill: Boolean ?= true)
 GET           /agents-external-stubs/records/cbc-subscription/generate                               @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generateCbcSubscriptionRecord(seed: Option[String] ?= None, ninimal: Boolean ?= false)
+POST          /agents-external-stubs/records/pillar2-subscription                                    @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.storePillar2Record(autoFill: Boolean ?= true)
+GET           /agents-external-stubs/records/pillar2-subscription/generate                           @uk.gov.hmrc.agentsexternalstubs.controllers.RecordsController.generatePillar2Record(seed: Option[String] ?= None, ninimal: Boolean ?= false)
 
 # Known facts management
 POST          /agents-external-stubs/known-facts                                                     @uk.gov.hmrc.agentsexternalstubs.controllers.KnownFactsController.createKnownFacts

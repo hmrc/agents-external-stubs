@@ -21,7 +21,7 @@ import play.api.data.Forms._
 import play.api.data.validation.{Constraint, Constraints, Invalid, Valid}
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
-import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, PptRef, Utr}
+import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, PlrId, PptRef, Utr}
 import uk.gov.hmrc.agentsexternalstubs.models.TrustDetailsResponse.getErrorResponseFor
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
@@ -44,6 +44,7 @@ class DesIfStubController @Inject() (
   recordsRepository: RecordsRepository,
   employerAuthsRecordsService: EmployerAuthsRecordsService,
   pptSubscriptionDisplayRecordsService: PPTSubscriptionDisplayRecordsService,
+  pillar2RecordsService: Pillar2RecordsService,
   insolvencyService: InsolvencyService,
   usersService: UsersService,
   groupsService: GroupsService,
@@ -636,6 +637,25 @@ class DesIfStubController @Inject() (
                 }
           )
       } else badRequestF("INVALID_REGIME", "Submission has not passed validation. Invalid parameter regime")
+    }(SessionRecordNotFound)
+  }
+
+  //API #2143 Retrieve Subscription Details For OECD Tax Pillar 2 Service
+  def getPillar2PPTSubscriptionDetails(plrReference: String) = Action.async { implicit request =>
+    withCurrentSession { session =>
+      if (PlrId.isValid(plrReference)) {
+        pillar2RecordsService
+          .getPillar2Record(PlrId(plrReference), session.planetId)
+          .map {
+            case Some(record) => Ok(Json.toJson(record))
+            case None         => notFound("SUBSCRIPTION_NOT_FOUND")
+          }
+      } else {
+        badRequestF(
+          "INVALID_PLR_REFERENCE",
+          "Submission has not passed validation. Invalid query parameter: plrReference."
+        )
+      }
     }(SessionRecordNotFound)
   }
 

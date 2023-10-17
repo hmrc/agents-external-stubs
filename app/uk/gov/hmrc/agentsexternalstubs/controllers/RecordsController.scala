@@ -38,6 +38,7 @@ class RecordsController @Inject() (
   employerAuthRecordsService: EmployerAuthsRecordsService,
   pptSubscriptionDisplayRecordsService: PPTSubscriptionDisplayRecordsService,
   cbCSubscriptionRecordsService: CbCSubscriptionRecordsService,
+  pillar2RecordsService: Pillar2RecordsService,
   recordsRepository: RecordsRepository,
   val authenticationService: AuthenticationService,
   cc: ControllerComponents
@@ -252,6 +253,16 @@ class RecordsController @Inject() (
       }(SessionRecordNotFound)
   }
 
+  def storePillar2Record(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+    withCurrentSession { session =>
+      withPayload[Pillar2Record](record =>
+        pillar2RecordsService
+          .store(record, autoFill, session.planetId)
+          .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))))
+      )
+    }(SessionRecordNotFound)
+  }
+
   def generateRelationship(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] = Action.async {
     implicit request =>
       withCurrentSession { session =>
@@ -292,4 +303,13 @@ class RecordsController @Inject() (
       }(SessionRecordNotFound)
     }
 
+  def generatePillar2Record(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] =
+    Action.async { implicit request =>
+      withCurrentSession { session =>
+        val seed = seedOpt.getOrElse(session.sessionId)
+        val record = Pillar2Record.seed(seed)
+        val result = if (minimal) record else Pillar2Record.sanitize(seed)(record)
+        okF(result, Link("create", routes.RecordsController.storePillar2Record(minimal).url))
+      }(SessionRecordNotFound)
+    }
 }
