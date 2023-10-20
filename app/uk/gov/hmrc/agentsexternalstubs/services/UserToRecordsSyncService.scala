@@ -37,6 +37,7 @@ class UserToRecordsSyncService @Inject() (
   employerAuthsRecordsService: EmployerAuthsRecordsService,
   pptSubscriptionDisplayRecordsService: PPTSubscriptionDisplayRecordsService,
   cbcSubscriptionRecordsService: CbCSubscriptionRecordsService,
+  pillar2RecordsService: Pillar2RecordsService,
   usersRepository: UsersRepository
 )(implicit ec: ExecutionContext) {
 
@@ -54,7 +55,8 @@ class UserToRecordsSyncService @Inject() (
     Sync.legacySaAgentRecord,
     Sync.businessPartnerRecordForIRCTOrganisation,
     Sync.legacyPayeAgentInformation,
-    Sync.cbcSubscriptionRecord
+    Sync.cbcSubscriptionRecord,
+    Sync.pillar2Record
   )
 
   final def syncUserToRecords(saveRecordId: SaveRecordId, user: User, group: Group): Future[Unit] =
@@ -77,8 +79,7 @@ class UserToRecordsSyncService @Inject() (
          }
   } yield ()
 
-  final val syncAfterUserRemoved: User => Future[Unit] =
-    user => Future.successful(())
+  final val syncAfterUserRemoved: User => Future[Unit] = _ => Future.successful(())
 
   private object Sync {
 
@@ -87,10 +88,32 @@ class UserToRecordsSyncService @Inject() (
     private val dateFormatddMMyy = DateTimeFormatter.ofPattern("dd/MM/yy")
     private val dateFormatyyyyMMdd = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
+    // TODO could create a flexible match for x returning (group, identifier value)?
     final val MtdItIndividualMatch = Group.Matches(_ == AG.Individual, "HMRC-MTD-IT")
+    final val CbcUkMatch = Group.Matches(_ == AG.Organisation, "HMRC-CBC-ORG")
+    final val CbcNonUkMatch = Group.Matches(_ == AG.Organisation, "HMRC-CBC-NONUK-ORG")
+    final val CgtMatch = Group.Matches(ag => ag == AG.Individual || ag == AG.Organisation, "HMRC-CGT-PD")
+    final val MtdVatIndividualMatch = Group.Matches(_ == AG.Individual, "HMRC-MTD-VAT")
+    final val MtdVatOrganisationMatch = Group.Matches(_ == AG.Organisation, "HMRC-MTD-VAT")
+    final val IRCTOrganisationMatch = Group.Matches(_ == AG.Organisation, "IR-CT")
+    final val Pillar2Match = Group.Matches(_ == AG.Organisation, "HMRC-PILLAR2-ORG")
+
+    final val MtdVatAgentMatch = Group.Matches(_ == AG.Agent, "HMCE-VAT-AGNT")
+
+    // these care about the group being reused
+    final val PptReferenceMatch =
+      Group.Matches(ag => ag == AG.Individual || ag == AG.Organisation, "HMRC-PPT-ORG")
+    final val SaAgentMatch = Group.Matches(_ == AG.Agent, "IR-SA-AGENT")
+    final val PayeAgentMatch = Group.Matches(_ == AG.Agent, "IR-PAYE-AGENT")
+
+    val pillar2Record: UserAndGroupRecordsSync = saveRecordId => { case (user, Pillar2Match(_, plrId)) =>
+      val pillar2Record = Pillar2Record.generate(plrId).withPlrReference(plrId)
+      // no sync with known facts atm
+      pillar2RecordsService.store(pillar2Record, autoFill = false, user.planetId.get).flatMap(saveRecordId)
+    }
 
     val businessDetailsForMtdItIndividual: UserAndGroupRecordsSync = saveRecordId => {
-      case (user, MtdItIndividualMatch(group, mtdbsa)) =>
+      case (user, MtdItIndividualMatch(_, mtdbsa)) =>
         val nino = user.nino
           .map(_.value.replace(" ", ""))
           .getOrElse(Generator.ninoNoSpaces(user.userId).value)
@@ -155,9 +178,6 @@ class UserToRecordsSyncService @Inject() (
         )
     }
 
-    final val CbcUkMatch = Group.Matches(ag => ag == AG.Organisation, "HMRC-CBC-ORG")
-    final val CbcNonUkMatch = Group.Matches(ag => ag == AG.Organisation, "HMRC-CBC-NONUK-ORG")
-
     private def getKnownFacts(enrolmentKey: EnrolmentKey, planetId: String): Future[Option[KnownFacts]] =
       knownFactsRepository.findByEnrolmentKey(enrolmentKey, planetId)
 
@@ -198,9 +218,6 @@ class UserToRecordsSyncService @Inject() (
         }
     }
 
-    final val PptReferenceMatch =
-      Group.Matches(ag => ag == AG.Individual || ag == AG.Organisation, "HMRC-PPT-ORG")
-
     val pptSubscriptionDisplayRecordForPptReference: UserAndGroupRecordsSync = saveRecordId => {
       case (user, PptReferenceMatch(group, pptReference)) =>
         def knownFactsForPptRegDate = knownFactsRepository.findByEnrolmentKey(
@@ -228,9 +245,7 @@ class UserToRecordsSyncService @Inject() (
         }
     }
 
-    final val CgtMatch = Group.Matches(ag => ag == AG.Individual || ag == AG.Organisation, "HMRC-CGT-PD")
-
-    val businessDetailsForCgt: UserAndGroupRecordsSync = saveRecordId => { case (user, CgtMatch(group, cgtRef)) =>
+    val businessDetailsForCgt: UserAndGroupRecordsSync = saveRecordId => { case (user, CgtMatch(_, cgtRef)) =>
       val nino = user.nino
         .map(_.value.replace(" ", ""))
         .getOrElse(Generator.ninoNoSpaces(user.userId).value)
@@ -295,10 +310,8 @@ class UserToRecordsSyncService @Inject() (
       )
     }
 
-    final val MtdVatIndividualMatch = Group.Matches(_ == AG.Individual, "HMRC-MTD-VAT")
-
     val vatCustomerInformationForMtdVatIndividual: UserAndGroupRecordsSync = saveRecordId => {
-      case (user, MtdVatIndividualMatch(group, vrn)) =>
+      case (user, MtdVatIndividualMatch(_, vrn)) =>
         knownFactsRepository
           .findByEnrolmentKey(EnrolmentKey.from("HMRC-MTD-VAT", "VRN" -> vrn), user.planetId.get)
           .map(
@@ -371,10 +384,8 @@ class UserToRecordsSyncService @Inject() (
           }
     }
 
-    final val MtdVatOrganisationMatch = Group.Matches(_ == AG.Organisation, "HMRC-MTD-VAT")
-
     val vatCustomerInformationForMtdVatOrganisation: UserAndGroupRecordsSync = saveRecordId => {
-      case (user, MtdVatOrganisationMatch(group, vrn)) =>
+      case (user, MtdVatOrganisationMatch(_, vrn)) =>
         knownFactsRepository
           .findByEnrolmentKey(EnrolmentKey.from("HMRC-MTD-VAT", "VRN" -> vrn), user.planetId.get)
           .map(
@@ -440,10 +451,8 @@ class UserToRecordsSyncService @Inject() (
           }
     }
 
-    final val MtdVatAgentMatch = Group.Matches(_ == AG.Agent, "HMCE-VAT-AGNT")
-
     val vatCustomerInformationForMtdVatAgent: UserAndGroupRecordsSync = saveRecordId => {
-      case (user, MtdVatAgentMatch(group, vrn)) =>
+      case (user, MtdVatAgentMatch(_, vrn)) =>
         knownFactsRepository
           .findByEnrolmentKey(EnrolmentKey.from("HMCE-VAT-AGNT", "AgentRefNo" -> vrn), user.planetId.get)
           .map(
@@ -600,10 +609,8 @@ class UserToRecordsSyncService @Inject() (
       }
     }
 
-    final val IRCTOrganisationMatch = Group.Matches(_ == AG.Organisation, "IR-CT")
-
     val businessPartnerRecordForIRCTOrganisation: UserAndGroupRecordsSync = saveRecordId => {
-      case (user, IRCTOrganisationMatch(group, utr)) =>
+      case (user, IRCTOrganisationMatch(_, utr)) =>
         knownFactsRepository
           .findByEnrolmentKey(EnrolmentKey.from("IR-CT", "UTR" -> utr), user.planetId.get)
           .map(_.flatMap(_.getVerifierValue("Postcode")))
@@ -637,8 +644,6 @@ class UserToRecordsSyncService @Inject() (
             )
           }
     }
-
-    final val SaAgentMatch = Group.Matches(_ == AG.Agent, "IR-SA-AGENT")
 
     val legacySaAgentRecord: UserAndGroupRecordsSync = saveRecordId => { case (user, SaAgentMatch(group, saAgentRef)) =>
       val agentRecord = LegacyAgentRecord(
@@ -691,8 +696,6 @@ class UserToRecordsSyncService @Inject() (
              )
       } yield ()
     }
-
-    final val PayeAgentMatch = Group.Matches(_ == AG.Agent, "IR-PAYE-AGENT")
 
     val legacyPayeAgentInformation: UserAndGroupRecordsSync = saveRecordId => {
       case (user, PayeAgentMatch(group, agentReference)) =>
