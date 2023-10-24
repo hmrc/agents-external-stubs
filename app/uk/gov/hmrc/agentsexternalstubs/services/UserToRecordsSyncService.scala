@@ -15,7 +15,7 @@
  */
 
 package uk.gov.hmrc.agentsexternalstubs.services
-import uk.gov.hmrc.agentmtdidentifiers.model.{CgtRef, MtdItId, SuspensionDetails}
+import uk.gov.hmrc.agentmtdidentifiers.model.{CgtRef, MtdItId, PlrIdType, SuspensionDetails}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{AgencyDetails, Individual, Organisation}
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, IndividualName}
 import uk.gov.hmrc.agentsexternalstubs.models._
@@ -108,8 +108,18 @@ class UserToRecordsSyncService @Inject() (
 
     val pillar2Record: UserAndGroupRecordsSync = saveRecordId => { case (user, Pillar2Match(_, plrId)) =>
       val pillar2Record = Pillar2Record.generate(plrId).withPlrReference(plrId)
-      // no sync with known facts atm
-      pillar2RecordsService.store(pillar2Record, autoFill = false, user.planetId.get).flatMap(saveRecordId)
+      val identifier = Identifier(PlrIdType.id, plrId)
+      val ek = EnrolmentKey(uk.gov.hmrc.agentmtdidentifiers.model.Service.Pillar2.id, Seq(identifier))
+
+      val verifiers =
+        Seq.empty // (verifiers should include registration date but I am not sure of which key to use for it.)
+      val knownFacts =
+        KnownFacts(ek, identifiers = Seq(identifier), verifiers = verifiers, planetId = Some(user.planetId.get))
+
+      for {
+        _ <- pillar2RecordsService.store(pillar2Record, autoFill = false, user.planetId.get).flatMap(saveRecordId)
+        _ <- knownFactsRepository.upsert(knownFacts, user.planetId.get)
+      } yield ()
     }
 
     val businessDetailsForMtdItIndividual: UserAndGroupRecordsSync = saveRecordId => {
