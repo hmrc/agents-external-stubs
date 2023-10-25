@@ -205,7 +205,7 @@ object Pillar2Record extends RecordUtils[Pillar2Record] {
     override val validate: Validator[AccountStatus] = Validator()
 
     override val gen: Gen[AccountStatus] = for {
-      inactive <- Generator.booleanGen
+      inactive <- Gen.const(false)
     } yield AccountStatus(
       inactive = inactive
     )
