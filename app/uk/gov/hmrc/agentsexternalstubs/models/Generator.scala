@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 import java.time.format.DateTimeFormatter
 import org.scalacheck.Gen
-import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, CbcId, MtdItId, PptRef, Urn, UtrCheck, Vrn}
+import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, CbcId, MtdItId, PlrId, PptRef, Urn, UtrCheck, Vrn}
 import uk.gov.hmrc.domain.{Modulus11Check, Modulus23Check, Nino}
 import uk.gov.hmrc.smartstub.{Addresses, Companies, Names, Temporal, ToLong}
 import wolfendale.scalacheck.regexp.RegexpGen
@@ -148,6 +148,9 @@ object Generator extends Names with Temporal with Companies with Addresses {
   lazy val cgtPdRefGen: Gen[String] = pattern"999999999".gen.map("XMCGTP" + _)
 
   def cgtPdRef(seed: String): String = cgtPdRefGen.seeded(seed).get
+
+  lazy val plrIdGen: Gen[String] = pattern"9999999999".gen.map("XAPLR" + _)
+  def plrId(seed: String): PlrId = plrIdGen.map(PlrId.apply).seeded(seed).get
 
   def chooseBigDecimal(min: Double, max: Double, multipleOf: Option[Double]): Gen[BigDecimal] =
     Gen
