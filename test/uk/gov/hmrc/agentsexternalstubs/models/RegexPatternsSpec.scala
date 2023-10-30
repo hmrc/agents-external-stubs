@@ -86,6 +86,13 @@ class RegexPatternsSpec extends BaseUnitSpec {
       RegexPatterns.validPptRef("1234567890").isLeft shouldBe true
       RegexPatterns.validPptRef("XAPPT123456789A").isLeft shouldBe true
     }
+
+    "validate PlrId" in {
+      RegexPatterns.validPlrId("XAPLR2222222222").isRight shouldBe true
+      RegexPatterns.validPlrId("").isLeft shouldBe true
+      RegexPatterns.validPlrId("1234567890").isLeft shouldBe true
+      RegexPatterns.validPlrId("XAPPT123456789A").isLeft shouldBe true
+    }
   }
 
 }

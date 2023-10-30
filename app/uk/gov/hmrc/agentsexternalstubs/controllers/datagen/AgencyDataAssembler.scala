@@ -17,6 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers.datagen
 
 import play.api.Logging
+import uk.gov.hmrc.agentmtdidentifiers.model.PlrIdType
 import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord.Common
 import uk.gov.hmrc.agentsexternalstubs.models.User.CR
 import uk.gov.hmrc.agentsexternalstubs.models._
@@ -101,8 +102,9 @@ class AgencyDataAssembler extends Logging {
         case "HMRC-CGT-PD"        => Seq(Identifier("CGTPDRef", Generator.cgtPdRef(seed)))
         case "HMRC-PPT-ORG" =>
           Seq(Identifier("EtmpRegistrationNumber", Generator.regex(Common.pptReferencePattern).sample.get))
-        case "HMRC-TERS-ORG"   => Seq(Identifier("SAUTR", Generator.utr(seed)))
-        case "HMRC-TERSNT-ORG" => Seq(Identifier("URN", Generator.urn(seed).value))
+        case "HMRC-TERS-ORG"    => Seq(Identifier("SAUTR", Generator.utr(seed)))
+        case "HMRC-TERSNT-ORG"  => Seq(Identifier("URN", Generator.urn(seed).value))
+        case "HMRC-PILLAR2-ORG" => Seq(Identifier(PlrIdType.enrolmentId, Generator.plrId(seed).value))
       }
 
       val userId = f"perf-test-$indexAgency%04d-C${index + 1}%05d"

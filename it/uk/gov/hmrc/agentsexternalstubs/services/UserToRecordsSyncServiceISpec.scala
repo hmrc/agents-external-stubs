@@ -3,7 +3,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.UUID
-import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, CbcId, MtdItId, PptRef, Utr}
+import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, CbcId, MtdItId, PlrId, PptRef, Utr}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.UkAddress
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
@@ -35,6 +35,8 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
     app.injector.instanceOf[PPTSubscriptionDisplayRecordsService]
   lazy val cbcSubscriptionRecordsService: CbCSubscriptionRecordsService =
     app.injector.instanceOf[CbCSubscriptionRecordsService]
+  lazy val pillar2RecordsService: Pillar2RecordsService =
+    app.injector.instanceOf[Pillar2RecordsService]
 
   private val formatter1 = DateTimeFormatter.ofPattern("dd/MM/yy")
   private val formatter2 = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -503,6 +505,23 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
       val result1 =
         await(cbcSubscriptionRecordsService.getCbcSubscriptionRecord(CbcId("XACBC4940653849"), planetId))
       result1.map(_.cbcId) shouldBe Some("XACBC4940653849")
+
+      val result2 = await(usersService.findByUserId(user.userId, planetId))
+      result2.map(_.recordIds.size).get shouldBe 1
+    }
+
+    "sync hmrc-pillar2-org organisation to cbc subscription records" in {
+      val planetId = UUID.randomUUID().toString
+      val user = UserGenerator
+        .organisation("foo")
+        .withAssignedPrincipalEnrolment(
+          EnrolmentKey("HMRC-PILLAR2-ORG", Seq(Identifier("plrId", "XAPLR2222222222")))
+        )
+
+      await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Organisation)))
+      val result1 =
+        await(pillar2RecordsService.getPillar2Record(PlrId("XAPLR2222222222"), planetId))
+      result1.map(_.plrReference) shouldBe Some("XAPLR2222222222")
 
       val result2 = await(usersService.findByUserId(user.userId, planetId))
       result2.map(_.recordIds.size).get shouldBe 1

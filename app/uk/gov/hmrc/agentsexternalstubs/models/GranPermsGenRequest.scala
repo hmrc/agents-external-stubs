@@ -48,7 +48,8 @@ object GranPermsGenRequest {
     "HMRC-TERS-ORG"      -> 1.0,
     "HMRC-TERSNT-ORG"    -> 1.0,
     "HMRC-CBC-ORG"       -> 1.0,
-    "HMRC-CBC-NONUK-ORG" -> 1.0
+    "HMRC-CBC-NONUK-ORG" -> 1.0,
+    "HMRC-PILLAR2-ORG"   -> 1.0
   )
 
   implicit val format = Json.format[GranPermsGenRequest]
