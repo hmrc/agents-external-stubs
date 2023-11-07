@@ -231,13 +231,15 @@ class UserToRecordsSyncService @Inject() (
     val pptSubscriptionDisplayRecordForPptReference: UserAndGroupRecordsSync = saveRecordId => {
       case (user, PptReferenceMatch(group, pptReference)) =>
         def knownFactsForPptRegDate = knownFactsRepository.findByEnrolmentKey(
-          EnrolmentKey.from("HMRC-PPT-ORG", "ETMPREGISTRATIONNUMBER" -> pptReference),
+          EnrolmentKey.from("HMRC-PPT-ORG", "EtmpRegistrationNumber" -> pptReference),
           user.planetId.get
         )
 
         def getPptRegDate(knownFacts: Option[KnownFacts]) = knownFacts.fold(Option.empty[String])(
           _.getVerifierValue("PPTRegistrationDate")
-            .map(date => LocalDate.parse(date, dateFormatddMMyy).format(dateFormatyyyyMMdd))
+            .map(date => LocalDate.parse(date, dateFormatddMMyy))
+            .map(date => if (date.isAfter(LocalDate.now())) date.minusYears(100) else date)
+            .map(_.format(dateFormatyyyyMMdd))
         )
 
         knownFactsForPptRegDate map getPptRegDate flatMap { pptRegistrationDate =>
