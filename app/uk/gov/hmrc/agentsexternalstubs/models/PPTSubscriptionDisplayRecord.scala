@@ -77,7 +77,7 @@ object PPTSubscriptionDisplayRecord extends RecordUtils[PPTSubscriptionDisplayRe
 
   implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
   implicit val recordType: RecordMetaData[PPTSubscriptionDisplayRecord] =
-    RecordMetaData[PPTSubscriptionDisplayRecord](this)
+    RecordMetaData[PPTSubscriptionDisplayRecord]
 
   def uniqueKey(key: String): String = s"""pptReference:${key.toUpperCase}"""
   def pptReferenceKey(key: String): String = s"""pptReference:${key.toUpperCase}"""

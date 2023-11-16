@@ -85,7 +85,7 @@ case class BusinessDetailsRecord(
 object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
 
   implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
-  implicit val recordType: RecordMetaData[BusinessDetailsRecord] = RecordMetaData[BusinessDetailsRecord](this)
+  implicit val recordType: RecordMetaData[BusinessDetailsRecord] = RecordMetaData[BusinessDetailsRecord]
 
   def uniqueKey(key: String): String = s"""safeId:${key.toUpperCase}"""
   def ninoKey(key: String): String = s"""nino:${key.toUpperCase}"""

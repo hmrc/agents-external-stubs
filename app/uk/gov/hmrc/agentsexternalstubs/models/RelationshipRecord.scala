@@ -54,7 +54,7 @@ case class RelationshipRecord(
 object RelationshipRecord extends RecordUtils[RelationshipRecord] {
 
   implicit val formats: Format[RelationshipRecord] = Json.format[RelationshipRecord]
-  implicit val recordType: RecordMetaData[RelationshipRecord] = RecordMetaData[RelationshipRecord](RelationshipRecord)
+  implicit val recordType: RecordMetaData[RelationshipRecord] = RecordMetaData[RelationshipRecord]
 
   def fullKey(regime: String, arn: String, idType: String, refNumber: String): String =
     s"FK/$regime/$arn/$idType/$refNumber"

@@ -67,7 +67,7 @@ object LegacyRelationshipRecord extends RecordUtils[LegacyRelationshipRecord] {
 
   implicit val formats: Format[LegacyRelationshipRecord] = Format(reads, writes)
   implicit val recordType: RecordMetaData[LegacyRelationshipRecord] =
-    RecordMetaData[LegacyRelationshipRecord](LegacyRelationshipRecord)
+    RecordMetaData[LegacyRelationshipRecord]
 
   val agentIdGen = Generator.pattern("999999")
 

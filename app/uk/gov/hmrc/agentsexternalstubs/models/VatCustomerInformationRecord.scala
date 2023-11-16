@@ -69,7 +69,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
   implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
   implicit val recordType: RecordMetaData[VatCustomerInformationRecord] =
-    RecordMetaData[VatCustomerInformationRecord](this)
+    RecordMetaData[VatCustomerInformationRecord]
 
   def uniqueKey(key: String): String = s"""vrn:${key.toUpperCase}"""
 

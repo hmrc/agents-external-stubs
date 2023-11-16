@@ -134,7 +134,7 @@ case class BusinessPartnerRecord(
 object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
 
   implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
-  implicit val recordType: RecordMetaData[BusinessPartnerRecord] = RecordMetaData[BusinessPartnerRecord](this)
+  implicit val recordType: RecordMetaData[BusinessPartnerRecord] = RecordMetaData[BusinessPartnerRecord]
 
   def uniqueKey(key: String): String = s"""safeId:${key.toUpperCase}"""
   def agentReferenceNumberKey(key: String): String = s"""agentReferenceNumber:${key.toUpperCase}"""

@@ -97,7 +97,7 @@ case class Pillar2Record(
 object Pillar2Record extends RecordUtils[Pillar2Record] {
 
   implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
-  implicit val recordType: RecordMetaData[Pillar2Record] = RecordMetaData[Pillar2Record](this)
+  implicit val recordType: RecordMetaData[Pillar2Record] = RecordMetaData[Pillar2Record]
 
   import Validator._
   import Generator.GenOps._

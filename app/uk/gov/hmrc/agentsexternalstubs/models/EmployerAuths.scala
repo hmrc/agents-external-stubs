@@ -52,7 +52,7 @@ case class EmployerAuths(
 object EmployerAuths extends RecordUtils[EmployerAuths] {
 
   implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
-  implicit val recordType: RecordMetaData[EmployerAuths] = RecordMetaData[EmployerAuths](this)
+  implicit val recordType: RecordMetaData[EmployerAuths] = RecordMetaData[EmployerAuths]
 
   def uniqueKey(key: String): String = s"""agentCode:${key.toUpperCase}"""
 

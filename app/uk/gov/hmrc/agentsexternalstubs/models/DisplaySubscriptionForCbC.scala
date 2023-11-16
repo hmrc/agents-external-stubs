@@ -297,7 +297,7 @@ case class CbcSubscriptionRecord(
 }
 
 object CbcSubscriptionRecord extends RecordUtils[CbcSubscriptionRecord] {
-  implicit val recordType: RecordMetaData[CbcSubscriptionRecord] = RecordMetaData[CbcSubscriptionRecord](this)
+  implicit val recordType: RecordMetaData[CbcSubscriptionRecord] = RecordMetaData[CbcSubscriptionRecord]
 
   def uniqueKey(key: String): String = s"""cbcId:${key.toUpperCase}"""
   def cbcIdKey(key: String): String = s"""cbcId:${key.toUpperCase}"""

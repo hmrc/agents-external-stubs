@@ -18,30 +18,15 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import scala.reflect.ClassTag
 
-trait RecordMetaData[T <: Record] {
+trait RecordMetaData[T] {
 
   val typeName: String
-  val fieldNames: Seq[String]
-  val utils: RecordUtils[T]
 }
 
 object RecordMetaData {
 
-  def apply[T <: Record](utilities: RecordUtils[T])(implicit classTag: ClassTag[T]): RecordMetaData[T] = {
-
-    val properties =
-      classTag.runtimeClass.getDeclaredFields
-        .map(_.getName.replace("$minus", "-"))
-        .toSet
-        .-("id")
-        .+(Record.ID)
-        .+(Record.TYPE)
-        .toSeq
-
+  def apply[T](implicit classTag: ClassTag[T]): RecordMetaData[T] =
     new RecordMetaData[T] {
       override val typeName: String = classTag.runtimeClass.getSimpleName
-      override val fieldNames: Seq[String] = properties
-      override val utils: RecordUtils[T] = utilities
     }
-  }
 }
