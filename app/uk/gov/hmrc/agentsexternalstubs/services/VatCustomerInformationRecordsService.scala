@@ -45,12 +45,11 @@ class VatCustomerInformationRecordsService @Inject() (
   def getCustomerInformation(vrn: String, planetId: String)(implicit
     ec: ExecutionContext
   ): Future[Option[VatCustomerInformationRecord]] =
-    externalUserService
-      .tryLookupExternalUserIfMissingForIdentifier(Vrn(vrn), planetId, usersServiceProvider.get.createUser(_, _, _))(
-        id =>
-          findByKey[VatCustomerInformationRecord](VatCustomerInformationRecord.uniqueKey(id.value), planetId)
-            .map(_.headOption)
-      )
+    // if there is no record found, try to sync from api platform and try again. THIS SHOULD NOT BE IN THIS CLASS
+    externalUserService.syncAndRetry(Vrn(vrn), planetId, usersServiceProvider.get.createUser(_, _, _)) { () =>
+      findByKey[VatCustomerInformationRecord](VatCustomerInformationRecord.uniqueKey(vrn), planetId)
+        .map(_.headOption)
+    }
 
   def getVatKnownFacts(vrn: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[VatKnownFacts]] =
     getCustomerInformation(vrn, planetId).map(VatKnownFacts.fromVatCustomerInformationRecord(vrn, _))

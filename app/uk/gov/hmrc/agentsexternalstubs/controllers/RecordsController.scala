@@ -36,9 +36,7 @@ class RecordsController @Inject() (
   businessPartnerRecordsService: BusinessPartnerRecordsService,
   relationshipRecordsService: RelationshipRecordsService,
   employerAuthRecordsService: EmployerAuthsRecordsService,
-  pptSubscriptionDisplayRecordsService: PPTSubscriptionDisplayRecordsService,
-  cbCSubscriptionRecordsService: CbCSubscriptionRecordsService,
-  pillar2RecordsService: Pillar2RecordsService,
+  genericRecordsService: GenericRecordsService,
   recordsRepository: RecordsRepository,
   val authenticationService: AuthenticationService,
   cc: ControllerComponents
@@ -235,7 +233,7 @@ class RecordsController @Inject() (
     implicit request =>
       withCurrentSession { session =>
         withPayload[PPTSubscriptionDisplayRecord](record =>
-          pptSubscriptionDisplayRecordsService
+          genericRecordsService
             .store(record, autoFill, session.planetId)
             .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))))
         )
@@ -246,7 +244,7 @@ class RecordsController @Inject() (
     implicit request =>
       withCurrentSession { session =>
         withPayload[CbcSubscriptionRecord](record =>
-          cbCSubscriptionRecordsService
+          genericRecordsService
             .store(record, autoFill, session.planetId)
             .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))))
         )
@@ -256,7 +254,7 @@ class RecordsController @Inject() (
   def storePillar2Record(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
       withPayload[Pillar2Record](record =>
-        pillar2RecordsService
+        genericRecordsService
           .store(record, autoFill, session.planetId)
           .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))))
       )

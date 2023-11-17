@@ -46,10 +46,10 @@ class BusinessDetailsRecordsService @Inject() (
   def getBusinessDetails(nino: Nino, planetId: String)(implicit
     ec: ExecutionContext
   ): Future[Option[BusinessDetailsRecord]] =
-    externalUserService
-      .tryLookupExternalUserIfMissingForIdentifier(nino, planetId, usersServiceProvider.get.createUser(_, _, _))(id =>
-        findByKey[BusinessDetailsRecord](BusinessDetailsRecord.ninoKey(id.value), planetId).map(_.headOption)
-      )
+    // if there is no record found, try to sync from api platform and try again. THIS SHOULD NOT BE IN THIS CLASS
+    externalUserService.syncAndRetry(nino, planetId, usersServiceProvider.get.createUser(_, _, _)) { () =>
+      findByKey[BusinessDetailsRecord](BusinessDetailsRecord.ninoKey(nino.value), planetId).map(_.headOption)
+    }
 
   def getBusinessDetails(mtdbsa: MtdItId, planetId: String)(implicit
     ec: ExecutionContext

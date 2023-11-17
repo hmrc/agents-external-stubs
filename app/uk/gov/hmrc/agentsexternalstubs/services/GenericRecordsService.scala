@@ -16,49 +16,51 @@
 
 package uk.gov.hmrc.agentsexternalstubs.services
 
-import com.google.inject.Provider
-import uk.gov.hmrc.agentmtdidentifiers.model.{CgtRef, MtdItId}
-import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord
+import play.api.libs.json.{Reads, Writes}
+import uk.gov.hmrc.agentsexternalstubs.models.{Record, RecordMetaData, RecordUtils, TakesKey}
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
-import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.http.BadRequestException
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class GenericRecordsService @Inject() (
-  val recordsRepository: RecordsRepository,
-  externalUserService: ExternalUserService,
-  usersServiceProvider: Provider[UsersService]
-) extends RecordsService {
+class GenericRecordsService @Inject() (recordsRepository: RecordsRepository) {
 
-  def store(record: BusinessDetailsRecord, autoFill: Boolean, planetId: String): Future[String] = {
-    val entity = if (autoFill) BusinessDetailsRecord.sanitize(record.safeId)(record) else record
-    BusinessDetailsRecord
+  protected def findByKey[T](key: String, planetId: String)(implicit
+    metadata: RecordMetaData[T],
+    reads: Reads[T]
+  ): Future[Seq[T]] =
+    recordsRepository.findByKey[T](key, planetId, limit = Some(1000))
+
+  protected def findByKeys[T](keys: Seq[String], planetId: String)(implicit
+    metadata: RecordMetaData[T],
+    reads: Reads[T]
+  ): Future[Seq[T]] =
+    recordsRepository.findByKeys[T](keys, planetId, limit = Some(1000))
+
+  def store[A <: Record](record: A, autoFill: Boolean, planetId: String)(implicit
+    recordUtils: RecordUtils[A],
+    writes: Writes[A]
+  ): Future[String] = {
+    val entity =
+      if (autoFill)
+        recordUtils.sanitize(record.uniqueKey.getOrElse(throw new RuntimeException("no unique key!")))(record)
+      else record
+    recordUtils
       .validate(entity)
       .fold(
-        errors => Future.failed(new BadRequestException(errors.mkString(", "))),
+        errors => Future.failed(new RuntimeException(errors.mkString(", "))),
         _ => recordsRepository.store(entity, planetId)
       )
   }
 
-  def getBusinessDetails(nino: Nino, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[Option[BusinessDetailsRecord]] =
-    externalUserService
-      .tryLookupExternalUserIfMissingForIdentifier(nino, planetId, usersServiceProvider.get.createUser(_, _, _))(id =>
-        findByKey[BusinessDetailsRecord](BusinessDetailsRecord.ninoKey(id.value), planetId).map(_.headOption)
-      )
-
-  def getBusinessDetails(mtdbsa: MtdItId, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[Option[BusinessDetailsRecord]] =
-    findByKey[BusinessDetailsRecord](BusinessDetailsRecord.mtdbsaKey(mtdbsa.value), planetId).map(_.headOption)
-
-  def getBusinessDetails(cgtPdRef: CgtRef, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[Option[BusinessDetailsRecord]] =
-    findByKey[BusinessDetailsRecord](BusinessDetailsRecord.cgtPdRefKey(cgtPdRef.value), planetId).map(_.headOption)
-
+  def getRecord[A, K](identifier: K, planetId: String)(implicit
+    ec: ExecutionContext,
+    metadata: RecordMetaData[A],
+    ev: TakesKey[A, K],
+    reads: Reads[A]
+  ): Future[Option[A]] = {
+    val key = ev.toKey(identifier)
+    findByKey[A](key, planetId).map(_.headOption)
+  }
 }

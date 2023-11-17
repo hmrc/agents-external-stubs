@@ -133,6 +133,8 @@ case class BusinessPartnerRecord(
 
 object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
 
+  implicit val recordUtils: RecordUtils[BusinessPartnerRecord] = this
+
   implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
   implicit val recordType: RecordMetaData[BusinessPartnerRecord] = RecordMetaData[BusinessPartnerRecord]
 

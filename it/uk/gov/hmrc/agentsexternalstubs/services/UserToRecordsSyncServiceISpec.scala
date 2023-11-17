@@ -31,12 +31,8 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
   lazy val employerAuthsRecordsService: EmployerAuthsRecordsService =
     app.injector.instanceOf[EmployerAuthsRecordsService]
   lazy val knownFactsRepository: KnownFactsRepository = app.injector.instanceOf[KnownFactsRepository]
-  lazy val pptSubscriptionDisplayRecordsService: PPTSubscriptionDisplayRecordsService =
-    app.injector.instanceOf[PPTSubscriptionDisplayRecordsService]
-  lazy val cbcSubscriptionRecordsService: CbCSubscriptionRecordsService =
-    app.injector.instanceOf[CbCSubscriptionRecordsService]
-  lazy val pillar2RecordsService: Pillar2RecordsService =
-    app.injector.instanceOf[Pillar2RecordsService]
+  lazy val genericRecordsService: GenericRecordsService =
+    app.injector.instanceOf[GenericRecordsService]
 
   private val formatter1 = DateTimeFormatter.ofPattern("dd/MM/yy")
   private val formatter2 = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -171,7 +167,9 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
 
       await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Individual)))
       val result1 =
-        await(pptSubscriptionDisplayRecordsService.getPPTSubscriptionDisplayRecord(PptRef("XAPPT0004567890"), planetId))
+        await(
+          genericRecordsService.getRecord[PPTSubscriptionDisplayRecord, PptRef](PptRef("XAPPT0004567890"), planetId)
+        )
       result1.map(_.pptReference) shouldBe Some("XAPPT0004567890")
     }
 
@@ -486,7 +484,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
 
       await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Organisation)))
       val result1 =
-        await(cbcSubscriptionRecordsService.getCbcSubscriptionRecord(CbcId("XACBC4940653845"), planetId))
+        await(genericRecordsService.getRecord[CbcSubscriptionRecord, CbcId](CbcId("XACBC4940653845"), planetId))
       result1.map(_.cbcId) shouldBe Some("XACBC4940653845")
 
       val result2 = await(usersService.findByUserId(user.userId, planetId))
@@ -503,7 +501,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
 
       await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Organisation)))
       val result1 =
-        await(cbcSubscriptionRecordsService.getCbcSubscriptionRecord(CbcId("XACBC4940653849"), planetId))
+        await(genericRecordsService.getRecord[CbcSubscriptionRecord, CbcId](CbcId("XACBC4940653849"), planetId))
       result1.map(_.cbcId) shouldBe Some("XACBC4940653849")
 
       val result2 = await(usersService.findByUserId(user.userId, planetId))
@@ -520,7 +518,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
 
       await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Organisation)))
       val result1 =
-        await(pillar2RecordsService.getPillar2Record(PlrId("XAPLR2222222222"), planetId))
+        await(genericRecordsService.getRecord[Pillar2Record, PlrId](PlrId("XAPLR2222222222"), planetId))
       result1.map(_.plrReference) shouldBe Some("XAPLR2222222222")
 
       val result2 = await(usersService.findByUserId(user.userId, planetId))

@@ -43,8 +43,7 @@ class DesIfStubController @Inject() (
   businessPartnerRecordsService: BusinessPartnerRecordsService,
   recordsRepository: RecordsRepository,
   employerAuthsRecordsService: EmployerAuthsRecordsService,
-  pptSubscriptionDisplayRecordsService: PPTSubscriptionDisplayRecordsService,
-  pillar2RecordsService: Pillar2RecordsService,
+  genericRecordsService: GenericRecordsService,
   insolvencyService: InsolvencyService,
   usersService: UsersService,
   groupsService: GroupsService,
@@ -629,8 +628,8 @@ class DesIfStubController @Inject() (
           .fold(
             error => badRequestF("INVALID_PPT_REFERENCE_NUMBER", error),
             regNumber =>
-              pptSubscriptionDisplayRecordsService
-                .getPPTSubscriptionDisplayRecord(PptRef(regNumber), session.planetId)
+              genericRecordsService
+                .getRecord[PPTSubscriptionDisplayRecord, PptRef](PptRef(regNumber), session.planetId)
                 .map {
                   case Some(record) => Ok(Json.toJson(record))
                   case None         => notFound("NOT_FOUND")
@@ -644,8 +643,8 @@ class DesIfStubController @Inject() (
   def getPillar2PPTSubscriptionDetails(plrReference: String) = Action.async { implicit request =>
     withCurrentSession { session =>
       if (PlrId.isValid(plrReference)) {
-        pillar2RecordsService
-          .getPillar2Record(PlrId(plrReference), session.planetId)
+        genericRecordsService
+          .getRecord[Pillar2Record, PlrId](PlrId(plrReference), session.planetId)
           .map {
             case Some(record) => Ok(Json.toJson(record))
             case None         => notFound("SUBSCRIPTION_NOT_FOUND")

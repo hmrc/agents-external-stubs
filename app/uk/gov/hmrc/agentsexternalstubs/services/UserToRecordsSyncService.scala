@@ -35,9 +35,7 @@ class UserToRecordsSyncService @Inject() (
   knownFactsRepository: KnownFactsRepository,
   legacyRelationshipRecordsService: LegacyRelationshipRecordsService,
   employerAuthsRecordsService: EmployerAuthsRecordsService,
-  pptSubscriptionDisplayRecordsService: PPTSubscriptionDisplayRecordsService,
-  cbcSubscriptionRecordsService: CbCSubscriptionRecordsService,
-  pillar2RecordsService: Pillar2RecordsService,
+  genericRecordsService: GenericRecordsService,
   usersRepository: UsersRepository
 )(implicit ec: ExecutionContext) {
 
@@ -117,7 +115,7 @@ class UserToRecordsSyncService @Inject() (
         KnownFacts(ek, identifiers = Seq(identifier), verifiers = verifiers, planetId = Some(user.planetId.get))
 
       for {
-        _ <- pillar2RecordsService.store(pillar2Record, autoFill = false, user.planetId.get).flatMap(saveRecordId)
+        _ <- genericRecordsService.store(pillar2Record, autoFill = false, user.planetId.get).flatMap(saveRecordId)
         _ <- knownFactsRepository.upsert(knownFacts, user.planetId.get)
       } yield ()
     }
@@ -204,7 +202,7 @@ class UserToRecordsSyncService @Inject() (
         }
 
         getKnownFacts(enrolmentKey, user.planetId.get) map updateKnownFacts flatMap { _ =>
-          cbcSubscriptionRecordsService
+          genericRecordsService
             .store(cbcRecord, autoFill = false, user.planetId.get)
             .flatMap(saveRecordId)
         }
@@ -222,7 +220,7 @@ class UserToRecordsSyncService @Inject() (
         }
 
         getKnownFacts(enrolmentKey, user.planetId.get) map updateKnownFacts flatMap { _ =>
-          cbcSubscriptionRecordsService
+          genericRecordsService
             .store(cbcRecord, autoFill = false, user.planetId.get)
             .flatMap(saveRecordId)
         }
@@ -251,7 +249,7 @@ class UserToRecordsSyncService @Inject() (
               pptRegistrationDate,
               pptReference
             )
-          pptSubscriptionDisplayRecordsService
+          genericRecordsService
             .store(subscriptionDisplayRecord, autoFill = false, user.planetId.get)
             .flatMap(saveRecordId)
         }

@@ -52,26 +52,23 @@ class BusinessPartnerRecordsService @Inject() (
   def getBusinessPartnerRecord(utr: Utr, planetId: String)(implicit
     ec: ExecutionContext
   ): Future[Option[BusinessPartnerRecord]] =
-    externalUserService
-      .tryLookupExternalUserIfMissingForIdentifier(utr, planetId, usersServiceProvider.get.createUser(_, _, _))(id =>
-        findByKey[BusinessPartnerRecord](BusinessPartnerRecord.utrKey(id.value), planetId).map(_.headOption)
-      )
+    // if there is no record found, try to sync from api platform and try again. THIS SHOULD NOT BE IN THIS CLASS
+    externalUserService.syncAndRetry(utr, planetId, usersServiceProvider.get.createUser(_, _, _)) { () =>
+      findByKey[BusinessPartnerRecord](BusinessPartnerRecord.utrKey(utr.value), planetId).map(_.headOption)
+    }
 
   def getBusinessPartnerRecord(urn: Urn, planetId: String)(implicit
     ec: ExecutionContext
   ): Future[Option[BusinessPartnerRecord]] =
-    externalUserService
-      .tryLookupExternalUserIfMissingForIdentifier(urn, planetId, usersServiceProvider.get.createUser(_, _, _))(id =>
-        findByKey[BusinessPartnerRecord](BusinessPartnerRecord.urnKey(id.value), planetId).map(_.headOption)
-      )
+    findByKey[BusinessPartnerRecord](BusinessPartnerRecord.urnKey(urn.value), planetId).map(_.headOption)
 
   def getBusinessPartnerRecord(nino: Nino, planetId: String)(implicit
     ec: ExecutionContext
   ): Future[Option[BusinessPartnerRecord]] =
-    externalUserService
-      .tryLookupExternalUserIfMissingForIdentifier(nino, planetId, usersServiceProvider.get.createUser(_, _, _))(id =>
-        findByKey[BusinessPartnerRecord](BusinessPartnerRecord.ninoKey(id.value), planetId).map(_.headOption)
-      )
+    // if there is no record found, try to sync from api platform and try again. THIS SHOULD NOT BE IN THIS CLASS
+    externalUserService.syncAndRetry(nino, planetId, usersServiceProvider.get.createUser(_, _, _)) { () =>
+      findByKey[BusinessPartnerRecord](BusinessPartnerRecord.ninoKey(nino.value), planetId).map(_.headOption)
+    }
 
   def getBusinessPartnerRecordByEori(eori: String, planetId: String)(implicit
     ec: ExecutionContext
@@ -82,18 +79,6 @@ class BusinessPartnerRecordsService @Inject() (
     ec: ExecutionContext
   ): Future[Option[BusinessPartnerRecord]] =
     findByKey[BusinessPartnerRecord](BusinessPartnerRecord.crnKey(crn), planetId).map(_.headOption)
-
-  def getBusinessPartnerRecordByEoriOrUtr(eori: String, utr: String, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[Option[BusinessPartnerRecord]] =
-    externalUserService
-      .tryLookupExternalUserIfMissingForIdentifier(Utr(utr), planetId, usersServiceProvider.get.createUser(_, _, _))(
-        n =>
-          findByKeys[BusinessPartnerRecord](
-            Seq(BusinessPartnerRecord.eoriKey(eori), BusinessPartnerRecord.utrKey(utr)),
-            planetId
-          ).map(_.headOption)
-      )
 
   def getBusinessPartnerRecordBySafeId(safeId: String, planetId: String)(implicit
     ec: ExecutionContext

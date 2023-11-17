@@ -18,6 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json._
+import uk.gov.hmrc.agentmtdidentifiers.model.PptRef
 import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord.ChangeOfCircumstanceDetails.DeregistrationDetails
 import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord.LegalEntityDetails.CustomerDetails
 import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord._
@@ -75,11 +76,16 @@ case class PPTSubscriptionDisplayRecord(
 
 object PPTSubscriptionDisplayRecord extends RecordUtils[PPTSubscriptionDisplayRecord] {
 
+  implicit val recordUtils: RecordUtils[PPTSubscriptionDisplayRecord] = this
+
+  implicit val takesPptRefKey: TakesKey[PPTSubscriptionDisplayRecord, PptRef] =
+    TakesKey(pptRef => pptReferenceKey(pptRef.value))
+
   implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
   implicit val recordType: RecordMetaData[PPTSubscriptionDisplayRecord] =
     RecordMetaData[PPTSubscriptionDisplayRecord]
 
-  def uniqueKey(key: String): String = s"""pptReference:${key.toUpperCase}"""
+  def uniqueKey(key: String): String = pptReferenceKey(key)
   def pptReferenceKey(key: String): String = s"""pptReference:${key.toUpperCase}"""
 
   import Validator._
