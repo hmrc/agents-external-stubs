@@ -26,7 +26,7 @@ import uk.gov.hmrc.agentsexternalstubs.models.TrustDetailsResponse.getErrorRespo
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.services._
-import uk.gov.hmrc.domain.Nino
+import uk.gov.hmrc.domain.{AgentCode, Nino, Vrn}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import java.time.{Instant, LocalDate, LocalDateTime}
@@ -38,15 +38,12 @@ class DesIfStubController @Inject() (
   val authenticationService: AuthenticationService,
   relationshipRecordsService: RelationshipRecordsService,
   legacyRelationshipRecordsService: LegacyRelationshipRecordsService,
-  businessDetailsRecordsService: BusinessDetailsRecordsService,
-  vatCustomerInformationRecordsService: VatCustomerInformationRecordsService,
   businessPartnerRecordsService: BusinessPartnerRecordsService,
   recordsRepository: RecordsRepository,
-  employerAuthsRecordsService: EmployerAuthsRecordsService,
   genericRecordsService: GenericRecordsService,
-  insolvencyService: InsolvencyService,
   usersService: UsersService,
   groupsService: GroupsService,
+  externalUserService: ExternalUserService,
   cc: ControllerComponents
 )(implicit executionContext: ExecutionContext)
     extends BackendController(cc) with DesCurrentSession {
@@ -62,13 +59,21 @@ class DesIfStubController @Inject() (
             error => badRequestF("INVALID_SUBMISSION", error.mkString(", ")),
             _ =>
               if (payload.authorisation.action == "Authorise") {
-                insolvencyService.insolvencyCheckOnCustomer(payload, session.planetId).flatMap {
-                  case true => unprocessableEntityF("INSOLVENT_TRADER")
-                  case false =>
-                    relationshipRecordsService
-                      .authorise(AuthoriseRequest.toRelationshipRecord(payload), session.planetId)
-                      .map(_ => Ok(Json.toJson(AuthoriseResponse())))
-                }
+                def checkInsolvency(): Future[Boolean] = for {
+                  mVatInfo <- getOrSyncVatInfo(Vrn(payload.refNumber), session.planetId)
+                  mInsolventFlag = mVatInfo.flatMap(_.approvedInformation.flatMap(_.customerDetails.isInsolvent))
+                } yield mInsolventFlag.contains(true)
+
+                def authorise(): Future[Result] = relationshipRecordsService
+                  .authorise(AuthoriseRequest.toRelationshipRecord(payload), session.planetId)
+                  .map(_ => Ok(Json.toJson(AuthoriseResponse())))
+
+                if (payload.regime != "VATC") authorise()
+                else
+                  checkInsolvency().flatMap {
+                    case true  => unprocessableEntityF("INSOLVENT_TRADER")
+                    case false => authorise()
+                  }
 
               } else
                 relationshipRecordsService
@@ -159,15 +164,18 @@ class DesIfStubController @Inject() (
     withCurrentSession { session =>
       withValidIdentifier(idType, idNumber) {
         case ("nino", nino) =>
-          businessDetailsRecordsService
-            .getBusinessDetails(Nino(nino), session.planetId)
+          // if business details are not found, try to see if there is a nino to sync in external users (api platform)
+          externalUserService
+            .syncAndRetry(Nino(nino), session.planetId) { () =>
+              genericRecordsService.getRecord[BusinessDetailsRecord, Nino](Nino(nino), session.planetId)
+            }
             .map {
               case Some(record) => Ok(Json.toJson(record))
               case None         => notFound("NOT_FOUND_NINO")
             }
         case ("mtdbsa", mtdbsa) =>
-          businessDetailsRecordsService
-            .getBusinessDetails(MtdItId(mtdbsa), session.planetId)
+          genericRecordsService
+            .getRecord[BusinessDetailsRecord, MtdItId](MtdItId(mtdbsa), session.planetId)
             .map {
               case Some(record) => Ok(Json.toJson(record))
               case None         => notFound("NOT_FOUND_MTDBSA")
@@ -198,12 +206,19 @@ class DesIfStubController @Inject() (
       }(SessionRecordNotFound)
   }
 
+  // if vat details are not found, try to see if there is a vrn to sync in external users (api platform)
+  private def getOrSyncVatInfo(vrn: Vrn, planetId: String): Future[Option[VatCustomerInformationRecord]] =
+    externalUserService
+      .syncAndRetry(vrn, planetId) { () =>
+        genericRecordsService.getRecord[VatCustomerInformationRecord, Vrn](vrn, planetId)
+      }
+
   def getVatCustomerInformation(vrn: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       RegexPatterns.validVrn(vrn) match {
         case Left(error) => badRequestF("INVALID_VRN", error)
         case Right(validVrn) =>
-          vatCustomerInformationRecordsService.getCustomerInformation(validVrn, session.planetId).map {
+          getOrSyncVatInfo(Vrn(validVrn), session.planetId).map {
             case Some(record) => Ok(Json.toJson(record))
             case None         => Ok(Json.obj())
           }
@@ -378,7 +393,7 @@ class DesIfStubController @Inject() (
             _ => badRequestF("Invalid AgentRef"),
             _ =>
               withPayload[EmployerAuthsPayload] { payload =>
-                employerAuthsRecordsService.getEmployerAuthsByAgentCode(agentCode, session.planetId).map {
+                genericRecordsService.getRecord[EmployerAuths, AgentCode](AgentCode(agentCode), session.planetId).map {
                   case None => notFound("AgentRef not found")
                   case Some(record) =>
                     LegacyAgentClientPayeRelationship
@@ -407,20 +422,20 @@ class DesIfStubController @Inject() (
         .fold(
           error => badRequestF(error.mkString(", ")),
           _ =>
-            employerAuthsRecordsService
-              .getEmployerAuthsByAgentCode(agentCode, session.planetId)
+            genericRecordsService
+              .getRecord[EmployerAuths, AgentCode](AgentCode(agentCode), session.planetId)
               .flatMap {
                 case None => notFoundF("Relationship not found")
                 case Some(record) =>
                   val newEmployerAuths =
                     LegacyAgentClientPayeRelationship.remove(record, taxOfficeNumber, taxOfficeReference)
                   if (newEmployerAuths.empAuthList.nonEmpty)
-                    employerAuthsRecordsService
+                    genericRecordsService
                       .store(newEmployerAuths, false, session.planetId)
                       .map(_ => Ok)
                   else
-                    employerAuthsRecordsService
-                      .delete(agentCode, session.planetId)
+                    genericRecordsService
+                      .deleteRecord[EmployerAuths, AgentCode](AgentCode(agentCode), session.planetId)
                       .map(_ => Ok)
               }
         )
@@ -448,10 +463,12 @@ class DesIfStubController @Inject() (
         .fold(
           error => badRequestF("INVALID_VRN", error),
           _ =>
-            vatCustomerInformationRecordsService.getVatKnownFacts(vrn, session.planetId).map {
-              case Some(record) => Ok(Json.toJson(record))
-              case None         => NotFound
-            }
+            getOrSyncVatInfo(Vrn(vrn), session.planetId)
+              .map(VatKnownFacts.fromVatCustomerInformationRecord(vrn, _))
+              .map {
+                case Some(record) => Ok(Json.toJson(record))
+                case None         => NotFound
+              }
         )
     }(SessionRecordNotFound)
   }

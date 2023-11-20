@@ -58,6 +58,8 @@ trait RecordsRepository {
 
   def remove(id: String, planetId: String): Future[Unit]
 
+  def removeByKey[T](key: String, planetId: String)(implicit recordType: RecordMetaData[T]): Future[Unit]
+
   def destroyPlanet(planetId: String): Future[Unit]
 }
 
@@ -208,6 +210,14 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
           Filters.equal("_id", new ObjectId(id)),
           Filters.equal(PLANET_ID, planetId)
         )
+      )
+      .toFuture
+      .map(_ => ())
+
+  def removeByKey[T](key: String, planetId: String)(implicit recordType: RecordMetaData[T]): Future[Unit] =
+    collection
+      .deleteOne(
+        Filters.equal(KEYS, keyOf(key, planetId, recordType.typeName))
       )
       .toFuture
       .map(_ => ())

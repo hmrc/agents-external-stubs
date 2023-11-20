@@ -18,7 +18,9 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json._
+import uk.gov.hmrc.agentmtdidentifiers.model.{CgtRef, MtdItId}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord._
+import uk.gov.hmrc.domain.Nino
 
 /** ----------------------------------------------------------------------------
   * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
@@ -84,8 +86,14 @@ case class BusinessDetailsRecord(
 
 object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
 
+  implicit val recordUtils: RecordUtils[BusinessDetailsRecord] = this
+
   implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
   implicit val recordType: RecordMetaData[BusinessDetailsRecord] = RecordMetaData[BusinessDetailsRecord]
+
+  implicit val takesNinoKey: TakesKey[BusinessDetailsRecord, Nino] = TakesKey(nino => ninoKey(nino.value))
+  implicit val takesMtdbsaKey: TakesKey[BusinessDetailsRecord, MtdItId] = TakesKey(mtdItId => mtdbsaKey(mtdItId.value))
+  implicit val takesCgtRefKey: TakesKey[BusinessDetailsRecord, CgtRef] = TakesKey(cgtRef => cgtPdRefKey(cgtRef.value))
 
   def uniqueKey(key: String): String = s"""safeId:${key.toUpperCase}"""
   def ninoKey(key: String): String = s"""nino:${key.toUpperCase}"""

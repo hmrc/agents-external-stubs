@@ -24,15 +24,15 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class GenericRecordsService @Inject() (recordsRepository: RecordsRepository) {
+final class GenericRecordsService @Inject() (recordsRepository: RecordsRepository) {
 
-  protected def findByKey[T](key: String, planetId: String)(implicit
+  private def findByKey[T](key: String, planetId: String)(implicit
     metadata: RecordMetaData[T],
     reads: Reads[T]
   ): Future[Seq[T]] =
     recordsRepository.findByKey[T](key, planetId, limit = Some(1000))
 
-  protected def findByKeys[T](keys: Seq[String], planetId: String)(implicit
+  private def findByKeys[T](keys: Seq[String], planetId: String)(implicit
     metadata: RecordMetaData[T],
     reads: Reads[T]
   ): Future[Seq[T]] =
@@ -63,4 +63,14 @@ class GenericRecordsService @Inject() (recordsRepository: RecordsRepository) {
     val key = ev.toKey(identifier)
     findByKey[A](key, planetId).map(_.headOption)
   }
+
+  def deleteRecord[A, K](identifier: K, planetId: String)(implicit
+    ec: ExecutionContext,
+    metadata: RecordMetaData[A],
+    ev: TakesKey[A, K]
+  ): Future[Unit] = {
+    val key = ev.toKey(identifier)
+    recordsRepository.removeByKey(key, planetId).map(_ => ())
+  }
+
 }

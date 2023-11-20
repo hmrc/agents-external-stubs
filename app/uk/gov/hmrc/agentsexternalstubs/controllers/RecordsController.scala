@@ -30,12 +30,9 @@ import scala.concurrent.ExecutionContext
 
 @Singleton
 class RecordsController @Inject() (
-  businessDetailsRecordsService: BusinessDetailsRecordsService,
   legacyRelationshipRecordsService: LegacyRelationshipRecordsService,
-  vatCustomerInformationRecordsService: VatCustomerInformationRecordsService,
   businessPartnerRecordsService: BusinessPartnerRecordsService,
   relationshipRecordsService: RelationshipRecordsService,
-  employerAuthRecordsService: EmployerAuthsRecordsService,
   genericRecordsService: GenericRecordsService,
   recordsRepository: RecordsRepository,
   val authenticationService: AuthenticationService,
@@ -93,7 +90,7 @@ class RecordsController @Inject() (
   def storeBusinessDetails(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
       withPayload[BusinessDetailsRecord](record =>
-        businessDetailsRecordsService
+        genericRecordsService
           .store(record, autoFill, session.planetId)
           .map(recordId =>
             Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))).withHeaders(
@@ -166,7 +163,7 @@ class RecordsController @Inject() (
     implicit request =>
       withCurrentSession { session =>
         withPayload[VatCustomerInformationRecord](record =>
-          vatCustomerInformationRecordsService
+          genericRecordsService
             .store(record, autoFill, session.planetId)
             .map(recordId =>
               Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url)))
@@ -222,7 +219,7 @@ class RecordsController @Inject() (
   def storeEmployerAuths(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
       withPayload[EmployerAuths](record =>
-        employerAuthRecordsService
+        genericRecordsService
           .store(record, autoFill, session.planetId)
           .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))))
       )

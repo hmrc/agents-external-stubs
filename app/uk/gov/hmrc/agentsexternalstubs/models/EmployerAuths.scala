@@ -19,6 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json._
 import uk.gov.hmrc.agentsexternalstubs.models.EmployerAuths._
+import uk.gov.hmrc.domain.AgentCode
 
 /** ----------------------------------------------------------------------------
   * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
@@ -51,8 +52,12 @@ case class EmployerAuths(
 
 object EmployerAuths extends RecordUtils[EmployerAuths] {
 
+  implicit val recordUtils: RecordUtils[EmployerAuths] = this
+
   implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
   implicit val recordType: RecordMetaData[EmployerAuths] = RecordMetaData[EmployerAuths]
+
+  implicit val agentCodeKey: TakesKey[EmployerAuths, AgentCode] = TakesKey(ac => uniqueKey(ac.value))
 
   def uniqueKey(key: String): String = s"""agentCode:${key.toUpperCase}"""
 

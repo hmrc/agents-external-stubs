@@ -20,7 +20,7 @@ import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{AgencyDetai
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, IndividualName}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.{KnownFactsRepository, UsersRepository}
-import uk.gov.hmrc.domain.Nino
+import uk.gov.hmrc.domain.{AgentCode, Nino}
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -29,12 +29,9 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class UserToRecordsSyncService @Inject() (
-  businessDetailsRecordsService: BusinessDetailsRecordsService,
-  vatCustomerInformationRecordsService: VatCustomerInformationRecordsService,
   BusinessPartnerRecordsService: BusinessPartnerRecordsService,
   knownFactsRepository: KnownFactsRepository,
   legacyRelationshipRecordsService: LegacyRelationshipRecordsService,
-  employerAuthsRecordsService: EmployerAuthsRecordsService,
   genericRecordsService: GenericRecordsService,
   usersRepository: UsersRepository
 )(implicit ec: ExecutionContext) {
@@ -168,8 +165,8 @@ class UserToRecordsSyncService @Inject() (
           Future
             .sequence(
               Seq(
-                businessDetailsRecordsService.getBusinessDetails(Nino(nino), user.planetId.get),
-                businessDetailsRecordsService.getBusinessDetails(MtdItId(mtdbsa), user.planetId.get)
+                genericRecordsService.getRecord[BusinessDetailsRecord, Nino](Nino(nino), user.planetId.get),
+                genericRecordsService.getRecord[BusinessDetailsRecord, MtdItId](MtdItId(mtdbsa), user.planetId.get)
               )
             )
             .map(_.collect { case Some(x) => x })
@@ -179,7 +176,7 @@ class UserToRecordsSyncService @Inject() (
               case Nil                               => record
             })
             .flatMap(entity =>
-              businessDetailsRecordsService
+              genericRecordsService
                 .store(entity, autoFill = false, user.planetId.get)
                 .flatMap(saveRecordId)
             )
@@ -302,8 +299,8 @@ class UserToRecordsSyncService @Inject() (
         Future
           .sequence(
             Seq(
-              businessDetailsRecordsService.getBusinessDetails(Nino(nino), user.planetId.get),
-              businessDetailsRecordsService.getBusinessDetails(CgtRef(cgtRef), user.planetId.get)
+              genericRecordsService.getRecord[BusinessDetailsRecord, Nino](Nino(nino), user.planetId.get),
+              genericRecordsService.getRecord[BusinessDetailsRecord, CgtRef](CgtRef(cgtRef), user.planetId.get)
             )
           )
           .map(_.collect { case Some(x) => x })
@@ -313,7 +310,7 @@ class UserToRecordsSyncService @Inject() (
             case Nil                               => record
           })
           .flatMap(entity =>
-            businessDetailsRecordsService
+            genericRecordsService
               .store(entity, autoFill = false, user.planetId.get)
               .flatMap(saveRecordId)
           )
@@ -387,7 +384,7 @@ class UserToRecordsSyncService @Inject() (
                   )
                 )
             }.flatMap(record =>
-              vatCustomerInformationRecordsService
+              genericRecordsService
                 .store(record, autoFill = false, user.planetId.get)
                 .flatMap(saveRecordId)
             )
@@ -454,7 +451,7 @@ class UserToRecordsSyncService @Inject() (
                   )
                 )
             }.flatMap(record =>
-              vatCustomerInformationRecordsService
+              genericRecordsService
                 .store(record, autoFill = false, user.planetId.get)
                 .flatMap(saveRecordId)
             )
@@ -521,7 +518,7 @@ class UserToRecordsSyncService @Inject() (
                   )
                 )
             }.flatMap(record =>
-              vatCustomerInformationRecordsService
+              genericRecordsService
                 .store(record, autoFill = false, user.planetId.get)
                 .flatMap(saveRecordId)
             )
@@ -717,7 +714,8 @@ class UserToRecordsSyncService @Inject() (
           case None => Future.successful(())
           case Some(agentCode) =>
             for {
-              recordOpt <- employerAuthsRecordsService.getEmployerAuthsByAgentCode(agentCode, user.planetId.get)
+              recordOpt <-
+                genericRecordsService.getRecord[EmployerAuths, AgentCode](AgentCode(agentCode), user.planetId.get)
               _ <- recordOpt match {
                      case Some(existing) =>
                        val recordEmpRefs: Set[EmployerAuths.EmpAuth.EmpRef] = existing.empAuthList.map(_.empRef).toSet
@@ -734,12 +732,12 @@ class UserToRecordsSyncService @Inject() (
                          .toSeq
                        val record = existing.copy(empAuthList = existing.empAuthList ++ empAuthsToAdd)
                        if (record.empAuthList.nonEmpty)
-                         employerAuthsRecordsService
+                         genericRecordsService
                            .store(record, autoFill = false, user.planetId.get)
                            .flatMap(saveRecordId)
                        else
-                         employerAuthsRecordsService
-                           .delete(agentCode, user.planetId.get)
+                         genericRecordsService
+                           .deleteRecord[EmployerAuths, AgentCode](AgentCode(agentCode), user.planetId.get)
                            .flatMap(_ => saveRecordId("--" + record.id.get))
                      case None =>
                        val empAuthList = delegatedEmpRefs
@@ -755,7 +753,7 @@ class UserToRecordsSyncService @Inject() (
                          .toSeq
                        val record = EmployerAuths(agentCode = agentCode, empAuthList = empAuthList)
                        if (record.empAuthList.nonEmpty)
-                         employerAuthsRecordsService
+                         genericRecordsService
                            .store(record, autoFill = false, user.planetId.get)
                            .flatMap(saveRecordId)
                        else Future.successful("")
