@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.agentsexternalstubs.services
 
-import com.google.inject.Provider
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, Urn, Utr}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
@@ -29,8 +28,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class BusinessPartnerRecordsService @Inject() (
   val recordsRepository: RecordsRepository,
-  externalUserService: ExternalUserService,
-  usersServiceProvider: Provider[UsersService]
+  externalUserService: ExternalUserService
 ) extends RecordsService {
 
   def store(record: BusinessPartnerRecord, autoFill: Boolean, planetId: String): Future[String] = {
@@ -53,7 +51,7 @@ class BusinessPartnerRecordsService @Inject() (
     ec: ExecutionContext
   ): Future[Option[BusinessPartnerRecord]] =
     // if there is no record found, try to sync from api platform and try again. THIS SHOULD NOT BE IN THIS CLASS
-    externalUserService.syncAndRetry(utr, planetId, usersServiceProvider.get.createUser(_, _, _)) { () =>
+    externalUserService.syncAndRetry(utr, planetId) { () =>
       findByKey[BusinessPartnerRecord](BusinessPartnerRecord.utrKey(utr.value), planetId).map(_.headOption)
     }
 
@@ -66,7 +64,7 @@ class BusinessPartnerRecordsService @Inject() (
     ec: ExecutionContext
   ): Future[Option[BusinessPartnerRecord]] =
     // if there is no record found, try to sync from api platform and try again. THIS SHOULD NOT BE IN THIS CLASS
-    externalUserService.syncAndRetry(nino, planetId, usersServiceProvider.get.createUser(_, _, _)) { () =>
+    externalUserService.syncAndRetry(nino, planetId) { () =>
       findByKey[BusinessPartnerRecord](BusinessPartnerRecord.ninoKey(nino.value), planetId).map(_.headOption)
     }
 

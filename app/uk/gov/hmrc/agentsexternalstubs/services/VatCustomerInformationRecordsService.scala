@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.agentsexternalstubs.services
 
-import com.google.inject.Provider
 import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.agentsexternalstubs.models.{VatCustomerInformationRecord, VatKnownFacts}
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
@@ -28,8 +27,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class VatCustomerInformationRecordsService @Inject() (
   val recordsRepository: RecordsRepository,
-  externalUserService: ExternalUserService,
-  usersServiceProvider: Provider[UsersService]
+  externalUserService: ExternalUserService
 ) extends RecordsService {
 
   def store(record: VatCustomerInformationRecord, autoFill: Boolean, planetId: String): Future[String] = {
@@ -46,7 +44,7 @@ class VatCustomerInformationRecordsService @Inject() (
     ec: ExecutionContext
   ): Future[Option[VatCustomerInformationRecord]] =
     // if there is no record found, try to sync from api platform and try again. THIS SHOULD NOT BE IN THIS CLASS
-    externalUserService.syncAndRetry(Vrn(vrn), planetId, usersServiceProvider.get.createUser(_, _, _)) { () =>
+    externalUserService.syncAndRetry(Vrn(vrn), planetId) { () =>
       findByKey[VatCustomerInformationRecord](VatCustomerInformationRecord.uniqueKey(vrn), planetId)
         .map(_.headOption)
     }

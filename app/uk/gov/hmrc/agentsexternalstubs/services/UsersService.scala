@@ -54,7 +54,7 @@ class UsersService @Inject() (
   def findByNino(nino: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
     usersRepository.findByNino(nino, planetId).flatMap {
       case Some(user) => Future.successful(Some(user))
-      case None       => externalUserService.lookupExternalUser(Nino(nino), planetId, createUser)
+      case None       => externalUserService.lookupExternalUser(Nino(nino), planetId)
     }
 
   def findByPlanetId(planetId: String)(limit: Int): Future[Seq[User]] =
@@ -72,7 +72,7 @@ class UsersService @Inject() (
     usersRepository.findByPrincipalEnrolmentKey(enrolmentKey, planetId).flatMap {
       case Some(user) => Future.successful(Some(user))
       case None =>
-        externalUserService.lookupExternalUserByEnrolmentKey(enrolmentKey, planetId, createUser)
+        externalUserService.lookupExternalUserByEnrolmentKey(enrolmentKey, planetId)
     }
 
   def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(limit: Int): Future[Seq[User]] =

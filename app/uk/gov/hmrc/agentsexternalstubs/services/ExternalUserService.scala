@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.services
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.{Inject, Provider, Singleton}
 import play.api.{Logger, Logging}
 import uk.gov.hmrc.agentmtdidentifiers.model.Utr
 import uk.gov.hmrc.agentsexternalstubs.connectors.ApiPlatformTestUserConnector
@@ -30,13 +30,15 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 @Singleton
-class ExternalUserService @Inject() (apiPlatformTestUserConnector: ApiPlatformTestUserConnector, appConfig: AppConfig)
-    extends Logging {
+class ExternalUserService @Inject() (
+  apiPlatformTestUserConnector: ApiPlatformTestUserConnector,
+  usersServiceProvider: Provider[UsersService], // a workaround to avoid a circular dependency for UsersService
+  appConfig: AppConfig
+) extends Logging {
 
   private def maybeSyncExternalUser(
     userIdentifier: TaxIdentifier,
-    planetId: String,
-    createUser: (User, String, Option[String]) => Future[User] // (user, planetId, affinityGroup)
+    planetId: String
   )(implicit ec: ExecutionContext): Future[Option[User]] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
     def userFromApiPlatform(id: TaxIdentifier): Future[Option[TestUser]] = id match {
@@ -51,7 +53,7 @@ class ExternalUserService @Inject() (apiPlatformTestUserConnector: ApiPlatformTe
           .getOrganisationUserByVrn(vrn.value)
           .flatMap {
             case None => apiPlatformTestUserConnector.getIndividualUserByVrn(vrn.value)
-            case r => Future.successful(r)
+            case r    => Future.successful(r)
           }
       case _ =>
         Future.failed(
@@ -68,12 +70,14 @@ class ExternalUserService @Inject() (apiPlatformTestUserConnector: ApiPlatformTe
           case Some(testUser) =>
             /* TODO (maybe): We don't create the group explicitly as the logic in UsersService should take care of creating a group for us.
         By doing this we may be losing some detail (e.g. if an agent friendly name was given). Should we create the group explicitly? */
-            createUser(TestUser.asUserAndGroup(testUser)._1, planetId, Some(testUser.affinityGroup)).map { user =>
-              logger.info(
-                s"External user id=name=${user.userId} ${user.name.getOrElse("")} definition successfully imported."
-              )
-              Some(user)
-            }
+            usersServiceProvider.get
+              .createUser(TestUser.asUserAndGroup(testUser)._1, planetId, Some(testUser.affinityGroup))
+              .map { user =>
+                logger.info(
+                  s"External user id=name=${user.userId} ${user.name.getOrElse("")} definition successfully imported."
+                )
+                Some(user)
+              }
         }
         .recover { case NonFatal(e) =>
           Logger(getClass).error(s"External user sync failed with ${e.getMessage}")
@@ -84,35 +88,31 @@ class ExternalUserService @Inject() (apiPlatformTestUserConnector: ApiPlatformTe
 
   def lookupExternalUser(
     userIdentifier: TaxIdentifier,
-    planetId: String,
-    createUser: (User, String, Option[String]) => Future[User] // (user, planetId, affinityGroup)
-  )(implicit ec: ExecutionContext): Future[Option[User]] = {
+    planetId: String
+  )(implicit ec: ExecutionContext): Future[Option[User]] =
     if (appConfig.syncUsersAllPlanets || planetId == Planet.DEFAULT)
-      maybeSyncExternalUser(userIdentifier, planetId, createUser)
+      maybeSyncExternalUser(userIdentifier, planetId)
     else Future.successful(None)
-  }
 
   def lookupExternalUserByEnrolmentKey(
     enrolmentKey: EnrolmentKey,
-    planetId: String,
-    createUser: (User, String, Option[String]) => Future[User] // (user, planetId, affinityGroup)
+    planetId: String
   )(implicit ec: ExecutionContext): Future[Option[User]] =
     identifierFor(enrolmentKey) match {
       case None                 => Future.successful(None)
-      case Some(userIdentifier) => lookupExternalUser(userIdentifier, planetId, createUser)
+      case Some(userIdentifier) => lookupExternalUser(userIdentifier, planetId)
     }
 
   // try the action given in 'block'. If it returns None, do an external user sync for the given id and try again (once)
   def syncAndRetry[A](
     userIdentifier: TaxIdentifier,
-    planetId: String,
-    createUser: (User, String, Option[String]) => Future[User]
+    planetId: String
   )(block: () => Future[Option[A]])(implicit ec: ExecutionContext): Future[Option[A]] =
     block().flatMap {
       case Some(a) => Future.successful(Some(a))
       case None =>
         for {
-          _      <- lookupExternalUser(userIdentifier, planetId, createUser)
+          _      <- lookupExternalUser(userIdentifier, planetId)
           result <- block()
         } yield result
     }

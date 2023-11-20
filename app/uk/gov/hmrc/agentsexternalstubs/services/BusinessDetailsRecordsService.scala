@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.agentsexternalstubs.services
 
-import com.google.inject.Provider
 import uk.gov.hmrc.agentmtdidentifiers.model.{CgtRef, MtdItId}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
@@ -29,8 +28,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class BusinessDetailsRecordsService @Inject() (
   val recordsRepository: RecordsRepository,
-  externalUserService: ExternalUserService,
-  usersServiceProvider: Provider[UsersService]
+  externalUserService: ExternalUserService
 ) extends RecordsService {
 
   def store(record: BusinessDetailsRecord, autoFill: Boolean, planetId: String): Future[String] = {
@@ -47,7 +45,7 @@ class BusinessDetailsRecordsService @Inject() (
     ec: ExecutionContext
   ): Future[Option[BusinessDetailsRecord]] =
     // if there is no record found, try to sync from api platform and try again. THIS SHOULD NOT BE IN THIS CLASS
-    externalUserService.syncAndRetry(nino, planetId, usersServiceProvider.get.createUser(_, _, _)) { () =>
+    externalUserService.syncAndRetry(nino, planetId) { () =>
       findByKey[BusinessDetailsRecord](BusinessDetailsRecord.ninoKey(nino.value), planetId).map(_.headOption)
     }
 
