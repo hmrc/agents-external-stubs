@@ -31,9 +31,8 @@ import scala.concurrent.ExecutionContext
 @Singleton
 class RecordsController @Inject() (
   legacyRelationshipRecordsService: LegacyRelationshipRecordsService,
-  businessPartnerRecordsService: BusinessPartnerRecordsService,
   relationshipRecordsService: RelationshipRecordsService,
-  genericRecordsService: GenericRecordsService,
+  recordsService: RecordsService,
   recordsRepository: RecordsRepository,
   val authenticationService: AuthenticationService,
   cc: ControllerComponents
@@ -90,7 +89,7 @@ class RecordsController @Inject() (
   def storeBusinessDetails(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
       withPayload[BusinessDetailsRecord](record =>
-        genericRecordsService
+        recordsService
           .store(record, autoFill, session.planetId)
           .map(recordId =>
             Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))).withHeaders(
@@ -163,7 +162,7 @@ class RecordsController @Inject() (
     implicit request =>
       withCurrentSession { session =>
         withPayload[VatCustomerInformationRecord](record =>
-          genericRecordsService
+          recordsService
             .store(record, autoFill, session.planetId)
             .map(recordId =>
               Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url)))
@@ -189,7 +188,7 @@ class RecordsController @Inject() (
     implicit request =>
       withCurrentSession { session =>
         withPayload[BusinessPartnerRecord](record =>
-          businessPartnerRecordsService
+          recordsService
             .store(record, autoFill, session.planetId)
             .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))))
         )
@@ -219,7 +218,7 @@ class RecordsController @Inject() (
   def storeEmployerAuths(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
       withPayload[EmployerAuths](record =>
-        genericRecordsService
+        recordsService
           .store(record, autoFill, session.planetId)
           .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))))
       )
@@ -230,7 +229,7 @@ class RecordsController @Inject() (
     implicit request =>
       withCurrentSession { session =>
         withPayload[PPTSubscriptionDisplayRecord](record =>
-          genericRecordsService
+          recordsService
             .store(record, autoFill, session.planetId)
             .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))))
         )
@@ -241,7 +240,7 @@ class RecordsController @Inject() (
     implicit request =>
       withCurrentSession { session =>
         withPayload[CbcSubscriptionRecord](record =>
-          genericRecordsService
+          recordsService
             .store(record, autoFill, session.planetId)
             .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))))
         )
@@ -251,7 +250,7 @@ class RecordsController @Inject() (
   def storePillar2Record(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
     withCurrentSession { session =>
       withPayload[Pillar2Record](record =>
-        genericRecordsService
+        recordsService
           .store(record, autoFill, session.planetId)
           .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))))
       )

@@ -21,7 +21,7 @@ import play.api.data.Forms._
 import play.api.data.validation.{Constraint, Constraints, Invalid, Valid}
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
-import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, PlrId, PptRef, Utr}
+import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, Eori, MtdItId, PlrId, PptRef, Utr}
 import uk.gov.hmrc.agentsexternalstubs.models.TrustDetailsResponse.getErrorResponseFor
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
@@ -38,9 +38,8 @@ class DesIfStubController @Inject() (
   val authenticationService: AuthenticationService,
   relationshipRecordsService: RelationshipRecordsService,
   legacyRelationshipRecordsService: LegacyRelationshipRecordsService,
-  businessPartnerRecordsService: BusinessPartnerRecordsService,
   recordsRepository: RecordsRepository,
-  genericRecordsService: GenericRecordsService,
+  recordsService: RecordsService,
   usersService: UsersService,
   groupsService: GroupsService,
   externalUserService: ExternalUserService,
@@ -60,7 +59,9 @@ class DesIfStubController @Inject() (
             _ =>
               if (payload.authorisation.action == "Authorise") {
                 def checkInsolvency(): Future[Boolean] = for {
-                  mVatInfo <- getOrSyncVatInfo(Vrn(payload.refNumber), session.planetId)
+                  mVatInfo <-
+                    recordsService
+                      .getRecordMaybeExt[VatCustomerInformationRecord, Vrn](Vrn(payload.refNumber), session.planetId)
                   mInsolventFlag = mVatInfo.flatMap(_.approvedInformation.flatMap(_.customerDetails.isInsolvent))
                 } yield mInsolventFlag.contains(true)
 
@@ -105,7 +106,7 @@ class DesIfStubController @Inject() (
             .findByQuery(query, session.planetId)
             .flatMap { records =>
               def checkSuspension(arn: Arn): Future[Result] =
-                businessPartnerRecordsService.getBusinessPartnerRecord(arn, session.planetId) map {
+                recordsService.getRecordMaybeExt[BusinessPartnerRecord, Arn](arn, session.planetId) map {
                   case Some(bpr) =>
                     bpr.suspensionDetails match {
                       case Some(sd) =>
@@ -117,6 +118,7 @@ class DesIfStubController @Inject() (
                     }
                   case None => notFound("INVALID_SUBMISSION", "No BPR found")
                 }
+
               records.headOption match {
                 case Some(r) =>
                   checkSuspension(Arn(r.arn))
@@ -164,17 +166,14 @@ class DesIfStubController @Inject() (
     withCurrentSession { session =>
       withValidIdentifier(idType, idNumber) {
         case ("nino", nino) =>
-          // if business details are not found, try to see if there is a nino to sync in external users (api platform)
-          externalUserService
-            .syncAndRetry(Nino(nino), session.planetId) { () =>
-              genericRecordsService.getRecord[BusinessDetailsRecord, Nino](Nino(nino), session.planetId)
-            }
+          recordsService
+            .getRecordMaybeExt[BusinessDetailsRecord, Nino](Nino(nino), session.planetId)
             .map {
               case Some(record) => Ok(Json.toJson(record))
               case None         => notFound("NOT_FOUND_NINO")
             }
         case ("mtdbsa", mtdbsa) =>
-          genericRecordsService
+          recordsService
             .getRecord[BusinessDetailsRecord, MtdItId](MtdItId(mtdbsa), session.planetId)
             .map {
               case Some(record) => Ok(Json.toJson(record))
@@ -189,15 +188,15 @@ class DesIfStubController @Inject() (
       withCurrentSession { session =>
         withValidIdentifier(idType, idNumber) {
           case ("arn", arn) =>
-            businessPartnerRecordsService
-              .getBusinessPartnerRecord(Arn(arn), session.planetId)
+            recordsService
+              .getRecordMaybeExt[BusinessPartnerRecord, Arn](Arn(arn), session.planetId)
               .map {
                 case Some(record) => Ok(Json.toJson(record))
                 case None         => notFound("NOT_FOUND")
               }
           case ("utr", utr) =>
-            businessPartnerRecordsService
-              .getBusinessPartnerRecord(Utr(utr), session.planetId)
+            recordsService
+              .getRecordMaybeExt[BusinessPartnerRecord, Utr](Utr(utr), session.planetId)
               .map {
                 case Some(record) => Ok(Json.toJson(record))
                 case None         => notFound("NOT_FOUND")
@@ -206,19 +205,12 @@ class DesIfStubController @Inject() (
       }(SessionRecordNotFound)
   }
 
-  // if vat details are not found, try to see if there is a vrn to sync in external users (api platform)
-  private def getOrSyncVatInfo(vrn: Vrn, planetId: String): Future[Option[VatCustomerInformationRecord]] =
-    externalUserService
-      .syncAndRetry(vrn, planetId) { () =>
-        genericRecordsService.getRecord[VatCustomerInformationRecord, Vrn](vrn, planetId)
-      }
-
   def getVatCustomerInformation(vrn: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       RegexPatterns.validVrn(vrn) match {
         case Left(error) => badRequestF("INVALID_VRN", error)
         case Right(validVrn) =>
-          getOrSyncVatInfo(Vrn(validVrn), session.planetId).map {
+          recordsService.getRecordMaybeExt[VatCustomerInformationRecord, Vrn](Vrn(validVrn), session.planetId).map {
             case Some(record) => Ok(Json.toJson(record))
             case None         => Ok(Json.obj())
           }
@@ -240,12 +232,12 @@ class DesIfStubController @Inject() (
                   .fold(
                     error => badRequestF("INVALID_PAYLOAD", error.mkString(", ")),
                     _ =>
-                      businessPartnerRecordsService
-                        .getBusinessPartnerRecord(Utr(identifier), session.planetId)
+                      recordsService
+                        .getRecordMaybeExt[BusinessPartnerRecord, Utr](Utr(identifier), session.planetId)
                         .flatMap {
                           case None => badRequestF("NOT_FOUND")
                           case Some(existingRecord) =>
-                            businessPartnerRecordsService
+                            recordsService
                               .store(
                                 SubscribeAgentServices.toBusinessPartnerRecord(payload, existingRecord),
                                 autoFill = false,
@@ -280,13 +272,13 @@ class DesIfStubController @Inject() (
                   .fold(
                     error => badRequestF("INVALID_PAYLOAD", error.mkString(", ")),
                     _ =>
-                      businessPartnerRecordsService
-                        .getBusinessPartnerRecordBySafeId(identifier, session.planetId)
+                      recordsService
+                        .getRecordMaybeExt[BusinessPartnerRecord, SafeId](SafeId(identifier), session.planetId)
                         .flatMap {
                           case None => badRequestF("NOT_FOUND")
                           case Some(existingRecord) =>
                             val recordToCreate = SubscribeAgentServices.toBusinessPartnerRecord(payload, existingRecord)
-                            businessPartnerRecordsService
+                            recordsService
                               .store(recordToCreate, autoFill = false, session.planetId)
                               .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, session.planetId))
                               .map {
@@ -310,19 +302,15 @@ class DesIfStubController @Inject() (
     implicit request =>
       withCurrentSession { session =>
         withPayload[RegistrationPayload] { payload =>
-          withValidIdentifier(idType, idNumber) {
-            case ("utr", utr) =>
-              businessPartnerRecordsService
-                .getBusinessPartnerRecord(Utr(utr), session.planetId)
-                .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId))
-            case ("nino", nino) =>
-              businessPartnerRecordsService
-                .getBusinessPartnerRecord(Nino(nino), session.planetId)
-                .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId))
-            case ("eori", eori) =>
-              businessPartnerRecordsService
-                .getBusinessPartnerRecordByEori(eori, session.planetId)
-                .flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId))
+          withValidIdentifier(idType, idNumber) { case (idType, idNumber) =>
+            ((idType, idNumber) match {
+              case ("utr", utr) =>
+                recordsService.getRecordMaybeExt[BusinessPartnerRecord, Utr](Utr(utr), session.planetId)
+              case ("nino", nino) =>
+                recordsService.getRecordMaybeExt[BusinessPartnerRecord, Nino](Nino(nino), session.planetId)
+              case ("eori", eori) =>
+                recordsService.getRecordMaybeExt[BusinessPartnerRecord, Eori](Eori(eori), session.planetId)
+            }).flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId))
           }
         }
       }(SessionRecordNotFound)
@@ -351,7 +339,7 @@ class DesIfStubController @Inject() (
       withPayload[RegistrationWithoutIdPayload] { payload =>
         if (payload.individual.isDefined) {
           val recordToCreate = RegistrationWithoutId.toBusinessPartnerRecord(payload)
-          businessPartnerRecordsService
+          recordsService
             .store(recordToCreate, autoFill = false, session.planetId)
             .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, session.planetId))
             .map {
@@ -370,7 +358,7 @@ class DesIfStubController @Inject() (
       withPayload[RegistrationWithoutIdPayload] { payload =>
         if (payload.organisation.isDefined) {
           val recordToCreate = RegistrationWithoutId.toBusinessPartnerRecord(payload)
-          businessPartnerRecordsService
+          recordsService
             .store(recordToCreate, autoFill = false, session.planetId)
             .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, session.planetId))
             .map {
@@ -393,7 +381,7 @@ class DesIfStubController @Inject() (
             _ => badRequestF("Invalid AgentRef"),
             _ =>
               withPayload[EmployerAuthsPayload] { payload =>
-                genericRecordsService.getRecord[EmployerAuths, AgentCode](AgentCode(agentCode), session.planetId).map {
+                recordsService.getRecord[EmployerAuths, AgentCode](AgentCode(agentCode), session.planetId).map {
                   case None => notFound("AgentRef not found")
                   case Some(record) =>
                     LegacyAgentClientPayeRelationship
@@ -422,7 +410,7 @@ class DesIfStubController @Inject() (
         .fold(
           error => badRequestF(error.mkString(", ")),
           _ =>
-            genericRecordsService
+            recordsService
               .getRecord[EmployerAuths, AgentCode](AgentCode(agentCode), session.planetId)
               .flatMap {
                 case None => notFoundF("Relationship not found")
@@ -430,11 +418,11 @@ class DesIfStubController @Inject() (
                   val newEmployerAuths =
                     LegacyAgentClientPayeRelationship.remove(record, taxOfficeNumber, taxOfficeReference)
                   if (newEmployerAuths.empAuthList.nonEmpty)
-                    genericRecordsService
+                    recordsService
                       .store(newEmployerAuths, false, session.planetId)
                       .map(_ => Ok)
                   else
-                    genericRecordsService
+                    recordsService
                       .deleteRecord[EmployerAuths, AgentCode](AgentCode(agentCode), session.planetId)
                       .map(_ => Ok)
               }
@@ -445,8 +433,8 @@ class DesIfStubController @Inject() (
   def getCtReference(idType: String, idValue: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       withValidIdentifier(idType, idValue) { case ("crn", crn) =>
-        businessPartnerRecordsService
-          .getBusinessPartnerRecordByCrn(crn, session.planetId)
+        recordsService
+          .getRecordMaybeExt[BusinessPartnerRecord, Crn](Crn(crn), session.planetId)
           .map(_.flatMap(GetCtReference.Response.from))
           .map {
             case None     => notFound("NOT_FOUND", "The back end has indicated that CT UTR cannot be returned.")
@@ -463,7 +451,8 @@ class DesIfStubController @Inject() (
         .fold(
           error => badRequestF("INVALID_VRN", error),
           _ =>
-            getOrSyncVatInfo(Vrn(vrn), session.planetId)
+            recordsService
+              .getRecordMaybeExt[VatCustomerInformationRecord, Vrn](Vrn(vrn), session.planetId)
               .map(VatKnownFacts.fromVatCustomerInformationRecord(vrn, _))
               .map {
                 case Some(record) => Ok(Json.toJson(record))
@@ -636,7 +625,7 @@ class DesIfStubController @Inject() (
       )
   }
 
-//    //API #1712 Get Plastic Packaging Tax Subscription Display
+  //    //API #1712 Get Plastic Packaging Tax Subscription Display
   def getPPTSubscriptionDisplay(regime: String, pptReferenceNumber: String) = Action.async { implicit request =>
     withCurrentSession { session =>
       if (regime == "PPT") {
@@ -645,7 +634,7 @@ class DesIfStubController @Inject() (
           .fold(
             error => badRequestF("INVALID_PPT_REFERENCE_NUMBER", error),
             regNumber =>
-              genericRecordsService
+              recordsService
                 .getRecord[PPTSubscriptionDisplayRecord, PptRef](PptRef(regNumber), session.planetId)
                 .map {
                   case Some(record) => Ok(Json.toJson(record))
@@ -660,7 +649,7 @@ class DesIfStubController @Inject() (
   def getPillar2PPTSubscriptionDetails(plrReference: String) = Action.async { implicit request =>
     withCurrentSession { session =>
       if (PlrId.isValid(plrReference)) {
-        genericRecordsService
+        recordsService
           .getRecord[Pillar2Record, PlrId](PlrId(plrReference), session.planetId)
           .map {
             case Some(record) => Ok(Json.toJson(record))
@@ -685,7 +674,7 @@ class DesIfStubController @Inject() (
     case Some(record) => okF(record, Registration.fixSchemaDifferences _)
     case None =>
       if (payload.organisation.isDefined || payload.individual.isDefined) {
-        businessPartnerRecordsService
+        recordsService
           .store(Registration.toBusinessPartnerRecord(payload, idType, idNumber), autoFill = false, planetId)
           .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, planetId))
           .map {
@@ -721,7 +710,6 @@ class DesIfStubController @Inject() (
         if (pf.isDefinedAt((idType, idNumber))) pf((idType, idNumber))
         else badRequestF(errorCode, "Unsupported identifier type")
     )
-
 }
 
 object DesIfStubController {

@@ -20,7 +20,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents, Result}
 import uk.gov.hmrc.agentmtdidentifiers.model.CbcId
 import uk.gov.hmrc.agentsexternalstubs.models.{CbcSubscriptionRecord, DisplaySubscriptionForCbC, DisplaySubscriptionForCbCRequestPayload}
-import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GenericRecordsService}
+import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, RecordsService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
@@ -30,7 +30,7 @@ import scala.io.Source
 @Singleton
 class CountryByCountryController @Inject() (
   val authenticationService: AuthenticationService,
-  genericRecordsService: GenericRecordsService,
+  recordsService: RecordsService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
     extends BackendController(cc) with HttpHelpers with CurrentSession {
@@ -46,7 +46,7 @@ class CountryByCountryController @Inject() (
               errorResponse(400, "Invalid JSON document", errors.toString()),
             _ => {
               val cbcId = payload.displaySubscriptionForCBCRequest.requestDetail.IDNumber
-              genericRecordsService
+              recordsService
                 .getRecord[CbcSubscriptionRecord, CbcId](CbcId(cbcId), session.planetId)
                 .flatMap(maybeRecord =>
                   maybeRecord.fold(

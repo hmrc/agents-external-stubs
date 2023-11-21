@@ -11,7 +11,7 @@ import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.Individual
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
-import uk.gov.hmrc.agentsexternalstubs.services.GenericRecordsService
+import uk.gov.hmrc.agentsexternalstubs.services.RecordsService
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
 import uk.gov.hmrc.domain.{Nino, Vrn}
@@ -25,7 +25,7 @@ class DesIfStubControllerISpec
   lazy val wsClient = app.injector.instanceOf[WSClient]
   lazy val repo = app.injector.instanceOf[RecordsRepository]
   lazy val controller = app.injector.instanceOf[DesIfStubController]
-  lazy val recordsService = app.injector.instanceOf[GenericRecordsService]
+  lazy val recordsService = app.injector.instanceOf[RecordsService]
 
   "DesIfController" when {
 

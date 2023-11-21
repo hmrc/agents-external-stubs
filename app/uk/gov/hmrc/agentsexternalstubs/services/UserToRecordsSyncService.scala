@@ -29,10 +29,9 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class UserToRecordsSyncService @Inject() (
-  BusinessPartnerRecordsService: BusinessPartnerRecordsService,
   knownFactsRepository: KnownFactsRepository,
   legacyRelationshipRecordsService: LegacyRelationshipRecordsService,
-  genericRecordsService: GenericRecordsService,
+  recordsService: RecordsService,
   usersRepository: UsersRepository
 )(implicit ec: ExecutionContext) {
 
@@ -112,7 +111,7 @@ class UserToRecordsSyncService @Inject() (
         KnownFacts(ek, identifiers = Seq(identifier), verifiers = verifiers, planetId = Some(user.planetId.get))
 
       for {
-        _ <- genericRecordsService.store(pillar2Record, autoFill = false, user.planetId.get).flatMap(saveRecordId)
+        _ <- recordsService.store(pillar2Record, autoFill = false, user.planetId.get).flatMap(saveRecordId)
         _ <- knownFactsRepository.upsert(knownFacts, user.planetId.get)
       } yield ()
     }
@@ -165,8 +164,8 @@ class UserToRecordsSyncService @Inject() (
           Future
             .sequence(
               Seq(
-                genericRecordsService.getRecord[BusinessDetailsRecord, Nino](Nino(nino), user.planetId.get),
-                genericRecordsService.getRecord[BusinessDetailsRecord, MtdItId](MtdItId(mtdbsa), user.planetId.get)
+                recordsService.getRecord[BusinessDetailsRecord, Nino](Nino(nino), user.planetId.get),
+                recordsService.getRecord[BusinessDetailsRecord, MtdItId](MtdItId(mtdbsa), user.planetId.get)
               )
             )
             .map(_.collect { case Some(x) => x })
@@ -176,7 +175,7 @@ class UserToRecordsSyncService @Inject() (
               case Nil                               => record
             })
             .flatMap(entity =>
-              genericRecordsService
+              recordsService
                 .store(entity, autoFill = false, user.planetId.get)
                 .flatMap(saveRecordId)
             )
@@ -199,7 +198,7 @@ class UserToRecordsSyncService @Inject() (
         }
 
         getKnownFacts(enrolmentKey, user.planetId.get) map updateKnownFacts flatMap { _ =>
-          genericRecordsService
+          recordsService
             .store(cbcRecord, autoFill = false, user.planetId.get)
             .flatMap(saveRecordId)
         }
@@ -217,7 +216,7 @@ class UserToRecordsSyncService @Inject() (
         }
 
         getKnownFacts(enrolmentKey, user.planetId.get) map updateKnownFacts flatMap { _ =>
-          genericRecordsService
+          recordsService
             .store(cbcRecord, autoFill = false, user.planetId.get)
             .flatMap(saveRecordId)
         }
@@ -246,7 +245,7 @@ class UserToRecordsSyncService @Inject() (
               pptRegistrationDate,
               pptReference
             )
-          genericRecordsService
+          recordsService
             .store(subscriptionDisplayRecord, autoFill = false, user.planetId.get)
             .flatMap(saveRecordId)
         }
@@ -299,8 +298,8 @@ class UserToRecordsSyncService @Inject() (
         Future
           .sequence(
             Seq(
-              genericRecordsService.getRecord[BusinessDetailsRecord, Nino](Nino(nino), user.planetId.get),
-              genericRecordsService.getRecord[BusinessDetailsRecord, CgtRef](CgtRef(cgtRef), user.planetId.get)
+              recordsService.getRecord[BusinessDetailsRecord, Nino](Nino(nino), user.planetId.get),
+              recordsService.getRecord[BusinessDetailsRecord, CgtRef](CgtRef(cgtRef), user.planetId.get)
             )
           )
           .map(_.collect { case Some(x) => x })
@@ -310,7 +309,7 @@ class UserToRecordsSyncService @Inject() (
             case Nil                               => record
           })
           .flatMap(entity =>
-            genericRecordsService
+            recordsService
               .store(entity, autoFill = false, user.planetId.get)
               .flatMap(saveRecordId)
           )
@@ -384,7 +383,7 @@ class UserToRecordsSyncService @Inject() (
                   )
                 )
             }.flatMap(record =>
-              genericRecordsService
+              recordsService
                 .store(record, autoFill = false, user.planetId.get)
                 .flatMap(saveRecordId)
             )
@@ -451,7 +450,7 @@ class UserToRecordsSyncService @Inject() (
                   )
                 )
             }.flatMap(record =>
-              genericRecordsService
+              recordsService
                 .store(record, autoFill = false, user.planetId.get)
                 .flatMap(saveRecordId)
             )
@@ -518,7 +517,7 @@ class UserToRecordsSyncService @Inject() (
                   )
                 )
             }.flatMap(record =>
-              genericRecordsService
+              recordsService
                 .store(record, autoFill = false, user.planetId.get)
                 .flatMap(saveRecordId)
             )
@@ -595,7 +594,7 @@ class UserToRecordsSyncService @Inject() (
                   .modifyAddressDetails { case ad: BusinessPartnerRecord.UkAddress =>
                     ad.modifyPostalCode { case pc => postcodeOpt.getOrElse(pc) }
                   }
-                BusinessPartnerRecordsService
+                recordsService
                   .store(ar, autoFill = false, user.planetId.get)
                   .flatMap(saveRecordId)
               }
@@ -606,7 +605,7 @@ class UserToRecordsSyncService @Inject() (
               .withCrn(Option(crn))
               .withIsAnAgent(false)
               .withIsAnASAgent(false)
-            BusinessPartnerRecordsService
+            recordsService
               .store(ar, autoFill = false, user.planetId.get)
               .flatMap(saveRecordId)
 
@@ -645,7 +644,7 @@ class UserToRecordsSyncService @Inject() (
                   )
                 )
             }.flatMap(record =>
-              BusinessPartnerRecordsService
+              recordsService
                 .store(record, autoFill = false, user.planetId.get)
                 .flatMap(saveRecordId)
             )
@@ -715,7 +714,7 @@ class UserToRecordsSyncService @Inject() (
           case Some(agentCode) =>
             for {
               recordOpt <-
-                genericRecordsService.getRecord[EmployerAuths, AgentCode](AgentCode(agentCode), user.planetId.get)
+                recordsService.getRecord[EmployerAuths, AgentCode](AgentCode(agentCode), user.planetId.get)
               _ <- recordOpt match {
                      case Some(existing) =>
                        val recordEmpRefs: Set[EmployerAuths.EmpAuth.EmpRef] = existing.empAuthList.map(_.empRef).toSet
@@ -732,11 +731,11 @@ class UserToRecordsSyncService @Inject() (
                          .toSeq
                        val record = existing.copy(empAuthList = existing.empAuthList ++ empAuthsToAdd)
                        if (record.empAuthList.nonEmpty)
-                         genericRecordsService
+                         recordsService
                            .store(record, autoFill = false, user.planetId.get)
                            .flatMap(saveRecordId)
                        else
-                         genericRecordsService
+                         recordsService
                            .deleteRecord[EmployerAuths, AgentCode](AgentCode(agentCode), user.planetId.get)
                            .flatMap(_ => saveRecordId("--" + record.id.get))
                      case None =>
@@ -753,7 +752,7 @@ class UserToRecordsSyncService @Inject() (
                          .toSeq
                        val record = EmployerAuths(agentCode = agentCode, empAuthList = empAuthList)
                        if (record.empAuthList.nonEmpty)
-                         genericRecordsService
+                         recordsService
                            .store(record, autoFill = false, user.planetId.get)
                            .flatMap(saveRecordId)
                        else Future.successful("")
