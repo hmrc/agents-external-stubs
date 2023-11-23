@@ -51,6 +51,7 @@ class KnownFactsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val e
       collectionName = "knownFacts",
       domainFormat = KnownFacts.formats,
       indexes = Seq(
+        IndexModel(Indexes.ascending("planetId")),
         IndexModel(
           Indexes.ascending(KnownFacts.UNIQUE_KEY),
           IndexOptions().name("KnownFactsByEnrolmentKey").unique(true)

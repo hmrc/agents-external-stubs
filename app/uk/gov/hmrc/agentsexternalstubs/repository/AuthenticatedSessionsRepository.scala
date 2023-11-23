@@ -35,6 +35,7 @@ class AuthenticatedSessionsRepository @Inject() (mongo: MongoComponent)(implicit
       collectionName = "authenticated-sessions",
       domainFormat = AuthenticatedSession.formats,
       indexes = Seq(
+        IndexModel(Indexes.ascending("planetId")),
         IndexModel(
           Indexes.ascending("authToken"),
           IndexOptions().unique(true).name("AuthenticatedSessions").expireAfter(900, TimeUnit.SECONDS)
