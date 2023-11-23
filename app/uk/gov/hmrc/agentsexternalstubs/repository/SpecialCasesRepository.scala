@@ -59,6 +59,7 @@ class SpecialCasesRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val
       domainFormat = Format(internal.reads, internal.writes),
       indexes = Seq(
         IndexModel(Indexes.ascending(SpecialCase.UNIQUE_KEY), IndexOptions().name("SpecialCasesByKey").unique(true)),
+        IndexModel(Indexes.ascending(PLANET_ID)),
         IndexModel(Indexes.ascending(Id.ID, PLANET_ID), IndexOptions().name("SpecialCaseId").unique(true))
       ),
       replaceIndexes = true
