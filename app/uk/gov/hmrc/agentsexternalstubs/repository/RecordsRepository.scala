@@ -69,7 +69,8 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
       domainFormat = JsonAbuse.format[Record](true),
       indexes = Seq(
         IndexModel(Indexes.ascending(KEYS), IndexOptions().name("Keys")),
-        IndexModel(Indexes.ascending(UNIQUE_KEY), IndexOptions().name("UniqueKey").unique(true).sparse(true))
+        IndexModel(Indexes.ascending(UNIQUE_KEY), IndexOptions().name("UniqueKey").unique(true).sparse(true)),
+        IndexModel(Indexes.ascending(PLANET_ID))
       ),
       extraCodecs = Seq(Codecs.playFormatCodec(Record.formats)),
       replaceIndexes = true
