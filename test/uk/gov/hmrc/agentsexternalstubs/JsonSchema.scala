@@ -286,14 +286,7 @@ object JsonSchema {
 
     val (required, alternatives) = readRequiredProperty(property)
     (property \ "properties").asOpt[JsObject] match {
-      case Some(properties) =>
-//        val props = properties.fields
-//          .map(_._1)
-//          .distinct
-//          .toList
-//          .map(p =>
-//            readProperty(p, s"$path/$p", (property \ "properties" \ p).as[JsObject], schema, required = required)
-//          )
+      case Some(_) =>
         ObjectDefinition(
           name,
           path,
@@ -336,8 +329,7 @@ object JsonSchema {
     required: Seq[String],
     alternatives: Seq[Set[String]]
   ): Definition = (property \ "oneOf").asOpt[JsArray] match {
-    case Some(array) =>
-      //val props = array.value.map(p => readProperty(name, path, p.as[JsObject], schema, required = required)).toList
+    case Some(_) =>
       OneOfDefinition(
         name,
         path,
