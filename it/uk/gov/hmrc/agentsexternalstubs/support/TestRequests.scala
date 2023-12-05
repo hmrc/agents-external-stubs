@@ -40,7 +40,7 @@ object AuthContext {
 
   def fromCookies(response: WSResponse): AuthContext = new AuthContext with CookieConverter {
     override def headers: Seq[(String, String)] = Seq(
-      HeaderNames.COOKIE -> cookieEncoding.encodeCookieHeader(response.cookies.map(x => asCookie(x)))
+      HeaderNames.COOKIE -> cookieEncoding.encodeCookieHeader(response.cookies.toList.map(x => asCookie(x)))
     )
   }
 
@@ -663,7 +663,7 @@ trait TestRequests extends ScalaFutures {
       wsClient
         .url(s"$url/agents-external-stubs/record/$recordId")
         .withHttpHeaders(authContext.headers: _*)
-        .delete
+        .delete()
         .futureValue
 
     def createBusinessDetails[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
@@ -674,7 +674,7 @@ trait TestRequests extends ScalaFutures {
         .url(s"$url/agents-external-stubs/records/business-details/generate")
         .withQueryStringParameters("seed" -> seed, "minimal" -> minimal.toString)
         .withHttpHeaders(authContext.headers: _*)
-        .get
+        .get()
         .futureValue
 
     def createLegacyAgent[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
@@ -689,7 +689,7 @@ trait TestRequests extends ScalaFutures {
         .url(s"$url/agents-external-stubs/records/legacy-agent/generate")
         .withQueryStringParameters("seed" -> seed, "minimal" -> minimal.toString)
         .withHttpHeaders(authContext.headers: _*)
-        .get
+        .get()
         .futureValue
 
     def createLegacyRelationship[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
@@ -704,7 +704,7 @@ trait TestRequests extends ScalaFutures {
         .url(s"$url/agents-external-stubs/records/legacy-relationship/generate")
         .withQueryStringParameters("seed" -> seed, "minimal" -> minimal.toString)
         .withHttpHeaders(authContext.headers: _*)
-        .get
+        .get()
         .futureValue
 
     def createVatCustomerInformation[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
@@ -719,7 +719,7 @@ trait TestRequests extends ScalaFutures {
         .url(s"$url/agents-external-stubs/records/vat-customer-information/generate")
         .withQueryStringParameters("seed" -> seed, "minimal" -> minimal.toString)
         .withHttpHeaders(authContext.headers: _*)
-        .get
+        .get()
         .futureValue
 
     def createBusinessPartnerRecord[T: BodyWritable](payload: T, autoFill: Boolean = true)(implicit
@@ -737,7 +737,7 @@ trait TestRequests extends ScalaFutures {
         .url(s"$url/agents-external-stubs/records/business-partner-record/generate")
         .withQueryStringParameters("seed" -> seed, "minimal" -> minimal.toString)
         .withHttpHeaders(authContext.headers: _*)
-        .get
+        .get()
         .futureValue
 
     def createRelationship[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
@@ -752,7 +752,7 @@ trait TestRequests extends ScalaFutures {
         .url(s"$url/agents-external-stubs/records/relationship/generate")
         .withQueryStringParameters("seed" -> seed, "minimal" -> minimal.toString)
         .withHttpHeaders(authContext.headers: _*)
-        .get
+        .get()
         .futureValue
 
     def createEmployerAuths[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
@@ -767,7 +767,7 @@ trait TestRequests extends ScalaFutures {
         .url(s"$url/agents-external-stubs/records/employer-auths/generate")
         .withQueryStringParameters("seed" -> seed, "minimal" -> minimal.toString)
         .withHttpHeaders(authContext.headers: _*)
-        .get
+        .get()
         .futureValue
 
     def createPPTSubscriptionDisplayRecord[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
@@ -791,7 +791,7 @@ trait TestRequests extends ScalaFutures {
         .url(s"$url/agents-external-stubs/records/ppt-subscription/generate")
         .withQueryStringParameters("seed" -> seed, "minimal" -> minimal.toString)
         .withHttpHeaders(authContext.headers: _*)
-        .get
+        .get()
         .futureValue
 
     def createCbcSubscriptionRecord[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
@@ -806,7 +806,7 @@ trait TestRequests extends ScalaFutures {
         .url(s"$url/agents-external-stubs/records/cbc-subscription/generate")
         .withQueryStringParameters("seed" -> seed, "minimal" -> minimal.toString)
         .withHttpHeaders(authContext.headers: _*)
-        .get
+        .get()
         .futureValue
   }
 

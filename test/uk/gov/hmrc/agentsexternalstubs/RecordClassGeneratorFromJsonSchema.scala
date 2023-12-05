@@ -23,6 +23,7 @@ import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.agentsexternalstubs.JsonSchema._
 import uk.gov.hmrc.agentsexternalstubs.RecordCodeRenderer.Context.safeName
 
+import scala.collection.MapView
 import scala.io.Source
 import scala.util.matching.Regex
 
@@ -86,10 +87,10 @@ trait JsonSchemaCodeRenderer extends JsonSchemaRenderer {
   }
 
   private def moveRefTypesToTheTop(typeDef: TypeDefinition): TypeDefinition = {
-    val refTypesMap: Map[String, TypeDefinition] = collectRefTypes(typeDef)
+    val refTypesMap: MapView[String, TypeDefinition] = collectRefTypes(typeDef)
       .map(t => t.copy(prefix = ""))
       .groupBy(_.definition.path)
-      .mapValues(_.reduce((a, b) => a.copy(interfaces = a.interfaces ++ b.interfaces)))
+      .view.mapValues(_.reduce((a, b) => a.copy(interfaces = a.interfaces ++ b.interfaces)))
 
     val commonRefTypes = refTypesMap.values.toSeq.filterNot(_.definition == typeDef.definition)
 

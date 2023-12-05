@@ -140,7 +140,7 @@ class KnownFactsController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def createPAYEKnownFacts(agentId: String): Action[JsValue] = Action(parse.json) { implicit request =>
+  def createPAYEKnownFacts(agentId: String): Action[JsValue] = Action(parse.json) { _ =>
     NoContent
   }
 

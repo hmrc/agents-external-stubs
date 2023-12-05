@@ -172,11 +172,14 @@ class GroupsService @Inject() (
             findByPrincipalEnrolmentKey(enrolmentKey, planetId).flatMap {
               case Some(owner) if !(owner.affinityGroup == AG.Agent) =>
                 val enrolment = Enrolment.from(enrolmentKey)
-                groupsRepository.findByGroupId(group.groupId, planetId).map { case Some(group) =>
-                  if (group.delegatedEnrolments.map(_.toEnrolmentKeyTag.getOrElse("")).contains(enrolmentKey.tag))
-                    throw new EnrolmentAlreadyExists
-                  else groupsRepository.addDelegatedEnrolment(group.groupId, planetId, enrolment)
+                groupsRepository.findByGroupId(group.groupId, planetId).map {
+                  case Some(group) =>
+                    if (group.delegatedEnrolments.map(_.toEnrolmentKeyTag.getOrElse("")).contains(enrolmentKey.tag))
+                      throw new EnrolmentAlreadyExists
+                    else groupsRepository.addDelegatedEnrolment(group.groupId, planetId, enrolment)
+                  case None => Future.failed(new NotFoundException("GROUP_ID_NOT_FOUND"))
                 }
+              case Some(_) => Future.failed(new BadRequestException("OWNER_IS_AN_AGENT"))
               case None =>
                 Future.failed(new BadRequestException("INVALID_QUERY_PARAMETERS"))
             }

@@ -16,17 +16,16 @@
 
 package uk.gov.hmrc.agentsexternalstubs.wiring
 
-import java.util.regex.{Matcher, Pattern}
-
 import akka.stream.Materializer
 import app.Routes
 import com.codahale.metrics.MetricRegistry
 import com.kenshoo.play.metrics.Metrics
-import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.mvc.{Filter, RequestHeader, Result}
-import uk.gov.hmrc.http.{HttpException, Upstream4xxResponse, Upstream5xxResponse}
+import uk.gov.hmrc.http.UpstreamErrorResponse
 
+import java.util.regex.{Matcher, Pattern}
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.NANOSECONDS
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
@@ -92,10 +91,8 @@ abstract class MonitoringFilter(kenshooRegistry: MetricRegistry)(implicit ec: Ex
           .update(System.nanoTime() - start, NANOSECONDS)
         kenshooRegistry.getCounters.getOrDefault(counterName, kenshooRegistry.counter(counterName)).inc()
 
-      case Failure(exception: Upstream5xxResponse) => recordFailure(serviceName, exception.upstreamResponseCode, start)
-      case Failure(exception: Upstream4xxResponse) => recordFailure(serviceName, exception.upstreamResponseCode, start)
-      case Failure(exception: HttpException)       => recordFailure(serviceName, exception.responseCode, start)
-      case Failure(_: Throwable)                   => recordFailure(serviceName, 500, start)
+      case Failure(exception: UpstreamErrorResponse) => recordFailure(serviceName, exception.statusCode, start)
+      case Failure(_: Throwable)                     => recordFailure(serviceName, 500, start)
     }
   }
 

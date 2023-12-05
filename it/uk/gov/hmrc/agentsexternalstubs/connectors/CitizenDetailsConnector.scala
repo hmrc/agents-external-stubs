@@ -28,6 +28,7 @@ import uk.gov.hmrc.http._
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.http.HttpReads.Implicits._
 
 case class CitizenDateOfBirth(dateOfBirth: Option[LocalDate])
 

@@ -16,11 +16,13 @@
 
 package uk.gov.hmrc.agentsexternalstubs.connectors
 
-import java.net.URL
+import play.api.http.Status.OK
 
+import java.net.URL
 import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.HttpReads.Implicits._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -76,9 +78,6 @@ class AgentAccessControlConnector @Inject() (appConfig: AppConfig, http: HttpGet
   private def check(url: URL)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Boolean] =
     http
       .GET[HttpResponse](url.toString)
-      .map(_ => true)
-      .recover { case Upstream4xxResponse(_, 401, _, _) =>
-        false
-      }
+      .map(_.status == OK)
 
 }

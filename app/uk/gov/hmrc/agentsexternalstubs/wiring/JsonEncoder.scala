@@ -26,7 +26,7 @@ import org.apache.commons.lang3.time.FastDateFormat
 import com.typesafe.config.ConfigFactory
 
 import scala.util.{Success, Try}
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.databind.node.JsonNodeType

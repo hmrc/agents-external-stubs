@@ -152,11 +152,12 @@ class GranPermsService @Inject() (
       Seq.fill(n)(pickFromDistributionRandomly(distribution))
     case GranPermsGenRequest.GenMethodProportional =>
       pickFromDistributionProportionally[A](distribution, n)
+    case _ => throw new RuntimeException(s"unsupported GenMethod")
   }
 
   private def pickFromDistributionRandomly[A](distribution: Map[A, Double]): A = {
     require(distribution.nonEmpty)
-    val normalisedDistribution = distribution.mapValues(_ / distribution.values.sum).toSeq
+    val normalisedDistribution = distribution.view.mapValues(_ / distribution.values.sum).toSeq
     val randomNumber = Random.nextDouble()
     val chosenIndex = normalisedDistribution.map(_._2).scan(0.0)(_ + _).tail.indexWhere(randomNumber < _)
     if (chosenIndex < 0) // not found - should only ever happen (rarely) due to rounding errors
@@ -167,7 +168,7 @@ class GranPermsService @Inject() (
 
   private def pickFromDistributionProportionally[A](distribution: Map[A, Double], n: Int): Seq[A] = {
     require(distribution.nonEmpty)
-    val normalisedDistribution = distribution.mapValues(_ / distribution.values.sum).toSeq
+    val normalisedDistribution = distribution.view.mapValues(_ / distribution.values.sum).toSeq
     val intervalPartition = normalisedDistribution.map(_._2).scan(0.0)(_ + _).tail
     (0 until n).toSeq.map { i =>
       val fractionalIndex = (i.toDouble + 0.5) / n.toDouble

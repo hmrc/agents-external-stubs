@@ -170,6 +170,7 @@ object CbcContactInformation {
       )
     case orgC: OrganisationContact =>
       CbcContactInformation(email = email, phone = phone, mobile = mobile, individual = None, organisation = Some(orgC))
+    case _ => throw new RuntimeException("invalid contact type")
   }
 
 }

@@ -37,7 +37,7 @@ object UserIdGenerator {
   private def nextUserId: String = addSuffix(userIds(Random.nextInt(userIds.size)))
 
   private def shuffle(strings: Seq[String]): Seq[String] =
-    strings.zip(Stream.continually(Random.nextInt())).sortBy(_._2).map(_._1)
+    strings.zip(LazyList.continually(Random.nextInt())).sortBy(_._2).map(_._1)
 
   def nextUserIdFor(planetId: String, userIdFromPool: Boolean): String =
     if (userIdFromPool)

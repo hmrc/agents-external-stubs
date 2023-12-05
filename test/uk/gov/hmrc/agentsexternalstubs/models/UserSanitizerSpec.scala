@@ -40,10 +40,10 @@ class UserSanitizerSpec extends BaseUnitSpec {
 
     "add missing name to the Organisation" in {
       UserSanitizer(Some(AG.Organisation)).sanitize(User("boo")).name shouldBe Some(
-        "Petronical Inc."
+        "Markets"
       )
       UserSanitizer(Some(AG.Organisation)).sanitize(User("zoo")).name shouldBe Some(
-        "Markets Mutual Fenos Holdings"
+        "Honder Energy Swissa Ltd."
       )
     }
 

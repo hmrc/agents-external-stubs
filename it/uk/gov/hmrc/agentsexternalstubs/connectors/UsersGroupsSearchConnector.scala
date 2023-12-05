@@ -26,6 +26,7 @@ import uk.gov.hmrc.domain.AgentCode
 import uk.gov.hmrc.http._
 
 import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.http.HttpReads.Implicits._
 
 case class GroupInfo(groupId: String, affinityGroup: Option[String], agentCode: Option[AgentCode])
 

@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.connectors
 
+import play.api.http.Status.OK
 import uk.gov.hmrc.agentsexternalstubs.models.ApiPlatform.TestUser
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.http._
@@ -23,6 +24,7 @@ import uk.gov.hmrc.http._
 import java.net.URL
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.http.HttpReads.Implicits._
 
 @Singleton
 class ApiPlatformTestUserConnector @Inject() (appConfig: AppConfig, http: HttpGet) {
@@ -47,8 +49,13 @@ class ApiPlatformTestUserConnector @Inject() (appConfig: AppConfig, http: HttpGe
     getUser(new URL(appConfig.apiPlatformTestUserUrl + s"/organisations/vrn/$vrn"))
 
   private def getUser(url: URL)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
-    http.GET[TestUser](url.toString).map(Some.apply).recover { case _: NotFoundException =>
-      None
-    }
+    http
+      .GET[HttpResponse](url.toString)
+      .map(response =>
+        response.status match {
+          case OK => Option.apply(response.json.as[TestUser])
+          case _  => None
+        }
+      )
 
 }

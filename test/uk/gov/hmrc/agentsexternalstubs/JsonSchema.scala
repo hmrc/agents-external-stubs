@@ -95,7 +95,7 @@ object JsonSchema {
     isRef: Boolean = false,
     description: Option[String] = None,
     pattern: Option[String] = None,
-    enum: Option[Seq[String]] = None,
+    `enum`: Option[Seq[String]] = None,
     minLength: Option[Int] = None,
     maxLength: Option[Int] = None,
     isUniqueKey: Boolean = false,
@@ -224,7 +224,7 @@ object JsonSchema {
   ): Definition = {
 
     val pattern = (property \ "pattern").asOpt[String]
-    val enum = (property \ "enum").asOpt[Seq[String]]
+    val `enum` = (property \ "enum").asOpt[Seq[String]]
     val minLength = (property \ "minLength").asOpt[Int]
     val maxLength = (property \ "maxLength").asOpt[Int]
     val isUniqueKey = (property \ "x_uniqueKey").asOpt[Boolean].getOrElse(false)
@@ -286,17 +286,11 @@ object JsonSchema {
 
     val (required, alternatives) = readRequiredProperty(property)
     (property \ "properties").asOpt[JsObject] match {
-      case Some(properties) =>
-        val props = properties.fields
-          .map(_._1)
-          .distinct
-          .map(p =>
-            readProperty(p, s"$path/$p", (property \ "properties" \ p).as[JsObject], schema, required = required)
-          )
+      case Some(_) =>
         ObjectDefinition(
           name,
           path,
-          properties = props,
+          properties = Seq.empty,
           required,
           isRef = isRef,
           description = description,
@@ -335,9 +329,16 @@ object JsonSchema {
     required: Seq[String],
     alternatives: Seq[Set[String]]
   ): Definition = (property \ "oneOf").asOpt[JsArray] match {
-    case Some(array) =>
-      val props = array.value.map(p => readProperty(name, path, p.as[JsObject], schema, required = required))
-      OneOfDefinition(name, path, variants = props, isRef = isRef, description = description, isMandatory, alternatives)
+    case Some(_) =>
+      OneOfDefinition(
+        name,
+        path,
+        variants = Seq.empty,
+        isRef = isRef,
+        description = description,
+        isMandatory,
+        alternatives
+      )
     case None =>
       throw new IllegalStateException(s"Unsupported object definition, `properties` or `oneOf` expected in $property.")
   }

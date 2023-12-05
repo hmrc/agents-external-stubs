@@ -23,6 +23,7 @@ import play.api.http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models.AuthLoginApi
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.http.{HeaderCarrier, HttpGet, HttpPost, HttpResponse}
+import uk.gov.hmrc.http.HttpReads.Implicits._
 
 import scala.concurrent.{ExecutionContext, Future}
 

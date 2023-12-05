@@ -39,14 +39,14 @@ class RecordsRepositoryISpec extends AppBaseISpec {
       val registration2 = RelationshipRecord(regime = "A", arn = "B2", refNumber = "C2", idType = "D", active = false)
       await(repo.store(registration2, planetId))
 
-      val recordsBefore = await(underlyingRepo.collection.find(Filters.equal("_planetId", planetId)).toFuture)
+      val recordsBefore = await(underlyingRepo.collection.find(Filters.equal("_planetId", planetId)).toFuture())
       recordsBefore.size shouldBe 2
 
       val record1 = recordsBefore.find(_.asInstanceOf[RelationshipRecord].arn == "B1").get
       record1.id should not be empty
       await(repo.store(record1.asInstanceOf[RelationshipRecord].copy(arn = "B3"), planetId))
 
-      val recordsAfter = await(underlyingRepo.collection.find(Filters.equal("_planetId", planetId)).toFuture)
+      val recordsAfter = await(underlyingRepo.collection.find(Filters.equal("_planetId", planetId)).toFuture())
       recordsAfter.size shouldBe 2
       recordsAfter.find(_.asInstanceOf[RelationshipRecord].arn == "B3") should not be empty
       recordsAfter.find(_.asInstanceOf[RelationshipRecord].arn == "B2") should not be empty
@@ -61,7 +61,7 @@ class RecordsRepositoryISpec extends AppBaseISpec {
       val registration2 = LegacyAgentRecord(agentId = "A2", agentName = "Agent2", address1 = "a21", address2 = "a22")
       await(repo.store(registration2, planetId))
 
-      val records = await(underlyingRepo.collection.find(Filters.equal("_planetId", planetId)).toFuture)
+      val records = await(underlyingRepo.collection.find(Filters.equal("_planetId", planetId)).toFuture())
       records.size shouldBe 2
       records.map(_.asInstanceOf[LegacyAgentRecord].agentId) should contain.only("A1", "A2")
     }
@@ -81,7 +81,7 @@ class RecordsRepositoryISpec extends AppBaseISpec {
       )
       await(repo.store(registration2, planetId))
 
-      val records = await(underlyingRepo.collection.find(Filters.equal("_planetId", planetId)).toFuture)
+      val records = await(underlyingRepo.collection.find(Filters.equal("_planetId", planetId)).toFuture())
       records.size shouldBe 2
       records.map(_.asInstanceOf[LegacyRelationshipRecord].agentId) should contain.only("1", "2")
       records.map(_.asInstanceOf[LegacyRelationshipRecord].nino.get) should contain.only("A", "B")
@@ -104,7 +104,7 @@ class RecordsRepositoryISpec extends AppBaseISpec {
       val businessDetails1 = BusinessDetailsRecord.generate("foo")
       await(repo.store(businessDetails1, planetId))
 
-      val records = await(underlyingRepo.collection.find(Filters.equal("_planetId", planetId)).toFuture)
+      val records = await(underlyingRepo.collection.find(Filters.equal("_planetId", planetId)).toFuture())
       records.size shouldBe 1
     }
 
@@ -113,7 +113,7 @@ class RecordsRepositoryISpec extends AppBaseISpec {
       val businessPartnerRecord = BusinessPartnerRecord.generate("foo")
       await(repo.store(businessPartnerRecord, planetId))
 
-      val records = await(underlyingRepo.collection.find(Filters.equal("_planetId", planetId)).toFuture)
+      val records = await(underlyingRepo.collection.find(Filters.equal("_planetId", planetId)).toFuture())
       records.size shouldBe 1
     }
 

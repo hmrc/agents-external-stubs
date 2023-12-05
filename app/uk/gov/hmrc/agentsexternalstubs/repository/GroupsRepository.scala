@@ -104,7 +104,7 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
     collection
       .find(filter)
       .|>(o => if (limit >= 0) o.limit(limit) else o)
-      .toFuture
+      .toFuture()
       .map(_.map(_.value))
   }
 
@@ -116,13 +116,13 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
           Filters.equal("groupId", groupId)
         )
       )
-      .toFuture
+      .toFuture()
       .map(_.headOption.map(_.value))
 
   override def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String): Future[Option[Group]] =
     collection
       .find(Filters.equal(UNIQUE_KEYS, keyOf(principalEnrolmentIndexKey(enrolmentKey.toString), planetId)))
-      .toFuture
+      .toFuture()
       .map(_.headOption.map(_.value))
 
   override def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
@@ -131,7 +131,7 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
     collection
       .find(Filters.equal(KEYS, keyOf(delegatedEnrolmentIndexKey(enrolmentKey.toString), planetId)))
       .|>(o => if (limit >= 0) o.limit(limit) else o)
-      .toFuture
+      .toFuture()
       .map(_.map(_.value))
 
   override def addDelegatedEnrolment(
@@ -200,12 +200,12 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
   override def create(group: Group, planetId: String): Future[Unit] =
     collection
       .insertOne(serializeGroup(group, planetId).addField(UPDATED, JsNumber(System.currentTimeMillis())))
-      .toFuture
+      .toFuture()
+      .map(_ => ())
       .recoverWith {
         case e: MongoWriteException if e.getMessage.contains("11000") =>
           throwDuplicatedException(e, group, planetId)
       }
-      .map(_ => ())
 
   override def update(group: Group, planetId: String): Future[Unit] =
     collection
@@ -225,7 +225,7 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
       .deleteOne(
         filter = Filters.equal(UNIQUE_KEYS, keyOf(groupIdIndexKey(groupId), planetId))
       )
-      .toFuture
+      .toFuture()
 
   private final val keyValueRegex = """\skey\:\s\{\s\w*\:\s\"(.*?)\"\s\}""".r
 

@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json._
-import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord._
+import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.ApprovedInformation
 
 /** ----------------------------------------------------------------------------
   * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
