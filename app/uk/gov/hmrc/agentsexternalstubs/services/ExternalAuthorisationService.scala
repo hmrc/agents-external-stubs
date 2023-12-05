@@ -22,9 +22,11 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.agentsexternalstubs.controllers.BearerToken
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
-import uk.gov.hmrc.http.{HeaderCarrier, HttpPost, Upstream4xxResponse, Upstream5xxResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpPost, HttpResponse, UpstreamErrorResponse}
+
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
+import uk.gov.hmrc.http.HttpReads.Implicits._
 
 @Singleton
 class ExternalAuthorisationService @Inject() (
@@ -58,22 +60,16 @@ class ExternalAuthorisationService @Inject() (
         )
       )
       http
-        .POST(s"${appConfig.authUrl}/auth/authorise", authRequest)
+        .POST[AuthoriseRequest, HttpResponse](s"${appConfig.authUrl}/auth/authorise", authRequest)
         .map {
           _.json match {
             case null => None
             case body => Some(body.as[AuthoriseResponse])
           }
         }
-        .recover {
-          case e: Upstream5xxResponse =>
-            Logger(getClass).warn(s"External authorization lookup failed with [$e] for headers ${report(hc)}")
-            None
-          case e: Upstream4xxResponse if e.upstreamResponseCode != 401 =>
-            Logger(getClass).warn(s"External authorization lookup failed with [$e] for headers ${report(hc)}")
-            None
-          case e: Upstream4xxResponse if e.upstreamResponseCode == 401 =>
-            None
+        .recover { case e: UpstreamErrorResponse =>
+          Logger(getClass).warn(s"External authorization lookup failed with [$e] for headers ${report(hc)}")
+          None
         }
         .flatMap {
           case Some(response) =>
@@ -136,13 +132,6 @@ class ExternalAuthorisationService @Inject() (
                              _ <- usersService
                                     .updateUser(session.userId, session.planetId, existing => merge(existing, user))
                            } yield ())
-                             .recover { case NonFatal(e) =>
-                               Logger(getClass).warn(
-                                 s"Creating user '$userId' on the planet '$planetId' failed with [$e] for an external authorisation ${Json
-                                   .prettyPrint(Json.toJson(response))} and headers ${report(hc)}"
-                               )
-                               None
-                             }
                              .andThen { case _ =>
                                Logger(getClass).info(
                                  s"Creating user '$userId' updated on the planet '$planetId' based on external authorisation ${Json

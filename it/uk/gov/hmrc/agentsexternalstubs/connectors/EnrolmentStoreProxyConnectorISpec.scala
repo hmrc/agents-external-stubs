@@ -173,7 +173,7 @@ trait EnrolmentStoreProxyHelper extends TestRequests with TestStubs with Matcher
   def givenDelegatedGroupIdsExistForKey(enrolmentKey: String, groupIds: Set[String])(implicit
     authContext: AuthContext
   ): Unit = {
-    val enrolment = Enrolment.from(EnrolmentKey.parse(enrolmentKey).right.get)
+    val enrolment = Enrolment.from(EnrolmentKey.parse(enrolmentKey).toOption.get)
     for (groupId <- groupIds) {
       val result = Users.create(
         UserGenerator

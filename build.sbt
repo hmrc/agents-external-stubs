@@ -18,11 +18,10 @@ lazy val root = (project in file("."))
   .settings(
     name := "agents-external-stubs",
     organization := "uk.gov.hmrc",
-    scalaVersion := "2.12.15",
+    scalaVersion := "2.13.10",
     majorVersion := 0,
     scalacOptions ++= Seq(
       "-Xlint:-missing-interpolator,_",
-      "-Yno-adapted-args",
       "-Ywarn-dead-code",
       "-deprecation",
       "-feature",
@@ -47,6 +46,10 @@ lazy val root = (project in file("."))
     Test / scalafmtOnCompile := true
   )
   .configs(IntegrationTest)
+  .settings(
+    //fix for scoverage compile errors for scala 2.13.10
+    libraryDependencySchemes ++= Seq("org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always)
+  )
   .settings(
     Defaults.itSettings,
     IntegrationTest / Keys.fork := false,

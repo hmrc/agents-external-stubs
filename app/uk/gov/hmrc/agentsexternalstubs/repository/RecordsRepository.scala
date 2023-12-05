@@ -106,7 +106,7 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
               .addField(Record.ID, Json.toJson(Id(newId))(Id.internalFormats))
               .addField(UPDATED, JsNumber(System.currentTimeMillis()))
           )
-          .toFuture
+          .toFuture()
           .map((_, newId))
           .flatMap(MongoHelper.interpretInsertOneResult)
       case (Some(id), _) =>
@@ -116,13 +116,13 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
             replacement = entityWithExtraJson.addField(UPDATED, JsNumber(System.currentTimeMillis())),
             ReplaceOptions().upsert(true)
           )
-          .toFuture
+          .toFuture()
           .map((_, id))
           .flatMap(MongoHelper.interpretUpdateResult)
       case (None, Some(uniqueKey)) =>
         collection
           .find(Filters.equal(UNIQUE_KEY, keyOf(uniqueKey, planetId, typeName)))
-          .headOption
+          .headOption()
           .map(_.flatMap(_.value.id))
           .flatMap {
             case Some(recordId) =>
@@ -134,7 +134,7 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
                     .addField(UPDATED, JsNumber(System.currentTimeMillis())),
                   ReplaceOptions().upsert(true)
                 )
-                .toFuture
+                .toFuture()
                 .map(_ => recordId)
             case None =>
               val newId = ObjectId.get().toString
@@ -144,7 +144,7 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
                     .addField(Record.ID, Json.obj("$oid" -> JsString(newId)))
                     .addField(UPDATED, JsNumber(System.currentTimeMillis()))
                 )
-                .toFuture
+                .toFuture()
                 .map(_ => newId)
           }
     })
@@ -158,7 +158,7 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
           .addField(Record.ID, Json.obj("$oid" -> JsString(newId)))
           .addField(UPDATED, JsNumber(System.currentTimeMillis()))
       )
-      .toFuture
+      .toFuture()
       .map((_, newId))
       .flatMap(MongoHelper.interpretInsertOneResult)
   }
@@ -170,7 +170,7 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
     collection
       .find(Filters.equal(KEYS, keyOf(key, planetId, recordType.typeName)))
       .|>(o => if (limit.exists(_ >= 0)) o.limit(limit.get) else o)
-      .toFuture
+      .toFuture()
       .map(_.map(_.value.asInstanceOf[T]))
 
   override def findByKeys[T <: Record](keys: Seq[String], planetId: String, limit: Option[Int])(implicit
@@ -180,7 +180,7 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
     collection
       .find(Filters.in(KEYS, keys.map(key => keyOf(key, planetId, recordType.typeName)): _*))
       .|>(o => if (limit.exists(_ >= 0)) o.limit(limit.get) else o)
-      .toFuture
+      .toFuture()
       .map(_.map(_.value.asInstanceOf[T]))
 
   override def findById[T <: Record](id: String, planetId: String): Future[Option[T]] =
@@ -198,7 +198,7 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
     collection
       .find(Filters.equal(PLANET_ID, planetId))
       .|>(o => if (limit.exists(_ >= 0)) o.limit(limit.get) else o)
-      .toFuture
+      .toFuture()
       .map(_.map(_.value))
 
   override def remove(id: String, planetId: String): Future[Unit] =
@@ -209,12 +209,12 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
           Filters.equal(PLANET_ID, planetId)
         )
       )
-      .toFuture
+      .toFuture()
       .map(_ => ())
 
   private def keyOf[T <: Record](key: String, planetId: String, recordType: String): String =
     s"$recordType:${key.replace(" ", "").toLowerCase}@$planetId"
 
   def destroyPlanet(planetId: String): Future[Unit] =
-    collection.deleteMany(Filters.equal(PLANET_ID, planetId)).toFuture.map(_ => ())
+    collection.deleteMany(Filters.equal(PLANET_ID, planetId)).toFuture().map(_ => ())
 }

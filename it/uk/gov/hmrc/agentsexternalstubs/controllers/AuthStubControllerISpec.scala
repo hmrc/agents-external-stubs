@@ -12,8 +12,8 @@ import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
 import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
 import uk.gov.hmrc.auth.core.authorise.EmptyPredicate
-import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.retrieve._
+import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.{Nino => NinoPredicate, _}
 import uk.gov.hmrc.http.{Authorization, HeaderCarrier}
 
@@ -219,12 +219,12 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val authToken: String = givenAnAuthenticatedUser(User(id), affinityGroup = Some(AG.Individual))
         val creds = await(
           authConnector
-            .authorise[LegacyCredentials](EmptyPredicate, Retrievals.authProviderId)(
+            .authorise[Option[Credentials]](EmptyPredicate, Retrievals.credentials)(
               HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
-        creds shouldBe GGCredId(id)
+        creds.get.providerId shouldBe id
       }
 
       "throw InsufficientEnrolments if user not enrolled" in {
@@ -780,7 +780,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         an[UnsupportedCredentialRole] shouldBe thrownBy {
           await(
             authConnector
-              .authorise[Unit](Admin, EmptyRetrieval)(
+              .authorise[Unit](Assistant, EmptyRetrieval)(
                 HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
                 concurrent.ExecutionContext.Implicits.global
               )

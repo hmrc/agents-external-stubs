@@ -115,7 +115,6 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
     "POST /agents-external-stubs/users" should {
       "create a new user on the same planet as the logged-in user (if planetId is unspecified)" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
-        val currentUser = userService.findByUserId(authSession.userId, planetId = authSession.planetId).futureValue.get
         val result = wsClient
           .url(s"$url/agents-external-stubs/users?affinityGroup=Individual")
           .withHttpHeaders(implicitly[AuthContext].headers: _*)
@@ -140,7 +139,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       "create a new user on a specified planet even if the caller is unauthenticated" in {
         val result = wsClient
           .url(s"$url/agents-external-stubs/users?affinityGroup=Individual&planetId=bar")
-          .withHttpHeaders(Seq.empty: _*) // no headers: unauthenticated
+          //.withHttpHeaders(Seq.empty: _*) // no headers: unauthenticated
           .post(Json.toJson(User("foo")))
           .futureValue
         result should haveStatus(201)
@@ -150,7 +149,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       "not create a user if the caller is unauthenticated and planetId is not specified" in {
         val result = wsClient
           .url(s"$url/agents-external-stubs/users?affinityGroup=Individual")
-          .withHttpHeaders(Seq.empty: _*) // no headers: unauthenticated
+          //.withHttpHeaders(Seq.empty: _*) // no headers: unauthenticated
           .post(Json.toJson(User("foo")))
           .futureValue
         result should haveStatus(400)
@@ -337,7 +336,9 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
 
       result should haveStatus(201)
       result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/apitestuser")
-      val (Some(user), Some(group)) = userService.findUserAndGroup(userId, planetId = authSession.planetId).futureValue
+      val userAndGroup = userService.findUserAndGroup(userId, planetId = authSession.planetId).futureValue
+      val user = userAndGroup._1.get
+      val group = userAndGroup._2.get
       group.affinityGroup shouldBe AG.Organisation
       user.nino shouldBe None
       user.dateOfBirth shouldBe None
@@ -373,8 +374,11 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       }
       {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
-        val (Some(user), Some(group)) =
+        val userAndGroup =
           userService.findUserAndGroup(userId, planetId = authSession.planetId).futureValue
+        val user = userAndGroup._1.get
+        val group = userAndGroup._2.get
+
         group.affinityGroup shouldBe AG.Agent
         user.nino shouldBe Some(Nino("WZ 58 73 41 D"))
         user.dateOfBirth shouldBe defined

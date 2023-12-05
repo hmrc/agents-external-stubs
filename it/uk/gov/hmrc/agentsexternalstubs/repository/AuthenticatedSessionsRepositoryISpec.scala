@@ -34,7 +34,7 @@ class AuthenticatedSessionsRepositoryISpec extends AppBaseISpec {
 
       await(repo.create(AuthenticatedSession(UUID.randomUUID().toString, "foobar", authToken, "bla", planetId)))
 
-      val result = await(repo.collection.find(Filters.equal("planetId", planetId)).toFuture)
+      val result = await(repo.collection.find(Filters.equal("planetId", planetId)).toFuture())
 
       result.size shouldBe 1
       result.head.authToken shouldBe authToken

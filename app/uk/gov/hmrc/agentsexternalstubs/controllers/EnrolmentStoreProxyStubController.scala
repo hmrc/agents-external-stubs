@@ -278,7 +278,7 @@ class EnrolmentStoreProxyStubController @Inject() (
             notFoundF("INVALID_CREDENTIAL_ID")
           case Some(user) if user.groupId.isEmpty =>
             notFoundF("INVALID_GROUP_ID")
-          case Some(user) if user.groupId.nonEmpty =>
+          case Some(user) =>
             doGetGroupEnrolments(
               session.planetId,
               user.groupId.get,

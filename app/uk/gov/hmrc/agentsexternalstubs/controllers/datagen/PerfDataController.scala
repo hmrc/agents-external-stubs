@@ -107,12 +107,12 @@ class PerfDataController @Inject() (
     }
 
   private def reapplyIndexes(): Unit = {
-    usersRepository.ensureIndexes
-    recordsRepository.ensureIndexes
-    authenticatedSessionsRepository.ensureIndexes
-    knownFactsRepository.ensureIndexes
-    specialCasesRepository.ensureIndexes
-    groupsRepository.ensureIndexes
+    usersRepository.ensureIndexes()
+    recordsRepository.ensureIndexes()
+    authenticatedSessionsRepository.ensureIndexes()
+    knownFactsRepository.ensureIndexes()
+    specialCasesRepository.ensureIndexes()
+    groupsRepository.ensureIndexes()
 
     logger.info(s"Re-applied indexes")
   }

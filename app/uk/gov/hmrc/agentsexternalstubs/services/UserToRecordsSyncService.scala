@@ -179,6 +179,7 @@ class UserToRecordsSyncService @Inject() (
               case r1 :: r2 :: Nil if r1.id == r2.id => record.withId(r2.id)
               case r :: Nil                          => record.withId(r.id)
               case Nil                               => record
+              case _                                 => throw new RuntimeException(s"Invalid List pattern")
             })
             .flatMap(entity =>
               businessDetailsRecordsService
@@ -313,6 +314,7 @@ class UserToRecordsSyncService @Inject() (
             case r1 :: r2 :: Nil if r1.id == r2.id => record.withId(r2.id)
             case r :: Nil                          => record.withId(r.id)
             case Nil                               => record
+            case _                                 => throw new RuntimeException("Invalid List pattern")
           })
           .flatMap(entity =>
             businessDetailsRecordsService

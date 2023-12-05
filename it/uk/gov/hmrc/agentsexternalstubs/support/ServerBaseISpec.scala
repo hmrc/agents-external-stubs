@@ -29,9 +29,6 @@ abstract class ServerBaseISpec
 
   val url = s"http://localhost:$port"
 
-  import scala.concurrent.duration._
-  //implicit val defaultTimeout: FiniteDuration = 30.seconds
-
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.global
 
 }

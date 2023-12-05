@@ -93,7 +93,7 @@ object Generator extends Names with Temporal with Companies with Addresses {
   def mtdbsa(seed: String): MtdItId = mtdbsaGen.map(MtdItId.apply).seeded(seed).get
 
   object Modulus11 extends Modulus11Check {
-    def apply(s: String) = calculateCheckCharacter(s) + s
+    def apply(s: String) = s"${calculateCheckCharacter(s)}$s"
   }
 
   lazy val utrGen: Gen[String] = pattern"999999999".gen.map(Modulus11.apply).retryUntil(UtrCheck.isValid)
@@ -111,7 +111,7 @@ object Generator extends Names with Temporal with Companies with Addresses {
     private def weightedTotal(reference: String): Int = {
       val weighting = List(8, 7, 6, 5, 4, 3, 2)
       val ref = reference.map(_.asDigit).take(7)
-      (ref, weighting).zipped.map(_ * _).sum
+      ref.lazyZip(weighting).map(_ * _).sum
     }
 
     def apply(s: String) = s + calcCheckSum97(weightedTotal(s))
@@ -161,7 +161,7 @@ object Generator extends Names with Temporal with Companies with Addresses {
       )
 
   object Modulus32 extends Modulus23Check {
-    def apply(s: String) = calculateCheckCharacter(s) + s
+    def apply(s: String) = s"${calculateCheckCharacter(s)}$s"
   }
 
   lazy val arnGen: Gen[String] = (for {

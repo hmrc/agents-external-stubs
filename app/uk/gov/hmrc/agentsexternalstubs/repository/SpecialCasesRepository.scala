@@ -28,7 +28,6 @@ import org.bson.types.ObjectId
 import uk.gov.hmrc.agentsexternalstubs.syntax.|>
 
 import javax.inject.{Inject, Singleton}
-import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
 object SpecialCasesRepositoryMongo {
@@ -75,14 +74,14 @@ class SpecialCasesRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val
           Filters.equal(PLANET_ID, planetId)
         )
       )
-      .headOption
+      .headOption()
 
   def findByMatchKey(key: String, planetId: String): Future[Option[SpecialCase]] =
     collection
       .find(
         Filters.equal(SpecialCase.UNIQUE_KEY, SpecialCase.uniqueKey(key, planetId))
       )
-      .toFuture
+      .toFuture()
       .map(_.headOption)
 
   def findByPlanetId(planetId: String)(limit: Int): Future[Seq[SpecialCase]] =
@@ -108,7 +107,7 @@ class SpecialCasesRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val
                   replacement = specialCase.copy(planetId = Some(planetId)),
                   ReplaceOptions().upsert(false)
                 )
-                .toFuture
+                .toFuture()
                 .map((_, id.value))
                 .flatMap(MongoHelper.interpretUpdateResult)
             case None =>
@@ -117,7 +116,7 @@ class SpecialCasesRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val
                 .find(
                   Filters.equal(SpecialCase.UNIQUE_KEY, SpecialCase.uniqueKey(specialCase.requestMatch.toKey, planetId))
                 )
-                .toFuture
+                .toFuture()
                 .map(_.headOption)
                 .flatMap {
                   case Some(sc) =>
@@ -130,7 +129,7 @@ class SpecialCasesRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val
                         replacement = specialCase.copy(planetId = Some(planetId)),
                         options = ReplaceOptions().upsert(false)
                       )
-                      .toFuture
+                      .toFuture()
                       .map((_, sc.id.map(_.value).get))
                       .flatMap(MongoHelper.interpretUpdateResult)
                   case None =>
@@ -138,7 +137,7 @@ class SpecialCasesRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val
                       .insertOne(
                         specialCase.copy(planetId = Some(planetId), id = Some(Id(newId)))
                       )
-                      .toFuture
+                      .toFuture()
                       .map((_, newId))
                       .flatMap(MongoHelper.interpretInsertOneResult)
                 }
@@ -153,7 +152,7 @@ class SpecialCasesRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val
           Filters.equal(PLANET_ID, planetId)
         )
       )
-      .toFuture
+      .toFuture()
       .map(_ => ())
 
   def destroyPlanet(planetId: String): Future[Unit] =

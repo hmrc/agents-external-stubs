@@ -68,19 +68,19 @@ class KnownFactsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val e
   ): Future[Option[KnownFacts]] =
     collection
       .find(Filters.equal(KnownFacts.UNIQUE_KEY, KnownFacts.uniqueKey(enrolmentKey.tag, planetId)))
-      .toFuture
+      .toFuture()
       .map(_.headOption)
 
   override def findByIdentifier(identifier: Identifier, planetId: String): Future[Option[KnownFacts]] =
     collection
       .find(Filters.equal(KnownFacts.IDENTIFIER_KEYS, identifierKey(identifier, planetId)))
-      .toFuture
+      .toFuture()
       .map(_.headOption)
 
   override def findByVerifier(knownFacts: KnownFact, planetId: String): Future[Option[KnownFacts]] =
     collection
       .find(Filters.equal(KnownFacts.VERIFIERS_KEYS, verifierKey(knownFacts, planetId)))
-      .toFuture
+      .toFuture()
       .map(_.headOption)
 
   def upsert(knownFacts: KnownFacts, planetId: String): Future[Unit] =
@@ -96,19 +96,19 @@ class KnownFactsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val e
               replacement = knownFacts.copy(planetId = Some(planetId)),
               options = ReplaceOptions().upsert(true)
             )
-            .toFuture
+            .toFuture()
             .flatMap(MongoHelper.interpretUpdateResultUnit)
       )
 
   def delete(enrolmentKey: EnrolmentKey, planetId: String): Future[Unit] =
     collection
       .deleteOne(Filters.equal(KnownFacts.UNIQUE_KEY, KnownFacts.uniqueKey(enrolmentKey.tag, planetId)))
-      .toFuture
+      .toFuture()
       .map(_ => ())
 
   def destroyPlanet(planetId: String): Future[Unit] =
     collection
       .deleteMany(Filters.equal(PLANET_ID, planetId))
-      .toFuture
+      .toFuture()
       .map(_ => ())
 }

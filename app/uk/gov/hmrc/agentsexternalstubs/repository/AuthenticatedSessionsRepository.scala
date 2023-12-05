@@ -25,7 +25,6 @@ import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
 import java.util.concurrent.TimeUnit
-import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -61,7 +60,7 @@ class AuthenticatedSessionsRepository @Inject() (mongo: MongoComponent)(implicit
     collection
       .find(Filters.equal("userId", userId))
       .limit(1000)
-      .toFuture
+      .toFuture()
 
   def create(authenticatedSession: AuthenticatedSession): Future[Unit] =
     collection
@@ -85,6 +84,6 @@ class AuthenticatedSessionsRepository @Inject() (mongo: MongoComponent)(implicit
   ): Future[Option[AuthenticatedSession]] =
     collection
       .find(Filters.and(query.map { case (field, value) => Filters.equal(field, value) }: _*))
-      .toFuture
+      .toFuture()
       .map(_.headOption)
 }

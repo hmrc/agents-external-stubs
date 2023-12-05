@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json._
-import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord._
+import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.{BusinessData, PropertyData}
 
 /** ----------------------------------------------------------------------------
   * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED

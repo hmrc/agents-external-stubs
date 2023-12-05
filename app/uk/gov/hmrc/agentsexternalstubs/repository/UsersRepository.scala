@@ -100,15 +100,21 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: Ex
   private def keyOf(key: String, planetId: String): String = s"${key.replace(" ", "")}@$planetId"
 
   override def findByUserId(userId: String, planetId: String): Future[Option[User]] =
-    collection.find(Filters.equal(UNIQUE_KEYS, keyOf(User.userIdKey(userId), planetId))).headOption.map(_.map(_.value))
+    collection
+      .find(Filters.equal(UNIQUE_KEYS, keyOf(User.userIdKey(userId), planetId)))
+      .headOption()
+      .map(_.map(_.value))
 
   override def findByNino(nino: String, planetId: String): Future[Option[User]] =
-    collection.find(Filters.equal(UNIQUE_KEYS, keyOf(User.ninoIndexKey(nino), planetId))).headOption.map(_.map(_.value))
+    collection
+      .find(Filters.equal(UNIQUE_KEYS, keyOf(User.ninoIndexKey(nino), planetId)))
+      .headOption()
+      .map(_.map(_.value))
 
   override def findByPlanetId(planetId: String)(
     limit: Int
   ): Future[Seq[User]] =
-    collection.find(Filters.equal(KEYS, planetIdKey(planetId))).limit(limit).toFuture.map(_.map(_.value))
+    collection.find(Filters.equal(KEYS, planetIdKey(planetId))).limit(limit).toFuture().map(_.map(_.value))
 
   override def findByGroupId(groupId: String, planetId: String)(
     limit: Option[Int]
@@ -116,19 +122,19 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: Ex
     collection
       .find(Filters.equal(KEYS, keyOf(User.groupIdIndexKey(groupId), planetId)))
       .limit(limit.getOrElse(0))
-      .toFuture
+      .toFuture()
       .map(_.map(_.value))
 
   override def findAdminByGroupId(groupId: String, planetId: String): Future[Option[User]] =
     collection
       .find(Filters.equal(KEYS, keyOf(User.groupIdWithCredentialRoleKey(groupId, User.CR.Admin), planetId)))
-      .headOption
+      .headOption()
       .map(_.map(_.value))
 
   override def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String): Future[Option[User]] =
     collection
       .find(Filters.equal(KEYS, keyOf(User.assignedPrincipalEnrolmentIndexKey(enrolmentKey.toString), planetId)))
-      .headOption
+      .headOption()
       .map(_.map(_.value))
 
   override def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
@@ -137,7 +143,7 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: Ex
     collection
       .find(Filters.equal(KEYS, keyOf(User.assignedDelegatedEnrolmentIndexKey(enrolmentKey.toString), planetId)))
       .limit(limit)
-      .toFuture
+      .toFuture()
       .map(_.map(_.value))
 
   override def findUserIdsByAssignedDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
@@ -172,7 +178,7 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: Ex
     collection
       .find(Filters.equal(KEYS, keyOf(User.assignedDelegatedEnrolmentIndexKey(enrolmentKey.toString), planetId)))
       .limit(limit)
-      .toFuture
+      .toFuture()
       .map(_.map(_.value.groupId))
 
   override def assignEnrolment(
@@ -212,7 +218,7 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: Ex
   override def create(user: User, planetId: String): Future[Unit] =
     collection
       .insertOne(serializeUser(user, planetId).addField(UPDATED, JsNumber(System.currentTimeMillis())))
-      .toFuture
+      .toFuture()
       .map(_ => ())
       .recoverWith {
         case e: MongoWriteException if e.getMessage.contains("11000") =>
@@ -226,7 +232,7 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: Ex
         replacement = serializeUser(user, planetId).addField(UPDATED, JsNumber(System.currentTimeMillis())),
         ReplaceOptions().upsert(true)
       )
-      .toFuture
+      .toFuture()
       .map(wr => logger.info(s"User update was OK?: ${wr.getModifiedCount}"))
       .recoverWith {
         case e: MongoWriteException if e.getMessage.contains("11000") =>
@@ -234,7 +240,7 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: Ex
       }
 
   override def delete(userId: String, planetId: String): Future[DeleteResult] =
-    collection.deleteOne(Filters.equal(UNIQUE_KEYS, keyOf(User.userIdKey(userId), planetId))).toFuture
+    collection.deleteOne(Filters.equal(UNIQUE_KEYS, keyOf(User.userIdKey(userId), planetId))).toFuture()
 
   private final val keyValueRegex = """\skey\:\s\{\s\w*\:\s\"(.*?)\"\s\}""".r
 
@@ -285,7 +291,7 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: Ex
             filter = Filters.equal(UNIQUE_KEYS, keyOf(User.userIdKey(userId), planetId)),
             update = Updates.pull("recordIds", recordId.substring(2))
           )
-          .toFuture
+          .toFuture()
           .flatMap(MongoHelper.interpretUpdateResultUnit)
       } else {
         collection
@@ -293,13 +299,13 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: Ex
             filter = Filters.equal(UNIQUE_KEYS, keyOf(User.userIdKey(userId), planetId)),
             update = Updates.push("recordIds", recordId)
           )
-          .toFuture
+          .toFuture()
           .flatMap(MongoHelper.interpretUpdateResultUnit)
       }
     } else Future.failed(new Exception("Empty recordId"))
 
   def destroyPlanet(planetId: String): Future[Unit] =
-    collection.deleteMany(Filters.equal(KEYS, planetIdKey(planetId))).toFuture.map(_ => ())
+    collection.deleteMany(Filters.equal(KEYS, planetIdKey(planetId))).toFuture().map(_ => ())
 
   override def reindexAllUsers: Future[Boolean] = {
     val logger = Logger("uk.gov.hmrc.agentsexternalstubs.re-indexing")

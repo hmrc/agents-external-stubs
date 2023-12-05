@@ -36,7 +36,7 @@ object EnrolmentKey {
     if (parts.nonEmpty && parts.size >= 3 && parts.size % 2 == 1) {
       val service = parts.head
       val identifiers = parts.tail.sliding(2, 2).map(a => Identifier(a(0), a(1))).toSeq
-      Right(EnrolmentKey(service, identifiers)).right.flatMap(validateService).right.flatMap(validateIdentifiers)
+      Right(EnrolmentKey(service, identifiers)).flatMap(validateService).flatMap(validateIdentifiers)
     } else Left("INVALID_ENROLMENT_KEY")
   }
 
@@ -48,8 +48,7 @@ object EnrolmentKey {
     case None => Left("INVALID_SERVICE")
     case Some(service) =>
       ek.identifiers
-        .foldLeft[Either[String, Unit]](Right(()))((a, i) => a.right.flatMap(_ => validateIdentifier(i, service)))
-        .right
+        .foldLeft[Either[String, Unit]](Right(()))((a, i) => a.flatMap(_ => validateIdentifier(i, service)))
         .flatMap(_ => if (ek.identifiers == ek.identifiers.sorted) Right(ek) else Left("INVALID_IDENTIFIERS"))
   }
 

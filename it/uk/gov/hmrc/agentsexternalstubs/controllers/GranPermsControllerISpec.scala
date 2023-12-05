@@ -41,8 +41,14 @@ class GranPermsControllerISpec extends ServerBaseISpec with TestRequests {
       createdAgents shouldBe 3
       createdClients shouldBe 10
 
-      val (_, Some(group)) = usersService.findUserAndGroup(session.userId, session.planetId).futureValue
-      group.delegatedEnrolments.length shouldBe 10
+      usersService
+        .findUserAndGroup(session.userId, session.planetId)
+        .futureValue
+        ._2
+        .get
+        .delegatedEnrolments
+        .length shouldBe 10
+
     }
 
     "return 400 BadRequest when specified number of agents is too large" in {
@@ -166,7 +172,12 @@ class GranPermsControllerISpec extends ServerBaseISpec with TestRequests {
     val result2 = GranPermsStubs.massGenerateAgentsAndClients(payload2)
     result2 should haveStatus(201)
 
-    val (_, Some(group)) = usersService.findUserAndGroup(session.userId, session.planetId).futureValue
-    group.delegatedEnrolments.length shouldBe 8
+    usersService
+      .findUserAndGroup(session.userId, session.planetId)
+      .futureValue
+      ._2
+      .get
+      .delegatedEnrolments
+      .length shouldBe 8
   }
 }
