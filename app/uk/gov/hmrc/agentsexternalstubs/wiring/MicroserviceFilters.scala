@@ -16,10 +16,9 @@
 
 package uk.gov.hmrc.agentsexternalstubs.wiring
 
-import com.kenshoo.play.metrics.MetricsFilter
 import javax.inject.{Inject, Singleton}
 import play.api.http.DefaultHttpFilters
 
 @Singleton
-class MicroserviceFilters @Inject() (metricsFilter: MetricsFilter, monitoringFilter: MicroserviceMonitoringFilter)
-    extends DefaultHttpFilters(metricsFilter, monitoringFilter)
+class MicroserviceFilters @Inject() (monitoringFilter: MicroserviceMonitoringFilter)
+    extends DefaultHttpFilters(monitoringFilter)
