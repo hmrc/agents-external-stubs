@@ -19,6 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json._
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.ApprovedInformation
+import uk.gov.hmrc.domain.Vrn
 
 /** ----------------------------------------------------------------------------
   * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
@@ -67,9 +68,13 @@ case class VatCustomerInformationRecord(
 
 object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRecord] {
 
+  implicit val recordUtils: RecordUtils[VatCustomerInformationRecord] = this
+
   implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
   implicit val recordType: RecordMetaData[VatCustomerInformationRecord] =
-    RecordMetaData[VatCustomerInformationRecord](this)
+    RecordMetaData[VatCustomerInformationRecord]
+
+  implicit val takesVrnKey: TakesKey[VatCustomerInformationRecord, Vrn] = TakesKey(vrn => uniqueKey(vrn.value))
 
   def uniqueKey(key: String): String = s"""vrn:${key.toUpperCase}"""
 

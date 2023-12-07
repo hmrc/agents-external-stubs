@@ -340,7 +340,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
       if (context.isRecordOutputType)
         s"""
            |  implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
-           |  implicit val recordType: RecordMetaData[${typeDef.name}] = RecordMetaData[${typeDef.name}](this)
+           |  implicit val recordType: RecordMetaData[${typeDef.name}] = RecordMetaData[${typeDef.name}]
            |  ${if (context.uniqueKey.isDefined)
              s"\n  def uniqueKey(key: String): String = s${quoted(s"${context.uniqueKey.get._2}:$${key.toUpperCase}")}"
            else ""}${if (context.keys.nonEmpty)

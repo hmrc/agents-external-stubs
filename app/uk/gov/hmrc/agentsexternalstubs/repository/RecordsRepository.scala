@@ -40,23 +40,25 @@ object RecordsRepository {
 @ImplementedBy(classOf[RecordsRepositoryMongo])
 trait RecordsRepository {
 
-  def store[T <: Record](entity: T, planetId: String)(implicit reads: Reads[T]): Future[String]
+  def store[T <: Record](entity: T, planetId: String)(implicit writes: Writes[T]): Future[String]
 
-  def findByKey[T <: Record](key: String, planetId: String, limit: Option[Int])(implicit
-    reads: Reads[T],
-    recordType: RecordMetaData[T]
+  def findByKey[T](key: String, planetId: String, limit: Option[Int])(implicit
+    recordType: RecordMetaData[T],
+    reads: Reads[T]
   ): Future[Seq[T]]
 
-  def findByKeys[T <: Record](keys: Seq[String], planetId: String, limit: Option[Int])(implicit
-    reads: Reads[T],
-    recordType: RecordMetaData[T]
+  def findByKeys[T](keys: Seq[String], planetId: String, limit: Option[Int])(implicit
+    recordType: RecordMetaData[T],
+    reads: Reads[T]
   ): Future[Seq[T]]
 
-  def findById[T <: Record](id: String, planetId: String): Future[Option[T]]
+  def findById[T](id: String, planetId: String)(implicit reads: Reads[T]): Future[Option[T]]
 
   def findByPlanetId(planetId: String, limit: Option[Int] = None): Future[Seq[Record]]
 
   def remove(id: String, planetId: String): Future[Unit]
+
+  def removeByKey[T](key: String, planetId: String)(implicit recordType: RecordMetaData[T]): Future[Unit]
 
   def destroyPlanet(planetId: String): Future[Unit]
 }
@@ -78,7 +80,7 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
 
   final val UPDATED = "_last_updated_at"
 
-  override def store[T <: Record](entity: T, planetId: String)(implicit reads: Reads[T]): Future[String] = {
+  override def store[T <: Record](entity: T, planetId: String)(implicit writes: Writes[T]): Future[String] = {
     val typeName = Record.typeOf(entity)
     val entityWithExtraJson = JsonAbuse(entity: Record)
       .addField(PLANET_ID, JsString(planetId))
@@ -164,9 +166,9 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
       .flatMap(MongoHelper.interpretInsertOneResult)
   }
 
-  override def findByKey[T <: Record](key: String, planetId: String, limit: Option[Int])(implicit
-    reads: Reads[T],
-    recordType: RecordMetaData[T]
+  override def findByKey[T](key: String, planetId: String, limit: Option[Int])(implicit
+    recordType: RecordMetaData[T],
+    reads: Reads[T]
   ): Future[Seq[T]] =
     collection
       .find(Filters.equal(KEYS, keyOf(key, planetId, recordType.typeName)))
@@ -174,9 +176,9 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
       .toFuture()
       .map(_.map(_.value.asInstanceOf[T]))
 
-  override def findByKeys[T <: Record](keys: Seq[String], planetId: String, limit: Option[Int])(implicit
-    reads: Reads[T],
-    recordType: RecordMetaData[T]
+  override def findByKeys[T](keys: Seq[String], planetId: String, limit: Option[Int])(implicit
+    recordType: RecordMetaData[T],
+    reads: Reads[T]
   ): Future[Seq[T]] =
     collection
       .find(Filters.in(KEYS, keys.map(key => keyOf(key, planetId, recordType.typeName)): _*))
@@ -184,7 +186,7 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
       .toFuture()
       .map(_.map(_.value.asInstanceOf[T]))
 
-  override def findById[T <: Record](id: String, planetId: String): Future[Option[T]] =
+  override def findById[T](id: String, planetId: String)(implicit reads: Reads[T]): Future[Option[T]] =
     collection
       .find(
         Filters.and(
@@ -192,7 +194,7 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
           Filters.equal(PLANET_ID, planetId)
         )
       )
-      .map(_.value.asInstanceOf[T])
+      .map(_.value.asInstanceOf[T]) // TODO asInstanceOf is bad
       .headOption()
 
   override def findByPlanetId(planetId: String, limit: Option[Int] = None): Future[Seq[Record]] =
@@ -213,7 +215,15 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
       .toFuture()
       .map(_ => ())
 
-  private def keyOf[T <: Record](key: String, planetId: String, recordType: String): String =
+  def removeByKey[T](key: String, planetId: String)(implicit recordType: RecordMetaData[T]): Future[Unit] =
+    collection
+      .deleteOne(
+        Filters.equal(KEYS, keyOf(key, planetId, recordType.typeName))
+      )
+      .toFuture()
+      .map(_ => ())
+
+  private def keyOf(key: String, planetId: String, recordType: String): String =
     s"$recordType:${key.replace(" ", "").toLowerCase}@$planetId"
 
   def destroyPlanet(planetId: String): Future[Unit] =

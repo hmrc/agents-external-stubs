@@ -19,8 +19,8 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents, Result}
 import uk.gov.hmrc.agentmtdidentifiers.model.CbcId
-import uk.gov.hmrc.agentsexternalstubs.models.{DisplaySubscriptionForCbC, DisplaySubscriptionForCbCRequestPayload}
-import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, CbCSubscriptionRecordsService}
+import uk.gov.hmrc.agentsexternalstubs.models.{CbcSubscriptionRecord, DisplaySubscriptionForCbC, DisplaySubscriptionForCbCRequestPayload}
+import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, RecordsService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
@@ -30,7 +30,7 @@ import scala.io.Source
 @Singleton
 class CountryByCountryController @Inject() (
   val authenticationService: AuthenticationService,
-  cbCSubscriptionRecordsService: CbCSubscriptionRecordsService,
+  recordsService: RecordsService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
     extends BackendController(cc) with HttpHelpers with CurrentSession {
@@ -46,8 +46,8 @@ class CountryByCountryController @Inject() (
               errorResponse(400, "Invalid JSON document", errors.toString()),
             _ => {
               val cbcId = payload.displaySubscriptionForCBCRequest.requestDetail.IDNumber
-              cbCSubscriptionRecordsService
-                .getCbcSubscriptionRecord(CbcId(cbcId), session.planetId)
+              recordsService
+                .getRecord[CbcSubscriptionRecord, CbcId](CbcId(cbcId), session.planetId)
                 .flatMap(maybeRecord =>
                   maybeRecord.fold(
                     errorResponse(NOT_FOUND)

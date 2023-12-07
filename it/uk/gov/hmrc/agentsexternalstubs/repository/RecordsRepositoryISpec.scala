@@ -122,7 +122,7 @@ class RecordsRepositoryISpec extends AppBaseISpec {
       val businessDetails = BusinessDetailsRecord.generate("foo")
       val recordId = await(repo.store(businessDetails, planetId))
 
-      val record = await(repo.findById(recordId, planetId))
+      val record = await(repo.findById[Record](recordId, planetId))
       record shouldBe defined
     }
 
@@ -131,12 +131,12 @@ class RecordsRepositoryISpec extends AppBaseISpec {
       val businessDetails = BusinessDetailsRecord.generate("foo")
       val recordId = await(repo.store(businessDetails, planetId))
 
-      val record1 = await(repo.findById(recordId, planetId))
+      val record1 = await(repo.findById[Record](recordId, planetId))
       record1 shouldBe defined
 
       await(repo.remove(recordId, planetId))
 
-      val record2 = await(repo.findById(recordId, planetId))
+      val record2 = await(repo.findById[Record](recordId, planetId))
       record2 shouldBe None
     }
   }

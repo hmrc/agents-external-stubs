@@ -41,6 +41,8 @@ case class LegacyRelationshipRecord(
 
 object LegacyRelationshipRecord extends RecordUtils[LegacyRelationshipRecord] {
 
+  implicit val recordUtils: RecordUtils[LegacyRelationshipRecord] = this
+
   def agentIdKey(agentId: String): String = s"agentId:$agentId"
   def agentIdAndUtrKey(agentId: String, utr: String): String = s"agentId:$agentId;utr:${utr.replace(" ", "")}"
   def ninoKey(nino: String): String = s"nino:${nino.replace(" ", "")}"
@@ -67,7 +69,7 @@ object LegacyRelationshipRecord extends RecordUtils[LegacyRelationshipRecord] {
 
   implicit val formats: Format[LegacyRelationshipRecord] = Format(reads, writes)
   implicit val recordType: RecordMetaData[LegacyRelationshipRecord] =
-    RecordMetaData[LegacyRelationshipRecord](LegacyRelationshipRecord)
+    RecordMetaData[LegacyRelationshipRecord]
 
   val agentIdGen = Generator.pattern("999999")
 
