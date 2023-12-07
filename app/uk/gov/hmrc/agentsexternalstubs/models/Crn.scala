@@ -16,17 +16,6 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import scala.reflect.ClassTag
+import uk.gov.hmrc.domain.TaxIdentifier
 
-trait RecordMetaData[T] {
-
-  val typeName: String
-}
-
-object RecordMetaData {
-
-  def apply[T](implicit classTag: ClassTag[T]): RecordMetaData[T] =
-    new RecordMetaData[T] {
-      override val typeName: String = classTag.runtimeClass.getSimpleName
-    }
-}
+case class Crn(value: String) extends TaxIdentifier

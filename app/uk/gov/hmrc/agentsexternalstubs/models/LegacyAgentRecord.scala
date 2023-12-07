@@ -61,7 +61,7 @@ object LegacyAgentRecord extends RecordUtils[LegacyAgentRecord] {
   )
 
   implicit val formats: Format[LegacyAgentRecord] = Json.format[LegacyAgentRecord]
-  implicit val recordType: RecordMetaData[LegacyAgentRecord] = RecordMetaData[LegacyAgentRecord](LegacyAgentRecord)
+  implicit val recordType: RecordMetaData[LegacyAgentRecord] = RecordMetaData[LegacyAgentRecord]
 
   val agentIdGen = Generator.pattern("999999")
 

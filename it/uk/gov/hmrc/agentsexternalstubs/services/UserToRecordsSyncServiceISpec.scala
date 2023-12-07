@@ -8,7 +8,7 @@ import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.UkAddress
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.agentsexternalstubs.support._
-import uk.gov.hmrc.domain.Nino
+import uk.gov.hmrc.domain.{AgentCode, Nino, Vrn}
 import play.api.test.Helpers._
 
 import scala.concurrent.duration._
@@ -20,23 +20,11 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
   lazy val usersService: UsersService = app.injector.instanceOf[UsersService]
   lazy val groupsService: GroupsService = app.injector.instanceOf[GroupsService]
   lazy val userRecordsService: UserToRecordsSyncService = app.injector.instanceOf[UserToRecordsSyncService]
-  lazy val businessDetailsRecordsService: BusinessDetailsRecordsService =
-    app.injector.instanceOf[BusinessDetailsRecordsService]
-  lazy val vatCustomerInformationRecordsService: VatCustomerInformationRecordsService =
-    app.injector.instanceOf[VatCustomerInformationRecordsService]
-  lazy val businessPartnerRecordsService: BusinessPartnerRecordsService =
-    app.injector.instanceOf[BusinessPartnerRecordsService]
   lazy val legacyRelationshipRecordsService: LegacyRelationshipRecordsService =
     app.injector.instanceOf[LegacyRelationshipRecordsService]
-  lazy val employerAuthsRecordsService: EmployerAuthsRecordsService =
-    app.injector.instanceOf[EmployerAuthsRecordsService]
   lazy val knownFactsRepository: KnownFactsRepository = app.injector.instanceOf[KnownFactsRepository]
-  lazy val pptSubscriptionDisplayRecordsService: PPTSubscriptionDisplayRecordsService =
-    app.injector.instanceOf[PPTSubscriptionDisplayRecordsService]
-  lazy val cbcSubscriptionRecordsService: CbCSubscriptionRecordsService =
-    app.injector.instanceOf[CbCSubscriptionRecordsService]
-  lazy val pillar2RecordsService: Pillar2RecordsService =
-    app.injector.instanceOf[Pillar2RecordsService]
+  lazy val recordsService: RecordsService =
+    app.injector.instanceOf[RecordsService]
 
   private val formatter1 = DateTimeFormatter.ofPattern("dd/MM/yy")
   private val formatter2 = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -49,10 +37,10 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
         .withAssignedPrincipalEnrolment("HMRC-MTD-IT", "MTDITID", "123456789098765")
 
       val theUser = await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Individual)))
-      val result1 = await(businessDetailsRecordsService.getBusinessDetails(theUser.nino.get, planetId))
+      val result1 = await(recordsService.getRecord[BusinessDetailsRecord, Nino](theUser.nino.get, planetId))
       result1.map(_.mtdbsa) shouldBe Some("123456789098765")
       val result2 =
-        await(businessDetailsRecordsService.getBusinessDetails(MtdItId("123456789098765"), planetId))
+        await(recordsService.getRecord[BusinessDetailsRecord, MtdItId](MtdItId("123456789098765"), planetId))
       result2.map(_.nino) shouldBe Some(theUser.nino.get.value.replace(" ", ""))
       result2.flatMap(_.businessData).flatMap(_.head.businessAddressDetails).map {
         case BusinessDetailsRecord
@@ -71,7 +59,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
 
       await(usersService.updateUser(user.userId, planetId, user => user.copy(nino = Some(Nino("HW827856C")))))
 
-      val result3 = await(businessDetailsRecordsService.getBusinessDetails(Nino("HW827856C"), planetId))
+      val result3 = await(recordsService.getRecord[BusinessDetailsRecord, Nino](Nino("HW827856C"), planetId))
       result3.map(_.mtdbsa) shouldBe Some("123456789098765")
 
       val userWithRecordId = await(usersService.findByUserId(user.userId, planetId))
@@ -87,7 +75,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
 
       await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Individual)))
 
-      val result = await(vatCustomerInformationRecordsService.getCustomerInformation("123456789", planetId))
+      val result = await(recordsService.getRecord[VatCustomerInformationRecord, Vrn](Vrn("123456789"), planetId))
       result.flatMap(_.approvedInformation.flatMap(_.customerDetails.individual.flatMap(_.firstName))) shouldBe Some(
         "ABC 123"
       )
@@ -97,7 +85,8 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
 
       val theUser = await(usersService.updateUser(user.userId, planetId, user => user.copy(name = Some("Foo Bar"))))
 
-      val result2 = await(vatCustomerInformationRecordsService.getCustomerInformation("123456789", planetId))
+      val result2 =
+        await(recordsService.getRecord[VatCustomerInformationRecord, Vrn](Vrn("123456789"), planetId))
       result2.flatMap(_.approvedInformation.flatMap(_.customerDetails.individual.flatMap(_.firstName))) shouldBe Some(
         "Foo"
       )
@@ -131,7 +120,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
           .map(date => if (date.isAfter(LocalDate.now())) date.minusYears(100) else date)
       )
 
-      val result = await(vatCustomerInformationRecordsService.getCustomerInformation("923456788", planetId))
+      val result = await(recordsService.getRecord[VatCustomerInformationRecord, Vrn](Vrn("923456788"), planetId))
       result.flatMap(_.approvedInformation.flatMap(_.customerDetails.organisationName)) shouldBe Some("ABC123 Corp.")
       result.flatMap(
         _.approvedInformation
@@ -143,7 +132,8 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
 
       val theUser = await(usersService.updateUser(user.userId, planetId, user => user.copy(name = Some("Foo Bar"))))
 
-      val result2 = await(vatCustomerInformationRecordsService.getCustomerInformation("923456788", planetId))
+      val result2 =
+        await(recordsService.getRecord[VatCustomerInformationRecord, Vrn](Vrn("923456788"), planetId))
       result2.flatMap(_.approvedInformation.flatMap(_.customerDetails.organisationName)) shouldBe Some("Foo Bar")
       result2.flatMap(
         _.approvedInformation
@@ -171,7 +161,9 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
 
       await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Individual)))
       val result1 =
-        await(pptSubscriptionDisplayRecordsService.getPPTSubscriptionDisplayRecord(PptRef("XAPPT0004567890"), planetId))
+        await(
+          recordsService.getRecord[PPTSubscriptionDisplayRecord, PptRef](PptRef("XAPPT0004567890"), planetId)
+        )
       result1.map(_.pptReference) shouldBe Some("XAPPT0004567890")
     }
 
@@ -192,7 +184,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
           .map(date => if (date.isAfter(LocalDate.now())) date.minusYears(100) else date)
       )
 
-      val result = await(vatCustomerInformationRecordsService.getCustomerInformation("923456788", planetId))
+      val result = await(recordsService.getRecord[VatCustomerInformationRecord, Vrn](Vrn("923456788"), planetId))
       result.flatMap(_.approvedInformation.flatMap(_.customerDetails.organisationName)) shouldBe Some("ABC123 Corp.")
       result.flatMap(
         _.approvedInformation
@@ -204,7 +196,8 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
 
       val theUser = await(usersService.updateUser(user.userId, planetId, user => user.copy(name = Some("Foo Bar"))))
 
-      val result2 = await(vatCustomerInformationRecordsService.getCustomerInformation("923456788", planetId))
+      val result2 =
+        await(recordsService.getRecord[VatCustomerInformationRecord, Vrn](Vrn("923456788"), planetId))
       result2.flatMap(_.approvedInformation.flatMap(_.customerDetails.organisationName)) shouldBe Some("Foo Bar")
       result2.flatMap(
         _.approvedInformation
@@ -240,7 +233,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
       val postcodeOpt = knownFacts.flatMap(_.getVerifierValue("AgencyPostcode"))
       postcodeOpt shouldBe theUser.address.flatMap(_.postcode)
 
-      val result = await(businessPartnerRecordsService.getBusinessPartnerRecord(Arn("XARN0001230"), planetId))
+      val result = await(recordsService.getRecord[BusinessPartnerRecord, Arn](Arn("XARN0001230"), planetId))
       val id = result.flatMap(_.id)
       result.flatMap(_.agencyDetails.flatMap(_.agencyName)) shouldBe Some("ABC123")
       result.flatMap(
@@ -251,7 +244,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
       await(groupsService.updateGroup(user.groupId.get, planetId, _.copy(agentFriendlyName = Some("foobar"))))
       val id2 = result.flatMap(_.id)
       id shouldBe id2
-      val result2 = await(businessPartnerRecordsService.getBusinessPartnerRecord(Arn("XARN0001230"), planetId))
+      val result2 = await(recordsService.getRecord[BusinessPartnerRecord, Arn](Arn("XARN0001230"), planetId))
       result2.flatMap(_.agencyDetails.flatMap(_.agencyName)) shouldBe Some("foobar")
       result2.flatMap(
         _.agencyDetails.flatMap(_.agencyAddress.map(_.asInstanceOf[UkAddress].postalCode))
@@ -337,7 +330,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
 
       await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Organisation)))
 
-      val result = await(businessPartnerRecordsService.getBusinessPartnerRecord(Utr("7355748439"), planetId))
+      val result = await(recordsService.getRecord[BusinessPartnerRecord, Utr](Utr("7355748439"), planetId))
       val id = result.flatMap(_.id)
       result.flatMap(_.eori) shouldBe None
       result.flatMap(_.utr) shouldBe Some("7355748439")
@@ -347,7 +340,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
       result.map(_.isAnASAgent) shouldBe Some(false)
 
       await(usersService.updateUser(user.userId, planetId, user => user.copy(name = Some("foobar"))))
-      val result2 = await(businessPartnerRecordsService.getBusinessPartnerRecord(Utr("7355748439"), planetId))
+      val result2 = await(recordsService.getRecord[BusinessPartnerRecord, Utr](Utr("7355748439"), planetId))
       val id2 = result2.flatMap(_.id)
       id2 shouldBe id
 
@@ -375,7 +368,9 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
           )
         )
 
-      val result = await(employerAuthsRecordsService.getEmployerAuthsByAgentCode(theGroup.agentCode.get, planetId)).get
+      val result = await(
+        recordsService.getRecord[EmployerAuths, AgentCode](AgentCode(theGroup.agentCode.get), planetId)
+      ).get
       result.empAuthList should have size 2
     }
 
@@ -389,7 +384,9 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
       val theGroup =
         await(groupsService.updateGroup(theUser.groupId.get, planetId, _.copy(agentFriendlyName = Some("ABC123"))))
 
-      await(employerAuthsRecordsService.getEmployerAuthsByAgentCode(theGroup.agentCode.get, planetId)) shouldBe None
+      await(
+        recordsService.getRecord[EmployerAuths, AgentCode](AgentCode(theGroup.agentCode.get), planetId)
+      ) shouldBe None
     }
 
     "sync ir-paye-agent agent to records when record exists" in {
@@ -403,7 +400,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
       val testAgentCode = "AGENTCODE123"
 
       await(
-        employerAuthsRecordsService
+        recordsService
           .store(
             EmployerAuths(
               agentCode = testAgentCode,
@@ -430,7 +427,8 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
         )
       )
 
-      val result = await(employerAuthsRecordsService.getEmployerAuthsByAgentCode(testAgentCode, planetId)).get
+      val result =
+        await(recordsService.getRecord[EmployerAuths, AgentCode](AgentCode(testAgentCode), planetId)).get
       result.empAuthList should have size 3
     }
 
@@ -452,7 +450,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
       )
 
       await(
-        employerAuthsRecordsService
+        recordsService
           .store(
             EmployerAuths(
               agentCode = testAgentCode,
@@ -472,7 +470,8 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
         )
       )
 
-      val result = await(employerAuthsRecordsService.getEmployerAuthsByAgentCode(testAgentCode, planetId)).get
+      val result =
+        await(recordsService.getRecord[EmployerAuths, AgentCode](AgentCode(testAgentCode), planetId)).get
       result.empAuthList shouldBe empAuthList
     }
 
@@ -486,7 +485,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
 
       await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Organisation)))
       val result1 =
-        await(cbcSubscriptionRecordsService.getCbcSubscriptionRecord(CbcId("XACBC4940653845"), planetId))
+        await(recordsService.getRecord[CbcSubscriptionRecord, CbcId](CbcId("XACBC4940653845"), planetId))
       result1.map(_.cbcId) shouldBe Some("XACBC4940653845")
 
       val result2 = await(usersService.findByUserId(user.userId, planetId))
@@ -503,7 +502,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
 
       await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Organisation)))
       val result1 =
-        await(cbcSubscriptionRecordsService.getCbcSubscriptionRecord(CbcId("XACBC4940653849"), planetId))
+        await(recordsService.getRecord[CbcSubscriptionRecord, CbcId](CbcId("XACBC4940653849"), planetId))
       result1.map(_.cbcId) shouldBe Some("XACBC4940653849")
 
       val result2 = await(usersService.findByUserId(user.userId, planetId))
@@ -520,7 +519,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
 
       await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Organisation)))
       val result1 =
-        await(pillar2RecordsService.getPillar2Record(PlrId("XAPLR2222222222"), planetId))
+        await(recordsService.getRecord[Pillar2Record, PlrId](PlrId("XAPLR2222222222"), planetId))
       result1.map(_.plrReference) shouldBe Some("XAPLR2222222222")
 
       val result2 = await(usersService.findByUserId(user.userId, planetId))

@@ -18,8 +18,9 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json._
-import uk.gov.hmrc.agentmtdidentifiers.model.SuspensionDetails
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{AddressDetails, AgencyDetails, ContactDetails, Individual, Organisation}
+import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, Eori, SuspensionDetails, Urn, Utr}
+import uk.gov.hmrc.domain.Nino
 
 /** ----------------------------------------------------------------------------
   * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
@@ -132,8 +133,18 @@ case class BusinessPartnerRecord(
 
 object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
 
+  implicit val recordUtils: RecordUtils[BusinessPartnerRecord] = this
+
   implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
-  implicit val recordType: RecordMetaData[BusinessPartnerRecord] = RecordMetaData[BusinessPartnerRecord](this)
+  implicit val recordType: RecordMetaData[BusinessPartnerRecord] = RecordMetaData[BusinessPartnerRecord]
+
+  implicit val takesArnKey: TakesKey[BusinessPartnerRecord, Arn] = TakesKey(arn => agentReferenceNumberKey(arn.value))
+  implicit val takesUtrKey: TakesKey[BusinessPartnerRecord, Utr] = TakesKey(utr => utrKey(utr.value))
+  implicit val takesUrnKey: TakesKey[BusinessPartnerRecord, Urn] = TakesKey(urn => urnKey(urn.value))
+  implicit val takesNinoKey: TakesKey[BusinessPartnerRecord, Nino] = TakesKey(nino => ninoKey(nino.value))
+  implicit val takesEoriKey: TakesKey[BusinessPartnerRecord, Eori] = TakesKey(eori => eoriKey(eori.value))
+  implicit val takesCrnKey: TakesKey[BusinessPartnerRecord, Crn] = TakesKey(crn => crnKey(crn.value))
+  implicit val takesSafeIdKey: TakesKey[BusinessPartnerRecord, SafeId] = TakesKey(safeId => uniqueKey(safeId.value))
 
   def uniqueKey(key: String): String = s"""safeId:${key.toUpperCase}"""
   def agentReferenceNumberKey(key: String): String = s"""agentReferenceNumber:${key.toUpperCase}"""

@@ -16,17 +16,12 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import scala.reflect.ClassTag
-
-trait RecordMetaData[T] {
-
-  val typeName: String
+trait TakesKey[A, K] {
+  def toKey(identifier: K): String
 }
 
-object RecordMetaData {
-
-  def apply[T](implicit classTag: ClassTag[T]): RecordMetaData[T] =
-    new RecordMetaData[T] {
-      override val typeName: String = classTag.runtimeClass.getSimpleName
-    }
+object TakesKey {
+  def apply[A, K](f: K => String): TakesKey[A, K] = new TakesKey[A, K] {
+    def toKey(identifier: K): String = f(identifier)
+  }
 }

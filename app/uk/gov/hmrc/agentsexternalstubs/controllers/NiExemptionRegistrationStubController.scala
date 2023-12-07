@@ -16,20 +16,20 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{Format, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.agentmtdidentifiers.model.Utr
 import uk.gov.hmrc.agentsexternalstubs.models.{BusinessPartnerRecord, RegexPatterns, Validator}
-import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, BusinessPartnerRecordsService}
+import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, RecordsService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 @Singleton
 class NiExemptionRegistrationStubController @Inject() (
   val authenticationService: AuthenticationService,
-  businessPartnerRecordsService: BusinessPartnerRecordsService,
+  recordsService: RecordsService,
   cc: ControllerComponents
 )(implicit ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
@@ -47,7 +47,7 @@ class NiExemptionRegistrationStubController @Inject() (
               .fold(
                 error => conflictF("INVALID_PAYLOAD", error.mkString(", ")),
                 _ =>
-                  businessPartnerRecordsService.getBusinessPartnerRecord(Utr(utr), session.planetId).map {
+                  recordsService.getRecord[BusinessPartnerRecord, Utr](Utr(utr), session.planetId).map {
                     case None => conflict("NOT_FOUND", s"No business partner record found for the supplied UTR: $utr")
                     case Some(record) =>
                       record.addressDetails match {
