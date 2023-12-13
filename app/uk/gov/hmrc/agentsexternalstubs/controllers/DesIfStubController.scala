@@ -42,7 +42,6 @@ class DesIfStubController @Inject() (
   recordsService: RecordsService,
   usersService: UsersService,
   groupsService: GroupsService,
-  externalUserService: ExternalUserService,
   cc: ControllerComponents
 )(implicit executionContext: ExecutionContext)
     extends BackendController(cc) with DesCurrentSession {
@@ -168,20 +167,26 @@ class DesIfStubController @Inject() (
   }
 
   def getBusinessDetails(idType: String, idNumber: String): Action[AnyContent] = Action.async { implicit request =>
+    def okResponse(record: BusinessDetailsRecord): Result = Ok(
+      Json.toJson(
+        GetBusinessDetailsResponse(processingDate = Instant.now(), taxPayerDisplayResponse = record)
+      )
+    )
+
     withCurrentSession { session =>
       withValidIdentifier(idType, idNumber) {
         case ("nino", nino) =>
           recordsService
             .getRecordMaybeExt[BusinessDetailsRecord, Nino](Nino(nino), session.planetId)
             .map {
-              case Some(record) => Ok(Json.toJson(record))
+              case Some(record) => okResponse(record)
               case None         => notFound("NOT_FOUND")
             }
         case ("mtdId", mtdId) =>
           recordsService
             .getRecord[BusinessDetailsRecord, MtdItId](MtdItId(mtdId), session.planetId)
             .map {
-              case Some(record) => Ok(Json.toJson(record))
+              case Some(record) => okResponse(record)
               case None         => notFound("NOT_FOUND")
             }
       }

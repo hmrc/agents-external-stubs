@@ -837,10 +837,13 @@ class DesIfStubControllerISpec
       val result = DesStub.getBusinessDetails("nino", "AA123456A")
       result should haveStatus(200)
       result should haveValidJsonBody(
-        haveProperty[String]("safeId"),
-        haveProperty[String]("safeId"),
-        haveProperty[String]("nino", be("AA123456A")),
-        haveProperty[String]("mtdId")
+        haveProperty[String]("processingDate"),
+        haveProperty[JsObject](
+          "taxPayerDisplayResponse",
+          haveProperty[String]("safeId"),
+          haveProperty[String]("nino", be("AA123456A")),
+          haveProperty[String]("mtdId")
+        )
       )
     }
 
@@ -859,10 +862,13 @@ class DesIfStubControllerISpec
       val result = DesStub.getBusinessDetails("nino", nino)
       result should haveStatus(200)
       result should haveValidJsonBody(
-        haveProperty[String]("safeId"),
-        haveProperty[String]("safeId"),
-        haveProperty[String]("nino", be(nino)),
-        haveProperty[String]("mtdId")
+        haveProperty[String]("processingDate"),
+        haveProperty[JsObject](
+          "taxPayerDisplayResponse",
+          haveProperty[String]("safeId"),
+          haveProperty[String]("nino", be(nino)),
+          haveProperty[String]("mtdId")
+        )
       )
     }
 
@@ -910,10 +916,13 @@ class DesIfStubControllerISpec
       val result = DesStub.getBusinessDetails("mtdId", "ZZZZ56789012345")
       result should haveStatus(200)
       result should haveValidJsonBody(
-        haveProperty[String]("safeId"),
-        haveProperty[String]("safeId"),
-        haveProperty[String]("nino"),
-        haveProperty[String]("mtdId")
+        haveProperty[String]("processingDate"),
+        haveProperty[JsObject](
+          "taxPayerDisplayResponse",
+          haveProperty[String]("safeId"),
+          haveProperty[String]("nino"),
+          haveProperty[String]("mtdId")
+        )
       )
     }
 
