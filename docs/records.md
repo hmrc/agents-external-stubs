@@ -413,7 +413,7 @@ Returns all records on the planet grouped by the type.
                 "emailAddress": "stephen@manncorpone.co.uk"
               },
               "tradingStartDate": "2001-01-01",
-              "cashOrAccruals": "cash",
+              "cashOrAccruals": true,
               "seasonal": true,
               "cessationDate": "2001-01-01",
               "cessationReason": "002",

@@ -250,7 +250,7 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     businessAddressDetails: Option[BusinessData.BusinessAddressDetails] = None,
     businessContactDetails: Option[BusinessContactDetails] = None,
     tradingStartDate: Option[String] = None,
-    cashOrAccruals: Option[String] = None,
+    cashOrAccruals: Boolean = false,
     seasonal: Boolean = false,
     cessationDate: Option[String] = None,
     cessationReason: Option[String] = None,
@@ -287,8 +287,8 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     def withTradingStartDate(tradingStartDate: Option[String]): BusinessData = copy(tradingStartDate = tradingStartDate)
     def modifyTradingStartDate(pf: PartialFunction[Option[String], Option[String]]): BusinessData =
       if (pf.isDefinedAt(tradingStartDate)) copy(tradingStartDate = pf(tradingStartDate)) else this
-    def withCashOrAccruals(cashOrAccruals: Option[String]): BusinessData = copy(cashOrAccruals = cashOrAccruals)
-    def modifyCashOrAccruals(pf: PartialFunction[Option[String], Option[String]]): BusinessData =
+    def withCashOrAccruals(cashOrAccruals: Boolean): BusinessData = copy(cashOrAccruals = cashOrAccruals)
+    def modifyCashOrAccruals(pf: PartialFunction[Boolean, Boolean]): BusinessData =
       if (pf.isDefinedAt(cashOrAccruals)) copy(cashOrAccruals = pf(cashOrAccruals)) else this
     def withSeasonal(seasonal: Boolean): BusinessData = copy(seasonal = seasonal)
     def modifySeasonal(pf: PartialFunction[Boolean, Boolean]): BusinessData =
@@ -326,8 +326,6 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
       _.matches(Common.accountingPeriodStartDatePattern),
       s"""Invalid tradingStartDate, does not matches regex ${Common.accountingPeriodStartDatePattern}"""
     )
-    val cashOrAccrualsValidator: Validator[Option[String]] =
-      check(_.isOneOf(Common.cashOrAccrualsEnum), "Invalid cashOrAccruals, does not match allowed values")
     val cessationDateValidator: Validator[Option[String]] = check(
       _.matches(Common.accountingPeriodStartDatePattern),
       s"""Invalid cessationDate, does not matches regex ${Common.accountingPeriodStartDatePattern}"""
@@ -343,7 +341,6 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
       checkProperty(_.businessAddressDetails, businessAddressDetailsValidator),
       checkProperty(_.businessContactDetails, businessContactDetailsValidator),
       checkProperty(_.tradingStartDate, tradingStartDateValidator),
-      checkProperty(_.cashOrAccruals, cashOrAccrualsValidator),
       checkProperty(_.cessationDate, cessationDateValidator),
       checkProperty(_.cessationReason, cessationReasonValidator)
     )
@@ -394,14 +391,6 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
             .orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("tradingstart"))(seed))
         )
 
-    val cashOrAccrualsSanitizer: Update = seed =>
-      entity =>
-        entity.copy(
-          cashOrAccruals = cashOrAccrualsValidator(entity.cashOrAccruals)
-            .fold(_ => None, _ => entity.cashOrAccruals)
-            .orElse(Generator.get(Gen.oneOf(Common.cashOrAccrualsEnum))(seed))
-        )
-
     val cessationDateSanitizer: Update = seed =>
       entity =>
         entity.copy(
@@ -423,7 +412,6 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
       businessAddressDetailsSanitizer,
       businessContactDetailsSanitizer,
       tradingStartDateSanitizer,
-      cashOrAccrualsSanitizer,
       cessationDateSanitizer,
       cessationReasonSanitizer
     )
@@ -1153,7 +1141,6 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
       "ZW"
     )
     val countryCodeEnum1 = Seq("GB")
-    val cashOrAccrualsEnum = Seq("cash", "accruals")
     val cessationReasonEnum = Seq("001", "002", "003", "004", "005", "006", "007", "008")
   }
 }
