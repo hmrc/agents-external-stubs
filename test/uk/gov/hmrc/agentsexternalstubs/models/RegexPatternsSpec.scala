@@ -43,10 +43,10 @@ class RegexPatternsSpec extends BaseUnitSpec {
       RegexPatterns.validUrn("XXTRUST800000101").isLeft shouldBe true
     }
 
-    "validate mtdbsa" in {
-      RegexPatterns.validMtdbsa("999999999999999").isRight shouldBe true
-      RegexPatterns.validMtdbsa("").isLeft shouldBe true
-      RegexPatterns.validMtdbsa("9999999999999999").isLeft shouldBe true
+    "validate mtdId" in {
+      RegexPatterns.validMtdId("ZZZZ99999999999").isRight shouldBe true
+      RegexPatterns.validMtdId("").isLeft shouldBe true
+      RegexPatterns.validMtdId("ZZZZ999999999999").isLeft shouldBe true
     }
 
     "validate arn" in {

@@ -293,7 +293,7 @@ class AgencyCreator @Inject() (
         Some(
           BusinessDetailsRecord
             .generate(identifier.toString)
-            .withMtdbsa(identifier.value)
+            .withMtdId(identifier.value)
             .withBusinessData(
               Some(
                 Seq(

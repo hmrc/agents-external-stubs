@@ -39,7 +39,7 @@ object RegexPatterns {
   val validUrn: Matcher = validate(validUrnPattern.r)
   val validUtrOrUrn: String => Either[String, TaxIdentifier] =
     validateTrustTaxIdentifier(validUrnPattern.r, validUtrPattern.r)
-  val validMtdbsa: Matcher = validate("^[A-Z0-9]{1,15}$".r)
+  val validMtdId: Matcher = validate("^[A-Z]{4}[0-9]{11}$".r)
   val validPptRef: Matcher = validate("^X[A-Z]PPT000[0-9]{7}$".r)
   val validVrn: Matcher = validate("^[0-9]{1,9}$".r)
   val validEori: Matcher = validate("^[A-Z]{2}[0-9]{12}$".r)

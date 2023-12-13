@@ -175,14 +175,14 @@ class DesIfStubController @Inject() (
             .getRecordMaybeExt[BusinessDetailsRecord, Nino](Nino(nino), session.planetId)
             .map {
               case Some(record) => Ok(Json.toJson(record))
-              case None         => notFound("NOT_FOUND_NINO")
+              case None         => notFound("NOT_FOUND")
             }
-        case ("mtdbsa", mtdbsa) =>
+        case ("mtdId", mtdId) =>
           recordsService
-            .getRecord[BusinessDetailsRecord, MtdItId](MtdItId(mtdbsa), session.planetId)
+            .getRecord[BusinessDetailsRecord, MtdItId](MtdItId(mtdId), session.planetId)
             .map {
               case Some(record) => Ok(Json.toJson(record))
-              case None         => notFound("NOT_FOUND_MTDBSA")
+              case None         => notFound("NOT_FOUND")
             }
       }
     }(SessionRecordNotFound)
@@ -695,7 +695,7 @@ class DesIfStubController @Inject() (
   ): Future[Result] =
     idType match {
       case "nino"   => validateIdentifier(RegexPatterns.validNinoNoSpaces, "INVALID_NINO", idType, idNumber)(pf)
-      case "mtdbsa" => validateIdentifier(RegexPatterns.validMtdbsa, "INVALID_MTDBSA", idType, idNumber)(pf)
+      case "mtdId"  => validateIdentifier(RegexPatterns.validMtdId, "INVALID_MTD_ID", idType, idNumber)(pf)
       case "utr"    => validateIdentifier(RegexPatterns.validUtr, "INVALID_UTR", idType, idNumber)(pf)
       case "urn"    => validateIdentifier(RegexPatterns.validUrn, "INVALID_URN", idType, idNumber)(pf)
       case "arn"    => validateIdentifier(RegexPatterns.validArn, "INVALID_ARN", idType, idNumber)(pf)

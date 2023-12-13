@@ -390,7 +390,7 @@ Returns all records on the planet grouped by the type.
         {
           "safeId": "XE00001234567890",
           "nino": "AA123456A",
-          "mtdbsa": "123456789012345",
+          "mtdId": "ZZZZ56789012345",
           "propertyIncome": false,
           "businessData": [
             {

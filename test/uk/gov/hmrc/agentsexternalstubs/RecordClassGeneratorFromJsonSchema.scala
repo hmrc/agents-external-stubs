@@ -845,7 +845,7 @@ trait KnownFieldGenerators {
       case "safeid"               => "Generator.safeIdGen"
       case "agentreferencenumber" => "Generator.arnGen"
       case "nino"                 => "Generator.ninoNoSpacesGen"
-      case "mtdbsa"               => "Generator.mtdbsaGen"
+      case "mtdid"                => "Generator.mtdIdGen"
       case "vrn"                  => "Generator.vrnGen"
       case "utr"                  => "Generator.utrGen"
       case "urn"                  => "Generator.urnGen"
