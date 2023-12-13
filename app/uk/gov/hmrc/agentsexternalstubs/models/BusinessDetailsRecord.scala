@@ -250,7 +250,7 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     businessAddressDetails: Option[BusinessData.BusinessAddressDetails] = None,
     businessContactDetails: Option[BusinessContactDetails] = None,
     tradingStartDate: Option[String] = None,
-    cashOrAccruals: Boolean = false,
+    cashOrAccruals: Option[Boolean] = None,
     seasonal: Boolean = false,
     cessationDate: Option[String] = None,
     paperLess: Boolean = false
@@ -286,8 +286,8 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     def withTradingStartDate(tradingStartDate: Option[String]): BusinessData = copy(tradingStartDate = tradingStartDate)
     def modifyTradingStartDate(pf: PartialFunction[Option[String], Option[String]]): BusinessData =
       if (pf.isDefinedAt(tradingStartDate)) copy(tradingStartDate = pf(tradingStartDate)) else this
-    def withCashOrAccruals(cashOrAccruals: Boolean): BusinessData = copy(cashOrAccruals = cashOrAccruals)
-    def modifyCashOrAccruals(pf: PartialFunction[Boolean, Boolean]): BusinessData =
+    def withCashOrAccruals(cashOrAccruals: Option[Boolean]): BusinessData = copy(cashOrAccruals = cashOrAccruals)
+    def modifyCashOrAccruals(pf: PartialFunction[Option[Boolean], Option[Boolean]]): BusinessData =
       if (pf.isDefinedAt(cashOrAccruals)) copy(cashOrAccruals = pf(cashOrAccruals)) else this
     def withSeasonal(seasonal: Boolean): BusinessData = copy(seasonal = seasonal)
     def modifySeasonal(pf: PartialFunction[Boolean, Boolean]): BusinessData =
