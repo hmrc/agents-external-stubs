@@ -416,7 +416,6 @@ Returns all records on the planet grouped by the type.
               "cashOrAccruals": true,
               "seasonal": true,
               "cessationDate": "2001-01-01",
-              "cessationReason": "002",
               "paperLess": true
             }
           ],
@@ -430,7 +429,6 @@ Returns all records on the planet grouped by the type.
             "numPropRentedNONEEA": "61",
             "emailAddress": "u@P8ssnzmUV6cp0hwvvosrorNdlvtjuaurBynV1vrtpxybTavvuagweziqopptkqvJmzXywjiuy4ct5sul9f4snjz4n.eu",
             "cessationDate": "2015-12-02",
-            "cessationReason": "003",
             "paperLess": true
           },
           "id": "5b91a5471300000f00a0f737"

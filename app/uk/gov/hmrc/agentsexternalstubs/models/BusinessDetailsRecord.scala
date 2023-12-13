@@ -253,7 +253,6 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     cashOrAccruals: Boolean = false,
     seasonal: Boolean = false,
     cessationDate: Option[String] = None,
-    cessationReason: Option[String] = None,
     paperLess: Boolean = false
   ) {
 
@@ -296,9 +295,6 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     def withCessationDate(cessationDate: Option[String]): BusinessData = copy(cessationDate = cessationDate)
     def modifyCessationDate(pf: PartialFunction[Option[String], Option[String]]): BusinessData =
       if (pf.isDefinedAt(cessationDate)) copy(cessationDate = pf(cessationDate)) else this
-    def withCessationReason(cessationReason: Option[String]): BusinessData = copy(cessationReason = cessationReason)
-    def modifyCessationReason(pf: PartialFunction[Option[String], Option[String]]): BusinessData =
-      if (pf.isDefinedAt(cessationReason)) copy(cessationReason = pf(cessationReason)) else this
     def withPaperLess(paperLess: Boolean): BusinessData = copy(paperLess = paperLess)
     def modifyPaperLess(pf: PartialFunction[Boolean, Boolean]): BusinessData =
       if (pf.isDefinedAt(paperLess)) copy(paperLess = pf(paperLess)) else this
@@ -330,8 +326,6 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
       _.matches(Common.accountingPeriodStartDatePattern),
       s"""Invalid cessationDate, does not matches regex ${Common.accountingPeriodStartDatePattern}"""
     )
-    val cessationReasonValidator: Validator[Option[String]] =
-      check(_.isOneOf(Common.cessationReasonEnum), "Invalid cessationReason, does not match allowed values")
 
     override val validate: Validator[BusinessData] = Validator(
       checkProperty(_.incomeSourceId, incomeSourceIdValidator),
@@ -341,8 +335,7 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
       checkProperty(_.businessAddressDetails, businessAddressDetailsValidator),
       checkProperty(_.businessContactDetails, businessContactDetailsValidator),
       checkProperty(_.tradingStartDate, tradingStartDateValidator),
-      checkProperty(_.cessationDate, cessationDateValidator),
-      checkProperty(_.cessationReason, cessationReasonValidator)
+      checkProperty(_.cessationDate, cessationDateValidator)
     )
 
     override val gen: Gen[BusinessData] = for {
@@ -399,21 +392,12 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
             .orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("cessation"))(seed))
         )
 
-    val cessationReasonSanitizer: Update = seed =>
-      entity =>
-        entity.copy(
-          cessationReason = cessationReasonValidator(entity.cessationReason)
-            .fold(_ => None, _ => entity.cessationReason)
-            .orElse(Generator.get(Gen.oneOf(Common.cessationReasonEnum))(seed))
-        )
-
     override val sanitizers: Seq[Update] = Seq(
       tradingNameSanitizer,
       businessAddressDetailsSanitizer,
       businessContactDetailsSanitizer,
       tradingStartDateSanitizer,
-      cessationDateSanitizer,
-      cessationReasonSanitizer
+      cessationDateSanitizer
     )
 
     implicit val formats: Format[BusinessData] = Json.format[BusinessData]
@@ -603,7 +587,6 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     numPropRentedNONEEA: Option[String] = None,
     emailAddress: Option[String] = None,
     cessationDate: Option[String] = None,
-    cessationReason: Option[String] = None,
     paperLess: Boolean = false
   ) {
 
@@ -638,9 +621,6 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     def withCessationDate(cessationDate: Option[String]): PropertyData = copy(cessationDate = cessationDate)
     def modifyCessationDate(pf: PartialFunction[Option[String], Option[String]]): PropertyData =
       if (pf.isDefinedAt(cessationDate)) copy(cessationDate = pf(cessationDate)) else this
-    def withCessationReason(cessationReason: Option[String]): PropertyData = copy(cessationReason = cessationReason)
-    def modifyCessationReason(pf: PartialFunction[Option[String], Option[String]]): PropertyData =
-      if (pf.isDefinedAt(cessationReason)) copy(cessationReason = pf(cessationReason)) else this
     def withPaperLess(paperLess: Boolean): PropertyData = copy(paperLess = paperLess)
     def modifyPaperLess(pf: PartialFunction[Boolean, Boolean]): PropertyData =
       if (pf.isDefinedAt(paperLess)) copy(paperLess = pf(paperLess)) else this
@@ -680,8 +660,6 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
       _.matches(Common.accountingPeriodStartDatePattern),
       s"""Invalid cessationDate, does not matches regex ${Common.accountingPeriodStartDatePattern}"""
     )
-    val cessationReasonValidator: Validator[Option[String]] =
-      check(_.isOneOf(Common.cessationReasonEnum), "Invalid cessationReason, does not match allowed values")
 
     override val validate: Validator[PropertyData] = Validator(
       checkProperty(_.incomeSourceId, incomeSourceIdValidator),
@@ -692,8 +670,7 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
       checkProperty(_.numPropRentedEEA, numPropRentedEEAValidator),
       checkProperty(_.numPropRentedNONEEA, numPropRentedNONEEAValidator),
       checkProperty(_.emailAddress, emailAddressValidator),
-      checkProperty(_.cessationDate, cessationDateValidator),
-      checkProperty(_.cessationReason, cessationReasonValidator)
+      checkProperty(_.cessationDate, cessationDateValidator)
     )
 
     override val gen: Gen[PropertyData] = for {
@@ -756,22 +733,13 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
             .orElse(Generator.get(Generator.dateYYYYMMDDGen.variant("cessation"))(seed))
         )
 
-    val cessationReasonSanitizer: Update = seed =>
-      entity =>
-        entity.copy(
-          cessationReason = cessationReasonValidator(entity.cessationReason)
-            .fold(_ => None, _ => entity.cessationReason)
-            .orElse(Generator.get(Gen.oneOf(Common.cessationReasonEnum))(seed))
-        )
-
     override val sanitizers: Seq[Update] = Seq(
       numPropRentedSanitizer,
       numPropRentedUKSanitizer,
       numPropRentedEEASanitizer,
       numPropRentedNONEEASanitizer,
       emailAddressSanitizer,
-      cessationDateSanitizer,
-      cessationReasonSanitizer
+      cessationDateSanitizer
     )
 
     implicit val formats: Format[PropertyData] = Json.format[PropertyData]
@@ -1141,6 +1109,5 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
       "ZW"
     )
     val countryCodeEnum1 = Seq("GB")
-    val cessationReasonEnum = Seq("001", "002", "003", "004", "005", "006", "007", "008")
   }
 }

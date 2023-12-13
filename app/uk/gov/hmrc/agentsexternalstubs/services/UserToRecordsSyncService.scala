@@ -155,7 +155,6 @@ class UserToRecordsSyncService @Inject() (
                 Seq(
                   businessData
                     .withCessationDate(None)
-                    .withCessationReason(None)
                     .withBusinessAddressDetails(Some(address))
                 )
               )
@@ -290,7 +289,6 @@ class UserToRecordsSyncService @Inject() (
               Seq(
                 businessData
                   .withCessationDate(None)
-                  .withCessationReason(None)
                   .withBusinessAddressDetails(Some(address))
               )
             )

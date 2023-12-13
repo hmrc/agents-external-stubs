@@ -82,7 +82,6 @@ trait ExampleDesPayloads {
       |            "cashOrAccruals": true,
       |            "seasonal": true,
       |            "cessationDate": "2001-01-01",
-      |            "cessationReason": "002",
       |            "paperLess": true
       |        }
       |    ]
