@@ -89,8 +89,8 @@ object Generator extends Names with Temporal with Companies with Addresses {
       .map(n => if (RegexPatterns.validNinoNoSpaces(n).isRight) Nino.apply(n) else ninoNoSpaces("_" + seed))
       .get
 
-  lazy val mtdbsaGen: Gen[String] = pattern"ZZZZ99999999999".gen
-  def mtdbsa(seed: String): MtdItId = mtdbsaGen.map(MtdItId.apply).seeded(seed).get
+  lazy val mtdIdGen: Gen[String] = pattern"ZZZZ99999999999".gen
+  def mtdId(seed: String): MtdItId = mtdIdGen.map(MtdItId.apply).seeded(seed).get
 
   object Modulus11 extends Modulus11Check {
     def apply(s: String) = s"${calculateCheckCharacter(s)}$s"
@@ -239,7 +239,7 @@ object Generator extends Names with Temporal with Companies with Addresses {
     "cgtPdRef"        -> cgtPdRefGen,
     "pptReference"    -> pptReferenceGen,
     "cbcId"           -> cbcIdGen,
-    "mtditid"         -> mtdbsaGen,
+    "mtditid"         -> mtdIdGen,
     "vrn"             -> vrnGen,
     "eori"            -> eoriGen,
     "eoriUK"          -> ukEoriGen,

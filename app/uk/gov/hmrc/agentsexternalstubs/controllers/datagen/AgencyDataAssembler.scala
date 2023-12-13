@@ -94,7 +94,7 @@ class AgencyDataAssembler extends Logging {
     def generateClient(clientType: ClientType, serviceKey: ServiceKey, index: Int): User = {
       val seed = System.nanoTime().toString
       val identifiers: Seq[Identifier] = serviceKey match {
-        case "HMRC-MTD-IT"  => Seq(Identifier("MTDITID", Generator.mtdbsa(seed).value))
+        case "HMRC-MTD-IT"  => Seq(Identifier("MTDITID", Generator.mtdId(seed).value))
         case "HMRC-MTD-VAT" => Seq(Identifier("VRN", Generator.vrn(seed).value))
         case "HMRC-CBC-ORG" =>
           Seq(Identifier("cbcId", Generator.cbcId(seed).value), Identifier("UTR", Generator.utr(seed)))

@@ -78,12 +78,12 @@ object RelationshipRecord extends RecordUtils[RelationshipRecord] {
     idType <- regime match {
                 case "VATC" => Gen.const("vrn")
                 case "NI"   => Gen.const("eori")
-                case _      => Gen.const("mtdbsa")
+                case _      => Gen.const("mtdId")
               }
     refNumber <- regime match {
                    case "VATC" => Generator.vrnGen
                    case "NI"   => Generator.eoriGen
-                   case _      => Generator.mtdbsaGen
+                   case _      => Generator.mtdIdGen
                  }
     active <- Generator.booleanGen
   } yield RelationshipRecord(regime, arn, idType, refNumber, active)

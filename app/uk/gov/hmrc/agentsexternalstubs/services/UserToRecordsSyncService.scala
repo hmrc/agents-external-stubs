@@ -117,7 +117,7 @@ class UserToRecordsSyncService @Inject() (
     }
 
     val businessDetailsForMtdItIndividual: UserAndGroupRecordsSync = saveRecordId => {
-      case (user, MtdItIndividualMatch(_, mtdbsa)) =>
+      case (user, MtdItIndividualMatch(_, mtdId)) =>
         val nino = user.nino
           .map(_.value.replace(" ", ""))
           .getOrElse(Generator.ninoNoSpaces(user.userId).value)
@@ -149,13 +149,12 @@ class UserToRecordsSyncService @Inject() (
           BusinessDetailsRecord
             .generate(user.userId)
             .withNino(nino)
-            .withMtdbsa(mtdbsa)
+            .withMtdId(mtdId)
             .modifyBusinessData { case Some(businessData :: _) =>
               Some(
                 Seq(
                   businessData
                     .withCessationDate(None)
-                    .withCessationReason(None)
                     .withBusinessAddressDetails(Some(address))
                 )
               )
@@ -165,7 +164,7 @@ class UserToRecordsSyncService @Inject() (
             .sequence(
               Seq(
                 recordsService.getRecord[BusinessDetailsRecord, Nino](Nino(nino), user.planetId.get),
-                recordsService.getRecord[BusinessDetailsRecord, MtdItId](MtdItId(mtdbsa), user.planetId.get)
+                recordsService.getRecord[BusinessDetailsRecord, MtdItId](MtdItId(mtdId), user.planetId.get)
               )
             )
             .map(_.collect { case Some(x) => x })
@@ -290,7 +289,6 @@ class UserToRecordsSyncService @Inject() (
               Seq(
                 businessData
                   .withCessationDate(None)
-                  .withCessationReason(None)
                   .withBusinessAddressDetails(Some(address))
               )
             )

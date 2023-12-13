@@ -38,7 +38,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
 
       val theUser = await(usersService.createUser(user, planetId, affinityGroup = Some(AG.Individual)))
       val result1 = await(recordsService.getRecord[BusinessDetailsRecord, Nino](theUser.nino.get, planetId))
-      result1.map(_.mtdbsa) shouldBe Some("123456789098765")
+      result1.map(_.mtdId) shouldBe Some("123456789098765")
       val result2 =
         await(recordsService.getRecord[BusinessDetailsRecord, MtdItId](MtdItId("123456789098765"), planetId))
       result2.map(_.nino) shouldBe Some(theUser.nino.get.value.replace(" ", ""))
@@ -60,7 +60,7 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
       await(usersService.updateUser(user.userId, planetId, user => user.copy(nino = Some(Nino("HW827856C")))))
 
       val result3 = await(recordsService.getRecord[BusinessDetailsRecord, Nino](Nino("HW827856C"), planetId))
-      result3.map(_.mtdbsa) shouldBe Some("123456789098765")
+      result3.map(_.mtdId) shouldBe Some("123456789098765")
 
       val userWithRecordId = await(usersService.findByUserId(user.userId, planetId))
       userWithRecordId.map(_.recordIds).get should not be empty

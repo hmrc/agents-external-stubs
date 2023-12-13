@@ -175,7 +175,7 @@ trait ExampleApiPlatformTestUserResponses {
       |  },
       |  "saUtr":"${utr.value}",
       |  "nino":"${nino.value}",
-      |  "mtdItId":"${Generator.mtdbsaGen.sample.get}",
+      |  "mtdItId":"${Generator.mtdIdGen.sample.get}",
       |  "vrn":"${vrn.value}",
       |  "vatRegistrationDate":"2001-11-02",
       |  "eoriNumber":"${Generator.eoriGen.sample.get}"

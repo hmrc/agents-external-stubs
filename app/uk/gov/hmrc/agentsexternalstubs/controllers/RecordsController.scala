@@ -93,7 +93,7 @@ class RecordsController @Inject() (
           .store(record, autoFill, session.planetId)
           .map(recordId =>
             Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))).withHeaders(
-              HeaderNames.LOCATION -> routes.DesIfStubController.getBusinessDetails("mtdbsa", record.mtdbsa).url
+              HeaderNames.LOCATION -> routes.DesIfStubController.getBusinessDetails("mtdId", record.mtdId).url
             )
           )
       )

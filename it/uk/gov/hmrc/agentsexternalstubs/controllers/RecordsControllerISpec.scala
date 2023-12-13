@@ -82,14 +82,14 @@ class RecordsControllerISpec extends ServerBaseISpec with TestRequests with Test
 
         val record = getResult1.json
           .as[BusinessDetailsRecord]
-          .modifyMtdbsa { case s => s.reverse }
+          .modifyMtdId { case s => s.reverse }
 
         val result = Records.updateRecord(record.id.get, Record.toJson(record))
         result should haveStatus(202)
 
         val getResult2 = get(result.header(HeaderNames.LOCATION).get)
         getResult2 should haveStatus(200)
-        getResult2.json.as[BusinessDetailsRecord].mtdbsa shouldBe "123456789012345".reverse
+        getResult2.json.as[BusinessDetailsRecord].mtdId shouldBe "ZZZZ56789012345".reverse
       }
     }
 
@@ -101,7 +101,7 @@ class RecordsControllerISpec extends ServerBaseISpec with TestRequests with Test
         result should haveStatus(200)
         result should haveValidJsonBody(
           haveProperty[String]("safeId") and haveProperty[String]("nino") and haveProperty[String](
-            "mtdbsa"
+            "mtdId"
           ) and haveProperty[Boolean]("propertyIncome") and notHaveProperty("businessData") and notHaveProperty(
             "propertyData"
           )
@@ -115,7 +115,7 @@ class RecordsControllerISpec extends ServerBaseISpec with TestRequests with Test
         result should haveStatus(200)
         result should haveValidJsonBody(
           haveProperty[String]("safeId") and haveProperty[String]("nino") and haveProperty[String](
-            "mtdbsa"
+            "mtdId"
           ) and haveProperty[Boolean]("propertyIncome") and haveProperty[JsArray]("businessData") and haveProperty[
             JsObject
           ]("propertyData")

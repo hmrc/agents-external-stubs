@@ -26,7 +26,7 @@ class RecordClassGeneratorSpec extends BaseUnitSpec with ValidatedMatchers with 
       knownFieldGenerators("safeId") shouldBe Some("Generator.safeIdGen")
       knownFieldGenerators("agentReferenceNumber") shouldBe Some("Generator.arnGen")
       knownFieldGenerators("nino") shouldBe Some("Generator.ninoNoSpacesGen")
-      knownFieldGenerators("mtdbsa") shouldBe Some("Generator.mtdbsaGen")
+      knownFieldGenerators("mtdId") shouldBe Some("Generator.mtdIdGen")
       knownFieldGenerators("vrn") shouldBe Some("Generator.vrnGen")
       knownFieldGenerators("dateString") shouldBe Some("Generator.dateYYYYMMDDGen")
       knownFieldGenerators("date") shouldBe Some("Generator.dateYYYYMMDDGen")

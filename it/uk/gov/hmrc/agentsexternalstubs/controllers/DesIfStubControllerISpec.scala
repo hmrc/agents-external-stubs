@@ -840,7 +840,7 @@ class DesIfStubControllerISpec
         haveProperty[String]("safeId"),
         haveProperty[String]("safeId"),
         haveProperty[String]("nino", be("AA123456A")),
-        haveProperty[String]("mtdbsa")
+        haveProperty[String]("mtdId")
       )
     }
 
@@ -862,7 +862,7 @@ class DesIfStubControllerISpec
         haveProperty[String]("safeId"),
         haveProperty[String]("safeId"),
         haveProperty[String]("nino", be(nino)),
-        haveProperty[String]("mtdbsa")
+        haveProperty[String]("mtdId")
       )
     }
 
@@ -901,25 +901,25 @@ class DesIfStubControllerISpec
     }
   }
 
-  "GET /registration/business-details/mtdbsa/:idNumber" should {
+  "GET /registration/business-details/mtdId/:idNumber" should {
     "return 200 response if record found" in {
       implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
       val createResult = Records.createBusinessDetails(Json.parse(validBusinessDetailsPayload))
       createResult should haveStatus(201)
 
-      val result = DesStub.getBusinessDetails("mtdbsa", "123456789012345")
+      val result = DesStub.getBusinessDetails("mtdId", "ZZZZ56789012345")
       result should haveStatus(200)
       result should haveValidJsonBody(
         haveProperty[String]("safeId"),
         haveProperty[String]("safeId"),
         haveProperty[String]("nino"),
-        haveProperty[String]("mtdbsa")
+        haveProperty[String]("mtdId")
       )
     }
 
     "return 404 response if record not found" in {
       implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-      val result = DesStub.getBusinessDetails("mtdbsa", "999999999999999")
+      val result = DesStub.getBusinessDetails("mtdId", "ZZZZ99999999999")
       result should haveStatus(404)
     }
   }

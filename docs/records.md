@@ -390,7 +390,7 @@ Returns all records on the planet grouped by the type.
         {
           "safeId": "XE00001234567890",
           "nino": "AA123456A",
-          "mtdbsa": "123456789012345",
+          "mtdId": "ZZZZ56789012345",
           "propertyIncome": false,
           "businessData": [
             {
@@ -413,10 +413,9 @@ Returns all records on the planet grouped by the type.
                 "emailAddress": "stephen@manncorpone.co.uk"
               },
               "tradingStartDate": "2001-01-01",
-              "cashOrAccruals": "cash",
+              "cashOrAccruals": true,
               "seasonal": true,
               "cessationDate": "2001-01-01",
-              "cessationReason": "002",
               "paperLess": true
             }
           ],
@@ -430,7 +429,6 @@ Returns all records on the planet grouped by the type.
             "numPropRentedNONEEA": "61",
             "emailAddress": "u@P8ssnzmUV6cp0hwvvosrorNdlvtjuaurBynV1vrtpxybTavvuagweziqopptkqvJmzXywjiuy4ct5sul9f4snjz4n.eu",
             "cessationDate": "2015-12-02",
-            "cessationReason": "003",
             "paperLess": true
           },
           "id": "5b91a5471300000f00a0f737"
