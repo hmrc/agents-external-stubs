@@ -16,10 +16,12 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import play.api.libs.json.Format
+import play.api.libs.json.{Format, JsValue, Json}
 import play.api.libs.json.Json.format
 import play.api.libs.typedmap.TypedKey
 import play.api.mvc.{Request, RequestHeader}
+
+import java.time.Instant
 
 case class AuthenticatedSession(
   sessionId: String,
@@ -27,7 +29,7 @@ case class AuthenticatedSession(
   authToken: String,
   providerType: String,
   planetId: String,
-  createdAt: Long = System.currentTimeMillis()
+  createdAt: JsValue = Json.obj("$date" -> Instant.now())
 )
 
 object AuthenticatedSession {
