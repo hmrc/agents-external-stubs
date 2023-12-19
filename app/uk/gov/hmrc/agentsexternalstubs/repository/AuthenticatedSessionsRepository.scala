@@ -37,10 +37,11 @@ class AuthenticatedSessionsRepository @Inject() (mongo: MongoComponent)(implicit
         IndexModel(Indexes.ascending("planetId")),
         IndexModel(
           Indexes.ascending("authToken"),
-          IndexOptions().unique(true).name("AuthenticatedSessions").expireAfter(900, TimeUnit.SECONDS)
+          IndexOptions().unique(true)
         ),
         IndexModel(Indexes.ascending("sessionId"), IndexOptions().unique(true).name("SessionIds")),
-        IndexModel(Indexes.ascending("userId"), IndexOptions().name("AuthenticatedUsers"))
+        IndexModel(Indexes.ascending("userId"), IndexOptions().name("AuthenticatedUsers")),
+        IndexModel(Indexes.ascending("createdAt"), IndexOptions().expireAfter(900, TimeUnit.SECONDS))
       ),
       replaceIndexes = true
     ) {
@@ -48,13 +49,13 @@ class AuthenticatedSessionsRepository @Inject() (mongo: MongoComponent)(implicit
   final val UPDATED = "createdAt"
 
   def findByAuthToken(authToken: String): Future[Option[AuthenticatedSession]] =
-    one[AuthenticatedSession](Seq("authToken" -> authToken))
+    one(Seq("authToken" -> authToken))
 
   def findBySessionId(sessionId: String): Future[Option[AuthenticatedSession]] =
-    one[AuthenticatedSession](Seq("sessionId" -> sessionId))
+    one(Seq("sessionId" -> sessionId))
 
   def findByPlanetId(planetId: String): Future[Option[AuthenticatedSession]] =
-    one[AuthenticatedSession](Seq("planetId" -> planetId))
+    one(Seq("planetId" -> planetId))
 
   def findByUserId(userId: String): Future[Seq[AuthenticatedSession]] =
     collection
@@ -79,11 +80,12 @@ class AuthenticatedSessionsRepository @Inject() (mongo: MongoComponent)(implicit
       .toFuture()
       .map(_ => ())
 
-  private def one[T](
+  private def one(
     query: Seq[(String, String)]
   ): Future[Option[AuthenticatedSession]] =
     collection
       .find(Filters.and(query.map { case (field, value) => Filters.equal(field, value) }: _*))
+      .first()
       .toFuture()
-      .map(_.headOption)
+      .map(Option.apply)
 }
