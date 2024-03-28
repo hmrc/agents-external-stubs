@@ -42,7 +42,8 @@ case class BusinessPartnerRecord(
   businessPartnerExists: Boolean = false,
   safeId: String,
   agentReferenceNumber: Option[String] = None,
-  utr: Option[String] = None,
+  uniqueTaxReference: Option[String] = None, //required for DES /registration/personal-details/...
+  utr: Option[String] = None, //required for DES /registration/individual/...
   urn: Option[String] = None,
   nino: Option[String] = None,
   eori: Option[String] = None,
@@ -65,6 +66,7 @@ case class BusinessPartnerRecord(
     Seq(
       agentReferenceNumber.map(BusinessPartnerRecord.agentReferenceNumberKey),
       utr.map(BusinessPartnerRecord.utrKey),
+      uniqueTaxReference.map(BusinessPartnerRecord.uniqueTaxReferenceKey),
       urn.map(BusinessPartnerRecord.urnKey),
       nino.map(BusinessPartnerRecord.ninoKey),
       eori.map(BusinessPartnerRecord.eoriKey),
@@ -83,9 +85,9 @@ case class BusinessPartnerRecord(
     copy(agentReferenceNumber = agentReferenceNumber)
   def modifyAgentReferenceNumber(pf: PartialFunction[Option[String], Option[String]]): BusinessPartnerRecord =
     if (pf.isDefinedAt(agentReferenceNumber)) copy(agentReferenceNumber = pf(agentReferenceNumber)) else this
-  def withUtr(utr: Option[String]): BusinessPartnerRecord = copy(utr = utr)
+  def withUtr(utr: Option[String]): BusinessPartnerRecord = copy(utr = utr, uniqueTaxReference = utr)
   def modifyUtr(pf: PartialFunction[Option[String], Option[String]]): BusinessPartnerRecord =
-    if (pf.isDefinedAt(utr)) copy(utr = pf(utr)) else this
+    if (pf.isDefinedAt(utr)) copy(utr = pf(utr), uniqueTaxReference = pf(utr)) else this
   def withUrn(urn: Option[String]): BusinessPartnerRecord = copy(urn = urn)
   def modifyUrn(pf: PartialFunction[Option[String], Option[String]]): BusinessPartnerRecord =
     if (pf.isDefinedAt(urn)) copy(utr = pf(urn)) else this
@@ -149,6 +151,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
   def uniqueKey(key: String): String = s"""safeId:${key.toUpperCase}"""
   def agentReferenceNumberKey(key: String): String = s"""agentReferenceNumber:${key.toUpperCase}"""
   def utrKey(key: String): String = s"""utr:${key.toUpperCase}"""
+  def uniqueTaxReferenceKey(key: String): String = s"""uniqueTaxReference:${key.toUpperCase}"""
   def urnKey(key: String): String = s"""urn:${key.toUpperCase}"""
   def ninoKey(key: String): String = s"""nino:${key.toUpperCase}"""
   def eoriKey(key: String): String = s"""eori:${key.toUpperCase}"""
@@ -192,6 +195,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     checkProperty(_.addressDetails, addressDetailsValidator),
     checkProperty(_.contactDetails, contactDetailsValidator),
     checkProperty(_.agencyDetails, agencyDetailsValidator),
+    checkProperty(_.uniqueTaxReference, utrValidator),
     checkIfOnlyOneSetIsDefined(
       Seq(Set(_.isAnIndividual.asOption, _.individual), Set(_.isAnOrganisation.asOption, _.organisation)),
       "[{isAnIndividual,individual},{isAnOrganisation,organisation}]"
@@ -229,6 +233,13 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
       entity.copy(
         utr = utrValidator(entity.utr)
           .fold(_ => None, _ => entity.utr)
+          .orElse(Generator.get(Generator.utrGen)(seed))
+      )
+
+  lazy val uniqueTaxReferenceSanitizer: Update = seed =>
+    entity =>
+      entity.copy(
+        uniqueTaxReference = entity.utr
           .orElse(Generator.get(Generator.utrGen)(seed))
       )
 
@@ -341,7 +352,8 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     contactDetailsSanitizer,
     agencyDetailsSanitizer,
     suspensionDetailsSanitizer,
-    isAnIndividualOrIsAnOrganisationAlternativeSanitizer
+    isAnIndividualOrIsAnOrganisationAlternativeSanitizer,
+    uniqueTaxReferenceSanitizer
   )
 
   implicit val formats: Format[BusinessPartnerRecord] = Json.format[BusinessPartnerRecord]
