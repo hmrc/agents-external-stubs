@@ -1085,12 +1085,17 @@ object DesIfStubController {
         case "XAML00000200000" => Some(jsonApprovedResponse) //Approved
         case "XAML00000300000" => Some(jsonSuspendedResponse) //Suspended
         case "XAML00000400000" => Some(jsonRejectedResponse) //Rejected
+        case "XAML00000500000" => Some(jsonExpiredResponse) //Expired
         case _                 => None
       }
 
     val now = LocalDateTime.now()
 
-    def standardSuccessfulResponse(formBundleStatus: String, suspended: Option[Boolean] = None) =
+    def standardSuccessfulResponse(
+      formBundleStatus: String,
+      suspended: Option[Boolean] = None,
+      expired: Boolean = false
+    ) =
       AmlsSubscriptionStatusResponse(
         processingDate = now,
         formBundleStatus = formBundleStatus,
@@ -1098,7 +1103,7 @@ object DesIfStubController {
         renewalSubmissionFlag = false,
         currentAMLSOutstandingBalance = "0",
         deRegistrationDate = None,
-        currentRegYearEndDate = Some(LocalDate.parse(s"${now.getYear}-12-31")),
+        currentRegYearEndDate = if (expired) Some(LocalDate.now()) else Some(LocalDate.parse(s"${now.getYear}-12-31")),
         currentRegYearStartDate = Some(LocalDate.parse(s"${now.getYear}-01-01")),
         safeId = "111234567890123",
         suspended = suspended
@@ -1108,6 +1113,7 @@ object DesIfStubController {
     val jsonApprovedResponse = Json.toJson(standardSuccessfulResponse("Approved"))
     val jsonSuspendedResponse = Json.toJson(standardSuccessfulResponse("Approved", Some(true)))
     val jsonRejectedResponse = Json.toJson(standardSuccessfulResponse("Rejected"))
+    val jsonExpiredResponse = Json.toJson(standardSuccessfulResponse("Approved", expired = true))
   }
 
 }
