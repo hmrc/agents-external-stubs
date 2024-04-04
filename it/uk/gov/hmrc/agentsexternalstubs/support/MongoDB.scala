@@ -1,4 +1,5 @@
 package uk.gov.hmrc.agentsexternalstubs.support
+import org.mongodb.scala.bson.BsonDocument
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, TestSuite}
 import play.api.{Application, Logging}
 import uk.gov.hmrc.agentsexternalstubs.repository._
@@ -21,12 +22,9 @@ trait MongoDB extends BeforeAndAfterAll with BeforeAndAfterEach {
     MongoDB.initializeMongo(app)
   }
 
-  override def beforeEach() = {
+  override def beforeEach(): Unit = {
     super.beforeEach()
-    MongoDB.initializeMongo(
-      app,
-      force = true
-    ) // TODO - This slows down the tests. Is there a quicker way to wipe the db?
+    MongoDB.deleteAllDocumentsFromAllCollections()
   }
 }
 
@@ -37,11 +35,11 @@ object MongoDB extends Logging {
 
   val databaseName: String = "agents-external-stubs-tests"
   val uri: String = s"mongodb://127.0.0.1:27017/$databaseName"
+  lazy val mongoComponent: MongoComponent = MongoComponent(uri)
 
   def initializeMongo(app: Application, force: Boolean = false): Unit =
     if (lock.tryLock()) try if (!initialized.get() || force) {
       logger.debug("Initializing MongoDB ... ")
-      val mongoComponent: MongoComponent = MongoComponent(uri)
       Await.result(mongoComponent.database.drop().toFuture, Duration("10s"))
       val repos: Seq[PlayMongoRepository[_]] = Seq(
         app.injector.instanceOf[AuthenticatedSessionsRepository],
@@ -55,4 +53,17 @@ object MongoDB extends Logging {
       initialized.set(true)
       logger.debug("MongoDB ready.")
     } finally lock.unlock()
+
+  def deleteAllDocumentsFromAllCollections(): Unit = {
+    val collectionNames = Seq("authenticated-sessions", "groups", "knownFacts", "records", "specialCases", "users")
+    collectionNames.foreach { collectionName =>
+      Await.result(
+        mongoComponent.database
+          .getCollection(collectionName)
+          .deleteMany(BsonDocument())
+          .toFuture(),
+        Duration("10s")
+      )
+    }
+  }
 }
