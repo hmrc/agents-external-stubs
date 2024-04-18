@@ -113,6 +113,9 @@ GET           /personal-details-validation/:id                                  
 # Personal Details Validation
 POST          /agents-external-stubs/pdv-result/:id/:success                                         @uk.gov.hmrc.agentsexternalstubs.controllers.PersonalDetailsValidationController.pdvResult(id: String, success: Boolean)
 
+# DMS Submission route
+POST          /dms-submission/submit                                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.DmsSubmissionController.submit
+
 # Companies House API Proxy
 GET           /companies-house-api-proxy/company/:companynumber                                      @uk.gov.hmrc.agentsexternalstubs.controllers.CompaniesHouseController.findCompany(companynumber: String)
 GET           /companies-house-api-proxy/company/:companynumber/officers                             @uk.gov.hmrc.agentsexternalstubs.controllers.CompaniesHouseController.findCompanyOfficers(companynumber: String, surname: Option[String])
@@ -202,6 +205,11 @@ GET           /agents-external-stubs/config/services                            
 
 # Planets management
 DELETE        /agents-external-stubs/planets/:planetId                                               @uk.gov.hmrc.agentsexternalstubs.controllers.PlanetsController.destroy(planetId: String)
+
+
+
+
+## DO NOT PUT STUBBED ROUTES BELOW THIS POINT
 
 # Generic proxy
 GET           /*path                                                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.ProxyController.proxyPassTo(path: String)
