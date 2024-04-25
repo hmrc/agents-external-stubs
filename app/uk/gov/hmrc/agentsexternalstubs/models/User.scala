@@ -41,7 +41,9 @@ case class User(
   recordIds: Seq[String] = Seq.empty,
   address: Option[User.Address] = None,
   additionalInformation: Option[AdditionalInformation] = None,
-  strideRoles: Seq[String] = Seq.empty
+  strideRoles: Seq[String] = Seq.empty,
+  deceased: Option[Boolean] = None,
+  utr: Option[String] = None
 ) {
 
   def uniqueKeys: Seq[String] =
@@ -59,11 +61,13 @@ case class User(
       credentialRole.map(cr => User.credentialRoleKey(cr)),
       groupId
         .flatMap(gid => credentialRole.map(cr => (gid, cr)))
-        .map(gidcr => User.groupIdWithCredentialRoleKey(gidcr._1, gidcr._2))
+        .map(gidcr => User.groupIdWithCredentialRoleKey(gidcr._1, gidcr._2)),
+      utr.map(u => User.utrIndexKey(u.toString()))
     ).collect { case Some(x) => x } ++ assignedPrincipalEnrolments.map(ek =>
       User.assignedPrincipalEnrolmentIndexKey(ek.tag)
     ) ++ assignedDelegatedEnrolments.map(ek => User.assignedDelegatedEnrolmentIndexKey(ek.tag))
 
+  def isDeceased: Boolean = deceased.contains(true)
   def isAdmin: Boolean = credentialRole.contains(User.CR.Admin)
   def isUser: Boolean = credentialRole.contains(User.CR.User)
   def isAssistant: Boolean = credentialRole.contains(User.CR.Assistant)
@@ -149,6 +153,8 @@ object User {
 
   def userIdKey(userId: String): String = s"uid:$userId"
   def ninoIndexKey(nino: String): String = s"nino:${nino.replace(" ", "").toLowerCase}"
+
+  def utrIndexKey(utr: String): String = s"utr:${utr.replace(" ", "").toLowerCase}"
   def assignedPrincipalEnrolmentIndexKey(key: String): String = s"apenr:${key.toLowerCase}"
   def assignedDelegatedEnrolmentIndexKey(key: String): String = s"adenr:${key.toLowerCase}"
   def groupIdIndexKey(groupId: String): String = s"gid:$groupId"
@@ -181,7 +187,9 @@ object User {
         (JsPath \ "recordIds").readNullable[Seq[String]].map(_.map(_.distinct).getOrElse(Seq.empty)) and
         (JsPath \ "address").readNullable[Address] and
         (JsPath \ "additionalInformation").readNullable[AdditionalInformation] and
-        (JsPath \ "strideRoles").readNullable[Seq[String]].map(_.getOrElse(Seq.empty))
+        (JsPath \ "strideRoles").readNullable[Seq[String]].map(_.getOrElse(Seq.empty)) and
+        (JsPath \ "deceased").readNullable[Boolean] and
+        (JsPath \ "utr").readNullable[String]
     )(User.apply _)
   }
 

@@ -25,6 +25,7 @@ import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GroupsSe
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.agentmtdidentifiers.model.Utr
+import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.Common
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -51,6 +52,13 @@ class CitizenDetailsStubController @Inject() (
                 case Some(user) => Ok(RestfulResponse(GetCitizenResponse.from(user)))
               }
           }
+        case "saUtr" =>
+          if (taxId.matches(Common.utrPattern)) {
+            usersService.findByUtr(taxId, session.planetId).map {
+              case None       => notFound("CITIZEN_RECORD_NOT_FOUND", s"Citizen record for $idName=$taxId not found")
+              case Some(user) => Ok(RestfulResponse(GetCitizenResponse.from(user)))
+            }
+          } else badRequestF("INVALID_UTR", s"Provided SAUTR $taxId is not valid")
         case _ => badRequestF("TAX_IDENTIFIER_NOT_SUPPORTED", s"tax identifier $idName not supported")
       }
     }(SessionRecordNotFound)
@@ -110,7 +118,8 @@ object CitizenDetailsStubController {
   case class GetCitizenResponse(
     name: GetCitizenResponse.Names,
     ids: GetCitizenResponse.Ids,
-    dateOfBirth: Option[String]
+    dateOfBirth: Option[String],
+    deceased: Boolean = false
   )
 
   object GetCitizenResponse {
@@ -139,7 +148,8 @@ object CitizenDetailsStubController {
       GetCitizenResponse(
         name = Names(current = convertName(user.name)),
         ids = Ids(nino = user.nino, sautr = Some(Utr("1234567890"))),
-        dateOfBirth = user.dateOfBirth.map(_.format(DateTimeFormatter.ofPattern("ddMMyyyy")))
+        dateOfBirth = user.dateOfBirth.map(_.format(DateTimeFormatter.ofPattern("ddMMyyyy"))),
+        deceased = user.isDeceased
       )
 
   }
@@ -187,7 +197,8 @@ object CitizenDetailsStubController {
                 lastName = user.lastName,
                 sex = Some(UserGenerator.sex(user.userId)),
                 nino = user.nino,
-                dateOfBirth = user.dateOfBirth
+                dateOfBirth = user.dateOfBirth,
+                deceased = user.isDeceased
               )
             )
           case _ => None
@@ -250,7 +261,8 @@ object CitizenDetailsStubController {
         etag = user.userId.reverse,
         firstName = user.firstName,
         lastName = user.lastName,
-        nino = user.nino
+        nino = user.nino,
+        deceased = user.isDeceased
       )
 
     implicit val format1: OFormat[GetDesignatoryDetailsBasicResponse] = Json.format[GetDesignatoryDetailsBasicResponse]
