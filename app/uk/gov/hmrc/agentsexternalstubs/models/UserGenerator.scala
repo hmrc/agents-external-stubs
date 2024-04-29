@@ -108,7 +108,9 @@ object UserGenerator {
     credentialRole: String = null,
     name: String = null,
     nino: String = null,
-    groupId: String = null
+    groupId: String = null,
+    deceased: Boolean = false,
+    utr: String = null
   ): User = {
     val gid = Option(groupId).getOrElse(UserGenerator.groupId(userId))
     User(
@@ -116,7 +118,9 @@ object UserGenerator {
       credentialRole = Option(credentialRole),
       name = Option(name).orElse(Option(UserGenerator.nameForAgent(userId, gid))),
       nino = Option(nino).map(Nino.apply).orElse(Option(ninoWithSpaces(userId))),
-      groupId = Option(gid)
+      groupId = Option(gid),
+      deceased = Option(deceased),
+      utr = Option(utr)
     )
   }
 

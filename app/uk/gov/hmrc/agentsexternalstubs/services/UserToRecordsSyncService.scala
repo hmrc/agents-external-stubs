@@ -561,6 +561,7 @@ class UserToRecordsSyncService @Inject() (
                 .withLastName(user.lastName.getOrElse("Smith"))
             )
           )
+          .withUtr(user.utr)
           .withAgencyDetails(
             Some(
               AgencyDetails

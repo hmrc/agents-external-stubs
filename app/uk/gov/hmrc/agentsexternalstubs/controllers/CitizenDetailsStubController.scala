@@ -52,7 +52,7 @@ class CitizenDetailsStubController @Inject() (
                 case Some(user) => Ok(RestfulResponse(GetCitizenResponse.from(user)))
               }
           }
-        case "saUtr" =>
+        case "sautr" =>
           if (taxId.matches(Common.utrPattern)) {
             usersService.findByUtr(taxId, session.planetId).map {
               case None       => notFound("CITIZEN_RECORD_NOT_FOUND", s"Citizen record for $idName=$taxId not found")
@@ -147,7 +147,7 @@ object CitizenDetailsStubController {
     def from(user: User): GetCitizenResponse =
       GetCitizenResponse(
         name = Names(current = convertName(user.name)),
-        ids = Ids(nino = user.nino, sautr = Some(Utr("1234567890"))),
+        ids = Ids(nino = user.nino, sautr = user.utr.map(Utr(_))),
         dateOfBirth = user.dateOfBirth.map(_.format(DateTimeFormatter.ofPattern("ddMMyyyy"))),
         deceased = user.isDeceased
       )
