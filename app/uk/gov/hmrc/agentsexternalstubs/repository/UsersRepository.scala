@@ -41,6 +41,7 @@ trait UsersRepository {
 
   def findByUserId(userId: String, planetId: String): Future[Option[User]]
   def findByNino(nino: String, planetId: String): Future[Option[User]]
+  def findByUtr(utr: String, planetId: String): Future[Option[User]]
   def findByPlanetId(planetId: String)(limit: Int): Future[Seq[User]]
   def findByGroupId(groupId: String, planetId: String)(limit: Option[Int]): Future[Seq[User]]
   def findAdminByGroupId(groupId: String, planetId: String): Future[Option[User]]
@@ -108,6 +109,12 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: Ex
   override def findByNino(nino: String, planetId: String): Future[Option[User]] =
     collection
       .find(Filters.equal(UNIQUE_KEYS, keyOf(User.ninoIndexKey(nino), planetId)))
+      .headOption()
+      .map(_.map(_.value))
+
+  override def findByUtr(utr: String, planetId: String): Future[Option[User]] =
+    collection
+      .find(Filters.equal(KEYS, keyOf(User.utrIndexKey(utr), planetId)))
       .headOption()
       .map(_.map(_.value))
 

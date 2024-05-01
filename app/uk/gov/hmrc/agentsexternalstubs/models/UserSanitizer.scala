@@ -50,7 +50,9 @@ case class UserSanitizer(affinityGroup: Option[String]) extends RecordUtils[User
           address = None,
           confidenceLevel = None,
           credentialStrength = None,
-          credentialRole = None
+          credentialRole = None,
+          deceased = None,
+          utr = None
         )
       else user
 

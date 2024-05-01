@@ -88,7 +88,9 @@ object UserDetailsStubController {
     dateOfBirth: Option[String] = None,
     agentCode: Option[String] = None,
     agentFriendlyName: Option[String] = None,
-    agentId: Option[String] = None
+    agentId: Option[String] = None,
+    utr: Option[String] = None,
+    deceased: Option[Boolean] = None
   )
 
   object GetUserResponse {
@@ -107,7 +109,9 @@ object UserDetailsStubController {
       credentialRole = user.credentialRole.getOrElse("User"),
       description = s"Agent Stubs test user on the planet ${user.planetId.getOrElse("?")}",
       postCode = user.address.flatMap(_.postcode),
-      dateOfBirth = user.dateOfBirth.map(_.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
+      dateOfBirth = user.dateOfBirth.map(_.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))),
+      utr = user.utr,
+      deceased = user.deceased
     )
   }
 

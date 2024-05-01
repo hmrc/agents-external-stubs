@@ -21,7 +21,7 @@ import com.github.blemale.scaffeine.Scaffeine
 import play.api.i18n.Lang.logger
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.{KnownFactsRepository, UsersRepository}
-import uk.gov.hmrc.domain.Nino
+import uk.gov.hmrc.domain.{Nino, SaUtr}
 import uk.gov.hmrc.http.{BadRequestException, ForbiddenException, NotFoundException}
 
 import java.util.UUID
@@ -55,6 +55,12 @@ class UsersService @Inject() (
     usersRepository.findByNino(nino, planetId).flatMap {
       case Some(user) => Future.successful(Some(user))
       case None       => externalUserService.lookupExternalUser(Nino(nino), planetId)
+    }
+
+  def findByUtr(utr: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
+    usersRepository.findByUtr(utr, planetId).flatMap {
+      case Some(user) => Future.successful(Some(user))
+      case None       => externalUserService.lookupExternalUser(SaUtr(utr), planetId)
     }
 
   def findByPlanetId(planetId: String)(limit: Int): Future[Seq[User]] =

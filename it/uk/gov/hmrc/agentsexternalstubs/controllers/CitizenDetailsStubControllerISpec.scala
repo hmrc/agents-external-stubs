@@ -11,6 +11,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
   lazy val wsClient = app.injector.instanceOf[WSClient]
   private val testPlanetId = "testPlanet"
   private val testUserId = "testUserId"
+  private val testUtr = "6214961180"
 
   "CitizenDetailsStubController" when {
 
@@ -169,6 +170,43 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
           "nino",
           be(user.nino.get.value)
         ) and haveProperty[Boolean]("deceased"))
+      }
+    }
+
+    "GET /citizen-details/sautr/:sautr" should {
+      "return Bad request when utr supplied is invalid" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession(testUserId, planetId = testPlanetId)
+        val result = CitizenDetailsStub.getCitizen("sautr", "01234567890")
+
+        result should haveStatus(400)
+      }
+
+      "return citizen details for an agent" in {
+        val user = userService
+          .createUser(
+            UserGenerator.agent(
+              userId = testUserId,
+              name = "Alan Brian Foo-Foe",
+              deceased = true,
+              nino = "HW 82 78 56 C",
+              utr = testUtr
+            ),
+            planetId = testPlanetId,
+            affinityGroup = Some(AG.Agent)
+          )
+          .futureValue
+
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession(testUserId, planetId = testPlanetId)
+
+        val result = CitizenDetailsStub.getCitizen("sautr", user.utr.get)
+
+        result should haveStatus(200)
+        val json = result.json
+        (json \ "ids" \ "nino").as[String] shouldBe "HW 82 78 56 C"
+        (json \ "ids" \ "sautr").as[String] shouldBe testUtr
+        (json \ "deceased").as[Boolean] shouldBe true
+        (json \ "name" \ "current" \ "firstName").as[String] shouldBe "Alan Brian"
+        (json \ "name" \ "current" \ "lastName").as[String] shouldBe "Foo-Foe"
       }
     }
   }
