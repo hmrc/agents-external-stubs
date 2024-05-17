@@ -16,9 +16,13 @@
 
 package uk.gov.hmrc.agentsexternalstubs.services
 
+import uk.gov.hmrc.agentmtdidentifiers.model.Service.MtdIt
+import uk.gov.hmrc.agentmtdidentifiers.model.{CbcId, CgtRef, MtdItId, PlrId, PptRef, Urn, Utr, Vrn}
+
 import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.agentsexternalstubs.models.RelationshipRecord
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
+import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.BadRequestException
 
 import java.time.LocalDate
@@ -101,11 +105,12 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
           )
         }
       } else {
+        val refNum = query.getRefNumber.getOrElse(throw new Exception("Missing refNumber parameter"))
         Seq(
           RelationshipRecord.clientKey(
             query.regime,
-            query.idType,
-            query.getRefNumber.getOrElse(throw new Exception("Missing refNumber parameter"))
+            idType(query.idType, refNum),
+            refNum
           )
         )
       }
@@ -118,6 +123,20 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
       )
   }
 
+  /*
+   * Resolves queries from API#1168 with stubs records.
+   * For example, for ITSA idType param is not required in the request, but when the record was created
+   * (via API#1167) idType was supplied and therefore included in the stub record.
+   * */
+  private def idType(suppliedIdType: String, refNumber: String): String = if (suppliedIdType == "none")
+    refNumber match {
+      case value if MtdItId.isValid(value) => "MTDBSA"
+      case value =>
+        throw new RuntimeException(
+          s"idType was not supplied in the query and refNumber $value has not been implemented as a idType lookup"
+        )
+    }
+  else suppliedIdType
 }
 
 case class RelationshipRecordQuery(
