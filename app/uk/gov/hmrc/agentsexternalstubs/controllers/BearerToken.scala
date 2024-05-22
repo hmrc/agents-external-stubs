@@ -20,9 +20,9 @@ object BearerToken {
 
   private val regex = """Bearer\s(.+)""".r
 
-  def unapply(token: String): Option[String] = token.trim match {
-    case regex(authToken)             => Some(authToken)
-    case t if t.startsWith("Bearer ") => Some(token.drop("Bearer ".length))
-    case _                            => None
-  }
+  def unapply(token: String): Option[String] =
+    token.split(",").map(_.trim).find(s => regex.matches(s)) match {
+      case Some(authToken) => Some(authToken.drop("Bearer ".length))
+      case _               => None
+    }
 }

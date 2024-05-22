@@ -97,7 +97,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val creds = await(
           authConnector
             .authorise[Option[Credentials]](EmptyPredicate, Retrievals.credentials)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -129,7 +129,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val creds = await(
           authConnector
             .authorise[Option[Credentials]](EmptyPredicate, Retrievals.credentials)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -147,7 +147,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val creds = await(
           authConnector
             .authorise[Option[Credentials]](EmptyPredicate, Retrievals.credentials)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -176,7 +176,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         await(
           authConnector
             .authorise[Unit](AuthProviders(AuthProvider.PrivilegedApplication), EmptyRetrieval)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -191,7 +191,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         await(
           authConnector
             .authorise[Unit](AuthProviders(AuthProvider.PrivilegedApplication) and Enrolment("FOO"), EmptyRetrieval)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -207,7 +207,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
           await(
             authConnector
               .authorise(AuthProviders(AuthProvider.GovernmentGateway), EmptyRetrieval)(
-                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
                 concurrent.ExecutionContext.Implicits.global
               )
           )
@@ -220,7 +220,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val creds = await(
           authConnector
             .authorise[Option[Credentials]](EmptyPredicate, Retrievals.credentials)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -233,7 +233,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
           await(
             authConnector
               .authorise(Enrolment("HMRC-MTD-IT"), EmptyRetrieval)(
-                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
                 concurrent.ExecutionContext.Implicits.global
               )
           )
@@ -254,7 +254,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
           await(
             authConnector
               .authorise(Enrolment("HMRC-MTD-IT").withIdentifier("MTDITID", "123"), EmptyRetrieval)(
-                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
                 concurrent.ExecutionContext.Implicits.global
               )
           )
@@ -269,7 +269,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
           await(
             authConnector
               .authorise(Enrolment("HMRC-MTD-IT").withIdentifier("MTDITID", "2362168736"), EmptyRetrieval)(
-                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
                 concurrent.ExecutionContext.Implicits.global
               )
           )
@@ -283,7 +283,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
           await(
             authConnector
               .authorise(Enrolment("HMRC-NI").withIdentifier("NINO", "HW827856C"), EmptyRetrieval)(
-                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
                 concurrent.ExecutionContext.Implicits.global
               )
           )
@@ -310,7 +310,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         await(
           authConnector
             .authorise[Unit](Enrolment("HMRC-NI").withIdentifier("NINO", "HW827856C"), EmptyRetrieval)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -325,7 +325,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val enrolments = await(
           authConnector
             .authorise[Enrolments](Enrolment("HMRC-MTD-IT"), Retrievals.authorisedEnrolments)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -389,7 +389,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
           await(
             authConnector
               .authorise[Enrolments](Enrolment("HMRC-MTD-IT"), Retrievals.authorisedEnrolments)(
-                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
                 concurrent.ExecutionContext.Implicits.global
               )
           )
@@ -411,7 +411,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val enrolments = await(
           authConnector
             .authorise[Enrolments](Enrolment("FOO_ROLE"), Retrievals.authorisedEnrolments)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -429,7 +429,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val enrolments = await(
           authConnector
             .authorise[Enrolments](Enrolment("HMRC-NI"), Retrievals.authorisedEnrolments)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -449,7 +449,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val enrolments = await(
           authConnector
             .authorise[Enrolments](EmptyPredicate, Retrievals.allEnrolments)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -484,7 +484,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val enrolments = await(
           authConnector
             .authorise[Enrolments](EmptyPredicate, Retrievals.allEnrolments)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -518,7 +518,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val enrolments = await(
           authConnector
             .authorise[Enrolments](EmptyPredicate, Retrievals.allEnrolments)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -544,7 +544,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val enrolments = await(
           authConnector
             .authorise[Enrolments](EmptyPredicate, Retrievals.allEnrolments)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -563,7 +563,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val enrolments = await(
           authConnector
             .authorise[Enrolments](EmptyPredicate, Retrievals.allEnrolments)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -586,7 +586,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         await(
           authConnector
             .authorise[Unit](ConfidenceLevel.L250, EmptyRetrieval)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -600,7 +600,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
           await(
             authConnector
               .authorise[Unit](ConfidenceLevel.L250, EmptyRetrieval)(
-                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
                 concurrent.ExecutionContext.Implicits.global
               )
           )
@@ -614,7 +614,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val confidence = await(
           authConnector
             .authorise[ConfidenceLevel](EmptyPredicate, Retrievals.confidenceLevel)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -631,7 +631,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         await(
           authConnector
             .authorise[Unit](CredentialStrength(CredentialStrength.strong), EmptyRetrieval)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -648,7 +648,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
           await(
             authConnector
               .authorise[Unit](CredentialStrength(CredentialStrength.weak), EmptyRetrieval)(
-                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
                 concurrent.ExecutionContext.Implicits.global
               )
           )
@@ -665,7 +665,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val strength = await(
           authConnector
             .authorise[Option[String]](EmptyPredicate, Retrievals.credentialStrength)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -679,7 +679,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         await(
           authConnector
             .authorise[Unit](AffinityGroup.Agent, EmptyRetrieval)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -693,7 +693,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
           await(
             authConnector
               .authorise[Unit](AffinityGroup.Agent, EmptyRetrieval)(
-                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
                 concurrent.ExecutionContext.Implicits.global
               )
           )
@@ -708,7 +708,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
           await(
             authConnector
               .authorise[Unit](AffinityGroup.Organisation or AffinityGroup.Individual, EmptyRetrieval)(
-                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
                 concurrent.ExecutionContext.Implicits.global
               )
           )
@@ -721,7 +721,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val affinityGroupOpt = await(
           authConnector
             .authorise[Option[AffinityGroup]](EmptyPredicate, Retrievals.affinityGroup)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -735,7 +735,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         await(
           authConnector
             .authorise[Unit](NinoPredicate(hasNino = true, Some("HW827856C")), EmptyRetrieval)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -749,7 +749,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
           await(
             authConnector
               .authorise[Unit](NinoPredicate(hasNino = true, Some("AB827856A")), EmptyRetrieval)(
-                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
                 concurrent.ExecutionContext.Implicits.global
               )
           )
@@ -763,7 +763,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val ninoOpt = await(
           authConnector
             .authorise[Option[String]](EmptyPredicate, Retrievals.nino)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -781,7 +781,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
           await(
             authConnector
               .authorise[Unit](Assistant, EmptyRetrieval)(
-                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+                HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
                 concurrent.ExecutionContext.Implicits.global
               )
           )
@@ -805,7 +805,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val credentialRoleOpt = await(
           authConnector
             .authorise[Option[CredentialRole]](EmptyPredicate, Retrievals.credentialRole)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -819,7 +819,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val groupIdentifierOpt = await(
           authConnector
             .authorise[Option[String]](EmptyPredicate, Retrievals.groupIdentifier)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -833,7 +833,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val nameOpt = await(
           authConnector
             .authorise[Option[Name]](EmptyPredicate, Retrievals.name)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -847,7 +847,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val nameOpt = await(
           authConnector
             .authorise[Option[Name]](EmptyPredicate, Retrievals.name)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -863,7 +863,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val dateOfBirthOpt = await(
           authConnector
             .authorise[Option[LocalDate]](EmptyPredicate, Retrievals.dateOfBirth)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -880,7 +880,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val agentCodeOpt = await(
           authConnector
             .authorise[Option[String]](EmptyPredicate, Retrievals.agentCode)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -899,7 +899,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val agentInfo = await(
           authConnector
             .authorise[AgentInformation](EmptyPredicate, Retrievals.agentInformation)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -914,7 +914,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val email = await(
           authConnector
             .authorise[Option[String]](EmptyPredicate, Retrievals.email)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
@@ -929,7 +929,7 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val internalId = await(
           authConnector
             .authorise[Option[String]](EmptyPredicate, Retrievals.internalId)(
-              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken"))),
+              HeaderCarrier(authorization = Some(Authorization(s"Bearer $authToken, GNAP x1234"))),
               concurrent.ExecutionContext.Implicits.global
             )
         )
