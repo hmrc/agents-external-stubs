@@ -612,7 +612,7 @@ trait TestRequests extends ScalaFutures {
       get(s"/plastic-packaging-tax/subscriptions/$regime/$pptReferenceNumber/display")
 
     def getPillar2Record(plrReference: String)(implicit authContext: AuthContext): WSResponse =
-      get(s"/pillar2/subscription?plrReference=$plrReference")
+      get(s"/pillar2/subscription/$plrReference")
 
   }
 
