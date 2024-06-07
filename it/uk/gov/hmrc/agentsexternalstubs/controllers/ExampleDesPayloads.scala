@@ -532,7 +532,8 @@ trait ExampleDesPayloads {
   val validPillar2SubscriptionPayload = Json
     .toJson(
       Pillar2Record(
-        "XAPLR2222222222",
+        plrReference = "XAPLR2222222222",
+        formBundleNumber = "123456789123",
         Pillar2Record.UpeDetails(None, None, "OrgName", "2000-01-01"),
         Pillar2Record.AccountingPeriod("2023-01-01", "2023-12-31"),
         Pillar2Record.UpeCorrespAddressDetails("1 North Street", countryCode = "GB"),
