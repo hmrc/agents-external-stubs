@@ -19,6 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json._
 import uk.gov.hmrc.agentmtdidentifiers.model.PlrId
+import uk.gov.hmrc.agentsexternalstubs.models.Pillar2Record.Common
 import uk.gov.hmrc.agentsexternalstubs.models.Pillar2Record.{AccountStatus, AccountingPeriod, ContactDetails, FilingMemberDetails, UpeCorrespAddressDetails, UpeDetails}
 
 /** ----------------------------------------------------------------------------
@@ -33,16 +34,16 @@ import uk.gov.hmrc.agentsexternalstubs.models.Pillar2Record.{AccountStatus, Acco
   *  - replaced the phone number generator to a standard UK phone number to avoid huge strings being generated
   *
   *  Pillar2Record
-  *  -  AccountStatus
-  *  -  AccountingPeriod
-  *  -  ContactDetails
-  *  -  FilingMemberDetails
-  *  -  UpeCorrespAddressDetails
+  *  -  FormBundleNumber
   *  -  UpeDetails
+  *  -  AccountingPeriod
+  *  -  UpeCorrespAddressDetails
+  *  -  PrimaryContactDetails
   */
 
 case class Pillar2Record(
   plrReference: String,
+  formBundleNumber: String,
   upeDetails: UpeDetails,
   accountingPeriod: AccountingPeriod,
   upeCorrespAddressDetails: UpeCorrespAddressDetails,
@@ -56,7 +57,6 @@ case class Pillar2Record(
   override def uniqueKey: Option[String] = Some(Pillar2Record.plrReferenceKey(plrReference))
   override def lookupKeys: Seq[String] = Seq(Pillar2Record.plrReferenceKey(plrReference))
   override def withId(id: Option[String]): Pillar2Record = copy(id = id)
-
   def withPlrReference(plrReference: String): Pillar2Record = copy(plrReference = plrReference)
   def modifyPlrReference(pf: PartialFunction[String, String]): Pillar2Record =
     if (pf.isDefinedAt(plrReference)) copy(plrReference = pf(plrReference)) else this
@@ -98,20 +98,23 @@ case class Pillar2Record(
 object Pillar2Record extends RecordUtils[Pillar2Record] {
 
   implicit val recordUtils: RecordUtils[Pillar2Record] = this
-
   implicit val takesPlrIdKey: TakesKey[Pillar2Record, PlrId] = TakesKey(plrId => plrReferenceKey(plrId.value))
 
   implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
   implicit val recordType: RecordMetaData[Pillar2Record] = RecordMetaData[Pillar2Record]
 
-  import Validator._
   import Generator.GenOps._
+  import Validator._
 
   def plrReferenceKey(key: String): String = s"""plrReference:${key.toUpperCase}"""
 
   val plrReferenceValidator: Validator[String] = check(
     _.matches(Common.plrReferencePattern),
     s"""Invalid plrReference, does not matches regex ${Common.plrReferencePattern}"""
+  )
+  val formBundleNumberValidator: Validator[String] = check(
+    _.matches(Common.formBundleNumberPattern),
+    s"""Invalid form bundle number, does not matches regex ${Common.formBundleNumberPattern}"""
   )
   val upeDetailsValidator: Validator[UpeDetails] = checkProperty(identity, UpeDetails.validate)
   val accountingPeriodValidator: Validator[AccountingPeriod] = checkProperty(identity, AccountingPeriod.validate)
@@ -126,6 +129,7 @@ object Pillar2Record extends RecordUtils[Pillar2Record] {
 
   override val validate: Validator[Pillar2Record] = Validator(
     checkProperty(_.plrReference, plrReferenceValidator),
+    checkProperty(_.formBundleNumber, formBundleNumberValidator),
     checkProperty(_.upeDetails, upeDetailsValidator),
     checkProperty(_.accountingPeriod, accountingPeriodValidator),
     checkProperty(_.upeCorrespAddressDetails, upeCorrespAddressDetailsValidator),
@@ -137,12 +141,14 @@ object Pillar2Record extends RecordUtils[Pillar2Record] {
 
   override val gen: Gen[Pillar2Record] = for {
     plrReference             <- Generator.regex(Common.plrReferencePattern)
+    formBundleNumber         <- Generator.regex(Common.formBundleNumberPattern)
     upeDetails               <- UpeDetails.gen
     accountingPeriod         <- AccountingPeriod.gen
     upeCorrespAddressDetails <- UpeCorrespAddressDetails.gen
     primaryContactDetails    <- ContactDetails.gen
   } yield Pillar2Record(
     plrReference = plrReference,
+    formBundleNumber = formBundleNumber,
     upeDetails = upeDetails,
     accountingPeriod = accountingPeriod,
     upeCorrespAddressDetails = upeCorrespAddressDetails,
@@ -575,6 +581,7 @@ object Pillar2Record extends RecordUtils[Pillar2Record] {
   }
 
   object Common {
+    val formBundleNumberPattern = """^[0-9]{12}$"""
     val plrReferencePattern = """^X[A-Z]{1}PLR[0-9]{10}$"""
     val safeIdPattern = """^X[A-Z]{1}[0-9]{13}$"""
     val telephonePattern =

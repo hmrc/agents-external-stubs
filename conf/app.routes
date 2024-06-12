@@ -75,7 +75,7 @@ POST          /agents/paye/:agentCode/clients/compare                           
 DELETE        /agents/paye/:agentCode/clients/:taxOfficeNumber/:taxOfficeReference                   @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.removeLegacyAgentClientPayeRelationship(agentCode: String, taxOfficeNumber: String, taxOfficeReference: String)
 GET           /corporation-tax/identifiers/:idType/:idValue                                          @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getCtReference(idType: String, idValue: String)
 GET           /plastic-packaging-tax/subscriptions/:regime/:pptReferenceNumber/display               @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getPPTSubscriptionDisplay(regime: String, pptReferenceNumber: String)
-GET           /pillar2/subscription/:plrReference                                                    @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getPillar2PPTSubscriptionDetails(plrReference: String)
+GET           /pillar2/subscription/:plrReference                                                    @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getPillar2SubscriptionDetails(plrReference: String)
 
 GET           /trusts/agent-known-fact-check/:trustTaxIdentifier                                     @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getTrustKnownFacts(trustTaxIdentifier: String)
 GET           /trusts/agent-known-fact-check/UTR/:utr                                                @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getTrustKnownFactsUTR(utr: String)

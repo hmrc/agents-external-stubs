@@ -1732,7 +1732,7 @@ class DesIfStubControllerISpec
     }
   }
 
-  "GET /pillar2/subscription" should {
+  "GET /pillar2/subscription/:plrReference" should {
     "return Pillar2Record" in {
       implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
       val createResult = Records.createPillar2Record(Json.parse(validPillar2SubscriptionPayload))
@@ -1740,8 +1740,9 @@ class DesIfStubControllerISpec
 
       val result = DesStub.getPillar2Record("XAPLR2222222222")
       result should haveStatus(200)
-      val json = result.json
+      val json = result.json \ "success"
       json.as[JsObject] should haveProperty[JsObject]("primaryContactDetails")
+      json.as[JsObject] should haveProperty[JsString]("formBundleNumber")
       // not testing all other properties one by one!
     }
 

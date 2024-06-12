@@ -656,19 +656,19 @@ class DesIfStubController @Inject() (
   }
 
   //API #2143 Retrieve Subscription Details For OECD Tax Pillar 2 Service
-  def getPillar2PPTSubscriptionDetails(plrReference: String) = Action.async { implicit request =>
+  def getPillar2SubscriptionDetails(plrReference: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       if (PlrId.isValid(plrReference)) {
         recordsService
           .getRecord[Pillar2Record, PlrId](PlrId(plrReference), session.planetId)
           .map {
-            case Some(record) => Ok(Json.toJson(record))
+            case Some(record) => Ok(s"""{"success": ${Json.toJson(record)}}""")
             case None         => notFound("SUBSCRIPTION_NOT_FOUND")
           }
       } else {
         badRequestF(
           "INVALID_PLR_REFERENCE",
-          "Submission has not passed validation. Invalid query parameter: plrReference."
+          "Submission has not passed validation. Invalid path parameter: plrReference."
         )
       }
     }(SessionRecordNotFound)
