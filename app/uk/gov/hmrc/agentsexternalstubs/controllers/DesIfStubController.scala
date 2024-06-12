@@ -662,7 +662,7 @@ class DesIfStubController @Inject() (
         recordsService
           .getRecord[Pillar2Record, PlrId](PlrId(plrReference), session.planetId)
           .map {
-            case Some(record) => Ok(Json.toJson(record))
+            case Some(record) => Ok(s"""{"success": ${Json.toJson(record)}}""")
             case None         => notFound("SUBSCRIPTION_NOT_FOUND")
           }
       } else {
