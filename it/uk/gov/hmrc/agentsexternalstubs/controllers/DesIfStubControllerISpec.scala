@@ -1740,7 +1740,7 @@ class DesIfStubControllerISpec
 
       val result = DesStub.getPillar2Record("XAPLR2222222222")
       result should haveStatus(200)
-      val json = result.json
+      val json = result.json \ "success"
       json.as[JsObject] should haveProperty[JsObject]("primaryContactDetails")
       json.as[JsObject] should haveProperty[JsString]("formBundleNumber")
       // not testing all other properties one by one!
