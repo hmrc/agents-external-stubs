@@ -235,7 +235,7 @@ class AgencyCreator @Inject() (
           delegatedEnrolments = agencyCreationPayload.clients.zipWithIndex.flatMap { case (client, index) =>
             client.assignedPrincipalEnrolments
               .map(ek =>
-                if (agencyCreationPayload.populateFriendlyNames)
+                if (agencyCreationPayload.populateFriendlyNames || serviceMustHaveFriendlyNamePrePopulated(ek.service))
                   Enrolment.from(ek).copy(friendlyName = Some(s"Client ${index + 1}"))
                 else Enrolment.from(ek)
               )
@@ -387,4 +387,11 @@ class AgencyCreator @Inject() (
         fn(nextItem)
       }
     }
+
+  // Newer services have been implemented after we started to populate friendly names on the invitations journey.
+  // Therefore, we don't expect any friendly names to be empty for those services.
+  private val newerServices = List("HMRC-CBC-ORG", "HMRC-CBC-NONUK-ORG", "HMRC-PILLAR2-ORG")
+
+  private def serviceMustHaveFriendlyNamePrePopulated(service: String): Boolean = newerServices.contains(service)
+
 }
