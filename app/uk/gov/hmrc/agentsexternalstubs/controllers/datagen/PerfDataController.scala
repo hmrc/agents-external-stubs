@@ -20,8 +20,9 @@ import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.agentsexternalstubs.controllers.CurrentSession
+import uk.gov.hmrc.agentsexternalstubs.models.User
 import uk.gov.hmrc.agentsexternalstubs.repository._
-import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
+import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, ExternalTestDataCleanupService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
@@ -51,7 +52,8 @@ class PerfDataController @Inject() (
   specialCasesRepository: SpecialCasesRepositoryMongo,
   groupsRepository: GroupsRepositoryMongo,
   agencyDataAssembler: AgencyDataAssembler,
-  agencyCreator: AgencyCreator
+  agencyCreator: AgencyCreator,
+  externalDataCleanup: ExternalTestDataCleanupService
 )(implicit ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession with Logging {
 
@@ -103,8 +105,18 @@ class PerfDataController @Inject() (
           populateFriendlyNames
         )
 
+      val arnGroupID = extractArnAndGroupId(agencyCreationPayload)
+      Await.result(externalDataCleanup.deleteTestData(arnGroupID._1, arnGroupID._2), 5.seconds)
       Await.result(agencyCreator.create(agencyCreationPayload), 15.minutes)
     }
+
+  private def extractArnAndGroupId(agencyCreationPayload: AgencyCreationPayload): (String, String) = {
+    val arn = agencyCreationPayload.agentUser.assignedPrincipalEnrolments.headOption match {
+      case Some(ek) if ek.service == "HMRC-AS-AGENT" => ek.identifiers.head.value
+    }
+    val groupId = agencyCreationPayload.agentUser.groupId.get
+    (arn, groupId)
+  }
 
   private def reapplyIndexes(): Unit = {
     usersRepository.ensureIndexes()
