@@ -16,6 +16,8 @@ case class TestAppConfig(wireMockBaseUrl: String, wireMockPort: Int) extends App
   override val authLoginApiUrl: String = wireMockBaseUrl
   override val agentAccessControlUrl: String = wireMockBaseUrl
   override val apiPlatformTestUserUrl: String = wireMockBaseUrl
+  override val agentPermissionsUrl: String = wireMockBaseUrl
+  override val agentUserClientDetailsUrl: String = wireMockBaseUrl
 
   override val isProxyMode: Boolean = false
   override val httpPort: Int = wireMockPort

@@ -33,6 +33,8 @@ trait AppConfig {
   val taxEnrolmentsUrl: String
   val desUrl: String
   val niExemptionRegistrationUrl: String
+  val agentUserClientDetailsUrl: String
+  val agentPermissionsUrl: String
 
   // External services we connect to
   val authLoginApiUrl: String
@@ -90,6 +92,8 @@ class AppConfigImpl @Inject() (config: ServicesConfig) extends AppConfig {
   val authLoginApiUrl: String = config.baseUrl("auth-login-api")
   val agentAccessControlUrl: String = config.baseUrl("agent-access-control")
   val apiPlatformTestUserUrl: String = config.baseUrl("api-platform-test-user")
+  val agentUserClientDetailsUrl: String = config.baseUrl("agent-user-client-details")
+  val agentPermissionsUrl: String = config.baseUrl("agent-permissions")
 
   // Proxies config
   val httpPort: Int = config.getInt("http.port")
