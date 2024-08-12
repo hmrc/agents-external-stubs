@@ -293,6 +293,7 @@ class EnrolmentStoreProxyStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
+  //ES3
   def getGroupEnrolments(
     groupId: String,
     `type`: String,

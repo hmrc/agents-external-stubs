@@ -370,6 +370,219 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         val user: User = await(userService.findByUserId("0000000021313132", session.planetId)).get
         user.assignedDelegatedEnrolments should contain.only(EnrolmentKey("IR-SA~UTR~12345678"))
       }
+      "DelegationType to be secondary for HMRC-MTD-IT-SUPP" in {
+        val delegationType =
+          DelegationEnrolmentKeys(EnrolmentKey("HMRC-MTD-IT-SUPP", Seq(Identifier("MTDITID", "ZIZI45093893553"))))
+
+        delegationType.isPrimary shouldBe false
+        delegationType.primaryEnrolmentKey.tag shouldBe "HMRC-MTD-IT~MTDITID~ZIZI45093893553"
+        delegationType.delegatedEnrolmentKey.tag shouldBe "HMRC-MTD-IT-SUPP~MTDITID~ZIZI45093893553"
+        delegationType.delegationEnrolments.map(_.tag) should contain allElementsOf List(
+          "HMRC-MTD-IT~MTDITID~ZIZI45093893553",
+          "HMRC-MTD-IT-SUPP~MTDITID~ZIZI45093893553"
+        )
+      }
+
+      "DelegationType to be primary for IR-SA" in {
+        val delegationType =
+          DelegationEnrolmentKeys(EnrolmentKey("IR-SA", Seq(Identifier("UTR", "12345678"))))
+
+        delegationType.isPrimary shouldBe true
+        delegationType.primaryEnrolmentKey.tag shouldBe "IR-SA~UTR~12345678"
+        delegationType.delegatedEnrolmentKey.tag shouldBe "IR-SA~UTR~12345678"
+        delegationType.delegationEnrolments.map(_.tag) should contain allElementsOf List("IR-SA~UTR~12345678")
+      }
+
+      "allocate delegated secondary enrolment to the group" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        val delegationType =
+          DelegationEnrolmentKeys(EnrolmentKey("HMRC-MTD-IT-SUPP", Seq(Identifier("MTDITID", "ZIZI45093893553"))))
+
+        Users.create(UserGenerator.agent(userId = "0000000021313132", groupId = "group1"), Some(AG.Agent))
+        Users.create(
+          UserGenerator
+            .individual()
+            .withAssignedPrincipalEnrolment(delegationType.primaryEnrolmentKey),
+          Some(AG.Individual)
+        )
+
+        val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
+          "group1",
+          delegationType.delegatedEnrolmentKey.tag,
+          Json.parse("""{
+            |    "userId" : "0000000021313132",
+            |    "type" :         "delegated"
+            |}""".stripMargin)
+        )
+
+        result should haveStatus(201)
+
+        val group: Group = await(groupsService.findByGroupId("group1", session.planetId)).get
+        group.delegatedEnrolments should contain.only(Enrolment("HMRC-MTD-IT-SUPP", "MTDITID", "ZIZI45093893553"))
+
+        // The user specified in the request should now have the new enrolment assigned to them
+        val user: User = await(userService.findByUserId("0000000021313132", session.planetId)).get
+        user.assignedDelegatedEnrolments should contain.only(EnrolmentKey("HMRC-MTD-IT-SUPP~MTDITID~ZIZI45093893553"))
+      }
+
+      "allocate delegated secondary enrolment to two groups identified by groupId" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        Users.create(UserGenerator.agent(userId = "0000000021313132", groupId = "group1"), Some(AG.Agent))
+        Users.create(UserGenerator.agent(userId = "0000000021313133", groupId = "group2"), Some(AG.Agent))
+        Users.create(
+          UserGenerator
+            .individual()
+            .withAssignedPrincipalEnrolment(EnrolmentKey("HMRC-MTD-IT~MTDITID~ZIZI45093893553")),
+          Some(AG.Individual)
+        )
+
+        //Delegate first agent
+        val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
+          "group1",
+          "HMRC-MTD-IT-SUPP~MTDITID~ZIZI45093893553",
+          Json.parse("""{
+            |    "userId" : "0000000021313132",
+            |    "type" :         "delegated"
+            |}""".stripMargin)
+        )
+
+        result should haveStatus(201)
+
+        val group: Group = await(groupsService.findByGroupId("group1", session.planetId)).get
+        group.delegatedEnrolments should contain.only(Enrolment("HMRC-MTD-IT-SUPP", "MTDITID", "ZIZI45093893553"))
+
+        // The user specified in the request should now have the new enrolment assigned to them
+        val user: User = await(userService.findByUserId("0000000021313132", session.planetId)).get
+        user.assignedDelegatedEnrolments should contain.only(EnrolmentKey("HMRC-MTD-IT-SUPP~MTDITID~ZIZI45093893553"))
+
+        //Delegate second agent
+        val result2 = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
+          "group2",
+          "HMRC-MTD-IT-SUPP~MTDITID~ZIZI45093893553",
+          Json.parse("""{
+            |    "userId" : "0000000021313133",
+            |    "type" :         "delegated"
+            |}""".stripMargin)
+        )
+
+        result2 should haveStatus(201)
+
+        val group2: Group = await(groupsService.findByGroupId("group2", session.planetId)).get
+        group2.delegatedEnrolments should contain.only(Enrolment("HMRC-MTD-IT-SUPP", "MTDITID", "ZIZI45093893553"))
+
+        // The user specified in the request should now have the new enrolment assigned to them
+        val user2: User = await(userService.findByUserId("0000000021313133", session.planetId)).get
+        user2.assignedDelegatedEnrolments should contain.only(EnrolmentKey("HMRC-MTD-IT-SUPP~MTDITID~ZIZI45093893553"))
+      }
+
+      "return 409 for secondary enrolment if delegated secondary enrolment is already assigned " in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        EnrolmentStoreProxyStub
+          .setKnownFacts(
+            "HMRC-MTD-IT~MTDITID~ZIZI45093893553",
+            SetKnownFactsRequest
+              .generate("HMRC-MTD-IT~MTDITID~ZIZI45093893553", _ => None)
+              .getOrElse(throw new Exception("Could not generate known facts"))
+          )
+        Users.create(
+          UserGenerator
+            .individual(userId = "foo2", groupId = "group2")
+            .withAssignedPrincipalEnrolment(EnrolmentKey("HMRC-MTD-IT~MTDITID~ZIZI45093893553")),
+          Some(AG.Individual)
+        )
+        Users.create(
+          UserGenerator
+            .agent(userId = "foo1", groupId = "group1")
+            .withAssignedDelegatedEnrolment(EnrolmentKey("HMRC-MTD-IT-SUPP~MTDITID~ZIZI45093893553")),
+          Some(AG.Agent)
+        )
+
+        val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
+          "group1",
+          "HMRC-MTD-IT-SUPP~MTDITID~ZIZI45093893553",
+          Json.parse("""{
+            |    "userId": "foo1",
+            |    "type": "delegated"
+            |}""".stripMargin)
+        )
+
+        result should haveStatus(409)
+      }
+
+      "return 409 for secondary enrolment if delegated primary enrolment is already assigned \"" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        EnrolmentStoreProxyStub
+          .setKnownFacts(
+            "HMRC-MTD-IT~MTDITID~ZIZI45093893553",
+            SetKnownFactsRequest
+              .generate("HMRC-MTD-IT~MTDITID~ZIZI45093893553", _ => None)
+              .getOrElse(throw new Exception("Could not generate known facts"))
+          )
+        Users.create(
+          UserGenerator
+            .individual(userId = "foo2", groupId = "group2")
+            .withAssignedPrincipalEnrolment(EnrolmentKey("HMRC-MTD-IT~MTDITID~ZIZI45093893553")),
+          Some(AG.Individual)
+        )
+        Users.create(
+          UserGenerator
+            .agent(userId = "foo1", groupId = "group1")
+            .withAssignedDelegatedEnrolment(EnrolmentKey("HMRC-MTD-IT~MTDITID~ZIZI45093893553")),
+          Some(AG.Agent)
+        )
+
+        val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
+          "group1",
+          "HMRC-MTD-IT-SUPP~MTDITID~ZIZI45093893553",
+          Json.parse("""{
+            |    "userId": "foo1",
+            |    "type": "delegated"
+            |}""".stripMargin)
+        )
+
+        result should haveStatus(409)
+      }
+
+      "return 400, principal allocation fail for secondary enrolmentKey " in {
+        userService
+          .createUser(
+            UserGenerator.individual(userId = "00000000123166122235", groupId = "group1"),
+            planetId = "testPlanet",
+            affinityGroup = Some(AG.Individual)
+          )
+          .futureValue
+        implicit val session: AuthenticatedSession =
+          SignIn.signInAndGetSession("00000000123166122235", planetId = "testPlanet")
+        EnrolmentStoreProxyStub
+          .setKnownFacts(
+            "HMRC-MTD-IT~MTDITID~ZIZI45093893553",
+            SetKnownFactsRequest
+              .generate("HMRC-MTD-IT-SUPP~MTDITID~ZIZI45093893553", _ => None)
+              .getOrElse(throw new Exception("Could not generate known facts"))
+          )
+
+        val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
+          "group1",
+          "HMRC-MTD-IT-SUPP~MTDITID~ZIZI45093893553",
+          Json.parse("""{
+            |    "userId" : "00000000123166122235",
+            |    "friendlyName": "My Self Assessment",
+            |    "type":         "principal",
+            |    "verifiers": [
+            |       {
+            |          "key": "Postcode",
+            |          "value": "aa11aa"
+            |       },
+            |       {
+            |          "key": "NINO",
+            |          "value": "aa123456a"
+            |       }
+            |    ]
+            |}""".stripMargin)
+        )
+
+        result should haveStatus(400)
+      }
 
       "fail to allocate delegated enrolment to the agent if enrolment does not exist" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
@@ -1076,6 +1289,8 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
     }
 
+    //ES3
+    //TODO WG ES3
     "GET /enrolment-store/groups/:groupId/enrolments" should {
       "return 204 with an empty list of principal enrolments" in {
         userService
@@ -1169,6 +1384,36 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
               )
             )
           )
+        )
+      }
+
+      "return 200 with a list of delegated primary and secondary enrolments" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        Users.create(
+          UserGenerator
+            .agent(userId = session.userId, groupId = "group1")
+            .withAssignedDelegatedEnrolment(EnrolmentKey("IR-SA~UTR~12345678"))
+            .withAssignedDelegatedEnrolment(EnrolmentKey("HMRC-MTD-IT-SUPP~MTDITID~ZIZI45093893553")),
+          Some(AG.Agent),
+          agentCode = Some("ABCDEF")
+        )
+
+        val result = EnrolmentStoreProxyStub.getGroupEnrolments("group1", `type` = "delegated")
+
+        result should haveStatus(200)
+        result should haveValidJsonBody(
+          haveProperty[Int]("startRecord", be(1)) and
+            haveProperty[Int]("totalRecords", be(2)) and
+            havePropertyArrayOf[JsObject](
+              "enrolments",
+              haveProperty[String]("service", oneOfValues("IR-SA", "HMRC-MTD-IT-SUPP")) and
+                haveProperty[String]("state") and
+                havePropertyArrayOf[JsObject](
+                  "identifiers",
+                  haveProperty[String]("key", oneOfValues("UTR", "MTDITID")) and
+                    haveProperty[String]("value", oneOfValues("12345678", "ZIZI45093893553"))
+                )
+            )
         )
       }
 

@@ -140,8 +140,9 @@ class GroupsService @Inject() (
     enrolmentType: String,
     agentCodeOpt: Option[String],
     planetId: String
-  )(implicit ec: ExecutionContext): Future[Unit] =
-    knownFactsRepository.findByEnrolmentKey(enrolmentKey, planetId).flatMap {
+  )(implicit ec: ExecutionContext): Future[Unit] = {
+    val delegationEnrolmentKeys: DelegationEnrolmentKeys = DelegationEnrolmentKeys(enrolmentKey)
+    knownFactsRepository.findByEnrolmentKey(delegationEnrolmentKeys.primaryEnrolmentKey, planetId).flatMap {
       case None => Future.failed(new NotFoundException("ALLOCATION_DOES_NOT_EXIST"))
       case Some(_) =>
         (if (user.credentialRole.contains(User.CR.Assistant))
@@ -156,36 +157,44 @@ class GroupsService @Inject() (
                  .map(_.getOrElse(throw new BadRequestException("INVALID_AGENT_FORMAT")))
            }
          }).flatMap { group =>
-          if (enrolmentType == "principal")
+          if (enrolmentType == "principal" && delegationEnrolmentKeys.isPrimary) {
             updateGroup(
               group.groupId,
               planetId,
               g => {
-                val enrolment = Enrolment.from(enrolmentKey)
+                val enrolment = Enrolment.from(delegationEnrolmentKeys.primaryEnrolmentKey)
                 if (g.principalEnrolments.contains(enrolment)) throw new EnrolmentAlreadyExists
                 else
-                  g.copy(principalEnrolments = appendEnrolment(g.principalEnrolments, Enrolment.from(enrolmentKey)))
+                  g.copy(principalEnrolments = appendEnrolment(g.principalEnrolments, enrolment))
               }
             )
               .map(_ => ())
-          else if (enrolmentType == "delegated" && group.affinityGroup == AG.Agent)
-            findByPrincipalEnrolmentKey(enrolmentKey, planetId).flatMap {
+          } else if (enrolmentType == "delegated" && group.affinityGroup == AG.Agent) {
+            findByPrincipalEnrolmentKey(delegationEnrolmentKeys.primaryEnrolmentKey, planetId).flatMap {
               case Some(owner) if !(owner.affinityGroup == AG.Agent) =>
-                val enrolment = Enrolment.from(enrolmentKey)
                 groupsRepository.findByGroupId(group.groupId, planetId).map {
                   case Some(group) =>
-                    if (group.delegatedEnrolments.map(_.toEnrolmentKeyTag.getOrElse("")).contains(enrolmentKey.tag))
-                      throw new EnrolmentAlreadyExists
-                    else groupsRepository.addDelegatedEnrolment(group.groupId, planetId, enrolment)
+                    if (
+                      group.delegatedEnrolments.exists(enrolment =>
+                        delegationEnrolmentKeys.delegationEnrolments.map(enrolment.matches).foldLeft(false)(_ || _)
+                      )
+                    ) throw new EnrolmentAlreadyExists
+                    else
+                      groupsRepository.addDelegatedEnrolment(
+                        group.groupId,
+                        planetId,
+                        Enrolment.from(delegationEnrolmentKeys.delegatedEnrolmentKey)
+                      )
                   case None => Future.failed(new NotFoundException("GROUP_ID_NOT_FOUND"))
                 }
               case Some(_) => Future.failed(new BadRequestException("OWNER_IS_AN_AGENT"))
               case None =>
                 Future.failed(new BadRequestException("INVALID_QUERY_PARAMETERS"))
             }
-          else Future.failed(new BadRequestException("INVALID_QUERY_PARAMETERS"))
+          } else Future.failed(new BadRequestException("INVALID_QUERY_PARAMETERS"))
         }
     }
+  }
 
   def deallocateEnrolmentFromGroup(
     groupId: String,
