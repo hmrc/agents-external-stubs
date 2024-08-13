@@ -347,8 +347,9 @@ class UsersService @Inject() (
 
   def assignEnrolmentToUser(userId: String, enrolmentKey: EnrolmentKey, planetId: String)(implicit
     ec: ExecutionContext
-  ): Future[Unit] =
-    knownFactsRepository.findByEnrolmentKey(enrolmentKey, planetId).flatMap {
+  ): Future[Unit] = {
+    val delegationEnrolmentKeys: DelegationEnrolmentKeys = DelegationEnrolmentKeys(enrolmentKey)
+    knownFactsRepository.findByEnrolmentKey(delegationEnrolmentKeys.primaryEnrolmentKey, planetId).flatMap {
       case None => Future.failed(new NotFoundException("ALLOCATION_DOES_NOT_EXIST"))
       case Some(_) =>
         findByUserId(userId, planetId)
@@ -356,7 +357,7 @@ class UsersService @Inject() (
             case None => Future.failed(new NotFoundException("USER_ID_DOES_NOT_EXIST"))
             case Some(user)
                 if (user.assignedPrincipalEnrolments ++ user.assignedDelegatedEnrolments)
-                  .exists(_.tag.equalsIgnoreCase(enrolmentKey.tag)) =>
+                  .exists(_.tag.equalsIgnoreCase(delegationEnrolmentKeys.primaryEnrolmentKey.tag)) =>
               // if the user already has the assignment, return Bad Request as per spec
               Future.failed(new BadRequestException("INVALID_CREDENTIAL_ID"))
             case Some(user) =>
@@ -366,13 +367,22 @@ class UsersService @Inject() (
                   groupsService.findByGroupId(groupId, planetId).flatMap {
                     case None => Future.failed(new BadRequestException("INVALID_CREDENTIAL_ID"))
                     case Some(group) =>
-                      val groupHasPrincipalEnrolment = group.principalEnrolments.exists(_.matches(enrolmentKey))
-                      val groupHasDelegatedEnrolment = group.delegatedEnrolments.exists(_.matches(enrolmentKey))
+                      val groupHasPrincipalEnrolment =
+                        group.principalEnrolments.exists(_.matches(delegationEnrolmentKeys.primaryEnrolmentKey))
+                      val groupHasDelegatedEnrolment = group.delegatedEnrolments.exists(enrolment =>
+                        delegationEnrolmentKeys.delegationEnrolments.map(enrolment.matches).foldLeft(false)(_ || _)
+                      )
                       val groupHasEnrolment = groupHasPrincipalEnrolment || groupHasDelegatedEnrolment
                       val isPrincipal = groupHasPrincipalEnrolment
                       if (groupHasEnrolment) {
                         usersRepository
-                          .assignEnrolment(userId, group.groupId, group.planetId, enrolmentKey, isPrincipal)
+                          .assignEnrolment(
+                            userId,
+                            group.groupId,
+                            group.planetId,
+                            delegationEnrolmentKeys.delegatedEnrolmentKey,
+                            isPrincipal
+                          )
                       } else {
                         Future.failed(new ForbiddenException("INVALID_CREDENTIAL_ID"))
                       }
@@ -380,6 +390,7 @@ class UsersService @Inject() (
               }
           }
     }
+  }
 
   def deassignEnrolmentFromUser(userId: String, enrolmentKey: EnrolmentKey, planetId: String)(implicit
     ec: ExecutionContext
