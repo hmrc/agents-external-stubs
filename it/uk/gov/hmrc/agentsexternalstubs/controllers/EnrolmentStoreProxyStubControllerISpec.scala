@@ -1290,7 +1290,6 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
     }
 
     //ES3
-    //TODO WG ES3
     "GET /enrolment-store/groups/:groupId/enrolments" should {
       "return 204 with an empty list of principal enrolments" in {
         userService
