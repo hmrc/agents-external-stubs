@@ -60,7 +60,14 @@ class ExternalAuthorisationService @Inject() (
         )
       )
       http
-        .POST[AuthoriseRequest, HttpResponse](s"${appConfig.authUrl}/auth/authorise", authRequest)
+        .POST[AuthoriseRequest, HttpResponse](s"${appConfig.authUrl}/auth/authorise", authRequest)(
+          hc = hc.withExtraHeaders(
+            "Auth-Client-Version" -> "auth-client-5.6.0"
+          ), // TODO refactor using auth-client lib, which sets required headers.
+          wts = AuthoriseRequest.format,
+          rds = uk.gov.hmrc.http.HttpReads.Implicits.readRaw,
+          ec = ec
+        )
         .map {
           _.json match {
             case null => None
