@@ -1,6 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.stubs
 
 import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import play.api.libs.json.Json
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthoriseRequest, AuthoriseResponse}
 import uk.gov.hmrc.agentsexternalstubs.support.WireMockSupport
@@ -34,7 +35,7 @@ trait AuthStubs {
         )
     )
 
-  def givenUnauthorised =
+  def givenUnauthorised: StubMapping =
     stubFor(
       post(urlEqualTo("/auth/authorise"))
         .atPriority(2)

@@ -20,7 +20,6 @@ import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.agentsexternalstubs.controllers.CurrentSession
-import uk.gov.hmrc.agentsexternalstubs.models.User
 import uk.gov.hmrc.agentsexternalstubs.repository._
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, ExternalTestDataCleanupService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController

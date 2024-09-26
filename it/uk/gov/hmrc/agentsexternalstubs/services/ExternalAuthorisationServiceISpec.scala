@@ -1,34 +1,40 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
-import java.util.UUID
-import uk.gov.hmrc.agentsexternalstubs.connectors.{MicroserviceAuthConnector, TestAppConfig}
+import play.api.test.Helpers._
+import uk.gov.hmrc.agentsexternalstubs.connectors.TestAppConfig
 import uk.gov.hmrc.agentsexternalstubs.controllers.BearerToken
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.stubs.AuthStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
+import uk.gov.hmrc.auth.core.{AuthConnector, PlayAuthConnector}
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.http.{Authorization, SessionId}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpPost}
-import play.api.test.Helpers._
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{Authorization, HeaderCarrier, SessionId}
 
 import java.time.LocalDate
-import scala.concurrent.ExecutionContext
+import java.util.UUID
 
 class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSupport with AuthStubs {
 
-  lazy val usersService = app.injector.instanceOf[UsersService]
-  lazy val groupsService = app.injector.instanceOf[GroupsService]
-  lazy val authenticationService = app.injector.instanceOf[AuthenticationService]
-  lazy val httpPost = app.injector.instanceOf[HttpPost]
-  lazy val appConfig = TestAppConfig(wireMockBaseUrlAsString, wireMockPort)
-  lazy val authConnector = new MicroserviceAuthConnector(appConfig, httpPost)
-  lazy val underTest =
-    new ExternalAuthorisationService(usersService, groupsService, httpPost, appConfig)
+  lazy val usersService: UsersService = app.injector.instanceOf[UsersService]
+  lazy val groupsService: GroupsService = app.injector.instanceOf[GroupsService]
+  lazy val authenticationService: AuthenticationService = app.injector.instanceOf[AuthenticationService]
+  lazy val appConfig: TestAppConfig = TestAppConfig(wireMockBaseUrlAsString, wireMockPort)
 
-  val authoriseRequest = AuthoriseRequest(
+  class TestAuthConnector extends PlayAuthConnector {
+    val serviceUrl: String = appConfig.wireMockBaseUrl
+    val httpClientV2: HttpClientV2 = app.injector.instanceOf[HttpClientV2]
+  }
+
+  lazy val authConnector: AuthConnector = new TestAuthConnector()
+
+  lazy val underTest =
+    new ExternalAuthorisationService(usersService, groupsService, authConnector, appConfig)
+
+  val authoriseRequest: AuthoriseRequest = AuthoriseRequest(
     Seq.empty,
     Seq(
-      "credentials",
+      "optionalCredentials",
       "allEnrolments",
       "affinityGroup",
       "confidenceLevel",
@@ -36,7 +42,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       "credentialRole",
       "nino",
       "groupIdentifier",
-      "name",
+      "optionalName",
       "dateOfBirth",
       "agentInformation"
     )
@@ -52,21 +58,19 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       givenAuthorisedFor(
         authoriseRequest,
         AuthoriseResponse(
-          credentials = Some(Credentials("AgentFoo", "GovernmentGateway")),
-          allEnrolments =
-            Some(Seq(Enrolment("HMRC-AS-AGENT", Some(Seq(Identifier("AgentReferenceNumber", "TARN0000001")))))),
+          optionalCredentials = Some(Credentials("AgentFoo", "GovernmentGateway")),
+          allEnrolments = Seq(Enrolment("HMRC-AS-AGENT", Some(Seq(Identifier("AgentReferenceNumber", "TARN0000001"))))),
           affinityGroup = Some("Agent"),
-          confidenceLevel = None,
+          confidenceLevel = Some(50),
           credentialStrength = None,
           credentialRole = Some("User"),
           nino = None,
           groupIdentifier = Some("foo-group-1"),
-          name = Some(Name(Some("Foo"), Some("Bar"))),
+          optionalName = Some(Name(Some("Foo"), Some("Bar"))),
           dateOfBirth = Some(LocalDate.parse("1993-09-21")),
-          agentInformation = Some(AgentInformation(Some("a"), Some("b"), Some("c")))
+          agentInformation = AgentInformation(Some("a"), Some("b"), Some("c"))
         )
       )
-      implicit val ec: ExecutionContext = ExecutionContext.global
       val sessionOpt =
         await(underTest.maybeExternalSession(planetId, authenticationService.authenticate)(ec, hc))
       sessionOpt shouldBe defined
@@ -103,22 +107,21 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       val authToken = "Bearer " + UUID.randomUUID().toString
       val sessionId = UUID.randomUUID().toString
       val hc = HeaderCarrier(authorization = Some(Authorization(authToken)), sessionId = Some(SessionId(sessionId)))
-      implicit val ec: ExecutionContext = ExecutionContext.global
 
       givenAuthorisedFor(
         authoriseRequest,
         AuthoriseResponse(
-          credentials = Some(Credentials("UserFoo", "GovernmentGateway")),
-          allEnrolments = Some(Seq(Enrolment("HMRC-MTD-IT", Some(Seq(Identifier("MTDITID", "X12345678909876")))))),
+          optionalCredentials = Some(Credentials("UserFoo", "GovernmentGateway")),
+          allEnrolments = Seq(Enrolment("HMRC-MTD-IT", Some(Seq(Identifier("MTDITID", "X12345678909876"))))),
           affinityGroup = Some("Individual"),
           confidenceLevel = Some(250),
           credentialStrength = Some("strong"),
           credentialRole = Some("User"),
           nino = Some(Nino("HW827856C")),
           groupIdentifier = Some("foo-group-2"),
-          name = Some(Name(Some("Foo"), Some("Bar"))),
+          optionalName = Some(Name(Some("Foo"), Some("Bar"))),
           dateOfBirth = Some(LocalDate.parse("1993-09-21")),
-          agentInformation = None
+          agentInformation = AgentInformation(None, None, None)
         )
       )
 
@@ -156,7 +159,6 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
     "consult external auth service, and if session missing do nothing" in {
       val planetId = UUID.randomUUID().toString
       val hc = HeaderCarrier(authorization = Some(Authorization(UUID.randomUUID().toString)))
-      implicit val ec: ExecutionContext = ExecutionContext.global
 
       givenUnauthorised
 
@@ -168,7 +170,6 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
     "consult external auth service, and if session exists recreate session and merge individual user" in {
       val planetId = UUID.randomUUID().toString
       val hc = HeaderCarrier(authorization = Some(Authorization("Bearer " + UUID.randomUUID().toString)))
-      implicit val ec: ExecutionContext = ExecutionContext.global
 
       val existingUser = await(
         usersService.createUser(
@@ -185,17 +186,17 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       givenAuthorisedFor(
         authoriseRequest,
         AuthoriseResponse(
-          credentials = Some(Credentials("UserFoo", "GovernmentGateway")),
-          allEnrolments = Some(Seq(Enrolment("HMRC-MTD-IT", Some(Seq(Identifier("MTDITID", "X12345678909876")))))),
+          optionalCredentials = Some(Credentials("UserFoo", "GovernmentGateway")),
+          allEnrolments = Seq(Enrolment("HMRC-MTD-IT", Some(Seq(Identifier("MTDITID", "X12345678909876"))))),
           affinityGroup = Some("Individual"),
           confidenceLevel = Some(250),
           credentialStrength = Some("strong"),
           credentialRole = Some("User"),
           nino = Some(Nino("HW827856C")),
           groupIdentifier = Some("foo-group-2"),
-          name = Some(Name(Some("Foo"), Some("Bar"))),
+          optionalName = Some(Name(Some("Foo"), Some("Bar"))),
           dateOfBirth = existingUser.dateOfBirth,
-          agentInformation = None
+          agentInformation = AgentInformation(None, None, None)
         )
       )
 
@@ -231,12 +232,11 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       val authToken = "Bearer " + UUID.randomUUID().toString
       val sessionId = UUID.randomUUID().toString
       val hc = HeaderCarrier(authorization = Some(Authorization(authToken)), sessionId = Some(SessionId(sessionId)))
-      implicit val ec: ExecutionContext = ExecutionContext.global
 
       givenAuthorisedFor(
         s"""
           |{
-          |  "credentials": {
+          |  "optionalCredentials": {
           |    "providerId": "1551815928588520",
           |    "providerType": "GovernmentGateway"
           |  },
@@ -249,8 +249,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
           |          "value": "AB123456A"
           |        }
           |      ],
-          |      "state": "Activated",
-          |      "confidenceLevel": 250
+          |      "state": "Activated"
           |    }
           |  ],
           |  "affinityGroup": "Individual",
@@ -259,7 +258,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
           |  "credentialRole": "User",
           |  "nino": "AB123456A",
           |  "groupIdentifier": "testGroupId-b1062cdf-c73f-4a3f-b949-d43354399729",
-          |  "name": {
+          |  "optionalName": {
           |    "name": "Foo Bar"
           |  },
           |  "agentInformation": {}

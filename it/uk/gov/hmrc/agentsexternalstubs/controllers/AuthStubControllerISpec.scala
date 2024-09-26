@@ -5,7 +5,6 @@ import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, urlEqualTo}
 import play.api.libs.json.JsObject
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentsexternalstubs.connectors.MicroserviceAuthConnector
 import uk.gov.hmrc.agentsexternalstubs.models.User.CR
 import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, EnrolmentKey, User, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
@@ -24,10 +23,10 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
   lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
 
-  val authConnector: AuthConnector = app.injector.instanceOf[MicroserviceAuthConnector]
+  val authConnector: AuthConnector = app.injector.instanceOf[AuthConnector]
 
   class TestFixture extends AuthorisedFunctions {
-    def authConnector: AuthConnector = app.injector.instanceOf[MicroserviceAuthConnector]
+    def authConnector: AuthConnector = app.injector.instanceOf[AuthConnector]
   }
 
   val testAgentCode = "testAgentCode"

@@ -15,26 +15,33 @@
  */
 
 package uk.gov.hmrc.agentsexternalstubs.services
-import java.util.UUID
-import javax.inject.{Inject, Singleton}
+
 import play.api.Logger
-import play.api.libs.json.Json
 import uk.gov.hmrc.agentsexternalstubs.controllers.BearerToken
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
-import uk.gov.hmrc.http.{HeaderCarrier, HttpPost, HttpResponse, UpstreamErrorResponse}
+import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
+import uk.gov.hmrc.auth.core.retrieve.~
+import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
+import uk.gov.hmrc.domain.Nino
+import uk.gov.hmrc.http.HeaderCarrier
 
+import java.util.UUID
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
-import uk.gov.hmrc.http.HttpReads.Implicits._
 
 @Singleton
 class ExternalAuthorisationService @Inject() (
   usersService: UsersService,
   groupsService: GroupsService,
-  http: HttpPost,
+  val authConnector: AuthConnector,
   appConfig: AppConfig
-) {
+) extends AuthorisedFunctions {
+
+  private val retrievals = Retrievals.credentials and Retrievals.credentialRole and Retrievals.credentialStrength and
+    Retrievals.nino and Retrievals.groupIdentifier and Retrievals.dateOfBirth and Retrievals.name and
+    Retrievals.allEnrolments and Retrievals.confidenceLevel and Retrievals.agentInformation and Retrievals.affinityGroup
 
   final def maybeExternalSession(
     _planetId: String,
@@ -43,67 +50,49 @@ class ExternalAuthorisationService @Inject() (
     if (appConfig.isProxyMode) {
       Future.successful(None)
     } else {
-      val authRequest = AuthoriseRequest(
-        Seq.empty,
-        Seq(
-          "credentials",
-          "allEnrolments",
-          "affinityGroup",
-          "confidenceLevel",
-          "credentialStrength",
-          "credentialRole",
-          "nino",
-          "groupIdentifier",
-          "name",
-          "dateOfBirth",
-          "agentInformation"
-        )
-      )
-      http
-        .POST[AuthoriseRequest, HttpResponse](s"${appConfig.authUrl}/auth/authorise", authRequest)(
-          hc = hc.withExtraHeaders(
-            "Auth-Client-Version" -> "auth-client-5.6.0"
-          ), // TODO refactor using auth-client lib, which sets required headers.
-          wts = AuthoriseRequest.format,
-          rds = uk.gov.hmrc.http.HttpReads.Implicits.readRaw,
-          ec = ec
-        )
-        .map {
-          _.json match {
-            case null => None
-            case body => Some(body.as[AuthoriseResponse])
-          }
-        }
-        .recover { case e: UpstreamErrorResponse =>
-          Logger(getClass).warn(s"External authorization lookup failed with [$e] for headers ${report(hc)}")
-          None
-        }
-        .flatMap {
-          case Some(response) =>
-            val creds = response.credentials.getOrElse(throw new Exception("Missing credentials"))
+      authorised()
+        .retrieve(retrievals) {
+          case credentials ~ credentialRole ~ credentialStrength ~ nino ~ groupIdentifier ~ dateOfBirth ~
+              name ~ allEnrolments ~ confidenceLevel ~ agentInformation ~ affinityGroup =>
+            val creds = credentials.getOrElse(throw new Exception("Missing credentials"))
             val (userId, planetId) = User.parseUserIdAtPlanetId(creds.providerId, _planetId)
             val user = User(
               userId = userId,
-              groupId = response.groupIdentifier,
-              confidenceLevel = response.confidenceLevel,
-              credentialStrength = response.credentialStrength,
-              credentialRole = response.credentialRole,
-              nino = response.nino,
-              name = response.name.map(_.toString),
-              dateOfBirth = response.dateOfBirth,
-              assignedPrincipalEnrolments = response.allEnrolments
-                .map(_.filterNot(_.key == "HMRC-NI"))
-                .fold(Seq.empty[EnrolmentKey])(_.flatMap(_.toEnrolmentKey))
+              groupId = groupIdentifier,
+              confidenceLevel = Some(confidenceLevel.level),
+              credentialStrength = credentialStrength,
+              credentialRole = credentialRole.map(_.toString),
+              nino = nino.map(Nino(_)),
+              name = name.map(n => Name(n.name, n.lastName).toString),
+              dateOfBirth = dateOfBirth,
+              assignedPrincipalEnrolments = allEnrolments.enrolments.toSeq
+                .filterNot(_.key == "HMRC-NI")
+                .map(enrolment =>
+                  Enrolment(
+                    enrolment.key,
+                    Some(enrolment.identifiers.map(id => Identifier(id.key, id.value))),
+                    enrolment.state
+                  )
+                )
+                .flatMap(_.toEnrolmentKey)
             )
-            val maybeGroup = response.affinityGroup.map(ag =>
+            val maybeGroup = affinityGroup.map(ag =>
               Group(
-                groupId = response.groupIdentifier.getOrElse(""),
+                groupId = groupIdentifier.getOrElse(""),
                 planetId = planetId,
-                affinityGroup = ag,
-                principalEnrolments = response.allEnrolments.map(_.filterNot(_.key == "HMRC-NI")).getOrElse(Seq.empty),
-                agentCode = response.agentInformation.flatMap(_.agentCode),
-                agentFriendlyName = response.agentInformation.flatMap(_.agentFriendlyName),
-                agentId = response.agentInformation.flatMap(_.agentId)
+                affinityGroup = ag.toString,
+                principalEnrolments = allEnrolments.enrolments.toSeq
+                  .filterNot(_.key == "HMRC-NI")
+                  .map(enrolment =>
+                    Enrolment(
+                      enrolment.key,
+                      Some(enrolment.identifiers.map(id => Identifier(id.key, id.value))),
+                      enrolment.state
+                    )
+                  ),
+                agentCode = agentInformation.agentCode,
+                agentFriendlyName = agentInformation.agentFriendlyName,
+                agentId = agentInformation.agentId
               )
             )
             for {
@@ -141,8 +130,8 @@ class ExternalAuthorisationService @Inject() (
                            } yield ())
                              .andThen { case _ =>
                                Logger(getClass).info(
-                                 s"Creating user '$userId' updated on the planet '$planetId' based on external authorisation ${Json
-                                   .prettyPrint(Json.toJson(response))} for headers ${report(hc)}"
+                                 s"Creating user '$userId' updated on the planet '$planetId' based on external" +
+                                   s" authorisation and headers ${report(hc)}"
                                )
                              }
                          case None =>
@@ -150,7 +139,7 @@ class ExternalAuthorisationService @Inject() (
                              fixed <- usersService.checkAndFixUser(
                                         user,
                                         planetId,
-                                        response.affinityGroup.get
+                                        affinityGroup.get.toString
                                       ) // TODO Use of Option.get is unsafe. Is affinityGroup guaranteed to be defined?
                              maybeNewGroup <- maybeGroup.fold(Future.successful(Option.empty[Group]))(group =>
                                                 groupsService.createGroup(group, session.planetId).map(Some(_))
@@ -158,31 +147,31 @@ class ExternalAuthorisationService @Inject() (
                              user <- usersService.createUser(
                                        fixed.copy(userId = session.userId, groupId = maybeNewGroup.map(_.groupId)),
                                        session.planetId,
-                                       response.affinityGroup
+                                       affinityGroup.map(_.toString)
                                      )
                              _ =
                                Logger(getClass).info(
-                                 s"Creating user '$userId' on the planet '$planetId' based on external authorisation ${Json
-                                   .prettyPrint(Json.toJson(response))} for headers ${report(hc)}"
+                                 s"Creating user '$userId' on the planet '$planetId' based on external authorisation" +
+                                   s" and headers ${report(hc)}"
                                )
                            } yield user)
                              .recover { case NonFatal(e) =>
                                Logger(getClass).warn(
-                                 s"Creating user '$userId' on the planet '$planetId' failed with [$e] for an external authorisation ${Json
-                                   .prettyPrint(Json.toJson(response))} and headers ${report(hc)}"
+                                 s"Creating user '$userId' on the planet '$planetId' failed with [$e] for an external" +
+                                   s" authorisation and headers ${report(hc)}"
                                )
                                None
                              }
                        }
                      case _ =>
                        Logger(getClass).warn(
-                         s"Creating user '$userId' on the planet '$planetId' failed for an external authorisation ${Json
-                           .prettyPrint(Json.toJson(response))} and headers ${report(hc)}"
+                         s"Creating user '$userId' on the planet '$planetId' failed for an external authorisation" +
+                           s" and headers ${report(hc)}"
                        )
                        Future.successful(None)
                    }
             } yield maybeSession
-          case None => Future.successful(None)
+          case _ => Future.successful(None)
         }
         .recover { case NonFatal(_) =>
           None
