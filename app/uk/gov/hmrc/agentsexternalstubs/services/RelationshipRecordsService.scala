@@ -16,16 +16,13 @@
 
 package uk.gov.hmrc.agentsexternalstubs.services
 
-import uk.gov.hmrc.agentmtdidentifiers.model.Service.MtdIt
-import uk.gov.hmrc.agentmtdidentifiers.model.{CbcId, CgtRef, MtdItId, PlrId, PptRef, Urn, Utr, Vrn}
-
-import javax.inject.{Inject, Singleton}
+import uk.gov.hmrc.agentmtdidentifiers.model.MtdItId
 import uk.gov.hmrc.agentsexternalstubs.models.RelationshipRecord
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
-import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.BadRequestException
 
 import java.time.LocalDate
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton

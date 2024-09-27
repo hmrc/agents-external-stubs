@@ -26,8 +26,8 @@ case class AuthoriseResponse(
   credentials: Option[Credentials] = None,
   optionalCredentials: Option[Credentials] = None,
   authProviderId: Option[GGCredId] = None,
-  authorisedEnrolments: Option[Seq[Enrolment]] = None,
-  allEnrolments: Option[Seq[Enrolment]] = None,
+  authorisedEnrolments: Seq[Enrolment] = Seq.empty,
+  allEnrolments: Seq[Enrolment] = Seq.empty,
   affinityGroup: Option[String] = None,
   confidenceLevel: Option[Int] = None,
   credentialStrength: Option[String] = None,
@@ -38,7 +38,7 @@ case class AuthoriseResponse(
   optionalName: Option[Name] = None,
   dateOfBirth: Option[LocalDate] = None,
   agentCode: Option[String] = None,
-  agentInformation: Option[AgentInformation] = None,
+  agentInformation: AgentInformation = AgentInformation(None, None, None),
   email: Option[String] = None,
   internalId: Option[String] = None
 )
@@ -137,17 +137,15 @@ case object AuthorisedEnrolmentsRetrieve extends Retrieve {
     if (context.providerType == "PrivilegedApplication")
       Right(
         response.copy(
-          authorisedEnrolments = Some(
-            context.strideRoles
-              .filter(context.authorisedServices.contains)
-              .map(Enrolment.apply(_))
-          )
+          authorisedEnrolments = context.strideRoles
+            .filter(context.authorisedServices.contains)
+            .map(Enrolment.apply(_))
         )
       )
     else
       Right(
         response.copy(authorisedEnrolments =
-          Some(context.principalEnrolments.filter(p => context.authorisedServices.contains(p.key)))
+          context.principalEnrolments.filter(p => context.authorisedServices.contains(p.key))
         )
       )
 }
@@ -158,9 +156,9 @@ case object AllEnrolmentsRetrieve extends Retrieve {
     ec: ExecutionContext
   ): MaybeResponse =
     if (context.providerType == "PrivilegedApplication")
-      Right(response.copy(allEnrolments = Some(context.strideRoles.map(Enrolment.apply(_)))))
+      Right(response.copy(allEnrolments = context.strideRoles.map(Enrolment.apply(_))))
     else
-      Right(response.copy(allEnrolments = Some(context.principalEnrolments)))
+      Right(response.copy(allEnrolments = context.principalEnrolments))
 }
 
 case object AffinityGroupRetrieve extends Retrieve {
@@ -280,9 +278,7 @@ case object AgentInformationRetrieve extends Retrieve {
     ec: ExecutionContext
   ): MaybeResponse =
     Right(
-      response.copy(agentInformation =
-        context.agentCode.map(ac => AgentInformation(Some(ac), context.agentFriendlyName, context.agentId))
-      )
+      response.copy(agentInformation = AgentInformation(context.agentCode, context.agentFriendlyName, context.agentId))
     )
 }
 

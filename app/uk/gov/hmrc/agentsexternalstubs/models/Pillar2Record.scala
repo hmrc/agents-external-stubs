@@ -19,7 +19,6 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json._
 import uk.gov.hmrc.agentmtdidentifiers.model.PlrId
-import uk.gov.hmrc.agentsexternalstubs.models.Pillar2Record.Common
 import uk.gov.hmrc.agentsexternalstubs.models.Pillar2Record.{AccountStatus, AccountingPeriod, ContactDetails, FilingMemberDetails, UpeCorrespAddressDetails, UpeDetails}
 
 /** ----------------------------------------------------------------------------
