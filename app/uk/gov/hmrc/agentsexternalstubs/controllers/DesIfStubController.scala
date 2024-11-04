@@ -223,7 +223,7 @@ class DesIfStubController @Inject() (
         case Right(validVrn) =>
           recordsService.getRecordMaybeExt[VatCustomerInformationRecord, Vrn](Vrn(validVrn), session.planetId).map {
             case Some(record) => Ok(Json.toJson(record))
-            case None         => Ok(Json.obj())
+            case None         => NotFound(Json.obj())
           }
       }
     }(SessionRecordNotFound)

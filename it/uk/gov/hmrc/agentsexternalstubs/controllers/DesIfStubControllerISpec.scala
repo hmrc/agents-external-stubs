@@ -1008,13 +1008,13 @@ class DesIfStubControllerISpec
       json.as[JsObject] should haveProperty[String]("vrn", be(vrn))
     }
 
-    "return 200 response if record not found" in {
+    "return 404 response if record not found" in {
       implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
       val result = DesStub.getVatCustomerInformation("999999999")
-      result should haveStatus(200)
+      result should haveStatus(404)
     }
 
-    "return 200 response if record not found on planet hmrc and api-platform-test-user is not available" in {
+    "return 404 response if record not found on planet hmrc and api-platform-test-user is not available" in {
       implicit val session: AuthenticatedSession = SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
       val vrn = Generator.vrnGen.sample.get
       WireMock.stubFor(
@@ -1035,10 +1035,10 @@ class DesIfStubControllerISpec
       )
 
       val result = DesStub.getVatCustomerInformation(vrn)
-      result should haveStatus(200)
+      result should haveStatus(404)
     }
 
-    "return 200 response if record not found on planet hmrc and api-platform-test-user returns 404" in {
+    "return 404 response if record not found on planet hmrc and api-platform-test-user returns 404" in {
       implicit val session: AuthenticatedSession = SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
       val vrn = Generator.vrnGen.sample.get
       WireMock.stubFor(
@@ -1059,7 +1059,7 @@ class DesIfStubControllerISpec
       )
 
       val result = DesStub.getVatCustomerInformation(vrn)
-      result should haveStatus(200)
+      result should haveStatus(404)
     }
   }
 
