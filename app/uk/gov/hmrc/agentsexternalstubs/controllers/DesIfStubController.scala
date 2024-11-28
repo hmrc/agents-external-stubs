@@ -789,8 +789,14 @@ object DesIfStubController {
     )
 
     case class Individual(firstName: String, lastName: String)
+    object Individual {
+      implicit val format: OFormat[Individual] = Json.format[Individual]
+    }
 
     case class Organisation(organisationName: String)
+    object Organisation {
+      implicit val format: OFormat[Organisation] = Json.format[Organisation]
+    }
 
     case class Relationship(
       referenceNumber: String,

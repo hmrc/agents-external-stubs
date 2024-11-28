@@ -88,6 +88,10 @@ POST          /registration/relationship                                        
 
 GET           /anti-money-laundering/subscription/:amlsRegistrationNumber/status                    @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getAmlsSubscriptionStatus(amlsRegistrationNumber: String)
 
+# HIP Stubs
+GET           /RESTAdapter/rosm/agent-relationship                                                   @uk.gov.hmrc.agentsexternalstubs.controllers.HipStubController.displayAgentRelationship
+
+
 # Datastream
 POST          /write/audit                                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.DataStreamStubController.writeEvent
 POST          /write/audit/merged                                                                    @uk.gov.hmrc.agentsexternalstubs.controllers.DataStreamStubController.writeEvent
