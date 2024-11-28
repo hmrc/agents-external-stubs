@@ -488,6 +488,56 @@ trait TestRequests extends ScalaFutures {
       put(s"/tax-enrolments/groups/$groupId/enrolments/$enrolmentKey/friendly_name", payload)
   }
 
+  object HipStub {
+    def displayAgentRelationship(
+      regime: Option[String] = Some("VAT"),
+      isAnAgent: Option[Boolean] = Some(true),
+      activeOnly: Option[Boolean] = Some(true),
+      idType: Option[String] = None,
+      refNumber: Option[String] = None,
+      arn: Option[String] = Some("AARN1234567"),
+      dateFrom: Option[String] = None,
+      dateTo: Option[String] = None,
+      relationshipType: Option[String] = None,
+      authProfile: Option[String] = None,
+      transmittingSystemHeader: Option[String] = Some("HIP"),
+      originatingSystemHeader: Option[String] = Some("MDTP"),
+      correlationIdHeader: Option[String] = Some("dc87872c-3fe2-4dbf-ab72-0bfe8bccc502"),
+      receiptDateHeader: Option[String] = Some("2024-11-22T12:54:24Z")
+    )(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/RESTAdapter/rosm/agent-relationship")
+        .withQueryStringParameters(
+          Seq(
+            "idType"           -> idType,
+            "refNumber"        -> refNumber,
+            "arn"              -> arn,
+            "isAnAgent"        -> isAnAgent.map(_.toString),
+            "activeOnly"       -> activeOnly.map(_.toString),
+            "regime"           -> regime,
+            "dateFrom"         -> dateFrom,
+            "dateTo"           -> dateTo,
+            "relationshipType" -> relationshipType,
+            "authProfile"      -> authProfile
+          ).collect { case (name, Some(value: String)) =>
+            (name, value)
+          }: _*
+        )
+        .withHttpHeaders(
+          authContext.headers ++
+            Seq(
+              "X-Transmitting-System" -> transmittingSystemHeader,
+              "X-Originating-System"  -> originatingSystemHeader,
+              "correlationid"         -> correlationIdHeader,
+              "X-Receipt-Date"        -> receiptDateHeader
+            ).collect { case (name, Some(value: String)) =>
+              (name, value)
+            }: _*
+        )
+        .get()
+        .futureValue
+  }
+
   object DesStub {
 
     def authoriseOrDeAuthoriseRelationship[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
