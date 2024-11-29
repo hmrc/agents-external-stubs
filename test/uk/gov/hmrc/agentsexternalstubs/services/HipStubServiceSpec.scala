@@ -24,6 +24,8 @@ import java.util.UUID
 
 class HipStubServiceSpec extends BaseUnitSpec {
 
+  private val requestCouldNotBeProcessed = "Request could not be processed"
+
   "HipStubService.validateHeaders" should {
     "return an Either Right when all mandatory values provided and are valid" in {
       validateHeaders().getOrElse(false) shouldBe true
@@ -31,56 +33,56 @@ class HipStubServiceSpec extends BaseUnitSpec {
 
     "return an error if transmittingSystemHeader is missing" in {
       val result = validateHeaders(transmittingSystemHeader = None).swap.getOrElse(Errors())
-      result.text shouldBe "transmittingSystem header missing or invalid"
-      result.code shouldBe "TBC"
+      result.text shouldBe requestCouldNotBeProcessed
+      result.code shouldBe "006"
     }
 
     "return an error if transmittingSystemHeader is invalid" in {
       val result = validateHeaders(transmittingSystemHeader = Some("apple")).swap.getOrElse(Errors())
-      result.text shouldBe "transmittingSystem header missing or invalid"
-      result.code shouldBe "TBC"
+      result.text shouldBe requestCouldNotBeProcessed
+      result.code shouldBe "006"
     }
 
     "return an error if originatingSystemHeader is missing" in {
       val result = validateHeaders(originatingSystemHeader = None).swap.getOrElse(Errors())
-      result.text shouldBe "originatingSystem header missing or invalid"
-      result.code shouldBe "TBC"
+      result.text shouldBe requestCouldNotBeProcessed
+      result.code shouldBe "006"
     }
 
     "return an error if originatingSystemHeader is invalid" in {
       val result = validateHeaders(originatingSystemHeader = Some("apple")).swap.getOrElse(Errors())
-      result.text shouldBe "originatingSystem header missing or invalid"
-      result.code shouldBe "TBC"
+      result.text shouldBe requestCouldNotBeProcessed
+      result.code shouldBe "006"
     }
 
     "return an error if correlationIdHeader is missing" in {
       val result = validateHeaders(correlationIdHeader = None).swap.getOrElse(Errors())
-      result.text shouldBe "correlationid header missing or invalid"
-      result.code shouldBe "TBC"
+      result.text shouldBe requestCouldNotBeProcessed
+      result.code shouldBe "006"
     }
 
     "return an error if correlationIdHeader is invalid" in {
       val result = validateHeaders(correlationIdHeader = Some("apple")).swap.getOrElse(Errors())
-      result.text shouldBe "correlationid header missing or invalid"
-      result.code shouldBe "TBC"
+      result.text shouldBe requestCouldNotBeProcessed
+      result.code shouldBe "006"
     }
 
     "return an error if receiptDateHeader is missing" in {
       val result = validateHeaders(receiptDateHeader = None).swap.getOrElse(Errors())
-      result.text shouldBe "receiptDate header missing or invalid"
-      result.code shouldBe "TBC"
+      result.text shouldBe requestCouldNotBeProcessed
+      result.code shouldBe "006"
     }
 
     "return an error if receiptDateHeader is not a date" in {
       val result = validateHeaders(receiptDateHeader = Some("apple")).swap.getOrElse(Errors())
-      result.text shouldBe "receiptDate header missing or invalid"
-      result.code shouldBe "TBC"
+      result.text shouldBe requestCouldNotBeProcessed
+      result.code shouldBe "006"
     }
 
     "return an error if receiptDateHeader is an invalid date" in {
       val result = validateHeaders(receiptDateHeader = Some("2024-99-22T12:54:24Z")).swap.getOrElse(Errors())
-      result.text shouldBe "receiptDate header missing or invalid"
-      result.code shouldBe "TBC"
+      result.text shouldBe requestCouldNotBeProcessed
+      result.code shouldBe "006"
     }
   }
 
@@ -125,16 +127,16 @@ class HipStubServiceSpec extends BaseUnitSpec {
       val result =
         processQueryParameters(isAnAgent = None).swap.getOrElse(Errors())
 
-      result.text shouldBe "isAnAgent NOT SUPPLIED"
-      result.code shouldBe "TBC"
+      result.text shouldBe requestCouldNotBeProcessed
+      result.code shouldBe "006"
     }
 
     "return an error if activeOnly query parameter is missing" in {
       val result =
         processQueryParameters(activeOnly = None).swap.getOrElse(Errors())
 
-      result.text shouldBe "activeOnly NOT SUPPLIED"
-      result.code shouldBe "TBC"
+      result.text shouldBe requestCouldNotBeProcessed
+      result.code shouldBe "006"
     }
 
     "return an error if isAnAgent was true and arn query parameter is missing" in {
@@ -162,8 +164,8 @@ class HipStubServiceSpec extends BaseUnitSpec {
       ).swap
         .getOrElse(Errors())
 
-      result.text shouldBe "'dateTo' and 'dateFrom' mandatory if 'activeOnly' is false"
-      result.code shouldBe "TBC"
+      result.text shouldBe requestCouldNotBeProcessed
+      result.code shouldBe "006"
     }
 
     "return an error if activeOnly was false and dateFrom query parameter is invalid" in {
@@ -174,8 +176,8 @@ class HipStubServiceSpec extends BaseUnitSpec {
       ).swap
         .getOrElse(Errors())
 
-      result.text shouldBe "'dateTo' or 'dateFrom' is invalid"
-      result.code shouldBe "TBC"
+      result.text shouldBe requestCouldNotBeProcessed
+      result.code shouldBe "006"
     }
 
     "return an error if activeOnly was false and dateTo query parameter is missing" in {
@@ -186,8 +188,8 @@ class HipStubServiceSpec extends BaseUnitSpec {
       ).swap
         .getOrElse(Errors())
 
-      result.text shouldBe "'dateTo' and 'dateFrom' mandatory if 'activeOnly' is false"
-      result.code shouldBe "TBC"
+      result.text shouldBe requestCouldNotBeProcessed
+      result.code shouldBe "006"
     }
 
     "return an error if activeOnly was false and dateTo query parameter is invalid" in {
@@ -198,8 +200,8 @@ class HipStubServiceSpec extends BaseUnitSpec {
       ).swap
         .getOrElse(Errors())
 
-      result.text shouldBe "'dateTo' or 'dateFrom' is invalid"
-      result.code shouldBe "TBC"
+      result.text shouldBe requestCouldNotBeProcessed
+      result.code shouldBe "006"
     }
 
     "return an error if isAnAgent was false and refNumber query parameter is missing" in {
@@ -225,24 +227,24 @@ class HipStubServiceSpec extends BaseUnitSpec {
       val result = processQueryParameters(idType = Some("1234567")).swap
         .getOrElse(Errors())
 
-      result.text shouldBe "idType INVALID"
-      result.code shouldBe "TBC"
+      result.text shouldBe requestCouldNotBeProcessed
+      result.code shouldBe "006"
     }
 
     "return an error if relationshipType query parameter is invalid" in {
       val result = processQueryParameters(relationshipType = Some("apple")).swap
         .getOrElse(Errors())
 
-      result.text shouldBe "relationshipType INVALID"
-      result.code shouldBe "TBC"
+      result.text shouldBe requestCouldNotBeProcessed
+      result.code shouldBe "006"
     }
 
     "return an error if authProfile query parameter is invalid" in {
       val result = processQueryParameters(authProfile = Some("apple")).swap
         .getOrElse(Errors())
 
-      result.text shouldBe "authProfile INVALID"
-      result.code shouldBe "TBC"
+      result.text shouldBe requestCouldNotBeProcessed
+      result.code shouldBe "006"
     }
   }
 
