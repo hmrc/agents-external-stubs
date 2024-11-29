@@ -26,6 +26,8 @@ import javax.inject.{Inject, Singleton}
 @Singleton
 class HipStubService @Inject() extends Logging {
 
+  private val requestCouldNotBeProcessed = "Request could not be processed"
+
   def validateHeaders(
     transmittingSystem: Option[String],
     originatingSystem: Option[String],
@@ -33,17 +35,21 @@ class HipStubService @Inject() extends Logging {
     receiptDate: Option[String]
   ): Either[Errors, Boolean] =
     if (!transmittingSystem.getOrElse("").equals("HIP")) {
-      Left(Errors("TBC", "transmittingSystem header missing or invalid"))
+      logger.error("transmittingSystem header missing or invalid")
+      Left(Errors("006", requestCouldNotBeProcessed))
     } else if (!originatingSystem.getOrElse("").equals("MDTP")) {
-      Left(Errors("TBC", "originatingSystem header missing or invalid"))
+      logger.error("originatingSystem header missing or invalid")
+      Left(Errors("006", requestCouldNotBeProcessed))
     } else if (
       !correlationid
         .getOrElse("")
         .matches("^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$")
     ) {
-      Left(Errors("TBC", "correlationid header missing or invalid"))
+      logger.error("correlationid header missing or invalid")
+      Left(Errors("006", requestCouldNotBeProcessed))
     } else if (!isValidTimestamp(receiptDate.getOrElse(""))) {
-      Left(Errors("TBC", "receiptDate header missing or invalid"))
+      logger.error("receiptDate header missing or invalid")
+      Left(Errors("006", requestCouldNotBeProcessed))
     } else {
       Right(true)
     }
@@ -72,29 +78,41 @@ class HipStubService @Inject() extends Logging {
     authProfile: Option[String] = None
   ): Either[Errors, RelationshipRecordQuery] =
     if (regime.forall(_.isEmpty)) {
+      logger.error("Missing SAP Number or Regime")
       Left(Errors("001", "Missing SAP Number or Regime"))
     } else if (!regime.get.matches("^.{1,10}$")) {
+      logger.error("Invalid Regime Type")
       Left(Errors("002", "Invalid Regime Type"))
     } else if (isAnAgent.isEmpty) {
-      Left(Errors("TBC", "isAnAgent NOT SUPPLIED"))
+      logger.error("isAnAgent NOT SUPPLIED")
+      Left(Errors("006", requestCouldNotBeProcessed))
     } else if (activeOnly.isEmpty) {
-      Left(Errors("TBC", "activeOnly NOT SUPPLIED"))
+      logger.error("activeOnly NOT SUPPLIED")
+      Left(Errors("006", requestCouldNotBeProcessed))
     } else if (isAnAgent.get.toBoolean && arn.isEmpty) {
+      logger.error("Missing ARN Number")
       Left(Errors("008", "Missing ARN Number"))
     } else if (isAnAgent.get.toBoolean && !arn.get.matches("^[A-Z]ARN[0-9]{7}$")) {
+      logger.error("Invalid ARN value")
       Left(Errors("004", "Invalid ARN value"))
     } else if (!isAnAgent.get.toBoolean && !refNumber.getOrElse("").matches("^.{1,15}$")) {
+      logger.error("Reference number is missing or invalid")
       Left(Errors("003", "Reference number is missing or invalid"))
     } else if (idType.nonEmpty && !idType.get.matches("^.{1,6}$")) {
-      Left(Errors("TBC", "idType INVALID"))
+      logger.error("idType INVALID")
+      Left(Errors("006", requestCouldNotBeProcessed))
     } else if (!activeOnly.get.toBoolean && (dateTo.isEmpty || dateFrom.isEmpty)) {
-      Left(Errors("TBC", "'dateTo' and 'dateFrom' mandatory if 'activeOnly' is false"))
+      logger.error("'dateTo' and 'dateFrom' mandatory if 'activeOnly' is false")
+      Left(Errors("006", requestCouldNotBeProcessed))
     } else if (!activeOnly.get.toBoolean && (!isValidDate(dateTo.get) || !isValidDate(dateFrom.get))) {
-      Left(Errors("TBC", "'dateTo' or 'dateFrom' is invalid"))
+      logger.error("'dateTo' or 'dateFrom' is invalid")
+      Left(Errors("006", requestCouldNotBeProcessed))
     } else if (relationshipType.nonEmpty && !relationshipType.get.matches("^ZA01$")) {
-      Left(Errors("TBC", "relationshipType INVALID"))
+      logger.error("relationshipType INVALID")
+      Left(Errors("006", requestCouldNotBeProcessed))
     } else if (authProfile.nonEmpty && !authProfile.get.matches("^(ALL00001|ITSAS001)$")) {
-      Left(Errors("TBC", "authProfile INVALID"))
+      logger.error("authProfile INVALID")
+      Left(Errors("006", requestCouldNotBeProcessed))
     } else {
       Right(
         RelationshipRecordQuery(

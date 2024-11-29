@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
+import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result, Results}
 import uk.gov.hmrc.agentmtdidentifiers.model._
@@ -37,7 +38,7 @@ class HipStubController @Inject() (
   recordsService: RecordsService,
   cc: ControllerComponents
 )(implicit executionContext: ExecutionContext)
-    extends BackendController(cc) with DesCurrentSession {
+    extends BackendController(cc) with DesCurrentSession with Logging {
 
   def displayAgentRelationship: Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
@@ -68,36 +69,36 @@ class HipStubController @Inject() (
               relationshipRecordsService
                 .findByQuery(relationshipRecordQuery, session.planetId)
                 .flatMap { records =>
-                  def checkSuspension(arn: Arn): Future[Result] =
-                    recordsService.getRecordMaybeExt[BusinessPartnerRecord, Arn](arn, session.planetId) map {
-                      case Some(bpr) =>
-                        bpr.suspensionDetails match {
-                          case Some(sd) =>
-                            if (sd.suspendedRegimes.contains(relationshipRecordQuery.regime)) {
-                              Results.UnprocessableEntity(
-                                Json.toJson(Errors("059", s"${arn.value} is currently suspended"))
-                              )
-                            } else {
-                              Ok(Json.toJson(convertResponseToNewFormat(GetRelationships.Response.from(records))))
-                            }
-                          case None =>
-                            Ok(Json.toJson(convertResponseToNewFormat(GetRelationships.Response.from(records))))
-                        }
-                      case None => notFound("INVALID_SUBMISSION", "No BusinessPartnerRecord found")
-                    }
                   records.headOption match {
-                    case Some(r) =>
-                      checkSuspension(Arn(r.arn))
-                    case None =>
-                      if (relationshipRecordQuery.agent) {
-                        checkSuspension(
-                          Arn(relationshipRecordQuery.arn.getOrElse(throw new Exception("agent must have arn")))
-                        )
-                      } else {
-                        Future.successful(
-                          Ok(Json.toJson(convertResponseToNewFormat(GetRelationships.Response.from(records))))
-                        )
+                    case Some(record) =>
+                      recordsService
+                        .getRecordMaybeExt[BusinessPartnerRecord, Arn](Arn(record.arn), session.planetId) map {
+                        case Some(businessPartnerRecord) =>
+                          businessPartnerRecord.suspensionDetails match {
+                            case Some(suspensionDetails) =>
+                              if (suspensionDetails.suspendedRegimes.contains(relationshipRecordQuery.regime)) {
+                                Results.UnprocessableEntity(
+                                  Json.toJson(Errors("059", s"${record.arn} is currently suspended"))
+                                )
+                              } else {
+                                Ok(Json.toJson(convertResponseToNewFormat(GetRelationships.Response.from(records))))
+                              }
+                            case None =>
+                              Ok(Json.toJson(convertResponseToNewFormat(GetRelationships.Response.from(records))))
+                          }
+                        case None =>
+                          logger.error("no business partner record found")
+                          Results.UnprocessableEntity(
+                            Json.toJson(Errors("009", "No Relationships with activity"))
+                          )
                       }
+                    case None =>
+                      logger.error("no relationship record(s) found")
+                      Future.successful(
+                        Results.UnprocessableEntity(
+                          Json.toJson(Errors("009", "No Relationships with activity"))
+                        )
+                      )
                   }
                 }
           }

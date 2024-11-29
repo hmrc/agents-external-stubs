@@ -74,7 +74,7 @@ class HipStubControllerISpec
     }
 
     "no relationship records are found for an agent" should {
-      "return an empty array" in {
+      "return a 422 error" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val user = UserGenerator
           .agent("foo")
@@ -90,16 +90,16 @@ class HipStubControllerISpec
           arn = Some("ZARN1234567")
         )
 
-        result should haveStatus(OK)
+        result should haveStatus(UNPROCESSABLE_ENTITY)
         result.json
           .toString() should include(
-          """relationshipDisplayResponse":[]"""
+          """code":"009","text":"No Relationships with activity"""
         )
       }
     }
 
     "no relationship records are found for a non-agent" should {
-      "return an empty array" in {
+      "return a 422 error" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val user = UserGenerator
           .agent("foo")
@@ -115,22 +115,22 @@ class HipStubControllerISpec
           refNumber = Some("123456789012345")
         )
 
-        result should haveStatus(OK)
+        result should haveStatus(UNPROCESSABLE_ENTITY)
         result.json
           .toString() should include(
-          """relationshipDisplayResponse":[]"""
+          """code":"009","text":"No Relationships with activity"""
         )
       }
     }
 
     "no business partner record is found" should {
-      "return 404" in {
+      "return a 422 error" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = HipStub.displayAgentRelationship()
 
-        result should haveStatus(NOT_FOUND)
-        result.json.toString() should include("""code":"INVALID_SUBMISSION","reason":"No BusinessPartnerRecord found""")
+        result should haveStatus(UNPROCESSABLE_ENTITY)
+        result.json.toString() should include("""code":"009","text":"No Relationships with activity""")
       }
     }
 
@@ -143,7 +143,7 @@ class HipStubControllerISpec
         result should haveStatus(UNPROCESSABLE_ENTITY)
         result.json
           .toString() should include(
-          """code":"TBC","text":"transmittingSystem header missing or invalid"""
+          """code":"006","text":"Request could not be processed"""
         )
       }
     }
