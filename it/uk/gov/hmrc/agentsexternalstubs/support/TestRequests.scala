@@ -536,6 +536,49 @@ trait TestRequests extends ScalaFutures {
         )
         .get()
         .futureValue
+
+    def updateAgentRelationship(
+      regime: String = "ITSA",
+      idType: Option[String] = Some("MTDBSA"),
+      refNumber: String = "1234",
+      arn: String = "AARN1234567",
+      isExclusiveAgent: Boolean = true,
+      action: String = "0001",
+      relationshipType: Option[String] = Some("ZA01"),
+      authProfile: Option[String] = Some("ALL00001"),
+      transmittingSystemHeader: Option[String] = Some("HIP"),
+      originatingSystemHeader: Option[String] = Some("MDTP"),
+      correlationIdHeader: Option[String] = Some("dc87872c-3fe2-4dbf-ab72-0bfe8bccc502"),
+      receiptDateHeader: Option[String] = Some("2024-11-22T12:54:24Z")
+    )(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/RESTAdapter/rosm/agent-relationship")
+        .withHttpHeaders(
+          authContext.headers ++
+            Seq(
+              "X-Transmitting-System" -> transmittingSystemHeader,
+              "X-Originating-System"  -> originatingSystemHeader,
+              "correlationid"         -> correlationIdHeader,
+              "X-Receipt-Date"        -> receiptDateHeader
+            ).collect { case (name, Some(value: String)) =>
+              (name, value)
+            }: _*
+        )
+        .post(
+          Json.toJson(
+            UpdateRelationshipPayload(
+              regime = regime,
+              refNumber = refNumber,
+              idType = idType,
+              arn = arn,
+              action = action,
+              isExclusiveAgent = isExclusiveAgent,
+              relationshipType = relationshipType,
+              authProfile = authProfile
+            )
+          )
+        )
+        .futureValue
   }
 
   object DesStub {
