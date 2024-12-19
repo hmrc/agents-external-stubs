@@ -17,6 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
 import play.api.Logging
+import play.api.libs.json.JsValue
 import uk.gov.hmrc.agentsexternalstubs.models._
 
 import java.time.{Instant, LocalDate}
@@ -140,4 +141,50 @@ class HipStubService @Inject() extends Logging {
       case _: DateTimeParseException => false
     }
 
+  def validateUpdateRelationshipPayload(payload: UpdateRelationshipPayload): Either[Errors, UpdateRelationshipPayload] =
+    if (!List("VATC", "ITSA", "CGT", "PPT", "TRS", "PLR", "CBC").contains(payload.regime))
+      Left(Errors("002", "Invalid Regime Type"))
+    else if (!payload.refNumber.matches("^.{1,15}$")) Left(Errors("003", "Reference number is missing or invalid"))
+    else if (!validIdTypeForRegime(payload.regime, payload.refNumber).contains(payload.idType.getOrElse("")))
+      Left(Errors("013", "ID Type is invalid or missing"))
+    else if (!payload.arn.matches("^[A-Z]ARN[0-9]{7}$")) Left(Errors("004", "Invalid ARN value"))
+    else if (!List("0001", "0002").contains(payload.action)) Left(Errors("???", "unrecognised action"))
+    else if (!validateRelationshipType(payload.regime, payload.relationshipType))
+      Left(Errors("012", "Relationship type is invalid or missing"))
+    else
+      payload.authProfile.fold[Either[Errors, UpdateRelationshipPayload]](
+        Left(Errors("005", "Relationship Authorisation Profile missing"))
+      )(authProfile =>
+        if (!validateAuthProfile(payload.regime, authProfile))
+          Left(Errors("004", "Incorrect Relationship Authorisation Profile"))
+        else Right(payload)
+      )
+
+  private def validIdTypeForRegime(regime: String, refNumber: String): Option[String] =
+    regime match {
+      case "VATC" => Some("VRN")
+      case "ITSA" => Some("MTDBSA")
+      case "CGT"  => Some("ZCGT")
+      case "PPT"  => Some("ZPPT")
+      case "TRS" =>
+        if (refNumber.matches("^((?i)[a-z]{2}trust[0-9]{8})$")) Some("URN")
+        else if (refNumber.matches("^\\d{10}$")) Some("UTR")
+        else None
+      case "PLR" => Some("ZPLR")
+      case "CBC" => Some("CBC")
+      case _     => None
+    }
+
+  private def validateRelationshipType(regime: String, relationshipType: Option[String]): Boolean =
+    regime match {
+      case "VATC" | "ITSA" | "CGT" | "PPT" | "PLR" => relationshipType.contains("ZA01")
+      case "CBC" | "TRS"                           => relationshipType.isEmpty
+      case _                                       => false
+    }
+
+  private def validateAuthProfile(regime: String, authProfile: String): Boolean =
+    regime match {
+      case "ITSA" => List("ALL00001", "ITSAS001").contains(authProfile)
+      case _      => authProfile == "ALL00001"
+    }
 }

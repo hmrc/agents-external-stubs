@@ -40,27 +40,33 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
       )
   }
 
-  def authorise(relationship: RelationshipRecord, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+  def authorise(relationship: RelationshipRecord, planetId: String, isExclusiveAgent: Boolean = true)(implicit
+    ec: ExecutionContext
+  ): Future[Unit] =
     for {
-      existing <- findByKey(
-                    RelationshipRecord.clientKey(relationship.regime, relationship.idType, relationship.refNumber),
-                    planetId
-                  )
+      existing <- if (isExclusiveAgent)
+                    findByKey(
+                      RelationshipRecord.clientKey(relationship.regime, relationship.idType, relationship.refNumber),
+                      planetId
+                    )
+                  else Future.successful(Seq.empty)
       _ <- deActivate(existing, planetId)
       _ <- recordsRepository
              .store[RelationshipRecord](relationship.copy(active = true, startDate = Some(LocalDate.now())), planetId)
     } yield ()
 
-  def deAuthorise(relationship: RelationshipRecord, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+  def deAuthorise(relationship: RelationshipRecord, planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[Seq[String]] =
     for {
       existing <- findByKey(
                     RelationshipRecord
                       .fullKey(relationship.regime, relationship.arn, relationship.idType, relationship.refNumber),
                     planetId
                   )
-      _ <- deActivate(existing, planetId)
+      result <- deActivate(existing, planetId)
 
-    } yield ()
+    } yield result
 
   private def deActivate(relationships: Seq[RelationshipRecord], planetId: String)(implicit
     ec: ExecutionContext
