@@ -18,6 +18,7 @@ case class TestAppConfig(wireMockBaseUrl: String, wireMockPort: Int) extends App
   override val apiPlatformTestUserUrl: String = wireMockBaseUrl
   override val agentPermissionsUrl: String = wireMockBaseUrl
   override val agentUserClientDetailsUrl: String = wireMockBaseUrl
+  override val hipUrl: String = wireMockBaseUrl
 
   override val isProxyMode: Boolean = false
   override val httpPort: Int = wireMockPort
@@ -34,6 +35,7 @@ case class TestAppConfig(wireMockBaseUrl: String, wireMockPort: Int) extends App
   override val ssoPort: Int = wireMockPort
   override val fileUploadFrontendPort: Int = wireMockPort
   override val fileUploadPort: Int = wireMockPort
+  override val hipPort: Int = wireMockPort
   override val authCacheEnabled: Boolean = true
   override val specialCasesDisabled: Boolean = false
   override val specialCasesUseTruncatedRequestUriMatch: Boolean = false

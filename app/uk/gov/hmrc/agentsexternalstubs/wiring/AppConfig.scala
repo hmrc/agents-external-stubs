@@ -35,6 +35,7 @@ trait AppConfig {
   val niExemptionRegistrationUrl: String
   val agentUserClientDetailsUrl: String
   val agentPermissionsUrl: String
+  val hipUrl: String
 
   // External services we connect to
   val authLoginApiUrl: String
@@ -60,6 +61,7 @@ trait AppConfig {
   val identityVerification: Int
   val personalDetailsValidation: Int
   val companiesHouseApiProxyPort: Int
+  val hipPort: Int
 
   val authCacheEnabled: Boolean
   val specialCasesDisabled: Boolean
@@ -87,6 +89,7 @@ class AppConfigImpl @Inject() (config: ServicesConfig) extends AppConfig {
   val taxEnrolmentsUrl: String = config.baseUrl("tax-enrolments")
   val desUrl: String = config.baseUrl("des")
   val niExemptionRegistrationUrl: String = config.baseUrl("ni-exemption-registration")
+  val hipUrl: String = config.baseUrl("hip")
 
   // External services we connect to
   val authLoginApiUrl: String = config.baseUrl("auth-login-api")
@@ -112,6 +115,7 @@ class AppConfigImpl @Inject() (config: ServicesConfig) extends AppConfig {
   val fileUploadFrontendPort: Int = config.getConfInt("file-upload-frontend.port", 0)
   val identityVerification: Int = config.getConfInt("identity-verification.port", 0)
   val personalDetailsValidation: Int = config.getConfInt("personal-details-validation.port", 0)
+  val hipPort: Int = config.getConfInt("hip.port", 0)
   override lazy val companiesHouseApiProxyPort: Int = config.getConfInt("companies-house-api-proxy.port", 0)
 
   val isProxyMode: Boolean = config.getBoolean("features.proxies")

@@ -75,6 +75,7 @@ We handle local requests gracefully and do not require existing applications to 
 - listening on 9974 for sso requests
 - listening on 8898 for file-upload requests
 - listening on 9991 for companies-house-api-proxy
+- listening on 9444 for hip requests
 
 You can switch this behaviour off by setting `features.proxies` config property to `false`.
 
