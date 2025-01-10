@@ -153,7 +153,8 @@ class HipStubService @Inject() extends Logging {
       Left(Errors("012", "Relationship type is invalid or missing"))
     else
       payload.authProfile.fold[Either[Errors, UpdateRelationshipPayload]](
-        Left(Errors("005", "Relationship Authorisation Profile missing"))
+        if (Seq("TRS", "CBC").contains(payload.regime)) Right(payload)
+        else Left(Errors("005", "Relationship Authorisation Profile missing"))
       )(authProfile =>
         if (!validateAuthProfile(payload.regime, authProfile))
           Left(Errors("004", "Incorrect Relationship Authorisation Profile"))
