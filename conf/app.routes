@@ -89,9 +89,9 @@ POST          /registration/relationship                                        
 GET           /anti-money-laundering/subscription/:amlsRegistrationNumber/status                    @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getAmlsSubscriptionStatus(amlsRegistrationNumber: String)
 
 # HIP Stubs
-GET           /RESTAdapter/rosm/agent-relationship                                                   @uk.gov.hmrc.agentsexternalstubs.controllers.HipStubController.displayAgentRelationship
+GET           /etmp/RESTAdapter/rosm/agent-relationship                                              @uk.gov.hmrc.agentsexternalstubs.controllers.HipStubController.displayAgentRelationship
 
-POST          /RESTAdapter/rosm/agent-relationship                                                   @uk.gov.hmrc.agentsexternalstubs.controllers.HipStubController.updateAgentRelationship
+POST          /etmp/RESTAdapter/rosm/agent-relationship                                              @uk.gov.hmrc.agentsexternalstubs.controllers.HipStubController.updateAgentRelationship
 
 # Datastream
 POST          /write/audit                                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.DataStreamStubController.writeEvent
