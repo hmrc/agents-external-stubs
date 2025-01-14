@@ -506,7 +506,7 @@ trait TestRequests extends ScalaFutures {
       receiptDateHeader: Option[String] = Some("2024-11-22T12:54:24Z")
     )(implicit authContext: AuthContext): WSResponse =
       wsClient
-        .url(s"$url/RESTAdapter/rosm/agent-relationship")
+        .url(s"$url/etmp/RESTAdapter/rosm/agent-relationship")
         .withQueryStringParameters(
           Seq(
             "idType"           -> idType,
@@ -552,7 +552,7 @@ trait TestRequests extends ScalaFutures {
       receiptDateHeader: Option[String] = Some("2024-11-22T12:54:24Z")
     )(implicit authContext: AuthContext): WSResponse =
       wsClient
-        .url(s"$url/RESTAdapter/rosm/agent-relationship")
+        .url(s"$url/etmp/RESTAdapter/rosm/agent-relationship")
         .withHttpHeaders(
           authContext.headers ++
             Seq(

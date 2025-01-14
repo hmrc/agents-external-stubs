@@ -206,7 +206,7 @@ class HipStubControllerISpec
 
     "there is no session" should {
       "return an unauthorized error" in {
-        val result = wsClient.url(s"$url/RESTAdapter/rosm/agent-relationship").get().futureValue
+        val result = wsClient.url(s"$url/etmp/RESTAdapter/rosm/agent-relationship").get().futureValue
 
         result should haveStatus(UNAUTHORIZED)
         result.json.toString should include("""{"code":"UNAUTHORIZED","reason":"SessionRecordNotFound"}""")
