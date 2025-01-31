@@ -441,6 +441,29 @@ class DesIfStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
+  def getPayeAgentClientRelationship(agentCode: String, taxOfficeNumber: String, taxOfficeReference: String
+                                    ): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      Validator
+        .product(
+          Validator.checkFromEither(RegexPatterns.validAgentCode, "Invalid AgentRef"),
+          Validator.checkFromEither(RegexPatterns.validTaxOfficeNumber, "Invalid TaxOfficeNumber"),
+          Validator.checkFromEither(RegexPatterns.validTaxOfficeReference, "Invalid TaxOfficeReference")
+        )((agentCode, taxOfficeNumber, taxOfficeReference))
+        .fold(
+          error => badRequestF(error.mkString(", ")),
+          _ =>
+            recordsService
+              .getRecord[EmployerAuths, AgentCode](AgentCode(agentCode), session.planetId)
+              .map {
+                case None => NotFound("Relationship not found")
+                case Some(record) => Ok(Json.toJson(record.empAuthList.headOption))
+              }
+        )
+
+  }(SessionRecordNotFound)
+  }
+
   def getCtReference(idType: String, idValue: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       withValidIdentifier(idType, idValue) { case ("crn", crn) =>
