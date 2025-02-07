@@ -185,7 +185,7 @@ class HipStubController @Inject() (
   private def agentIsSuspended(businessPartnerRecord: BusinessPartnerRecord, regime: String): Boolean =
     businessPartnerRecord.suspensionDetails.fold(false)(_.suspendedRegimes.contains(regime))
 
-  private val withProcessingDate = Json.parse(s"""{"processingDate": "${LocalDateTime.now()}"}""")
+  private val withProcessingDate = Json.parse(s"""{"success":{"processingDate": "${LocalDateTime.now()}"}}""")
   private def correlationId(implicit request: Request[_]): (String, String) =
     "correlationId" -> request.headers.get("correlationid").get
 
