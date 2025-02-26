@@ -51,7 +51,7 @@ trait GroupsRepository {
     groupId: String,
     planetId: String,
     enrolment: Enrolment
-  ): Future[Unit]
+  ): Future[Boolean]
   def create(group: Group, planetId: String): Future[Unit]
   def update(group: Group, planetId: String): Future[Unit]
   def delete(groupId: String, planetId: String): Future[DeleteResult]
@@ -138,7 +138,7 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
     groupId: String,
     planetId: String,
     enrolment: Enrolment
-  ): Future[Unit] =
+  ): Future[Boolean] =
     collection
       .updateOne(
         Filters.equal(UNIQUE_KEYS, keyOf(groupIdIndexKey(groupId), planetId)),
@@ -150,7 +150,7 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
           )
       )
       .toFuture()
-      .map(_ => ())
+      .map(_.wasAcknowledged())
 
   override def updateFriendlyNameForEnrolment(
     groupId: String,
