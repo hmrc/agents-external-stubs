@@ -140,7 +140,7 @@ class GroupsService @Inject() (
     enrolmentType: String,
     agentCodeOpt: Option[String],
     planetId: String
-  )(implicit ec: ExecutionContext): Future[Unit] = {
+  )(implicit ec: ExecutionContext): Future[Boolean] = {
     val delegationEnrolmentKeys: DelegationEnrolmentKeys = DelegationEnrolmentKeys(enrolmentKey)
     knownFactsRepository.findByEnrolmentKey(delegationEnrolmentKeys.primaryEnrolmentKey, planetId).flatMap {
       case None => Future.failed(new NotFoundException("ALLOCATION_DOES_NOT_EXIST"))
@@ -168,11 +168,11 @@ class GroupsService @Inject() (
                   g.copy(principalEnrolments = appendEnrolment(g.principalEnrolments, enrolment))
               }
             )
-              .map(_ => ())
+              .map(_ => true)
           } else if (enrolmentType == "delegated" && group.affinityGroup == AG.Agent) {
             findByPrincipalEnrolmentKey(delegationEnrolmentKeys.primaryEnrolmentKey, planetId).flatMap {
               case Some(owner) if !(owner.affinityGroup == AG.Agent) =>
-                groupsRepository.findByGroupId(group.groupId, planetId).map {
+                groupsRepository.findByGroupId(group.groupId, planetId).flatMap {
                   case Some(group) =>
                     if (
                       group.delegatedEnrolments.exists(enrolment =>

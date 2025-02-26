@@ -39,7 +39,7 @@
 
     <logger name="akka" level="ERROR"/>
 
-    <logger name="reactivemongo" level="ERROR"/>W
+    <logger name="reactivemongo" level="ERROR"/>
 
     <logger name="org.asynchttpclient" level="ERROR"/>
 
