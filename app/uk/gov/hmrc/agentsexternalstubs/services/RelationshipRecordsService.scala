@@ -50,7 +50,13 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
                       planetId
                     )
                   else Future.successful(Seq.empty)
-      _ <- deActivate(existing, planetId)
+
+      _ <- if (isExclusiveAgent) {
+             val existingSameAuthProfile = existing
+               .filter(_.authProfile.getOrElse("ALL00001") == relationship.authProfile.getOrElse("ALL00001"))
+
+             deActivate(existingSameAuthProfile, planetId)
+           } else Future.successful(Seq.empty)
       _ <- recordsRepository
              .store[RelationshipRecord](relationship.copy(active = true, startDate = Some(LocalDate.now())), planetId)
     } yield ()
