@@ -135,6 +135,16 @@ class AgencyCreator @Inject() (
           authProfile = Some("ALL00001"),
           startDate = Some(LocalDate.now)
         )
+      case "HMRC-MTD-IT-SUPP" =>
+        RelationshipRecord(
+          regime = "ITSA",
+          arn = arn,
+          idType = "none",
+          refNumber = identifier.value,
+          relationshipType = Some("ZA01"),
+          authProfile = Some("ITSAS001"),
+          startDate = Some(LocalDate.now)
+        )
       case "HMRC-MTD-VAT" =>
         RelationshipRecord(
           regime = "VATC",
