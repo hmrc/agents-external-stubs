@@ -206,7 +206,18 @@ object CreateUpdateAgentRelationshipPayload {
     val relationshipTypeEnum = Seq("ZA01", "ZA02")
     val actionEnum0 = Seq("De-Authorise")
     val authProfileEnum =
-      Seq("ALL00001", "CORR0001", "EDIT0001", "FILE0001", "FILE0002", "FILE0003", "FILE0004", "VIEW0001", "ALL00002")
+      Seq(
+        "ALL00001",
+        "CORR0001",
+        "EDIT0001",
+        "FILE0001",
+        "FILE0002",
+        "FILE0003",
+        "FILE0004",
+        "VIEW0001",
+        "ALL00002",
+        "ITSAS001"
+      )
     val refNumberPattern = """^[0-9A-Za-z]{1,15}$"""
     val acknowledgmentReferencePattern = """^[0-9A-Za-z]{1,32}$"""
     val agentReferenceNumberPattern = """^[A-Z](ARN)[0-9]{7}$"""

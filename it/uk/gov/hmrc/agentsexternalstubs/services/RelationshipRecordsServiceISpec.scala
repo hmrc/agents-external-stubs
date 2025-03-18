@@ -35,11 +35,11 @@ class RelationshipRecordsServiceISpec extends AppBaseISpec {
       await(service.findByKey("A", "juniper")).size shouldBe 0
 
       await(service.findByKey(RelationshipRecord.agentKey("A", "B1"), "saturn")).size shouldBe 1
-      await(service.findByKey(RelationshipRecord.clientKey("A", "D", "C2"), "saturn")).size shouldBe 1
+      await(service.findByKey(RelationshipRecord.clientKey("A", "D", "C2", None), "saturn")).size shouldBe 1
       await(service.findByKey(RelationshipRecord.fullKey("A", "B2", "D", "C2"), "saturn")).size shouldBe 1
 
       await(service.findByKey(RelationshipRecord.agentKey("B", "B2"), "saturn")).size shouldBe 0
-      await(service.findByKey(RelationshipRecord.clientKey("B", "D", "C2"), "saturn")).size shouldBe 0
+      await(service.findByKey(RelationshipRecord.clientKey("B", "D", "C2", None), "saturn")).size shouldBe 0
       await(service.findByKey(RelationshipRecord.fullKey("B", "B2", "D", "C2"), "saturn")).size shouldBe 0
     }
 
@@ -51,16 +51,265 @@ class RelationshipRecordsServiceISpec extends AppBaseISpec {
       records.head.startDate shouldBe defined
     }
 
-    "authorise new relationship and deactivate existing one" in {
-      await(service.authorise(RelationshipRecord("A", "B2", "D", "C2"), "mars"))
+    "authorise new main relationship and deactivate existing main relationship" in {
+      await(
+        service.authorise(
+          RelationshipRecord(regime = "A", arn = "B2", idType = "D", refNumber = "C2", authProfile = Some("ALL00001")),
+          planetId = "mars",
+          isExclusiveAgent = true
+        )
+      )
       await(service.findByKey(RelationshipRecord.fullKey("A", "B2", "D", "C2"), "mars")).size shouldBe 1
 
-      await(service.authorise(RelationshipRecord("A", "B3", "D", "C2"), "mars"))
+      await(
+        service.authorise(
+          RelationshipRecord(regime = "A", arn = "B3", idType = "D", refNumber = "C2", authProfile = Some("ALL00001")),
+          "mars",
+          isExclusiveAgent = true
+        )
+      )
 
       val oldRecords = await(service.findByKey(RelationshipRecord.fullKey("A", "B2", "D", "C2"), "mars"))
       oldRecords.size shouldBe 1
       oldRecords.head.active shouldBe false
       oldRecords.head.endDate shouldBe defined
+
+      val newRecord = await(service.findByKey(RelationshipRecord.fullKey("A", "B3", "D", "C2"), "mars"))
+      newRecord.size shouldBe 1
+      newRecord.head.active shouldBe true
+      newRecord.head.startDate shouldBe defined
+      newRecord.head.endDate should not be defined
+
+      val allRecords = await(service.findByKey("A", "mars"))
+      allRecords.size shouldBe 2
+    }
+
+    "authorise new main relationship with authProfile None and deactivate existing main relationship" in {
+      await(
+        service.authorise(
+          RelationshipRecord(regime = "A", arn = "B2", idType = "D", refNumber = "C2", authProfile = None),
+          planetId = "mars",
+          isExclusiveAgent = true
+        )
+      )
+
+      await(service.findByKey(RelationshipRecord.fullKey("A", "B2", "D", "C2"), "mars")).size shouldBe 1
+
+      await(
+        service.authorise(
+          RelationshipRecord(regime = "A", arn = "B3", idType = "D", refNumber = "C2", authProfile = Some("ALL00001")),
+          "mars",
+          isExclusiveAgent = true
+        )
+      )
+
+      val oldRecords = await(service.findByKey(RelationshipRecord.fullKey("A", "B2", "D", "C2"), "mars"))
+      oldRecords.size shouldBe 1
+      oldRecords.head.active shouldBe false
+      oldRecords.head.endDate shouldBe defined
+
+      val newRecord = await(service.findByKey(RelationshipRecord.fullKey("A", "B3", "D", "C2"), "mars"))
+      newRecord.size shouldBe 1
+      newRecord.head.active shouldBe true
+      newRecord.head.startDate shouldBe defined
+      newRecord.head.endDate should not be defined
+
+      val allRecords = await(service.findByKey("A", "mars"))
+      allRecords.size shouldBe 2
+    }
+
+    "authorise new main relationship and deactivate existing main relationship with authProfile None" in {
+      await(
+        service.authorise(
+          RelationshipRecord(regime = "A", arn = "B2", idType = "D", refNumber = "C2", authProfile = Some("ALL00001")),
+          planetId = "mars",
+          isExclusiveAgent = true
+        )
+      )
+
+      await(service.findByKey(RelationshipRecord.fullKey("A", "B2", "D", "C2"), "mars")).size shouldBe 1
+
+      await(
+        service.authorise(
+          RelationshipRecord(regime = "A", arn = "B3", idType = "D", refNumber = "C2", authProfile = None),
+          "mars",
+          isExclusiveAgent = true
+        )
+      )
+
+      val oldRecords = await(service.findByKey(RelationshipRecord.fullKey("A", "B2", "D", "C2"), "mars"))
+      oldRecords.size shouldBe 1
+      oldRecords.head.active shouldBe false
+      oldRecords.head.endDate shouldBe defined
+
+      val newRecord = await(service.findByKey(RelationshipRecord.fullKey("A", "B3", "D", "C2"), "mars"))
+      newRecord.size shouldBe 1
+      newRecord.head.active shouldBe true
+      newRecord.head.startDate shouldBe defined
+      newRecord.head.endDate should not be defined
+
+      val allRecords = await(service.findByKey("A", "mars"))
+      allRecords.size shouldBe 2
+    }
+
+    "authorise new main relationship with authProfile None and deactivate existing main relationship with authProfile None" in {
+      await(
+        service.authorise(
+          RelationshipRecord(regime = "A", arn = "B2", idType = "D", refNumber = "C2", authProfile = None),
+          planetId = "mars",
+          isExclusiveAgent = true
+        )
+      )
+
+      await(service.findByKey(RelationshipRecord.fullKey("A", "B2", "D", "C2"), "mars")).size shouldBe 1
+
+      await(
+        service.authorise(
+          RelationshipRecord(regime = "A", arn = "B3", idType = "D", refNumber = "C2", authProfile = None),
+          "mars",
+          isExclusiveAgent = true
+        )
+      )
+
+      val oldRecords = await(service.findByKey(RelationshipRecord.fullKey("A", "B2", "D", "C2"), "mars"))
+      oldRecords.size shouldBe 1
+      oldRecords.head.active shouldBe false
+      oldRecords.head.endDate shouldBe defined
+
+      val newRecord = await(service.findByKey(RelationshipRecord.fullKey("A", "B3", "D", "C2"), "mars"))
+      newRecord.size shouldBe 1
+      newRecord.head.active shouldBe true
+      newRecord.head.startDate shouldBe defined
+      newRecord.head.endDate should not be defined
+
+      val allRecords = await(service.findByKey("A", "mars"))
+      allRecords.size shouldBe 2
+    }
+
+    "authorise new supp relationship and do not deactivate existing supp relationship" in {
+      await(
+        service.authorise(
+          RelationshipRecord(regime = "A", arn = "B2", idType = "D", refNumber = "C2", authProfile = Some("ITSAS001")),
+          planetId = "mars",
+          isExclusiveAgent = false
+        )
+      )
+      await(service.findByKey(RelationshipRecord.fullKey("A", "B2", "D", "C2"), "mars")).size shouldBe 1
+
+      await(
+        service.authorise(
+          RelationshipRecord(regime = "A", arn = "B3", idType = "D", refNumber = "C2", authProfile = Some("ITSAS001")),
+          "mars",
+          isExclusiveAgent = false
+        )
+      )
+
+      val oldRecords = await(service.findByKey(RelationshipRecord.fullKey("A", "B2", "D", "C2"), "mars"))
+      oldRecords.size shouldBe 1
+      oldRecords.head.active shouldBe true
+      oldRecords.head.endDate should not be defined
+
+      val newRecord = await(service.findByKey(RelationshipRecord.fullKey("A", "B3", "D", "C2"), "mars"))
+      newRecord.size shouldBe 1
+      newRecord.head.active shouldBe true
+      newRecord.head.startDate shouldBe defined
+      newRecord.head.endDate should not be defined
+
+      val allRecords = await(service.findByKey("A", "mars"))
+      allRecords.size shouldBe 2
+    }
+
+    "authorise new supp relationship and do not deactivate existing main  relationship" in {
+      await(
+        service.authorise(
+          RelationshipRecord(regime = "A", arn = "B2", idType = "D", refNumber = "C2", authProfile = Some("ALL00001")),
+          planetId = "mars",
+          isExclusiveAgent = true
+        )
+      )
+      await(service.findByKey(RelationshipRecord.fullKey("A", "B2", "D", "C2"), "mars")).size shouldBe 1
+
+      await(
+        service.authorise(
+          RelationshipRecord(regime = "A", arn = "B3", idType = "D", refNumber = "C2", authProfile = Some("ITSAS001")),
+          "mars",
+          isExclusiveAgent = false
+        )
+      )
+
+      val oldRecords = await(service.findByKey(RelationshipRecord.fullKey("A", "B2", "D", "C2"), "mars"))
+      oldRecords.size shouldBe 1
+      oldRecords.head.active shouldBe true
+      oldRecords.head.startDate shouldBe defined
+      oldRecords.head.endDate should not be defined
+
+      val newRecord = await(service.findByKey(RelationshipRecord.fullKey("A", "B3", "D", "C2"), "mars"))
+      newRecord.size shouldBe 1
+      newRecord.head.active shouldBe true
+      newRecord.head.startDate shouldBe defined
+      newRecord.head.endDate should not be defined
+
+      val allRecords = await(service.findByKey("A", "mars"))
+      allRecords.size shouldBe 2
+    }
+
+    "authorise new supp relationship and do not deactivate existing main  relationship with AuthProfile None" in {
+      await(
+        service.authorise(
+          RelationshipRecord(regime = "A", arn = "B2", idType = "D", refNumber = "C2", authProfile = None),
+          planetId = "mars",
+          isExclusiveAgent = true
+        )
+      )
+      await(service.findByKey(RelationshipRecord.fullKey("A", "B2", "D", "C2"), "mars")).size shouldBe 1
+
+      await(
+        service.authorise(
+          RelationshipRecord(regime = "A", arn = "B3", idType = "D", refNumber = "C2", authProfile = Some("ITSAS001")),
+          "mars",
+          isExclusiveAgent = false
+        )
+      )
+
+      val oldRecords = await(service.findByKey(RelationshipRecord.fullKey("A", "B2", "D", "C2"), "mars"))
+      oldRecords.size shouldBe 1
+      oldRecords.head.active shouldBe true
+      oldRecords.head.startDate shouldBe defined
+      oldRecords.head.endDate should not be defined
+
+      val newRecord = await(service.findByKey(RelationshipRecord.fullKey("A", "B3", "D", "C2"), "mars"))
+      newRecord.size shouldBe 1
+      newRecord.head.active shouldBe true
+      newRecord.head.startDate shouldBe defined
+      newRecord.head.endDate should not be defined
+
+      val allRecords = await(service.findByKey("A", "mars"))
+      allRecords.size shouldBe 2
+    }
+
+    "authorise new main relationship and do not deactivate existing supp relationship" in {
+      await(
+        service.authorise(
+          RelationshipRecord(regime = "A", arn = "B2", idType = "D", refNumber = "C2", authProfile = Some("ITSAS001")),
+          planetId = "mars",
+          isExclusiveAgent = false
+        )
+      )
+      await(service.findByKey(RelationshipRecord.fullKey("A", "B2", "D", "C2"), "mars")).size shouldBe 1
+
+      await(
+        service.authorise(
+          RelationshipRecord(regime = "A", arn = "B3", idType = "D", refNumber = "C2", authProfile = Some("ALL00001")),
+          "mars",
+          isExclusiveAgent = true
+        )
+      )
+
+      val oldRecords = await(service.findByKey(RelationshipRecord.fullKey("A", "B2", "D", "C2"), "mars"))
+      oldRecords.size shouldBe 1
+      oldRecords.head.active shouldBe true
+      oldRecords.head.startDate shouldBe defined
+      oldRecords.head.endDate should not be defined
 
       val newRecord = await(service.findByKey(RelationshipRecord.fullKey("A", "B3", "D", "C2"), "mars"))
       newRecord.size shouldBe 1

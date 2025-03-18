@@ -44,13 +44,17 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
     ec: ExecutionContext
   ): Future[Unit] =
     for {
-      existing <- if (isExclusiveAgent)
-                    findByKey(
-                      RelationshipRecord.clientKey(relationship.regime, relationship.idType, relationship.refNumber),
-                      planetId
-                    )
-                  else Future.successful(Seq.empty)
+      existing <-
+        if (isExclusiveAgent)
+          findByKey(
+            RelationshipRecord
+              .clientKey(relationship.regime, relationship.idType, relationship.refNumber, relationship.authProfile),
+            planetId
+          )
+        else Future.successful(Seq.empty)
+
       _ <- deActivate(existing, planetId)
+
       _ <- recordsRepository
              .store[RelationshipRecord](relationship.copy(active = true, startDate = Some(LocalDate.now())), planetId)
     } yield ()
@@ -113,7 +117,8 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
           RelationshipRecord.clientKey(
             query.regime,
             idType(query.idType, refNum),
-            refNum
+            refNum,
+            query.authProfile
           )
         )
       }
