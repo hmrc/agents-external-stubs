@@ -41,7 +41,7 @@ case class RelationshipRecord(
     Seq(
       fullKey(regime, arn, idType, refNumber),
       agentKey(regime, arn),
-      clientKey(regime, idType, refNumber),
+      clientKey(regime, idType, refNumber, authProfile),
       agentClientKey(arn, idType, refNumber),
       regime,
       arn,
@@ -66,8 +66,8 @@ object RelationshipRecord extends RecordUtils[RelationshipRecord] {
   def agentKeys(arn: String): Seq[String] =
     Seq(s"AK/itsa/$arn", s"AK/vatc/$arn", s"AK/trs/$arn", s"AK/cgt/$arn", s"AK/ppt/$arn", s"AK/cbc/$arn")
 
-  def clientKey(regime: String, idType: String, refNumber: String): String =
-    s"CK/$regime/$idType/$refNumber"
+  def clientKey(regime: String, idType: String, refNumber: String, authProfile: Option[String]): String =
+    s"CK/$regime/$idType/$refNumber/${authProfile.getOrElse("ALL00001")}"
 
   def agentClientKey(arn: String, idType: String, refNumber: String): String =
     s"ACK/$arn/$idType/$refNumber"
