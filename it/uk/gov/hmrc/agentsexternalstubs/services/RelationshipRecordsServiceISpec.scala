@@ -35,11 +35,11 @@ class RelationshipRecordsServiceISpec extends AppBaseISpec {
       await(service.findByKey("A", "juniper")).size shouldBe 0
 
       await(service.findByKey(RelationshipRecord.agentKey("A", "B1"), "saturn")).size shouldBe 1
-      await(service.findByKey(RelationshipRecord.clientKey("A", "D", "C2", None), "saturn")).size shouldBe 1
+      await(service.findByKey(RelationshipRecord.clientKey("A", "D", "C2"), "saturn")).size shouldBe 1
       await(service.findByKey(RelationshipRecord.fullKey("A", "B2", "D", "C2"), "saturn")).size shouldBe 1
 
       await(service.findByKey(RelationshipRecord.agentKey("B", "B2"), "saturn")).size shouldBe 0
-      await(service.findByKey(RelationshipRecord.clientKey("B", "D", "C2", None), "saturn")).size shouldBe 0
+      await(service.findByKey(RelationshipRecord.clientKey("B", "D", "C2"), "saturn")).size shouldBe 0
       await(service.findByKey(RelationshipRecord.fullKey("B", "B2", "D", "C2"), "saturn")).size shouldBe 0
     }
 

@@ -48,12 +48,17 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
         if (isExclusiveAgent)
           findByKey(
             RelationshipRecord
-              .clientKey(relationship.regime, relationship.idType, relationship.refNumber, relationship.authProfile),
+              .clientKey(relationship.regime, relationship.idType, relationship.refNumber),
             planetId
           )
         else Future.successful(Seq.empty)
 
-      _ <- deActivate(existing, planetId)
+      _ <- if (isExclusiveAgent) {
+             val existingSameAuthProfile = existing
+               .filter(_.authProfile.getOrElse("ALL00001") == relationship.authProfile.getOrElse("ALL00001"))
+
+             deActivate(existingSameAuthProfile, planetId)
+           } else Future.successful(Seq.empty)
 
       _ <- recordsRepository
              .store[RelationshipRecord](relationship.copy(active = true, startDate = Some(LocalDate.now())), planetId)
@@ -117,8 +122,7 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
           RelationshipRecord.clientKey(
             query.regime,
             idType(query.idType, refNum),
-            refNum,
-            query.authProfile
+            refNum
           )
         )
       }
