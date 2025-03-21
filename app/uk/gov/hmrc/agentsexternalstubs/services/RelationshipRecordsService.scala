@@ -48,7 +48,7 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
         if (isExclusiveAgent)
           findByKey(
             RelationshipRecord
-              .clientKey(relationship.regime, relationship.idType, relationship.refNumber, relationship.authProfile),
+              .clientKey(relationship.regime, relationship.idType, relationship.refNumber),
             planetId
           )
         else Future.successful(Seq.empty)
@@ -101,6 +101,9 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
     val maybeToDate: RelationshipRecord => Boolean = r =>
       if (query.activeOnly) true else query.to.forall(qt => r.startDate.forall(rt => !rt.isAfter(qt)))
 
+    val maybeAuthProfile: RelationshipRecord => Boolean = r =>
+      query.authProfile.fold(true)(ap => r.authProfile.fold(true)(_.matches(ap)))
+
     val keys =
       if (query.agent) {
         if (!query.activeOnly && query.regime == "AGSV") { //AGSV to retrieve all types of inactive relationships
@@ -117,8 +120,7 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
           RelationshipRecord.clientKey(
             query.regime,
             idType(query.idType, refNum),
-            refNum,
-            query.authProfile
+            refNum
           )
         )
       }
@@ -126,6 +128,7 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
     findByKeys(keys, planetId)
       .map(
         _.filter(maybeActiveOnly)
+          .filter(maybeAuthProfile)
           .filter(maybeFromDate)
           .filter(maybeToDate)
       )
