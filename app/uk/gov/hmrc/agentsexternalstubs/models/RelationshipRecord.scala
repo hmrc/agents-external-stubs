@@ -42,6 +42,7 @@ case class RelationshipRecord(
       fullKey(regime, arn, idType, refNumber),
       agentKey(regime, arn),
       clientKey(regime, idType, refNumber),
+      clientWithAuthProfileKey(regime, idType, refNumber, authProfile.getOrElse("ALL00001")),
       agentClientKey(arn, idType, refNumber),
       regime,
       arn,
@@ -68,6 +69,9 @@ object RelationshipRecord extends RecordUtils[RelationshipRecord] {
 
   def clientKey(regime: String, idType: String, refNumber: String): String =
     s"CK/$regime/$idType/$refNumber"
+
+  def clientWithAuthProfileKey(regime: String, idType: String, refNumber: String, authProfile: String): String =
+    s"CK/$regime/$idType/$refNumber/$authProfile"
 
   def agentClientKey(arn: String, idType: String, refNumber: String): String =
     s"ACK/$arn/$idType/$refNumber"
