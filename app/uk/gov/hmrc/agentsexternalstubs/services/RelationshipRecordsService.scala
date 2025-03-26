@@ -48,7 +48,12 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
         if (isExclusiveAgent)
           findByKey(
             RelationshipRecord
-              .clientKey(relationship.regime, relationship.idType, relationship.refNumber, relationship.authProfile),
+              .clientWithAuthProfileKey(
+                relationship.regime,
+                relationship.idType,
+                relationship.refNumber,
+                relationship.authProfile.getOrElse("ALL00001")
+              ),
             planetId
           )
         else Future.successful(Seq.empty)
@@ -113,14 +118,25 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
         }
       } else {
         val refNum = query.getRefNumber.getOrElse(throw new Exception("Missing refNumber parameter"))
-        Seq(
-          RelationshipRecord.clientKey(
-            query.regime,
-            idType(query.idType, refNum),
-            refNum,
-            query.authProfile
+        if (query.authProfile.isEmpty) {
+          Seq(
+            RelationshipRecord.clientKey(
+              query.regime,
+              idType(query.idType, refNum),
+              refNum
+            )
           )
-        )
+        } else {
+          Seq(
+            RelationshipRecord.clientWithAuthProfileKey(
+              query.regime,
+              idType(query.idType, refNum),
+              refNum,
+              query.authProfile.get
+            )
+          )
+        }
+
       }
 
     findByKeys(keys, planetId)

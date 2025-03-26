@@ -24,7 +24,17 @@ class RelationshipRecordsServiceISpec extends AppBaseISpec {
       )
       await(
         repo
-          .store(RelationshipRecord(regime = "B", arn = "B1", refNumber = "C1", idType = "D", active = true), "saturn")
+          .store(
+            RelationshipRecord(
+              regime = "B",
+              arn = "B1",
+              refNumber = "C1",
+              idType = "D",
+              active = true,
+              authProfile = Some("ITSAS001")
+            ),
+            "saturn"
+          )
       )
 
       val result = await(service.findByKey("A", "saturn"))
@@ -35,12 +45,21 @@ class RelationshipRecordsServiceISpec extends AppBaseISpec {
       await(service.findByKey("A", "juniper")).size shouldBe 0
 
       await(service.findByKey(RelationshipRecord.agentKey("A", "B1"), "saturn")).size shouldBe 1
-      await(service.findByKey(RelationshipRecord.clientKey("A", "D", "C2", None), "saturn")).size shouldBe 1
+      await(service.findByKey(RelationshipRecord.clientKey("A", "D", "C2"), "saturn")).size shouldBe 1
       await(service.findByKey(RelationshipRecord.fullKey("A", "B2", "D", "C2"), "saturn")).size shouldBe 1
+      await(
+        service.findByKey(RelationshipRecord.clientWithAuthProfileKey("A", "D", "C2", "ALL00001"), "saturn")
+      ).size shouldBe 1
+      await(
+        service.findByKey(RelationshipRecord.clientWithAuthProfileKey("B", "D", "C1", "ITSAS001"), "saturn")
+      ).size shouldBe 1
 
       await(service.findByKey(RelationshipRecord.agentKey("B", "B2"), "saturn")).size shouldBe 0
-      await(service.findByKey(RelationshipRecord.clientKey("B", "D", "C2", None), "saturn")).size shouldBe 0
+      await(service.findByKey(RelationshipRecord.clientKey("B", "D", "C2"), "saturn")).size shouldBe 0
       await(service.findByKey(RelationshipRecord.fullKey("B", "B2", "D", "C2"), "saturn")).size shouldBe 0
+      await(
+        service.findByKey(RelationshipRecord.clientWithAuthProfileKey("A", "D", "C2", "ALL00002"), "saturn")
+      ).size shouldBe 0
     }
 
     "authorise new relationship" in {
