@@ -3,6 +3,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import play.api.http.Status.{CREATED, NOT_FOUND, OK, UNAUTHORIZED, UNPROCESSABLE_ENTITY}
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
+import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.{BusinessData, PropertyData}
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, PPOB}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
@@ -351,5 +352,97 @@ class HipStubControllerISpec
           .toString() should include("""code":"014","text":"No active relationship""")
       }
     }
+  }
+
+  "HipStubController.itsaTaxPayerBusinessDetails" when {
+
+    "results are found" should {
+      "return 200" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val user = UserGenerator
+          .agent("foo")
+          .copy(assignedPrincipalEnrolments =
+            Seq(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567").toEnrolmentKey.get)
+          )
+        await(userService.createUser(user, session.planetId, Some(AG.Agent)))
+
+        await(
+          repo.store(
+            BusinessDetailsRecord(
+              safeId = "safe-1",
+              nino = "AB732851A",
+              mtdId = "WOHV90190595538"
+            ),
+            session.planetId
+          )
+        )
+
+        val result = HipStub.itsaTaxPayerBusinessDetails()
+
+        result should haveStatus(OK)
+        result.json
+          .toString() should include(
+          """"nino":"AB732851A","mtdId":"WOHV90190595538",""".stripMargin
+        )
+      }
+    }
+
+    "no ITSA taxpayer record is found" should {
+      "return a 422 error" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val user = UserGenerator
+          .agent("foo")
+          .copy(assignedPrincipalEnrolments =
+            Seq(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567").toEnrolmentKey.get)
+          )
+        await(userService.createUser(user, session.planetId, Some(AG.Agent)))
+
+        val result = HipStub.itsaTaxPayerBusinessDetails()
+
+        result should haveStatus(UNPROCESSABLE_ENTITY)
+        result.json
+          .toString() should include(
+          """code":"006","text":"Subscription data not found"""
+        )
+      }
+    }
+
+    "there is an issue with the headers" should {
+      "return a 422 error" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = HipStub.itsaTaxPayerBusinessDetails(transmittingSystemHeader = None)
+
+        result should haveStatus(UNPROCESSABLE_ENTITY)
+        result.json
+          .toString() should include(
+          """code":"006","text":"Request could not be processed"""
+        )
+      }
+    }
+
+    "there is an issue with the query parameters" should {
+      "return a 422 error" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = HipStub.itsaTaxPayerBusinessDetails(nino = None, mtdReference = None)
+
+        result should haveStatus(UNPROCESSABLE_ENTITY)
+        result.json
+          .toString() should include(
+          """code":"006","text":"Request could not be processed"""
+        )
+      }
+    }
+
+    "there is no session" should {
+      "return an unauthorized error" in {
+        val result = wsClient.url(s"$url/etmp/RESTAdapter/itsa/taxpayer/business-details").get().futureValue
+
+        result should haveStatus(UNAUTHORIZED)
+        result.json.toString should include("""{"code":"UNAUTHORIZED","reason":"SessionRecordNotFound"}""")
+      }
+    }
+
   }
 }

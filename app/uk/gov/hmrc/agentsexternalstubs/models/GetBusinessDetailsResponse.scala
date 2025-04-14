@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
+import play.api.http.Writeable
 import play.api.libs.json._
 
 import java.time.Instant
@@ -27,4 +28,9 @@ case class GetBusinessDetailsResponse(
 
 object GetBusinessDetailsResponse {
   implicit val format: Format[GetBusinessDetailsResponse] = Json.format[GetBusinessDetailsResponse]
+}
+
+object ItsaTaxpayerBusinessDetailsResponse {
+  def serialise(processingDate: Instant, taxPayerDisplayResponse: BusinessDetailsRecord): JsValue =
+    Json.obj("success" -> Json.toJson(GetBusinessDetailsResponse(processingDate, taxPayerDisplayResponse)))
 }

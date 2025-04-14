@@ -93,6 +93,8 @@ GET           /etmp/RESTAdapter/rosm/agent-relationship                         
 
 POST          /etmp/RESTAdapter/rosm/agent-relationship                                              @uk.gov.hmrc.agentsexternalstubs.controllers.HipStubController.updateAgentRelationship
 
+GET           /etmp/RESTAdapter/itsa/taxpayer/business-details                                      @uk.gov.hmrc.agentsexternalstubs.controllers.HipStubController.itsaTaxPayerBusinessDetails
+
 # Datastream
 POST          /write/audit                                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.DataStreamStubController.writeEvent
 POST          /write/audit/merged                                                                    @uk.gov.hmrc.agentsexternalstubs.controllers.DataStreamStubController.writeEvent

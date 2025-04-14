@@ -24,7 +24,7 @@ import uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.GetRelati
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.services._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.domain.Vrn
+import uk.gov.hmrc.domain.{Nino, Vrn}
 
 import java.time.{Instant, LocalDate, LocalDateTime}
 import java.time.temporal.ChronoUnit
@@ -43,7 +43,7 @@ class HipStubController @Inject() (
 
   def displayAgentRelationship: Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
-      hipStubService.validateHeaders(
+      hipStubService.validateBaseHeaders(
         request.headers.get("X-Transmitting-System"),
         request.headers.get("X-Originating-System"),
         request.headers.get("correlationid"),
@@ -52,7 +52,7 @@ class HipStubController @Inject() (
         case Left(invalidHeadersResponse) =>
           Future.successful(Results.UnprocessableEntity(Json.toJson(invalidHeadersResponse)))
         case _ =>
-          hipStubService.processQueryParameters(
+          hipStubService.processDisplayRelationshipsQueryParameters(
             request.getQueryString("regime"),
             request.getQueryString("refNumber"),
             request.getQueryString("idType"),
@@ -109,7 +109,7 @@ class HipStubController @Inject() (
 
   def updateAgentRelationship: Action[JsValue] = Action(parse.json).async { implicit request =>
     withCurrentSession { session =>
-      hipStubService.validateHeaders(
+      hipStubService.validateBaseHeaders(
         request.headers.get("X-Transmitting-System"),
         request.headers.get("X-Originating-System"),
         request.headers.get("correlationid"),
@@ -176,6 +176,68 @@ class HipStubController @Inject() (
                   Future.successful(
                     Results.NotFound("no business partner record found")
                   )
+              }
+          }
+      }
+    }(SessionRecordNotFound)
+  }
+
+  // HIP  API#5266 ITSA Taxpayer Business Details (previously IF API#1171).
+  // Ignores parts of the API that are not relevant to our use case.
+  def itsaTaxPayerBusinessDetails: Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      hipStubService.validateBaseHeaders(
+        request.headers.get("X-Transmitting-System"),
+        request.headers.get("X-Originating-System"),
+        request.headers.get("correlationid"),
+        request.headers.get("X-Receipt-Date")
+      ) match {
+        case Left(invalidHeadersResponse) =>
+          Future.successful(Results.UnprocessableEntity(Json.toJson(invalidHeadersResponse)))
+        case _ =>
+          hipStubService.validateGetITSABusinessDetailsHeaders(
+            request.headers.get("X-Message-Type"),
+            request.headers.get("X-Regime-Type")
+          ) match {
+            case Left(invalidHeadersResponse) =>
+              Future.successful(Results.UnprocessableEntity(Json.toJson(invalidHeadersResponse)))
+            case _ =>
+              hipStubService.processItsaTaxpayerBusinessDetailsQueryParameters(
+                request.getQueryString("mtdReference"),
+                request.getQueryString("nino")
+              ) match {
+                case Left(invalidQueryParametersResponse) =>
+                  Future.successful(Results.UnprocessableEntity(Json.toJson(invalidQueryParametersResponse)))
+                case Right(taxIdentifier) =>
+                  taxIdentifier match {
+                    case n: Nino =>
+                      recordsService
+                        .getRecordMaybeExt[BusinessDetailsRecord, Nino](n, session.planetId)
+                        .map {
+                          case Some(record) =>
+                            Ok(
+                              ItsaTaxpayerBusinessDetailsResponse.serialise(
+                                processingDate = Instant.now(),
+                                taxPayerDisplayResponse = record
+                              )
+                            )
+                          case None => UnprocessableEntity(Json.toJson(Errors("006", "Subscription data not found")))
+                        }
+                    case m: MtdItId =>
+                      recordsService
+                        .getRecord[BusinessDetailsRecord, MtdItId](m, session.planetId)
+                        .map {
+                          case Some(record) =>
+                            Ok(
+                              ItsaTaxpayerBusinessDetailsResponse.serialise(
+                                processingDate = Instant.now(),
+                                taxPayerDisplayResponse = record
+                              )
+                            )
+                          case None => UnprocessableEntity(Json.toJson(Errors("006", "Subscription data not found")))
+                        }
+
+                  }
               }
           }
       }

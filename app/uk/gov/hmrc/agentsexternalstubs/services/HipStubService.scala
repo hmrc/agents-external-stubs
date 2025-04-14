@@ -18,7 +18,9 @@ package uk.gov.hmrc.agentsexternalstubs.services
 
 import play.api.Logging
 import play.api.libs.json.JsValue
+import uk.gov.hmrc.agentmtdidentifiers.model.MtdItId
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.domain.{Nino, TaxIdentifier}
 
 import java.time.{Instant, LocalDate}
 import java.time.format.{DateTimeFormatter, DateTimeParseException}
@@ -29,7 +31,7 @@ class HipStubService @Inject() extends Logging {
 
   private val requestCouldNotBeProcessed = "Request could not be processed"
 
-  def validateHeaders(
+  def validateBaseHeaders(
     transmittingSystem: Option[String],
     originatingSystem: Option[String],
     correlationid: Option[String],
@@ -55,6 +57,18 @@ class HipStubService @Inject() extends Logging {
       Right(true)
     }
 
+  def validateGetITSABusinessDetailsHeaders(
+    xMessageType: Option[String],
+    xRegimeType: Option[String]
+  ): Either[Errors, Boolean] =
+    if (xMessageType.getOrElse("") != "TaxpayerDisplay") {
+      logger.error("messageType header missing or invalid")
+      Left(Errors("006", requestCouldNotBeProcessed))
+    } else if (xRegimeType.getOrElse("") != "ITSA") {
+      logger.error("regimeType header missing or invalid")
+      Left(Errors("006", requestCouldNotBeProcessed))
+    } else Right(true)
+
   //yyyy-MM-ddTHH:mm:ssZ
   private def isValidTimestamp(timestamp: String): Boolean =
     timestamp.matches("""^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$""") && {
@@ -66,7 +80,7 @@ class HipStubService @Inject() extends Logging {
       }
     }
 
-  def processQueryParameters(
+  def processDisplayRelationshipsQueryParameters(
     regime: Option[String] = None,
     refNumber: Option[String] = None,
     idType: Option[String] = None,
@@ -130,6 +144,34 @@ class HipStubService @Inject() extends Logging {
           authProfile = authProfile
         )
       )
+    }
+
+  def processItsaTaxpayerBusinessDetailsQueryParameters(
+    mtdReference: Option[String] = None,
+    nino: Option[String] = None
+  ): Either[Errors, TaxIdentifier] =
+    (mtdReference, nino) match {
+      case (Some(mtdId), Some(nino)) =>
+        if (MtdItId.isValid(mtdId) && Nino.isValid(nino)) Right(Nino(nino))
+        else {
+          logger.error("mtdItId or nino is invalid")
+          Left(Errors("006", requestCouldNotBeProcessed))
+        }
+      case (Some(mtdId), None) =>
+        if (MtdItId.isValid(mtdId)) Right(MtdItId(mtdId))
+        else {
+          logger.error("mtdItId is invalid")
+          Left(Errors("006", requestCouldNotBeProcessed))
+        }
+      case (None, Some(nino)) =>
+        if (Nino.isValid(nino)) Right(Nino(nino))
+        else {
+          logger.error("nino is invalid")
+          Left(Errors("006", requestCouldNotBeProcessed))
+        }
+      case (None, None) =>
+        logger.error("either nino or mtdId must be supplied")
+        Left(Errors("006", requestCouldNotBeProcessed))
     }
 
   private def isValidDate(date: String): Boolean =

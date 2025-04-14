@@ -579,6 +579,42 @@ trait TestRequests extends ScalaFutures {
           )
         )
         .futureValue
+
+    def itsaTaxPayerBusinessDetails(
+      nino: Option[String] = Some("AB732851A"),
+      mtdReference: Option[String] = Some("WOHV90190595538"),
+      transmittingSystemHeader: Option[String] = Some("HIP"),
+      originatingSystemHeader: Option[String] = Some("MDTP"),
+      correlationIdHeader: Option[String] = Some("dc87872c-3fe2-4dbf-ab72-0bfe8bccc502"),
+      receiptDateHeader: Option[String] = Some("2024-11-22T12:54:24Z"),
+      messageTypeHeader: Option[String] = Some("TaxpayerDisplay"),
+      regimeTypeHeader: Option[String] = Some("ITSA")
+    )(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/etmp/RESTAdapter/itsa/taxpayer/business-details")
+        .withQueryStringParameters(
+          Seq(
+            "nino"         -> nino,
+            "mtdReference" -> mtdReference
+          ).collect { case (name, Some(value: String)) =>
+            (name, value)
+          }: _*
+        )
+        .withHttpHeaders(
+          authContext.headers ++
+            Seq(
+              "X-Transmitting-System" -> transmittingSystemHeader,
+              "X-Originating-System"  -> originatingSystemHeader,
+              "correlationid"         -> correlationIdHeader,
+              "X-Receipt-Date"        -> receiptDateHeader,
+              "X-Message-Type"        -> messageTypeHeader,
+              "X-Regime-Type"         -> regimeTypeHeader
+            ).collect { case (name, Some(value: String)) =>
+              (name, value)
+            }: _*
+        )
+        .get()
+        .futureValue
   }
 
   object DesStub {
