@@ -122,6 +122,12 @@ class GranPermsService @Inject() (
     if (n > 7) "Assistant" else "User"
   }
 
+  private def withItsaSupportingAgentEnrolmentsAdded(clientEnrolments: Seq[Enrolment]): Seq[Enrolment] =
+    clientEnrolments.collect {
+      case e: Enrolment if e.key == "HMRC-MTD-IT" => if (Random.nextInt(10) > 3) e.copy(key = "HMRC-MTD-IT-SUPP") else e
+      case e                                      => e
+    }
+
   def massGenerateAgentsAndClients(
     planetId: String,
     currentUser: User,
@@ -135,10 +141,13 @@ class GranPermsService @Inject() (
           if (genRequest.fillFriendlyNames) Enrolment.from(ek).copy(friendlyName = client.name) else Enrolment.from(ek)
         )
       )
+
+    agentDelegatedEnrolments = withItsaSupportingAgentEnrolmentsAdded(newDelegatedEnrolsForAgent)
+
     _ <- groupsService.updateGroup(
            usersGroup.groupId,
            planetId,
-           grp => grp.copy(delegatedEnrolments = grp.delegatedEnrolments ++ newDelegatedEnrolsForAgent)
+           grp => grp.copy(delegatedEnrolments = grp.delegatedEnrolments ++ agentDelegatedEnrolments)
          )
     agents <- massGenerateAgents(
                 planetId,
