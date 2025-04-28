@@ -17,8 +17,8 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import java.net.URLDecoder
-import akka.stream.Materializer
-import akka.util.ByteString
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.util.ByteString
 
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{JsValue, Reads, Writes}

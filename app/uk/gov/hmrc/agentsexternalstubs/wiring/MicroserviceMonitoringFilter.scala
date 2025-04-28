@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.wiring
 
-import akka.stream.Materializer
+import org.apache.pekko.stream.Materializer
 import app.Routes
 import com.codahale.metrics.MetricRegistry
 

@@ -18,7 +18,7 @@ lazy val root = (project in file("."))
   .settings(
     name := "agents-external-stubs",
     organization := "uk.gov.hmrc",
-    scalaVersion := "2.13.10",
+    scalaVersion := "2.13.12",
     majorVersion := 0,
     scalacOptions ++= Seq(
       "-Xlint:-missing-interpolator,_",

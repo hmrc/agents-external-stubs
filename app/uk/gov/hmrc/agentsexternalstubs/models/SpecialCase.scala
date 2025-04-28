@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 import java.net.URLEncoder
 
-import akka.util.ByteString
+import org.apache.pekko.util.ByteString
 import play.api.http.HttpEntity
 import play.api.libs.json._
 import play.api.mvc.{ResponseHeader, Result}
