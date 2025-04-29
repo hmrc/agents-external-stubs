@@ -12,7 +12,6 @@ object AppDependencies {
     "org.typelevel"        %% "cats-core"                 % "2.13.0",
     "uk.gov.hmrc"          %% "stub-data-generator"       % "1.4.0",
     "io.github.wolfendale" %% "scalacheck-gen-regexp"     % "0.1.3",
-    // "com.typesafe.play"    %% "play-json"                 % "2.9.2"
     "org.playframework" %% "play-json" % "3.0.4"
   )
 
@@ -23,5 +22,4 @@ object AppDependencies {
     "org.scalatestplus"    %% "mockito-3-12"            % "3.2.10.0"   % "test, it",
     "com.github.pathikrit" %% "better-files"            % "3.9.2"      % "test, it"
   )
-
 }

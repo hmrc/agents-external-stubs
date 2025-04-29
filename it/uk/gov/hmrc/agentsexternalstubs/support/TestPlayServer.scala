@@ -2,7 +2,6 @@ package uk.gov.hmrc.agentsexternalstubs.support
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.{Lock, ReentrantLock}
 import com.codahale.metrics.{MetricRegistry, SharedMetricRegistries}
-import com.kenshoo.play.metrics.{DisabledMetricsFilter, Metrics, MetricsFilter}
 import play.api.{Application, Logging}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -11,6 +10,7 @@ import play.api.test.TestServer
 import uk.gov.hmrc.play.audit.http.connector.DatastreamMetrics
 import uk.gov.hmrc.play.bootstrap.audit.DisabledDatastreamMetricsProvider
 import uk.gov.hmrc.play.bootstrap.graphite.GraphiteMetricsModule
+import uk.gov.hmrc.play.bootstrap.metrics.{DisabledMetricsFilter, Metrics, MetricsFilter}
 
 import java.net.ServerSocket
 import scala.annotation.tailrec
@@ -90,7 +90,6 @@ object TestPlayServer extends TestPlayServer
 class TestMetrics extends Metrics {
 
   def defaultRegistry: MetricRegistry = SharedMetricRegistries.getOrCreate("test")
-  override def toJson: String = ""
 }
 
 // This class was copy-pasted from the hmrctest project, which is now deprecated.

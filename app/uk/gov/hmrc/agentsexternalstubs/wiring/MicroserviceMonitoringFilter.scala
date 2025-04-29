@@ -55,7 +55,7 @@ object KeyToPatternMappingFromRoutes {
     }
 }
 
-abstract class MonitoringFilter(kenshooRegistry: MetricRegistry)(implicit ec: ExecutionContext)
+abstract class MonitoringFilter(metricRegistry: MetricRegistry)(implicit ec: ExecutionContext)
     extends Filter with MonitoringKeyMatcher {
 
   override def apply(nextFilter: (RequestHeader) => Future[Result])(requestHeader: RequestHeader): Future[Result] =
@@ -85,10 +85,10 @@ abstract class MonitoringFilter(kenshooRegistry: MetricRegistry)(implicit ec: Ex
         val status = result.header.status
         val timerName = s"Timer-$serviceName"
         val counterName = timerName + "." + status
-        kenshooRegistry.getTimers
-          .getOrDefault(timerName, kenshooRegistry.timer(timerName))
+        metricRegistry.getTimers
+          .getOrDefault(timerName, metricRegistry.timer(timerName))
           .update(System.nanoTime() - start, NANOSECONDS)
-        kenshooRegistry.getCounters.getOrDefault(counterName, kenshooRegistry.counter(counterName)).inc()
+        metricRegistry.getCounters.getOrDefault(counterName, metricRegistry.counter(counterName)).inc()
 
       case Failure(exception: UpstreamErrorResponse) => recordFailure(serviceName, exception.statusCode, start)
       case Failure(_: Throwable)                     => recordFailure(serviceName, 500, start)
@@ -99,10 +99,10 @@ abstract class MonitoringFilter(kenshooRegistry: MetricRegistry)(implicit ec: Ex
     val timerName = s"Timer-$serviceName"
     val counterName =
       if (upstreamResponseCode >= 500) s"Http5xxErrorCount-$serviceName" else s"Http4xxErrorCount-$serviceName"
-    kenshooRegistry.getTimers
-      .getOrDefault(timerName, kenshooRegistry.timer(timerName))
+    metricRegistry.getTimers
+      .getOrDefault(timerName, metricRegistry.timer(timerName))
       .update(System.nanoTime() - startTime, NANOSECONDS)
-    kenshooRegistry.getCounters.getOrDefault(counterName, kenshooRegistry.counter(counterName)).inc()
+    metricRegistry.getCounters.getOrDefault(counterName, metricRegistry.counter(counterName)).inc()
   }
 }
 
