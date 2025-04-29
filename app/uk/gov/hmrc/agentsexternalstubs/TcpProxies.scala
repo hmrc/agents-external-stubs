@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.agentsexternalstubs
 
-import akka.actor.ActorSystem
-import akka.stream.Materializer
-import akka.stream.scaladsl.{Flow, Tcp}
-import akka.util.ByteString
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.stream.scaladsl.{Flow, Tcp}
+import org.apache.pekko.util.ByteString
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig

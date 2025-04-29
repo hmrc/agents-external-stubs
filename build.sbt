@@ -1,7 +1,5 @@
 import sbt._
 
-ThisBuild / libraryDependencySchemes += "org.typelevel" %% "cats-core" % "always"
-
 lazy val scoverageSettings = {
   import scoverage.ScoverageKeys
   Seq(
@@ -18,7 +16,7 @@ lazy val root = (project in file("."))
   .settings(
     name := "agents-external-stubs",
     organization := "uk.gov.hmrc",
-    scalaVersion := "2.13.10",
+    scalaVersion := "2.13.16",
     majorVersion := 0,
     scalacOptions ++= Seq(
       "-Xlint:-missing-interpolator,_",
@@ -32,9 +30,6 @@ lazy val root = (project in file("."))
       "-language:implicitConversions"
     ),
     PlayKeys.playDefaultPort := 9009,
-    resolvers ++= Seq(
-      Resolver.typesafeRepo("releases"),
-    ),
     libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test,
     scoverageSettings,
     Compile / unmanagedResourceDirectories  += baseDirectory.value / "resources",

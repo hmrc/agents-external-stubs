@@ -37,7 +37,7 @@
 
     <logger name="uk.gov.hmrc.agentsexternalstubs.wiring" level="INFO"/>
 
-    <logger name="akka" level="ERROR"/>
+    <logger name="org.apache.pekko" level="ERROR"/>
 
     <logger name="reactivemongo" level="ERROR"/>
 

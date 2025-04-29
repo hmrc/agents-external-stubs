@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.connectors
 
 import java.net.URL
-import com.kenshoo.play.metrics.Metrics
+import uk.gov.hmrc.play.bootstrap.metrics.Metrics
 
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{JsPath, Reads}

@@ -1,7 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.support
 
 import java.util.UUID
-import akka.stream.Materializer
+import org.apache.pekko.stream.Materializer
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
