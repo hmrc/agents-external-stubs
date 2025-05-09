@@ -110,7 +110,8 @@ object UserGenerator {
     nino: String = null,
     groupId: String = null,
     deceased: Boolean = false,
-    utr: String = null
+    utr: String = null,
+    assignedPrincipalEnrolments: Seq[EnrolmentKey] = Seq.empty
   ): User = {
     val gid = Option(groupId).getOrElse(UserGenerator.groupId(userId))
     User(
@@ -120,7 +121,8 @@ object UserGenerator {
       nino = Option(nino).map(Nino.apply).orElse(Option(ninoWithSpaces(userId))),
       groupId = Option(gid),
       deceased = Option(deceased),
-      utr = Option(utr)
+      utr = Option(utr),
+      assignedPrincipalEnrolments = assignedPrincipalEnrolments
     )
   }
 

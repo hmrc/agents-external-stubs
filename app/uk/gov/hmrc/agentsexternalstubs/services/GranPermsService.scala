@@ -98,6 +98,7 @@ class GranPermsService @Inject() (
     planetId: String,
     genRequest: GranPermsGenRequest,
     groupId: String,
+    currentUser: User,
     idNaming: Option[Int => String] = None
   )(implicit ec: ExecutionContext): Future[List[User]] = {
     val idFn: Int => String = idNaming.getOrElse(x => f"${genRequest.idPrefix}%sA$x%04d")
@@ -106,7 +107,8 @@ class GranPermsService @Inject() (
         .agent(
           userId = idFn(x),
           groupId = groupId,
-          credentialRole = credRole()
+          credentialRole = credRole(),
+          assignedPrincipalEnrolments = currentUser.assignedPrincipalEnrolments
         )
       usersService
         .createUser(
@@ -152,7 +154,8 @@ class GranPermsService @Inject() (
     agents <- massGenerateAgents(
                 planetId,
                 genRequest,
-                usersGroup.groupId
+                usersGroup.groupId,
+                currentUser
               )
   } yield (agents, clients)
 
