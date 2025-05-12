@@ -28,6 +28,7 @@ import uk.gov.hmrc.agentsexternalstubs.repository._
 import java.time.LocalDate
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Random
 
 class AgencyCreator @Inject() (
   usersRepository: UsersRepositoryMongo,
@@ -233,6 +234,11 @@ class AgencyCreator @Inject() (
         )
         .map(_ => ())
 
+    def withItsaSupportingAgentEnrolmentsAdded(ek: EnrolmentKey): EnrolmentKey =
+      if (ek.service == "HMRC-MTD-IT") {
+        if (Random.nextInt(10) > 3) ek.copy(service = "HMRC-MTD-IT-SUPP") else ek
+      } else ek
+
     def persistAgentGroup: Future[Unit] = agencyCreationPayload.agentUser.groupId match {
       case Some(groupId) =>
         val agentGroup = Group(
@@ -244,11 +250,13 @@ class AgencyCreator @Inject() (
           principalEnrolments = agencyCreationPayload.agentUser.assignedPrincipalEnrolments.map(Enrolment.from),
           delegatedEnrolments = agencyCreationPayload.clients.zipWithIndex.flatMap { case (client, index) =>
             client.assignedPrincipalEnrolments
-              .map(ek =>
+              .map { ek =>
+                val ekToDelegate = withItsaSupportingAgentEnrolmentsAdded(ek)
+
                 if (agencyCreationPayload.populateFriendlyNames || serviceMustHaveFriendlyNamePrePopulated(ek.service))
-                  Enrolment.from(ek).copy(friendlyName = Some(s"Client ${index + 1}"))
-                else Enrolment.from(ek)
-              )
+                  Enrolment.from(ekToDelegate).copy(friendlyName = Some(s"Client ${index + 1}"))
+                else Enrolment.from(ekToDelegate)
+              }
           }
         )
 

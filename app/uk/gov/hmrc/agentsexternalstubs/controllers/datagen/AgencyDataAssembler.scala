@@ -62,7 +62,7 @@ class AgencyDataAssembler extends Logging {
       planetId,
       agentCode,
       agentId,
-      agentUser.copy(assignedDelegatedEnrolments = clients.flatMap(_.assignedPrincipalEnrolments)),
+      agentUser,
       clients,
       teamMembers,
       populateFriendlyNames
@@ -166,7 +166,8 @@ class AgencyDataAssembler extends Logging {
           userId = f"perf-test-$indexAgency%04d-A$index%05d",
           groupId = agentUser.groupId.orNull,
           credentialRole = "User",
-          nino = f"AB${index + AGENT_NINO_OFFSET + 1}%06dC"
+          nino = f"AB${index + AGENT_NINO_OFFSET + 1}%06dC",
+          assignedPrincipalEnrolments = agentUser.assignedPrincipalEnrolments
         )
     }
 
