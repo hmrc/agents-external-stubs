@@ -44,7 +44,7 @@ class DesIfStubController @Inject() (
   groupsService: GroupsService,
   cc: ControllerComponents
 )(implicit executionContext: ExecutionContext)
-    extends BackendController(cc) with DesCurrentSession {
+    extends BackendController(cc) with ExternalCurrentSession {
 
   import DesIfStubController._
 

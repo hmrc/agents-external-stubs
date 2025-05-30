@@ -21,13 +21,14 @@ import play.api.mvc.{Request, RequestHeader, Result, Results}
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, Planet, User}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
+import uk.gov.hmrc.agentsexternalstubs.util.RequestAwareLogging
 import uk.gov.hmrc.auth.core.AuthorisationException
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpException, NotFoundException}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
-trait CurrentSession extends HttpHelpers {
+trait CurrentSession extends HttpHelpers with RequestAwareLogging {
 
   def authenticationService: AuthenticationService
 
@@ -58,7 +59,16 @@ trait CurrentSession extends HttpHelpers {
                              case None =>
                                request.headers.get(uk.gov.hmrc.http.HeaderNames.xSessionId) match {
                                  case Some(sessionId) =>
-                                   authenticationService.findBySessionId(sessionId)
+                                   authenticationService.findBySessionId(sessionId).map { session =>
+                                     val auth = request.headers.get(HeaderNames.AUTHORIZATION)
+                                     if (auth.nonEmpty && session.nonEmpty)
+                                       logger
+                                         .warn(
+                                           s"[CurrentSession] Could not find session for authToken: ${auth.get}, " +
+                                             s"found session for sessionId: ${session.get.toString}"
+                                         )
+                                     session
+                                   }
                                  case None =>
                                    Future.successful(None)
                                }
@@ -87,12 +97,15 @@ trait CurrentSession extends HttpHelpers {
 }
 
 /*
+     The main purpose of this is not for auth, but to link requests to the relevant planetId.
+     We do not actually deal with auth for external APIs.
+
      When stubbing DES request we can't just rely on the `Authorization` header
      because it is not the same token value issued by MTDP Auth,
      instead we have to exploit fact that `HeaderCarrierConverter` copy over sessionId
      from HTTP session as `X-Session-ID` header and lookup session by its ID.
  */
-trait DesCurrentSession extends DesHttpHelpers {
+trait ExternalCurrentSession extends DesHttpHelpers {
 
   def authenticationService: AuthenticationService
 
