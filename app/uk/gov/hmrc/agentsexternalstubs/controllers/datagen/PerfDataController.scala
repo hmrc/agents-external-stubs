@@ -54,7 +54,7 @@ class PerfDataController @Inject() (
   agencyCreator: AgencyCreator,
   externalDataCleanup: ExternalTestDataCleanupService
 )(implicit ec: ExecutionContext)
-    extends BackendController(cc) with CurrentSession with Logging {
+    extends BackendController(cc) with CurrentSession {
 
   /** Accepts a JSON payload like:
     * <pre>
@@ -124,8 +124,6 @@ class PerfDataController @Inject() (
     knownFactsRepository.ensureIndexes()
     specialCasesRepository.ensureIndexes()
     groupsRepository.ensureIndexes()
-
-    logger.info(s"Re-applied indexes")
   }
 
 }

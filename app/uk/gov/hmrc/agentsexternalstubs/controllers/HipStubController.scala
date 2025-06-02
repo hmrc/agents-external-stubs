@@ -39,7 +39,7 @@ class HipStubController @Inject() (
   recordsService: RecordsService,
   cc: ControllerComponents
 )(implicit executionContext: ExecutionContext)
-    extends BackendController(cc) with DesCurrentSession with Logging {
+    extends BackendController(cc) with ExternalCurrentSession with Logging {
 
   def displayAgentRelationship: Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
