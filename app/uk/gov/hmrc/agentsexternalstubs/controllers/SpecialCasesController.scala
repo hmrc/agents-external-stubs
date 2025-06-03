@@ -104,7 +104,7 @@ class SpecialCasesController @Inject() (
     override def apply(
       rh: RequestHeader
     ): Accumulator[ByteString, Result] =
-      Accumulator.flatten(withMaybeCurrentSession { maybeSession =>
+      Accumulator.flatten(withMaybeCurrentSessionInCache { maybeSession =>
         val planetId = CurrentPlanetId(maybeSession, rh)
         if (appConfig.specialCasesUseTruncatedRequestUriMatch) {
           specialCasesRepository.findByPlanetId(planetId)(25).map {
@@ -131,7 +131,7 @@ class SpecialCasesController @Inject() (
               Accumulator.done(specialCase.response.asResult)
           }
         }
-      }(Request(rh, ()), ec, hc(rh)))
+      }(Request(rh, ()), ec))
   }
 }
 

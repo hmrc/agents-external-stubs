@@ -19,8 +19,8 @@ import play.api.Logger
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.mvc.{Request, RequestHeader, Result, Results}
 import play.mvc.Http.HeaderNames
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, Planet, User}
-import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, Planet}
+import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
 import uk.gov.hmrc.agentsexternalstubs.util.RequestAwareLogging
 import uk.gov.hmrc.auth.core.AuthorisationException
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpException, NotFoundException}
@@ -59,16 +59,7 @@ trait CurrentSession extends HttpHelpers with RequestAwareLogging {
                              case None =>
                                request.headers.get(uk.gov.hmrc.http.HeaderNames.xSessionId) match {
                                  case Some(sessionId) =>
-                                   authenticationService.findBySessionId(sessionId).map { session =>
-                                     val auth = request.headers.get(HeaderNames.AUTHORIZATION)
-                                     if (auth.nonEmpty && session.nonEmpty)
-                                       logger
-                                         .warn(
-                                           s"[CurrentSession] Could not find session for authToken: ${auth.get}, " +
-                                             s"found session for sessionId: ${session.get.toString}"
-                                         )
-                                     session
-                                   }
+                                   authenticationService.findBySessionId(sessionId)
                                  case None =>
                                    Future.successful(None)
                                }
@@ -78,6 +69,16 @@ trait CurrentSession extends HttpHelpers with RequestAwareLogging {
         } yield result
     }
 
+  final def withMaybeCurrentSessionInCache[R](
+    body: Option[AuthenticatedSession] => Future[R]
+  )(implicit request: RequestHeader, ec: ExecutionContext): Future[R] =
+    request.headers.get(uk.gov.hmrc.http.HeaderNames.xSessionId) match {
+      case Some(sessionId) =>
+        authenticationService.findBySessionId(sessionId).flatMap(body)
+      case None =>
+        body(None)
+    }
+
   def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(
     ifSessionNotFound: => Future[Result]
   )(implicit request: Request[T], ec: ExecutionContext, hc: HeaderCarrier): Future[Result] = withMaybeCurrentSession {
@@ -85,15 +86,6 @@ trait CurrentSession extends HttpHelpers with RequestAwareLogging {
     case None          => ifSessionNotFound
   }
 
-  final def withCurrentUser[T](body: (User, AuthenticatedSession) => Future[Result])(
-    ifSessionNotFound: => Future[Result]
-  )(implicit request: Request[T], ec: ExecutionContext, usersService: UsersService, hc: HeaderCarrier): Future[Result] =
-    withCurrentSession { session =>
-      usersService.findByUserId(session.userId, session.planetId).flatMap {
-        case None       => Future.successful(Results.NotFound("CURRENT_USER_NOT_FOUND"))
-        case Some(user) => body(user, session).recover(errorHandler)
-      }
-    }(SessionRecordNotFound)
 }
 
 /*
