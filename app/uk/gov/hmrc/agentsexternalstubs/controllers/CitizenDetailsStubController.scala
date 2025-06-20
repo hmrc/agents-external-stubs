@@ -209,7 +209,11 @@ object CitizenDetailsStubController {
             line2 = a.line2,
             line3 = a.line3,
             postcode = a.postcode,
-            country = a.countryCode.map { case "GB" => "GREAT BRITAIN"; case cc => cc }
+            country = a.countryCode.map {
+              case "GB" => "GREAT BRITAIN"
+              case "PG" => "PAPUA NEW GUINEA"
+              case cc   => cc
+            }
           )
         )
       )
