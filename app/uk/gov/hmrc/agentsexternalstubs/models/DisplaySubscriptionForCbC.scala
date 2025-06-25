@@ -19,7 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import org.scalacheck.Gen
 import play.api.libs.json.{Format, Json, OFormat}
 import uk.gov.hmrc.agentmtdidentifiers.model.CbcId
-import uk.gov.hmrc.agentsexternalstubs.models.Validator.{Validator, check, checkIfOnlyOneSetIsDefined, checkProperty}
+import uk.gov.hmrc.agentsexternalstubs.models.Validator.{Validator, check, checkEachIfSome, checkIfOnlyOneSetIsDefined, checkProperty}
 
 import java.time.LocalDateTime
 
@@ -197,7 +197,7 @@ case class CbCResponseDetail(
   tradingName: Option[String],
   isGBUser: Boolean,
   primaryContact: Seq[CbcContactInformation],
-  secondaryContact: Seq[CbcContactInformation]
+  secondaryContact: Option[Seq[CbcContactInformation]]
 )
 
 object CbCResponseDetail {
@@ -282,7 +282,7 @@ case class CbcSubscriptionRecord(
   tradingName: Option[String],
   isGBUser: Boolean,
   primaryContact: Seq[CbcContactInformation],
-  secondaryContact: Seq[CbcContactInformation]
+  secondaryContact: Option[Seq[CbcContactInformation]]
 ) extends Record {
 
   override def uniqueKey: Option[String] = Option(cbcId).map(CbcSubscriptionRecord.uniqueKey)
@@ -319,7 +319,7 @@ object CbcSubscriptionRecord extends RecordUtils[CbcSubscriptionRecord] {
     tradingName = tradingName,
     isGBUser = isGBUser,
     primaryContact = List(primaryContact),
-    secondaryContact = List(secondaryContact)
+    secondaryContact = Some(List(secondaryContact))
   )
 
   def generateWith(cbcId: String, isUK: Boolean): CbcSubscriptionRecord =
@@ -331,7 +331,7 @@ object CbcSubscriptionRecord extends RecordUtils[CbcSubscriptionRecord] {
   override val validate: Validator[CbcSubscriptionRecord] = Validator(
     checkProperty(_.cbcId, check(CbcId.isValid, s"invalid cbcId")),
     checkProperty(_.primaryContact.head, CbcContactInformation.validate),
-    checkProperty(_.secondaryContact.head, CbcContactInformation.validate)
+    checkEachIfSome(_.secondaryContact, CbcContactInformation.validate)
   )
   override val sanitizers = Seq()
 
