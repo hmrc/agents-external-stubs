@@ -349,7 +349,7 @@ class HipStubControllerISpec
 
         result should haveStatus(UNPROCESSABLE_ENTITY)
         result.json
-          .toString() should include("""code":"014","text":"No active relationship""")
+          .toString() should include("""code":"014","text":"No active relationship found""")
       }
     }
   }

@@ -168,7 +168,7 @@ class HipStubController @Inject() (
                       .deAuthorise(UpdateRelationshipPayload.toRelationshipRecord(payload), session.planetId)
                       .map(result =>
                         if (result.nonEmpty) Created(withProcessingDate).withHeaders(correlationId)
-                        else UnprocessableEntity(Json.toJson(Errors("014", "No active relationship")))
+                        else UnprocessableEntity(Json.toJson(Errors("014", "No active relationship found")))
                       )
                   }
 
