@@ -95,7 +95,7 @@ class UserSanitizerSpec extends BaseUnitSpec {
         User.CR.User
       )
       UserSanitizer(Some(AG.Organisation)).sanitize(User("foo")).credentialRole shouldBe Some(
-        User.CR.Admin
+        User.CR.User
       )
       UserSanitizer(None).sanitize(User("foo")).credentialRole shouldBe None
       UserSanitizer(Some(AG.Organisation))

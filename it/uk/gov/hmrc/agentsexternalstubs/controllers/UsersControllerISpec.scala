@@ -74,17 +74,17 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
         result should haveStatus(201)
       }
 
-      "make user Admin if none exist in the group" in {
+      "give user the credentialRole of 'User' if none exist in the group" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         val result = Users.create(
-          UserGenerator.agent("bar", credentialRole = User.CR.User),
+          UserGenerator.agent("bar"),
           affinityGroup = Some(AG.Agent)
         )
         result should haveStatus(201)
-        Users.get(authSession.userId).json.as[User].credentialRole shouldBe Some(User.CR.Admin)
+        Users.get(authSession.userId).json.as[User].credentialRole shouldBe Some(User.CR.User)
       }
 
-      "return 400 if Admin exists already in the group" in {
+      "return 400 if a user with credentialRole of 'Admin' exists already in the group" in {
         implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         val result1 = Users.create(
           UserGenerator.agent("bar", groupId = "testGroup", credentialRole = User.CR.Admin),
@@ -93,6 +93,20 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
         result1 should haveStatus(201)
         val result2 = Users.create(
           UserGenerator.agent("baz", groupId = "testGroup", credentialRole = User.CR.Admin),
+          affinityGroup = Some(AG.Agent)
+        )
+        result2 should haveStatus(400)
+      }
+
+      "return 400 if a user with credentialRole of 'User' exists already in the group" in {
+        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        val result1 = Users.create(
+          UserGenerator.agent("bar", groupId = "testGroup2", credentialRole = User.CR.User),
+          affinityGroup = Some(AG.Agent)
+        )
+        result1 should haveStatus(201)
+        val result2 = Users.create(
+          UserGenerator.agent("baz", groupId = "testGroup2", credentialRole = User.CR.User),
           affinityGroup = Some(AG.Agent)
         )
         result2 should haveStatus(400)
@@ -195,7 +209,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
           .futureValue
         userService
           .createUser(
-            UserGenerator.individual(userId = "bar", groupId = "group1", credentialRole = "User"),
+            UserGenerator.individual(userId = "bar", groupId = "group1", credentialRole = User.CR.Assistant),
             planetId = "testPlanet",
             affinityGroup = Some(AG.Individual)
           )

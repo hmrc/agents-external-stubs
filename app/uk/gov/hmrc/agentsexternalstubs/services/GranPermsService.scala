@@ -107,7 +107,7 @@ class GranPermsService @Inject() (
         .agent(
           userId = idFn(x),
           groupId = groupId,
-          credentialRole = credRole(),
+          credentialRole = User.CR.Assistant,
           assignedPrincipalEnrolments = currentUser.assignedPrincipalEnrolments
         )
       usersService
@@ -117,11 +117,6 @@ class GranPermsService @Inject() (
           affinityGroup = Some(AG.Agent)
         )
     }
-  }
-
-  def credRole() = {
-    val n = Random.nextInt(10)
-    if (n > 7) "Assistant" else "User"
   }
 
   private def withItsaSupportingAgentEnrolmentsAdded(clientEnrolments: Seq[Enrolment]): Seq[Enrolment] =

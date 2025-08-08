@@ -3,6 +3,7 @@ package uk.gov.hmrc.agentsexternalstubs.stubs
 import org.scalatest.Suite
 import play.api.Application
 import play.api.test.Helpers._
+import uk.gov.hmrc.agentsexternalstubs.models.User.CR
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GroupsService, UsersService}
 
@@ -51,13 +52,14 @@ trait TestStubs {
     planetId: String,
     service: String,
     identifierKey: String,
-    identifierValue: String
+    identifierValue: String,
+    credRole: String = CR.User
   )(implicit ec: ExecutionContext): Unit = await {
     userService.findByUserId(userId, planetId).flatMap {
       case None =>
         userService.createUser(
           UserGenerator
-            .individual(userId)
+            .individual(userId, credentialRole = credRole)
             .copy(assignedPrincipalEnrolments =
               Seq(EnrolmentKey(service, Seq(Identifier(identifierKey, identifierValue))))
             ),
@@ -68,11 +70,12 @@ trait TestStubs {
         userService.updateUser(
           userId,
           planetId,
-          _.copy(assignedPrincipalEnrolments =
-            existingUser.assignedPrincipalEnrolments :+ EnrolmentKey(
+          _.copy(
+            assignedPrincipalEnrolments = existingUser.assignedPrincipalEnrolments :+ EnrolmentKey(
               service,
               Seq(Identifier(identifierKey, identifierValue))
-            )
+            ),
+            credentialRole = Some(credRole)
           )
         )
     }

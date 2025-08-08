@@ -230,29 +230,23 @@ class UsersRepositoryISpec extends AppBaseISpec {
   }
 
   "findAdminByGroupId" should {
-    "return Admin user having provided groupId" in {
+    "return Admin/User user having provided groupId" in {
       val planetId = UUID.randomUUID().toString
       await(
         repo.create(
-          UserGenerator.individual("foo1", groupId = "group1", credentialRole = User.CR.Admin),
+          UserGenerator.individual("foo1", groupId = "group1", credentialRole = User.CR.User),
           planetId = planetId
         )
       )
       await(
         repo.create(
-          UserGenerator.individual("foo2", groupId = "group1", credentialRole = User.CR.User),
+          UserGenerator.individual("foo2", groupId = "group1", credentialRole = User.CR.Assistant),
           planetId = planetId
         )
       )
       await(
         repo.create(
-          UserGenerator.individual("foo3", groupId = "group1", credentialRole = User.CR.Assistant),
-          planetId = planetId
-        )
-      )
-      await(
-        repo.create(
-          UserGenerator.individual("foo4", groupId = "group2", credentialRole = User.CR.Admin),
+          UserGenerator.individual("foo3", groupId = "group2", credentialRole = User.CR.Admin),
           planetId = planetId
         )
       )
@@ -265,7 +259,7 @@ class UsersRepositoryISpec extends AppBaseISpec {
       val result2 = await(repo.findAdminByGroupId("group2", planetId = planetId))
 
       result2.size shouldBe 1
-      result2.map(_.userId) shouldBe Some("foo4")
+      result2.map(_.userId) shouldBe Some("foo3")
 
       val result3 = await(repo.findAdminByGroupId("group3", planetId = planetId))
 

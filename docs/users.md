@@ -25,7 +25,7 @@ Agents External Stubs let you define, authenticate and authorise test users usin
         "groupId" : "6V5Y-V0Q8-4Q2N-N4K0",
         "affinityGroup" : "Individual",
         "confidenceLevel" : 50,
-        "credentialRole" : "Admin",
+        "credentialRole" : "User",
         "nino" : "AB 49 16 66 B",
         "enrolments" : {
           "principal" : [ 
@@ -67,7 +67,7 @@ Agents External Stubs let you define, authenticate and authorise test users usin
         "userId" : "VAT0001",
         "groupId" : "3H2Q-Z6L0-0Z9L-J1B0",
         "affinityGroup" : "Organisation",
-        "credentialRole" : "Admin",
+        "credentialRole" : "User",
         "enrolments" : {
           "principal" : [ 
             {

@@ -92,7 +92,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       group.affinityGroup shouldBe AG.Agent
       user.confidenceLevel shouldBe None
       user.credentialStrength shouldBe None
-      user.credentialRole shouldBe Some("Admin")
+      user.credentialRole shouldBe Some("User")
       user.nino shouldBe Some(Nino("AB 08 00 48 B"))
       user.groupId shouldBe Some("foo-group-1")
       user.name shouldBe Some("Foo Bar")
@@ -146,7 +146,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       group.affinityGroup shouldBe AG.Individual
       user.confidenceLevel shouldBe Some(250)
       user.credentialStrength shouldBe Some("strong")
-      user.credentialRole shouldBe Some("Admin")
+      user.credentialRole shouldBe Some("User")
       user.nino shouldBe Some(Nino("HW827856C"))
       user.groupId shouldBe Some("foo-group-2")
       user.name shouldBe Some("Foo Bar")
@@ -217,7 +217,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       group.affinityGroup shouldBe AG.Individual
       user.confidenceLevel shouldBe Some(50)
       user.credentialStrength shouldBe Some("strong")
-      user.credentialRole shouldBe Some("Admin")
+      user.credentialRole shouldBe Some("User")
       user.nino shouldBe existingUser.nino
       user.groupId shouldBe existingUser.groupId
       user.name shouldBe existingUser.name
@@ -285,7 +285,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       group.affinityGroup shouldBe AG.Individual
       user.confidenceLevel shouldBe Some(250)
       user.credentialStrength shouldBe Some("weak")
-      user.credentialRole shouldBe Some("Admin")
+      user.credentialRole shouldBe Some("User")
       user.nino shouldBe Some(Nino("AB123456A"))
       user.groupId shouldBe Some("testGroupId-b1062cdf-c73f-4a3f-b949-d43354399729")
       user.name shouldBe Some("Foo Bar")

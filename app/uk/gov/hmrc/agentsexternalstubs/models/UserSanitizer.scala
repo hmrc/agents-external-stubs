@@ -38,7 +38,7 @@ case class UserSanitizer(affinityGroup: Option[String]) extends RecordUtils[User
         }
       else user
 
-  private val ensureStrideUserHaveNoGatewayEnrolmentsNorGroupIdNorOtherData: Update = seed =>
+  private val ensureStrideUserHaveNoGatewayEnrolmentsNorGroupIdNorOtherData: Update = _ =>
     user =>
       if (affinityGroup.isEmpty || user.strideRoles.nonEmpty)
         user.copy(
@@ -64,7 +64,7 @@ case class UserSanitizer(affinityGroup: Option[String]) extends RecordUtils[User
         case None                  => user.copy(nino = None)
       }
 
-  private val ensureOnlyIndividualUserHaveConfidenceLevel: Update = seed =>
+  private val ensureOnlyIndividualUserHaveConfidenceLevel: Update = _ =>
     user =>
       affinityGroup match {
         case Some(AG.Individual) =>
@@ -74,13 +74,13 @@ case class UserSanitizer(affinityGroup: Option[String]) extends RecordUtils[User
         case _ => user.copy(confidenceLevel = None)
       }
 
-  private val ensureUserHaveCredentialRole: Update = seed =>
+  private val ensureUserHaveCredentialRole: Update = _ =>
     user =>
       affinityGroup match {
         case Some(AG.Individual | AG.Agent) =>
           if (user.credentialRole.isEmpty) user.copy(credentialRole = Some(User.CR.User)) else user
         case Some(AG.Organisation) =>
-          if (user.credentialRole.isEmpty) user.copy(credentialRole = Some(User.CR.Admin)) else user
+          if (user.credentialRole.isEmpty) user.copy(credentialRole = Some(User.CR.User)) else user
         case _ => user.copy(credentialRole = None)
       }
 
@@ -99,7 +99,7 @@ case class UserSanitizer(affinityGroup: Option[String]) extends RecordUtils[User
       if (user.groupId.isEmpty && affinityGroup.nonEmpty) user.copy(groupId = Some(UserGenerator.groupId(seed)))
       else user
 
-  private val ensurePrincipalEnrolmentKeysAreDistinct: Update = seed =>
+  private val ensurePrincipalEnrolmentKeysAreDistinct: Update = _ =>
     user => {
       user.copy(assignedPrincipalEnrolments =
         user.assignedPrincipalEnrolments

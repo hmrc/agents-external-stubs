@@ -19,7 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers.datagen
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.agentsexternalstubs.controllers.CurrentSession
-import uk.gov.hmrc.agentsexternalstubs.models.{AG, GranPermsGenRequest, GranPermsGenResponse, User}
+import uk.gov.hmrc.agentsexternalstubs.models.{AG, GranPermsGenRequest, GranPermsGenResponse}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GranPermsService, UsersService}
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -50,7 +50,7 @@ class GranPermsController @Inject() (
               Future.successful(BadRequest("Too many clients requested."))
             case (Some(currentUser), mGroup) if !(mGroup.exists(_.affinityGroup == AG.Agent)) =>
               Future.successful(Unauthorized("Currently logged-in user is not an Agent."))
-            case (Some(currentUser), _) if !currentUser.credentialRole.contains(User.CR.Admin) =>
+            case (Some(currentUser), _) if !currentUser.isAdmin =>
               Future.successful(Unauthorized("Currently logged-in user is not a group Admin."))
             case (Some(currentUser), _) if currentUser.groupId.isEmpty =>
               Future.successful(BadRequest("Currently logged-in user has no group id."))
