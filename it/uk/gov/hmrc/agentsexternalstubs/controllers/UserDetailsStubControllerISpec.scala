@@ -37,7 +37,7 @@ class UserDetailsStubControllerISpec extends ServerBaseISpec with TestRequests w
             "email"
           ) and haveProperty[String]("affinityGroup", be("Individual")) and haveProperty[String](
             "credentialRole",
-            be("Admin")
+            be("User")
           ) and haveProperty[String]("description") and haveProperty[String](
             "postCode",
             be(user.address.get.postcode.get)
@@ -71,7 +71,7 @@ class UserDetailsStubControllerISpec extends ServerBaseISpec with TestRequests w
             String
           ]("affinityGroup", be("Organisation")) and haveProperty[String](
             "credentialRole",
-            be("Admin")
+            be("User")
           ) and haveProperty[String]("description") and haveProperty[String](
             "postCode",
             be(user.address.get.postcode.get)
@@ -105,7 +105,7 @@ class UserDetailsStubControllerISpec extends ServerBaseISpec with TestRequests w
             haveProperty[String]("name", be(user.name.get)) and
             haveProperty[String]("email") and
             haveProperty[String]("affinityGroup", be("Agent")) and
-            haveProperty[String]("credentialRole", be("Admin")) and
+            haveProperty[String]("credentialRole", be("User")) and
             haveProperty[String]("description") and
             haveProperty[String]("postCode", be(user.address.get.postcode.get)) and
             haveProperty[String]("agentCode", be(group.agentCode.get)) and

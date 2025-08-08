@@ -239,7 +239,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         userService
           .createUser(
             UserGenerator
-              .individual(userId = "foo2", groupId = "group1")
+              .individual(userId = "foo2", groupId = "group1", credentialRole = User.CR.Assistant)
               .withAssignedPrincipalEnrolment(Enrolment("IR-SA", "UTR", "87654321").toEnrolmentKey.get),
             planetId = "testPlanet",
             affinityGroup = Some(AG.Individual)
@@ -257,7 +257,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         userService
           .createUser(
             UserGenerator
-              .agent(userId = "foo4", groupId = "group2")
+              .agent(userId = "foo4", groupId = "group2", credentialRole = User.CR.Assistant)
               .withAssignedDelegatedEnrolment(Enrolment("IR-SA", "UTR", "87654321").toEnrolmentKey.get),
             planetId = "testPlanet",
             affinityGroup = Some(AG.Agent)
@@ -878,7 +878,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         userService
           .createUser(
             UserGenerator
-              .agent(userId = "foo2", groupId = "group1")
+              .agent(userId = "foo2", groupId = "group1", credentialRole = User.CR.Assistant)
               .withAssignedDelegatedEnrolment(enrolmentKey),
             planetId = "testPlanet",
             affinityGroup = Some(AG.Agent)

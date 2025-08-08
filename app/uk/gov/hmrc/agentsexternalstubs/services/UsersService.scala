@@ -152,8 +152,8 @@ class UsersService @Inject() (
                       // If no affinity group is provided, we leave the user without a group (e.g. Stride users)
                       case (None, None) => Future.successful(None)
                     }
-      // If we are creating a group from scratch, the credential role MUST be admin as there must be an admin in the group
-      credentialRole = if (maybeExistingGroup.isDefined) refinedUser.credentialRole else Some(User.CR.Admin)
+      // If we are creating a group from scratch, the credential role MUST be User as there must be an admin in the group
+      credentialRole = if (maybeExistingGroup.isDefined) refinedUser.credentialRole else Some(User.CR.User)
       newUser = refinedUser.copy(groupId = maybeGroup.map(_.groupId), credentialRole = credentialRole)
       _ <- usersRepository.create(newUser, planetId)
       _ = usersCache.put(userKey, newUser)
@@ -321,7 +321,7 @@ class UsersService @Inject() (
                 .map(_.userId)
                 .contains(user.userId))
             )
-              user.copy(credentialRole = Some(User.CR.Admin))
+              user.copy(credentialRole = Some(User.CR.User))
             else user
           GroupUsersValidator
             .validate(users.filterNot(_.userId == maybeAdmin.userId) :+ maybeAdmin) match {

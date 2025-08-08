@@ -31,7 +31,7 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with TestRequ
         (json \ "agentCode").asOpt[String] shouldBe None
         (json \ "agentFriendlyName").asOpt[String] shouldBe None
         (json \ "agentId").asOpt[String] shouldBe None
-        (json \ "credentialRole").as[String] shouldBe "Admin"
+        (json \ "credentialRole").as[String] shouldBe "User"
         (json \ "description").asOpt[String] shouldBe None
         (json \ "groupId").as[String] shouldBe "foo-group-1"
       }
@@ -62,7 +62,7 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with TestRequ
         (json \ "agentCode").as[String] shouldBe "AAABBBCCCDDD"
         (json \ "agentFriendlyName").as[String] shouldBe "Foo-Foe Accountants"
         (json \ "agentId").as[String] shouldBe "1234567"
-        (json \ "credentialRole").as[String] shouldBe "Admin"
+        (json \ "credentialRole").as[String] shouldBe "User"
         (json \ "description").asOpt[String] shouldBe None
         (json \ "groupId").as[String] shouldBe "foo-group-2"
       }
@@ -185,14 +185,14 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with TestRequ
       )
       Users.create(
         UserGenerator
-          .individual(userId = "foo6-2", name = "B", groupId = "foo-group-6"),
+          .individual(userId = "foo6-2", name = "B", groupId = "foo-group-6", credentialRole = User.CR.Assistant),
         affinityGroup = Some(AG.Individual)
       )
 
       val session2: AuthenticatedSession = SignIn.signInAndGetSession("bar", planetId = "saturn")
       Users.create(
         UserGenerator
-          .individual(userId = "foo6-3", name = "C", groupId = "foo-group-6"),
+          .individual(userId = "foo6-3", name = "C", groupId = "foo-group-6", credentialRole = User.CR.Assistant),
         affinityGroup = Some(AG.Individual)
       )(session2)
 

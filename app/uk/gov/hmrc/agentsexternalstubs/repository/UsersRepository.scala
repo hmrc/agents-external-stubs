@@ -134,7 +134,12 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: Ex
 
   override def findAdminByGroupId(groupId: String, planetId: String): Future[Option[User]] =
     collection
-      .find(Filters.equal(KEYS, keyOf(User.groupIdWithCredentialRoleKey(groupId, User.CR.Admin), planetId)))
+      .find(
+        Filters.or(
+          Filters.equal(KEYS, keyOf(User.groupIdWithCredentialRoleKey(groupId, User.CR.User), planetId)),
+          Filters.equal(KEYS, keyOf(User.groupIdWithCredentialRoleKey(groupId, User.CR.Admin), planetId))
+        )
+      )
       .headOption()
       .map(_.map(_.value))
 

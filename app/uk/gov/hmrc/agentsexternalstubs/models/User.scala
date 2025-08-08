@@ -50,7 +50,9 @@ case class User(
     Seq(
       Some(User.userIdKey(userId)),
       nino.map(n => User.ninoIndexKey(n.value)),
-      credentialRole.find(_ == User.CR.Admin).flatMap(_ => groupId.map(User.groupIdIndexKey))
+      credentialRole
+        .find(role => role == User.CR.Admin || role == User.CR.User)
+        .flatMap(_ => groupId.map(User.groupIdIndexKey))
     ).collect { case Some(x) =>
       x
     }
@@ -62,14 +64,13 @@ case class User(
       groupId
         .flatMap(gid => credentialRole.map(cr => (gid, cr)))
         .map(gidcr => User.groupIdWithCredentialRoleKey(gidcr._1, gidcr._2)),
-      utr.map(u => User.utrIndexKey(u.toString()))
+      utr.map(u => User.utrIndexKey(u))
     ).collect { case Some(x) => x } ++ assignedPrincipalEnrolments.map(ek =>
       User.assignedPrincipalEnrolmentIndexKey(ek.tag)
     ) ++ assignedDelegatedEnrolments.map(ek => User.assignedDelegatedEnrolmentIndexKey(ek.tag))
 
   def isDeceased: Boolean = deceased.contains(true)
-  def isAdmin: Boolean = credentialRole.contains(User.CR.Admin)
-  def isUser: Boolean = credentialRole.contains(User.CR.User)
+  def isAdmin: Boolean = credentialRole.contains(User.CR.Admin) | credentialRole.contains(User.CR.User)
   def isAssistant: Boolean = credentialRole.contains(User.CR.Assistant)
 
   lazy val firstName: Option[String] =
@@ -78,8 +79,6 @@ case class User(
       .map(a => if (a.nonEmpty) a.mkString(" ") else Generator.get(Generator.forename())(userId).getOrElse("John"))
 
   def lastName: Option[String] = name.map(_.split(" ").last)
-
-  def withRecordId(recordId: String): User = copy(recordIds = recordIds :+ recordId)
 
   final val facts: String => Option[String] = {
     case n if n.toLowerCase.contains("postcode") => address.flatMap(_.postcode)

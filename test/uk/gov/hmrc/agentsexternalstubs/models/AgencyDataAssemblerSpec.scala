@@ -41,7 +41,7 @@ class AgencyDataAssemblerSpec extends BaseUnitSpec {
     payload.agentUser.userId shouldEqual "perf-test-agent-001"
     payload.agentUser.groupId shouldBe defined
     payload.agentUser.name shouldEqual Some("Main Agent User 001")
-    payload.agentUser.credentialRole shouldEqual Some(User.CR.Admin)
+    payload.agentUser.credentialRole shouldEqual Some(User.CR.User)
     payload.agentUser.assignedPrincipalEnrolments should have size 1
   }
   "buildClientsForAgent" should {

@@ -340,18 +340,18 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
         val groupId = randomId
 
         givenAnAuthenticatedUser(
-          User(userOrganisationId, groupId = Some(groupId)),
+          User(userOrganisationId, groupId = Some(groupId), credentialRole = Some(CR.User)),
           planetId = userId,
           affinityGroup = Some(AG.Individual)
         )
         givenUserEnrolledFor(userOrganisationId, planetId = userId, "HMRC-MTD-IT", "MTDITID", "236216873678126")
 
         val authToken: String = givenAnAuthenticatedUser(
-          User(userId, groupId = Some(groupId)),
+          User(userId, groupId = Some(groupId), credentialRole = Some(CR.Assistant)),
           planetId = userId,
           affinityGroup = Some(AG.Individual)
         )
-        givenUserEnrolledFor(userId, planetId = userId, "IR-SA", "UTR", "1234567890")
+        givenUserEnrolledFor(userId, planetId = userId, "IR-SA", "UTR", "1234567890", credRole = CR.Assistant)
 
         val enrolments = await(
           authConnector
@@ -463,21 +463,14 @@ class AuthStubControllerISpec extends ServerBaseISpec with TestRequests with Tes
 
       "retrieve allEnrolments of a member of a group" in {
         val userId = randomId
-        val userOrganisationId = randomId
         val groupId = randomId
 
-        givenAnAuthenticatedUser(
-          User(userOrganisationId, groupId = Some(groupId)),
-          planetId = userId,
-          affinityGroup = Some(AG.Organisation)
-        )
-        givenUserEnrolledFor(userOrganisationId, planetId = userId, "IR-SA", "UTR", "1234567890")
-
-        val authToken: String = givenAnAuthenticatedUser(
+        val authToken = givenAnAuthenticatedUser(
           User(userId, groupId = Some(groupId), credentialRole = Some(CR.User)),
           planetId = userId,
           affinityGroup = Some(AG.Organisation)
         )
+        givenUserEnrolledFor(userId, planetId = userId, "IR-SA", "UTR", "1234567890")
         givenUserEnrolledFor(userId, planetId = userId, "HMRC-MTD-IT", "MTDITID", "236216873678126")
 
         val enrolments = await(

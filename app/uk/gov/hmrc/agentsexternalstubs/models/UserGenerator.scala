@@ -85,7 +85,7 @@ object UserGenerator {
   def individual(
     userId: String = UUID.randomUUID().toString,
     confidenceLevel: Int = 50,
-    credentialRole: String = User.CR.User,
+    credentialRole: String = null,
     nino: String = null,
     name: String = null,
     dateOfBirth: String = null,
@@ -131,7 +131,7 @@ object UserGenerator {
       userId = userId,
       name = Option(name).orElse(Option(UserGenerator.nameForOrganisation(userId))),
       groupId = Option(groupId).orElse(Option(UserGenerator.groupId(userId))),
-      credentialRole = Some(User.CR.Admin)
+      credentialRole = Some(User.CR.User)
     )
 
 }

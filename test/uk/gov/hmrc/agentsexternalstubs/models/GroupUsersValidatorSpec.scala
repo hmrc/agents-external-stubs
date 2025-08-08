@@ -28,35 +28,65 @@ class GroupUsersValidatorSpec extends BaseUnitSpec {
     "validate group with users without affinity" in {
       GroupUsersValidator.validate(Seq(User("foo", credentialRole = Some("Admin")))) shouldBe Valid(())
       GroupUsersValidator.validate(Seq(User("foo", credentialRole = Some("Admin")), User("bar"))) shouldBe Valid(())
+      GroupUsersValidator.validate(Seq(User("foo", credentialRole = Some("User")))) shouldBe Valid(())
+      GroupUsersValidator.validate(Seq(User("foo", credentialRole = Some("User")), User("bar"))) shouldBe Valid(())
     }
-    "validate only when group is empty or have one and at most one Admin" in {
+    "validate group of individuals must always contain only one Admin/User" in {
       GroupUsersValidator.validate(Seq(UserGenerator.individual(credentialRole = "Admin"))) shouldBe Valid(())
       GroupUsersValidator.validate(Seq(UserGenerator.individual(credentialRole = "Admin"), User("foo"))) shouldBe Valid(
         ()
       )
-      GroupUsersValidator.validate(Seq(UserGenerator.agent(credentialRole = "Admin"))) shouldBe Valid(())
-      GroupUsersValidator.validate(Seq(UserGenerator.agent(credentialRole = "Admin"), User("foo"))) shouldBe Valid(())
+      GroupUsersValidator.validate(Seq(UserGenerator.individual(credentialRole = "Assistant"))).isInvalid shouldBe true
+      GroupUsersValidator.validate(Seq(UserGenerator.individual(credentialRole = "User"))) shouldBe Valid(())
+      GroupUsersValidator.validate(Seq(UserGenerator.individual(credentialRole = "User"), User("foo"))) shouldBe Valid(
+        ()
+      )
 
-      GroupUsersValidator.validate(
-        Seq(UserGenerator.individual(credentialRole = "Admin"), UserGenerator.individual(credentialRole = "User"))
-      ) shouldBe Valid(())
-      GroupUsersValidator.validate(
-        Seq(UserGenerator.individual(credentialRole = "Admin"), UserGenerator.individual(credentialRole = "Assistant"))
-      ) shouldBe Valid(())
+      GroupUsersValidator
+        .validate(
+          Seq(
+            UserGenerator.individual(credentialRole = "Admin"),
+            UserGenerator.individual(credentialRole = "User")
+          )
+        )
+        .isInvalid shouldBe true
       GroupUsersValidator.validate(
         Seq(
           UserGenerator.individual(credentialRole = "Admin"),
+          UserGenerator.individual(credentialRole = "Assistant")
+        )
+      ) shouldBe Valid(())
+      GroupUsersValidator.validate(
+        Seq(
           UserGenerator.individual(credentialRole = "User"),
           UserGenerator.individual(credentialRole = "Assistant")
         )
       ) shouldBe Valid(())
-
-      GroupUsersValidator.validate(
-        Seq(
-          UserGenerator.agent(groupId = "A", credentialRole = "Admin"),
-          UserGenerator.agent(groupId = "A", credentialRole = "User")
+      GroupUsersValidator
+        .validate(
+          Seq(
+            UserGenerator.individual(credentialRole = "Admin"),
+            UserGenerator.individual(credentialRole = "User"),
+            UserGenerator.individual(credentialRole = "Assistant")
+          )
         )
-      ) shouldBe Valid(())
+        .isInvalid shouldBe true
+    }
+    "validate group of agents must always contain only one Admin/User" in {
+      GroupUsersValidator.validate(Seq(UserGenerator.agent(credentialRole = "Admin"))) shouldBe Valid(())
+      GroupUsersValidator.validate(Seq(UserGenerator.agent(credentialRole = "Admin"), User("foo"))) shouldBe Valid(())
+      GroupUsersValidator.validate(Seq(UserGenerator.agent(credentialRole = "Assistant"))).isInvalid shouldBe true
+      GroupUsersValidator.validate(Seq(UserGenerator.agent(credentialRole = "User"))) shouldBe Valid(())
+      GroupUsersValidator.validate(Seq(UserGenerator.agent(credentialRole = "User"), User("foo"))) shouldBe Valid(())
+
+      GroupUsersValidator
+        .validate(
+          Seq(
+            UserGenerator.agent(groupId = "A", credentialRole = "Admin"),
+            UserGenerator.agent(groupId = "A", credentialRole = "User")
+          )
+        )
+        .isInvalid shouldBe true
       GroupUsersValidator.validate(
         Seq(
           UserGenerator.agent(groupId = "A", credentialRole = "Admin"),
@@ -65,19 +95,28 @@ class GroupUsersValidatorSpec extends BaseUnitSpec {
       ) shouldBe Valid(())
       GroupUsersValidator.validate(
         Seq(
-          UserGenerator.agent(groupId = "A", credentialRole = "Admin"),
           UserGenerator.agent(groupId = "A", credentialRole = "User"),
           UserGenerator.agent(groupId = "A", credentialRole = "Assistant")
         )
       ) shouldBe Valid(())
-
-      GroupUsersValidator.validate(Seq(UserGenerator.individual(credentialRole = "User"))).isInvalid shouldBe true
+      GroupUsersValidator
+        .validate(
+          Seq(
+            UserGenerator.agent(groupId = "A", credentialRole = "Admin"),
+            UserGenerator.agent(groupId = "A", credentialRole = "User"),
+            UserGenerator.agent(groupId = "A", credentialRole = "Assistant")
+          )
+        )
+        .isInvalid shouldBe true
     }
     "validate only if group have at most one Organisation" in {
       GroupUsersValidator.validate(Seq(UserGenerator.organisation())) shouldBe Valid(())
-      GroupUsersValidator.validate(
-        Seq(UserGenerator.organisation(), UserGenerator.individual(credentialRole = "User"))
-      ) shouldBe Valid(())
+      GroupUsersValidator
+        .validate(Seq(UserGenerator.organisation(), UserGenerator.individual(credentialRole = "User")))
+        .isInvalid shouldBe true
+      GroupUsersValidator
+        .validate(Seq(UserGenerator.organisation(), UserGenerator.individual(credentialRole = "Admin")))
+        .isInvalid shouldBe true
       GroupUsersValidator.validate(
         Seq(UserGenerator.organisation(), UserGenerator.individual(credentialRole = "Assistant"))
       ) shouldBe Valid(())
@@ -92,6 +131,9 @@ class GroupUsersValidatorSpec extends BaseUnitSpec {
     "validate only if group is not only consisting of Assistants" in {
       GroupUsersValidator.validate(
         Seq(UserGenerator.individual(credentialRole = "Admin"), UserGenerator.individual(credentialRole = "Assistant"))
+      ) shouldBe Valid(())
+      GroupUsersValidator.validate(
+        Seq(UserGenerator.individual(credentialRole = "User"), UserGenerator.individual(credentialRole = "Assistant"))
       ) shouldBe Valid(())
       GroupUsersValidator.validate(
         Seq(UserGenerator.organisation(), UserGenerator.individual(credentialRole = "Assistant"))

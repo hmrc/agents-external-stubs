@@ -84,7 +84,7 @@ class AgencyDataAssembler extends Logging {
       userId = userId,
       groupId = Some(UserGenerator.groupId(userId)),
       name = Option(f"Main Agent User $indexAgency%03d"),
-      credentialRole = Some(CR.Admin),
+      credentialRole = Some(CR.User),
       assignedPrincipalEnrolments = principalEnrolments
     )
   }
@@ -116,7 +116,7 @@ class AgencyDataAssembler extends Logging {
               userId = userId,
               groupId = UserGenerator.groupId(userId),
               confidenceLevel = 250,
-              credentialRole = User.CR.Admin,
+              credentialRole = User.CR.User,
               nino = f"AB${index + 1}%06dC"
             )
             .withAssignedPrincipalEnrolment(service = serviceKey, identifiers)
