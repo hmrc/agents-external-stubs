@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 /** Request for generating large number of users for the purpose of testing Granular Permissions.
   */
@@ -53,7 +53,7 @@ object GranPermsGenRequest {
 //    "HMRC-PILLAR2-ORG"   -> 1.0
   )
 
-  implicit val format = Json.format[GranPermsGenRequest]
+  implicit val format: OFormat[GranPermsGenRequest] = Json.format[GranPermsGenRequest]
 }
 
 case class GranPermsGenResponse(
@@ -62,5 +62,5 @@ case class GranPermsGenResponse(
 )
 
 object GranPermsGenResponse {
-  implicit val format = Json.format[GranPermsGenResponse]
+  implicit val format: OFormat[GranPermsGenResponse] = Json.format[GranPermsGenResponse]
 }

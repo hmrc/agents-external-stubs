@@ -16,13 +16,13 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 case class VatKnownFacts(vrn: String, dateOfReg: String)
 
 object VatKnownFacts {
 
-  implicit val format = Json.format[VatKnownFacts]
+  implicit val format: OFormat[VatKnownFacts] = Json.format[VatKnownFacts]
 
   def fromVatCustomerInformationRecord(
     vrn: String,

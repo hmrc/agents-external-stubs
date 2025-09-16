@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import play.api.http.Writeable
 import play.api.libs.json._
 
 import java.time.Instant

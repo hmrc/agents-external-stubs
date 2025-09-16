@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers.datagen
 
-import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.agentsexternalstubs.controllers.CurrentSession
