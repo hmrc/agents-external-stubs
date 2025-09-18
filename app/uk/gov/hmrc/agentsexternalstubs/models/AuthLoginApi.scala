@@ -15,7 +15,7 @@
  */
 
 package uk.gov.hmrc.agentsexternalstubs.models
-import play.api.libs.json.{Format, Json, Reads}
+import play.api.libs.json.{Format, Json, OFormat, Reads}
 
 object AuthLoginApi {
 
@@ -127,7 +127,7 @@ object AuthLoginApi {
     )
 
     object ItmpAddress {
-      implicit val formats = Json.format[ItmpAddress]
+      implicit val formats: OFormat[ItmpAddress] = Json.format[ItmpAddress]
     }
 
     case class ItmpData(
@@ -139,7 +139,7 @@ object AuthLoginApi {
     )
 
     object ItmpData {
-      implicit val formats = Json.format[ItmpData]
+      implicit val formats: OFormat[ItmpData] = Json.format[ItmpData]
     }
 
     implicit val formats: Format[Request] = Json.format[Request]

@@ -16,7 +16,10 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import org.scalamock.scalatest.MockFactory
+import org.mockito.Mockito.when
+import org.mockito.ArgumentMatchers.any
+import org.mockito.stubbing.OngoingStubbing
+import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{AnyContentAsEmpty, ControllerComponents, Result}
 import play.api.test.{FakeHeaders, FakeRequest, Helpers}
@@ -28,7 +31,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, SessionKeys}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class KnownFactsControllerSpec extends BaseUnitSpec with MockFactory {
+class KnownFactsControllerSpec extends BaseUnitSpec {
 
   trait TestScope {
     val mockKnownFactsRepo: KnownFactsRepository = mock[KnownFactsRepository]
@@ -64,36 +67,26 @@ class KnownFactsControllerSpec extends BaseUnitSpec with MockFactory {
     )
 
     // known facts repo mocks
-    def expectFindKnownFactByEnrolmentKey(knownFacts: Option[KnownFacts]) =
-      (mockKnownFactsRepo
-        .findByEnrolmentKey(_: EnrolmentKey, _: String)(_: ExecutionContext))
-        .expects(*, *, *)
-        .returns(Future.successful(knownFacts))
+    def expectFindKnownFactByEnrolmentKey(knownFacts: Option[KnownFacts]): OngoingStubbing[Future[Option[KnownFacts]]] =
+      when(mockKnownFactsRepo.findByEnrolmentKey(any[EnrolmentKey], any[String])(any[ExecutionContext]))
+        .thenReturn(Future.successful(knownFacts))
 
-    def expectUpsertKnownFacts =
-      (mockKnownFactsRepo
-        .upsert(_: KnownFacts, _: String))
-        .expects(*, *)
-        .returns(Future.unit)
+    def expectUpsertKnownFacts: OngoingStubbing[Future[Unit]] =
+      when(mockKnownFactsRepo.upsert(any[KnownFacts], any[String]))
+        .thenReturn(Future.unit)
 
-    def expectDeleteKnownFacts =
-      (mockKnownFactsRepo
-        .delete(_: EnrolmentKey, _: String))
-        .expects(*, *)
-        .returns(Future.unit)
+    def expectDeleteKnownFacts: OngoingStubbing[Future[Unit]] =
+      when(mockKnownFactsRepo.delete(any[EnrolmentKey], any[String]))
+        .thenReturn(Future.unit)
 
     // user repo mocks
-    def expectFindUserByPrincipalEnrolmentKey(user: Option[User] = None) =
-      (mockUsersRepo
-        .findByPrincipalEnrolmentKey(_: EnrolmentKey, _: String))
-        .expects(*, *)
-        .returns(Future.successful(user))
+    def expectFindUserByPrincipalEnrolmentKey(user: Option[User] = None): OngoingStubbing[Future[Option[User]]] =
+      when(mockUsersRepo.findByPrincipalEnrolmentKey(any[EnrolmentKey], any[String]))
+        .thenReturn(Future.successful(user))
 
-    def expectFindUserByDelegatedEnrolmentKey(user: Seq[User] = Seq.empty) =
-      (mockUsersRepo
-        .findByDelegatedEnrolmentKey(_: EnrolmentKey, _: String)(_: Int))
-        .expects(*, *, *)
-        .returns(Future.successful(user))
+    def expectFindUserByDelegatedEnrolmentKey(user: Seq[User] = Seq.empty): OngoingStubbing[Future[Seq[User]]] =
+      when(mockUsersRepo.findByDelegatedEnrolmentKey(any[EnrolmentKey], any[String])(any[Int]))
+        .thenReturn(Future.successful(user))
 
     val enrolmentKeyStr = "HMRC-MTD-IT~MTDITID~XAAA12345678901"
     val enrolment: EnrolmentKey = EnrolmentKey(enrolmentKeyStr)

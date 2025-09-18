@@ -17,7 +17,6 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
 import play.api.Logging
-import play.api.libs.json.JsValue
 import uk.gov.hmrc.agentmtdidentifiers.model.MtdItId
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.domain.{Nino, TaxIdentifier}

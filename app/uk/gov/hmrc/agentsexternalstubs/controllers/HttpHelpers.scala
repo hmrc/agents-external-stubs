@@ -25,7 +25,7 @@ import scala.util.{Failure, Success, Try}
 case class ErrorResponse(code: String, reason: Option[String])
 
 object ErrorResponse {
-  implicit val formats = Json.format[ErrorResponse]
+  implicit val formats: OFormat[ErrorResponse] = Json.format[ErrorResponse]
 }
 
 trait HttpHelpers {

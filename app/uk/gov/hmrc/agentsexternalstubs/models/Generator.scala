@@ -22,6 +22,8 @@ import uk.gov.hmrc.domain.{Modulus11Check, Modulus23Check, Nino}
 import uk.gov.hmrc.smartstub.{Addresses, Companies, Names, Temporal, ToLong}
 import wolfendale.scalacheck.regexp.RegexpGen
 
+import java.util.Locale
+
 object Generator extends Names with Temporal with Companies with Addresses {
 
   implicit val tls: ToLong[String] = new ToLong[String] {
@@ -223,7 +225,8 @@ object Generator extends Names with Temporal with Companies with Addresses {
   lazy val `date_dd/MM/yy` = DateTimeFormatter.ofPattern("dd/MM/yy")
   lazy val `date_dd/MM/yyyy` = DateTimeFormatter.ofPattern("dd/MM/yyyy")
   lazy val `date_yyyy-MM-dd` = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-  lazy val `date_MMM` = DateTimeFormatter.ofPattern("MMM")
+  lazy val `date_MMM` =
+    DateTimeFormatter.ofPattern("MMM").withLocale(Locale.US) // As of Java 17 the GB locale can return 4 letter months
 
   lazy val dateDDMMYYGen: Gen[String] = date(1970, 2020).map(_.format(`date_dd/MM/yy`))
   lazy val dateDDMMYYYYGen: Gen[String] = date(1970, 2020).map(_.format(`date_dd/MM/yyyy`))

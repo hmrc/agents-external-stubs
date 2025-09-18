@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 import java.time.{LocalDate, LocalDateTime}
 
@@ -34,5 +34,5 @@ case class AmlsSubscriptionStatusResponse(
 )
 
 object AmlsSubscriptionStatusResponse {
-  implicit val format = Json.format[AmlsSubscriptionStatusResponse]
+  implicit val format: OFormat[AmlsSubscriptionStatusResponse] = Json.format[AmlsSubscriptionStatusResponse]
 }
