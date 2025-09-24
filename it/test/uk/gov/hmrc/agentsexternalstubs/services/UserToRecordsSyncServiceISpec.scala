@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentmtdidentifiers.model.{Enrolment, EnrolmentKey, Identifier, _}
+import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, CbcId, MtdItId, PlrId, PptRef, Utr}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.UkAddress
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
