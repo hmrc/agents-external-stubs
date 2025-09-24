@@ -23,5 +23,5 @@ object AppDependencies {
     "uk.gov.hmrc"          %% s"bootstrap-test-$playVer"  % bootstrapVer,
     "uk.gov.hmrc.mongo"    %% s"hmrc-mongo-test-$playVer" % mongoVer,
     "com.github.pathikrit" %% "better-files"              % "3.9.2"
-  ).map(_ % "test, it")
+  ).map(_ % Test)
 }

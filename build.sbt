@@ -1,4 +1,5 @@
-import sbt._
+import sbt.*
+import uk.gov.hmrc.DefaultBuildSettings
 
 lazy val scoverageSettings = {
   import scoverage.ScoverageKeys
@@ -40,19 +41,37 @@ lazy val root = (project in file("."))
     Compile / scalafmtOnCompile := true,
     Test / scalafmtOnCompile := true
   )
-  .configs(IntegrationTest)
+//  .configs(IntegrationTest)
   .settings(
     //fix for scoverage compile errors for scala 2.13.10
     libraryDependencySchemes ++= Seq("org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always)
   )
-  .settings(
-    Defaults.itSettings,
-    IntegrationTest / Keys.fork := false,
-    IntegrationTest / unmanagedSourceDirectories += baseDirectory(_ / "it").value,
-    IntegrationTest / parallelExecution := false,
-    IntegrationTest / scalafmtOnCompile := true
-)
+//  .settings(
+//    Defaults.itSettings,
+//    IntegrationTest / Keys.fork := false,
+//    IntegrationTest / unmanagedSourceDirectories += baseDirectory(_ / "it").value,
+//    IntegrationTest / parallelExecution := false,
+//    IntegrationTest / scalafmtOnCompile := true
+//)
   .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
   .disablePlugins(JUnitXmlReportPlugin)  //To prevent https://github.com/scalatest/scalatest/issues/1427
 
-inConfig(IntegrationTest)(org.scalafmt.sbt.ScalafmtPlugin.scalafmtConfigSettings)
+lazy val it = project
+  .enablePlugins(PlayScala)
+  .dependsOn(root % "test->test") // the "test->test" allows reusing test code and test dependencies
+  .settings(DefaultBuildSettings.itSettings())
+  .settings(
+//    Keys.fork := false,
+//    Compile / unmanagedSourceDirectories += baseDirectory(_ / "it").value,
+    ThisBuild / majorVersion := 1,
+    ThisBuild / scalaVersion := "2.13.16",
+//    parallelExecution := false,
+//    scalafmtOnCompile := true
+  )
+  .settings(libraryDependencies ++= AppDependencies.test)
+  .settings(
+    Compile / scalafmtOnCompile := true,
+    Test / scalafmtOnCompile := true
+  )
+
+//inConfig(IntegrationTest)(org.scalafmt.sbt.ScalafmtPlugin.scalafmtConfigSettings)
