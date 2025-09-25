@@ -20,10 +20,10 @@ import play.api.libs.json._
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.domain.AgentCode
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
+import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.play.bootstrap.metrics.Metrics
 
-import java.net.URL
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -34,10 +34,13 @@ object GroupInfo {
 }
 
 @Singleton
-class UsersGroupsSearchConnector @Inject() (appConfig: AppConfig, httpGet: HttpGet, metrics: Metrics) {
+class UsersGroupsSearchConnector @Inject() (appConfig: AppConfig, http: HttpClientV2, metrics: Metrics) {
 
   def getGroupInfo(groupId: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[GroupInfo] = {
-    val url = new URL(appConfig.usersGroupsSearchUrl + s"/users-groups-search/groups/$groupId")
-    httpGet.GET[GroupInfo](url.toString)
+    val url = appConfig.usersGroupsSearchUrl + s"/users-groups-search/groups/$groupId"
+    http
+      .get(url"$url")
+      .execute[GroupInfo]
+
   }
 }
