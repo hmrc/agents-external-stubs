@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.connectors
 
-import org.scalatest.{Assertion, Suite}
+import org.scalatest.Suite
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.ws.WSClient
