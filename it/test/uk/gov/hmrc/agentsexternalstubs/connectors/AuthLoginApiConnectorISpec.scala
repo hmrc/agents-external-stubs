@@ -24,13 +24,14 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests, WireMockSupport}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpGet, HttpPost}
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.HeaderCarrier
 
 class AuthLoginApiConnectorISpec extends ServerBaseISpec with TestRequests with TestStubs with WireMockSupport {
 
   lazy val wsClient = app.injector.instanceOf[WSClient]
-  lazy val httpPostWithGet = app.injector.instanceOf[HttpPost with HttpGet]
-  lazy val connector = new AuthLoginApiConnector(TestAppConfig(wireMockBaseUrlAsString, wireMockPort), httpPostWithGet)
+  lazy val httpPost = app.injector.instanceOf[HttpClientV2]
+  lazy val connector = new AuthLoginApiConnector(TestAppConfig(wireMockBaseUrlAsString, wireMockPort), httpPost)
 
   "AuthLoginApiConnector" when {
 
