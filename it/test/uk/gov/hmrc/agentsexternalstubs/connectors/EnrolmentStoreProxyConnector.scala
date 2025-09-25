@@ -23,10 +23,10 @@ import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Vrn}
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.domain.{AgentCode, Nino, TaxIdentifier}
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpDelete, HttpGet, HttpPost, HttpResponse, UpstreamErrorResponse}
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
 import uk.gov.hmrc.play.bootstrap.metrics.Metrics
 
-import java.net.URL
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -43,11 +43,8 @@ object ES8Request {
 }
 
 @Singleton
-class EnrolmentStoreProxyConnector @Inject() (
-  appConfig: AppConfig,
-  http: HttpGet with HttpPost with HttpDelete,
-  metrics: Metrics
-) extends TaxIdentifierSupport {
+class EnrolmentStoreProxyConnector @Inject() (appConfig: AppConfig, http: HttpClientV2, metrics: Metrics)
+  extends TaxIdentifierSupport {
 
   // ES0 - principal
   def getPrincipalUserIdFor(
@@ -55,12 +52,10 @@ class EnrolmentStoreProxyConnector @Inject() (
   )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[String] = {
     val enrolmentKeyPrefix = enrolmentKeyPrefixFor(taxIdentifier)
     val enrolmentKey = enrolmentKeyPrefix + "~" + taxIdentifier.value
-    val url =
-      new URL(
-        appConfig.enrolmentStoreProxyUrl + s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/users?type=principal"
-      )
+    val url = appConfig.enrolmentStoreProxyUrl + s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/users?type=principal"
     http
-      .GET[HttpResponse](url.toString)
+      .get(url"$url")
+      .execute[HttpResponse]
       .map { response =>
         if (response.status == 204) throw new Exception(s"UNKNOWN_${identifierNickname(taxIdentifier)}")
         else response.json
@@ -84,12 +79,10 @@ class EnrolmentStoreProxyConnector @Inject() (
   )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[String] = {
     val enrolmentKeyPrefix = enrolmentKeyPrefixFor(taxIdentifier)
     val enrolmentKey = enrolmentKeyPrefix + "~" + taxIdentifier.value
-    val url =
-      new URL(
-        appConfig.enrolmentStoreProxyUrl + s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/groups?type=principal"
-      )
+    val url = appConfig.enrolmentStoreProxyUrl + s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/groups?type=principal"
     http
-      .GET[HttpResponse](url.toString)
+      .get(url"$url")
+      .execute[HttpResponse]
       .map { response =>
         if (response.status == 204) throw new Exception(s"UNKNOWN_${identifierNickname(taxIdentifier)}")
         else response.json
@@ -123,14 +116,14 @@ class EnrolmentStoreProxyConnector @Inject() (
   protected def getDelegatedGroupIdsFor(
     enrolmentKey: String
   )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Set[String]] = {
-    val url =
-      new URL(
-        appConfig.enrolmentStoreProxyUrl + s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/groups?type=delegated"
-      )
-    http.GET[HttpResponse](url.toString).map { response =>
-      if (response.status == 204) Set.empty
-      else (response.json \ "delegatedGroupIds").as[Seq[String]].toSet
-    }
+    val url = appConfig.enrolmentStoreProxyUrl + s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/groups?type=delegated"
+    http
+      .get(url"$url")
+      .execute[HttpResponse]
+      .map { response =>
+        if (response.status == 204) Set.empty
+        else (response.json \ "delegatedGroupIds").as[Seq[String]].toSet
+      }
   }
 
   // ES8
@@ -141,12 +134,12 @@ class EnrolmentStoreProxyConnector @Inject() (
   ): Future[Unit] = {
     val enrolmentKeyPrefix = enrolmentKeyPrefixFor(taxIdentifier)
     val enrolmentKey = enrolmentKeyPrefix + "~" + taxIdentifier.value
-    val url = new URL(
-      appConfig.taxEnrolmentsUrl +
-        s"/tax-enrolments/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=${agentCode.value}"
-    )
+    val url = appConfig.taxEnrolmentsUrl +
+      s"/tax-enrolments/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=${agentCode.value}"
     http
-      .POST[ES8Request, HttpResponse](url.toString, ES8Request(userId, "delegated"))
+      .post(url"$url")
+      .withBody(Json.toJson(ES8Request(userId, "delegated")))
+      .execute[HttpResponse]
       .map(_ => ())
       .recover {
         case e: UpstreamErrorResponse if e.statusCode == Status.CONFLICT =>
@@ -164,11 +157,12 @@ class EnrolmentStoreProxyConnector @Inject() (
   ): Future[Unit] = {
     val enrolmentKeyPrefix = enrolmentKeyPrefixFor(taxIdentifier)
     val enrolmentKey = enrolmentKeyPrefix + "~" + taxIdentifier.value
-    val url = new URL(
-      appConfig.taxEnrolmentsUrl +
+    val url = appConfig.taxEnrolmentsUrl +
         s"/tax-enrolments/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=${agentCode.value}"
-    )
-    http.DELETE[HttpResponse](url.toString).map(_ => ())
+    http
+      .delete(url"$url")
+      .execute[HttpResponse]
+      .map(_ => ())
   }
 
 }
