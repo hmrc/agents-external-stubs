@@ -21,13 +21,14 @@ import play.api.http.Status.OK
 import java.net.URL
 import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
+import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.HttpReads.Implicits._
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class AgentAccessControlConnector @Inject() (appConfig: AppConfig, http: HttpGet) {
+class AgentAccessControlConnector @Inject() (appConfig: AppConfig, http: HttpClientV2) {
 
   def isAuthorisedForPaye(agentCode: String, empRef: String)(implicit
     c: HeaderCarrier,
@@ -77,7 +78,8 @@ class AgentAccessControlConnector @Inject() (appConfig: AppConfig, http: HttpGet
 
   private def check(url: URL)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Boolean] =
     http
-      .GET[HttpResponse](url.toString)
+      .get(url"${url.toString}")
+      .execute[HttpResponse]
       .map(_.status == OK)
 
 }
