@@ -35,12 +35,11 @@ class AuthLoginApiConnector @Inject() (appConfig: AppConfig, http: HttpClientV2)
   )(implicit c: HeaderCarrier, ec: ExecutionContext): Future[AuthLoginApi.Response] = {
     val url = appConfig.authLoginApiUrl + s"/government-gateway/session/login"
     for {
-      response <- {
+      response <-
         http
           .post(url"$url")
           .withBody(Json.toJson(authLoginApiRequest))
           .execute[HttpResponse]
-      }
       token <-
         response.header(HeaderNames.AUTHORIZATION) match {
           case None =>

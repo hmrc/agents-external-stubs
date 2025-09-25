@@ -44,7 +44,7 @@ object ES8Request {
 
 @Singleton
 class EnrolmentStoreProxyConnector @Inject() (appConfig: AppConfig, http: HttpClientV2, metrics: Metrics)
-  extends TaxIdentifierSupport {
+    extends TaxIdentifierSupport {
 
   // ES0 - principal
   def getPrincipalUserIdFor(
@@ -52,7 +52,8 @@ class EnrolmentStoreProxyConnector @Inject() (appConfig: AppConfig, http: HttpCl
   )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[String] = {
     val enrolmentKeyPrefix = enrolmentKeyPrefixFor(taxIdentifier)
     val enrolmentKey = enrolmentKeyPrefix + "~" + taxIdentifier.value
-    val url = appConfig.enrolmentStoreProxyUrl + s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/users?type=principal"
+    val url =
+      appConfig.enrolmentStoreProxyUrl + s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/users?type=principal"
     http
       .get(url"$url")
       .execute[HttpResponse]
@@ -79,7 +80,8 @@ class EnrolmentStoreProxyConnector @Inject() (appConfig: AppConfig, http: HttpCl
   )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[String] = {
     val enrolmentKeyPrefix = enrolmentKeyPrefixFor(taxIdentifier)
     val enrolmentKey = enrolmentKeyPrefix + "~" + taxIdentifier.value
-    val url = appConfig.enrolmentStoreProxyUrl + s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/groups?type=principal"
+    val url =
+      appConfig.enrolmentStoreProxyUrl + s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/groups?type=principal"
     http
       .get(url"$url")
       .execute[HttpResponse]
@@ -116,7 +118,8 @@ class EnrolmentStoreProxyConnector @Inject() (appConfig: AppConfig, http: HttpCl
   protected def getDelegatedGroupIdsFor(
     enrolmentKey: String
   )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Set[String]] = {
-    val url = appConfig.enrolmentStoreProxyUrl + s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/groups?type=delegated"
+    val url =
+      appConfig.enrolmentStoreProxyUrl + s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/groups?type=delegated"
     http
       .get(url"$url")
       .execute[HttpResponse]
@@ -158,7 +161,7 @@ class EnrolmentStoreProxyConnector @Inject() (appConfig: AppConfig, http: HttpCl
     val enrolmentKeyPrefix = enrolmentKeyPrefixFor(taxIdentifier)
     val enrolmentKey = enrolmentKeyPrefix + "~" + taxIdentifier.value
     val url = appConfig.taxEnrolmentsUrl +
-        s"/tax-enrolments/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=${agentCode.value}"
+      s"/tax-enrolments/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=${agentCode.value}"
     http
       .delete(url"$url")
       .execute[HttpResponse]
