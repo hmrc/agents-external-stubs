@@ -26,14 +26,15 @@ import uk.gov.hmrc.agentsexternalstubs.models.Generator
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests, WireMockSupport}
 import uk.gov.hmrc.domain.{Nino, Vrn}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpGet}
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.HeaderCarrier
 
 class ApiPlatformTestUserConnectorISpec
     extends ServerBaseISpec with TestRequests with TestStubs with WireMockSupport
     with ExampleApiPlatformTestUserResponses {
 
   lazy val wsClient = app.injector.instanceOf[WSClient]
-  lazy val httpGet = app.injector.instanceOf[HttpGet]
+  lazy val httpGet = app.injector.instanceOf[HttpClientV2]
   lazy val connector = new ApiPlatformTestUserConnector(TestAppConfig(wireMockBaseUrlAsString, wireMockPort), httpGet)
 
   "ApiPlatformTestUserConnector" when {

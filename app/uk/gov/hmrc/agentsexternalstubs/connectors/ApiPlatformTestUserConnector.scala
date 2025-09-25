@@ -19,38 +19,39 @@ package uk.gov.hmrc.agentsexternalstubs.connectors
 import play.api.http.Status.OK
 import uk.gov.hmrc.agentsexternalstubs.models.ApiPlatform.TestUser
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 
-import java.net.URL
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.client.HttpClientV2
 
 @Singleton
-class ApiPlatformTestUserConnector @Inject() (appConfig: AppConfig, http: HttpGet) {
+class ApiPlatformTestUserConnector @Inject() (appConfig: AppConfig, http: HttpClientV2) {
 
   def getIndividualUserByNino(nino: String)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
-    getUser(new URL(appConfig.apiPlatformTestUserUrl + s"/individuals/nino/$nino"))
+    getUser(appConfig.apiPlatformTestUserUrl + s"/individuals/nino/$nino")
 
   def getIndividualUserBySaUtr(
     saUtr: String
   )(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
-    getUser(new URL(appConfig.apiPlatformTestUserUrl + s"/individuals/sautr/$saUtr"))
+    getUser(appConfig.apiPlatformTestUserUrl + s"/individuals/sautr/$saUtr")
 
   def getIndividualUserByVrn(vrn: String)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
-    getUser(new URL(appConfig.apiPlatformTestUserUrl + s"/individuals/vrn/$vrn"))
+    getUser(appConfig.apiPlatformTestUserUrl + s"/individuals/vrn/$vrn")
 
   def getOrganisationUserByEmpRef(
     empRef: String
   )(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
-    getUser(new URL(appConfig.apiPlatformTestUserUrl + s"/organisations/empref/$empRef"))
+    getUser(appConfig.apiPlatformTestUserUrl + s"/organisations/empref/$empRef")
 
   def getOrganisationUserByVrn(vrn: String)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
-    getUser(new URL(appConfig.apiPlatformTestUserUrl + s"/organisations/vrn/$vrn"))
+    getUser(appConfig.apiPlatformTestUserUrl + s"/organisations/vrn/$vrn")
 
-  private def getUser(url: URL)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
+  private def getUser(url: String)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
     http
-      .GET[HttpResponse](url.toString)
+      .get(url"$url")
+      .execute[HttpResponse]
       .map(response =>
         response.status match {
           case OK => Option.apply(response.json.as[TestUser])

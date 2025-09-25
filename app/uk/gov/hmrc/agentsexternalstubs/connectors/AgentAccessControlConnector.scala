@@ -18,7 +18,6 @@ package uk.gov.hmrc.agentsexternalstubs.connectors
 
 import play.api.http.Status.OK
 
-import java.net.URL
 import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
@@ -74,7 +73,7 @@ class AgentAccessControlConnector @Inject() (appConfig: AppConfig, http: HttpCli
 
   private def check(url: String)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Boolean] =
     http
-      .get(url"${url.toString}")
+      .get(url"$url")
       .execute[HttpResponse]
       .map(_.status == OK)
 
