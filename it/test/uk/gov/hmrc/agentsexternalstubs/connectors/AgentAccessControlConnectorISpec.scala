@@ -23,12 +23,12 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests, WireMockSupport}
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.http.{HeaderCarrier, HttpGet}
+import uk.gov.hmrc.http.HeaderCarrier
 
 class AgentAccessControlConnectorISpec extends ServerBaseISpec with TestRequests with TestStubs with WireMockSupport {
 
-  lazy val wsClient = app.injector.instanceOf[WSClient]
-  lazy val httpGet = app.injector.instanceOf[HttpClientV2]
+  lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
+  lazy val httpGet: HttpClientV2 = app.injector.instanceOf[HttpClientV2]
   lazy val connector = new AgentAccessControlConnector(TestAppConfig(wireMockBaseUrlAsString, wireMockPort), httpGet)
 
   "AgentAccessControlConnector" when {

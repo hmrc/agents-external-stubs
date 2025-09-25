@@ -27,8 +27,8 @@ import java.time.LocalDate
 
 class CitizenDetailsConnectorISpec extends ServerBaseISpec with TestRequests with TestStubs {
 
-  lazy val wsClient = app.injector.instanceOf[WSClient]
-  lazy val connector = app.injector.instanceOf[CitizenDetailsConnector]
+  lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
+  lazy val connector: CitizenDetailsConnector = app.injector.instanceOf[CitizenDetailsConnector]
 
   "CitizenDetailsConnector" when {
 

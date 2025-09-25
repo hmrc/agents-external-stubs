@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.connectors
 
-import org.scalatest.Suite
+import org.scalatest.{Assertion, Suite}
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.ws.WSClient
@@ -36,73 +36,73 @@ import uk.gov.hmrc.domain.{AgentCode, TaxIdentifier}
 
 class EnrolmentStoreProxyConnectorISpec extends ServerBaseISpec with EnrolmentStoreProxyHelper with MockitoSugar {
 
-  lazy val wsClient = app.injector.instanceOf[WSClient]
-  lazy val connector = app.injector.instanceOf[EnrolmentStoreProxyConnector]
+  lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
+  lazy val connector: EnrolmentStoreProxyConnector = app.injector.instanceOf[EnrolmentStoreProxyConnector]
 
   "EnrolmentStoreProxy" should {
 
     "return some agent's groupId for given ARN" in {
-      implicit val session = givenAuthenticatedSession()
+      implicit val session: AuthenticatedSession = givenAuthenticatedSession()
       givenPrincipalGroupIdExistsFor(Arn("foo"), "bar")
       await(connector.getPrincipalGroupIdFor(Arn("foo"))) shouldBe "bar"
     }
 
     "return RelationshipNotFound Exception when ARN not found" in {
-      implicit val session = givenAuthenticatedSession()
+      implicit val session: AuthenticatedSession = givenAuthenticatedSession()
       an[Exception] shouldBe thrownBy {
         await(connector.getPrincipalGroupIdFor(Arn("foo")))
       }
     }
 
     "return some agents's groupIds for given MTDITID" in {
-      implicit val session = givenAuthenticatedSession()
+      implicit val session: AuthenticatedSession = givenAuthenticatedSession()
       givenDelegatedGroupIdsExistFor(MtdItId("foo"), Set("bar", "car", "dar"))
       await(connector.getDelegatedGroupIdsFor(MtdItId("foo"))) should contain("bar")
     }
 
     "return Empty when MTDITID not found" in {
-      implicit val session = givenAuthenticatedSession()
+      implicit val session: AuthenticatedSession = givenAuthenticatedSession()
       await(connector.getDelegatedGroupIdsFor(MtdItId("foo"))) should be(empty)
     }
 
     "return some agents's groupIds for given VRN" in {
-      implicit val session = givenAuthenticatedSession()
+      implicit val session: AuthenticatedSession = givenAuthenticatedSession()
       givenDelegatedGroupIdsExistFor(Vrn("123456789"), Set("bar", "car", "dar"))
       await(connector.getDelegatedGroupIdsFor(Vrn("123456789"))) should contain("bar")
     }
 
     "return some agents's groupIds for given VATRegNo" in {
-      implicit val session = givenAuthenticatedSession()
+      implicit val session: AuthenticatedSession = givenAuthenticatedSession()
       givenDelegatedGroupIdsExistForKey("HMCE-VATDEC-ORG~VATREGNO~123", Set("bar", "car", "dar"))
       await(connector.getDelegatedGroupIdsForHMCEVATDECORG(Vrn("123"))) should contain("bar")
     }
 
     "return Empty when VRN not found" in {
-      implicit val session = givenAuthenticatedSession()
+      implicit val session: AuthenticatedSession = givenAuthenticatedSession()
       await(connector.getDelegatedGroupIdsFor(Vrn("345"))) should be(empty)
     }
 
     "return some clients userId for given MTDITID" in {
-      implicit val session = givenAuthenticatedSession()
+      implicit val session: AuthenticatedSession = givenAuthenticatedSession()
       givenPrincipalUserIdExistFor(MtdItId("123456789098765"), "bar")
       await(connector.getPrincipalUserIdFor(MtdItId("123456789098765"))) shouldBe "bar"
     }
 
     "return RelationshipNotFound Exception when MTDITID not found" in {
-      implicit val session = givenAuthenticatedSession()
+      implicit val session: AuthenticatedSession = givenAuthenticatedSession()
       an[Exception] shouldBe thrownBy {
         await(connector.getPrincipalUserIdFor(MtdItId("123456789098765")))
       }
     }
 
     "return some clients userId for given VRN" in {
-      implicit val session = givenAuthenticatedSession()
+      implicit val session: AuthenticatedSession = givenAuthenticatedSession()
       givenPrincipalUserIdExistFor(Vrn("123456789"), "bar")
       await(connector.getPrincipalUserIdFor(Vrn("123456789"))) shouldBe "bar"
     }
 
     "return RelationshipNotFound Exception when VRN not found" in {
-      implicit val session = givenAuthenticatedSession()
+      implicit val session: AuthenticatedSession = givenAuthenticatedSession()
       an[Exception] shouldBe thrownBy {
         await(connector.getPrincipalUserIdFor(Vrn("123456789")))
       }
@@ -112,7 +112,7 @@ class EnrolmentStoreProxyConnectorISpec extends ServerBaseISpec with EnrolmentSt
   "TaxEnrolments" should {
 
     "allocate an enrolment to an agent" in {
-      implicit val session = givenAuthenticatedSession()
+      implicit val session: AuthenticatedSession = givenAuthenticatedSession()
       val clientCreation = Users.create(
         UserGenerator
           .individual()
@@ -134,7 +134,7 @@ class EnrolmentStoreProxyConnectorISpec extends ServerBaseISpec with EnrolmentSt
     }
 
     "de-allocate an enrolment from an agent" in {
-      implicit val session = givenAuthenticatedSession()
+      implicit val session: AuthenticatedSession = givenAuthenticatedSession()
       givenEnrolmentDeallocationSucceeds("group1", "HMRC-MTD-IT", "MTDITID", "123456789098765", "bar")
       await(connector.deallocateEnrolmentFromAgent("group1", MtdItId("123456789098765"), AgentCode("bar")))
       verifyEnrolmentDeallocationAttempt("group1", "HMRC-MTD-IT~MTDITID~123456789098765", "bar")

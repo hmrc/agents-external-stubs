@@ -28,7 +28,7 @@ class AgentPermissionsConnector @Inject() (httpClientV2: HttpClientV2, appConfig
   ec: ExecutionContext
 ) {
 
-  val baseUrl = appConfig.agentPermissionsUrl
+  val baseUrl: String = appConfig.agentPermissionsUrl
   implicit val hc: HeaderCarrier = HeaderCarrier()
   def deleteTestData(arn: String): Future[Unit] =
     httpClientV2

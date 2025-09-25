@@ -24,8 +24,8 @@ import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests}
 
 class UsersGroupsSearchConnectorISpec extends ServerBaseISpec with TestRequests with TestStubs {
 
-  lazy val wsClient = app.injector.instanceOf[WSClient]
-  lazy val connector = app.injector.instanceOf[UsersGroupsSearchConnector]
+  lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
+  lazy val connector: UsersGroupsSearchConnector = app.injector.instanceOf[UsersGroupsSearchConnector]
 
   "UsersGroupsSearchConnector" when {
 

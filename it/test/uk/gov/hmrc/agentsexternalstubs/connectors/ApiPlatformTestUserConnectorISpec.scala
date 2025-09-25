@@ -33,8 +33,8 @@ class ApiPlatformTestUserConnectorISpec
     extends ServerBaseISpec with TestRequests with TestStubs with WireMockSupport
     with ExampleApiPlatformTestUserResponses {
 
-  lazy val wsClient = app.injector.instanceOf[WSClient]
-  lazy val httpGet = app.injector.instanceOf[HttpClientV2]
+  lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
+  lazy val httpGet: HttpClientV2 = app.injector.instanceOf[HttpClientV2]
   lazy val connector = new ApiPlatformTestUserConnector(TestAppConfig(wireMockBaseUrlAsString, wireMockPort), httpGet)
 
   "ApiPlatformTestUserConnector" when {

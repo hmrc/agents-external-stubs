@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.connectors
 
 import play.api.Logger
 import play.api.http.Status
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OWrites}
 import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Vrn}
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.domain.{AgentCode, Nino, TaxIdentifier}
@@ -39,7 +39,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 case class ES8Request(userId: String, `type`: String)
 object ES8Request {
-  implicit val writes = Json.writes[ES8Request]
+  implicit val writes: OWrites[ES8Request] = Json.writes[ES8Request]
 }
 
 @Singleton

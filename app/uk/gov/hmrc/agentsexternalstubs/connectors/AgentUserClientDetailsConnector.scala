@@ -28,7 +28,7 @@ class AgentUserClientDetailsConnector @Inject() (httpClientV2: HttpClientV2, app
   ec: ExecutionContext
 ) {
 
-  val baseUrl = appConfig.agentUserClientDetailsUrl
+  val baseUrl: String = appConfig.agentUserClientDetailsUrl
   implicit val hc: HeaderCarrier = HeaderCarrier()
   def deleteTestData(arn: String, groupId: String): Future[Unit] =
     httpClientV2

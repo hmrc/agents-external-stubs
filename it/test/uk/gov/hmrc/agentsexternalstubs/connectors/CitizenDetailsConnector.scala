@@ -32,7 +32,7 @@ import scala.concurrent.{ExecutionContext, Future}
 case class CitizenDateOfBirth(dateOfBirth: Option[LocalDate])
 
 object CitizenDateOfBirth {
-  val format = DateTimeFormatter.ofPattern("ddMMyyyy")
+  val format: DateTimeFormatter = DateTimeFormatter.ofPattern("ddMMyyyy")
   implicit val reads: Reads[CitizenDateOfBirth] =
     (JsPath \ "dateOfBirth")
       .readNullable[String]
