@@ -34,49 +34,45 @@ class AgentAccessControlConnector @Inject() (appConfig: AppConfig, http: HttpCli
     c: HeaderCarrier,
     ec: ExecutionContext
   ): Future[Boolean] =
-    check(
-      new URL(appConfig.agentAccessControlUrl + s"/agent-access-control/epaye-auth/agent/$agentCode/client/$empRef")
-    )
+    check(appConfig.agentAccessControlUrl + s"/agent-access-control/epaye-auth/agent/$agentCode/client/$empRef")
 
   def isAuthorisedForSa(agentCode: String, saUtr: String)(implicit
     c: HeaderCarrier,
     ec: ExecutionContext
   ): Future[Boolean] =
-    check(new URL(appConfig.agentAccessControlUrl + s"/agent-access-control/sa-auth/agent/$agentCode/client/$saUtr"))
+    check(appConfig.agentAccessControlUrl + s"/agent-access-control/sa-auth/agent/$agentCode/client/$saUtr")
 
   def isAuthorisedForMtdIt(agentCode: String, mtdItId: String)(implicit
     c: HeaderCarrier,
     ec: ExecutionContext
   ): Future[Boolean] =
-    check(
-      new URL(appConfig.agentAccessControlUrl + s"/agent-access-control/mtd-it-auth/agent/$agentCode/client/$mtdItId")
-    )
+    check(appConfig.agentAccessControlUrl + s"/agent-access-control/mtd-it-auth/agent/$agentCode/client/$mtdItId")
 
   def isAuthorisedForMtdVat(agentCode: String, vrn: String)(implicit
     c: HeaderCarrier,
     ec: ExecutionContext
   ): Future[Boolean] =
-    check(new URL(appConfig.agentAccessControlUrl + s"/agent-access-control/mtd-vat-auth/agent/$agentCode/client/$vrn"))
+    check(appConfig.agentAccessControlUrl + s"/agent-access-control/mtd-vat-auth/agent/$agentCode/client/$vrn")
 
   def isAuthorisedForAfi(agentCode: String, nino: String)(implicit
     c: HeaderCarrier,
     ec: ExecutionContext
   ): Future[Boolean] =
-    check(new URL(appConfig.agentAccessControlUrl + s"/agent-access-control/afi-auth/agent/$agentCode/client/$nino"))
+    check(appConfig.agentAccessControlUrl + s"/agent-access-control/afi-auth/agent/$agentCode/client/$nino")
 
   def isAuthorisedForTrust(agentCode: String, utr: String)(implicit
     c: HeaderCarrier,
     ec: ExecutionContext
   ): Future[Boolean] =
-    check(new URL(appConfig.agentAccessControlUrl + s"/agent-access-control/trust-auth/agent/$agentCode/client/$utr"))
+    check(appConfig.agentAccessControlUrl + s"/agent-access-control/trust-auth/agent/$agentCode/client/$utr")
 
   def isAuthorisedForCgt(agentCode: String, cgtRef: String)(implicit
     c: HeaderCarrier,
     ec: ExecutionContext
   ): Future[Boolean] =
-    check(new URL(appConfig.agentAccessControlUrl + s"/agent-access-control/cgt-auth/agent/$agentCode/client/$cgtRef"))
+    check(appConfig.agentAccessControlUrl + s"/agent-access-control/cgt-auth/agent/$agentCode/client/$cgtRef")
 
-  private def check(url: URL)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Boolean] =
+  private def check(url: String)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Boolean] =
     http
       .get(url"${url.toString}")
       .execute[HttpResponse]
