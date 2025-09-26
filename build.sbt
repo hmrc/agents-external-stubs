@@ -1,6 +1,7 @@
 import sbt.*
 import uk.gov.hmrc.DefaultBuildSettings
 
+ThisBuild / majorVersion := 0
 ThisBuild / scalaVersion := "2.13.16"
 
 lazy val scoverageSettings = {
@@ -19,7 +20,6 @@ lazy val root = (project in file("."))
   .settings(
     name := "agents-external-stubs",
     organization := "uk.gov.hmrc",
-    majorVersion := 0,
     scalacOptions ++= Seq(
       "-Xlint:-missing-interpolator,_",
       "-Ywarn-dead-code",
@@ -53,7 +53,6 @@ lazy val it = project
   .enablePlugins(PlayScala)
   .dependsOn(root % "test->test") // the "test->test" allows reusing test code and test dependencies
   .settings(DefaultBuildSettings.itSettings())
-  .settings(majorVersion := 0)
   .settings(libraryDependencies ++= AppDependencies.test)
   .settings(
     Compile / scalafmtOnCompile := true,
