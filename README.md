@@ -597,11 +597,11 @@ Destroy the test planet and all the data there
 
 ## Running the tests
 
-    sbt test it:test
+    sbt test it/test
 
 ## Running the tests with coverage
 
-    sbt clean coverageOn test it:test coverageReport
+    sbt clean compile coverage test it/test coverageReport
 
 ## Running the app locally
 
