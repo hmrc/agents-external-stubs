@@ -16,26 +16,30 @@
 
 package uk.gov.hmrc.agentsexternalstubs.connectors
 
-import java.net.URL
-
 import javax.inject.{Inject, Singleton}
 import play.api.http.HeaderNames
+import play.api.libs.json.Json
 import uk.gov.hmrc.agentsexternalstubs.models.AuthLoginApi
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
-import uk.gov.hmrc.http.{HeaderCarrier, HttpGet, HttpPost, HttpResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.client.HttpClientV2
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class AuthLoginApiConnector @Inject() (appConfig: AppConfig, http: HttpPost with HttpGet) {
+class AuthLoginApiConnector @Inject() (appConfig: AppConfig, http: HttpClientV2) {
 
   def loginToGovernmentGateway(
     authLoginApiRequest: AuthLoginApi.Request
   )(implicit c: HeaderCarrier, ec: ExecutionContext): Future[AuthLoginApi.Response] = {
-    val url = new URL(appConfig.authLoginApiUrl + s"/government-gateway/session/login")
+    val url = appConfig.authLoginApiUrl + s"/government-gateway/session/login"
     for {
-      response <- http.POST[AuthLoginApi.Request, HttpResponse](url.toString, authLoginApiRequest)
+      response <-
+        http
+          .post(url"$url")
+          .withBody(Json.toJson(authLoginApiRequest))
+          .execute[HttpResponse]
       token <-
         response.header(HeaderNames.AUTHORIZATION) match {
           case None =>

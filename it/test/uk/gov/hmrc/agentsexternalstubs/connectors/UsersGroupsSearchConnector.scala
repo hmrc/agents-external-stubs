@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2018 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,23 +16,31 @@
 
 package uk.gov.hmrc.agentsexternalstubs.connectors
 
+import play.api.libs.json._
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
+import uk.gov.hmrc.domain.AgentCode
+import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
+import uk.gov.hmrc.play.bootstrap.metrics.Metrics
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
-@Singleton
-class AgentUserClientDetailsConnector @Inject() (httpClientV2: HttpClientV2, appConfig: AppConfig)(implicit
-  ec: ExecutionContext
-) {
+case class GroupInfo(groupId: String, affinityGroup: Option[String], agentCode: Option[AgentCode])
 
-  val baseUrl: String = appConfig.agentUserClientDetailsUrl
-  implicit val hc: HeaderCarrier = HeaderCarrier()
-  def deleteTestData(arn: String, groupId: String): Future[Unit] =
-    httpClientV2
-      .delete(url"$baseUrl/test-only/agent-user-client-details/delete-test-data/arn/$arn/groupId/$groupId")
-      .execute[HttpResponse]
-      .map(_ => ())
+object GroupInfo {
+  implicit val formats: Format[GroupInfo] = Json.format[GroupInfo]
+}
+
+@Singleton
+class UsersGroupsSearchConnector @Inject() (appConfig: AppConfig, http: HttpClientV2, metrics: Metrics) {
+
+  def getGroupInfo(groupId: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[GroupInfo] = {
+    val url = appConfig.usersGroupsSearchUrl + s"/users-groups-search/groups/$groupId"
+    http
+      .get(url"$url")
+      .execute[GroupInfo]
+
+  }
 }
