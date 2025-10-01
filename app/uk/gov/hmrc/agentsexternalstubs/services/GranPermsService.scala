@@ -174,82 +174,35 @@ class GranPermsService @Inject() (
       .map(_ => ())
   }
 
+  private def recordDetailsForService(service: String): (String, String, Option[String], Option[String]) =
+    service match {
+      case "HMRC-MTD-IT"        => ("ITSA", "MTDBSA", Some("ZA01"), Some("ALL00001"))
+      case "HMRC-MTD-IT-SUPP"   => ("ITSA", "MTDBSA", Some("ZA01"), Some("ITSAS001"))
+      case "HMRC-MTD-VAT"       => ("VATC", "VRN", Some("ZA01"), Some("ALL00001"))
+      case "HMRC-CGT-PD"        => ("CGT", "ZCGT", Some("ZA01"), Some("ALL00001"))
+      case "HMRC-PPT-ORG"       => ("PPT", "ZPPT", Some("ZA01"), Some("ALL00001"))
+      case "HMRC-TERS-ORG"      => ("TRS", "UTR", None, None)
+      case "HMRC-TERSNT-ORG"    => ("TRS", "URN", None, None)
+      case "HMRC-CBC-ORG"       => ("CBC", "CBC", None, None)
+      case "HMRC-CBC-NONUK-ORG" => ("CBC", "CBC", None, None)
+      case "HMRC-PILLAR2-ORG"   => ("PLR", "ZPLR", Some("ZA01"), Some("ALL00001"))
+      case _                    => throw new RuntimeException(s"unsupported service $service")
+    }
+
   def assembleRelationshipRecord(client: User, arn: String): Option[RelationshipRecord] =
     for {
       enrolmentKey <- client.assignedPrincipalEnrolments.headOption
       identifier   <- enrolmentKey.identifiers.headOption
-    } yield enrolmentKey.service match {
-      case "HMRC-MTD-IT" =>
-        RelationshipRecord(
-          regime = "ITSA",
-          arn = arn,
-          idType = "MTDBSA",
-          refNumber = identifier.value,
-          relationshipType = Some("ZA01"),
-          authProfile = Some("ALL00001"),
-          startDate = Some(LocalDate.now)
-        )
-      case "HMRC-MTD-IT-SUPP" =>
-        RelationshipRecord(
-          regime = "ITSA",
-          arn = arn,
-          idType = "MTDBSA",
-          refNumber = identifier.value,
-          relationshipType = Some("ZA01"),
-          authProfile = Some("ITSAS001"),
-          startDate = Some(LocalDate.now)
-        )
-      case "HMRC-MTD-VAT" =>
-        RelationshipRecord(
-          regime = "VATC",
-          arn = arn,
-          idType = "VRN",
-          refNumber = identifier.value,
-          relationshipType = Some("ZA01"),
-          authProfile = Some("ALL00001"),
-          startDate = Some(LocalDate.now)
-        )
-      case "HMRC-CGT-PD" =>
-        RelationshipRecord(
-          regime = "CGT",
-          arn = arn,
-          idType = "ZCGT",
-          refNumber = identifier.value,
-          relationshipType = Some("ZA01"),
-          authProfile = Some("ALL00001"),
-          startDate = Some(LocalDate.now)
-        )
-      case "HMRC-PPT-ORG" =>
-        RelationshipRecord(
-          regime = "PPT",
-          arn = arn,
-          idType = "ZPPT",
-          refNumber = identifier.value,
-          relationshipType = Some("ZA01"),
-          authProfile = Some("ALL00001"),
-          startDate = Some(LocalDate.now)
-        )
-      case "HMRC-TERS-ORG" =>
-        RelationshipRecord(
-          regime = "TRS",
-          arn = arn,
-          idType = "UTR",
-          refNumber = identifier.value,
-          relationshipType = Some("ZA01"),
-          authProfile = Some("ALL00001"),
-          startDate = Some(LocalDate.now)
-        )
-      case "HMRC-TERSNT-ORG" =>
-        RelationshipRecord(
-          regime = "TRS",
-          arn = arn,
-          idType = "URN",
-          refNumber = identifier.value,
-          relationshipType = Some("ZA01"),
-          authProfile = Some("ALL00001"),
-          startDate = Some(LocalDate.now)
-        )
-    }
+      (regime, idType, relationshipType, authProfile) = recordDetailsForService(enrolmentKey.service)
+    } yield RelationshipRecord(
+      regime = regime,
+      arn = arn,
+      idType = idType,
+      refNumber = identifier.value,
+      relationshipType = relationshipType,
+      authProfile = authProfile,
+      startDate = Some(LocalDate.now)
+    )
 
   private def pickFromDistribution[A](method: String, distribution: Map[A, Double], n: Int): Seq[A] = method match {
     case GranPermsGenRequest.GenMethodRandom =>

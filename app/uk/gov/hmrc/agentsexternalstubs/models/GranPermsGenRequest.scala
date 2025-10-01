@@ -42,15 +42,14 @@ object GranPermsGenRequest {
     "HMRC-PPT-ORG" -> 1.0
   )
   val defaultOrganisationServiceDistribution: Map[String, Double] = Map(
-    "HMRC-MTD-VAT"    -> 1.0,
-    "HMRC-CGT-PD"     -> 1.0,
-    "HMRC-PPT-ORG"    -> 1.0,
-    "HMRC-TERS-ORG"   -> 1.0,
-    "HMRC-TERSNT-ORG" -> 1.0
-//     Todo: Enable these regimes in generation
-//    "HMRC-CBC-ORG"       -> 1.0,
-//    "HMRC-CBC-NONUK-ORG" -> 1.0,
-//    "HMRC-PILLAR2-ORG"   -> 1.0
+    "HMRC-MTD-VAT"       -> 1.0,
+    "HMRC-CGT-PD"        -> 1.0,
+    "HMRC-PPT-ORG"       -> 1.0,
+    "HMRC-TERS-ORG"      -> 1.0,
+    "HMRC-TERSNT-ORG"    -> 1.0,
+    "HMRC-CBC-ORG"       -> 1.0,
+    "HMRC-CBC-NONUK-ORG" -> 1.0,
+    "HMRC-PILLAR2-ORG"   -> 1.0
   )
 
   implicit val format: OFormat[GranPermsGenRequest] = Json.format[GranPermsGenRequest]
