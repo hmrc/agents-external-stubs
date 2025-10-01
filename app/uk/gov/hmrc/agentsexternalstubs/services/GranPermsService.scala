@@ -19,7 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 import cats.implicits._
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.domain.Nino
-
+import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
@@ -27,7 +27,8 @@ import scala.util.Random
 @Singleton
 class GranPermsService @Inject() (
   usersService: UsersService,
-  groupsService: GroupsService
+  groupsService: GroupsService,
+  relationshipRecordsService: RelationshipRecordsService
 ) {
 
   type ClientType = String
@@ -146,6 +147,11 @@ class GranPermsService @Inject() (
            planetId,
            grp => grp.copy(delegatedEnrolments = grp.delegatedEnrolments ++ agentDelegatedEnrolments)
          )
+
+    //Create relationship records for each client
+    arn = currentUser.assignedPrincipalEnrolments.headOption.map(_.tag.split('~').last).getOrElse("")
+    _ <- persistRelationshipRecords(clients, arn, planetId)
+
     agents <- massGenerateAgents(
                 planetId,
                 genRequest,
@@ -153,6 +159,97 @@ class GranPermsService @Inject() (
                 currentUser
               )
   } yield (agents, clients)
+
+  private def persistRelationshipRecords(clients: Seq[User], arn: String, planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[Unit] = {
+    val records = clients
+      .map(client => assembleRelationshipRecord(client, arn))
+      .collect { case Some(record) => record }
+
+    Future
+      .sequence(records.map { record =>
+        relationshipRecordsService.store(record, autoFill = false, planetId)
+      })
+      .map(_ => ())
+  }
+
+  def assembleRelationshipRecord(client: User, arn: String): Option[RelationshipRecord] =
+    for {
+      enrolmentKey <- client.assignedPrincipalEnrolments.headOption
+      identifier   <- enrolmentKey.identifiers.headOption
+    } yield enrolmentKey.service match {
+      case "HMRC-MTD-IT" =>
+        RelationshipRecord(
+          regime = "ITSA",
+          arn = arn,
+          idType = "MTDBSA",
+          refNumber = identifier.value,
+          relationshipType = Some("ZA01"),
+          authProfile = Some("ALL00001"),
+          startDate = Some(LocalDate.now)
+        )
+      case "HMRC-MTD-IT-SUPP" =>
+        RelationshipRecord(
+          regime = "ITSA",
+          arn = arn,
+          idType = "MTDBSA",
+          refNumber = identifier.value,
+          relationshipType = Some("ZA01"),
+          authProfile = Some("ITSAS001"),
+          startDate = Some(LocalDate.now)
+        )
+      case "HMRC-MTD-VAT" =>
+        RelationshipRecord(
+          regime = "VATC",
+          arn = arn,
+          idType = "VRN",
+          refNumber = identifier.value,
+          relationshipType = Some("ZA01"),
+          authProfile = Some("ALL00001"),
+          startDate = Some(LocalDate.now)
+        )
+      case "HMRC-CGT-PD" =>
+        RelationshipRecord(
+          regime = "CGT",
+          arn = arn,
+          idType = "ZCGT",
+          refNumber = identifier.value,
+          relationshipType = Some("ZA01"),
+          authProfile = Some("ALL00001"),
+          startDate = Some(LocalDate.now)
+        )
+      case "HMRC-PPT-ORG" =>
+        RelationshipRecord(
+          regime = "PPT",
+          arn = arn,
+          idType = "ZPPT",
+          refNumber = identifier.value,
+          relationshipType = Some("ZA01"),
+          authProfile = Some("ALL00001"),
+          startDate = Some(LocalDate.now)
+        )
+      case "HMRC-TERS-ORG" =>
+        RelationshipRecord(
+          regime = "TRS",
+          arn = arn,
+          idType = "UTR",
+          refNumber = identifier.value,
+          relationshipType = Some("ZA01"),
+          authProfile = Some("ALL00001"),
+          startDate = Some(LocalDate.now)
+        )
+      case "HMRC-TERSNT-ORG" =>
+        RelationshipRecord(
+          regime = "TRS",
+          arn = arn,
+          idType = "URN",
+          refNumber = identifier.value,
+          relationshipType = Some("ZA01"),
+          authProfile = Some("ALL00001"),
+          startDate = Some(LocalDate.now)
+        )
+    }
 
   private def pickFromDistribution[A](method: String, distribution: Map[A, Double], n: Int): Seq[A] = method match {
     case GranPermsGenRequest.GenMethodRandom =>
