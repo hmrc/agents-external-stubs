@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.services.{GroupsService, UsersService}
+import uk.gov.hmrc.agentsexternalstubs.services.{GroupsService, RelationshipRecordsService, UsersService}
 import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests}
 
 class GranPermsControllerISpec extends ServerBaseISpec with TestRequests {
@@ -26,12 +26,13 @@ class GranPermsControllerISpec extends ServerBaseISpec with TestRequests {
   lazy val wsClient = app.injector.instanceOf[WSClient]
   lazy val usersService = app.injector.instanceOf[UsersService]
   lazy val groupsService = app.injector.instanceOf[GroupsService]
+  lazy val relationshipRecordsService = app.injector.instanceOf[RelationshipRecordsService]
 
   private val testUserId: String = "testUserId"
   private val testPlanetId: String = "testPlanetId"
 
   "massGenerateAgentsAndClients" should {
-    "return 201 Created with the request number of agent users and clients" in {
+    "return 201 Created with the request number of agent users and clients and create relationship records for each client" in {
       usersService
         .createUser(
           UserGenerator
@@ -65,6 +66,10 @@ class GranPermsControllerISpec extends ServerBaseISpec with TestRequests {
         .delegatedEnrolments
         .length shouldBe 10
 
+      relationshipRecordsService
+        .findByKeys(RelationshipRecord.agentKeys("KARN3869382"), planetId = testPlanetId)
+        .futureValue
+        .length shouldBe 10
     }
 
     "return 400 BadRequest when specified number of agents is too large" in {

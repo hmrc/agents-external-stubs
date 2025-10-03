@@ -19,7 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 import cats.implicits._
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.domain.Nino
-
+import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
@@ -27,7 +27,8 @@ import scala.util.Random
 @Singleton
 class GranPermsService @Inject() (
   usersService: UsersService,
-  groupsService: GroupsService
+  groupsService: GroupsService,
+  relationshipRecordsService: RelationshipRecordsService
 ) {
 
   type ClientType = String
@@ -146,6 +147,11 @@ class GranPermsService @Inject() (
            planetId,
            grp => grp.copy(delegatedEnrolments = grp.delegatedEnrolments ++ agentDelegatedEnrolments)
          )
+
+    //Create relationship records for each client
+    arn = currentUser.assignedPrincipalEnrolments.headOption.map(_.tag.split('~').last).getOrElse("")
+    _ <- persistRelationshipRecords(clients, arn, planetId)
+
     agents <- massGenerateAgents(
                 planetId,
                 genRequest,
@@ -153,6 +159,50 @@ class GranPermsService @Inject() (
                 currentUser
               )
   } yield (agents, clients)
+
+  private def persistRelationshipRecords(clients: Seq[User], arn: String, planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[Unit] = {
+    val records = clients
+      .map(client => assembleRelationshipRecord(client, arn))
+      .collect { case Some(record) => record }
+
+    Future
+      .sequence(records.map { record =>
+        relationshipRecordsService.store(record, autoFill = false, planetId)
+      })
+      .map(_ => ())
+  }
+
+  private def recordDetailsForService(service: String): (String, String, Option[String], Option[String]) =
+    service match {
+      case "HMRC-MTD-IT"        => ("ITSA", "MTDBSA", Some("ZA01"), Some("ALL00001"))
+      case "HMRC-MTD-IT-SUPP"   => ("ITSA", "MTDBSA", Some("ZA01"), Some("ITSAS001"))
+      case "HMRC-MTD-VAT"       => ("VATC", "VRN", Some("ZA01"), Some("ALL00001"))
+      case "HMRC-CGT-PD"        => ("CGT", "ZCGT", Some("ZA01"), Some("ALL00001"))
+      case "HMRC-PPT-ORG"       => ("PPT", "ZPPT", Some("ZA01"), Some("ALL00001"))
+      case "HMRC-TERS-ORG"      => ("TRS", "UTR", None, None)
+      case "HMRC-TERSNT-ORG"    => ("TRS", "URN", None, None)
+      case "HMRC-CBC-ORG"       => ("CBC", "CBC", None, None)
+      case "HMRC-CBC-NONUK-ORG" => ("CBC", "CBC", None, None)
+      case "HMRC-PILLAR2-ORG"   => ("PLR", "ZPLR", Some("ZA01"), Some("ALL00001"))
+      case _                    => throw new RuntimeException(s"unsupported service $service")
+    }
+
+  def assembleRelationshipRecord(client: User, arn: String): Option[RelationshipRecord] =
+    for {
+      enrolmentKey <- client.assignedPrincipalEnrolments.headOption
+      identifier   <- enrolmentKey.identifiers.headOption
+      (regime, idType, relationshipType, authProfile) = recordDetailsForService(enrolmentKey.service)
+    } yield RelationshipRecord(
+      regime = regime,
+      arn = arn,
+      idType = idType,
+      refNumber = identifier.value,
+      relationshipType = relationshipType,
+      authProfile = authProfile,
+      startDate = Some(LocalDate.now)
+    )
 
   private def pickFromDistribution[A](method: String, distribution: Map[A, Double], n: Int): Seq[A] = method match {
     case GranPermsGenRequest.GenMethodRandom =>
