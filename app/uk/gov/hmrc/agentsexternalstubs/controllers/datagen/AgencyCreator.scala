@@ -24,6 +24,7 @@ import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.AgencyDetail
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, PPOB}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository._
+import uk.gov.hmrc.agentsexternalstubs.services.GranPermsService
 
 import java.time.LocalDate
 import javax.inject.Inject
@@ -34,7 +35,8 @@ class AgencyCreator @Inject() (
   usersRepository: UsersRepositoryMongo,
   recordsRepository: RecordsRepositoryMongo,
   groupsRepository: GroupsRepositoryMongo,
-  knownFactsRepository: KnownFactsRepository
+  knownFactsRepository: KnownFactsRepository,
+  granPermsService: GranPermsService
 )(implicit executionContext: ExecutionContext)
     extends Logging {
 
@@ -105,98 +107,12 @@ class AgencyCreator @Inject() (
 
     val arn = agencyCreationPayload.agentUser.assignedPrincipalEnrolments.headOption.map(_.tag.split('~').last).get
 
-    val records = agencyCreationPayload.clients
-      .map(client => assembleRelationshipRecord(client, arn))
-      .collect { case Some(record) => record }
-
-    executeSerially(records) { record =>
-      recordsRepository
-        .rawStore(recordAsJson(record, agencyCreationPayload.planetId))
-        .map(id => logger.debug(s"Created record of id $id"))
-        .recover { case ex =>
-          logger.error(
-            s"Could not create record for ${record.uniqueKey} of ${agencyCreationPayload.planetId}: ${ex.getMessage}"
-          )
-        }
-    }
+    granPermsService.persistRelationshipRecords(
+      clients = agencyCreationPayload.clients,
+      arn = arn,
+      planetId = agencyCreationPayload.planetId
+    )
   }
-
-  def assembleRelationshipRecord(client: User, arn: String): Option[RelationshipRecord] =
-    for {
-      enrolmentKey <- client.assignedPrincipalEnrolments.headOption
-      identifier   <- enrolmentKey.identifiers.headOption
-    } yield enrolmentKey.service match {
-      case "HMRC-MTD-IT" =>
-        RelationshipRecord(
-          regime = "ITSA",
-          arn = arn,
-          idType = "none",
-          refNumber = identifier.value,
-          relationshipType = Some("ZA01"),
-          authProfile = Some("ALL00001"),
-          startDate = Some(LocalDate.now)
-        )
-      case "HMRC-MTD-IT-SUPP" =>
-        RelationshipRecord(
-          regime = "ITSA",
-          arn = arn,
-          idType = "none",
-          refNumber = identifier.value,
-          relationshipType = Some("ZA01"),
-          authProfile = Some("ITSAS001"),
-          startDate = Some(LocalDate.now)
-        )
-      case "HMRC-MTD-VAT" =>
-        RelationshipRecord(
-          regime = "VATC",
-          arn = arn,
-          idType = "VRN",
-          refNumber = identifier.value,
-          relationshipType = Some("ZA01"),
-          authProfile = Some("ALL00001"),
-          startDate = Some(LocalDate.now)
-        )
-      case "HMRC-CGT-PD" =>
-        RelationshipRecord(
-          regime = "CGT",
-          arn = arn,
-          idType = "ZCGT",
-          refNumber = identifier.value,
-          relationshipType = Some("ZA01"),
-          authProfile = Some("ALL00001"),
-          startDate = Some(LocalDate.now)
-        )
-      case "HMRC-PPT-ORG" =>
-        RelationshipRecord(
-          regime = "PPT",
-          arn = arn,
-          idType = "ZPPT",
-          refNumber = identifier.value,
-          relationshipType = Some("ZA01"),
-          authProfile = Some("ALL00001"),
-          startDate = Some(LocalDate.now)
-        )
-      case "HMRC-TERS-ORG" =>
-        RelationshipRecord(
-          regime = "TRS",
-          arn = arn,
-          idType = "UTR",
-          refNumber = identifier.value,
-          relationshipType = Some("ZA01"),
-          authProfile = Some("ALL00001"),
-          startDate = Some(LocalDate.now)
-        )
-      case "HMRC-TERSNT-ORG" =>
-        RelationshipRecord(
-          regime = "TRS",
-          arn = arn,
-          idType = "URN",
-          refNumber = identifier.value,
-          relationshipType = Some("ZA01"),
-          authProfile = Some("ALL00001"),
-          startDate = Some(LocalDate.now)
-        )
-    }
 
   private def persistClientRecords(agencyCreationPayload: AgencyCreationPayload): Future[Unit] = {
     logger.info(s"Creating client records for '${agencyCreationPayload.planetId}'")
