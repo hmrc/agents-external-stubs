@@ -26,7 +26,6 @@ import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository._
 import uk.gov.hmrc.agentsexternalstubs.services.GranPermsService
 
-import java.time.LocalDate
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
