@@ -1,0 +1,13 @@
+{
+  "total_results": 0,
+  "items_per_page": 35,
+  "etag": "0905d15615b770cd4fcc27fdc1c959474ae4c03e",
+  "items": [],
+  "links": {
+    "self": "/company/%%%COMPANY_NUMBER%%%/appointments"
+  },
+  "active_count": 0,
+  "kind": "officer-list",
+  "start_index": 0,
+  "resigned_count": 0
+}
