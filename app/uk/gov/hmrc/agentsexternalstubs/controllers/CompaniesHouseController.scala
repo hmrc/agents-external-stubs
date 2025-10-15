@@ -36,6 +36,8 @@ class CompaniesHouseController @Inject() (cc: ControllerComponents)(implicit ec:
   def findCompanyOfficers(companyNumber: String, surname: Option[String]): Action[AnyContent] = Action.async {
     if (surname.contains("Tester")) {
       multipleOfficersResponse(companyNumber)
+    } else if (surname.contains("Empty")) {
+      emptyOfficersResponse(companyNumber)
     } else {
       companyOfficersResponse(companyNumber, surname.getOrElse(Generator.surname.sample.get).toUpperCase)
     }
@@ -66,6 +68,16 @@ class CompaniesHouseController @Inject() (cc: ControllerComponents)(implicit ec:
   private def multipleOfficersResponse(companyNumber: String): Future[Result] =
     // Based on https://github.com/hmrc/iv-test-data/tree/main/conf/resources/company-house/officers
     findResource(s"/resources/companies-house/multiple-company-officers-template.json")
+      .map(
+        _.map(
+          _.replaceAll("%%%COMPANY_NUMBER%%%", companyNumber)
+        )
+      )
+      .map(_.fold[Result](NotFound)(jsonStr => Ok(Json.parse(jsonStr))))
+
+  private def emptyOfficersResponse(companyNumber: String): Future[Result] =
+    // Based on https://github.com/hmrc/iv-test-data/tree/main/conf/resources/company-house/officers
+    findResource(s"/resources/companies-house/empty-company-officers-template.json")
       .map(
         _.map(
           _.replaceAll("%%%COMPANY_NUMBER%%%", companyNumber)
