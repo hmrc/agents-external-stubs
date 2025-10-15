@@ -36,7 +36,7 @@ class CompaniesHouseController @Inject() (cc: ControllerComponents)(implicit ec:
   def findCompanyOfficers(companyNumber: String, surname: Option[String]): Action[AnyContent] = Action.async {
     if (surname.contains("Tester")) {
       multipleOfficersResponse(companyNumber)
-    } else if (surname.contains("Empty") {
+    } else if (surname.contains("Empty")) {
       emptyOfficersResponse(companyNumber)
     } else {
       companyOfficersResponse(companyNumber, surname.getOrElse(Generator.surname.sample.get).toUpperCase)
