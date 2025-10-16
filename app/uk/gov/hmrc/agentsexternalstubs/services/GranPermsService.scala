@@ -160,7 +160,7 @@ class GranPermsService @Inject() (
               )
   } yield (agents, clients)
 
-  private def persistRelationshipRecords(clients: Seq[User], arn: String, planetId: String)(implicit
+  def persistRelationshipRecords(clients: Seq[User], arn: String, planetId: String)(implicit
     ec: ExecutionContext
   ): Future[Unit] = {
     val records = clients
