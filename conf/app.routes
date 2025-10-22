@@ -60,7 +60,6 @@ PUT           /tax-enrolments/groups/:groupId/enrolments/:enrolmentKey/friendly_
 ## DES/IF stubs
 GET           /registration/relationship/utr/:utr                                                    @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getLegacyRelationshipsByUtr(utr: String)
 GET           /registration/relationship/nino/:nino                                                  @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getLegacyRelationshipsByNino(nino: String)
-GET           /registration/business-details/:idType/:idNumber                                       @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getBusinessDetails(idType: String, idNumber: String)
 GET           /vat/customer/vrn/:vrn/information                                                     @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getVatCustomerInformation(vrn: String)
 GET           /registration/personal-details/:idType/:idNumber                                       @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getBusinessPartnerRecord(idType: String, idNumber: String)
 GET           /vat/known-facts/control-list/:vrn                                                     @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getVatKnownFacts(vrn: String)
@@ -77,7 +76,6 @@ GET           /corporation-tax/identifiers/:idType/:idValue                     
 GET           /plastic-packaging-tax/subscriptions/:regime/:pptReferenceNumber/display               @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getPPTSubscriptionDisplay(regime: String, pptReferenceNumber: String)
 GET           /pillar2/subscription/:plrReference                                                    @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getPillar2SubscriptionDetails(plrReference: String)
 
-GET           /trusts/agent-known-fact-check/:trustTaxIdentifier                                     @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getTrustKnownFacts(trustTaxIdentifier: String)
 GET           /trusts/agent-known-fact-check/UTR/:utr                                                @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getTrustKnownFactsUTR(utr: String)
 GET           /trusts/agent-known-fact-check/URN/:urn                                                @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getTrustKnownFactsURN(urn: String)
 
@@ -194,11 +192,6 @@ POST          /agents-external-stubs/special-cases                              
 GET           /agents-external-stubs/special-cases/:id                                               @uk.gov.hmrc.agentsexternalstubs.controllers.SpecialCasesController.getSpecialCase(id: String)
 PUT           /agents-external-stubs/special-cases/:id                                               @uk.gov.hmrc.agentsexternalstubs.controllers.SpecialCasesController.updateSpecialCase(id: String)
 DELETE        /agents-external-stubs/special-cases/:id                                               @uk.gov.hmrc.agentsexternalstubs.controllers.SpecialCasesController.deleteSpecialCase(id: String)
-
-#File Upload urls
-POST          /file-upload/envelopes                                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.FileUploadController.createEnvelope()
-POST          /file-routing/requests                                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.FileUploadController.routeEnvelope()
-POST          /file-upload/upload/envelopes/:envelopeId/files/:fileId                                @uk.gov.hmrc.agentsexternalstubs.controllers.FileUploadController.uploadFile(envelopeId: String, fileId: String)
 
 #Granular permissions test URLs
 POST          /agents-external-stubs/test/gran-perms/generate-users                                  @uk.gov.hmrc.agentsexternalstubs.controllers.datagen.GranPermsController.massGenerateAgentsAndClients
