@@ -21,7 +21,7 @@ import play.api.data.Forms._
 import play.api.data.validation.{Constraint, Constraints, Invalid, Valid}
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
-import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, Eori, MtdItId, PlrId, PptRef, Utr}
+import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, Eori, PlrId, PptRef, Utr}
 import uk.gov.hmrc.agentsexternalstubs.models.TrustDetailsResponse.getErrorResponseFor
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
@@ -73,33 +73,6 @@ class DesIfStubController @Inject() (
               .getLegacyRelationshipsByNino(nino, session.planetId)
               .map(ninoWithAgentList => Ok(Json.toJson(GetLegacyRelationships.Response.from(ninoWithAgentList))))
         )
-    }(SessionRecordNotFound)
-  }
-
-  def getBusinessDetails(idType: String, idNumber: String): Action[AnyContent] = Action.async { implicit request =>
-    def okResponse(record: BusinessDetailsRecord): Result = Ok(
-      Json.toJson(
-        GetBusinessDetailsResponse(processingDate = Instant.now(), taxPayerDisplayResponse = record)
-      )
-    )
-
-    withCurrentSession { session =>
-      withValidIdentifier(idType, idNumber) {
-        case ("nino", nino) =>
-          recordsService
-            .getRecordMaybeExt[BusinessDetailsRecord, Nino](Nino(nino), session.planetId)
-            .map {
-              case Some(record) => okResponse(record)
-              case None         => notFound("NOT_FOUND")
-            }
-        case ("mtdId", mtdId) =>
-          recordsService
-            .getRecord[BusinessDetailsRecord, MtdItId](MtdItId(mtdId), session.planetId)
-            .map {
-              case Some(record) => okResponse(record)
-              case None         => notFound("NOT_FOUND")
-            }
-      }
     }(SessionRecordNotFound)
   }
 
@@ -378,42 +351,6 @@ class DesIfStubController @Inject() (
                 case Some(record) => Ok(Json.toJson(record))
                 case None         => NotFound
               }
-        )
-    }(SessionRecordNotFound)
-  }
-
-  def getTrustKnownFacts(utr: String): Action[AnyContent] = Action.async { implicit request =>
-    withCurrentSession { session =>
-      RegexPatterns
-        .validUtr(utr)
-        .fold(
-          error => badRequestF(error),
-          taxIdentifier => {
-            val enrolmentKey = EnrolmentKey("HMRC-TERS-ORG", Seq(Identifier("SAUTR", taxIdentifier)))
-            for {
-              maybeGroup <- groupsService.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
-              maybeAdminUser <- maybeGroup.fold(Future.successful(Option.empty[User]))(g =>
-                                  usersService.findAdminByGroupId(g.groupId, session.planetId)
-                                )
-            } yield (maybeGroup, maybeAdminUser) match {
-              case (Some(group), Some(user)) =>
-                val maybeUtr =
-                  extractEnrolmentValue("HMRC-TERS-ORG")(group)
-                val maybeUrn =
-                  extractEnrolmentValue("HMRC-TERSNT-ORG")(group)
-                val trustDetails = TrustDetailsResponse(
-                  TrustDetails(
-                    maybeUtr,
-                    maybeUrn,
-                    user.name.getOrElse(""),
-                    TrustAddress(user.user.address),
-                    "TERS"
-                  )
-                )
-                Ok(Json.toJson(trustDetails))
-              case _ => getErrorResponseFor(utr)
-            }
-          }
         )
     }(SessionRecordNotFound)
   }
