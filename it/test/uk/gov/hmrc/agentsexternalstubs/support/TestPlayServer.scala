@@ -20,16 +20,14 @@ import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.ws.WSClient
 import play.api.test.TestServer
-import play.api.{Application, Logging}
+import play.api.Application
 import uk.gov.hmrc.play.audit.http.connector.DatastreamMetrics
 import uk.gov.hmrc.play.bootstrap.audit.DisabledDatastreamMetricsProvider
 import uk.gov.hmrc.play.bootstrap.graphite.GraphiteMetricsModule
 import uk.gov.hmrc.play.bootstrap.metrics.{DisabledMetricsFilter, Metrics, MetricsFilter}
 
-import java.net.ServerSocket
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.{Lock, ReentrantLock}
-import scala.annotation.tailrec
 import scala.concurrent.Await
 
 trait TestPlayServer {
@@ -37,35 +35,20 @@ trait TestPlayServer {
   private val testServer: AtomicReference[TestServer] = new AtomicReference[TestServer]()
   private val lock: Lock = new ReentrantLock()
 
-  val port: Int = Port.randomAvailable
-  val wireMockPort: Int = Port.randomAvailable
+  val port: Int = 2222
+  val wireMockPort: Int = 1111
 
   lazy val app: Application = appBuilder.build()
 
   def configuration: Seq[(String, Any)] = Seq(
-    "microservice.services.auth.port"                        -> Port.randomAvailable,
-    "microservice.services.citizen-details.port"             -> Port.randomAvailable,
-    "microservice.services.users-groups-search.port"         -> Port.randomAvailable,
-    "microservice.services.enrolment-store-proxy.port"       -> Port.randomAvailable,
-    "microservice.services.tax-enrolments.port"              -> Port.randomAvailable,
-    "microservice.services.des.port"                         -> Port.randomAvailable,
-    "microservice.services.ni-exemption-registration.port"   -> Port.randomAvailable,
-    "microservice.services.companies-house-api-proxy.port"   -> Port.randomAvailable,
-    "microservice.services.sso.port"                         -> Port.randomAvailable,
-    "microservice.services.file-upload.port"                 -> Port.randomAvailable,
-    "microservice.services.file-upload-frontend.port"        -> Port.randomAvailable,
-    "microservice.services.user-details.port"                -> Port.randomAvailable,
-    "microservice.services.personal-details-validation.port" -> Port.randomAvailable,
-    "microservice.services.identity-verification.port"       -> Port.randomAvailable,
-    "auditing.consumer.baseUri.port"                         -> Port.randomAvailable,
-    "microservice.services.agent-access-control.port"        -> wireMockPort,
-    "microservice.services.api-platform-test-user.port"      -> wireMockPort,
-    "metrics.enabled"                                        -> false,
-    "auditing.enabled"                                       -> false,
-    "mongodb.uri"                                            -> MongoDB.uri,
-    "http.port"                                              -> port,
-    "gran-perms-test-gen-max-clients"                        -> 10,
-    "gran-perms-test-gen-max-agents"                         -> 5
+    "microservice.services.agent-access-control.port"   -> wireMockPort,
+    "microservice.services.api-platform-test-user.port" -> wireMockPort,
+    "metrics.enabled"                                   -> false,
+    "auditing.enabled"                                  -> false,
+    "mongodb.uri"                                       -> MongoDB.uri,
+    "http.port"                                         -> port,
+    "gran-perms-test-gen-max-clients"                   -> 10,
+    "gran-perms-test-gen-max-agents"                    -> 5
   )
 
   protected def appBuilder: GuiceApplicationBuilder =
@@ -106,41 +89,4 @@ object TestPlayServer extends TestPlayServer
 class TestMetrics extends Metrics {
 
   def defaultRegistry: MetricRegistry = SharedMetricRegistries.getOrCreate("test")
-}
-
-// This class was copy-pasted from the hmrctest project, which is now deprecated.
-object Port extends Logging {
-  val rnd = new scala.util.Random
-  val range = 8000 to 39999
-  val usedPorts = List[Int]()
-
-  @tailrec
-  def randomAvailable: Int =
-    range(rnd.nextInt(range.length)) match {
-      case 8080 => randomAvailable
-      case 8090 => randomAvailable
-      case p: Int =>
-        available(p) match {
-          case false =>
-            logger.debug(s"Port $p is in use, trying another")
-            randomAvailable
-          case true =>
-            logger.debug("Taking port : " + p)
-            usedPorts :+ p
-            p
-        }
-    }
-
-  private def available(p: Int): Boolean = {
-    var socket: ServerSocket = null
-    try if (!usedPorts.contains(p)) {
-      socket = new ServerSocket(p)
-      socket.setReuseAddress(true)
-      true
-    } else {
-      false
-    } catch {
-      case t: Throwable => false
-    } finally if (socket != null) socket.close()
-  }
 }
