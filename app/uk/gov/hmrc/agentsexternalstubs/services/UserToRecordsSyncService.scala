@@ -688,15 +688,19 @@ class UserToRecordsSyncService @Inject() (
                          case Some(relationship) =>
                            relationship.id.map(saveRecordId).getOrElse(Future.successful(()))
                          case None =>
-                           val relationship = LegacyRelationshipRecord(
-                             agentId = saAgentRef,
-                             utr = Some(utr),
-                             `Auth_64-8` = Some(true),
-                             `Auth_i64-8` = Some(true)
-                           )
-                           legacyRelationshipRecordsService
-                             .store(relationship, autoFill = false, user.planetId.get)
-                             .flatMap(saveRecordId)
+                           knownFactsRepository.findByIdentifier(Identifier("UTR", utr), user.planetId.get).flatMap {
+                             knownFact =>
+                               val relationship = LegacyRelationshipRecord(
+                                 agentId = saAgentRef,
+                                 nino = knownFact.flatMap(_.getVerifierValue("NINO")),
+                                 utr = Some(utr),
+                                 `Auth_64-8` = Some(true),
+                                 `Auth_i64-8` = Some(true)
+                               )
+                               legacyRelationshipRecordsService
+                                 .store(relationship, autoFill = false, user.planetId.get)
+                                 .flatMap(saveRecordId)
+                           }
                        }
                    case None => Future.successful(())
                  }
