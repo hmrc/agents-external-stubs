@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 import java.time.format.DateTimeFormatter
 import org.scalacheck.Gen
-import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, CbcId, MtdItId, PlrId, PptRef, Urn, UtrCheck, Vrn}
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.domain.{Modulus11Check, Modulus23Check, Nino}
 import uk.gov.hmrc.smartstub.{Addresses, Companies, Names, Temporal, ToLong}
 import wolfendale.scalacheck.regexp.RegexpGen

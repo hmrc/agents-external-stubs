@@ -27,11 +27,11 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 final class RecordsService @Inject() (recordsRepository: RecordsRepository, externalUserService: ExternalUserService) {
 
-  def findByKey[T](key: String, planetId: String)(implicit
+  def findByKeys[T](keys: Seq[String], planetId: String)(implicit
     metadata: RecordMetaData[T],
     reads: Reads[T]
   ): Future[Seq[T]] =
-    recordsRepository.findByKey[T](key, planetId, limit = Some(1000))
+    recordsRepository.findByKeys[T](keys, planetId, limit = Some(1000))
 
   def store[A <: Record](record: A, autoFill: Boolean, planetId: String)(implicit
     recordUtils: RecordUtils[A],
@@ -59,8 +59,8 @@ final class RecordsService @Inject() (recordsRepository: RecordsRepository, exte
     ev: TakesKey[A, K],
     reads: Reads[A]
   ): Future[Option[A]] = {
-    val key = ev.toKey(identifier)
-    findByKey[A](key, planetId).map(_.headOption)
+    val keys = ev.toKeys(identifier)
+    findByKeys[A](keys, planetId).map(_.headOption)
   }
 
   /** Same as getRecord, but if not found it will try to find an external user (from api-platform) with the given

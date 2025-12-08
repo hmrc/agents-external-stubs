@@ -19,7 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.connectors
 import play.api.Logger
 import play.api.http.Status
 import play.api.libs.json.{Json, OWrites}
-import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, MtdItId, Vrn}
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.domain.{AgentCode, Nino, TaxIdentifier}
 import uk.gov.hmrc.http.HttpReads.Implicits._

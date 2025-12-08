@@ -14,16 +14,23 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentsexternalstubs.models
+package uk.gov.hmrc.agentsexternalstubs.models.identifiers
 
-trait TakesKey[A, K] {
-  def toKey(identifier: K): String
-  def toKeys(identifier: K): Seq[String]
-}
+import uk.gov.hmrc.domain.{SimpleObjectReads, SimpleObjectWrites, TaxIdentifier}
 
-object TakesKey {
-  def apply[A, K](f: K => Seq[String]): TakesKey[A, K] = new TakesKey[A, K] {
-    def toKey(identifier: K): String = f(identifier).head
-    def toKeys(identifier: K): Seq[String] = f(identifier)
-  }
+case class Eori(value: String) extends TaxIdentifier
+
+object Eori {
+
+  private val eoriPattern = "^[0-9A-Za-z]{1,17}$".r
+
+  def isValid(eori: String): Boolean =
+    eori match {
+      case eoriPattern(_*) => true
+      case _               => false
+    }
+
+  implicit val eoriReads: SimpleObjectReads[Eori] = new SimpleObjectReads[Eori]("value", Eori.apply)
+  implicit val eoriWrites: SimpleObjectWrites[Eori] = new SimpleObjectWrites[Eori](_.value)
+
 }

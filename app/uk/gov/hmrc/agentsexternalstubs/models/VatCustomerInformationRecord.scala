@@ -74,7 +74,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
   implicit val recordType: RecordMetaData[VatCustomerInformationRecord] =
     RecordMetaData[VatCustomerInformationRecord]
 
-  implicit val takesVrnKey: TakesKey[VatCustomerInformationRecord, Vrn] = TakesKey(vrn => uniqueKey(vrn.value))
+  implicit val takesVrnKey: TakesKey[VatCustomerInformationRecord, Vrn] = TakesKey(vrn => Seq(uniqueKey(vrn.value)))
 
   def uniqueKey(key: String): String = s"""vrn:${key.toUpperCase}"""
 

@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalacheck.Gen
 import play.api.libs.json.{Format, Json, OFormat}
-import uk.gov.hmrc.agentmtdidentifiers.model.CbcId
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.agentsexternalstubs.models.Validator.{Validator, check, checkEachIfSome, checkIfOnlyOneSetIsDefined, checkProperty}
 
 import java.time.LocalDateTime
@@ -301,7 +301,7 @@ object CbcSubscriptionRecord extends RecordUtils[CbcSubscriptionRecord] {
 
   implicit val recordUtils: RecordUtils[CbcSubscriptionRecord] = this
 
-  implicit val takesCbcIdKey: TakesKey[CbcSubscriptionRecord, CbcId] = TakesKey(cbcId => cbcIdKey(cbcId.value))
+  implicit val takesCbcIdKey: TakesKey[CbcSubscriptionRecord, CbcId] = TakesKey(cbcId => Seq(cbcIdKey(cbcId.value)))
 
   implicit val recordType: RecordMetaData[CbcSubscriptionRecord] = RecordMetaData[CbcSubscriptionRecord]
 

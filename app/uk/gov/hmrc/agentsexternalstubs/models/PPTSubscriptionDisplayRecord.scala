@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json._
-import uk.gov.hmrc.agentmtdidentifiers.model.PptRef
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord.ChangeOfCircumstanceDetails.DeregistrationDetails
 import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord.{ChangeOfCircumstanceDetails, LegalEntityDetails}
 import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord.LegalEntityDetails.CustomerDetails
@@ -79,7 +79,7 @@ object PPTSubscriptionDisplayRecord extends RecordUtils[PPTSubscriptionDisplayRe
   implicit val recordUtils: RecordUtils[PPTSubscriptionDisplayRecord] = this
 
   implicit val takesPptRefKey: TakesKey[PPTSubscriptionDisplayRecord, PptRef] =
-    TakesKey(pptRef => pptReferenceKey(pptRef.value))
+    TakesKey(pptRef => Seq(pptReferenceKey(pptRef.value)))
 
   implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
   implicit val recordType: RecordMetaData[PPTSubscriptionDisplayRecord] =

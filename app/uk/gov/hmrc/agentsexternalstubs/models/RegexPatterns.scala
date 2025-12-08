@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 import java.util.regex.Pattern
 
-import uk.gov.hmrc.agentmtdidentifiers.model.{CgtRef, Urn, Utr}
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.domain.TaxIdentifier
 
 import scala.util.matching.Regex

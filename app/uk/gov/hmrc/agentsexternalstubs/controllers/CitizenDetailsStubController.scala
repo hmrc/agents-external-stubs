@@ -20,11 +20,11 @@ import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{Format, Json, OFormat}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.agentsexternalstubs.controllers.CitizenDetailsStubController.{GetCitizenResponse, GetDesignatoryDetailsBasicResponse, GetDesignatoryDetailsResponse}
-import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Group, User, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Group, RegexPatterns, User, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GroupsService, UsersService}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.agentmtdidentifiers.model.Utr
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.Common
 
 import java.time.LocalDate
@@ -44,9 +44,9 @@ class CitizenDetailsStubController @Inject() (
     withCurrentSession { session =>
       idName match {
         case "nino" =>
-          Nino.isValid(taxId) match {
-            case false => badRequestF("INVALID_NINO", s"Provided NINO $taxId is not valid")
-            case true =>
+          RegexPatterns.validNinoNoSpaces(taxId) match {
+            case Left(_) => badRequestF("INVALID_NINO", s"Provided NINO $taxId is not valid")
+            case Right(_) =>
               usersService.findByNino(taxId, session.planetId).map {
                 case None       => notFound("CITIZEN_RECORD_NOT_FOUND", s"Citizen record for $idName=$taxId not found")
                 case Some(user) => Ok(RestfulResponse(GetCitizenResponse.from(user)))
@@ -66,9 +66,9 @@ class CitizenDetailsStubController @Inject() (
 
   def getDesignatoryDetails(nino: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
-      Nino.isValid(nino) match {
-        case false => badRequestF("INVALID_NINO", s"Provided NINO $nino is not valid")
-        case true =>
+      RegexPatterns.validNinoNoSpaces(nino) match {
+        case Left(_) => badRequestF("INVALID_NINO", s"Provided NINO $nino is not valid")
+        case Right(_) =>
           for {
             maybeUser <- usersService.findByNino(nino, session.planetId)
             maybeGroup <-
@@ -86,9 +86,9 @@ class CitizenDetailsStubController @Inject() (
 
   def getDesignatoryDetailsBasic(nino: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
-      Nino.isValid(nino) match {
-        case false => badRequestF("INVALID_NINO", s"Provided NINO $nino is not valid")
-        case true =>
+      RegexPatterns.validNinoNoSpaces(nino) match {
+        case Left(_) => badRequestF("INVALID_NINO", s"Provided NINO $nino is not valid")
+        case Right(_) =>
           usersService.findByNino(nino, session.planetId).map {
             case None       => notFound("NOT_FOUND", s"Citizen details are not found for $nino")
             case Some(user) => Ok(RestfulResponse(GetDesignatoryDetailsBasicResponse.from(user, session)))

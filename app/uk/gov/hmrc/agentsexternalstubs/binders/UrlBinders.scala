@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.binders
 
 import play.api.mvc.PathBindable
-import uk.gov.hmrc.agentmtdidentifiers.model.Arn
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.agentsexternalstubs.models.EnrolmentKey
 
 object UrlBinders {

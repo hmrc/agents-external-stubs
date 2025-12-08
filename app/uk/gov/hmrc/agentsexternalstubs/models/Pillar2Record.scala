@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json._
-import uk.gov.hmrc.agentmtdidentifiers.model.PlrId
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.agentsexternalstubs.models.Pillar2Record.{AccountStatus, AccountingPeriod, ContactDetails, FilingMemberDetails, UpeCorrespAddressDetails, UpeDetails}
 
 /** ----------------------------------------------------------------------------
@@ -97,7 +97,7 @@ case class Pillar2Record(
 object Pillar2Record extends RecordUtils[Pillar2Record] {
 
   implicit val recordUtils: RecordUtils[Pillar2Record] = this
-  implicit val takesPlrIdKey: TakesKey[Pillar2Record, PlrId] = TakesKey(plrId => plrReferenceKey(plrId.value))
+  implicit val takesPlrIdKey: TakesKey[Pillar2Record, PlrId] = TakesKey(plrId => Seq(plrReferenceKey(plrId.value)))
 
   implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
   implicit val recordType: RecordMetaData[Pillar2Record] = RecordMetaData[Pillar2Record]

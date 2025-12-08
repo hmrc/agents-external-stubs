@@ -14,16 +14,23 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentsexternalstubs.models
+package uk.gov.hmrc.agentsexternalstubs.models.identifiers
 
-trait TakesKey[A, K] {
-  def toKey(identifier: K): String
-  def toKeys(identifier: K): Seq[String]
-}
+import uk.gov.hmrc.domain.{SimpleObjectReads, SimpleObjectWrites, TaxIdentifier}
 
-object TakesKey {
-  def apply[A, K](f: K => Seq[String]): TakesKey[A, K] = new TakesKey[A, K] {
-    def toKey(identifier: K): String = f(identifier).head
-    def toKeys(identifier: K): Seq[String] = f(identifier)
-  }
+case class PptRef(value: String) extends TaxIdentifier
+
+object PptRef {
+
+  private val pattern = "X[A-Z]PPT000[0-9]{7}".r
+
+  def isValid(ppt: String): Boolean =
+    ppt match {
+      case pattern(_*) => true
+      case _           => false
+    }
+
+  implicit val reads: SimpleObjectReads[PptRef] = new SimpleObjectReads[PptRef]("value", PptRef.apply)
+  implicit val writes: SimpleObjectWrites[PptRef] = new SimpleObjectWrites[PptRef](_.value)
+
 }

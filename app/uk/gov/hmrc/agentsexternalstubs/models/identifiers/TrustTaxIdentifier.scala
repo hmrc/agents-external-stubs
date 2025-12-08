@@ -14,16 +14,8 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentsexternalstubs.models
+package uk.gov.hmrc.agentsexternalstubs.models.identifiers
 
-trait TakesKey[A, K] {
-  def toKey(identifier: K): String
-  def toKeys(identifier: K): Seq[String]
-}
-
-object TakesKey {
-  def apply[A, K](f: K => Seq[String]): TakesKey[A, K] = new TakesKey[A, K] {
-    def toKey(identifier: K): String = f(identifier).head
-    def toKeys(identifier: K): Seq[String] = f(identifier)
-  }
+trait TrustTaxIdentifier {
+  val value: String
 }

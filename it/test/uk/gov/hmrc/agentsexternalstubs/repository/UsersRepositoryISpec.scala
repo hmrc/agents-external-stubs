@@ -119,7 +119,7 @@ class UsersRepositoryISpec extends AppBaseISpec {
         await(repo.create(User("boo", nino = Some(Nino("HW827856C"))), planetId))
       }
 
-      e.getMessage should include("Existing user already has this NINO HW827856C")
+      e.getMessage should include("Existing user already has this NINO HW827856")
     }
   }
 

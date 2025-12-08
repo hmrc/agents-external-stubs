@@ -70,11 +70,11 @@ class RecordsRepositoryISpec extends AppBaseISpec {
     "store a LegacyRelationshipRecord entities" in {
       val planetId = UUID.randomUUID().toString
       val registration1 =
-        LegacyRelationshipRecord(nino = Some("A"), utr = Some("U1"), agentId = "1")
+        LegacyRelationshipRecord(nino = Some("AB123457A"), utr = Some("U1"), agentId = "1")
       await(repo.store(registration1, planetId))
 
       val registration2 = LegacyRelationshipRecord(
-        nino = Some("B"),
+        nino = Some("AB123456"),
         utr = Some("U2"),
         agentId = "2",
         `Auth_i64-8` = Some(true),
@@ -85,7 +85,7 @@ class RecordsRepositoryISpec extends AppBaseISpec {
       val records = await(underlyingRepo.collection.find(Filters.equal("_planetId", planetId)).toFuture())
       records.size shouldBe 2
       records.map(_.asInstanceOf[LegacyRelationshipRecord].agentId) should contain.only("1", "2")
-      records.map(_.asInstanceOf[LegacyRelationshipRecord].nino.get) should contain.only("A", "B")
+      records.map(_.asInstanceOf[LegacyRelationshipRecord].nino.get) should contain.only("AB123457A", "AB123456")
       records.map(_.asInstanceOf[LegacyRelationshipRecord].utr.get) should contain.only("U1", "U2")
       records.map(_.asInstanceOf[LegacyRelationshipRecord].`Auth_64-8`) should contain.only(Some(true), None)
       records.map(_.asInstanceOf[LegacyRelationshipRecord].`Auth_i64-8`) should contain.only(Some(true), None)

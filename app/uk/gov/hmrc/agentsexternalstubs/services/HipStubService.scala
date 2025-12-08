@@ -17,8 +17,9 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
 import play.api.Logging
-import uk.gov.hmrc.agentmtdidentifiers.model.MtdItId
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.NinoWithoutSuffix
 import uk.gov.hmrc.domain.{Nino, TaxIdentifier}
 
 import java.time.{Instant, LocalDate}
@@ -151,7 +152,7 @@ class HipStubService @Inject() extends Logging {
   ): Either[Errors, TaxIdentifier] =
     (mtdReference, nino) match {
       case (Some(mtdId), Some(nino)) =>
-        if (MtdItId.isValid(mtdId) && Nino.isValid(nino)) Right(Nino(nino))
+        if (MtdItId.isValid(mtdId) && NinoWithoutSuffix.isValid(nino)) Right(NinoWithoutSuffix(nino))
         else {
           logger.error("mtdItId or nino is invalid")
           Left(Errors("006", requestCouldNotBeProcessed))
@@ -163,7 +164,7 @@ class HipStubService @Inject() extends Logging {
           Left(Errors("006", requestCouldNotBeProcessed))
         }
       case (None, Some(nino)) =>
-        if (Nino.isValid(nino)) Right(Nino(nino))
+        if (NinoWithoutSuffix.isValid(nino)) Right(NinoWithoutSuffix(nino))
         else {
           logger.error("nino is invalid")
           Left(Errors("006", requestCouldNotBeProcessed))

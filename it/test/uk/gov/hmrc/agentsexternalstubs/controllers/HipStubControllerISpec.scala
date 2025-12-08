@@ -370,7 +370,6 @@ class HipStubControllerISpec
   }
 
   "HipStubController.itsaTaxPayerBusinessDetails" when {
-
     "results are found" should {
       "return 200" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
@@ -398,6 +397,99 @@ class HipStubControllerISpec
         result.json
           .toString() should include(
           """"nino":"AB732851A","mtdId":"WOHV90190595538",""".stripMargin
+        )
+      }
+    }
+
+    "results are found for a suffixless nino request" should {
+      "return 200" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val user = UserGenerator
+          .agent("foo")
+          .copy(assignedPrincipalEnrolments =
+            Seq(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567").toEnrolmentKey.get)
+          )
+        await(userService.createUser(user, session.planetId, Some(AG.Agent)))
+
+        await(
+          repo.store(
+            BusinessDetailsRecord(
+              safeId = "safe-1",
+              nino = "AB732851A",
+              mtdId = "WOHV90190595538"
+            ),
+            session.planetId
+          )
+        )
+
+        val result = HipStub.itsaTaxPayerBusinessDetails(nino = Some("AB732851"))
+
+        result should haveStatus(OK)
+        result.json
+          .toString() should include(
+          """"nino":"AB732851A","mtdId":"WOHV90190595538",""".stripMargin
+        )
+      }
+    }
+
+    "results are found for a suffixless nino in database" should {
+      "return 200" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val user = UserGenerator
+          .agent("foo")
+          .copy(assignedPrincipalEnrolments =
+            Seq(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567").toEnrolmentKey.get)
+          )
+        await(userService.createUser(user, session.planetId, Some(AG.Agent)))
+
+        await(
+          repo.store(
+            BusinessDetailsRecord(
+              safeId = "safe-1",
+              nino = "AB732851",
+              mtdId = "WOHV90190595538"
+            ),
+            session.planetId
+          )
+        )
+
+        val result = HipStub.itsaTaxPayerBusinessDetails(nino = Some("AB732851A"))
+
+        result should haveStatus(OK)
+        result.json
+          .toString() should include(
+          """"nino":"AB732851","mtdId":"WOHV90190595538",""".stripMargin
+        )
+      }
+    }
+
+    "results are not found due to suffix mismatch" should {
+      "return 422" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val user = UserGenerator
+          .agent("foo")
+          .copy(assignedPrincipalEnrolments =
+            Seq(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "ZARN1234567").toEnrolmentKey.get)
+          )
+        await(userService.createUser(user, session.planetId, Some(AG.Agent)))
+
+        await(
+          repo.store(
+            BusinessDetailsRecord(
+              safeId = "safe-1",
+              nino = "AB732851A",
+              mtdId = "WOHV90190595538"
+            ),
+            session.planetId
+          )
+        )
+
+        val result = HipStub.itsaTaxPayerBusinessDetails(nino = Some("AB732851B"))
+
+        result should haveStatus(UNPROCESSABLE_ENTITY)
+        result.json
+          .toString() should include(
+          """code":"006","text":"Subscription data not found"""
         )
       }
     }
