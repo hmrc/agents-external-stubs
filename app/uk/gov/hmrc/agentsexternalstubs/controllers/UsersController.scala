@@ -20,10 +20,9 @@ import javax.inject.{Inject, Singleton}
 import play.api.libs.json.JsValue
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import play.mvc.Http.HeaderNames
-import uk.gov.hmrc.agentsexternalstubs.models.{ApiPlatform, User, UserIdGenerator, Users}
+import uk.gov.hmrc.agentsexternalstubs.models.{ApiPlatform, RegexPatterns, User, UserIdGenerator, Users}
 import uk.gov.hmrc.agentsexternalstubs.repository.DuplicateUserException
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GroupsService, UsersService}
-import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.NotFoundException
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -93,9 +92,9 @@ class UsersController @Inject() (
 
   def getUserForNino(nino: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
-      Nino.isValid(nino) match {
-        case false => badRequestF("INVALID_NINO", s"Provided NINO $nino is not valid")
-        case true =>
+      RegexPatterns.validNinoNoSpaces(nino) match {
+        case Left(_) => badRequestF("INVALID_NINO", s"Provided NINO $nino is not valid")
+        case Right(_) =>
           usersService.findByNino(nino, session.planetId).map {
             case Some(user) => Ok(RestfulResponse(user)(User.writes))
             case None       => notFound("USER_NOT_FOUND", s"Could not found user for nino $nino")

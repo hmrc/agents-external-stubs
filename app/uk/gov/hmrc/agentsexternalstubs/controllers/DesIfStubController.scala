@@ -21,7 +21,7 @@ import play.api.data.Forms._
 import play.api.data.validation.{Constraint, Constraints, Invalid, Valid}
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
-import uk.gov.hmrc.agentmtdidentifiers.model.{Arn, Eori, PlrId, PptRef, Utr}
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.agentsexternalstubs.models.TrustDetailsResponse.getErrorResponseFor
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository

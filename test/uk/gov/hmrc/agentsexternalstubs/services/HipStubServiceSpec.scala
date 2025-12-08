@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.services
 
-import uk.gov.hmrc.agentmtdidentifiers.model.MtdItId
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.agentsexternalstubs.models.Errors
 import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 import uk.gov.hmrc.domain.Nino
@@ -281,7 +281,7 @@ class HipStubServiceSpec extends BaseUnitSpec {
       val result =
         service.processItsaTaxpayerBusinessDetailsQueryParameters(mtdReference = None, nino = Some("AB732851A"))
 
-      result shouldBe Right(Nino("AB732851A"))
+      result shouldBe Right(NinoWithoutSuffix("AB732851A"))
     }
 
     "return an Either Right when a valid mtdReference" in {
@@ -297,7 +297,7 @@ class HipStubServiceSpec extends BaseUnitSpec {
         nino = Some("AB732851A")
       )
 
-      result shouldBe Right(Nino("AB732851A"))
+      result shouldBe Right(NinoWithoutSuffix("AB732851A"))
     }
 
     "return an Either Left when nino is invalid" in {

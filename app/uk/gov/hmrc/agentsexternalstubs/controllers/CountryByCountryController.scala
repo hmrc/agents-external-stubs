@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents, Result}
-import uk.gov.hmrc.agentmtdidentifiers.model.CbcId
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.agentsexternalstubs.models.{CbcSubscriptionRecord, DisplaySubscriptionForCbC, DisplaySubscriptionForCbCRequestPayload}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, RecordsService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController

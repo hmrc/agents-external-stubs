@@ -170,12 +170,13 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with TestRequests {
       "replace an ordinary GET response" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
         val user = Users.get(session.userId).json.as[User]
-        val result1 = CitizenDetailsStub.getCitizen("nino", user.nino.get.value)
+        val nino = user.nino.get.value.replace(" ", "")
+        val result1 = CitizenDetailsStub.getCitizen("nino", nino)
         result1 should haveStatus(200)
 
         val result2 = SpecialCases.createSpecialCase(
           SpecialCase(
-            requestMatch = SpecialCase.RequestMatch(path = s"/citizen-details/nino/${user.nino.get.value}"),
+            requestMatch = SpecialCase.RequestMatch(path = s"/citizen-details/nino/$nino"),
             response = SpecialCase
               .Response(427, Some("""{"a":"b"}"""), Seq(SpecialCase.Header(HeaderNames.CONTENT_TYPE, MimeTypes.JSON)))
           )
@@ -183,7 +184,7 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with TestRequests {
         result2 should haveStatus(201)
         val sc = get(result2.header(HeaderNames.LOCATION).get).json.as[SpecialCase]
 
-        val result3 = CitizenDetailsStub.getCitizen("nino", user.nino.get.value)
+        val result3 = CitizenDetailsStub.getCitizen("nino", nino)
         result3 should haveStatus(427)
         result3.header(HeaderNames.CONTENT_TYPE) shouldBe Some("application/json")
         (result3.json \ "a").as[String] shouldBe "b"
@@ -192,13 +193,13 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with TestRequests {
           SpecialCases.updateSpecialCase(sc.id.get.value, sc.copy(response = sc.response.copy(status = 583)))
         result4 should haveStatus(202)
 
-        val result5 = CitizenDetailsStub.getCitizen("nino", user.nino.get.value)
+        val result5 = CitizenDetailsStub.getCitizen("nino", nino)
         result5 should haveStatus(583)
 
         val result6 = SpecialCases.deleteSpecialCase(sc.id.get.value)
         result6 should haveStatus(204)
 
-        val result7 = CitizenDetailsStub.getCitizen("nino", user.nino.get.value)
+        val result7 = CitizenDetailsStub.getCitizen("nino", nino)
         result7 should haveStatus(200)
       }
 

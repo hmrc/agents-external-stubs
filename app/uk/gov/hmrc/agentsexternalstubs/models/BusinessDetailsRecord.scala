@@ -19,7 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json._
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.{BusinessData, PropertyData}
-import uk.gov.hmrc.agentmtdidentifiers.model.{CgtRef, MtdItId}
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.domain.Nino
 
 /** ----------------------------------------------------------------------------
@@ -50,12 +50,10 @@ case class BusinessDetailsRecord(
   override def uniqueKey: Option[String] = Option(safeId).map(BusinessDetailsRecord.uniqueKey)
   override def lookupKeys: Seq[String] =
     Seq(
-      Option(nino).map(BusinessDetailsRecord.ninoKey),
-      Option(mtdId).map(BusinessDetailsRecord.mtdIdKey),
-      cgtPdRef.map(BusinessDetailsRecord.cgtPdRefKey)
-    ).collect { case Some(x) =>
-      x
-    }
+      Seq(nino).flatMap(BusinessDetailsRecord.ninoKeys),
+      Seq(mtdId).flatMap(BusinessDetailsRecord.mtdIdKey),
+      cgtPdRef.toSeq.flatMap(BusinessDetailsRecord.cgtPdRefKey)
+    ).flatten
   override def withId(id: Option[String]): BusinessDetailsRecord = copy(id = id)
 
   def withSafeId(safeId: String): BusinessDetailsRecord = copy(safeId = safeId)
@@ -92,14 +90,20 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
   implicit val recordType: RecordMetaData[BusinessDetailsRecord] = RecordMetaData[BusinessDetailsRecord]
 
   implicit val takesNinoKey: TakesKey[BusinessDetailsRecord, Nino] = TakesKey(nino => ninoKey(nino.value))
-  implicit val takesMtdIdKey: TakesKey[BusinessDetailsRecord, MtdItId] = TakesKey(mtdItId => mtdIdKey(mtdItId.value))
-  implicit val takesCgtRefKey: TakesKey[BusinessDetailsRecord, CgtRef] = TakesKey(cgtRef => cgtPdRefKey(cgtRef.value))
+  implicit val takesNinoWithoutSuffixKey: TakesKey[BusinessDetailsRecord, NinoWithoutSuffix] =
+    TakesKey(nino => ninoKeys(nino.value))
+  implicit val takesMtdIdKey: TakesKey[BusinessDetailsRecord, MtdItId] =
+    TakesKey(mtdItId => mtdIdKey(mtdItId.value))
+  implicit val takesCgtRefKey: TakesKey[BusinessDetailsRecord, CgtRef] =
+    TakesKey(cgtRef => cgtPdRefKey(cgtRef.value))
 
   def uniqueKey(key: String): String = s"""safeId:${key.toUpperCase}"""
-  def ninoKey(key: String): String = s"""nino:${key.toUpperCase}"""
-  def mtdIdKey(key: String): String = s"""mtdId:${key.toUpperCase}"""
+  def ninoKey(key: String): Seq[String] = Seq(s"""nino:${key.toUpperCase}""")
+  def ninoKeys(key: String): Seq[String] =
+    NinoWithoutSuffix(key).variations.map(variant => s"nino:${variant.toUpperCase}")
+  def mtdIdKey(key: String): Seq[String] = Seq(s"""mtdId:${key.toUpperCase}""")
 
-  def cgtPdRefKey(key: String): String = s"""cgtPdRef:${key.toUpperCase}"""
+  def cgtPdRefKey(key: String): Seq[String] = Seq(s"""cgtPdRef:${key.toUpperCase}""")
 
   import Generator.GenOps._
   import Validator._

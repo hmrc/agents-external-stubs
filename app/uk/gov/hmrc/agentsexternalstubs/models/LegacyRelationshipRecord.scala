@@ -18,6 +18,8 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalacheck.Gen
 import play.api.libs.json._
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.NinoWithoutSuffix
+
 case class LegacyRelationshipRecord(
   agentId: String,
   nino: Option[String] = None,
@@ -29,13 +31,11 @@ case class LegacyRelationshipRecord(
 
   override def lookupKeys: Seq[String] =
     Seq(
-      nino.map(LegacyRelationshipRecord.ninoKey),
-      utr.map(LegacyRelationshipRecord.utrKey),
-      Option(LegacyRelationshipRecord.agentIdKey(agentId)),
-      utr.map(LegacyRelationshipRecord.agentIdAndUtrKey(agentId, _))
-    ).collect { case Some(x) =>
-      x
-    }
+      nino.toSeq.flatMap(LegacyRelationshipRecord.ninoKeys),
+      utr.map(LegacyRelationshipRecord.utrKey).toSeq,
+      Seq(LegacyRelationshipRecord.agentIdKey(agentId)),
+      utr.map(LegacyRelationshipRecord.agentIdAndUtrKey(agentId, _)).toSeq
+    ).flatten
   override def withId(id: Option[String]): LegacyRelationshipRecord = copy(id = id)
 }
 
@@ -45,7 +45,7 @@ object LegacyRelationshipRecord extends RecordUtils[LegacyRelationshipRecord] {
 
   def agentIdKey(agentId: String): String = s"agentId:$agentId"
   def agentIdAndUtrKey(agentId: String, utr: String): String = s"agentId:$agentId;utr:${utr.replace(" ", "")}"
-  def ninoKey(nino: String): String = s"nino:${nino.replace(" ", "")}"
+  def ninoKeys(nino: String): Seq[String] = NinoWithoutSuffix(nino).variations.map(variant => s"nino:$variant")
   def utrKey(utr: String): String = s"utr:${utr.replace(" ", "")}"
 
   import Validator._

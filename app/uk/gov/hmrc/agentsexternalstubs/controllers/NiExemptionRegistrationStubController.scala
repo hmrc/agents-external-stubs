@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.json.{Format, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
-import uk.gov.hmrc.agentmtdidentifiers.model.Utr
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.agentsexternalstubs.models.{BusinessPartnerRecord, RegexPatterns, Validator}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, RecordsService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController

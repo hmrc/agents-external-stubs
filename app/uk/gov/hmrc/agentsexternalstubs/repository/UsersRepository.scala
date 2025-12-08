@@ -108,7 +108,7 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: Ex
 
   override def findByNino(nino: String, planetId: String): Future[Option[User]] =
     collection
-      .find(Filters.equal(UNIQUE_KEYS, keyOf(User.ninoIndexKey(nino), planetId)))
+      .find(Filters.in(UNIQUE_KEYS, User.ninoIndexKeys(nino).map(keyOf(_, planetId)): _*))
       .headOption()
       .map(_.map(_.value))
 

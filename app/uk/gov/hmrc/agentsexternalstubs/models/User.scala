@@ -19,6 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import cats.data.Validated.{Invalid, Valid}
 import play.api.libs.json._
 import uk.gov.hmrc.agentsexternalstubs.models.User.AdditionalInformation
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.NinoWithoutSuffix
 import uk.gov.hmrc.domain.Nino
 
 import java.time.LocalDate
@@ -49,13 +50,11 @@ case class User(
   def uniqueKeys: Seq[String] =
     Seq(
       Some(User.userIdKey(userId)),
-      nino.map(n => User.ninoIndexKey(n.value)),
+      nino.toSeq.flatMap(n => User.ninoIndexKeys(n.value)),
       credentialRole
         .find(role => role == User.CR.Admin || role == User.CR.User)
         .flatMap(_ => groupId.map(User.groupIdIndexKey))
-    ).collect { case Some(x) =>
-      x
-    }
+    ).flatten
 
   def lookupKeys: Seq[String] =
     Seq(
@@ -151,8 +150,8 @@ object User {
   }
 
   def userIdKey(userId: String): String = s"uid:$userId"
-  def ninoIndexKey(nino: String): String = s"nino:${nino.replace(" ", "").toLowerCase}"
-
+  def ninoIndexKeys(nino: String): Seq[String] =
+    NinoWithoutSuffix(nino).allVariations.map(variant => s"nino:${variant.toLowerCase}")
   def utrIndexKey(utr: String): String = s"utr:${utr.replace(" ", "").toLowerCase}"
   def assignedPrincipalEnrolmentIndexKey(key: String): String = s"apenr:${key.toLowerCase}"
   def assignedDelegatedEnrolmentIndexKey(key: String): String = s"adenr:${key.toLowerCase}"

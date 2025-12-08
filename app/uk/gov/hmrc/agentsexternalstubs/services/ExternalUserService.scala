@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 
 import javax.inject.{Inject, Provider, Singleton}
 import play.api.{Logger, Logging}
-import uk.gov.hmrc.agentmtdidentifiers.model.Utr
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.agentsexternalstubs.connectors.ApiPlatformTestUserConnector
 import uk.gov.hmrc.agentsexternalstubs.models.ApiPlatform.TestUser
 import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, Planet, User}

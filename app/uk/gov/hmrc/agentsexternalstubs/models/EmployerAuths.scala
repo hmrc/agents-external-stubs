@@ -57,7 +57,7 @@ object EmployerAuths extends RecordUtils[EmployerAuths] {
   implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
   implicit val recordType: RecordMetaData[EmployerAuths] = RecordMetaData[EmployerAuths]
 
-  implicit val agentCodeKey: TakesKey[EmployerAuths, AgentCode] = TakesKey(ac => uniqueKey(ac.value))
+  implicit val agentCodeKey: TakesKey[EmployerAuths, AgentCode] = TakesKey(ac => Seq(uniqueKey(ac.value)))
 
   def uniqueKey(key: String): String = s"""agentCode:${key.toUpperCase}"""
 

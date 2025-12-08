@@ -19,12 +19,13 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Request, Result, Results}
-import uk.gov.hmrc.agentmtdidentifiers.model._
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.GetRelationships
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.NinoWithoutSuffix
 import uk.gov.hmrc.agentsexternalstubs.services._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.domain.{Nino, Vrn}
+import uk.gov.hmrc.domain.Vrn
 
 import java.time.{Instant, LocalDate, LocalDateTime}
 import java.time.temporal.ChronoUnit
@@ -210,9 +211,9 @@ class HipStubController @Inject() (
                   Future.successful(Results.UnprocessableEntity(Json.toJson(invalidQueryParametersResponse)))
                 case Right(taxIdentifier) =>
                   taxIdentifier match {
-                    case n: Nino =>
+                    case n: NinoWithoutSuffix =>
                       recordsService
-                        .getRecordMaybeExt[BusinessDetailsRecord, Nino](n, session.planetId)
+                        .getRecordMaybeExt[BusinessDetailsRecord, NinoWithoutSuffix](n, session.planetId)
                         .map {
                           case Some(record) =>
                             Ok(
