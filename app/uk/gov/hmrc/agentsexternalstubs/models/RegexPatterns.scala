@@ -26,6 +26,12 @@ object RegexPatterns {
 
   type Matcher = String => Either[String, String]
 
+  val validNinoNoSpacesWithSuffix: Matcher = validate(
+    "^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]$".r
+  )
+  val validNinoNoSpacesNoSuffix: Matcher = validate(
+    "^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}$".r
+  )
   val validNinoNoSpaces: Matcher = validate(
     "^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$".r
   )

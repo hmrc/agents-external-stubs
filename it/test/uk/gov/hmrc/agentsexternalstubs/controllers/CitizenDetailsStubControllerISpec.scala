@@ -30,7 +30,6 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
   private val testUtr = "6214961180"
 
   "CitizenDetailsStubController" when {
-
     "GET /citizen-details/nino/:nino" should {
       "respond 200 with citizen data if found" in {
         val user = userService
@@ -60,32 +59,12 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
         (json \ "name" \ "current" \ "lastName").as[String] shouldBe "Foo-Foe"
       }
 
-      "respond 200 with citizen data if found without suffix" in {
-        val user = userService
-          .createUser(
-            UserGenerator
-              .individual(
-                userId = testUserId,
-                nino = "HW 82 78 56 C",
-                name = "Alan Brian Foo-Foe",
-                dateOfBirth = "1975-12-18"
-              ),
-            planetId = testPlanetId,
-            affinityGroup = Some(AG.Individual)
-          )
-          .futureValue
-
-        implicit val session: AuthenticatedSession =
-          SignIn.signInAndGetSession(user.userId, planetId = user.planetId.get)
+      "respond 400 if called without suffix" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = CitizenDetailsStub.getCitizen("nino", "HW827856")
 
-        result should haveStatus(200)
-        val json = result.json
-        (json \ "ids" \ "nino").as[String] shouldBe "HW 82 78 56 C"
-        (json \ "dateOfBirth").as[String] shouldBe "18121975"
-        (json \ "name" \ "current" \ "firstName").as[String] shouldBe "Alan Brian"
-        (json \ "name" \ "current" \ "lastName").as[String] shouldBe "Foo-Foe"
+        result should haveStatus(400)
       }
 
       "respond 200 with citizen data if found for another suffix" in {
@@ -151,6 +130,74 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
 
       "respond 401 if not authenticated" in {
         val result = CitizenDetailsStub.getCitizen("foo", "HW827856C")(NotAuthorized)
+
+        result should haveStatus(401)
+      }
+    }
+    "GET /citizen-details/nino-no-suffix/:nino" should {
+      "respond 200 with citizen data if found" in {
+        val user = userService
+          .createUser(
+            UserGenerator
+              .individual(
+                userId = testUserId,
+                nino = "HW 82 78 56 C",
+                name = "Alan Brian Foo-Foe",
+                dateOfBirth = "1975-12-18"
+              ),
+            planetId = testPlanetId,
+            affinityGroup = Some(AG.Individual)
+          )
+          .futureValue
+
+        implicit val session: AuthenticatedSession =
+          SignIn.signInAndGetSession(user.userId, planetId = user.planetId.get)
+
+        val result = CitizenDetailsStub.getCitizen("nino-no-suffix", "HW827856")
+
+        result should haveStatus(200)
+        val json = result.json
+        (json \ "ids" \ "nino").as[String] shouldBe "HW 82 78 56 C"
+        (json \ "dateOfBirth").as[String] shouldBe "18121975"
+        (json \ "name" \ "current" \ "firstName").as[String] shouldBe "Alan Brian"
+        (json \ "name" \ "current" \ "lastName").as[String] shouldBe "Foo-Foe"
+      }
+
+      "respond 400 if called with suffix" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = CitizenDetailsStub.getCitizen("nino-no-suffix", "HW827856C")
+
+        result should haveStatus(400)
+      }
+
+      "respond 404 if not found" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        Users.update(
+          UserGenerator
+            .individual(
+              userId = session.userId,
+              nino = "JH 59 92 01 D",
+              name = "Alan Brian Foo-Foe",
+              dateOfBirth = "1975-12-18"
+            )
+        )
+
+        val result = CitizenDetailsStub.getCitizen("nino-no-suffix", "HW827856")
+
+        result should haveStatus(404)
+      }
+
+      "respond 400 if nino not valid" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result = CitizenDetailsStub.getCitizen("nino-no-suffix", "W82785")
+
+        result should haveStatus(400)
+      }
+
+      "respond 401 if not authenticated" in {
+        val result = CitizenDetailsStub.getCitizen("nino-no-suffix", "HW827856C")(NotAuthorized)
 
         result should haveStatus(401)
       }

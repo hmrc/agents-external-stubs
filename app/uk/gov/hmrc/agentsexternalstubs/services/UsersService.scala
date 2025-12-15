@@ -20,6 +20,7 @@ import cats.data.Validated.{Invalid, Valid}
 import com.github.blemale.scaffeine.Scaffeine
 import play.api.i18n.Lang.logger
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.NinoWithoutSuffix
 import uk.gov.hmrc.agentsexternalstubs.repository.{KnownFactsRepository, UsersRepository}
 import uk.gov.hmrc.domain.{Nino, SaUtr}
 import uk.gov.hmrc.http.{BadRequestException, ForbiddenException, NotFoundException}
@@ -54,7 +55,7 @@ class UsersService @Inject() (
   def findByNino(nino: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =
     usersRepository.findByNino(nino, planetId).flatMap {
       case Some(user) => Future.successful(Some(user))
-      case None       => externalUserService.lookupExternalUser(Nino(nino), planetId)
+      case None       => externalUserService.lookupExternalUser(NinoWithoutSuffix(nino), planetId)
     }
 
   def findByUtr(utr: String, planetId: String)(implicit ec: ExecutionContext): Future[Option[User]] =

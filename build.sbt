@@ -34,20 +34,21 @@ lazy val root = (project in file("."))
     PlayKeys.playDefaultPort := 9009,
     libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test,
     scoverageSettings,
-    Compile / unmanagedResourceDirectories  += baseDirectory.value / "resources",
+    Compile / unmanagedResourceDirectories += baseDirectory.value / "resources",
     routesImport ++= Seq(
       "uk.gov.hmrc.agentsexternalstubs.binders.UrlBinders._",
       "uk.gov.hmrc.agentsexternalstubs.models._"
     ),
     Compile / scalafmtOnCompile := true,
-    Test / scalafmtOnCompile := true
+    Test / scalafmtOnCompile := true,
+    Test / logBuffered := false
   )
   .settings(
     //fix for scoverage compile errors for scala 2.13.10
     libraryDependencySchemes ++= Seq("org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always)
   )
   .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
-  .disablePlugins(JUnitXmlReportPlugin)  //To prevent https://github.com/scalatest/scalatest/issues/1427
+  .disablePlugins(JUnitXmlReportPlugin) //To prevent https://github.com/scalatest/scalatest/issues/1427
 
 lazy val it = project
   .enablePlugins(PlayScala)
@@ -56,5 +57,6 @@ lazy val it = project
   .settings(libraryDependencies ++= AppDependencies.test)
   .settings(
     Compile / scalafmtOnCompile := true,
-    Test / scalafmtOnCompile := true
+    Test / scalafmtOnCompile := true,
+    Test / logBuffered := false
   )
