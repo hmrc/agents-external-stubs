@@ -44,7 +44,16 @@ class CitizenDetailsStubController @Inject() (
     withCurrentSession { session =>
       idName match {
         case "nino" =>
-          RegexPatterns.validNinoNoSpaces(taxId) match {
+          RegexPatterns.validNinoNoSpacesWithSuffix(taxId) match {
+            case Left(_) => badRequestF("INVALID_NINO", s"Provided NINO $taxId is not valid")
+            case Right(_) =>
+              usersService.findByNino(taxId, session.planetId).map {
+                case None       => notFound("CITIZEN_RECORD_NOT_FOUND", s"Citizen record for $idName=$taxId not found")
+                case Some(user) => Ok(RestfulResponse(GetCitizenResponse.from(user)))
+              }
+          }
+        case "nino-no-suffix" =>
+          RegexPatterns.validNinoNoSpacesNoSuffix(taxId) match {
             case Left(_) => badRequestF("INVALID_NINO", s"Provided NINO $taxId is not valid")
             case Right(_) =>
               usersService.findByNino(taxId, session.planetId).map {
@@ -66,7 +75,7 @@ class CitizenDetailsStubController @Inject() (
 
   def getDesignatoryDetails(nino: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
-      RegexPatterns.validNinoNoSpaces(nino) match {
+      RegexPatterns.validNinoNoSpacesWithSuffix(nino) match {
         case Left(_) => badRequestF("INVALID_NINO", s"Provided NINO $nino is not valid")
         case Right(_) =>
           for {
@@ -86,7 +95,7 @@ class CitizenDetailsStubController @Inject() (
 
   def getDesignatoryDetailsBasic(nino: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
-      RegexPatterns.validNinoNoSpaces(nino) match {
+      RegexPatterns.validNinoNoSpacesWithSuffix(nino) match {
         case Left(_) => badRequestF("INVALID_NINO", s"Provided NINO $nino is not valid")
         case Right(_) =>
           usersService.findByNino(nino, session.planetId).map {
