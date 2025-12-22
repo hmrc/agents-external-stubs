@@ -32,6 +32,11 @@ class ApiPlatformTestUserConnector @Inject() (appConfig: AppConfig, http: HttpCl
   def getIndividualUserByNino(nino: String)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
     getUser(appConfig.apiPlatformTestUserUrl + s"/individuals/nino/$nino")
 
+  def getIndividualUserByShortNino(
+    nino: String
+  )(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
+    getUser(appConfig.apiPlatformTestUserUrl + s"/individuals/shortnino/$nino")
+
   def getIndividualUserBySaUtr(
     saUtr: String
   )(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
