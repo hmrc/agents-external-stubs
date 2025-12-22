@@ -44,6 +44,8 @@ class ExternalUserService @Inject() (
     def userFromApiPlatform(id: TaxIdentifier): Future[Option[TestUser]] = id match {
       case nino: Nino =>
         apiPlatformTestUserConnector.getIndividualUserByNino(nino.value)
+      case nino: NinoWithoutSuffix =>
+        apiPlatformTestUserConnector.getIndividualUserByShortNino(nino.suffixlessValue)
       case utr: Utr =>
         apiPlatformTestUserConnector.getIndividualUserBySaUtr(utr.value)
       case utr: SaUtr =>
