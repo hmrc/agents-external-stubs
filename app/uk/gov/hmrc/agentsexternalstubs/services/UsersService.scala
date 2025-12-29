@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,6 +41,9 @@ class UsersService @Inject() (
 
   def findByUserId(userId: String, planetId: String): Future[Option[User]] =
     usersRepository.findByUserId(userId, planetId)
+
+  def findByUserIdContains(partialUserId: String, planetId: String)(limit: Int): Future[Seq[User]] =
+    usersRepository.findByUserIdContains(partialUserId, planetId, limit)
 
   def findUserAndGroup(userId: String, planetId: String)(implicit
     ec: ExecutionContext

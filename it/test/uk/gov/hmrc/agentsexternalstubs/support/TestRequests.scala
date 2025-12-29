@@ -188,15 +188,21 @@ trait TestRequests extends ScalaFutures {
 
   object Users {
 
-    def getAll(affinityGroup: Option[String] = None, limit: Option[Int] = None, agentCode: Option[String] = None)(
-      implicit authContext: AuthContext
+    def getAll(
+      affinityGroup: Option[String] = None,
+      limit: Option[Int] = None,
+      agentCode: Option[String] = None,
+      userId: Option[String] = None
+    )(implicit
+      authContext: AuthContext
     ): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/users")
         .withQueryStringParameters(
-          Seq("affinityGroup" -> affinityGroup, "limit" -> limit.toString, "agentCode" -> agentCode).collect {
-            case (name, Some(value: String)) => (name, value)
-          }: _*
+          Seq("affinityGroup" -> affinityGroup, "limit" -> limit.toString, "agentCode" -> agentCode, "userId" -> userId)
+            .collect { case (name, Some(value: String)) =>
+              (name, value)
+            }: _*
         )
         .withHttpHeaders(authContext.headers: _*)
         .get()
