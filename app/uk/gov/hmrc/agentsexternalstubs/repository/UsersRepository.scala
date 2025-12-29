@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import org.mongodb.scala.MongoWriteException
 import org.mongodb.scala.model.Filters.equal
 import org.mongodb.scala.model.Projections.{excludeId, fields, include}
 import org.mongodb.scala.model._
+import org.mongodb.scala.model.Filters._
 import org.mongodb.scala.result.DeleteResult
 import play.api.libs.json._
 import play.api.{Logger, Logging}
@@ -40,6 +41,7 @@ case class DuplicateUserException(msg: String, key: Option[String] = None) exten
 trait UsersRepository {
 
   def findByUserId(userId: String, planetId: String): Future[Option[User]]
+  def findByUserIdContains(partialUserId: String, planetId: String, limit: Int): Future[Seq[User]]
   def findByNino(nino: String, planetId: String): Future[Option[User]]
   def findByUtr(utr: String, planetId: String): Future[Option[User]]
   def findByPlanetId(planetId: String)(limit: Int): Future[Seq[User]]
@@ -104,6 +106,18 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: Ex
     collection
       .find(Filters.equal(UNIQUE_KEYS, keyOf(User.userIdKey(userId), planetId)))
       .headOption()
+      .map(_.map(_.value))
+
+  override def findByUserIdContains(partialUserId: String, planetId: String, limit: Int): Future[Seq[User]] =
+    collection
+      .find(
+        and(
+          equal("planetId", planetId),
+          regex("userId", partialUserId, "i")
+        )
+      )
+      .limit(limit)
+      .toFuture()
       .map(_.map(_.value))
 
   override def findByNino(nino: String, planetId: String): Future[Option[User]] =

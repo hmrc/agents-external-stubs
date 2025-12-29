@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,7 +43,8 @@ class UsersController @Inject() (
     affinityGroup: Option[String],
     limit: Option[Int],
     groupId: Option[String],
-    agentCode: Option[String]
+    agentCode: Option[String],
+    userId: Option[String]
   ): Action[AnyContent] =
     Action.async { implicit request =>
       withCurrentSession { session =>
@@ -51,7 +52,12 @@ class UsersController @Inject() (
           !(agentCode.isDefined && groupId.isDefined),
           "You cannot query users by both groupId and agentCode at the same time."
         )
-        (if (groupId.isDefined)
+        (if (userId.isDefined)
+           usersService.findByUserIdContains(
+             partialUserId = userId.get,
+             planetId = session.planetId
+           )(limit.getOrElse(100))
+         else if (groupId.isDefined)
            usersService.findByGroupId(groupId.get, session.planetId)(limit.orElse(Some(100)))
          else if (agentCode.isDefined)
            groupsService.findByAgentCode(agentCode.get, session.planetId).flatMap {
