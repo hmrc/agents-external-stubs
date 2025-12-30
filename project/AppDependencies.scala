@@ -18,7 +18,7 @@ object AppDependencies {
     // we keep 1.4.0 here to preserve a working compile while still depending on the library at runtime.
     "uk.gov.hmrc"          %% "stub-data-generator"         % "1.4.0",
     "io.github.wolfendale" %% "scalacheck-gen-regexp"       % "0.1.3",
-    "org.playframework"    %% "play-json"                   % "3.0.5"
+    "org.playframework"    %% "play-json"                   % "3.0.6"
   )
 
   lazy val test: Seq[ModuleID] = Seq(
