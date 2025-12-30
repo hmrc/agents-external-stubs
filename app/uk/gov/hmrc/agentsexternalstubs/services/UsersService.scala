@@ -22,7 +22,7 @@ import play.api.i18n.Lang.logger
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.models.identifiers.NinoWithoutSuffix
 import uk.gov.hmrc.agentsexternalstubs.repository.{KnownFactsRepository, UsersRepository}
-import uk.gov.hmrc.domain.{Nino, SaUtr}
+import uk.gov.hmrc.domain.SaUtr
 import uk.gov.hmrc.http.{BadRequestException, ForbiddenException, NotFoundException}
 
 import java.util.UUID
