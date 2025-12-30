@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@ import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 class KnownFactsSpec extends BaseUnitSpec with ValidatedMatchers {
 
   "KnownFacts" should {
-    val enrolmentKeyHMRCMTDIT = EnrolmentKey.parse("HMRC-MTD-IT~MTDITID~X12345678909876").right.get
-    val enrolmentKeyVAT = EnrolmentKey.parse("HMRC-MTD-VAT~VRN~750296137").right.get
+    val enrolmentKeyHMRCMTDIT = EnrolmentKey.parse("HMRC-MTD-IT~MTDITID~X12345678909876").toOption.get
+    val enrolmentKeyVAT = EnrolmentKey.parse("HMRC-MTD-VAT~VRN~750296137").toOption.get
 
     "run sanitize and return same entity if no issue found" in {
       val knownFacts =
