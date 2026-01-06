@@ -371,6 +371,66 @@ class RelationshipRecordsServiceISpec extends AppBaseISpec {
       allRecords.size shouldBe 1
     }
 
+    "only de-authorise relationships that match the supplied authProfile" in {
+      // Create an active relationship for authProfile ALL00001
+      await(
+        service.authorise(
+          RelationshipRecord(
+            regime = "A",
+            arn = "B9",
+            idType = "D",
+            refNumber = "C9",
+            authProfile = Some("ALL00001")
+          ),
+          planetId = "neptune",
+          isExclusiveAgent = true
+        )
+      )
+
+      val before = await(service.findByKey(RelationshipRecord.fullKey("A", "B9", "D", "C9"), "neptune"))
+      before.size shouldBe 1
+      before.head.active shouldBe true
+
+      // De-authorise with a mismatched authProfile – nothing should change
+      val mismatchResult = await(
+        service.deAuthorise(
+          RelationshipRecord(
+            regime = "A",
+            arn = "B9",
+            idType = "D",
+            refNumber = "C9",
+            authProfile = Some("ITSAS001")
+          ),
+          "neptune"
+        )
+      )
+      mismatchResult shouldBe empty
+
+      val afterMismatch = await(service.findByKey(RelationshipRecord.fullKey("A", "B9", "D", "C9"), "neptune"))
+      afterMismatch.size shouldBe 1
+      afterMismatch.head.active shouldBe true
+
+      // De-authorise with the correct authProfile – relationship should be ended
+      val matchResult = await(
+        service.deAuthorise(
+          RelationshipRecord(
+            regime = "A",
+            arn = "B9",
+            idType = "D",
+            refNumber = "C9",
+            authProfile = Some("ALL00001")
+          ),
+          "neptune"
+        )
+      )
+      matchResult should not be empty
+
+      val afterMatch = await(service.findByKey(RelationshipRecord.fullKey("A", "B9", "D", "C9"), "neptune"))
+      afterMatch.size shouldBe 1
+      afterMatch.head.active shouldBe false
+      afterMatch.head.endDate shouldBe defined
+    }
+
     "not fail when de-authorising missing relationship" in {
       await(service.deAuthorise(RelationshipRecord("A", "B2", "D", "C2"), "mercury"))
 
