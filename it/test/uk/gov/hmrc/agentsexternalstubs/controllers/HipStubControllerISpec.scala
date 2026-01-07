@@ -22,7 +22,7 @@ import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, PPOB}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
-import uk.gov.hmrc.agentsexternalstubs.services.RecordsService
+import uk.gov.hmrc.agentsexternalstubs.services.{RecordsService, RelationshipRecordsService}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
 
@@ -34,6 +34,8 @@ class HipStubControllerISpec
   lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
   lazy val repo: RecordsRepository = app.injector.instanceOf[RecordsRepository]
   lazy val recordsService: RecordsService = app.injector.instanceOf[RecordsService]
+  lazy val relationshipRecordsService: RelationshipRecordsService =
+    app.injector.instanceOf[RelationshipRecordsService]
 
   "HipStubController.displayAgentRelationship" when {
 
@@ -251,6 +253,84 @@ class HipStubControllerISpec
         )
       }
 
+    }
+    "deauthorise with matching authProfile" should {
+      "return Created and end the relationship" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val user = UserGenerator
+          .agent("foo")
+          .copy(assignedPrincipalEnrolments =
+            Seq(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "AARN1234567").toEnrolmentKey.get)
+          )
+        await(userService.createUser(user, session.planetId, Some(AG.Agent)))
+
+        val createResult = HipStub.updateAgentRelationship()
+        createResult should haveStatus(CREATED)
+
+        val before = await(
+          relationshipRecordsService.findByKey(
+            RelationshipRecord.fullKey("ITSA", "AARN1234567", "MTDBSA", "1234"),
+            session.planetId
+          )
+        )
+        before.size shouldBe 1
+        before.head.active shouldBe true
+
+        val deAuthResult = HipStub.updateAgentRelationship(action = "0002", authProfile = Some("ALL00001"))
+
+        deAuthResult should haveStatus(CREATED)
+        deAuthResult.json.toString() should include("""{"processingDate":""")
+
+        val after = await(
+          relationshipRecordsService.findByKey(
+            RelationshipRecord.fullKey("ITSA", "AARN1234567", "MTDBSA", "1234"),
+            session.planetId
+          )
+        )
+        after.size shouldBe 1
+        after.head.active shouldBe false
+        after.head.endDate shouldBe defined
+      }
+    }
+    "deauthorise with mismatched authProfile" should {
+      "return 014 and leave the relationship active" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val user = UserGenerator
+          .agent("foo")
+          .copy(assignedPrincipalEnrolments =
+            Seq(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", "AARN1234567").toEnrolmentKey.get)
+          )
+        await(userService.createUser(user, session.planetId, Some(AG.Agent)))
+
+        val createResult = HipStub.updateAgentRelationship()
+        createResult should haveStatus(CREATED)
+
+        val before = await(
+          relationshipRecordsService.findByKey(
+            RelationshipRecord.fullKey("ITSA", "AARN1234567", "MTDBSA", "1234"),
+            session.planetId
+          )
+        )
+        before.size shouldBe 1
+        before.head.active shouldBe true
+
+        // Attempt to deauthorise using a different authProfile to the one used when creating
+        val deAuthResult =
+          HipStub.updateAgentRelationship(action = "0002", authProfile = Some("ITSAS001"))
+
+        deAuthResult should haveStatus(UNPROCESSABLE_ENTITY)
+        deAuthResult.json.toString() should include("""code":"014","text":"No active relationship found"""")
+
+        val after = await(
+          relationshipRecordsService.findByKey(
+            RelationshipRecord.fullKey("ITSA", "AARN1234567", "MTDBSA", "1234"),
+            session.planetId
+          )
+        )
+        after.size shouldBe 1
+        after.head.active shouldBe true
+        after.head.endDate should not be defined
+      }
     }
     "there is an issue with the headers" should {
       "return 422 Unprocessable Entity" in {

@@ -47,13 +47,12 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
       existing <-
         if (isExclusiveAgent)
           findByKey(
-            RelationshipRecord
-              .clientWithAuthProfileKey(
-                relationship.regime,
-                relationship.idType,
-                relationship.refNumber,
-                relationship.authProfile.getOrElse("ALL00001")
-              ),
+            RelationshipRecord.clientWithAuthProfileKey(
+              relationship.regime,
+              relationship.idType,
+              relationship.refNumber,
+              relationship.authProfile.getOrElse("ALL00001")
+            ),
             planetId
           )
         else Future.successful(Seq.empty)
@@ -68,11 +67,28 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
     ec: ExecutionContext
   ): Future[Seq[String]] =
     for {
-      existing <- findByKey(
-                    RelationshipRecord
-                      .fullKey(relationship.regime, relationship.arn, relationship.idType, relationship.refNumber),
-                    planetId
-                  )
+      existing <- relationship.authProfile match {
+                    case Some(authProfile) =>
+                      findByKey(
+                        RelationshipRecord.clientWithAuthProfileKey(
+                          relationship.regime,
+                          relationship.idType,
+                          relationship.refNumber,
+                          authProfile
+                        ),
+                        planetId
+                      ).map(_.filter(_.arn == relationship.arn))
+                    case None =>
+                      findByKey(
+                        RelationshipRecord.fullKey(
+                          relationship.regime,
+                          relationship.arn,
+                          relationship.idType,
+                          relationship.refNumber
+                        ),
+                        planetId
+                      )
+                  }
       result <- deActivate(existing, planetId)
 
     } yield result
