@@ -132,7 +132,7 @@ GET           /agents-external-stubs/session                                    
 GET           /agents-external-stubs/sign-out                                                        @uk.gov.hmrc.agentsexternalstubs.controllers.SignInController.signOut
 
 # User management
-GET           /agents-external-stubs/users                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.getUsers(affinityGroup: Option[String] ?= None, limit: Option[Int] ?= None, groupId: Option[String] ?= None, agentCode: Option[String] ?= None, userId: Option[String] ?= None)
+GET           /agents-external-stubs/users                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.getUsers(affinityGroup: Option[String] ?= None, limit: Option[Int] ?= None, groupId: Option[String] ?= None, agentCode: Option[String] ?= None, principalEnrolmentService: Option[String] ?= None, userId: Option[String] ?= None)
 GET           /agents-external-stubs/users/:userId                                                   @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.getUser(userId: String)
 GET           /agents-external-stubs/users/nino/:nino                                                @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.getUserForNino(nino: String)
 PUT           /agents-external-stubs/users                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.UsersController.updateCurrentUser
