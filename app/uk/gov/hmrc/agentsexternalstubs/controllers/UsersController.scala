@@ -53,11 +53,15 @@ class UsersController @Inject() (
           !(agentCode.isDefined && groupId.isDefined),
           "You cannot query users by both groupId and agentCode at the same time."
         )
+        val requireModifiedLimit = principalEnrolmentService.isDefined || (userId.isDefined && List(
+          agentCode,
+          groupId,
+          affinityGroup
+        ).flatten.nonEmpty)
         val effectiveLimit: Int =
-          if (
-            (userId.isDefined || principalEnrolmentService.isDefined) && (agentCode.isDefined || groupId.isDefined || affinityGroup.isDefined)
-          ) {
-            //        TODO: If userId/principalEnrolmentService AND either of agentCode, groupId, affinityGroup is defined, use effective/modified limit as will do filtering in futureUsers.map
+          if (requireModifiedLimit) {
+//          TODO: If userId/principalEnrolmentService AND either of agentCode, groupId, affinityGroup is defined, use effective/modified limit as will do filtering in futureUsers.map
+//          TODO: Need a better way of getting this number
             500
           } else {
             limit.getOrElse(100)
@@ -85,9 +89,15 @@ class UsersController @Inject() (
           case _ => usersService.findByPlanetId(session.planetId)(effectiveLimit)
         }
         futureUsers.map { users =>
-//          TODO: Is this place to add additive searching?? For userId (probably)
-          //            TODO: Filter by userId and principal enrolment service here (when using modifiedLimit)
-          val modifiedUsers = users.take(limit.getOrElse(100))
+          val modifiedUsers = if (requireModifiedLimit) {
+            val filteredUsers = users.take(limit.getOrElse(100))
+            //            TODO: Filter by userId and principal enrolment service here (when using modifiedLimit)
+            val userIdProp = users.head.userId
+            val serviceProp = users.head.assignedPrincipalEnrolments.map(_.service)
+            filteredUsers
+          } else {
+            users.take(limit.getOrElse(100))
+          }
           Ok(RestfulResponse(Users(modifiedUsers)))
         }
       }(SessionRecordNotFound)
