@@ -53,12 +53,15 @@ class UsersController @Inject() (
           !(agentCode.isDefined && groupId.isDefined),
           "You cannot query users by both groupId and agentCode at the same time."
         )
-        val effectiveLimit: Int = if ((userId.isDefined || principalEnrolmentService.isDefined) && (agentCode.isDefined || groupId.isDefined || affinityGroup.isDefined)) {
-          //        TODO: If userId/principalEnrolmentService AND either of agentCode, groupId, affinityGroup is defined, use effective/modified limit as will do filtering in futureUsers.map
-          500
-        } else {
-          limit.getOrElse(100)
-        }
+        val effectiveLimit: Int =
+          if (
+            (userId.isDefined || principalEnrolmentService.isDefined) && (agentCode.isDefined || groupId.isDefined || affinityGroup.isDefined)
+          ) {
+            //        TODO: If userId/principalEnrolmentService AND either of agentCode, groupId, affinityGroup is defined, use effective/modified limit as will do filtering in futureUsers.map
+            500
+          } else {
+            limit.getOrElse(100)
+          }
         val futureUsers: Future[Seq[User]] = (userId, groupId, agentCode, affinityGroup) match {
           case (Some(uId), None, None, None) =>
             usersService.findByUserIdContains(
@@ -84,8 +87,8 @@ class UsersController @Inject() (
         futureUsers.map { users =>
 //          TODO: Is this place to add additive searching?? For userId (probably)
           //            TODO: Filter by userId and principal enrolment service here (when using modifiedLimit)
-          val modifiedUsers = users
-          Ok(RestfulResponse(Users(modifiedUsers.take(limit.getOrElse(100)))))
+          val modifiedUsers = users.take(limit.getOrElse(100))
+          Ok(RestfulResponse(Users(modifiedUsers)))
         }
       }(SessionRecordNotFound)
     }
