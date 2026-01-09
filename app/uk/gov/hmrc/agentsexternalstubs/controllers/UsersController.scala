@@ -44,6 +44,7 @@ class UsersController @Inject() (
     limit: Option[Int],
     groupId: Option[String],
     agentCode: Option[String],
+    principalEnrolmentService: Option[String],
     userId: Option[String]
   ): Action[AnyContent] =
     Action.async { implicit request =>
@@ -52,10 +53,9 @@ class UsersController @Inject() (
           !(agentCode.isDefined && groupId.isDefined),
           "You cannot query users by both groupId and agentCode at the same time."
         )
-        //        TODO: Add in filter by services (assignedPrincipalEnrolments)
-        //        TODO: Additive searches do not look likely to work - how can this be fixed??
+//        TODO: If userId/principalEnrolmentService AND either of agentCode, groupId, affinityGroup is defined, use effective/modified limit as will do filtering in futureUsers.map
         val futureUsers: Future[Seq[User]] = (userId, groupId, agentCode, affinityGroup) match {
-          case (Some(uId), _, _, _) =>
+          case (Some(uId), None, None, None) =>
             usersService.findByUserIdContains(
               partialUserId = uId,
               planetId = session.planetId
@@ -77,8 +77,8 @@ class UsersController @Inject() (
           case _ => usersService.findByPlanetId(session.planetId)(limit.getOrElse(100))
         }
         futureUsers.map { users =>
-//          TODO: Is this place to add additive searching?? For userId (probably) and assignedPrincipalEnrolments (how does this work with limits?!)
-//          TODO: For assignedPrincipalEnrolments, can i use findUserIdsByAssignedPrincipalEnrolmentKey
+//          TODO: Is this place to add additive searching?? For userId (probably)
+          //            TODO: Filter by userId and principal enrolment service here (when using modifiedLimit)
           val modifiedUsers = users
           Ok(RestfulResponse(Users(modifiedUsers)))
         }
