@@ -53,34 +53,39 @@ class UsersController @Inject() (
           !(agentCode.isDefined && groupId.isDefined),
           "You cannot query users by both groupId and agentCode at the same time."
         )
-//        TODO: If userId/principalEnrolmentService AND either of agentCode, groupId, affinityGroup is defined, use effective/modified limit as will do filtering in futureUsers.map
+        val effectiveLimit: Int = if ((userId.isDefined || principalEnrolmentService.isDefined) && (agentCode.isDefined || groupId.isDefined || affinityGroup.isDefined)) {
+          //        TODO: If userId/principalEnrolmentService AND either of agentCode, groupId, affinityGroup is defined, use effective/modified limit as will do filtering in futureUsers.map
+          500
+        } else {
+          limit.getOrElse(100)
+        }
         val futureUsers: Future[Seq[User]] = (userId, groupId, agentCode, affinityGroup) match {
           case (Some(uId), None, None, None) =>
             usersService.findByUserIdContains(
               partialUserId = uId,
               planetId = session.planetId
-            )(limit.getOrElse(100))
+            )(effectiveLimit)
           case (_, Some(gId), _, _) =>
-            usersService.findByGroupId(gId, session.planetId)(limit.orElse(Some(100)))
+            usersService.findByGroupId(gId, session.planetId)(Some(effectiveLimit))
           case (_, _, Some(aCode), _) =>
             groupsService.findByAgentCode(aCode, session.planetId).flatMap {
-              case Some(group) => usersService.findByGroupId(group.groupId, session.planetId)(limit.orElse(Some(100)))
+              case Some(group) => usersService.findByGroupId(group.groupId, session.planetId)(Some(effectiveLimit))
               case None        => Future.successful(Seq.empty[User])
             }
           case (_, _, _, Some(_)) =>
             for { // TODO note that this will probably be slow. Consider whether we really want to search users by affinity group (a property that no longer pertains to User)
-              groups <- groupsService.findByPlanetId(session.planetId, affinityGroup)(limit.getOrElse(100))
+              groups <- groupsService.findByPlanetId(session.planetId, affinityGroup)(effectiveLimit)
               users <- Future.traverse(groups)(group =>
-                         usersService.findByGroupId(group.groupId, session.planetId)(limit.orElse(Some(100)))
+                         usersService.findByGroupId(group.groupId, session.planetId)(Some(effectiveLimit))
                        )
-            } yield users.flatten.take(limit.getOrElse(100))
-          case _ => usersService.findByPlanetId(session.planetId)(limit.getOrElse(100))
+            } yield users.flatten.take(effectiveLimit)
+          case _ => usersService.findByPlanetId(session.planetId)(effectiveLimit)
         }
         futureUsers.map { users =>
 //          TODO: Is this place to add additive searching?? For userId (probably)
           //            TODO: Filter by userId and principal enrolment service here (when using modifiedLimit)
           val modifiedUsers = users
-          Ok(RestfulResponse(Users(modifiedUsers)))
+          Ok(RestfulResponse(Users(modifiedUsers.take(limit.getOrElse(100)))))
         }
       }(SessionRecordNotFound)
     }
