@@ -90,11 +90,20 @@ class UsersController @Inject() (
         }
         futureUsers.map { users =>
           val modifiedUsers = if (requireModifiedLimit) {
-            val filteredUsers = users.take(limit.getOrElse(100))
-            //            TODO: Filter by userId and principal enrolment service here (when using modifiedLimit)
-            val userIdProp = users.head.userId
-            val serviceProp = users.head.assignedPrincipalEnrolments.map(_.service)
-            filteredUsers
+            users
+              .filter { user =>
+//                TODO: Rewrite this in neater language
+                if (userId.isDefined) {
+                  user.userId.contains(userId.get)
+                } else true
+              }
+              .filter { user =>
+//                TODO: Rewrite this in neater language
+                if (principalEnrolmentService.isDefined) {
+                  user.assignedPrincipalEnrolments.map(_.service).contains(principalEnrolmentService.get)
+                } else true
+              }
+              .take(limit.getOrElse(100))
           } else {
             users.take(limit.getOrElse(100))
           }
