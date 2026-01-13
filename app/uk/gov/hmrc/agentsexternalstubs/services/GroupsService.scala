@@ -19,6 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 import com.github.blemale.scaffeine.Scaffeine
 import play.api.i18n.Lang.logger
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.MtdItId
 import uk.gov.hmrc.agentsexternalstubs.repository.{GroupsRepository, KnownFactsRepository}
 import uk.gov.hmrc.auth.core.UnsupportedCredentialRole
 import uk.gov.hmrc.http.{BadRequestException, NotFoundException}
@@ -31,6 +32,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class GroupsService @Inject() (
   groupsRepository: GroupsRepository,
   knownFactsRepository: KnownFactsRepository,
+  recordsService: RecordsService,
   userToRecordsSyncService: UserToRecordsSyncService
 ) {
 
@@ -132,6 +134,64 @@ class GroupsService @Inject() (
       )
       .map(_ => ())
 
+  private def ensureKnownFactsForPrimaryEnrolmentKey(
+    primaryEnrolmentKey: EnrolmentKey,
+    planetId: String
+  )(implicit ec: ExecutionContext): Future[GroupsService.EnsureKnownFactsResult] =
+    knownFactsRepository.findByEnrolmentKey(primaryEnrolmentKey, planetId).flatMap {
+      case Some(existing) => Future.successful(GroupsService.EnsureKnownFactsResult(existing, created = false))
+      case None =>
+        for {
+          facts <- knownFactsFactsForPrimary(primaryEnrolmentKey, planetId)
+          generated <- KnownFacts
+                         .generate(primaryEnrolmentKey, seed = primaryEnrolmentKey.tag, alreadyKnownFacts = facts.get)
+                         .fold[Future[KnownFacts]](Future.failed(new NotFoundException("ALLOCATION_DOES_NOT_EXIST")))(
+                           Future.successful
+                         )
+          _ <- knownFactsRepository.upsert(generated, planetId).map(_ => ())
+        } yield GroupsService.EnsureKnownFactsResult(generated, created = true)
+    }
+
+  private def knownFactsFactsForPrimary(primaryEnrolmentKey: EnrolmentKey, planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[Map[String, String]] =
+    primaryEnrolmentKey.service match {
+      case "HMRC-MTD-IT" =>
+        businessDetailsFacts(primaryEnrolmentKey, planetId)
+      case _ =>
+        Future.successful(Map.empty)
+    }
+
+  private def businessDetailsFacts(primaryEnrolmentKey: EnrolmentKey, planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[Map[String, String]] =
+    primaryEnrolmentKey.identifiers.find(_.key.equalsIgnoreCase("MTDITID")) match {
+      case None => Future.successful(Map.empty)
+      case Some(identifier) =>
+        recordsService
+          .getRecord[BusinessDetailsRecord, MtdItId](MtdItId(identifier.value), planetId)
+          .map(_.map(factsFromBusinessDetails).getOrElse(Map.empty))
+    }
+
+  private def factsFromBusinessDetails(record: BusinessDetailsRecord): Map[String, String] = {
+    val addressDetailsOpt =
+      record.businessData.flatMap(_.headOption).flatMap(_.businessAddressDetails)
+    val postcodeOpt = addressDetailsOpt.flatMap {
+      case address: BusinessDetailsRecord.UkAddress      => Some(address.postalCode)
+      case address: BusinessDetailsRecord.ForeignAddress => address.postalCode
+    }
+    val countryCodeOpt = addressDetailsOpt.map(_.countryCode)
+    Seq(
+      "NINO"             -> Option(record.nino).filter(_.nonEmpty),
+      "BusinessPostcode" -> postcodeOpt,
+      "businesspostcode" -> postcodeOpt,
+      "Postcode"         -> postcodeOpt,
+      "PostCode"         -> postcodeOpt,
+      "POSTCODE"         -> postcodeOpt,
+      "CountryCode"      -> countryCodeOpt
+    ).collect { case (key, Some(value)) => key -> value }.toMap
+  }
+
   /* Group enrolment is assigned to the unique Admin user of the group */
   def allocateEnrolmentToGroup(
     user: User,
@@ -140,61 +200,89 @@ class GroupsService @Inject() (
     enrolmentType: String,
     agentCodeOpt: Option[String],
     planetId: String
-  )(implicit ec: ExecutionContext): Future[Boolean] = {
+  )(implicit ec: ExecutionContext): Future[Unit] = {
     val delegationEnrolmentKeys: DelegationEnrolmentKeys = DelegationEnrolmentKeys(enrolmentKey)
-    knownFactsRepository.findByEnrolmentKey(delegationEnrolmentKeys.primaryEnrolmentKey, planetId).flatMap {
-      case None => Future.failed(new NotFoundException("ALLOCATION_DOES_NOT_EXIST"))
-      case Some(_) =>
-        (if (user.credentialRole.contains(User.CR.Assistant))
-           Future.failed(UnsupportedCredentialRole("INVALID_CREDENTIAL_TYPE"))
-         else {
-           agentCodeOpt match {
-             case None =>
-               findByGroupId(groupId, planetId)
-                 .map(_.getOrElse(throw new BadRequestException("INVALID_GROUP_ID")))
-             case Some(agentCode) =>
-               findByAgentCode(agentCode, planetId)
-                 .map(_.getOrElse(throw new BadRequestException("INVALID_AGENT_FORMAT")))
+    for {
+      group <- resolveGroupForAllocation(user, groupId, agentCodeOpt, planetId)
+      _ <- (enrolmentType, delegationEnrolmentKeys.isPrimary, group.affinityGroup) match {
+             case ("principal", true, _) =>
+               allocatePrincipalEnrolmentToGroup(group, delegationEnrolmentKeys.primaryEnrolmentKey, planetId)
+             case ("delegated", _, AG.Agent) =>
+               for {
+                 _ <- ensureKnownFactsForPrimaryEnrolmentKey(delegationEnrolmentKeys.primaryEnrolmentKey, planetId)
+                 _ <- allocateDelegatedEnrolmentToAgentGroup(group, delegationEnrolmentKeys, planetId)
+               } yield ()
+             case _ =>
+               Future.failed(new BadRequestException("INVALID_QUERY_PARAMETERS"))
            }
-         }).flatMap { group =>
-          if (enrolmentType == "principal" && delegationEnrolmentKeys.isPrimary) {
-            updateGroup(
-              group.groupId,
-              planetId,
-              g => {
-                val enrolment = Enrolment.from(delegationEnrolmentKeys.primaryEnrolmentKey)
-                if (g.principalEnrolments.contains(enrolment)) throw new EnrolmentAlreadyExists
-                else
-                  g.copy(principalEnrolments = appendEnrolment(g.principalEnrolments, enrolment))
-              }
-            )
-              .map(_ => true)
-          } else if (enrolmentType == "delegated" && group.affinityGroup == AG.Agent) {
-            findByPrincipalEnrolmentKey(delegationEnrolmentKeys.primaryEnrolmentKey, planetId).flatMap {
-              case Some(owner) if !(owner.affinityGroup == AG.Agent) =>
-                groupsRepository.findByGroupId(group.groupId, planetId).flatMap {
-                  case Some(group) =>
-                    if (
-                      group.delegatedEnrolments.exists(enrolment =>
-                        delegationEnrolmentKeys.delegationEnrolments.map(enrolment.matches).foldLeft(false)(_ || _)
-                      )
-                    ) throw new EnrolmentAlreadyExists
-                    else
-                      groupsRepository.addDelegatedEnrolment(
-                        group.groupId,
-                        planetId,
-                        Enrolment.from(delegationEnrolmentKeys.delegatedEnrolmentKey)
-                      )
-                  case None => Future.failed(new NotFoundException("GROUP_ID_NOT_FOUND"))
-                }
-              case Some(_) => Future.failed(new BadRequestException("OWNER_IS_AN_AGENT"))
-              case None =>
-                Future.failed(new BadRequestException("INVALID_QUERY_PARAMETERS"))
-            }
-          } else Future.failed(new BadRequestException("INVALID_QUERY_PARAMETERS"))
-        }
-    }
+    } yield ()
   }
+
+  private def resolveGroupForAllocation(
+    user: User,
+    groupId: String,
+    agentCodeOpt: Option[String],
+    planetId: String
+  )(implicit ec: ExecutionContext): Future[Group] =
+    (user.credentialRole, agentCodeOpt) match {
+      case (Some(User.CR.Assistant), _) =>
+        Future.failed(UnsupportedCredentialRole("INVALID_CREDENTIAL_TYPE"))
+      case (_, Some(agentCode)) =>
+        requireGroupByAgentCode(agentCode, planetId)
+      case _ =>
+        requireGroupById(groupId, planetId)
+    }
+
+  private def requireGroupById(groupId: String, planetId: String)(implicit ec: ExecutionContext): Future[Group] =
+    findByGroupId(groupId, planetId).flatMap {
+      case Some(group) => Future.successful(group)
+      case None        => Future.failed(new BadRequestException("INVALID_GROUP_ID"))
+    }
+
+  private def requireGroupByAgentCode(agentCode: String, planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[Group] =
+    findByAgentCode(agentCode, planetId).flatMap {
+      case Some(group) => Future.successful(group)
+      case None        => Future.failed(new BadRequestException("INVALID_AGENT_FORMAT"))
+    }
+
+  private def allocatePrincipalEnrolmentToGroup(group: Group, enrolmentKey: EnrolmentKey, planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[Unit] =
+    updateGroup(
+      group.groupId,
+      planetId,
+      g => {
+        val enrolment = Enrolment.from(enrolmentKey)
+        if (g.principalEnrolments.contains(enrolment)) throw new EnrolmentAlreadyExists
+        else g.copy(principalEnrolments = appendEnrolment(g.principalEnrolments, enrolment))
+      }
+    ).map(_ => ())
+
+  private def allocateDelegatedEnrolmentToAgentGroup(
+    agentGroup: Group,
+    delegationEnrolmentKeys: DelegationEnrolmentKeys,
+    planetId: String
+  )(implicit ec: ExecutionContext): Future[Unit] =
+    for {
+      ownerOpt <- findByPrincipalEnrolmentKey(delegationEnrolmentKeys.primaryEnrolmentKey, planetId)
+      _ <- ownerOpt match {
+             case Some(owner) if owner.affinityGroup == AG.Agent =>
+               Future.failed(new BadRequestException("OWNER_IS_AN_AGENT"))
+             case _ =>
+               Future.unit
+           }
+      _ = if (
+            agentGroup.delegatedEnrolments
+              .exists(existing => delegationEnrolmentKeys.delegationEnrolments.exists(existing.matches))
+          ) throw new EnrolmentAlreadyExists
+      _ <- groupsRepository.addDelegatedEnrolment(
+             agentGroup.groupId,
+             planetId,
+             Enrolment.from(delegationEnrolmentKeys.delegatedEnrolmentKey)
+           )
+    } yield ()
 
   def deallocateEnrolmentFromGroup(
     groupId: String,
@@ -271,3 +359,7 @@ class GroupsService @Inject() (
 }
 
 final class EnrolmentAlreadyExists extends Exception
+
+object GroupsService {
+  final case class EnsureKnownFactsResult(knownFacts: KnownFacts, created: Boolean)
+}
