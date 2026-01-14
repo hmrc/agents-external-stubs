@@ -295,6 +295,8 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
         val users = result.json.as[Users].users
         users.size shouldBe 2
         users.map(_.userId) should contain.only("foo1", "foo3")
+
+        true shouldBe false
       }
 
       "return 200 with the list of users having given affinity" in {
@@ -333,6 +335,8 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
         val users = result.json.as[Users].users
         users.size shouldBe 2
         users.map(_.userId) should contain.only(currentAuthSession.userId, "foo1")
+
+        true shouldBe false
       }
 
       "return 200 with the list of users to a limit value" in {
@@ -347,6 +351,8 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
         val users = result.json.as[Users].users
         users.size shouldBe 2
         users.map(_.userId) should contain.only(currentAuthSession.userId, "foo1")
+
+        true shouldBe false
       }
 
       "return 200 with the list of users filtered by userId, groupId, principalEnrolmentService and limit" in {
@@ -367,6 +373,8 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
         val users = result.json.as[Users].users
         users.size shouldBe 2
         users.map(_.userId) should contain.only(currentAuthSession.userId, "foo1")
+
+        true shouldBe false
       }
     }
 
