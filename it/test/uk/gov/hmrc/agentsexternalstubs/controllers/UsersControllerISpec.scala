@@ -280,7 +280,21 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       }
 
       "return 200 with the list of users having given groupId" in {
+//        TODO: FIX
+        val planetId = "testPlanet"
 
+        userService.createUser(UserGenerator.individual("foo1", groupId = "group1"), planetId = planetId, Some(AG.Agent)).futureValue
+        userService.createUser(UserGenerator.individual("foo2", groupId = "group2"), planetId = planetId, Some(AG.Agent)).futureValue
+        userService.createUser(UserGenerator.individual("foo3", groupId = "group1"), planetId = planetId, Some(AG.Agent)).futureValue
+
+        implicit val currentAuthSession: AuthenticatedSession =
+          SignIn.signInAndGetSession(userId = "foo1", planetId = planetId)
+
+        val result = Users.getAll(groupId = Some("group1"))
+        result should haveStatus(200)
+        val users = result.json.as[Users].users
+        users.size shouldBe 2
+        users.map(_.userId) should contain.only("foo1", "foo3")
       }
 
       "return 200 with the list of users having given affinity" in {
@@ -307,15 +321,25 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       }
 
       "return 200 with the list of users having given principalEnrolmentService" in {
-
+//        TODO: Implement
       }
 
       "return 200 with the list of users to a limit value" in {
+//        TODO: FIX
+        implicit val currentAuthSession: AuthenticatedSession = SignIn.signInAndGetSession()
+        Users.create(UserGenerator.individual("foo1"), Some(AG.Individual))
+        Users.create(UserGenerator.organisation("foo2"), Some(AG.Organisation))
+        Users.create(UserGenerator.agent("foo3"), Some(AG.Agent))
 
+        val result = Users.getAll(limit = Some(2))
+        result should haveStatus(200)
+        val users = result.json.as[Users].users
+        users.size shouldBe 2
+        users.map(_.userId) should contain.only(currentAuthSession.userId, "foo1")
       }
 
       "return 200 with the list of users filtered by userId, groupId, principalEnrolmentService and limit" in {
-
+//        TODO: Implement
       }
     }
 
