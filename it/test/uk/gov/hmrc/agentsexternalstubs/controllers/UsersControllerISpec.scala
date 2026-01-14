@@ -321,7 +321,18 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       }
 
       "return 200 with the list of users having given principalEnrolmentService" in {
-//        TODO: Implement
+//        TODO: FIX
+        implicit val currentAuthSession: AuthenticatedSession = SignIn.signInAndGetSession()
+//        TODO: These need principalEnrolmentService correctly added
+        Users.create(UserGenerator.individual("foo1"), Some(AG.Individual))
+        Users.create(UserGenerator.organisation("foo2"), Some(AG.Organisation))
+        Users.create(UserGenerator.agent("foo3"), Some(AG.Agent))
+
+        val result = Users.getAll(principalEnrolmentService = Some("HMRC-MTD-IT"))
+        result should haveStatus(200)
+        val users = result.json.as[Users].users
+        users.size shouldBe 2
+        users.map(_.userId) should contain.only(currentAuthSession.userId, "foo1")
       }
 
       "return 200 with the list of users to a limit value" in {
@@ -339,7 +350,23 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       }
 
       "return 200 with the list of users filtered by userId, groupId, principalEnrolmentService and limit" in {
-//        TODO: Implement
+        //        TODO: FIX
+        implicit val currentAuthSession: AuthenticatedSession = SignIn.signInAndGetSession()
+        //        TODO: These need userId, groupId, principalEnrolmentService correctly added
+        Users.create(UserGenerator.individual("foo1"), Some(AG.Individual))
+        Users.create(UserGenerator.organisation("foo2"), Some(AG.Organisation))
+        Users.create(UserGenerator.agent("foo3"), Some(AG.Agent))
+
+        val result = Users.getAll(
+          userId = Some("oo"),
+          groupId = Some("group1"),
+          principalEnrolmentService = Some("HMRC-MTD-IT"),
+          limit = Some(2)
+        )
+        result should haveStatus(200)
+        val users = result.json.as[Users].users
+        users.size shouldBe 2
+        users.map(_.userId) should contain.only(currentAuthSession.userId, "foo1")
       }
     }
 
