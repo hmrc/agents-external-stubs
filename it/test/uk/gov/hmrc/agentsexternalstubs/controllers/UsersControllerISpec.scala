@@ -261,6 +261,28 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
         users2.map(_.userId) should contain.only("boo", "boo1", "boo2")
       }
 
+      "return 200 with users whose userId contains the supplied userId query parameter" in {
+        val planetId = "searchPlanet"
+
+        implicit val authSession: AuthenticatedSession =
+          SignIn.signInAndGetSession(userId = "admin", planetId = planetId)
+
+        Users.create(UserGenerator.individual("alice-123"), Some(AG.Individual))
+        Users.create(UserGenerator.individual("ALICE-999"), Some(AG.Individual))
+        Users.create(UserGenerator.individual("bob-456"), Some(AG.Individual))
+
+        val result = Users.getAll(userId = Some("alice"))
+
+        result should haveStatus(200)
+
+        val users = result.json.as[Users].users
+        users.map(_.userId) should contain.only("alice-123", "ALICE-999")
+      }
+
+      "return 200 with the list of users having given groupId" in {
+
+      }
+
       "return 200 with the list of users having given affinity" in {
         val planetId = "testPlanet"
 
@@ -284,25 +306,17 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
         users2.map(_.userId) should contain.only("foo1")
       }
 
-      "return 200 with users whose userId contains the supplied userId query parameter" in {
-        val planetId = "searchPlanet"
+      "return 200 with the list of users having given principalEnrolmentService" in {
 
-        implicit val authSession: AuthenticatedSession =
-          SignIn.signInAndGetSession(userId = "admin", planetId = planetId)
-
-        Users.create(UserGenerator.individual("alice-123"), Some(AG.Individual))
-        Users.create(UserGenerator.individual("ALICE-999"), Some(AG.Individual))
-        Users.create(UserGenerator.individual("bob-456"), Some(AG.Individual))
-
-        val result = Users.getAll(userId = Some("alice"))
-
-        result should haveStatus(200)
-
-        val users = result.json.as[Users].users
-        users.map(_.userId) should contain.only("alice-123", "ALICE-999")
       }
 
-//      TODO: Add more ITs around different param combinations
+      "return 200 with the list of users to a limit value" in {
+
+      }
+
+      "return 200 with the list of users filtered by userId, groupId, principalEnrolmentService and limit" in {
+
+      }
     }
 
     "POST /agents-external-stubs/users/api-platform" should {
