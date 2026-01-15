@@ -238,6 +238,15 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
     }
 
     "GET /agents-external-stubs/users" should {
+      def enrolmentKeyForService(service: String): EnrolmentKey =
+        EnrolmentKey(service, Seq(Identifier("key", "value")))
+      val usersList: List[User] = List(
+        User("foo", groupId = Some("group1"), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("HMRC-MTD-IT"))),
+        User("bar", groupId = Some("group2"), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("HMRC-MTD-IT"))),
+        User("fizz", groupId = Some("group1"), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("something-else"))),
+        User("buzz", groupId = Some("group1"), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("HMRC-MTD-IT"))),
+      )
+
       "return 200 with the list of all users on the current planet only" in {
         val otherPlanetAuthSession: AuthenticatedSession = SignIn.signInAndGetSession("boo")
         Users.create(UserGenerator.individual("boo1"), Some(AG.Individual))(otherPlanetAuthSession)
@@ -267,36 +276,32 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
         implicit val authSession: AuthenticatedSession =
           SignIn.signInAndGetSession(userId = "admin", planetId = planetId)
 
-        Users.create(UserGenerator.individual("alice-123"), Some(AG.Individual))
-        Users.create(UserGenerator.individual("ALICE-999"), Some(AG.Individual))
-        Users.create(UserGenerator.individual("bob-456"), Some(AG.Individual))
+        usersList.foreach(user => {
+          Users.create(UserGenerator.agent(user.userId, groupId = user.groupId.get, assignedPrincipalEnrolments = user.assignedPrincipalEnrolments), Some(AG.Agent))
+        })
 
-        val result = Users.getAll(userId = Some("alice"))
-
+        val result = Users.getAll(userId = Some("zz"))
         result should haveStatus(200)
-
         val users = result.json.as[Users].users
-        users.map(_.userId) should contain.only("alice-123", "ALICE-999")
+        users.size shouldBe 2
+        users.map(_.userId) should contain.only("fizz", "buzz")
       }
 
       "return 200 with the list of users having given groupId" in {
-//        TODO: FIX
-        val planetId = "testPlanet"
-
-        userService.createUser(UserGenerator.individual("foo1", groupId = "group1"), planetId = planetId, Some(AG.Agent)).futureValue
-        userService.createUser(UserGenerator.individual("foo2", groupId = "group2"), planetId = planetId, Some(AG.Agent)).futureValue
-        userService.createUser(UserGenerator.individual("foo3", groupId = "group1"), planetId = planetId, Some(AG.Agent)).futureValue
+        val planetId = "searchPlanet"
 
         implicit val currentAuthSession: AuthenticatedSession =
-          SignIn.signInAndGetSession(userId = "foo1", planetId = planetId)
+          SignIn.signInAndGetSession(userId = "admin", planetId = planetId)
+
+        usersList.foreach(user => {
+          Users.create(UserGenerator.agent(user.userId, groupId = user.groupId.get, assignedPrincipalEnrolments = user.assignedPrincipalEnrolments), Some(AG.Agent))
+        })
 
         val result = Users.getAll(groupId = Some("group1"))
         result should haveStatus(200)
         val users = result.json.as[Users].users
-        users.size shouldBe 2
-        users.map(_.userId) should contain.only("foo1", "foo3")
-
-        true shouldBe false
+        users.size shouldBe 3
+        users.map(_.userId) should contain.only("foo", "fizz", "buzz")
       }
 
       "return 200 with the list of users having given affinity" in {
@@ -323,56 +328,59 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       }
 
       "return 200 with the list of users having given principalEnrolmentService" in {
-//        TODO: FIX
-        implicit val currentAuthSession: AuthenticatedSession = SignIn.signInAndGetSession()
-//        TODO: These need principalEnrolmentService correctly added
-        Users.create(UserGenerator.individual("foo1"), Some(AG.Individual))
-        Users.create(UserGenerator.organisation("foo2"), Some(AG.Organisation))
-        Users.create(UserGenerator.agent("foo3"), Some(AG.Agent))
+        val planetId = "searchPlanet"
+
+        implicit val currentAuthSession: AuthenticatedSession =
+          SignIn.signInAndGetSession(userId = "admin", planetId = planetId)
+
+        usersList.foreach(user => {
+          Users.create(UserGenerator.agent(user.userId, groupId = user.groupId.get, assignedPrincipalEnrolments = user.assignedPrincipalEnrolments), Some(AG.Agent))
+        })
 
         val result = Users.getAll(principalEnrolmentService = Some("HMRC-MTD-IT"))
         result should haveStatus(200)
         val users = result.json.as[Users].users
-        users.size shouldBe 2
-        users.map(_.userId) should contain.only(currentAuthSession.userId, "foo1")
-
-        true shouldBe false
+        users.size shouldBe 3
+        users.map(_.userId) should contain.only("foo", "bar", "buzz")
       }
 
       "return 200 with the list of users to a limit value" in {
-//        TODO: FIX
-        implicit val currentAuthSession: AuthenticatedSession = SignIn.signInAndGetSession()
-        Users.create(UserGenerator.individual("foo1"), Some(AG.Individual))
-        Users.create(UserGenerator.organisation("foo2"), Some(AG.Organisation))
-        Users.create(UserGenerator.agent("foo3"), Some(AG.Agent))
+        val planetId = "searchPlanet"
 
-        val result = Users.getAll(limit = Some(2))
+        implicit val currentAuthSession: AuthenticatedSession =
+          SignIn.signInAndGetSession(userId = "admin", planetId = planetId)
+
+        usersList.foreach(user => {
+          Users.create(UserGenerator.agent(user.userId, groupId = user.groupId.get, assignedPrincipalEnrolments = user.assignedPrincipalEnrolments), Some(AG.Agent))
+        })
+
+        val result = Users.getAll(limit = Some(3))
         result should haveStatus(200)
         val users = result.json.as[Users].users
-        users.size shouldBe 2
-        users.map(_.userId) should contain.only(currentAuthSession.userId, "foo1")
-
-        true shouldBe false
+        users.size shouldBe 3
+        users.map(_.userId) should contain.only("foo", "bar", "fizz")
       }
 
       "return 200 with the list of users filtered by userId, groupId, principalEnrolmentService and limit" in {
-        //        TODO: FIX
-        implicit val currentAuthSession: AuthenticatedSession = SignIn.signInAndGetSession()
-        //        TODO: These need userId, groupId, principalEnrolmentService correctly added
-        Users.create(UserGenerator.individual("foo1"), Some(AG.Individual))
-        Users.create(UserGenerator.organisation("foo2"), Some(AG.Organisation))
-        Users.create(UserGenerator.agent("foo3"), Some(AG.Agent))
+        val planetId = "searchPlanet"
+
+        implicit val currentAuthSession: AuthenticatedSession =
+          SignIn.signInAndGetSession(userId = "admin", planetId = planetId)
+
+        usersList.foreach(user => {
+          Users.create(UserGenerator.agent(user.userId, groupId = user.groupId.get, assignedPrincipalEnrolments = user.assignedPrincipalEnrolments), Some(AG.Agent))
+        })
 
         val result = Users.getAll(
-          userId = Some("oo"),
+          userId = Some("zz"),
           groupId = Some("group1"),
           principalEnrolmentService = Some("HMRC-MTD-IT"),
           limit = Some(2)
         )
         result should haveStatus(200)
         val users = result.json.as[Users].users
-        users.size shouldBe 2
-        users.map(_.userId) should contain.only(currentAuthSession.userId, "foo1")
+        users.size shouldBe 1
+        users.map(_.userId) should contain.only("buzz")
 
         true shouldBe false
       }
