@@ -30,7 +30,11 @@ class CompaniesHouseController @Inject() (cc: ControllerComponents)(implicit ec:
     extends BackendController(cc) {
 
   def findCompany(companyNumber: String): Action[AnyContent] = Action.async {
-    companyResponse(companyNumber)
+    if (companyNumber == "87654321") {
+      dissolvedCompanyStausResponse(companyNumber)
+    } else {
+      companyResponse(companyNumber)
+    }
   }
 
   def findCompanyOfficers(companyNumber: String, surname: Option[String]): Action[AnyContent] = Action.async {
@@ -46,6 +50,17 @@ class CompaniesHouseController @Inject() (cc: ControllerComponents)(implicit ec:
   private def companyResponse(companyNumber: String): Future[Result] =
     // Based on https://github.com/hmrc/iv-test-data/tree/main/conf/resources/company-house/company
     findResource(s"/resources/companies-house/company-template.json")
+      .map(
+        _.map(
+          _.replaceAll("%%%COMPANY_NUMBER%%%", companyNumber)
+            .replaceAll("%%%COMPANY_NAME%%%", Generator.company.sample.get)
+        )
+      )
+      .map(_.fold[Result](NotFound)(jsonStr => Ok(Json.parse(jsonStr))))
+
+  private def dissolvedCompanyStausResponse(companyNumber: String): Future[Result] =
+    // Based on https://github.com/hmrc/iv-test-data/tree/main/conf/resources/company-house/company
+    findResource(s"/resources/companies-house/dissolved-company-template.json")
       .map(
         _.map(
           _.replaceAll("%%%COMPANY_NUMBER%%%", companyNumber)
