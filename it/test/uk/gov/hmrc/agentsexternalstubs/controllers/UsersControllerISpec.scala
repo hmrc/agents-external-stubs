@@ -238,13 +238,18 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
     }
 
     "GET /agents-external-stubs/users" should {
-      def enrolmentKeyForService(service: String): EnrolmentKey =
-        EnrolmentKey(service, Seq(Identifier("key", "value")))
+      def enrolmentKeyForService(service: String): EnrolmentKey = {
+        service match {
+          case "HMRC-MTD-IT" => EnrolmentKey(service, Seq(Identifier("MTDITID", "value")))
+          case "HMRC-MTD-VAT" => EnrolmentKey(service, Seq(Identifier("VRN", "123456789")))
+        }
+      }
+
       val usersList: List[User] = List(
         User("foo", groupId = Some("group1"), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("HMRC-MTD-IT"))),
         User("bar", groupId = Some("group2"), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("HMRC-MTD-IT"))),
-        User("fizz", groupId = Some("group1"), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("something-else"))),
-        User("buzz", groupId = Some("group1"), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("HMRC-MTD-IT"))),
+        User("fizz", groupId = Some("group1"), credentialRole = Some(User.CR.Assistant), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("HMRC-MTD-VAT"))),
+        User("buzz", groupId = Some("group1"), credentialRole = Some(User.CR.Assistant), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("HMRC-MTD-IT"))),
       )
 
       "return 200 with the list of all users on the current planet only" in {
@@ -277,7 +282,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
           SignIn.signInAndGetSession(userId = "admin", planetId = planetId)
 
         usersList.foreach(user => {
-          Users.create(UserGenerator.agent(user.userId, groupId = user.groupId.get, assignedPrincipalEnrolments = user.assignedPrincipalEnrolments), Some(AG.Agent))
+          Users.create(UserGenerator.agent(user.userId, groupId = user.groupId.get, credentialRole = user.credentialRole.get, assignedPrincipalEnrolments = user.assignedPrincipalEnrolments), Some(AG.Organisation))
         })
 
         val result = Users.getAll(userId = Some("zz"))
@@ -294,7 +299,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
           SignIn.signInAndGetSession(userId = "admin", planetId = planetId)
 
         usersList.foreach(user => {
-          Users.create(UserGenerator.agent(user.userId, groupId = user.groupId.get, assignedPrincipalEnrolments = user.assignedPrincipalEnrolments), Some(AG.Agent))
+          Users.create(UserGenerator.agent(user.userId, groupId = user.groupId.get, credentialRole = user.credentialRole.get, assignedPrincipalEnrolments = user.assignedPrincipalEnrolments), Some(AG.Organisation))
         })
 
         val result = Users.getAll(groupId = Some("group1"))
@@ -334,7 +339,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
           SignIn.signInAndGetSession(userId = "admin", planetId = planetId)
 
         usersList.foreach(user => {
-          Users.create(UserGenerator.agent(user.userId, groupId = user.groupId.get, assignedPrincipalEnrolments = user.assignedPrincipalEnrolments), Some(AG.Agent))
+          Users.create(UserGenerator.agent(user.userId, groupId = user.groupId.get, credentialRole = user.credentialRole.get, assignedPrincipalEnrolments = user.assignedPrincipalEnrolments), Some(AG.Organisation))
         })
 
         val result = Users.getAll(principalEnrolmentService = Some("HMRC-MTD-IT"))
@@ -351,7 +356,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
           SignIn.signInAndGetSession(userId = "admin", planetId = planetId)
 
         usersList.foreach(user => {
-          Users.create(UserGenerator.agent(user.userId, groupId = user.groupId.get, assignedPrincipalEnrolments = user.assignedPrincipalEnrolments), Some(AG.Agent))
+          Users.create(UserGenerator.agent(user.userId, groupId = user.groupId.get, credentialRole = user.credentialRole.get, assignedPrincipalEnrolments = user.assignedPrincipalEnrolments), Some(AG.Organisation))
         })
 
         val result = Users.getAll(limit = Some(3))
@@ -368,7 +373,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
           SignIn.signInAndGetSession(userId = "admin", planetId = planetId)
 
         usersList.foreach(user => {
-          Users.create(UserGenerator.agent(user.userId, groupId = user.groupId.get, assignedPrincipalEnrolments = user.assignedPrincipalEnrolments), Some(AG.Agent))
+          Users.create(UserGenerator.agent(user.userId, groupId = user.groupId.get, credentialRole = user.credentialRole.get, assignedPrincipalEnrolments = user.assignedPrincipalEnrolments), Some(AG.Organisation))
         })
 
         val result = Users.getAll(
