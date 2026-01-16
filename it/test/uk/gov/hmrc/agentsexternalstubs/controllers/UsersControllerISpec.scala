@@ -246,10 +246,10 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       }
 
       val usersList: List[User] = List(
-        User("foo", groupId = Some("group1"), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("HMRC-MTD-IT"))),
-        User("bar", groupId = Some("group2"), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("HMRC-MTD-IT"))),
-        User("fizz", groupId = Some("group1"), credentialRole = Some(User.CR.Assistant), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("HMRC-MTD-VAT"))),
-        User("buzz", groupId = Some("group1"), credentialRole = Some(User.CR.Assistant), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("HMRC-MTD-IT"))),
+        User("foo", groupId = Some("group1"), credentialRole = Some(User.CR.User), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("HMRC-MTD-IT"))),
+        User("bar", groupId = Some("group2"), credentialRole = Some(User.CR.User), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("HMRC-MTD-IT"))),
+        User("fizz", groupId = Some("group3"), credentialRole = Some(User.CR.User), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("HMRC-MTD-VAT"))),
+        User("buzz", groupId = Some("group4"), credentialRole = Some(User.CR.User), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("HMRC-MTD-IT"))),
       )
 
       "return 200 with the list of all users on the current planet only" in {
@@ -302,11 +302,11 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
           Users.create(UserGenerator.agent(user.userId, groupId = user.groupId.get, credentialRole = user.credentialRole.get, assignedPrincipalEnrolments = user.assignedPrincipalEnrolments), Some(AG.Organisation))
         })
 
-        val result = Users.getAll(groupId = Some("group1"))
+        val result = Users.getAll(groupId = Some("group4"))
         result should haveStatus(200)
         val users = result.json.as[Users].users
-        users.size shouldBe 3
-        users.map(_.userId) should contain.only("foo", "fizz", "buzz")
+        users.size shouldBe 1
+        users.map(_.userId) should contain.only("buzz")
       }
 
       "return 200 with the list of users having given affinity" in {
@@ -378,7 +378,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
 
         val result = Users.getAll(
           userId = Some("zz"),
-          groupId = Some("group1"),
+          groupId = Some("group4"),
           principalEnrolmentService = Some("HMRC-MTD-IT"),
           limit = Some(2)
         )
