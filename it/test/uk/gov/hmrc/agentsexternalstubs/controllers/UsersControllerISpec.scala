@@ -304,6 +304,9 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
 
         val result = Users.getAll(groupId = Some("group4"))
         result should haveStatus(200)
+//        TODO: FIX THIS FAILING TEST
+        val allResultForTesting = Users.getAll(groupId = Some("group4"))
+        val allUsersForTesting = allResultForTesting.json.as[Users].users
         val users = result.json.as[Users].users
         users.size shouldBe 1
         users.map(_.userId) should contain.only("buzz")
@@ -344,6 +347,9 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
 
         val result = Users.getAll(principalEnrolmentService = Some("HMRC-MTD-IT"))
         result should haveStatus(200)
+        //        TODO: FIX THIS FAILING TEST
+        val allResultForTesting = Users.getAll(groupId = Some("group4"))
+        val allUsersForTesting = allResultForTesting.json.as[Users].users
         val users = result.json.as[Users].users
         users.size shouldBe 3
         users.map(_.userId) should contain.only("foo", "bar", "buzz")
@@ -361,6 +367,9 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
 
         val result = Users.getAll(limit = Some(3))
         result should haveStatus(200)
+        //        TODO: FIX THIS FAILING TEST
+        val allResultForTesting = Users.getAll(groupId = Some("group4"))
+        val allUsersForTesting = allResultForTesting.json.as[Users].users
         val users = result.json.as[Users].users
         users.size shouldBe 3
         users.map(_.userId) should contain.only("foo", "bar", "fizz")
@@ -383,6 +392,9 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
           limit = Some(2)
         )
         result should haveStatus(200)
+        //        TODO: FIX THIS FAILING TEST
+        val allResultForTesting = Users.getAll(groupId = Some("group4"))
+        val allUsersForTesting = allResultForTesting.json.as[Users].users
         val users = result.json.as[Users].users
         users.size shouldBe 1
         users.map(_.userId) should contain.only("buzz")
