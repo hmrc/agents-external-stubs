@@ -238,18 +238,18 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
     }
 
     "GET /agents-external-stubs/users" should {
-      def enrolmentKeyForService(service: String): EnrolmentKey = {
+      def enrolmentKeyForService(service: String, index: Int): EnrolmentKey = {
         service match {
-          case "HMRC-MTD-IT" => EnrolmentKey(service, Seq(Identifier("MTDITID", "value")))
+          case "HMRC-MTD-IT" => EnrolmentKey(service, Seq(Identifier("MTDITID", s"value$index")))
           case "HMRC-MTD-VAT" => EnrolmentKey(service, Seq(Identifier("VRN", "123456789")))
         }
       }
 
       val usersList: List[User] = List(
-        User("foo", groupId = Some("group1"), credentialRole = Some(User.CR.User), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("HMRC-MTD-IT"))),
-        User("bar", groupId = Some("group2"), credentialRole = Some(User.CR.User), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("HMRC-MTD-IT"))),
-        User("fizz", groupId = Some("group3"), credentialRole = Some(User.CR.User), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("HMRC-MTD-VAT"))),
-        User("buzz", groupId = Some("group4"), credentialRole = Some(User.CR.User), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("HMRC-MTD-IT"))),
+        User("foo", groupId = Some("group1"), credentialRole = Some(User.CR.User), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("HMRC-MTD-IT", 1))),
+        User("bar", groupId = Some("group2"), credentialRole = Some(User.CR.User), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("HMRC-MTD-IT", 2))),
+        User("fizz", groupId = Some("group3"), credentialRole = Some(User.CR.User), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("HMRC-MTD-VAT", 0))),
+        User("buzz", groupId = Some("group4"), credentialRole = Some(User.CR.User), assignedPrincipalEnrolments = Seq(enrolmentKeyForService("HMRC-MTD-IT", 3))),
       )
 
       "return 200 with the list of all users on the current planet only" in {
@@ -304,9 +304,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
 
         val result = Users.getAll(groupId = Some("group4"))
         result should haveStatus(200)
-//        TODO: FIX THIS FAILING TEST
-        val allResultForTesting = Users.getAll(groupId = Some("group4"))
-        val allUsersForTesting = allResultForTesting.json.as[Users].users
+
         val users = result.json.as[Users].users
         users.size shouldBe 1
         users.map(_.userId) should contain.only("buzz")
@@ -347,9 +345,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
 
         val result = Users.getAll(principalEnrolmentService = Some("HMRC-MTD-IT"))
         result should haveStatus(200)
-        //        TODO: FIX THIS FAILING TEST
-        val allResultForTesting = Users.getAll(groupId = Some("group4"))
-        val allUsersForTesting = allResultForTesting.json.as[Users].users
+
         val users = result.json.as[Users].users
         users.size shouldBe 3
         users.map(_.userId) should contain.only("foo", "bar", "buzz")
@@ -368,7 +364,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
         val result = Users.getAll(limit = Some(3))
         result should haveStatus(200)
         //        TODO: FIX THIS FAILING TEST
-        val allResultForTesting = Users.getAll(groupId = Some("group4"))
+        val allResultForTesting = Users.getAll()
         val allUsersForTesting = allResultForTesting.json.as[Users].users
         val users = result.json.as[Users].users
         users.size shouldBe 3
@@ -392,14 +388,10 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
           limit = Some(2)
         )
         result should haveStatus(200)
-        //        TODO: FIX THIS FAILING TEST
-        val allResultForTesting = Users.getAll(groupId = Some("group4"))
-        val allUsersForTesting = allResultForTesting.json.as[Users].users
+
         val users = result.json.as[Users].users
         users.size shouldBe 1
         users.map(_.userId) should contain.only("buzz")
-
-        true shouldBe false
       }
     }
 
