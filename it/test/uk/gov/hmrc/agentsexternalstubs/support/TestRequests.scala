@@ -194,6 +194,7 @@ trait TestRequests extends ScalaFutures {
       agentCode: Option[String] = None,
       affinityGroup: Option[String] = None,
       principalEnrolmentService: Option[String] = None,
+      //      TODO: This needs to be fixed. limit does not appear to be being passed to UsersController.getUsers???
       limit: Option[Int] = None
     )(implicit
       authContext: AuthContext
