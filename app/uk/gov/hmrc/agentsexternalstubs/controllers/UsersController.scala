@@ -90,17 +90,10 @@ class UsersController @Inject() (
         futureUsers.map { users =>
           val modifiedUsers = if (requireModifiedLimit) {
             users
+              .filter { user => userId.forall(user.userId.contains(_)) }
               .filter { user =>
-//                TODO: Rewrite this in neater language
-                if (userId.isDefined) {
-                  user.userId.contains(userId.get)
-                } else true
-              }
-              .filter { user =>
-//                TODO: Rewrite this in neater language
-                if (principalEnrolmentService.isDefined) {
-                  user.assignedPrincipalEnrolments.map(_.service).contains(principalEnrolmentService.get)
-                } else true
+                val userPrincipalEnrolmentServices = user.assignedPrincipalEnrolments.map(ape => ape.service)
+                principalEnrolmentService.forall(userPrincipalEnrolmentServices.contains(_))
               }
               .take(limit.getOrElse(100))
           } else {
