@@ -273,10 +273,12 @@ class GroupsService @Inject() (
              case _ =>
                Future.unit
            }
-      _ = if (
-            agentGroup.delegatedEnrolments
-              .exists(existing => delegationEnrolmentKeys.delegationEnrolments.exists(existing.matches))
-          ) throw new EnrolmentAlreadyExists
+      _ <-
+        if (
+          agentGroup.delegatedEnrolments
+            .exists(existing => delegationEnrolmentKeys.delegationEnrolments.exists(existing.matches))
+        ) Future.failed(new EnrolmentAlreadyExists)
+        else Future.unit
       _ <- groupsRepository.addDelegatedEnrolment(
              agentGroup.groupId,
              planetId,

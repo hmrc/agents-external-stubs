@@ -328,7 +328,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
               .generate("IR-SA~UTR~12345678", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts"))
+              .getOrElse(fail("Could not generate known facts"))
           )
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
@@ -653,7 +653,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             "HMRC-MTD-IT~MTDITID~ZIZI45093893553",
             SetKnownFactsRequest
               .generate("HMRC-MTD-IT~MTDITID~ZIZI45093893553", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts"))
+              .getOrElse(fail("Could not generate known facts"))
           )
         Users.create(
           UserGenerator
@@ -687,7 +687,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             "HMRC-MTD-IT~MTDITID~ZIZI45093893553",
             SetKnownFactsRequest
               .generate("HMRC-MTD-IT~MTDITID~ZIZI45093893553", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts"))
+              .getOrElse(fail("Could not generate known facts"))
           )
         Users.create(
           UserGenerator
@@ -729,7 +729,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             "HMRC-MTD-IT~MTDITID~ZIZI45093893553",
             SetKnownFactsRequest
               .generate("HMRC-MTD-IT-SUPP~MTDITID~ZIZI45093893553", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts"))
+              .getOrElse(fail("Could not generate known facts"))
           )
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
@@ -763,7 +763,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
               .generate("IR-SA~UTR~12345678", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts"))
+              .getOrElse(fail("Could not generate known facts"))
           )
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
@@ -799,7 +799,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
               .generate("IR-SA~UTR~12345678", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts"))
+              .getOrElse(fail("Could not generate known facts"))
           )
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
@@ -834,7 +834,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
               .generate("IR-SA~UTR~12345678", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts"))
+              .getOrElse(fail("Could not generate known facts"))
           )
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
@@ -861,7 +861,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
               .generate("IR-SA~UTR~12345678", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts"))
+              .getOrElse(fail("Could not generate known facts"))
           )
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
@@ -892,7 +892,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
               .generate("IR-SA~UTR~12345678", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts"))
+              .getOrElse(fail("Could not generate known facts"))
           )
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
@@ -963,7 +963,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
               .generate("IR-SA~UTR~12345678", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts"))
+              .getOrElse(fail("Could not generate known facts"))
           )
         Users.create(
           UserGenerator
@@ -991,7 +991,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
               .generate("IR-SA~UTR~12345678", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts"))
+              .getOrElse(fail("Could not generate known facts"))
           )
         Users.create(
           UserGenerator
@@ -1808,7 +1808,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
           enrolmentKey,
           SetKnownFactsRequest
             .generate(enrolmentKey, _ => None)
-            .getOrElse(throw new Exception("Could not generate known facts"))
+            .getOrElse(fail("Could not generate known facts"))
         )
 
       "assign an enrolment to a user successfully" in {
@@ -1897,7 +1897,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
           enrolmentKey,
           SetKnownFactsRequest
             .generate(enrolmentKey, _ => None)
-            .getOrElse(throw new Exception("Could not generate known facts"))
+            .getOrElse(fail("Could not generate known facts"))
         )
       "deassign an enrolment successfully" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
@@ -1944,7 +1944,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
           enrolmentKey,
           SetKnownFactsRequest
             .generate(enrolmentKey, _ => None)
-            .getOrElse(throw new Exception("Could not generate known facts"))
+            .getOrElse(fail("Could not generate known facts"))
         )
 
       "return OK with matching identifiers and verifiers" in {
