@@ -19,7 +19,6 @@ package uk.gov.hmrc.agentsexternalstubs.services
 import com.github.blemale.scaffeine.Scaffeine
 import play.api.i18n.Lang.logger
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers.MtdItId
 import uk.gov.hmrc.agentsexternalstubs.repository.{GroupsRepository, KnownFactsRepository}
 import uk.gov.hmrc.auth.core.UnsupportedCredentialRole
 import uk.gov.hmrc.http.{BadRequestException, NotFoundException}
@@ -32,7 +31,6 @@ import scala.concurrent.{ExecutionContext, Future}
 class GroupsService @Inject() (
   groupsRepository: GroupsRepository,
   knownFactsRepository: KnownFactsRepository,
-  recordsService: RecordsService,
   userToRecordsSyncService: UserToRecordsSyncService
 ) {
 
@@ -134,63 +132,29 @@ class GroupsService @Inject() (
       )
       .map(_ => ())
 
-  private def ensureKnownFactsForPrimaryEnrolmentKey(
-    primaryEnrolmentKey: EnrolmentKey,
-    planetId: String
-  )(implicit ec: ExecutionContext): Future[GroupsService.EnsureKnownFactsResult] =
-    knownFactsRepository.findByEnrolmentKey(primaryEnrolmentKey, planetId).flatMap {
-      case Some(existing) => Future.successful(GroupsService.EnsureKnownFactsResult(existing, created = false))
+  private def requireKnownFactsForEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[Unit] =
+    knownFactsRepository.findByEnrolmentKey(enrolmentKey, planetId).flatMap {
+      case Some(_) => Future.unit
+      case None    => Future.failed(new NotFoundException("ALLOCATION_DOES_NOT_EXIST"))
+    }
+
+  private def ensureKnownFactsForEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[Unit] =
+    knownFactsRepository.findByEnrolmentKey(enrolmentKey, planetId).flatMap {
+      case Some(_) => Future.unit
       case None =>
-        for {
-          facts <- knownFactsFactsForPrimary(primaryEnrolmentKey, planetId)
-          generated <- KnownFacts
-                         .generate(primaryEnrolmentKey, seed = primaryEnrolmentKey.tag, alreadyKnownFacts = facts.get)
-                         .fold[Future[KnownFacts]](Future.failed(new NotFoundException("ALLOCATION_DOES_NOT_EXIST")))(
-                           Future.successful
-                         )
-          _ <- knownFactsRepository.upsert(generated, planetId).map(_ => ())
-        } yield GroupsService.EnsureKnownFactsResult(generated, created = true)
+        KnownFacts.generate(enrolmentKey, seed = enrolmentKey.tag, alreadyKnownFacts = _ => None) match {
+          case Some(generated) =>
+            knownFactsRepository
+              .upsert(generated, planetId)
+              .recover { case _ => () }
+          case None =>
+            Future.unit
+        }
     }
-
-  private def knownFactsFactsForPrimary(primaryEnrolmentKey: EnrolmentKey, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[Map[String, String]] =
-    primaryEnrolmentKey.service match {
-      case "HMRC-MTD-IT" =>
-        businessDetailsFacts(primaryEnrolmentKey, planetId)
-      case _ =>
-        Future.successful(Map.empty)
-    }
-
-  private def businessDetailsFacts(primaryEnrolmentKey: EnrolmentKey, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[Map[String, String]] =
-    primaryEnrolmentKey.identifiers.find(_.key.equalsIgnoreCase("MTDITID")) match {
-      case None => Future.successful(Map.empty)
-      case Some(identifier) =>
-        recordsService
-          .getRecord[BusinessDetailsRecord, MtdItId](MtdItId(identifier.value), planetId)
-          .map(_.map(factsFromBusinessDetails).getOrElse(Map.empty))
-    }
-
-  private def factsFromBusinessDetails(record: BusinessDetailsRecord): Map[String, String] = {
-    val addressDetailsOpt =
-      record.businessData.flatMap(_.headOption).flatMap(_.businessAddressDetails)
-    val postcodeOpt = addressDetailsOpt.flatMap {
-      case address: BusinessDetailsRecord.UkAddress      => Some(address.postalCode)
-      case address: BusinessDetailsRecord.ForeignAddress => address.postalCode
-    }
-    val countryCodeOpt = addressDetailsOpt.map(_.countryCode)
-    Seq(
-      "NINO"             -> Option(record.nino).filter(_.nonEmpty),
-      "BusinessPostcode" -> postcodeOpt,
-      "businesspostcode" -> postcodeOpt,
-      "Postcode"         -> postcodeOpt,
-      "PostCode"         -> postcodeOpt,
-      "POSTCODE"         -> postcodeOpt,
-      "CountryCode"      -> countryCodeOpt
-    ).collect { case (key, Some(value)) => key -> value }.toMap
-  }
 
   /* Group enrolment is assigned to the unique Admin user of the group */
   def allocateEnrolmentToGroup(
@@ -206,11 +170,17 @@ class GroupsService @Inject() (
       group <- resolveGroupForAllocation(user, groupId, agentCodeOpt, planetId)
       _ <- (enrolmentType, delegationEnrolmentKeys.isPrimary, group.affinityGroup) match {
              case ("principal", true, _) =>
-               allocatePrincipalEnrolmentToGroup(group, delegationEnrolmentKeys.primaryEnrolmentKey, planetId)
+               for {
+                 _ <- requireKnownFactsForEnrolmentKey(delegationEnrolmentKeys.primaryEnrolmentKey, planetId)
+                 _ <- allocatePrincipalEnrolmentToGroup(group, delegationEnrolmentKeys.primaryEnrolmentKey, planetId)
+               } yield ()
              case ("delegated", _, AG.Agent) =>
                for {
-                 _ <- ensureKnownFactsForPrimaryEnrolmentKey(delegationEnrolmentKeys.primaryEnrolmentKey, planetId)
                  _ <- allocateDelegatedEnrolmentToAgentGroup(group, delegationEnrolmentKeys, planetId)
+                 // APB-10236: delegated allocations do not require primary known facts; create delegated facts for secondary keys only.
+                 _ <-
+                   if (delegationEnrolmentKeys.isPrimary) Future.unit
+                   else ensureKnownFactsForEnrolmentKey(delegationEnrolmentKeys.delegatedEnrolmentKey, planetId)
                } yield ()
              case _ =>
                Future.failed(new BadRequestException("INVALID_QUERY_PARAMETERS"))
@@ -362,6 +332,4 @@ class GroupsService @Inject() (
 
 final class EnrolmentAlreadyExists extends Exception
 
-object GroupsService {
-  final case class EnsureKnownFactsResult(knownFacts: KnownFacts, created: Boolean)
-}
+object GroupsService {}
