@@ -4,7 +4,7 @@ object AppDependencies {
 
   private val bootstrapVer = "10.5.0"
 
-  private val mongoVer = "2.11.0"
+  private val mongoVer = "2.12.0"
 
   private val playVer = "play-30"
 
