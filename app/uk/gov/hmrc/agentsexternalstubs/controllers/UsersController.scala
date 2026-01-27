@@ -90,7 +90,7 @@ class UsersController @Inject() (
         futureUsers.map { users =>
           val modifiedUsers = if (requireModifiedLimit) {
             users
-              .filter { user => userId.forall(user.userId.contains(_)) }
+              .filter(user => userId.forall(user.userId.contains(_)))
               .filter { user =>
                 val userPrincipalEnrolmentServices = user.assignedPrincipalEnrolments.map(ape => ape.service)
                 principalEnrolmentService.forall(userPrincipalEnrolmentServices.contains(_))

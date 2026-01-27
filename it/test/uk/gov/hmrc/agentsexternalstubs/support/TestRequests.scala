@@ -189,32 +189,32 @@ trait TestRequests extends ScalaFutures {
   object Users {
 
     def getAll(
+      limit: Option[Int] = None,
       userId: Option[String] = None,
       groupId: Option[String] = None,
       agentCode: Option[String] = None,
       affinityGroup: Option[String] = None,
-      principalEnrolmentService: Option[String] = None,
-      //      TODO: This needs to be fixed. limit does not appear to be being passed to UsersController.getUsers???
-      limit: Option[Int] = None
+      principalEnrolmentService: Option[String] = None
     )(implicit
       authContext: AuthContext
-    ): WSResponse =
+    ): WSResponse = {
+      val queryParams = Seq(
+        "affinityGroup" -> affinityGroup,
+        "limit" -> limit.map(_.toString),
+        "groupId" -> groupId,
+        "agentCode" -> agentCode,
+        "principalEnrolmentService" -> principalEnrolmentService,
+        "userId" -> userId
+      ).collect { case (name, Some(value: String)) =>
+        (name, value)
+      }
       wsClient
         .url(s"$url/agents-external-stubs/users")
-        .withQueryStringParameters(
-          Seq("affinityGroup" -> affinityGroup,
-            "limit" -> limit.toString,
-            "groupId" -> groupId,
-            "agentCode" -> agentCode,
-            "principalEnrolmentService" -> principalEnrolmentService,
-            "userId" -> userId
-          ).collect { case (name, Some(value: String)) =>
-              (name, value)
-            }: _*
-        )
+        .withQueryStringParameters(queryParams: _*)
         .withHttpHeaders(authContext.headers: _*)
         .get()
         .futureValue
+    }
 
     def get(userId: String)(implicit authContext: AuthContext): WSResponse =
       wsClient

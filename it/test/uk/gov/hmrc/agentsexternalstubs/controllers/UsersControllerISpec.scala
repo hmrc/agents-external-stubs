@@ -351,26 +351,23 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
         users.map(_.userId) should contain.only("foo", "bar", "buzz")
       }
 
-//      TODO: This needs to be fixed. limit does not appear to be being passed to UsersController.getUsers???
-//      "return 200 with the list of users to a limit value" in {
-//        val planetId = "searchPlanet"
-//
-//        implicit val currentAuthSession: AuthenticatedSession =
-//          SignIn.signInAndGetSession(userId = "admin", planetId = planetId)
-//
-//        usersList.foreach(user => {
-//          Users.create(UserGenerator.agent(user.userId, groupId = user.groupId.get, credentialRole = user.credentialRole.get, assignedPrincipalEnrolments = user.assignedPrincipalEnrolments), Some(AG.Organisation))
-//        })
-//
-//        val result = Users.getAll(limit = Some(3))
-//        result should haveStatus(200)
-//        //        TODO: FIX THIS FAILING TEST
-//        val allResultForTesting = Users.getAll()
-//        val allUsersForTesting = allResultForTesting.json.as[Users].users
-//        val users = result.json.as[Users].users
-//        users.size shouldBe 3
-//        users.map(_.userId) should contain.only("foo", "bar", "fizz")
-//      }
+      "return 200 with the list of users to a limit value" in {
+        val planetId = "searchPlanet"
+
+        implicit val currentAuthSession: AuthenticatedSession =
+          SignIn.signInAndGetSession(userId = "foo", planetId = planetId)
+
+        usersList.foreach(user => {
+          Users.create(UserGenerator.agent(user.userId, groupId = user.groupId.get, credentialRole = user.credentialRole.get, assignedPrincipalEnrolments = user.assignedPrincipalEnrolments), Some(AG.Organisation))
+        })
+
+        val result = Users.getAll(limit = Some(3))
+        result should haveStatus(200)
+
+        val users = result.json.as[Users].users
+        users.size shouldBe 3
+        users.map(_.userId) should contain.only("foo", "bar", "fizz")
+      }
 
       "return 200 with the list of users filtered by userId, groupId, principalEnrolmentService and limit" in {
         val planetId = "searchPlanet"
