@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -211,11 +211,11 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
       val keys = findKeys(definition)
 
       val externalizedStrings = mapCommonVals(definition, Map.empty.withDefaultValue(Nil))
-        .mapValues(list => {
+        .view.mapValues(list => {
           list.map(_.replaceAll("\\d", "")).distinct.minBy(_.length)
         })
         .groupBy { case (_, v) => v }
-        .mapValues(m => if (m.size <= 1) m else m.toSeq.zipWithIndex.map { case ((k, v), i) => (k, v + i) }.toMap)
+        .view.mapValues(m => if (m.size <= 1) m else m.toSeq.zipWithIndex.map { case ((k, v), i) => (k, v + i) }.toMap)
         .foldLeft[Map[String, String]](Map())((a, v) => a ++ v._2)
 
       Context(outputType, uniqueKey, keys, externalizedStrings)

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package uk.gov.hmrc.agentsexternalstubs.services
 import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.agentsexternalstubs.models.Errors
 import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
-import uk.gov.hmrc.domain.Nino
 
 import java.time.LocalDate
 import java.util.UUID

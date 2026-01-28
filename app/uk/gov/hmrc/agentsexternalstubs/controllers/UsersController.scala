@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,7 +43,9 @@ class UsersController @Inject() (
     affinityGroup: Option[String],
     limit: Option[Int],
     groupId: Option[String],
-    agentCode: Option[String]
+    agentCode: Option[String],
+    principalEnrolmentService: Option[String],
+    userId: Option[String]
   ): Action[AnyContent] =
     Action.async { implicit request =>
       withCurrentSession { session =>
@@ -51,24 +53,54 @@ class UsersController @Inject() (
           !(agentCode.isDefined && groupId.isDefined),
           "You cannot query users by both groupId and agentCode at the same time."
         )
-        (if (groupId.isDefined)
-           usersService.findByGroupId(groupId.get, session.planetId)(limit.orElse(Some(100)))
-         else if (agentCode.isDefined)
-           groupsService.findByAgentCode(agentCode.get, session.planetId).flatMap {
-             case Some(group) => usersService.findByGroupId(group.groupId, session.planetId)(limit.orElse(Some(100)))
-             case None        => Future.successful(Seq.empty[User])
-           }
-         else if (affinityGroup.isDefined) {
-           for { // TODO note that this will probably be slow. Consider whether we really want to search users by affinity group (a property that no longer pertains to User)
-             groups <- groupsService.findByPlanetId(session.planetId, affinityGroup)(limit.getOrElse(100))
-             users <- Future.traverse(groups)(group =>
-                        usersService.findByGroupId(group.groupId, session.planetId)(limit.orElse(Some(100)))
-                      )
-           } yield users.flatten.take(limit.getOrElse(100))
-         } else
-           usersService.findByPlanetId(session.planetId)(limit.getOrElse(100))).map(users =>
-          Ok(RestfulResponse(Users(users)))
-        )
+        val requireModifiedLimit = principalEnrolmentService.isDefined || (userId.isDefined && List(
+          agentCode,
+          groupId,
+          affinityGroup
+        ).flatten.nonEmpty)
+        val effectiveLimit: Int =
+          if (requireModifiedLimit) {
+            // If userId/principalEnrolmentService AND either of agentCode, groupId, affinityGroup is defined, use effective/modified limit as will do filtering in futureUsers.map
+            100
+          } else {
+            limit.getOrElse(100)
+          }
+        val futureUsers: Future[Seq[User]] = (userId, groupId, agentCode, affinityGroup) match {
+          case (Some(uId), None, None, None) =>
+            usersService.findByUserIdContains(
+              partialUserId = uId,
+              planetId = session.planetId
+            )(effectiveLimit)
+          case (_, Some(gId), _, _) =>
+            usersService.findByGroupId(gId, session.planetId)(Some(effectiveLimit))
+          case (_, _, Some(aCode), _) =>
+            groupsService.findByAgentCode(aCode, session.planetId).flatMap {
+              case Some(group) => usersService.findByGroupId(group.groupId, session.planetId)(Some(effectiveLimit))
+              case None        => Future.successful(Seq.empty[User])
+            }
+          case (_, _, _, Some(_)) =>
+            for { // TODO note that this will probably be slow. Consider whether we really want to search users by affinity group (a property that no longer pertains to User)
+              groups <- groupsService.findByPlanetId(session.planetId, affinityGroup)(effectiveLimit)
+              users <- Future.traverse(groups)(group =>
+                         usersService.findByGroupId(group.groupId, session.planetId)(Some(effectiveLimit))
+                       )
+            } yield users.flatten.take(effectiveLimit)
+          case _ => usersService.findByPlanetId(session.planetId)(effectiveLimit)
+        }
+        futureUsers.map { users =>
+          val modifiedUsers = if (requireModifiedLimit) {
+            users
+              .filter(user => userId.forall(user.userId.contains(_)))
+              .filter { user =>
+                val userPrincipalEnrolmentServices = user.assignedPrincipalEnrolments.map(ape => ape.service)
+                principalEnrolmentService.forall(userPrincipalEnrolmentServices.contains(_))
+              }
+              .take(limit.getOrElse(100))
+          } else {
+            users.take(limit.getOrElse(100))
+          }
+          Ok(RestfulResponse(Users(modifiedUsers)))
+        }
       }(SessionRecordNotFound)
     }
 
