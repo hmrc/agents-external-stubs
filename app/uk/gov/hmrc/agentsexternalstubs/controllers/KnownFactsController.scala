@@ -152,7 +152,7 @@ class KnownFactsController @Inject() (
         maybeKnownFacts match {
           case Some(knownFacts) =>
             knownFactsRepository
-              .upsert(KnownFacts.sanitize(enrolmentKey.tag)(knownFacts), session.planetId)
+              .upsert(knownFacts, session.planetId)
               .map(_ => NoContent)
           case None =>
             badRequestF("KNOWN_FACTS_GENERATION_FAILED", s"Could not generate known facts for $enrolmentKey")
