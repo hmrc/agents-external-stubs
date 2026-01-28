@@ -140,8 +140,25 @@ class KnownFactsController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def createPAYEKnownFacts(agentId: String): Action[JsValue] = Action(parse.json) { _ =>
-    NoContent
+  def createPAYEKnownFacts(agentId: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
+    withCurrentSession { session =>
+      withPayload[CreatePAYEKnownFactsRequest] { payload =>
+        val enrolmentKey = EnrolmentKey.from("IR-PAYE-AGENT", "IRAgentReference" -> agentId)
+        val maybeKnownFacts = KnownFacts.generate(
+          enrolmentKey,
+          agentId,
+          key => if (key == "IRAgentPostcode") Some(payload.postCode) else None
+        )
+        maybeKnownFacts match {
+          case Some(knownFacts) =>
+            knownFactsRepository
+              .upsert(knownFacts, session.planetId)
+              .map(_ => NoContent)
+          case None =>
+            badRequestF("KNOWN_FACTS_GENERATION_FAILED", s"Could not generate known facts for $enrolmentKey")
+        }
+      }
+    }(SessionRecordNotFound)
   }
 
 }
@@ -153,6 +170,12 @@ object KnownFactsController {
   object EnrolmentInfo {
     implicit val writes: OWrites[EnrolmentInfo] = Json.writes[EnrolmentInfo]
     implicit val reads: Reads[EnrolmentInfo] = Json.reads[EnrolmentInfo] // just for ISpec
+  }
+
+  case class CreatePAYEKnownFactsRequest(postCode: String)
+
+  object CreatePAYEKnownFactsRequest {
+    implicit val reads: Reads[CreatePAYEKnownFactsRequest] = Json.reads[CreatePAYEKnownFactsRequest]
   }
 
   def addVerifier(verifiers: Seq[KnownFact], knownFact: KnownFact): Seq[KnownFact] =

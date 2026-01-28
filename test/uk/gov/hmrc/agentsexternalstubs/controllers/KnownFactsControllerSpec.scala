@@ -16,8 +16,9 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import org.mockito.Mockito.when
-import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentCaptor
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import org.mockito.Mockito.{verify, when}
 import org.mockito.stubbing.OngoingStubbing
 import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.libs.json.{JsValue, Json}
@@ -266,10 +267,29 @@ class KnownFactsControllerSpec extends BaseUnitSpec {
   }
 
   "POST /known-facts/regime/PAYE/:agentId " should {
-    "do nothing and return 204" in new TestScope {
-      val request = jsRequest("POST", s"/known-facts/regime/PAYE/blah", Json.parse("{}"))
-      val result = controller.createPAYEKnownFacts("blah").apply(request)
+    "create PAYE known facts and return 204" in new TestScope {
+      expectUpsertKnownFacts
+
+      val agentId = "ABC123"
+      val request = jsRequest(
+        "POST",
+        s"/known-facts/regime/PAYE/$agentId",
+        Json.parse("""{ "postCode": "AA1 1AA" }""")
+      )
+
+      val result = controller.createPAYEKnownFacts(agentId).apply(request)
+
       status(result) shouldBe 204
+
+      val expectedPlanetId = request.headers.get(AuthenticatedSession.TAG_PLANET_ID).getOrElse("")
+      val captor = ArgumentCaptor.forClass(classOf[KnownFacts])
+      verify(mockKnownFactsRepo).upsert(captor.capture(), eqTo(expectedPlanetId))
+      val saved = captor.getValue
+
+      saved.enrolmentKey shouldBe EnrolmentKey.from("IR-PAYE-AGENT", "IRAgentReference" -> agentId)
+      saved.identifiers shouldBe saved.enrolmentKey.identifiers
+      saved.verifiers shouldBe Seq(KnownFact("IRAgentPostcode", "AA1 1AA"))
+      saved.planetId shouldBe None
     }
   }
 
