@@ -21,6 +21,7 @@ import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Request, Result, Results}
 import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.GetRelationships
+import uk.gov.hmrc.agentsexternalstubs.models.TrustDetailsResponse.SessionRecordNotFound
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.models.identifiers.NinoWithoutSuffix
 import uk.gov.hmrc.agentsexternalstubs.services._
@@ -244,6 +245,26 @@ class HipStubController @Inject() (
       }
     }(SessionRecordNotFound)
   }
+
+  def createAgentSubscription(safeId: String): Action[JsValue] = Action(parse.json).async(implicit request =>
+    withCurrentSession { session =>
+      hipStubService.validateBaseHeaders(
+        request.headers.get("X-Transmitting-System"),
+        request.headers.get("X-Originating-System"),
+        request.headers.get("correlationid"),
+        request.headers.get("X-Receipt-Date")
+      ) match {
+        case Left(invalidHeadersResponse) =>
+          Future.successful(Results.UnprocessableEntity(Json.toJson(invalidHeadersResponse)))
+        case _ =>
+          hipStubService.validateCreateAgentSubscriptionPayload(request.body.as[CreateAgentSubscriptionPayload]) match {
+            case Left(invalidPayload) =>
+              Future.successful(Results.UnprocessableEntity(Json.toJson(invalidPayload)))
+            case Right(payload) => ???
+          }
+      }
+    }(SessionRecordNotFound)
+  )
 
   private def agentIsSuspended(businessPartnerRecord: BusinessPartnerRecord, regime: String): Boolean =
     businessPartnerRecord.suspensionDetails.fold(false)(_.suspendedRegimes.contains(regime))

@@ -17,13 +17,13 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
 import play.api.Logging
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import uk.gov.hmrc.agentsexternalstubs.models.Validator.{Validator, _}
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers.NinoWithoutSuffix
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.domain.TaxIdentifier
 
-import java.time.{Instant, LocalDate}
 import java.time.format.{DateTimeFormatter, DateTimeParseException}
+import java.time.{Instant, LocalDate}
 import javax.inject.{Inject, Singleton}
 
 @Singleton
@@ -230,4 +230,66 @@ class HipStubService @Inject() extends Logging {
       case "ITSA" => List("ALL00001", "ITSAS001").contains(authProfile)
       case _      => authProfile == "ALL00001"
     }
+
+  // -------------- Create Agent Subscription Payload Validation --------------
+
+  private type PayloadValidator = Validator[CreateAgentSubscriptionPayload]
+
+  private val validationError =
+    Errors("003", "Request could not be processed")
+
+
+  private def strLenValidator(
+    extract: CreateAgentSubscriptionPayload => String,
+    min: Int,
+    max: Int
+  ): PayloadValidator =
+    checkProperty(extract, check[String](_.lengthMinMaxInclusive(min, max), validationError.text))
+
+  private def optStrLenValidator(
+    extract: CreateAgentSubscriptionPayload => Option[String],
+    min: Int,
+    max: Int
+  ): PayloadValidator =
+    checkObjectIfSome(extract, check[String](_.lengthMinMaxInclusive(min, max), validationError.text))
+
+  private val validStatuses: Set[String] =
+    Set("ACCEPTED", "REJECTED", "PENDING", "REQUIRED")
+
+  private def enumValidator(
+                             extract: CreateAgentSubscriptionPayload => String
+                           ): PayloadValidator =
+    checkProperty(
+      extract,
+      check[String](validStatuses.contains, validationError.text)
+    )
+
+  private val createAgentValidator: PayloadValidator =
+    Validator(
+      strLenValidator(_.name, 1, 40),
+      strLenValidator(_.addr1, 1, 35),
+      optStrLenValidator(_.addr2, 1, 35),
+      optStrLenValidator(_.addr3, 1, 35),
+      optStrLenValidator(_.addr4, 1, 35),
+      optStrLenValidator(_.postcode, 1, 10),
+      strLenValidator(_.country, 2, 2),
+      optStrLenValidator(_.phone, 1, 24),
+      strLenValidator(_.email, 1, 132),
+      optStrLenValidator(_.supervisoryBody, 1, 100),
+      optStrLenValidator(_.membershipNumber, 1, 100),
+      optStrLenValidator(_.evidenceObjectReference, 1, 36),
+      enumValidator(_.updateDetailsStatus),
+      enumValidator(_.amlSupervisionUpdateStatus),
+      enumValidator(_.acceptNewTermsStatus),
+      enumValidator(_.reriskStatus)
+    )
+
+  def validateCreateAgentSubscriptionPayload(
+    payload: CreateAgentSubscriptionPayload
+  ): Either[Errors, CreateAgentSubscriptionPayload] =
+    createAgentValidator(payload)
+      .leftMap(_ => validationError)
+      .toEither
+      .map(_ => payload)
+
 }

@@ -81,14 +81,15 @@ GET           /trusts/agent-known-fact-check/URN/:urn                           
 
 GET           /subscriptions/:regime/:idType/:cgtRef                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getCgtSubscription(regime: String, idType: String, cgtRef: String)
 
-GET           /anti-money-laundering/subscription/:amlsRegistrationNumber/status                    @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getAmlsSubscriptionStatus(amlsRegistrationNumber: String)
+GET           /anti-money-laundering/subscription/:amlsRegistrationNumber/status                     @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getAmlsSubscriptionStatus(amlsRegistrationNumber: String)
 
 # HIP Stubs
 GET           /etmp/RESTAdapter/rosm/agent-relationship                                              @uk.gov.hmrc.agentsexternalstubs.controllers.HipStubController.displayAgentRelationship
-
 POST          /etmp/RESTAdapter/rosm/agent-relationship                                              @uk.gov.hmrc.agentsexternalstubs.controllers.HipStubController.updateAgentRelationship
 
-GET           /etmp/RESTAdapter/itsa/taxpayer/business-details                                      @uk.gov.hmrc.agentsexternalstubs.controllers.HipStubController.itsaTaxPayerBusinessDetails
+GET           /etmp/RESTAdapter/itsa/taxpayer/business-details                                       @uk.gov.hmrc.agentsexternalstubs.controllers.HipStubController.itsaTaxPayerBusinessDetails
+
+POST          /etmp/RESTAdapter/generic/agent/subscription/:safeId                                   @uk.gov.hmrc.agentsexternalstubs.controllers.HipStubController.createAgentSubscription(safeId: String)
 
 # Datastream
 POST          /write/audit                                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.DataStreamStubController.writeEvent
