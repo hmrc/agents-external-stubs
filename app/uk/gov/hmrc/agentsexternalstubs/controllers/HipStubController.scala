@@ -18,18 +18,17 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.Logging
 import play.api.libs.json._
-import play.api.mvc.{Action, AnyContent, ControllerComponents, Request, Result, Results}
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import play.api.mvc._
 import uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.GetRelationships
-import uk.gov.hmrc.agentsexternalstubs.models.TrustDetailsResponse.SessionRecordNotFound
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers.NinoWithoutSuffix
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.services._
-import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.domain.Vrn
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import java.time.{Instant, LocalDate, LocalDateTime}
 import java.time.temporal.ChronoUnit
+import java.time.{Instant, LocalDate, LocalDateTime}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -39,6 +38,7 @@ class HipStubController @Inject() (
   val authenticationService: AuthenticationService,
   relationshipRecordsService: RelationshipRecordsService,
   recordsService: RecordsService,
+  recordsRepository: RecordsRepository,
   cc: ControllerComponents
 )(implicit executionContext: ExecutionContext)
     extends BackendController(cc) with ExternalCurrentSession with Logging {
@@ -257,10 +257,48 @@ class HipStubController @Inject() (
         case Left(invalidHeadersResponse) =>
           Future.successful(Results.UnprocessableEntity(Json.toJson(invalidHeadersResponse)))
         case _ =>
-          hipStubService.validateCreateAgentSubscriptionPayload(request.body.as[CreateAgentSubscriptionPayload]) match {
-            case Left(invalidPayload) =>
-              Future.successful(Results.UnprocessableEntity(Json.toJson(invalidPayload)))
-            case Right(payload) => ???
+          RegexPatterns.validSafeId(safeId) match {
+            case Left(_) =>
+              Future.successful(
+                Results.UnprocessableEntity(Json.toJson(Errors("003", "Request could not be processed")))
+              )
+            case Right(_) =>
+              hipStubService.validateCreateAgentSubscriptionPayload(
+                request.body.as[HipSubscribeAgentServicesPayload]
+              ) match {
+                case Left(invalidPayload) =>
+                  Future.successful(Results.UnprocessableEntity(Json.toJson(invalidPayload)))
+                case Right(payload) =>
+                  recordsService
+                    .getRecordMaybeExt[BusinessPartnerRecord, SafeId](SafeId(safeId), session.planetId)
+                    .flatMap {
+                      case None =>
+                        Future.successful(Results.UnprocessableEntity(Json.toJson(Errors("006", "SAFE ID Not found"))))
+                      case Some(existingRecord) =>
+                        if (existingRecord.isAnASAgent)
+                          Future.successful(
+                            Results.UnprocessableEntity(
+                              Json.toJson(
+                                Errors(
+                                  "061",
+                                  s"BP has already a valid Agent Subscription ${existingRecord.agentReferenceNumber.get} "
+                                )
+                              )
+                            )
+                          )
+                        val recordToCreate: BusinessPartnerRecord =
+                          SubscribeAgentService.toBusinessPartnerRecord(payload, existingRecord)
+                        recordsService
+                          .store(recordToCreate, autoFill = false, session.planetId)
+                          .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, session.planetId))
+                          .map {
+                            case Some(record) =>
+                              ok(SubscribeAgentService.Response(record.safeId, record.agentReferenceNumber.get))
+                            case None =>
+                              Results.InternalServerError(Json.parse("""{"error":{"code":"500","message":"Internal server error","logID": "1234567890"}}"""))
+                          }
+                    }
+              }
           }
       }
     }(SessionRecordNotFound)

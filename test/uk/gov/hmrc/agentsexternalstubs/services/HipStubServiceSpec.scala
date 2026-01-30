@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
 import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
-import uk.gov.hmrc.agentsexternalstubs.models.{CreateAgentSubscriptionPayload, Errors}
+import uk.gov.hmrc.agentsexternalstubs.models.{HipSubscribeAgentServicesPayload, Errors}
 import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 
 import java.time.LocalDate
@@ -333,7 +333,7 @@ class HipStubServiceSpec extends BaseUnitSpec {
   }
 
   "HipStubService.validateCreateAgentSubscriptionPayload" should {
-    val minimumValidPayload = CreateAgentSubscriptionPayload(
+    val minimumValidPayload = HipSubscribeAgentServicesPayload(
       name = "Moneypenny",
       addr1 = "River House",
       addr2 = None,

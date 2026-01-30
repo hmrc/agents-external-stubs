@@ -233,23 +233,23 @@ class HipStubService @Inject() extends Logging {
 
   // -------------- Create Agent Subscription Payload Validation --------------
 
-  private type PayloadValidator = Validator[CreateAgentSubscriptionPayload]
+  private type PayloadValidator = Validator[HipSubscribeAgentServicesPayload]
 
   private val validationError =
     Errors("003", "Request could not be processed")
 
 
   private def strLenValidator(
-    extract: CreateAgentSubscriptionPayload => String,
-    min: Int,
-    max: Int
+                               extract: HipSubscribeAgentServicesPayload => String,
+                               min: Int,
+                               max: Int
   ): PayloadValidator =
     checkProperty(extract, check[String](_.lengthMinMaxInclusive(min, max), validationError.text))
 
   private def optStrLenValidator(
-    extract: CreateAgentSubscriptionPayload => Option[String],
-    min: Int,
-    max: Int
+                                  extract: HipSubscribeAgentServicesPayload => Option[String],
+                                  min: Int,
+                                  max: Int
   ): PayloadValidator =
     checkObjectIfSome(extract, check[String](_.lengthMinMaxInclusive(min, max), validationError.text))
 
@@ -257,7 +257,7 @@ class HipStubService @Inject() extends Logging {
     Set("ACCEPTED", "REJECTED", "PENDING", "REQUIRED")
 
   private def enumValidator(
-                             extract: CreateAgentSubscriptionPayload => String
+                             extract: HipSubscribeAgentServicesPayload => String
                            ): PayloadValidator =
     checkProperty(
       extract,
@@ -285,8 +285,8 @@ class HipStubService @Inject() extends Logging {
     )
 
   def validateCreateAgentSubscriptionPayload(
-    payload: CreateAgentSubscriptionPayload
-  ): Either[Errors, CreateAgentSubscriptionPayload] =
+    payload: HipSubscribeAgentServicesPayload
+  ): Either[Errors, HipSubscribeAgentServicesPayload] =
     createAgentValidator(payload)
       .leftMap(_ => validationError)
       .toEither

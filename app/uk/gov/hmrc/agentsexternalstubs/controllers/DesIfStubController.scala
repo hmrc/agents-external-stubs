@@ -132,14 +132,14 @@ class DesIfStubController @Inject() (
                           case Some(existingRecord) =>
                             recordsService
                               .store(
-                                SubscribeAgentServices.toBusinessPartnerRecord(payload, existingRecord),
+                                SubscribeAgentService.toBusinessPartnerRecord(payload, existingRecord),
                                 autoFill = false,
                                 session.planetId
                               )
                               .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, session.planetId))
                               .map {
                                 case Some(record) =>
-                                  ok(SubscribeAgentServices.Response(record.safeId, record.agentReferenceNumber.get))
+                                  ok(SubscribeAgentService.Response(record.safeId, record.agentReferenceNumber.get))
                                 case None =>
                                   internalServerError("SERVER_ERROR", "BusinessPartnerRecord creation failed silently.")
                               }
@@ -170,16 +170,16 @@ class DesIfStubController @Inject() (
                         .flatMap {
                           case None => badRequestF("NOT_FOUND")
                           case Some(existingRecord) =>
-                            val recordToCreate = SubscribeAgentServices.toBusinessPartnerRecord(payload, existingRecord)
+                            val recordToCreate = SubscribeAgentService.toBusinessPartnerRecord(payload, existingRecord)
                             recordsService
                               .store(recordToCreate, autoFill = false, session.planetId)
                               .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, session.planetId))
                               .map {
                                 case Some(record) =>
-                                  ok(SubscribeAgentServices.Response(record.safeId, record.agentReferenceNumber.get))
+                                  ok(SubscribeAgentService.Response(record.safeId, record.agentReferenceNumber.get))
                                 case None =>
                                   ok(
-                                    SubscribeAgentServices
+                                    SubscribeAgentService
                                       .Response(recordToCreate.safeId, recordToCreate.agentReferenceNumber.get)
                                   )
                               }
@@ -749,51 +749,6 @@ object DesIfStubController {
 
       implicit val formats1: Format[LegacyAgent] = Json.format[LegacyAgent]
       implicit val formats: Format[Response] = Json.format[Response]
-    }
-  }
-
-  object SubscribeAgentServices {
-
-    def toBusinessPartnerRecord(
-      payload: SubscribeAgentServicesPayload,
-      existingRecord: BusinessPartnerRecord
-    ): BusinessPartnerRecord = {
-      val address = payload.agencyAddress match {
-        case SubscribeAgentServicesPayload.UkAddress(l1, l2, l3, l4, pc, cc) =>
-          BusinessPartnerRecord.UkAddress(l1, l2, l3, l4, pc, cc)
-        case SubscribeAgentServicesPayload.ForeignAddress(l1, l2, l3, l4, pc, cc) =>
-          BusinessPartnerRecord.ForeignAddress(l1, l2, l3, l4, pc, cc)
-      }
-      existingRecord
-        .modifyAgentReferenceNumber { case None =>
-          Some(Generator.arn(existingRecord.utr.getOrElse(existingRecord.safeId)).value)
-        }
-        .withAgencyDetails(
-          Some(
-            BusinessPartnerRecord
-              .AgencyDetails()
-              .withAgencyName(Option(payload.agencyName))
-              .withAgencyAddress(Some(address))
-              .withAgencyEmail(payload.agencyEmail)
-              .withAgencyTelephoneNumber(payload.telephoneNumber)
-          )
-        )
-        .modifyContactDetails { case Some(contactDetails) =>
-          Some(
-            contactDetails
-              .withPhoneNumber(payload.telephoneNumber)
-              .withEmailAddress(payload.agencyEmail)
-          )
-        }
-        .withAddressDetails(address)
-        .withIsAnAgent(true)
-        .withIsAnASAgent(true)
-    }
-
-    case class Response(safeId: String, agentRegistrationNumber: String)
-
-    object Response {
-      implicit val writes: Writes[Response] = Json.writes[Response]
     }
   }
 

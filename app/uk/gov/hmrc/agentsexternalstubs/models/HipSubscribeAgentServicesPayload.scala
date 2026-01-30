@@ -2,7 +2,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import play.api.libs.json.{Format, Json}
 
-case class CreateAgentSubscriptionPayload(
+case class HipSubscribeAgentServicesPayload(
   name: String,
   addr1: String,
   addr2: Option[String],
@@ -22,6 +22,6 @@ case class CreateAgentSubscriptionPayload(
   reriskStatus: String
 )
 
-object CreateAgentSubscriptionPayload {
-  implicit val format: Format[CreateAgentSubscriptionPayload] = Json.format[CreateAgentSubscriptionPayload]
+object HipSubscribeAgentServicesPayload {
+  implicit val format: Format[HipSubscribeAgentServicesPayload] = Json.format[HipSubscribeAgentServicesPayload]
 }
