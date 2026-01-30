@@ -25,6 +25,8 @@ import java.util.UUID
 
 class HipStubServiceSpec extends BaseUnitSpec {
 
+  val service = new HipStubService
+
   private val requestCouldNotBeProcessed = "Request could not be processed"
 
   "HipStubService.validateBaseHeaders" should {
@@ -331,7 +333,7 @@ class HipStubServiceSpec extends BaseUnitSpec {
   }
 
   "HipStubService.validateCreateAgentSubscriptionPayload" should {
-    val validPayload = CreateAgentSubscriptionPayload(
+    val minimumValidPayload = CreateAgentSubscriptionPayload(
       name = "Moneypenny",
       addr1 = "River House",
       addr2 = None,
@@ -341,62 +343,118 @@ class HipStubServiceSpec extends BaseUnitSpec {
       country = "UK",
       phone = None,
       email = "miss.moneypenny@mi6.co.uk",
-      supervisoryBody= None,
-      membershipNumber= None,
-      evidenceObjectReference= None,
+      supervisoryBody = None,
+      membershipNumber = None,
+      evidenceObjectReference = None,
       updateDetailsStatus = "ACCEPTED",
       amlSupervisionUpdateStatus = "ACCEPTED",
       directorPartnerUpdateStatus = "PENDING",
       acceptNewTermsStatus = "REQUIRED",
       reriskStatus = "REJECTED"
     )
-    "return an Either Right when a valid minimum payload" in {
-      val result =
-        service.validateCreateAgentSubscriptionPayload(validPayload)
+    val fullValidPayload = minimumValidPayload.copy(
+      addr2 = Some("The Thames"),
+      addr3 = Some("Whitehall"),
+      addr4 = Some("London"),
+      phone = Some("0123456789"),
+      supervisoryBody = Some("Mi6"),
+      membershipNumber = Some("1"),
+      evidenceObjectReference = Some("ref")
+    )
 
-      result shouldBe Right(validPayload)
+    "a minimum payload" should {
+      "return an Either Right when valid" in {
+        val result =
+          service.validateCreateAgentSubscriptionPayload(minimumValidPayload)
+
+        result shouldBe Right(minimumValidPayload)
+      }
+
+      "return Either Left with errors because a required field is too short" in {
+        val payload = minimumValidPayload.copy(name = "")
+        val result = service
+          .validateCreateAgentSubscriptionPayload(payload)
+          .swap
+          .getOrElse(Errors())
+
+        result.text shouldBe requestCouldNotBeProcessed
+        result.code shouldBe "003"
+      }
+      "return Either Left with errors because a required field is too long" in {
+        val payload = minimumValidPayload.copy(addr1 = "Field name that is way too long to be an address line 1")
+        val result = service
+          .validateCreateAgentSubscriptionPayload(payload)
+          .swap
+          .getOrElse(Errors())
+
+        result.text shouldBe requestCouldNotBeProcessed
+        result.code shouldBe "003"
+      }
+      "return Either Left with errors when multiple required fields are incorrect" in {
+        val payload = minimumValidPayload.copy(name = "", addr1 = "Field name that is way too long to be an address line 1")
+        val result = service
+          .validateCreateAgentSubscriptionPayload(payload)
+          .swap
+          .getOrElse(Errors())
+
+        result.text shouldBe requestCouldNotBeProcessed
+        result.code shouldBe "003"
+      }
+
+      "return Either Left with errors when an enum field is incorrect" in {
+        val payload = minimumValidPayload.copy(updateDetailsStatus = "NOT_A_VALID_VALUE")
+        val result = service
+          .validateCreateAgentSubscriptionPayload(payload)
+          .swap
+          .getOrElse(Errors())
+
+        result.text shouldBe requestCouldNotBeProcessed
+        result.code shouldBe "003"
+      }
+
     }
 
-    "return an Either Right when a valid full payload" in {
-      val fullPayload = validPayload.copy(addr2 = Some("The Thames"), addr3 = Some("Whitehall"), addr4 = Some("London"))
-      val result =
-        service.validateCreateAgentSubscriptionPayload(validPayload)
+    "a full payload" should {
+      "return an Either Right when valid" in {
+        val result =
+          service.validateCreateAgentSubscriptionPayload(fullValidPayload)
 
-      result shouldBe Right(validPayload)
-    }
+        result shouldBe Right(fullValidPayload)
+      }
 
-    "return an Either Left when nino is invalid" in {
-      val result = service
-        .processItsaTaxpayerBusinessDetailsQueryParameters(mtdReference = None, nino = Some("abc"))
-        .swap
-        .getOrElse(Errors())
+      "return Either Left with errors because an optional field is too short" in {
+        val payload = minimumValidPayload.copy(addr2 = Some(""))
+        val result = service
+          .validateCreateAgentSubscriptionPayload(payload)
+          .swap
+          .getOrElse(Errors())
 
-      result.text shouldBe requestCouldNotBeProcessed
-      result.code shouldBe "006"
-    }
+        result.text shouldBe requestCouldNotBeProcessed
+        result.code shouldBe "003"
+      }
+      "return Either Left with errors because a optional field is too long" in {
+        val payload = minimumValidPayload.copy(addr3 = Some("Field name that is way too long to be an address line 3"))
+        val result = service
+          .validateCreateAgentSubscriptionPayload(payload)
+          .swap
+          .getOrElse(Errors())
 
-    "return an Either Left when mtdReference is invalid" in {
-      val result = service
-        .processItsaTaxpayerBusinessDetailsQueryParameters(mtdReference = Some("abc&"), nino = None)
-        .swap
-        .getOrElse(Errors())
+        result.text shouldBe requestCouldNotBeProcessed
+        result.code shouldBe "003"
+      }
+      "return Either Left with errors when multiple optional fields are incorrect" in {
+        val payload = minimumValidPayload.copy(addr4 = Some(""), postcode = Some("Field name that is way too long to be a postcode"))
+        val result = service
+          .validateCreateAgentSubscriptionPayload(payload)
+          .swap
+          .getOrElse(Errors())
 
-      result.text shouldBe requestCouldNotBeProcessed
-      result.code shouldBe "006"
-    }
-
-    "return an Either Left when neither nino nor mtdReference is provided" in {
-      val result = service
-        .processItsaTaxpayerBusinessDetailsQueryParameters(mtdReference = None, nino = None)
-        .swap
-        .getOrElse(Errors())
-
-      result.text shouldBe requestCouldNotBeProcessed
-      result.code shouldBe "006"
+        result.text shouldBe requestCouldNotBeProcessed
+        result.code shouldBe "003"
+      }
     }
   }
 
-  val service = new HipStubService
 
   private def validateBaseHeaders(
     transmittingSystemHeader: Option[String] = Some("HIP"),
@@ -433,7 +491,5 @@ class HipStubServiceSpec extends BaseUnitSpec {
     relationshipType,
     authProfile
   )
-
-
 
 }
