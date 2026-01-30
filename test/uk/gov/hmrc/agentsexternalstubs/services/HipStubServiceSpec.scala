@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
 import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
-import uk.gov.hmrc.agentsexternalstubs.models.Errors
+import uk.gov.hmrc.agentsexternalstubs.models.{CreateAgentSubscriptionPayload, Errors}
 import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 
 import java.time.LocalDate
@@ -330,6 +330,72 @@ class HipStubServiceSpec extends BaseUnitSpec {
     }
   }
 
+  "HipStubService.validateCreateAgentSubscriptionPayload" should {
+    val validPayload = CreateAgentSubscriptionPayload(
+      name = "Moneypenny",
+      addr1 = "River House",
+      addr2 = None,
+      addr3 = None,
+      addr4 = None,
+      postcode = None,
+      country = "UK",
+      phone = None,
+      email = "miss.moneypenny@mi6.co.uk",
+      supervisoryBody= None,
+      membershipNumber= None,
+      evidenceObjectReference= None,
+      updateDetailsStatus = "ACCEPTED",
+      amlSupervisionUpdateStatus = "ACCEPTED",
+      directorPartnerUpdateStatus = "PENDING",
+      acceptNewTermsStatus = "REQUIRED",
+      reriskStatus = "REJECTED"
+    )
+    "return an Either Right when a valid minimum payload" in {
+      val result =
+        service.validateCreateAgentSubscriptionPayload(validPayload)
+
+      result shouldBe Right(validPayload)
+    }
+
+    "return an Either Right when a valid full payload" in {
+      val fullPayload = validPayload.copy(addr2 = Some("The Thames"), addr3 = Some("Whitehall"), addr4 = Some("London"))
+      val result =
+        service.validateCreateAgentSubscriptionPayload(validPayload)
+
+      result shouldBe Right(validPayload)
+    }
+
+    "return an Either Left when nino is invalid" in {
+      val result = service
+        .processItsaTaxpayerBusinessDetailsQueryParameters(mtdReference = None, nino = Some("abc"))
+        .swap
+        .getOrElse(Errors())
+
+      result.text shouldBe requestCouldNotBeProcessed
+      result.code shouldBe "006"
+    }
+
+    "return an Either Left when mtdReference is invalid" in {
+      val result = service
+        .processItsaTaxpayerBusinessDetailsQueryParameters(mtdReference = Some("abc&"), nino = None)
+        .swap
+        .getOrElse(Errors())
+
+      result.text shouldBe requestCouldNotBeProcessed
+      result.code shouldBe "006"
+    }
+
+    "return an Either Left when neither nino nor mtdReference is provided" in {
+      val result = service
+        .processItsaTaxpayerBusinessDetailsQueryParameters(mtdReference = None, nino = None)
+        .swap
+        .getOrElse(Errors())
+
+      result.text shouldBe requestCouldNotBeProcessed
+      result.code shouldBe "006"
+    }
+  }
+
   val service = new HipStubService
 
   private def validateBaseHeaders(
@@ -367,5 +433,7 @@ class HipStubServiceSpec extends BaseUnitSpec {
     relationshipType,
     authProfile
   )
+
+
 
 }
