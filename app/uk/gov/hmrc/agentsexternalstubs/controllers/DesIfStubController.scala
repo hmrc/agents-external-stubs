@@ -139,7 +139,9 @@ class DesIfStubController @Inject() (
                               .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, session.planetId))
                               .map {
                                 case Some(record) =>
-                                  ok(SubscribeAgentService.Response(record.safeId, record.agentReferenceNumber.get))
+                                  ok(
+                                    SubscribeAgentService.DesIfResponse(record.safeId, record.agentReferenceNumber.get)
+                                  )
                                 case None =>
                                   internalServerError("SERVER_ERROR", "BusinessPartnerRecord creation failed silently.")
                               }
@@ -176,11 +178,13 @@ class DesIfStubController @Inject() (
                               .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, session.planetId))
                               .map {
                                 case Some(record) =>
-                                  ok(SubscribeAgentService.Response(record.safeId, record.agentReferenceNumber.get))
+                                  ok(
+                                    SubscribeAgentService.DesIfResponse(record.safeId, record.agentReferenceNumber.get)
+                                  )
                                 case None =>
                                   ok(
                                     SubscribeAgentService
-                                      .Response(recordToCreate.safeId, recordToCreate.agentReferenceNumber.get)
+                                      .DesIfResponse(recordToCreate.safeId, recordToCreate.agentReferenceNumber.get)
                                   )
                               }
                         }

@@ -218,7 +218,6 @@ object Generator extends Names with Temporal with Companies with Addresses {
     )
     .suchThat(_.line1.matches("""^[A-Za-z0-9 \-,.&'\/()!]{1,35}$"""))
 
-
   lazy val tradingNameGen: Gen[String] = company.map { case name =>
     name.replaceAll("[^A-Za-z0-9 /s //.]", "")
   }

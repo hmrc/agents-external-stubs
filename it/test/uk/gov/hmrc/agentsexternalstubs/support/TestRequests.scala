@@ -199,12 +199,12 @@ trait TestRequests extends ScalaFutures {
       authContext: AuthContext
     ): WSResponse = {
       val queryParams = Seq(
-        "affinityGroup" -> affinityGroup,
-        "limit" -> limit.map(_.toString),
-        "groupId" -> groupId,
-        "agentCode" -> agentCode,
+        "affinityGroup"             -> affinityGroup,
+        "limit"                     -> limit.map(_.toString),
+        "groupId"                   -> groupId,
+        "agentCode"                 -> agentCode,
         "principalEnrolmentService" -> principalEnrolmentService,
-        "userId" -> userId
+        "userId"                    -> userId
       ).collect { case (name, Some(value: String)) =>
         (name, value)
       }

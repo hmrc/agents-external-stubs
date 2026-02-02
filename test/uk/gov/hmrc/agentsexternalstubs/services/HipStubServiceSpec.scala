@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
 import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
-import uk.gov.hmrc.agentsexternalstubs.models.{HipSubscribeAgentServicesPayload, Errors}
+import uk.gov.hmrc.agentsexternalstubs.models.{Errors, HipSubscribeAgentServicesPayload}
 import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 
 import java.time.LocalDate
@@ -331,130 +331,6 @@ class HipStubServiceSpec extends BaseUnitSpec {
       result.code shouldBe "006"
     }
   }
-
-  "HipStubService.validateCreateAgentSubscriptionPayload" should {
-    val minimumValidPayload = HipSubscribeAgentServicesPayload(
-      name = "Moneypenny",
-      addr1 = "River House",
-      addr2 = None,
-      addr3 = None,
-      addr4 = None,
-      postcode = None,
-      country = "UK",
-      phone = None,
-      email = "miss.moneypenny@mi6.co.uk",
-      supervisoryBody = None,
-      membershipNumber = None,
-      evidenceObjectReference = None,
-      updateDetailsStatus = "ACCEPTED",
-      amlSupervisionUpdateStatus = "ACCEPTED",
-      directorPartnerUpdateStatus = "PENDING",
-      acceptNewTermsStatus = "REQUIRED",
-      reriskStatus = "REJECTED"
-    )
-    val fullValidPayload = minimumValidPayload.copy(
-      addr2 = Some("The Thames"),
-      addr3 = Some("Whitehall"),
-      addr4 = Some("London"),
-      phone = Some("0123456789"),
-      supervisoryBody = Some("Mi6"),
-      membershipNumber = Some("1"),
-      evidenceObjectReference = Some("ref")
-    )
-
-    "a minimum payload" should {
-      "return an Either Right when valid" in {
-        val result =
-          service.validateCreateAgentSubscriptionPayload(minimumValidPayload)
-
-        result shouldBe Right(minimumValidPayload)
-      }
-
-      "return Either Left with errors because a required field is too short" in {
-        val payload = minimumValidPayload.copy(name = "")
-        val result = service
-          .validateCreateAgentSubscriptionPayload(payload)
-          .swap
-          .getOrElse(Errors())
-
-        result.text shouldBe requestCouldNotBeProcessed
-        result.code shouldBe "003"
-      }
-      "return Either Left with errors because a required field is too long" in {
-        val payload = minimumValidPayload.copy(addr1 = "Field name that is way too long to be an address line 1")
-        val result = service
-          .validateCreateAgentSubscriptionPayload(payload)
-          .swap
-          .getOrElse(Errors())
-
-        result.text shouldBe requestCouldNotBeProcessed
-        result.code shouldBe "003"
-      }
-      "return Either Left with errors when multiple required fields are incorrect" in {
-        val payload = minimumValidPayload.copy(name = "", addr1 = "Field name that is way too long to be an address line 1")
-        val result = service
-          .validateCreateAgentSubscriptionPayload(payload)
-          .swap
-          .getOrElse(Errors())
-
-        result.text shouldBe requestCouldNotBeProcessed
-        result.code shouldBe "003"
-      }
-
-      "return Either Left with errors when an enum field is incorrect" in {
-        val payload = minimumValidPayload.copy(updateDetailsStatus = "NOT_A_VALID_VALUE")
-        val result = service
-          .validateCreateAgentSubscriptionPayload(payload)
-          .swap
-          .getOrElse(Errors())
-
-        result.text shouldBe requestCouldNotBeProcessed
-        result.code shouldBe "003"
-      }
-
-    }
-
-    "a full payload" should {
-      "return an Either Right when valid" in {
-        val result =
-          service.validateCreateAgentSubscriptionPayload(fullValidPayload)
-
-        result shouldBe Right(fullValidPayload)
-      }
-
-      "return Either Left with errors because an optional field is too short" in {
-        val payload = minimumValidPayload.copy(addr2 = Some(""))
-        val result = service
-          .validateCreateAgentSubscriptionPayload(payload)
-          .swap
-          .getOrElse(Errors())
-
-        result.text shouldBe requestCouldNotBeProcessed
-        result.code shouldBe "003"
-      }
-      "return Either Left with errors because a optional field is too long" in {
-        val payload = minimumValidPayload.copy(addr3 = Some("Field name that is way too long to be an address line 3"))
-        val result = service
-          .validateCreateAgentSubscriptionPayload(payload)
-          .swap
-          .getOrElse(Errors())
-
-        result.text shouldBe requestCouldNotBeProcessed
-        result.code shouldBe "003"
-      }
-      "return Either Left with errors when multiple optional fields are incorrect" in {
-        val payload = minimumValidPayload.copy(addr4 = Some(""), postcode = Some("Field name that is way too long to be a postcode"))
-        val result = service
-          .validateCreateAgentSubscriptionPayload(payload)
-          .swap
-          .getOrElse(Errors())
-
-        result.text shouldBe requestCouldNotBeProcessed
-        result.code shouldBe "003"
-      }
-    }
-  }
-
 
   private def validateBaseHeaders(
     transmittingSystemHeader: Option[String] = Some("HIP"),

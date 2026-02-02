@@ -458,7 +458,10 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
       check(_.lengthMinMaxInclusive(1, 100), "Invalid length of membershipNumber, should be between 1 and 40 inclusive")
 
     val evidenceObjectReferenceValidator: Validator[Option[String]] =
-      check(_.lengthMinMaxInclusive(1, 36), "Invalid length of evidenceObjectReference, should be between 1 and 100 inclusive")
+      check(
+        _.lengthMinMaxInclusive(1, 36),
+        "Invalid length of evidenceObjectReference, should be between 1 and 100 inclusive"
+      )
 
     val updateDetailsStatusValidator: Validator[Option[UpdateDetailsStatus]] =
       checkIfSome(identity, UpdateDetailsStatus.validate)
@@ -535,38 +538,41 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
             )
         )
 
-    val supervisoryBodySanitizer: Update = seed => entity =>
-      entity.copy(
-        supervisoryBody = supervisoryBodyValidator(entity.supervisoryBody)
-          .fold(_ => None, _ => entity.supervisoryBody)
-          .orElse(
-            Generator.get(
-              UserGenerator.agencyNameGen.map(_.take(40)).suchThat(_.length >= 1).suchThat(_.length <= 100)
-            )(seed)
-          )
-      )
+    val supervisoryBodySanitizer: Update = seed =>
+      entity =>
+        entity.copy(
+          supervisoryBody = supervisoryBodyValidator(entity.supervisoryBody)
+            .fold(_ => None, _ => entity.supervisoryBody)
+            .orElse(
+              Generator.get(
+                UserGenerator.agencyNameGen.map(_.take(40)).suchThat(_.length >= 1).suchThat(_.length <= 100)
+              )(seed)
+            )
+        )
 
-    val membershipNumberSanitizer: Update = seed => entity =>
-      entity.copy(
-        membershipNumber = membershipNumberValidator(entity.membershipNumber)
-          .fold(_ => None, _ => entity.membershipNumber)
-          .orElse(
-            Generator.get(
-              Gen.alphaNumStr.map(_.take(40)).suchThat(_.length >= 1).suchThat(_.length <= 100)
-            )(seed)
-          )
-      )
+    val membershipNumberSanitizer: Update = seed =>
+      entity =>
+        entity.copy(
+          membershipNumber = membershipNumberValidator(entity.membershipNumber)
+            .fold(_ => None, _ => entity.membershipNumber)
+            .orElse(
+              Generator.get(
+                Gen.alphaNumStr.map(_.take(40)).suchThat(_.length >= 1).suchThat(_.length <= 100)
+              )(seed)
+            )
+        )
 
-    val evidenceObjectReferenceSanitizer: Update = seed => entity =>
-      entity.copy(
-        evidenceObjectReference = evidenceObjectReferenceValidator(entity.evidenceObjectReference)
-          .fold(_ => None, _ => entity.evidenceObjectReference)
-          .orElse(
-            Generator.get(
-              Gen.alphaNumStr.map(_.take(100)).suchThat(_.length >= 1).suchThat(_.length <= 36)
-            )(seed)
-          )
-      )
+    val evidenceObjectReferenceSanitizer: Update = seed =>
+      entity =>
+        entity.copy(
+          evidenceObjectReference = evidenceObjectReferenceValidator(entity.evidenceObjectReference)
+            .fold(_ => None, _ => entity.evidenceObjectReference)
+            .orElse(
+              Generator.get(
+                Gen.alphaNumStr.map(_.take(100)).suchThat(_.length >= 1).suchThat(_.length <= 36)
+              )(seed)
+            )
+        )
 
     val updateDetailsStatusSanitizer: Update = seed =>
       entity =>

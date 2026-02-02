@@ -293,9 +293,18 @@ class HipStubController @Inject() (
                           .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, session.planetId))
                           .map {
                             case Some(record) =>
-                              ok(SubscribeAgentService.Response(record.safeId, record.agentReferenceNumber.get))
+                              Results.Created(
+                                Json.toJson(
+                                  SubscribeAgentService
+                                    .HipResponse(LocalDateTime.now(), record.agentReferenceNumber.get)
+                                )
+                              )
                             case None =>
-                              Results.InternalServerError(Json.parse("""{"error":{"code":"500","message":"Internal server error","logID": "1234567890"}}"""))
+                              Results.InternalServerError(
+                                Json.parse(
+                                  """{"error":{"code":"500","message":"Internal server error","logID": "1234567890"}}"""
+                                )
+                              )
                           }
                     }
               }

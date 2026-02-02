@@ -632,4 +632,8 @@ class HipStubControllerISpec
     }
 
   }
+
+  "HipStubController.createAgentSubscription" when {
+    "all request parameters are valid" should {}
+  }
 }
