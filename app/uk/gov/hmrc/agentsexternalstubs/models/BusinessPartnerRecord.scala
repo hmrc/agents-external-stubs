@@ -365,6 +365,9 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     agencyAddress: Option[AgencyDetails.AgencyAddress] = None,
     agencyEmail: Option[String] = None,
     agencyTelephone: Option[String] = None,
+    supervisoryBody: Option[String] = None,
+    membershipNumber: Option[String] = None,
+    evidenceObjectReference: Option[String] = None,
     updateDetailsStatus: Option[UpdateDetailsStatus] = None,
     amlSupervisionUpdateStatus: Option[AmlSupervisionUpdateStatus] = None,
     directorPartnerUpdateStatus: Option[DirectorPartnerUpdateStatus] = None,
@@ -388,6 +391,20 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
       copy(agencyTelephone = agencyTelephone)
     def modifyAgencyTelephoneNumber(pf: PartialFunction[Option[String], Option[String]]): AgencyDetails =
       if (pf.isDefinedAt(agencyTelephone)) copy(agencyTelephone = pf(agencyTelephone)) else this
+    def withSupervisoryBody(supervisoryBody: Option[String]): AgencyDetails =
+      copy(supervisoryBody = supervisoryBody)
+    def modifySupervisoryBody(pf: PartialFunction[Option[String], Option[String]]): AgencyDetails =
+      if (pf.isDefinedAt(supervisoryBody)) copy(supervisoryBody = pf(supervisoryBody)) else this
+    def withMembershipNumber(membershipNumber: Option[String]): AgencyDetails =
+      copy(membershipNumber = membershipNumber)
+    def modifyMembershipNumber(pf: PartialFunction[Option[String], Option[String]]): AgencyDetails =
+      if (pf.isDefinedAt(membershipNumber)) copy(membershipNumber = pf(membershipNumber)) else this
+    def withEvidenceObjectReference(evidenceObjectReference: Option[String]): AgencyDetails =
+      copy(evidenceObjectReference = evidenceObjectReference)
+    def modifyEvidenceObjectReference(pf: PartialFunction[Option[String], Option[String]]): AgencyDetails =
+      if (pf.isDefinedAt(evidenceObjectReference))
+        copy(evidenceObjectReference = pf(evidenceObjectReference))
+      else this
     def withUpdateDetailsStatus(updateDetailsStatus: Option[UpdateDetailsStatus]): AgencyDetails =
       copy(updateDetailsStatus = updateDetailsStatus)
     def modifyUpdateDetailsStatus(
@@ -434,6 +451,15 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     val agencyTelephoneValidator: Validator[Option[String]] =
       check(_.lengthMinMaxInclusive(5, 25), "Invalid length of agencyTelephone, should be between 5 and 25 ")
 
+    val supervisoryBodyValidator: Validator[Option[String]] =
+      check(_.lengthMinMaxInclusive(1, 100), "Invalid length of supervisoryBody, should be between 1 and 40 inclusive")
+
+    val membershipNumberValidator: Validator[Option[String]] =
+      check(_.lengthMinMaxInclusive(1, 100), "Invalid length of membershipNumber, should be between 1 and 40 inclusive")
+
+    val evidenceObjectReferenceValidator: Validator[Option[String]] =
+      check(_.lengthMinMaxInclusive(1, 36), "Invalid length of evidenceObjectReference, should be between 1 and 100 inclusive")
+
     val updateDetailsStatusValidator: Validator[Option[UpdateDetailsStatus]] =
       checkIfSome(identity, UpdateDetailsStatus.validate)
 
@@ -454,6 +480,9 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
       checkProperty(_.agencyAddress, agencyAddressValidator),
       checkProperty(_.agencyEmail, agencyEmailValidator),
       checkProperty(_.agencyTelephone, agencyTelephoneValidator),
+      checkProperty(_.supervisoryBody, supervisoryBodyValidator),
+      checkProperty(_.membershipNumber, membershipNumberValidator),
+      checkProperty(_.evidenceObjectReference, evidenceObjectReferenceValidator),
       checkProperty(_.updateDetailsStatus, updateDetailsStatusValidator),
       checkProperty(_.amlSupervisionUpdateStatus, amlSupervisionUpdateStatusValidator),
       checkProperty(_.directorPartnerUpdateStatus, directorPartnerUpdateStatusValidator),
@@ -506,6 +535,39 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
             )
         )
 
+    val supervisoryBodySanitizer: Update = seed => entity =>
+      entity.copy(
+        supervisoryBody = supervisoryBodyValidator(entity.supervisoryBody)
+          .fold(_ => None, _ => entity.supervisoryBody)
+          .orElse(
+            Generator.get(
+              UserGenerator.agencyNameGen.map(_.take(40)).suchThat(_.length >= 1).suchThat(_.length <= 100)
+            )(seed)
+          )
+      )
+
+    val membershipNumberSanitizer: Update = seed => entity =>
+      entity.copy(
+        membershipNumber = membershipNumberValidator(entity.membershipNumber)
+          .fold(_ => None, _ => entity.membershipNumber)
+          .orElse(
+            Generator.get(
+              Gen.alphaNumStr.map(_.take(40)).suchThat(_.length >= 1).suchThat(_.length <= 100)
+            )(seed)
+          )
+      )
+
+    val evidenceObjectReferenceSanitizer: Update = seed => entity =>
+      entity.copy(
+        evidenceObjectReference = evidenceObjectReferenceValidator(entity.evidenceObjectReference)
+          .fold(_ => None, _ => entity.evidenceObjectReference)
+          .orElse(
+            Generator.get(
+              Gen.alphaNumStr.map(_.take(100)).suchThat(_.length >= 1).suchThat(_.length <= 36)
+            )(seed)
+          )
+      )
+
     val updateDetailsStatusSanitizer: Update = seed =>
       entity =>
         entity.copy(
@@ -557,6 +619,9 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
         agencyAddressSanitizer,
         agencyEmailSanitizer,
         agencyTelephoneSanitizer,
+        supervisoryBodySanitizer,
+        membershipNumberSanitizer,
+        evidenceObjectReferenceSanitizer,
         updateDetailsStatusSanitizer,
         amlSupervisionUpdateStatusSanitizer,
         directorPartnerUpdateStatusSanitizer,

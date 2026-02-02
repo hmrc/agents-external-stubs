@@ -54,11 +54,19 @@ object SubscribeAgentService {
       payload.country
     )
 
-    val updateDetailsStatus = UpdateDetailsStatus(AgencyDetailsStatusValue.fromString(payload.updateDetailsStatus))
-    val amlSupervisionUpdateStatus = AmlSupervisionUpdateStatus(AgencyDetailsStatusValue.fromString(payload.amlSupervisionUpdateStatus))
-    val directorPartnerUpdateStatus = DirectorPartnerUpdateStatus(AgencyDetailsStatusValue.fromString(payload.directorPartnerUpdateStatus))
-    val acceptNewTermsStatus = AcceptNewTermsStatus(AgencyDetailsStatusValue.fromString(payload.acceptNewTermsStatus))
-    val reriskStatus = ReriskStatus(AgencyDetailsStatusValue.fromString(payload.reriskStatus))
+    val (
+      updateDetailsStatus,
+      amlSupervisionUpdateStatus,
+      directorPartnerUpdateStatus,
+      acceptNewTermsStatus,
+      reriskStatus
+    ) = (
+      UpdateDetailsStatus(AgencyDetailsStatusValue.fromString(payload.updateDetailsStatus)),
+      AmlSupervisionUpdateStatus(AgencyDetailsStatusValue.fromString(payload.amlSupervisionUpdateStatus)),
+      DirectorPartnerUpdateStatus(AgencyDetailsStatusValue.fromString(payload.directorPartnerUpdateStatus)),
+      AcceptNewTermsStatus(AgencyDetailsStatusValue.fromString(payload.acceptNewTermsStatus)),
+      ReriskStatus(AgencyDetailsStatusValue.fromString(payload.reriskStatus))
+    )
 
     existingRecord
       .modifyAgentReferenceNumber { case None =>
@@ -72,6 +80,9 @@ object SubscribeAgentService {
             .withAgencyAddress(Some(address))
             .withAgencyEmail(Some(payload.email))
             .withAgencyTelephoneNumber(payload.phone)
+            .withSupervisoryBody(payload.supervisoryBody)
+            .withMembershipNumber(payload.membershipNumber)
+            .withEvidenceObjectReference(payload.evidenceObjectReference)
             .withUpdateDetailsStatus(Some(updateDetailsStatus))
             .withAmlSupervisionUpdateStatus(Some(amlSupervisionUpdateStatus))
             .withDirectorPartnerUpdateStatus(Some(directorPartnerUpdateStatus))
