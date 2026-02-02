@@ -263,11 +263,11 @@ class HipStubController @Inject() (
                 Results.UnprocessableEntity(Json.toJson(Errors("003", "Request could not be processed")))
               )
             case Right(_) =>
-              hipStubService.validateCreateAgentSubscriptionPayload(
+              HipSubscribeAgentServicesPayload.validateCreateAgentSubscriptionPayload(
                 request.body.as[HipSubscribeAgentServicesPayload]
               ) match {
-                case Left(invalidPayload) =>
-                  Future.successful(Results.UnprocessableEntity(Json.toJson(invalidPayload)))
+                case Left(errors) =>
+                  Future.successful(Results.UnprocessableEntity(Json.toJson(errors)))
                 case Right(payload) =>
                   recordsService
                     .getRecordMaybeExt[BusinessPartnerRecord, SafeId](SafeId(safeId), session.planetId)
@@ -281,7 +281,7 @@ class HipStubController @Inject() (
                               Json.toJson(
                                 Errors(
                                   "061",
-                                  s"BP has already a valid Agent Subscription ${existingRecord.agentReferenceNumber.get} "
+                                  s"BP has already a valid Agent Subscription ${existingRecord.agentReferenceNumber.get}"
                                 )
                               )
                             )
