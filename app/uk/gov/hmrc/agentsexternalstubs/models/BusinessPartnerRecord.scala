@@ -364,7 +364,12 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     agencyName: Option[String] = None,
     agencyAddress: Option[AgencyDetails.AgencyAddress] = None,
     agencyEmail: Option[String] = None,
-    agencyTelephone: Option[String] = None
+    agencyTelephone: Option[String] = None,
+    updateDetailsStatus: Option[UpdateDetailsStatus] = None,
+    amlSupervisionUpdateStatus: Option[AmlSupervisionUpdateStatus] = None,
+    directorPartnerUpdateStatus: Option[DirectorPartnerUpdateStatus] = None,
+    acceptNewTermsStatus: Option[AcceptNewTermsStatus] = None,
+    reriskStatus: Option[ReriskStatus] = None
   ) {
 
     def withAgencyName(agencyName: Option[String]): AgencyDetails = copy(agencyName = agencyName)
@@ -383,6 +388,40 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
       copy(agencyTelephone = agencyTelephone)
     def modifyAgencyTelephoneNumber(pf: PartialFunction[Option[String], Option[String]]): AgencyDetails =
       if (pf.isDefinedAt(agencyTelephone)) copy(agencyTelephone = pf(agencyTelephone)) else this
+    def withUpdateDetailsStatus(updateDetailsStatus: Option[UpdateDetailsStatus]): AgencyDetails =
+      copy(updateDetailsStatus = updateDetailsStatus)
+    def modifyUpdateDetailsStatus(
+      pf: PartialFunction[Option[UpdateDetailsStatus], Option[UpdateDetailsStatus]]
+    ): AgencyDetails =
+      if (pf.isDefinedAt(updateDetailsStatus)) copy(updateDetailsStatus = pf(updateDetailsStatus)) else this
+    def withAmlSupervisionUpdateStatus(amlSupervisionUpdateStatus: Option[AmlSupervisionUpdateStatus]): AgencyDetails =
+      copy(amlSupervisionUpdateStatus = amlSupervisionUpdateStatus)
+    def modifyAmlSupervisionUpdateStatus(
+      pf: PartialFunction[Option[AmlSupervisionUpdateStatus], Option[AmlSupervisionUpdateStatus]]
+    ): AgencyDetails =
+      if (pf.isDefinedAt(amlSupervisionUpdateStatus))
+        copy(amlSupervisionUpdateStatus = pf(amlSupervisionUpdateStatus))
+      else this
+    def withDirectorPartnerUpdateStatus(
+      directorPartnerUpdateStatus: Option[DirectorPartnerUpdateStatus]
+    ): AgencyDetails =
+      copy(directorPartnerUpdateStatus = directorPartnerUpdateStatus)
+    def modifyDirectorPartnerUpdateStatus(
+      pf: PartialFunction[Option[DirectorPartnerUpdateStatus], Option[DirectorPartnerUpdateStatus]]
+    ): AgencyDetails =
+      if (pf.isDefinedAt(directorPartnerUpdateStatus))
+        copy(directorPartnerUpdateStatus = pf(directorPartnerUpdateStatus))
+      else this
+    def withAcceptNewTermsStatus(acceptNewTermsStatus: Option[AcceptNewTermsStatus]): AgencyDetails =
+      copy(acceptNewTermsStatus = acceptNewTermsStatus)
+    def modifyAcceptNewTermsStatus(
+      pf: PartialFunction[Option[AcceptNewTermsStatus], Option[AcceptNewTermsStatus]]
+    ): AgencyDetails =
+      if (pf.isDefinedAt(acceptNewTermsStatus)) copy(acceptNewTermsStatus = pf(acceptNewTermsStatus)) else this
+    def withReriskStatus(reriskStatus: Option[ReriskStatus]): AgencyDetails =
+      copy(reriskStatus = reriskStatus)
+    def modifyReriskStatus(pf: PartialFunction[Option[ReriskStatus], Option[ReriskStatus]]): AgencyDetails =
+      if (pf.isDefinedAt(reriskStatus)) copy(reriskStatus = pf(reriskStatus)) else this
   }
 
   object AgencyDetails extends RecordUtils[AgencyDetails] {
@@ -395,11 +434,31 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     val agencyTelephoneValidator: Validator[Option[String]] =
       check(_.lengthMinMaxInclusive(5, 25), "Invalid length of agencyTelephone, should be between 5 and 25 ")
 
+    val updateDetailsStatusValidator: Validator[Option[UpdateDetailsStatus]] =
+      checkIfSome(identity, UpdateDetailsStatus.validate)
+
+    val amlSupervisionUpdateStatusValidator: Validator[Option[AmlSupervisionUpdateStatus]] =
+      checkIfSome(identity, AmlSupervisionUpdateStatus.validate)
+
+    val directorPartnerUpdateStatusValidator: Validator[Option[DirectorPartnerUpdateStatus]] =
+      checkIfSome(identity, DirectorPartnerUpdateStatus.validate)
+
+    val acceptNewTermsStatusValidator: Validator[Option[AcceptNewTermsStatus]] =
+      checkIfSome(identity, AcceptNewTermsStatus.validate)
+
+    val reriskStatusValidator: Validator[Option[ReriskStatus]] =
+      checkIfSome(identity, ReriskStatus.validate)
+
     override val validate: Validator[AgencyDetails] = Validator(
       checkProperty(_.agencyName, agencyNameValidator),
       checkProperty(_.agencyAddress, agencyAddressValidator),
       checkProperty(_.agencyEmail, agencyEmailValidator),
-      checkProperty(_.agencyTelephone, agencyTelephoneValidator)
+      checkProperty(_.agencyTelephone, agencyTelephoneValidator),
+      checkProperty(_.updateDetailsStatus, updateDetailsStatusValidator),
+      checkProperty(_.amlSupervisionUpdateStatus, amlSupervisionUpdateStatusValidator),
+      checkProperty(_.directorPartnerUpdateStatus, directorPartnerUpdateStatusValidator),
+      checkProperty(_.acceptNewTermsStatus, acceptNewTermsStatusValidator),
+      checkProperty(_.reriskStatus, reriskStatusValidator)
     )
 
     override val gen: Gen[AgencyDetails] = Gen const AgencyDetails(
@@ -447,8 +506,63 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
             )
         )
 
+    val updateDetailsStatusSanitizer: Update = seed =>
+      entity =>
+        entity.copy(
+          updateDetailsStatus = updateDetailsStatusValidator(entity.updateDetailsStatus)
+            .fold(_ => None, _ => entity.updateDetailsStatus)
+            .orElse(Generator.get(UpdateDetailsStatus.gen)(seed))
+            .map(UpdateDetailsStatus.sanitize(seed))
+        )
+
+    val amlSupervisionUpdateStatusSanitizer: Update = seed =>
+      entity =>
+        entity.copy(
+          amlSupervisionUpdateStatus = amlSupervisionUpdateStatusValidator(entity.amlSupervisionUpdateStatus)
+            .fold(_ => None, _ => entity.amlSupervisionUpdateStatus)
+            .orElse(Generator.get(AmlSupervisionUpdateStatus.gen)(seed))
+            .map(AmlSupervisionUpdateStatus.sanitize(seed))
+        )
+
+    val directorPartnerUpdateStatusSanitizer: Update = seed =>
+      entity =>
+        entity.copy(
+          directorPartnerUpdateStatus = directorPartnerUpdateStatusValidator(entity.directorPartnerUpdateStatus)
+            .fold(_ => None, _ => entity.directorPartnerUpdateStatus)
+            .orElse(Generator.get(DirectorPartnerUpdateStatus.gen)(seed))
+            .map(DirectorPartnerUpdateStatus.sanitize(seed))
+        )
+
+    val acceptNewTermsStatusSanitizer: Update = seed =>
+      entity =>
+        entity.copy(
+          acceptNewTermsStatus = acceptNewTermsStatusValidator(entity.acceptNewTermsStatus)
+            .fold(_ => None, _ => entity.acceptNewTermsStatus)
+            .orElse(Generator.get(AcceptNewTermsStatus.gen)(seed))
+            .map(AcceptNewTermsStatus.sanitize(seed))
+        )
+
+    val reriskStatusSanitizer: Update = seed =>
+      entity =>
+        entity.copy(
+          reriskStatus = reriskStatusValidator(entity.reriskStatus)
+            .fold(_ => None, _ => entity.reriskStatus)
+            .orElse(Generator.get(ReriskStatus.gen)(seed))
+            .map(ReriskStatus.sanitize(seed))
+        )
+
     override val sanitizers: Seq[Update] =
-      Seq(agencyNameSanitizer, agencyAddressSanitizer, agencyEmailSanitizer, agencyTelephoneSanitizer)
+      Seq(
+        agencyNameSanitizer,
+        agencyAddressSanitizer,
+        agencyEmailSanitizer,
+        agencyTelephoneSanitizer,
+        updateDetailsStatusSanitizer,
+        amlSupervisionUpdateStatusSanitizer,
+        directorPartnerUpdateStatusSanitizer,
+        acceptNewTermsStatusSanitizer,
+        reriskStatusSanitizer
+      )
 
     implicit val formats: Format[AgencyDetails] = Json.format[AgencyDetails]
 
@@ -769,7 +883,8 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
             )
         )
 
-    override val sanitizers: Seq[Update] = Seq(addressLine2Sanitizer, addressLine3Sanitizer, addressLine4Sanitizer, postalCodeSanitizer)
+    override val sanitizers: Seq[Update] =
+      Seq(addressLine2Sanitizer, addressLine3Sanitizer, addressLine4Sanitizer, postalCodeSanitizer)
 
     implicit val formats: Format[HipAddress] = Json.format[HipAddress]
 

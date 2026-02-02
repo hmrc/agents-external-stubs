@@ -1,7 +1,7 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
 import play.api.libs.json.{Json, Writes}
-import uk.gov.hmrc.agentsexternalstubs.models.{BusinessPartnerRecord, Generator, HipSubscribeAgentServicesPayload, SubscribeAgentServicesPayload}
+import uk.gov.hmrc.agentsexternalstubs.models._
 
 object SubscribeAgentService {
 
@@ -54,6 +54,12 @@ object SubscribeAgentService {
       payload.country
     )
 
+    val updateDetailsStatus = UpdateDetailsStatus(AgencyDetailsStatusValue.fromString(payload.updateDetailsStatus))
+    val amlSupervisionUpdateStatus = AmlSupervisionUpdateStatus(AgencyDetailsStatusValue.fromString(payload.amlSupervisionUpdateStatus))
+    val directorPartnerUpdateStatus = DirectorPartnerUpdateStatus(AgencyDetailsStatusValue.fromString(payload.directorPartnerUpdateStatus))
+    val acceptNewTermsStatus = AcceptNewTermsStatus(AgencyDetailsStatusValue.fromString(payload.acceptNewTermsStatus))
+    val reriskStatus = ReriskStatus(AgencyDetailsStatusValue.fromString(payload.reriskStatus))
+
     existingRecord
       .modifyAgentReferenceNumber { case None =>
         Some(Generator.arn(existingRecord.utr.getOrElse(existingRecord.safeId)).value)
@@ -66,6 +72,11 @@ object SubscribeAgentService {
             .withAgencyAddress(Some(address))
             .withAgencyEmail(Some(payload.email))
             .withAgencyTelephoneNumber(payload.phone)
+            .withUpdateDetailsStatus(Some(updateDetailsStatus))
+            .withAmlSupervisionUpdateStatus(Some(amlSupervisionUpdateStatus))
+            .withDirectorPartnerUpdateStatus(Some(directorPartnerUpdateStatus))
+            .withAcceptNewTermsStatus(Some(acceptNewTermsStatus))
+            .withReriskStatus(Some(reriskStatus))
         )
       )
       .modifyContactDetails { case Some(contactDetails) =>
