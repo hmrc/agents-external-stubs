@@ -109,6 +109,34 @@ class HipStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
+  def getAgentSubscription(arn: String): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      hipStubService.validateBaseHeaders(
+        request.headers.get("X-Transmitting-System"),
+        request.headers.get("X-Originating-System"),
+        request.headers.get("correlationid"),
+        request.headers.get("X-Receipt-Date")
+      ) match {
+        case Left(invalidHeadersResponse) =>
+          Future.successful(Results.UnprocessableEntity(Json.toJson(invalidHeadersResponse)))
+        case Right(_) =>
+          hipStubService.validateArn(arn) match {
+            case Left(invalidArn) =>
+              Future.successful(Results.BadRequest(Json.toJson(invalidArn)))
+            case Right(validArn) =>
+              recordsService
+                .getRecordMaybeExt[BusinessPartnerRecord, Arn](validArn, session.planetId).map {
+                  case Some(record)
+                    if agentIsSuspendedForSubscription (record) =>
+                    Results.UnprocessableEntity(Json.toJson(Errors("059", s"$arn is currently suspended")))
+                    case Some(record) => Ok(Json.toJson(record))
+                    case None => Results.NotFound(Json.toJson(Errors("010", s"No subscription found for ARN $arn")))
+                }
+          }
+      }
+    }(SessionRecordNotFound)
+  }
+
   def updateAgentRelationship: Action[JsValue] = Action(parse.json).async { implicit request =>
     withCurrentSession { session =>
       hipStubService.validateBaseHeaders(
@@ -316,6 +344,11 @@ class HipStubController @Inject() (
 
   private def agentIsSuspended(businessPartnerRecord: BusinessPartnerRecord, regime: String): Boolean =
     businessPartnerRecord.suspensionDetails.fold(false)(_.suspendedRegimes.contains(regime))
+
+  private def agentIsSuspendedForSubscription(businessPartnerRecord: BusinessPartnerRecord): Boolean =
+    businessPartnerRecord.suspensionDetails.exists { suspensionDetails =>
+      suspensionDetails.suspensionStatus || suspensionDetails.suspendedRegimes.nonEmpty
+    }
 
   private val withProcessingDate = Json.parse(s"""{"success":{"processingDate": "${LocalDateTime.now()}"}}""")
   private def correlationId(implicit request: Request[_]): (String, String) =
