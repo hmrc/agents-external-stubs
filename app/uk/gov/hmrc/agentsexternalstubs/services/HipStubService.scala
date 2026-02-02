@@ -230,4 +230,8 @@ class HipStubService @Inject() extends Logging {
       case "ITSA" => List("ALL00001", "ITSAS001").contains(authProfile)
       case _      => authProfile == "ALL00001"
     }
+
+  def validateArn(arn: String): Either[Errors, Arn] =
+    if  (Arn.isValid(arn)) Right(Arn(arn)) else Left(Errors("004", "Invalid ARN value"))
+
 }
