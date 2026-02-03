@@ -61,7 +61,7 @@ class UsersController @Inject() (
         val effectiveLimit: Int =
           if (requireModifiedLimit) {
             // If userId/principalEnrolmentService AND either of agentCode, groupId, affinityGroup is defined, use effective/modified limit as will do filtering in futureUsers.map
-            100
+            Math.max(100, limit.getOrElse(100))
           } else {
             limit.getOrElse(100)
           }
