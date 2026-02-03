@@ -254,8 +254,8 @@ class HipStubController @Inject() (
         request.headers.get("correlationid"),
         request.headers.get("X-Receipt-Date")
       ) match {
-        case Left(invalidHeadersResponse) =>
-          Future.successful(Results.UnprocessableEntity(Json.toJson(invalidHeadersResponse)))
+        case Left(_) =>
+          Future.successful(Results.UnprocessableEntity(Json.toJson(Errors("003", "Request could not be processed"))))
         case _ =>
           RegexPatterns.validSafeId(safeId) match {
             case Left(_) =>
@@ -286,26 +286,28 @@ class HipStubController @Inject() (
                               )
                             )
                           )
-                        val recordToCreate: BusinessPartnerRecord =
-                          SubscribeAgentService.toBusinessPartnerRecord(payload, existingRecord)
-                        recordsService
-                          .store(recordToCreate, autoFill = false, session.planetId)
-                          .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, session.planetId))
-                          .map {
-                            case Some(record) =>
-                              Results.Created(
-                                Json.toJson(
-                                  SubscribeAgentService
-                                    .HipResponse(LocalDateTime.now(), record.agentReferenceNumber.get)
+                        else {
+                          val recordToCreate: BusinessPartnerRecord =
+                            SubscribeAgentService.toBusinessPartnerRecord(payload, existingRecord)
+                          recordsService
+                            .store(recordToCreate, autoFill = false, session.planetId)
+                            .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, session.planetId))
+                            .map {
+                              case Some(record) =>
+                                Results.Created(
+                                  Json.toJson(
+                                    SubscribeAgentService
+                                      .HipResponse(LocalDateTime.now(), record.agentReferenceNumber.get)
+                                  )
                                 )
-                              )
-                            case None =>
-                              Results.InternalServerError(
-                                Json.parse(
-                                  """{"error":{"code":"500","message":"Internal server error","logID": "1234567890"}}"""
+                              case None =>
+                                Results.InternalServerError(
+                                  Json.parse(
+                                    """{"error":{"code":"500","message":"Internal server error","logID": "1234567890"}}"""
+                                  )
                                 )
-                              )
-                          }
+                            }
+                        }
                     }
               }
           }
