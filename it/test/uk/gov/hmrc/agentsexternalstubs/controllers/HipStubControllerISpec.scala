@@ -634,6 +634,74 @@ class HipStubControllerISpec
   }
 
   "HipStubController.createAgentSubscription" when {
-    "all request parameters are valid" should {}
+    "all request parameters are valid" should {
+      "return Created and update the business partner record" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val safeId = "XA0000123456789"
+        val existingRecord = BusinessPartnerRecord(
+          businessPartnerExists = true,
+          safeId = safeId,
+          isAnIndividual = true,
+          individual = Some(BusinessPartnerRecord.Individual("Bill", None, "Jones", "1990-01-01")),
+          organisation = None,
+          addressDetails = BusinessPartnerRecord.UkAddress(
+            addressLine1 = "10 New Street",
+            addressLine2 = None,
+            addressLine3 = None,
+            addressLine4 = None,
+            postalCode = "AA11AA",
+            countryCode = "GB"
+          ),
+          contactDetails = Some(BusinessPartnerRecord.ContactDetails()),
+          agencyDetails = None,
+          suspensionDetails = None,
+          id = None
+        )
+
+        await(repo.store(existingRecord, session.planetId))
+
+        val result = HipStub.createAgentSubscription(
+          safeId = safeId,
+          name = "Alex Rider",
+          addr1 = "River House",
+          addr2 = Some("London"),
+          addr3 = None,
+          addr4 = None,
+          postcode = Some("NE11AA"),
+          country = "GB",
+          phone = Some("01911234567"),
+          email = "test@example.com",
+          supervisoryBody = Some("ICAEW"),
+          membershipNumber = Some("MEM123"),
+          evidenceObjectReference = Some("123e4567-e89b-12d3-a456-426614174000"),
+          updateDetailsStatus = "ACCEPTED",
+          amlSupervisionUpdateStatus = "PENDING",
+          directorPartnerUpdateStatus = "REQUIRED",
+          acceptNewTermsStatus = "ACCEPTED",
+          reriskStatus = "REJECTED"
+        )
+
+        result should haveStatus(CREATED)
+        result.json.toString() should include(""""arn":""")
+
+        val updated =
+          await(recordsService.getRecordMaybeExt[BusinessPartnerRecord, SafeId](SafeId(safeId), session.planetId))
+        updated shouldBe defined
+
+        val record = updated.get
+        record.isAnAgent shouldBe true
+        record.isAnASAgent shouldBe true
+        record.agencyDetails.getOrElse(fail).agencyAddress match {
+          case Some(a: BusinessPartnerRecord.HipAddress) =>
+            a.addressLine1 shouldBe "10 New Street"
+            a.postalCode shouldBe Some("NE11AA")
+            a.countryCode shouldBe "GB"
+          case Some(other) =>
+            fail(s"Expected HipAddress but got: ${other.getClass.getSimpleName}")
+
+        }
+      }
+    }
   }
 }

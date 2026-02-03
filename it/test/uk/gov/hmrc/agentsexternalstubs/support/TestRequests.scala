@@ -645,6 +645,65 @@ trait TestRequests extends ScalaFutures {
         )
         .get()
         .futureValue
+
+    def createAgentSubscription(
+      safeId: String,
+      name: String = "Mi6",
+      addr1: String = "10 New Street",
+      addr2: Option[String] = None,
+      addr3: Option[String] = None,
+      addr4: Option[String] = None,
+      postcode: Option[String] = Some("AA11AA"),
+      country: String = "GB",
+      phone: Option[String] = Some("01911234567"),
+      email: String = "test@example.com",
+      supervisoryBody: Option[String] = None,
+      membershipNumber: Option[String] = None,
+      evidenceObjectReference: Option[String] = None,
+      updateDetailsStatus: String = "ACCEPTED",
+      amlSupervisionUpdateStatus: String = "ACCEPTED",
+      directorPartnerUpdateStatus: String = "ACCEPTED",
+      acceptNewTermsStatus: String = "ACCEPTED",
+      reriskStatus: String = "ACCEPTED",
+      correlationIdHeader: Option[String] = Some("f0bd1f32-de51-45cc-9b18-0520d6e3ab1a"),
+      transmittingSystemHeader: Option[String] = Some("HIP"),
+      originatingSystemHeader: Option[String] = Some("MDTP"),
+      receiptDateHeader: Option[String] = Some("2025-01-30T23:59:59Z")
+    )(implicit authContext: AuthContext): WSResponse = {
+      val payload = Json.obj(
+        "name"                        -> name,
+        "addr1"                       -> addr1,
+        "addr2"                       -> addr2,
+        "addr3"                       -> addr3,
+        "addr4"                       -> addr4,
+        "postcode"                    -> postcode,
+        "country"                     -> country,
+        "phone"                       -> phone,
+        "email"                       -> email,
+        "supervisoryBody"             -> supervisoryBody,
+        "membershipNumber"            -> membershipNumber,
+        "evidenceObjectReference"     -> evidenceObjectReference,
+        "updateDetailsStatus"         -> updateDetailsStatus,
+        "amlSupervisionUpdateStatus"  -> amlSupervisionUpdateStatus,
+        "directorPartnerUpdateStatus" -> directorPartnerUpdateStatus,
+        "acceptNewTermsStatus"        -> acceptNewTermsStatus,
+        "reriskStatus"                -> reriskStatus
+      )
+
+      wsClient
+        .url(s"$url/etmp/RESTAdapter/generic/agent/subscription/$safeId")
+        .withHttpHeaders(
+          authContext.headers ++
+            Seq(
+              "correlationid"         -> correlationIdHeader,
+              "X-Transmitting-System" -> transmittingSystemHeader,
+              "X-Originating-System"  -> originatingSystemHeader,
+              "X-Receipt-Date"        -> receiptDateHeader
+            ).collect { case (k, Some(v)) => k -> v }: _*
+        )
+        .post(payload)
+        .futureValue
+    }
   }
 
   object DesStub {
