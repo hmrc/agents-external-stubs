@@ -734,6 +734,32 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         result should haveStatus(400)
       }
 
+      "return 400 NO_ADMIN_USER if group has no admin user" in {
+        userService
+          .createUser(
+            UserGenerator.agent(userId = "agentAdmin", groupId = "agentGroup"),
+            planetId = "testPlanet",
+            affinityGroup = Some(AG.Agent)
+          )
+          .futureValue
+
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("agentAdmin", planetId = "testPlanet")
+
+        Groups.create(GroupGenerator.generate(session.planetId, AG.Agent, groupId = Some("noAdminGroup")))
+
+        val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
+          "noAdminGroup",
+          "IR-SA~UTR~12345678",
+          Json.parse("""{
+            |    "userId" : "agentAdmin",
+            |    "type":         "delegated"
+            |}""".stripMargin)
+        )
+
+        result should haveStatus(400)
+        result.body should include("NO_ADMIN_USER")
+      }
+
       "return 403 if userId does not exist" in {
         userService
           .createUser(

@@ -19,7 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 import com.github.blemale.scaffeine.Scaffeine
 import play.api.i18n.Lang.logger
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.repository.{GroupsRepository, KnownFactsRepository}
+import uk.gov.hmrc.agentsexternalstubs.repository.{GroupsRepository, KnownFactsRepository, UsersRepository}
 import uk.gov.hmrc.auth.core.UnsupportedCredentialRole
 import uk.gov.hmrc.http.{BadRequestException, NotFoundException}
 
@@ -31,6 +31,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class GroupsService @Inject() (
   groupsRepository: GroupsRepository,
   knownFactsRepository: KnownFactsRepository,
+  usersRepository: UsersRepository,
   userToRecordsSyncService: UserToRecordsSyncService
 ) {
 
@@ -132,28 +133,29 @@ class GroupsService @Inject() (
       )
       .map(_ => ())
 
-  private def requireKnownFactsForEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[Unit] =
-    knownFactsRepository.findByEnrolmentKey(enrolmentKey, planetId).flatMap {
-      case Some(_) => Future.unit
-      case None    => Future.failed(new NotFoundException("ALLOCATION_DOES_NOT_EXIST"))
-    }
-
   private def ensureKnownFactsForEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(implicit
     ec: ExecutionContext
   ): Future[Unit] =
     knownFactsRepository.findByEnrolmentKey(enrolmentKey, planetId).flatMap {
       case Some(_) => Future.unit
-      case None =>
-        KnownFacts.generate(enrolmentKey, seed = enrolmentKey.tag, alreadyKnownFacts = _ => None) match {
-          case Some(generated) =>
-            knownFactsRepository
-              .upsert(generated, planetId)
-              .recover { case _ => () }
+      case None    =>
+        // Only some flows require known-facts values; ES8 allocation uses this mainly as an existence gate.
+        // Keep verifiers empty so we can support "brand new enrolment key" allocations without having client facts.
+        Services(enrolmentKey.service) match {
+          case Some(_) =>
+            knownFactsRepository.upsert(
+              KnownFacts(enrolmentKey = enrolmentKey, identifiers = enrolmentKey.identifiers, verifiers = Seq.empty),
+              planetId
+            )
           case None =>
             Future.unit
         }
+    }
+
+  private def requireGroupHasAdminUser(groupId: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
+    usersRepository.findByGroupId(groupId, planetId)(limit = Some(101)).flatMap { users =>
+      if (users.exists(_.isAdmin)) Future.unit
+      else Future.failed(new BadRequestException("NO_ADMIN_USER"))
     }
 
   /* Group enrolment is assigned to the unique Admin user of the group */
@@ -170,17 +172,22 @@ class GroupsService @Inject() (
       group <- resolveGroupForAllocation(user, groupId, agentCodeOpt, planetId)
       _ <- (enrolmentType, delegationEnrolmentKeys.isPrimary, group.affinityGroup) match {
              case ("principal", true, _) =>
-               for {
-                 _ <- requireKnownFactsForEnrolmentKey(delegationEnrolmentKeys.primaryEnrolmentKey, planetId)
-                 _ <- allocatePrincipalEnrolmentToGroup(group, delegationEnrolmentKeys.primaryEnrolmentKey, planetId)
-               } yield ()
+               val enrolment = Enrolment.from(delegationEnrolmentKeys.primaryEnrolmentKey)
+               if (group.principalEnrolments.contains(enrolment)) Future.failed(new EnrolmentAlreadyExists)
+               else
+                 for {
+                   _ <- requireGroupHasAdminUser(group.groupId, planetId)
+                   _ <- ensureKnownFactsForEnrolmentKey(delegationEnrolmentKeys.primaryEnrolmentKey, planetId)
+                   _ <- allocatePrincipalEnrolmentToGroup(
+                          group,
+                          delegationEnrolmentKeys.primaryEnrolmentKey,
+                          planetId
+                        )
+                 } yield ()
              case ("delegated", _, AG.Agent) =>
                for {
+                 _ <- ensureKnownFactsForEnrolmentKey(delegationEnrolmentKeys.delegatedEnrolmentKey, planetId)
                  _ <- allocateDelegatedEnrolmentToAgentGroup(group, delegationEnrolmentKeys, planetId)
-                 // APB-10236: delegated allocations do not require primary known facts; create delegated facts for secondary keys only.
-                 _ <-
-                   if (delegationEnrolmentKeys.isPrimary) Future.unit
-                   else ensureKnownFactsForEnrolmentKey(delegationEnrolmentKeys.delegatedEnrolmentKey, planetId)
                } yield ()
              case _ =>
                Future.failed(new BadRequestException("INVALID_QUERY_PARAMETERS"))
@@ -249,6 +256,7 @@ class GroupsService @Inject() (
             .exists(existing => delegationEnrolmentKeys.delegationEnrolments.exists(existing.matches))
         ) Future.failed(new EnrolmentAlreadyExists)
         else Future.unit
+      _ <- requireGroupHasAdminUser(agentGroup.groupId, planetId)
       _ <- groupsRepository.addDelegatedEnrolment(
              agentGroup.groupId,
              planetId,
