@@ -121,16 +121,24 @@ class HipStubController @Inject() (
           Future.successful(Results.UnprocessableEntity(Json.toJson(invalidHeadersResponse)))
         case Right(_) =>
           hipStubService.validateArn(arn) match {
-            case Left(invalidArn) =>
-              Future.successful(Results.BadRequest(Json.toJson(invalidArn)))
-            case Right(validArn) =>
+            case Left(_) =>
+              Future.successful(
+                Results.UnprocessableEntity(Json.toJson(Errors("003", "Request could not be processed")))
+              )
+            case Right(_) =>
               recordsService
-                .getRecordMaybeExt[BusinessPartnerRecord, Arn](validArn, session.planetId).map {
-                  case Some(record)
-                    if agentIsSuspendedForSubscription (record) =>
-                    Results.UnprocessableEntity(Json.toJson(Errors("059", s"$arn is currently suspended")))
-                    case Some(record) => Ok(Json.toJson(record))
-                    case None => Results.NotFound(Json.toJson(Errors("010", s"No subscription found for ARN $arn")))
+                .getRecordMaybeExt[BusinessPartnerRecord, Arn](Arn(arn), session.planetId)
+                .map {
+                  case Some(record) if agentIsSuspendedForSubscription(record) =>
+                    Results.UnprocessableEntity(Json.toJson(Errors("058", "Agent is terminated")))
+                  case Some(record) => Ok(Json.toJson(record))
+                  case None         => Results.NotFound(Json.toJson(Errors("006", "Subscription Data Not Found ")))
+                }
+                .recover { case e =>
+                  logger.error("Incomplete subscription", e)
+                  Results.InternalServerError(
+                    Json.parse("""{"error":{"code":"500","message":"Internal server error","logID": "1234567890"}}""")
+                  )
                 }
           }
       }

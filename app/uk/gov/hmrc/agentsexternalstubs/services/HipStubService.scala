@@ -232,6 +232,6 @@ class HipStubService @Inject() extends Logging {
     }
 
   def validateArn(arn: String): Either[Errors, Arn] =
-    if  (Arn.isValid(arn)) Right(Arn(arn)) else Left(Errors("004", "Invalid ARN value"))
+    if (Arn.isValid(arn)) Right(Arn(arn)) else Left(Errors("004", "Invalid ARN value"))
 
 }
