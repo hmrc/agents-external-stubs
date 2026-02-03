@@ -186,7 +186,6 @@ class GroupsService @Inject() (
                  } yield ()
              case ("delegated", _, AG.Agent) =>
                for {
-                 _ <- ensureKnownFactsForEnrolmentKey(delegationEnrolmentKeys.delegatedEnrolmentKey, planetId)
                  _ <- allocateDelegatedEnrolmentToAgentGroup(group, delegationEnrolmentKeys, planetId)
                } yield ()
              case _ =>
@@ -257,6 +256,7 @@ class GroupsService @Inject() (
         ) Future.failed(new EnrolmentAlreadyExists)
         else Future.unit
       _ <- requireGroupHasAdminUser(agentGroup.groupId, planetId)
+      _ <- ensureKnownFactsForEnrolmentKey(delegationEnrolmentKeys.delegatedEnrolmentKey, planetId)
       _ <- groupsRepository.addDelegatedEnrolment(
              agentGroup.groupId,
              planetId,
