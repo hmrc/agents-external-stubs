@@ -63,14 +63,26 @@ object SubscribeAgentService {
     payload: HipSubscribeAgentServicesPayload,
     existingRecord: BusinessPartnerRecord
   ): BusinessPartnerRecord = {
-    val address = BusinessPartnerRecord.HipAddress(
-      payload.addr1,
-      payload.addr2,
-      payload.addr3,
-      payload.addr4,
-      payload.postcode,
-      payload.country
-    )
+    val address = payload.country match {
+      case "GB" =>
+        BusinessPartnerRecord.UkAddress(
+          payload.addr1,
+          payload.addr2,
+          payload.addr3,
+          payload.addr4,
+          payload.postcode.getOrElse(""),
+          payload.country
+        )
+      case _ =>
+        BusinessPartnerRecord.ForeignAddress(
+          payload.addr1,
+          payload.addr2,
+          payload.addr3,
+          payload.addr4,
+          payload.postcode,
+          payload.country
+        )
+    }
 
     val (
       updateDetailsStatus,

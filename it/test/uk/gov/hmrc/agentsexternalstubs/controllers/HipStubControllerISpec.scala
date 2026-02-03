@@ -668,7 +668,7 @@ class HipStubControllerISpec
           addr2 = Some("London"),
           addr3 = None,
           addr4 = None,
-          postcode = Some("NE11AA"),
+          postcode = Some("W11AA"),
           country = "GB",
           phone = Some("01911234567"),
           email = "test@example.com",
@@ -693,9 +693,10 @@ class HipStubControllerISpec
         record.isAnAgent shouldBe true
         record.isAnASAgent shouldBe true
         record.agencyDetails.getOrElse(fail).agencyAddress match {
-          case Some(a: BusinessPartnerRecord.HipAddress) =>
-            a.addressLine1 shouldBe "10 New Street"
-            a.postalCode shouldBe Some("NE11AA")
+          case Some(a: BusinessPartnerRecord.UkAddress) =>
+            a.addressLine1 shouldBe "River House"
+            a.addressLine2 shouldBe Some("London")
+            a.postalCode shouldBe "W11AA"
             a.countryCode shouldBe "GB"
           case Some(other) =>
             fail(s"Expected HipAddress but got: ${other.getClass.getSimpleName}")
