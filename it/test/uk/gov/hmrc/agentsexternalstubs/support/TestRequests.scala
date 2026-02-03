@@ -1079,6 +1079,12 @@ trait TestRequests extends ScalaFutures {
       delete(s"/agents-external-stubs/planets/$planetId")
   }
 
+  object Robotics {
+    def invokeRobotics[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
+      post("/RTServer/rest/nice/rti/ra/invocation", payload)
+
+  }
+
 }
 
 trait CookieConverter {

@@ -17,6 +17,8 @@
 package uk.gov.hmrc.agentsexternalstubs.connectors
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 
+import scala.concurrent.duration.{Duration, DurationInt}
+
 case class TestAppConfig(wireMockBaseUrl: String, wireMockPort: Int) extends AppConfig {
 
   override val appName: String = "agents-external-stubs"
@@ -64,4 +66,7 @@ case class TestAppConfig(wireMockBaseUrl: String, wireMockPort: Int) extends App
 
   override val granPermsTestGenMaxClients: Int = 10
   override val granPermsTestGenMaxAgents: Int = 2
+  override val agentServicesAccountUrl: String = wireMockBaseUrl
+  override val roboticsCallbackDelay: Int = 10
+  override val roboticsKnownFactsDelay: Int = 10
 }
