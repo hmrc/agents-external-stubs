@@ -58,13 +58,12 @@ class UsersController @Inject() (
           groupId,
           affinityGroup
         ).flatten.nonEmpty)
-        val effectiveLimit: Int =
-          if (requireModifiedLimit) {
-            // If userId/principalEnrolmentService AND either of agentCode, groupId, affinityGroup is defined, use effective/modified limit as will do filtering in futureUsers.map
-            100
-          } else {
-            limit.getOrElse(100)
-          }
+        // If userId/principalEnrolmentService AND either of agentCode, groupId, affinityGroup is defined, use effective/modified limit as will do filtering in futureUsers.map
+        val effectiveLimit = (limit, requireModifiedLimit) match {
+          case (Some(l), true)  => Math.max(l, 100)
+          case (Some(l), false) => l
+          case (None, _)        => 100
+        }
         val futureUsers: Future[Seq[User]] = (userId, groupId, agentCode, affinityGroup) match {
           case (Some(uId), None, None, None) =>
             usersService.findByUserIdContains(
