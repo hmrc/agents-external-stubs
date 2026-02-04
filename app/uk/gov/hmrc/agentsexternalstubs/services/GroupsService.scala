@@ -152,6 +152,14 @@ class GroupsService @Inject() (
         }
     }
 
+  private def requireKnownFactsForEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(implicit
+    ec: ExecutionContext
+  ): Future[Unit] =
+    knownFactsRepository.findByEnrolmentKey(enrolmentKey, planetId).flatMap {
+      case Some(_) => Future.unit
+      case None    => Future.failed(new NotFoundException("ALLOCATION_DOES_NOT_EXIST"))
+    }
+
   private def requireGroupHasAdminUser(groupId: String, planetId: String)(implicit ec: ExecutionContext): Future[Unit] =
     usersRepository.findByGroupId(groupId, planetId)(limit = Some(101)).flatMap { users =>
       if (users.exists(_.isAdmin)) Future.unit
@@ -177,7 +185,7 @@ class GroupsService @Inject() (
                else
                  for {
                    _ <- requireGroupHasAdminUser(group.groupId, planetId)
-                   _ <- ensureKnownFactsForEnrolmentKey(delegationEnrolmentKeys.primaryEnrolmentKey, planetId)
+                   _ <- requireKnownFactsForEnrolmentKey(delegationEnrolmentKeys.primaryEnrolmentKey, planetId)
                    _ <- allocatePrincipalEnrolmentToGroup(
                           group,
                           delegationEnrolmentKeys.primaryEnrolmentKey,
