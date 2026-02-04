@@ -57,7 +57,7 @@ case class AgentSubscriptionDisplayResponse(
   acceptNewTermsLastSuccessfullyComplete: String,
   reriskStatus: String,
   reriskLastUpdated: String,
-  reriskLastSuccessfullyComplete: String,
+  reriskLastSuccessfullyComplete: String
 )
 
 object AgentSubscriptionDisplayResponse {

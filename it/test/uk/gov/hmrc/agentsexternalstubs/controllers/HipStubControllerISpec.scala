@@ -22,6 +22,7 @@ import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.AgencyDetails
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, PPOB}
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.SuspensionDetails
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.services.{RecordsService, RelationshipRecordsService}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
@@ -30,7 +31,7 @@ import uk.gov.hmrc.agentsexternalstubs.support._
 import java.time.{LocalDate, LocalDateTime}
 
 class HipStubControllerISpec
-    extends ServerBaseISpec with TestRequests with TestStubs with ExampleDesPayloads with WireMockSupport {
+  extends ServerBaseISpec with TestRequests with TestStubs with ExampleDesPayloads with WireMockSupport {
 
   lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
   lazy val repo: RecordsRepository = app.injector.instanceOf[RecordsRepository]
@@ -633,6 +634,81 @@ class HipStubControllerISpec
     }
 
   }
+
+
+  "HipStubController.getAgentSubscription" when {
+    "all request parameters are valid" should {
+      "return the agent subscription response with status 200" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val (
+          updateDetailsStatus,
+          amlSupervisionUpdateStatus,
+          directorPartnerUpdateStatus,
+          acceptNewTermsStatus,
+          reriskStatus
+          ) = (
+          UpdateDetailsStatus(AgencyDetailsStatusValue.fromString("ACCEPTED")),
+          AmlSupervisionUpdateStatus(AgencyDetailsStatusValue.fromString("ACCEPTED")),
+          DirectorPartnerUpdateStatus(AgencyDetailsStatusValue.fromString("ACCEPTED")),
+          AcceptNewTermsStatus(AgencyDetailsStatusValue.fromString("ACCEPTED")),
+          ReriskStatus(AgencyDetailsStatusValue.fromString("ACCEPTED"))
+        )
+
+        val existingRecord = BusinessPartnerRecord(
+          businessPartnerExists = true,
+          safeId = "XA0000123456789",
+          agentReferenceNumber = Some("ZARN1234567"),
+          isAnAgent = true,
+          isAnASAgent = true,
+          isAnIndividual = true,
+          individual = Some(BusinessPartnerRecord.Individual("Bill", None, "Jones", "1990-01-01")),
+          organisation = None,
+          addressDetails = BusinessPartnerRecord.UkAddress(
+            addressLine1 = "10 New Street",
+            addressLine2 = None,
+            addressLine3 = None,
+            addressLine4 = None,
+            postalCode = "AA11AA",
+            countryCode = "GB"
+          ),
+          contactDetails = Some(BusinessPartnerRecord.ContactDetails()),
+          agencyDetails = Some(BusinessPartnerRecord
+            .AgencyDetails()
+            .withAgencyName(Option("ABC Agency"))
+            .withAgencyAddress(Some(BusinessPartnerRecord.UkAddress(
+              "1 Agency Street",
+              None,
+              None,
+              None,
+              "NE1 1DE",
+              "GB"
+            )))
+            .withAgencyEmail(Some("abc@test.com"))
+            .withAgencyTelephoneNumber (Some("01911234567"))
+            .withSupervisoryBody (Some("HMRC"))
+            .withMembershipNumber (Some("1234567890"))
+            .withEvidenceObjectReference (Some("1234e4567-e89b-12d3-a456-426614174000"))
+            .withUpdateDetailsStatus(Some(updateDetailsStatus))
+            .withAmlSupervisionUpdateStatus(Some(amlSupervisionUpdateStatus))
+            .withDirectorPartnerUpdateStatus(Some(directorPartnerUpdateStatus))
+            .withAcceptNewTermsStatus(Some(acceptNewTermsStatus))
+            .withReriskStatus(Some(reriskStatus))),
+          suspensionDetails = Some(SuspensionDetails(false, None)),
+          id = None
+        )
+
+        await(repo.store(existingRecord, session.planetId))
+
+        val result = HipStub.getSubscription(
+          arn = "ZARN1234567"
+        )
+
+        println(result)
+      }
+    }
+  }
+
 
   "HipStubController.createAgentSubscription" when {
 
