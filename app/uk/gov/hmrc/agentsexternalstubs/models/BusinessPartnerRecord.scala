@@ -360,73 +360,19 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
 
   implicit val formats: Format[BusinessPartnerRecord] = Json.format[BusinessPartnerRecord]
 
-  sealed trait AddressDetails {
-    def addressLine2: Option[String] = None
-    def addressLine3: Option[String] = None
-    def addressLine1: String
-    def countryCode: String
-    def addressLine4: Option[String] = None
-  }
-
-  object AddressDetails extends RecordUtils[AddressDetails] {
-
-    override val validate: Validator[AddressDetails] = {
-      case x: UkAddress      => UkAddress.validate(x)
-      case x: ForeignAddress => ForeignAddress.validate(x)
-    }
-
-    override val gen: Gen[AddressDetails] = Gen.oneOf[AddressDetails](
-      UkAddress.gen.map(_.asInstanceOf[AddressDetails]),
-      ForeignAddress.gen.map(_.asInstanceOf[AddressDetails])
-    )
-
-    val sanitizer: Update = seed => {
-      case x: UkAddress      => UkAddress.sanitize(seed)(x)
-      case x: ForeignAddress => ForeignAddress.sanitize(seed)(x)
-    }
-    override val sanitizers: Seq[Update] = Seq(sanitizer)
-
-    implicit val reads: Reads[AddressDetails] = new Reads[AddressDetails] {
-      override def reads(json: JsValue): JsResult[AddressDetails] = {
-        val r0 =
-          UkAddress.formats.reads(json).flatMap(e => UkAddress.validate(e).fold(_ => JsError(), _ => JsSuccess(e)))
-        val r1 = r0.orElse(
-          ForeignAddress.formats
-            .reads(json)
-            .flatMap(e => ForeignAddress.validate(e).fold(_ => JsError(), _ => JsSuccess(e)))
-        )
-        r1.orElse(
-          aggregateErrors(
-            JsError("Could not match json object to any variant of AddressDetails, i.e. UkAddress, ForeignAddress"),
-            r0,
-            r1
-          )
-        )
-      }
-
-      private def aggregateErrors[T](errors: JsResult[T]*): JsError =
-        errors.foldLeft(JsError())((a, r) =>
-          r match {
-            case e: JsError => JsError(a.errors ++ e.errors)
-            case _          => a
-          }
-        )
-    }
-
-    implicit val writes: Writes[AddressDetails] = new Writes[AddressDetails] {
-      override def writes(o: AddressDetails): JsValue = o match {
-        case x: UkAddress      => UkAddress.formats.writes(x)
-        case x: ForeignAddress => ForeignAddress.formats.writes(x)
-      }
-    }
-
-  }
-
   case class AgencyDetails(
     agencyName: Option[String] = None,
     agencyAddress: Option[AgencyDetails.AgencyAddress] = None,
     agencyEmail: Option[String] = None,
-    agencyTelephone: Option[String] = None
+    agencyTelephone: Option[String] = None,
+    supervisoryBody: Option[String] = None,
+    membershipNumber: Option[String] = None,
+    evidenceObjectReference: Option[String] = None,
+    updateDetailsStatus: Option[UpdateDetailsStatus] = None,
+    amlSupervisionUpdateStatus: Option[AmlSupervisionUpdateStatus] = None,
+    directorPartnerUpdateStatus: Option[DirectorPartnerUpdateStatus] = None,
+    acceptNewTermsStatus: Option[AcceptNewTermsStatus] = None,
+    reriskStatus: Option[ReriskStatus] = None
   ) {
 
     def withAgencyName(agencyName: Option[String]): AgencyDetails = copy(agencyName = agencyName)
@@ -445,6 +391,54 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
       copy(agencyTelephone = agencyTelephone)
     def modifyAgencyTelephoneNumber(pf: PartialFunction[Option[String], Option[String]]): AgencyDetails =
       if (pf.isDefinedAt(agencyTelephone)) copy(agencyTelephone = pf(agencyTelephone)) else this
+    def withSupervisoryBody(supervisoryBody: Option[String]): AgencyDetails =
+      copy(supervisoryBody = supervisoryBody)
+    def modifySupervisoryBody(pf: PartialFunction[Option[String], Option[String]]): AgencyDetails =
+      if (pf.isDefinedAt(supervisoryBody)) copy(supervisoryBody = pf(supervisoryBody)) else this
+    def withMembershipNumber(membershipNumber: Option[String]): AgencyDetails =
+      copy(membershipNumber = membershipNumber)
+    def modifyMembershipNumber(pf: PartialFunction[Option[String], Option[String]]): AgencyDetails =
+      if (pf.isDefinedAt(membershipNumber)) copy(membershipNumber = pf(membershipNumber)) else this
+    def withEvidenceObjectReference(evidenceObjectReference: Option[String]): AgencyDetails =
+      copy(evidenceObjectReference = evidenceObjectReference)
+    def modifyEvidenceObjectReference(pf: PartialFunction[Option[String], Option[String]]): AgencyDetails =
+      if (pf.isDefinedAt(evidenceObjectReference))
+        copy(evidenceObjectReference = pf(evidenceObjectReference))
+      else this
+    def withUpdateDetailsStatus(updateDetailsStatus: Option[UpdateDetailsStatus]): AgencyDetails =
+      copy(updateDetailsStatus = updateDetailsStatus)
+    def modifyUpdateDetailsStatus(
+      pf: PartialFunction[Option[UpdateDetailsStatus], Option[UpdateDetailsStatus]]
+    ): AgencyDetails =
+      if (pf.isDefinedAt(updateDetailsStatus)) copy(updateDetailsStatus = pf(updateDetailsStatus)) else this
+    def withAmlSupervisionUpdateStatus(amlSupervisionUpdateStatus: Option[AmlSupervisionUpdateStatus]): AgencyDetails =
+      copy(amlSupervisionUpdateStatus = amlSupervisionUpdateStatus)
+    def modifyAmlSupervisionUpdateStatus(
+      pf: PartialFunction[Option[AmlSupervisionUpdateStatus], Option[AmlSupervisionUpdateStatus]]
+    ): AgencyDetails =
+      if (pf.isDefinedAt(amlSupervisionUpdateStatus))
+        copy(amlSupervisionUpdateStatus = pf(amlSupervisionUpdateStatus))
+      else this
+    def withDirectorPartnerUpdateStatus(
+      directorPartnerUpdateStatus: Option[DirectorPartnerUpdateStatus]
+    ): AgencyDetails =
+      copy(directorPartnerUpdateStatus = directorPartnerUpdateStatus)
+    def modifyDirectorPartnerUpdateStatus(
+      pf: PartialFunction[Option[DirectorPartnerUpdateStatus], Option[DirectorPartnerUpdateStatus]]
+    ): AgencyDetails =
+      if (pf.isDefinedAt(directorPartnerUpdateStatus))
+        copy(directorPartnerUpdateStatus = pf(directorPartnerUpdateStatus))
+      else this
+    def withAcceptNewTermsStatus(acceptNewTermsStatus: Option[AcceptNewTermsStatus]): AgencyDetails =
+      copy(acceptNewTermsStatus = acceptNewTermsStatus)
+    def modifyAcceptNewTermsStatus(
+      pf: PartialFunction[Option[AcceptNewTermsStatus], Option[AcceptNewTermsStatus]]
+    ): AgencyDetails =
+      if (pf.isDefinedAt(acceptNewTermsStatus)) copy(acceptNewTermsStatus = pf(acceptNewTermsStatus)) else this
+    def withReriskStatus(reriskStatus: Option[ReriskStatus]): AgencyDetails =
+      copy(reriskStatus = reriskStatus)
+    def modifyReriskStatus(pf: PartialFunction[Option[ReriskStatus], Option[ReriskStatus]]): AgencyDetails =
+      if (pf.isDefinedAt(reriskStatus)) copy(reriskStatus = pf(reriskStatus)) else this
   }
 
   object AgencyDetails extends RecordUtils[AgencyDetails] {
@@ -457,11 +451,46 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     val agencyTelephoneValidator: Validator[Option[String]] =
       check(_.lengthMinMaxInclusive(5, 25), "Invalid length of agencyTelephone, should be between 5 and 25 ")
 
+    val supervisoryBodyValidator: Validator[Option[String]] =
+      check(_.lengthMinMaxInclusive(1, 100), "Invalid length of supervisoryBody, should be between 1 and 40 inclusive")
+
+    val membershipNumberValidator: Validator[Option[String]] =
+      check(_.lengthMinMaxInclusive(1, 100), "Invalid length of membershipNumber, should be between 1 and 40 inclusive")
+
+    val evidenceObjectReferenceValidator: Validator[Option[String]] =
+      check(
+        _.lengthMinMaxInclusive(1, 36),
+        "Invalid length of evidenceObjectReference, should be between 1 and 100 inclusive"
+      )
+
+    val updateDetailsStatusValidator: Validator[Option[UpdateDetailsStatus]] =
+      checkIfSome(identity, UpdateDetailsStatus.validate)
+
+    val amlSupervisionUpdateStatusValidator: Validator[Option[AmlSupervisionUpdateStatus]] =
+      checkIfSome(identity, AmlSupervisionUpdateStatus.validate)
+
+    val directorPartnerUpdateStatusValidator: Validator[Option[DirectorPartnerUpdateStatus]] =
+      checkIfSome(identity, DirectorPartnerUpdateStatus.validate)
+
+    val acceptNewTermsStatusValidator: Validator[Option[AcceptNewTermsStatus]] =
+      checkIfSome(identity, AcceptNewTermsStatus.validate)
+
+    val reriskStatusValidator: Validator[Option[ReriskStatus]] =
+      checkIfSome(identity, ReriskStatus.validate)
+
     override val validate: Validator[AgencyDetails] = Validator(
       checkProperty(_.agencyName, agencyNameValidator),
       checkProperty(_.agencyAddress, agencyAddressValidator),
       checkProperty(_.agencyEmail, agencyEmailValidator),
-      checkProperty(_.agencyTelephone, agencyTelephoneValidator)
+      checkProperty(_.agencyTelephone, agencyTelephoneValidator),
+      checkProperty(_.supervisoryBody, supervisoryBodyValidator),
+      checkProperty(_.membershipNumber, membershipNumberValidator),
+      checkProperty(_.evidenceObjectReference, evidenceObjectReferenceValidator),
+      checkProperty(_.updateDetailsStatus, updateDetailsStatusValidator),
+      checkProperty(_.amlSupervisionUpdateStatus, amlSupervisionUpdateStatusValidator),
+      checkProperty(_.directorPartnerUpdateStatus, directorPartnerUpdateStatusValidator),
+      checkProperty(_.acceptNewTermsStatus, acceptNewTermsStatusValidator),
+      checkProperty(_.reriskStatus, reriskStatusValidator)
     )
 
     override val gen: Gen[AgencyDetails] = Gen const AgencyDetails(
@@ -509,8 +538,102 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
             )
         )
 
+    val supervisoryBodySanitizer: Update = seed =>
+      entity =>
+        entity.copy(
+          supervisoryBody = supervisoryBodyValidator(entity.supervisoryBody)
+            .fold(_ => None, _ => entity.supervisoryBody)
+            .orElse(
+              Generator.get(
+                UserGenerator.agencyNameGen.map(_.take(40)).suchThat(_.length >= 1).suchThat(_.length <= 100)
+              )(seed)
+            )
+        )
+
+    val membershipNumberSanitizer: Update = seed =>
+      entity =>
+        entity.copy(
+          membershipNumber = membershipNumberValidator(entity.membershipNumber)
+            .fold(_ => None, _ => entity.membershipNumber)
+            .orElse(
+              Generator.get(
+                Gen.alphaNumStr.map(_.take(40)).suchThat(_.length >= 1).suchThat(_.length <= 100)
+              )(seed)
+            )
+        )
+
+    val evidenceObjectReferenceSanitizer: Update = seed =>
+      entity =>
+        entity.copy(
+          evidenceObjectReference = evidenceObjectReferenceValidator(entity.evidenceObjectReference)
+            .fold(_ => None, _ => entity.evidenceObjectReference)
+            .orElse(
+              Generator.get(
+                Gen.alphaNumStr.map(_.take(100)).suchThat(_.length >= 1).suchThat(_.length <= 36)
+              )(seed)
+            )
+        )
+
+    val updateDetailsStatusSanitizer: Update = seed =>
+      entity =>
+        entity.copy(
+          updateDetailsStatus = updateDetailsStatusValidator(entity.updateDetailsStatus)
+            .fold(_ => None, _ => entity.updateDetailsStatus)
+            .orElse(Generator.get(UpdateDetailsStatus.gen)(seed))
+            .map(UpdateDetailsStatus.sanitize(seed))
+        )
+
+    val amlSupervisionUpdateStatusSanitizer: Update = seed =>
+      entity =>
+        entity.copy(
+          amlSupervisionUpdateStatus = amlSupervisionUpdateStatusValidator(entity.amlSupervisionUpdateStatus)
+            .fold(_ => None, _ => entity.amlSupervisionUpdateStatus)
+            .orElse(Generator.get(AmlSupervisionUpdateStatus.gen)(seed))
+            .map(AmlSupervisionUpdateStatus.sanitize(seed))
+        )
+
+    val directorPartnerUpdateStatusSanitizer: Update = seed =>
+      entity =>
+        entity.copy(
+          directorPartnerUpdateStatus = directorPartnerUpdateStatusValidator(entity.directorPartnerUpdateStatus)
+            .fold(_ => None, _ => entity.directorPartnerUpdateStatus)
+            .orElse(Generator.get(DirectorPartnerUpdateStatus.gen)(seed))
+            .map(DirectorPartnerUpdateStatus.sanitize(seed))
+        )
+
+    val acceptNewTermsStatusSanitizer: Update = seed =>
+      entity =>
+        entity.copy(
+          acceptNewTermsStatus = acceptNewTermsStatusValidator(entity.acceptNewTermsStatus)
+            .fold(_ => None, _ => entity.acceptNewTermsStatus)
+            .orElse(Generator.get(AcceptNewTermsStatus.gen)(seed))
+            .map(AcceptNewTermsStatus.sanitize(seed))
+        )
+
+    val reriskStatusSanitizer: Update = seed =>
+      entity =>
+        entity.copy(
+          reriskStatus = reriskStatusValidator(entity.reriskStatus)
+            .fold(_ => None, _ => entity.reriskStatus)
+            .orElse(Generator.get(ReriskStatus.gen)(seed))
+            .map(ReriskStatus.sanitize(seed))
+        )
+
     override val sanitizers: Seq[Update] =
-      Seq(agencyNameSanitizer, agencyAddressSanitizer, agencyEmailSanitizer, agencyTelephoneSanitizer)
+      Seq(
+        agencyNameSanitizer,
+        agencyAddressSanitizer,
+        agencyEmailSanitizer,
+        agencyTelephoneSanitizer,
+        supervisoryBodySanitizer,
+        membershipNumberSanitizer,
+        evidenceObjectReferenceSanitizer,
+        updateDetailsStatusSanitizer,
+        amlSupervisionUpdateStatusSanitizer,
+        directorPartnerUpdateStatusSanitizer,
+        acceptNewTermsStatusSanitizer,
+        reriskStatusSanitizer
+      )
 
     implicit val formats: Format[AgencyDetails] = Json.format[AgencyDetails]
 
@@ -661,6 +784,170 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
       Seq(phoneNumberSanitizer, mobileNumberSanitizer, faxNumberSanitizer, emailAddressSanitizer)
 
     implicit val formats: Format[ContactDetails] = Json.format[ContactDetails]
+
+  }
+
+  sealed trait AddressDetails {
+    def addressLine2: Option[String] = None
+    def addressLine3: Option[String] = None
+    def addressLine1: String
+    def countryCode: String
+    def addressLine4: Option[String] = None
+  }
+
+  object AddressDetails extends RecordUtils[AddressDetails] {
+
+    override val validate: Validator[AddressDetails] = {
+      case x: UkAddress      => UkAddress.validate(x)
+      case x: ForeignAddress => ForeignAddress.validate(x)
+    }
+
+    override val gen: Gen[AddressDetails] = Gen.oneOf[AddressDetails](
+      UkAddress.gen.map(_.asInstanceOf[AddressDetails]),
+      ForeignAddress.gen.map(_.asInstanceOf[AddressDetails])
+    )
+
+    val sanitizer: Update = seed => {
+      case x: UkAddress      => UkAddress.sanitize(seed)(x)
+      case x: ForeignAddress => ForeignAddress.sanitize(seed)(x)
+    }
+    override val sanitizers: Seq[Update] = Seq(sanitizer)
+
+    implicit val reads: Reads[AddressDetails] = new Reads[AddressDetails] {
+      override def reads(json: JsValue): JsResult[AddressDetails] = {
+        val r0 =
+          UkAddress.formats.reads(json).flatMap(e => UkAddress.validate(e).fold(_ => JsError(), _ => JsSuccess(e)))
+        val r1 = r0.orElse(
+          ForeignAddress.formats
+            .reads(json)
+            .flatMap(e => ForeignAddress.validate(e).fold(_ => JsError(), _ => JsSuccess(e)))
+        )
+        r1.orElse(
+          aggregateErrors(
+            JsError("Could not match json object to any variant of AddressDetails, i.e. UkAddress, ForeignAddress"),
+            r0,
+            r1
+          )
+        )
+      }
+
+      private def aggregateErrors[T](errors: JsResult[T]*): JsError =
+        errors.foldLeft(JsError())((a, r) =>
+          r match {
+            case e: JsError => JsError(a.errors ++ e.errors)
+            case _          => a
+          }
+        )
+    }
+
+    implicit val writes: Writes[AddressDetails] = new Writes[AddressDetails] {
+      override def writes(o: AddressDetails): JsValue = o match {
+        case x: UkAddress      => UkAddress.formats.writes(x)
+        case x: ForeignAddress => ForeignAddress.formats.writes(x)
+      }
+    }
+
+  }
+
+  case class UkAddress(
+    override val addressLine1: String,
+    override val addressLine2: Option[String] = None,
+    override val addressLine3: Option[String] = None,
+    override val addressLine4: Option[String] = None,
+    postalCode: String,
+    override val countryCode: String
+  ) extends AddressDetails with AgencyDetails.AgencyAddress {
+
+    def withAddressLine1(addressLine1: String): UkAddress = copy(addressLine1 = addressLine1)
+    def modifyAddressLine1(pf: PartialFunction[String, String]): UkAddress =
+      if (pf.isDefinedAt(addressLine1)) copy(addressLine1 = pf(addressLine1)) else this
+    def withAddressLine2(addressLine2: Option[String]): UkAddress = copy(addressLine2 = addressLine2)
+    def modifyAddressLine2(pf: PartialFunction[Option[String], Option[String]]): UkAddress =
+      if (pf.isDefinedAt(addressLine2)) copy(addressLine2 = pf(addressLine2)) else this
+    def withAddressLine3(addressLine3: Option[String]): UkAddress = copy(addressLine3 = addressLine3)
+    def modifyAddressLine3(pf: PartialFunction[Option[String], Option[String]]): UkAddress =
+      if (pf.isDefinedAt(addressLine3)) copy(addressLine3 = pf(addressLine3)) else this
+    def withAddressLine4(addressLine4: Option[String]): UkAddress = copy(addressLine4 = addressLine4)
+    def modifyAddressLine4(pf: PartialFunction[Option[String], Option[String]]): UkAddress =
+      if (pf.isDefinedAt(addressLine4)) copy(addressLine4 = pf(addressLine4)) else this
+    def withPostalCode(postalCode: String): UkAddress = copy(postalCode = postalCode)
+    def modifyPostalCode(pf: PartialFunction[String, String]): UkAddress =
+      if (pf.isDefinedAt(postalCode)) copy(postalCode = pf(postalCode)) else this
+    def withCountryCode(countryCode: String): UkAddress = copy(countryCode = countryCode)
+    def modifyCountryCode(pf: PartialFunction[String, String]): UkAddress =
+      if (pf.isDefinedAt(countryCode)) copy(countryCode = pf(countryCode)) else this
+  }
+
+  object UkAddress extends RecordUtils[UkAddress] {
+
+    val addressLine1Validator: Validator[String] =
+      check(_.lengthMinMaxInclusive(1, 35), "Invalid length of addressLine1, should be between 1 and 35 inclusive")
+    val addressLine2Validator: Validator[Option[String]] =
+      check(_.lengthMinMaxInclusive(1, 35), "Invalid length of addressLine2, should be between 1 and 35 inclusive")
+    val addressLine3Validator: Validator[Option[String]] =
+      check(_.lengthMinMaxInclusive(1, 35), "Invalid length of addressLine3, should be between 1 and 35 inclusive")
+    val addressLine4Validator: Validator[Option[String]] =
+      check(_.lengthMinMaxInclusive(1, 35), "Invalid length of addressLine4, should be between 1 and 35 inclusive")
+    val postalCodeValidator: Validator[String] =
+      check(_.lengthMinMaxInclusive(1, 10), "Invalid length of postalCode, should be between 1 and 10 inclusive")
+    val countryCodeValidator: Validator[String] =
+      check(_.isOneOf(Common.countryCodeEnum1), "Invalid countryCode, does not match allowed values")
+
+    override val validate: Validator[UkAddress] = Validator(
+      checkProperty(_.addressLine1, addressLine1Validator),
+      checkProperty(_.addressLine2, addressLine2Validator),
+      checkProperty(_.addressLine3, addressLine3Validator),
+      checkProperty(_.addressLine4, addressLine4Validator),
+      checkProperty(_.postalCode, postalCodeValidator),
+      checkProperty(_.countryCode, countryCodeValidator)
+    )
+
+    override val gen: Gen[UkAddress] = for {
+      addressLine1 <- Generator.address4Lines35Gen.map(_.line1).suchThat(_.length >= 1).suchThat(_.length <= 35)
+      postalCode   <- Generator.postcode.suchThat(_.length >= 1).suchThat(_.length <= 10)
+      countryCode  <- Gen.const("GB")
+    } yield UkAddress(
+      addressLine1 = addressLine1,
+      postalCode = postalCode,
+      countryCode = countryCode
+    )
+
+    val addressLine2Sanitizer: Update = seed =>
+      entity =>
+        entity.copy(
+          addressLine2 = addressLine2Validator(entity.addressLine2)
+            .fold(_ => None, _ => entity.addressLine2)
+            .orElse(
+              Generator
+                .get(Generator.address4Lines35Gen.map(_.line2).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)
+            )
+        )
+
+    val addressLine3Sanitizer: Update = seed =>
+      entity =>
+        entity.copy(
+          addressLine3 = addressLine3Validator(entity.addressLine3)
+            .fold(_ => None, _ => entity.addressLine3)
+            .orElse(
+              Generator
+                .get(Generator.address4Lines35Gen.map(_.line3).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)
+            )
+        )
+
+    val addressLine4Sanitizer: Update = seed =>
+      entity =>
+        entity.copy(
+          addressLine4 = addressLine4Validator(entity.addressLine4)
+            .fold(_ => None, _ => entity.addressLine4)
+            .orElse(
+              Generator
+                .get(Generator.address4Lines35Gen.map(_.line4).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)
+            )
+        )
+
+    override val sanitizers: Seq[Update] = Seq(addressLine2Sanitizer, addressLine3Sanitizer, addressLine4Sanitizer)
+
+    implicit val formats: Format[UkAddress] = Json.format[UkAddress]
 
   }
 
@@ -878,108 +1165,6 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     override val sanitizers: Seq[Update] = Seq()
 
     implicit val formats: Format[Organisation] = Json.format[Organisation]
-
-  }
-
-  case class UkAddress(
-    override val addressLine1: String,
-    override val addressLine2: Option[String] = None,
-    override val addressLine3: Option[String] = None,
-    override val addressLine4: Option[String] = None,
-    postalCode: String,
-    override val countryCode: String
-  ) extends AddressDetails with AgencyDetails.AgencyAddress {
-
-    def withAddressLine1(addressLine1: String): UkAddress = copy(addressLine1 = addressLine1)
-    def modifyAddressLine1(pf: PartialFunction[String, String]): UkAddress =
-      if (pf.isDefinedAt(addressLine1)) copy(addressLine1 = pf(addressLine1)) else this
-    def withAddressLine2(addressLine2: Option[String]): UkAddress = copy(addressLine2 = addressLine2)
-    def modifyAddressLine2(pf: PartialFunction[Option[String], Option[String]]): UkAddress =
-      if (pf.isDefinedAt(addressLine2)) copy(addressLine2 = pf(addressLine2)) else this
-    def withAddressLine3(addressLine3: Option[String]): UkAddress = copy(addressLine3 = addressLine3)
-    def modifyAddressLine3(pf: PartialFunction[Option[String], Option[String]]): UkAddress =
-      if (pf.isDefinedAt(addressLine3)) copy(addressLine3 = pf(addressLine3)) else this
-    def withAddressLine4(addressLine4: Option[String]): UkAddress = copy(addressLine4 = addressLine4)
-    def modifyAddressLine4(pf: PartialFunction[Option[String], Option[String]]): UkAddress =
-      if (pf.isDefinedAt(addressLine4)) copy(addressLine4 = pf(addressLine4)) else this
-    def withPostalCode(postalCode: String): UkAddress = copy(postalCode = postalCode)
-    def modifyPostalCode(pf: PartialFunction[String, String]): UkAddress =
-      if (pf.isDefinedAt(postalCode)) copy(postalCode = pf(postalCode)) else this
-    def withCountryCode(countryCode: String): UkAddress = copy(countryCode = countryCode)
-    def modifyCountryCode(pf: PartialFunction[String, String]): UkAddress =
-      if (pf.isDefinedAt(countryCode)) copy(countryCode = pf(countryCode)) else this
-  }
-
-  object UkAddress extends RecordUtils[UkAddress] {
-
-    val addressLine1Validator: Validator[String] =
-      check(_.lengthMinMaxInclusive(1, 35), "Invalid length of addressLine1, should be between 1 and 35 inclusive")
-    val addressLine2Validator: Validator[Option[String]] =
-      check(_.lengthMinMaxInclusive(1, 35), "Invalid length of addressLine2, should be between 1 and 35 inclusive")
-    val addressLine3Validator: Validator[Option[String]] =
-      check(_.lengthMinMaxInclusive(1, 35), "Invalid length of addressLine3, should be between 1 and 35 inclusive")
-    val addressLine4Validator: Validator[Option[String]] =
-      check(_.lengthMinMaxInclusive(1, 35), "Invalid length of addressLine4, should be between 1 and 35 inclusive")
-    val postalCodeValidator: Validator[String] =
-      check(_.lengthMinMaxInclusive(1, 10), "Invalid length of postalCode, should be between 1 and 10 inclusive")
-    val countryCodeValidator: Validator[String] =
-      check(_.isOneOf(Common.countryCodeEnum1), "Invalid countryCode, does not match allowed values")
-
-    override val validate: Validator[UkAddress] = Validator(
-      checkProperty(_.addressLine1, addressLine1Validator),
-      checkProperty(_.addressLine2, addressLine2Validator),
-      checkProperty(_.addressLine3, addressLine3Validator),
-      checkProperty(_.addressLine4, addressLine4Validator),
-      checkProperty(_.postalCode, postalCodeValidator),
-      checkProperty(_.countryCode, countryCodeValidator)
-    )
-
-    override val gen: Gen[UkAddress] = for {
-      addressLine1 <- Generator.address4Lines35Gen.map(_.line1).suchThat(_.length >= 1).suchThat(_.length <= 35)
-      postalCode   <- Generator.postcode.suchThat(_.length >= 1).suchThat(_.length <= 10)
-      countryCode  <- Gen.const("GB")
-    } yield UkAddress(
-      addressLine1 = addressLine1,
-      postalCode = postalCode,
-      countryCode = countryCode
-    )
-
-    val addressLine2Sanitizer: Update = seed =>
-      entity =>
-        entity.copy(
-          addressLine2 = addressLine2Validator(entity.addressLine2)
-            .fold(_ => None, _ => entity.addressLine2)
-            .orElse(
-              Generator
-                .get(Generator.address4Lines35Gen.map(_.line2).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)
-            )
-        )
-
-    val addressLine3Sanitizer: Update = seed =>
-      entity =>
-        entity.copy(
-          addressLine3 = addressLine3Validator(entity.addressLine3)
-            .fold(_ => None, _ => entity.addressLine3)
-            .orElse(
-              Generator
-                .get(Generator.address4Lines35Gen.map(_.line3).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)
-            )
-        )
-
-    val addressLine4Sanitizer: Update = seed =>
-      entity =>
-        entity.copy(
-          addressLine4 = addressLine4Validator(entity.addressLine4)
-            .fold(_ => None, _ => entity.addressLine4)
-            .orElse(
-              Generator
-                .get(Generator.address4Lines35Gen.map(_.line4).suchThat(_.length >= 1).suchThat(_.length <= 35))(seed)
-            )
-        )
-
-    override val sanitizers: Seq[Update] = Seq(addressLine2Sanitizer, addressLine3Sanitizer, addressLine4Sanitizer)
-
-    implicit val formats: Format[UkAddress] = Json.format[UkAddress]
 
   }
 

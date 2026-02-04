@@ -19,6 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import play.api.http.Status._
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
+import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.AgencyDetails
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, PPOB}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
@@ -26,7 +27,7 @@ import uk.gov.hmrc.agentsexternalstubs.services.{RecordsService, RelationshipRec
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
 
-import java.time.LocalDate
+import java.time.{LocalDate, LocalDateTime}
 
 class HipStubControllerISpec
     extends ServerBaseISpec with TestRequests with TestStubs with ExampleDesPayloads with WireMockSupport {
@@ -631,5 +632,305 @@ class HipStubControllerISpec
       }
     }
 
+  }
+
+  "HipStubController.createAgentSubscription" when {
+
+    "all request parameters are valid" should {
+      "return Created and update the business partner record" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val safeId = "XA0000123456789"
+        val existingRecord = BusinessPartnerRecord(
+          businessPartnerExists = true,
+          safeId = safeId,
+          isAnIndividual = true,
+          individual = Some(BusinessPartnerRecord.Individual("Bill", None, "Jones", "1990-01-01")),
+          organisation = None,
+          addressDetails = BusinessPartnerRecord.UkAddress(
+            addressLine1 = "10 New Street",
+            addressLine2 = None,
+            addressLine3 = None,
+            addressLine4 = None,
+            postalCode = "AA11AA",
+            countryCode = "GB"
+          ),
+          contactDetails = Some(BusinessPartnerRecord.ContactDetails()),
+          agencyDetails = None,
+          suspensionDetails = None,
+          id = None
+        )
+
+        await(repo.store(existingRecord, session.planetId))
+
+        val result = HipStub.createAgentSubscription(
+          safeId = safeId,
+          name = "Alex Rider",
+          addr1 = "River House",
+          addr2 = Some("London"),
+          addr3 = None,
+          addr4 = None,
+          postcode = Some("W11AA"),
+          country = "GB",
+          phone = Some("01911234567"),
+          email = "test@example.com",
+          supervisoryBody = Some("Mi6"),
+          membershipNumber = Some("MEM123"),
+          evidenceObjectReference = Some("123e4567-e89b-12d3-a456-426614174000"),
+          updateDetailsStatus = "ACCEPTED",
+          amlSupervisionUpdateStatus = "PENDING",
+          directorPartnerUpdateStatus = "REQUIRED",
+          acceptNewTermsStatus = "ACCEPTED",
+          reriskStatus = "REJECTED"
+        )
+
+        result should haveStatus(CREATED)
+        result should haveValidJsonBody(
+          haveProperty[String]("arn", not be empty) and
+            haveProperty[String]("processingDate", not be empty)
+        )
+
+        val updated =
+          await(recordsService.getRecordMaybeExt[BusinessPartnerRecord, SafeId](SafeId(safeId), session.planetId))
+        updated shouldBe defined
+
+        val record = updated.getOrElse(fail)
+        record.isAnAgent shouldBe true
+        record.isAnASAgent shouldBe true
+
+        record.addressDetails match {
+          case a: BusinessPartnerRecord.UkAddress =>
+            a.addressLine1 shouldBe "River House"
+            a.addressLine2 shouldBe Some("London")
+            a.postalCode shouldBe "W11AA"
+            a.countryCode shouldBe "GB"
+          case other =>
+            fail(s"Expected UkAddress but got: ${other.getClass.getSimpleName}")
+        }
+
+        val agentDetails = record.agencyDetails.getOrElse(fail)
+
+        agentDetails.agencyAddress match {
+          case Some(a: BusinessPartnerRecord.UkAddress) =>
+            a.addressLine1 shouldBe "River House"
+            a.addressLine2 shouldBe Some("London")
+            a.postalCode shouldBe "W11AA"
+            a.countryCode shouldBe "GB"
+          case Some(other) =>
+            fail(s"Expected UkAddress but got: ${other.getClass.getSimpleName}")
+          case None =>
+            fail("Expected agencyAddress to be defined")
+        }
+
+        agentDetails.agencyEmail shouldBe Some("test@example.com")
+        agentDetails.agencyTelephone shouldBe Some("01911234567")
+        agentDetails.supervisoryBody shouldBe Some("Mi6")
+        agentDetails.membershipNumber shouldBe Some("MEM123")
+        agentDetails.evidenceObjectReference shouldBe Some("123e4567-e89b-12d3-a456-426614174000")
+
+        agentDetails.updateDetailsStatus match {
+          case Some(UpdateDetailsStatus(status, lastUpdated, lastSuccessfulUpdate)) =>
+            status shouldBe AgencyDetailsStatusValue.Accepted
+
+            val now = LocalDateTime.now()
+            lastUpdated should (be >= now.minusMinutes(1) and be <= now)
+            lastSuccessfulUpdate should (be >= now.minusMinutes(1) and be <= now)
+
+          case other =>
+            fail(s"Expected UpdateDetailsStatus but got: $other")
+        }
+      }
+    }
+
+    "base headers are invalid" should {
+      "return 422 Unprocessable Entity" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val safeId = "XA0000123456789"
+        val existingRecord = BusinessPartnerRecord(
+          businessPartnerExists = true,
+          safeId = safeId,
+          isAnIndividual = true,
+          individual = Some(BusinessPartnerRecord.Individual("Bill", None, "Jones", "1990-01-01")),
+          organisation = None,
+          addressDetails = BusinessPartnerRecord.UkAddress(
+            addressLine1 = "10 New Street",
+            addressLine2 = None,
+            addressLine3 = None,
+            addressLine4 = None,
+            postalCode = "AA11AA",
+            countryCode = "GB"
+          ),
+          contactDetails = Some(BusinessPartnerRecord.ContactDetails()),
+          agencyDetails = None,
+          suspensionDetails = None,
+          id = None
+        )
+
+        await(repo.store(existingRecord, session.planetId))
+
+        val result =
+          HipStub.createAgentSubscription(
+            safeId = safeId,
+            transmittingSystemHeader = Some("NOT_HIP")
+          )
+
+        result should haveStatus(UNPROCESSABLE_ENTITY)
+        result.json.toString should include("""code":"003","text":"Request could not be processed""")
+      }
+    }
+
+    "safeId is invalid" should {
+      "return 422 Unprocessable Entity" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result =
+          HipStub.createAgentSubscription(
+            safeId = "NOT_SAFE!"
+          )
+
+        result should haveStatus(UNPROCESSABLE_ENTITY)
+        result.json.toString should include("""code":"003","text":"Request could not be processed""")
+      }
+    }
+
+    "body contains invalid data" should {
+      "return 422 Unprocessable Entity" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val safeId = "XA0000123456789"
+        val existingRecord = BusinessPartnerRecord(
+          businessPartnerExists = true,
+          safeId = safeId,
+          isAnIndividual = true,
+          individual = Some(BusinessPartnerRecord.Individual("Bill", None, "Jones", "1990-01-01")),
+          organisation = None,
+          addressDetails = BusinessPartnerRecord.UkAddress(
+            addressLine1 = "10 New Street",
+            addressLine2 = None,
+            addressLine3 = None,
+            addressLine4 = None,
+            postalCode = "AA11AA",
+            countryCode = "GB"
+          ),
+          contactDetails = Some(BusinessPartnerRecord.ContactDetails()),
+          agencyDetails = None,
+          suspensionDetails = None,
+          id = None
+        )
+
+        await(repo.store(existingRecord, session.planetId))
+
+        val result =
+          HipStub.createAgentSubscription(
+            safeId = safeId,
+            name = ""
+          )
+
+        result should haveStatus(UNPROCESSABLE_ENTITY)
+        result.json.toString should include("Request could not be processed")
+      }
+    }
+
+    "business partner record does not exist" should {
+      "return 422 SAFE ID Not found" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val safeId = "XA0000123456789"
+
+        val result =
+          HipStub.createAgentSubscription(
+            safeId = safeId
+          )
+
+        result should haveStatus(UNPROCESSABLE_ENTITY)
+        result.json.toString should include("""code":"006","text":"SAFE ID Not found""")
+      }
+    }
+
+    "business partner is already subscribed" should {
+      "return 422 with already subscribed message" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val safeId = "XA0000123456789"
+        val existingRecord = BusinessPartnerRecord(
+          businessPartnerExists = true,
+          safeId = safeId,
+          isAnIndividual = true,
+          individual = Some(BusinessPartnerRecord.Individual("Bill", None, "Jones", "1990-01-01")),
+          organisation = None,
+          addressDetails = BusinessPartnerRecord.UkAddress(
+            addressLine1 = "10 New Street",
+            addressLine2 = None,
+            addressLine3 = None,
+            addressLine4 = None,
+            postalCode = "AA11AA",
+            countryCode = "GB"
+          ),
+          contactDetails = Some(BusinessPartnerRecord.ContactDetails()),
+          agencyDetails = Some(
+            AgencyDetails(
+              agencyName = Some("existing"),
+              agencyAddress = None,
+              agencyEmail = None,
+              agencyTelephone = None,
+              supervisoryBody = None,
+              membershipNumber = None,
+              evidenceObjectReference = None,
+              updateDetailsStatus = Some(
+                UpdateDetailsStatus(
+                  AgencyDetailsStatusValue.Accepted,
+                  LocalDateTime.now(),
+                  LocalDateTime.now()
+                )
+              ),
+              amlSupervisionUpdateStatus = None,
+              directorPartnerUpdateStatus = None,
+              acceptNewTermsStatus = None,
+              reriskStatus = None
+            )
+          ),
+          suspensionDetails = None,
+          id = None
+        ).copy(
+          isAnAgent = true,
+          isAnASAgent = true,
+          agentReferenceNumber = Some("ZARN1234567")
+        )
+
+        await(repo.store(existingRecord, session.planetId))
+
+        val result =
+          HipStub.createAgentSubscription(
+            safeId = safeId,
+            name = "Alex Rider",
+            addr1 = "River House",
+            addr2 = Some("London"),
+            postcode = Some("W11AA"),
+            country = "GB",
+            phone = Some("01911234567"),
+            email = "test@example.com"
+          )
+
+        result should haveStatus(UNPROCESSABLE_ENTITY)
+        result.json.toString should include("""code":"061"""")
+        result.json.toString should include("""BP has already a valid Agent Subscription ZARN1234567""")
+      }
+    }
+
+    "there is no session" should {
+      "return an unauthorized error" in {
+        val safeId = "XA0000123456789"
+
+        val result =
+          wsClient
+            .url(s"$url/etmp/RESTAdapter/generic/agent/subscription/$safeId")
+            .post(play.api.libs.json.Json.obj("name" -> "x"))
+            .futureValue
+
+        result should haveStatus(UNAUTHORIZED)
+        result.json.toString should include("""{"code":"UNAUTHORIZED","reason":"SessionRecordNotFound"}""")
+      }
+    }
   }
 }

@@ -17,13 +17,13 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
 import play.api.Logging
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import uk.gov.hmrc.agentsexternalstubs.models.Validator.{Validator, _}
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers.NinoWithoutSuffix
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.domain.TaxIdentifier
 
-import java.time.{Instant, LocalDate}
 import java.time.format.{DateTimeFormatter, DateTimeParseException}
+import java.time.{Instant, LocalDate}
 import javax.inject.{Inject, Singleton}
 
 @Singleton

@@ -17,13 +17,15 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
 import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
-import uk.gov.hmrc.agentsexternalstubs.models.Errors
+import uk.gov.hmrc.agentsexternalstubs.models.{Errors, HipSubscribeAgentServicesPayload}
 import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 
 import java.time.LocalDate
 import java.util.UUID
 
 class HipStubServiceSpec extends BaseUnitSpec {
+
+  val service = new HipStubService
 
   private val requestCouldNotBeProcessed = "Request could not be processed"
 
@@ -329,8 +331,6 @@ class HipStubServiceSpec extends BaseUnitSpec {
       result.code shouldBe "006"
     }
   }
-
-  val service = new HipStubService
 
   private def validateBaseHeaders(
     transmittingSystemHeader: Option[String] = Some("HIP"),

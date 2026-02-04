@@ -18,17 +18,17 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.Logging
 import play.api.libs.json._
-import play.api.mvc.{Action, AnyContent, ControllerComponents, Request, Result, Results}
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import play.api.mvc._
 import uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.GetRelationships
 import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers.NinoWithoutSuffix
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.services._
-import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.domain.Vrn
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import java.time.{Instant, LocalDate, LocalDateTime}
 import java.time.temporal.ChronoUnit
+import java.time.{Instant, LocalDate, LocalDateTime}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -38,6 +38,7 @@ class HipStubController @Inject() (
   val authenticationService: AuthenticationService,
   relationshipRecordsService: RelationshipRecordsService,
   recordsService: RecordsService,
+  recordsRepository: RecordsRepository,
   cc: ControllerComponents
 )(implicit executionContext: ExecutionContext)
     extends BackendController(cc) with ExternalCurrentSession with Logging {
@@ -244,6 +245,74 @@ class HipStubController @Inject() (
       }
     }(SessionRecordNotFound)
   }
+
+  def createAgentSubscription(safeId: String): Action[JsValue] = Action(parse.json).async(implicit request =>
+    withCurrentSession { session =>
+      hipStubService.validateBaseHeaders(
+        request.headers.get("X-Transmitting-System"),
+        request.headers.get("X-Originating-System"),
+        request.headers.get("correlationid"),
+        request.headers.get("X-Receipt-Date")
+      ) match {
+        case Left(_) =>
+          Future.successful(Results.UnprocessableEntity(Json.toJson(Errors("003", "Request could not be processed"))))
+        case _ =>
+          RegexPatterns.validSafeId(safeId) match {
+            case Left(_) =>
+              Future.successful(
+                Results.UnprocessableEntity(Json.toJson(Errors("003", "Request could not be processed")))
+              )
+            case Right(_) =>
+              HipSubscribeAgentServicesPayload.validateCreateAgentSubscriptionPayload(
+                request.body.as[HipSubscribeAgentServicesPayload]
+              ) match {
+                case Left(errors) =>
+                  Future.successful(Results.UnprocessableEntity(Json.toJson(errors)))
+                case Right(payload) =>
+                  recordsService
+                    .getRecordMaybeExt[BusinessPartnerRecord, SafeId](SafeId(safeId), session.planetId)
+                    .flatMap {
+                      case None =>
+                        Future.successful(Results.UnprocessableEntity(Json.toJson(Errors("006", "SAFE ID Not found"))))
+                      case Some(existingRecord) =>
+                        if (existingRecord.isAnASAgent)
+                          Future.successful(
+                            Results.UnprocessableEntity(
+                              Json.toJson(
+                                Errors(
+                                  "061",
+                                  s"BP has already a valid Agent Subscription ${existingRecord.agentReferenceNumber.get}"
+                                )
+                              )
+                            )
+                          )
+                        else {
+                          val recordToCreate: BusinessPartnerRecord =
+                            SubscribeAgentService.toBusinessPartnerRecord(payload, existingRecord)
+                          recordsService
+                            .store(recordToCreate, autoFill = false, session.planetId)
+                            .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, session.planetId))
+                            .map {
+                              case Some(record) =>
+                                Results.Created(
+                                  Json.toJson(
+                                    HipResponse(LocalDateTime.now(), record.agentReferenceNumber.get)
+                                  )
+                                )
+                              case None =>
+                                Results.InternalServerError(
+                                  Json.parse(
+                                    """{"error":{"code":"500","message":"Internal server error","logID": "1234567890"}}"""
+                                  )
+                                )
+                            }
+                        }
+                    }
+              }
+          }
+      }
+    }(SessionRecordNotFound)
+  )
 
   private def agentIsSuspended(businessPartnerRecord: BusinessPartnerRecord, regime: String): Boolean =
     businessPartnerRecord.suspensionDetails.fold(false)(_.suspendedRegimes.contains(regime))
