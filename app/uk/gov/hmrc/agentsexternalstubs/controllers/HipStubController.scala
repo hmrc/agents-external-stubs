@@ -117,8 +117,10 @@ class HipStubController @Inject() (
         request.headers.get("correlationid"),
         request.headers.get("X-Receipt-Date")
       ) match {
-        case Left(invalidHeadersResponse) =>
-          Future.successful(Results.UnprocessableEntity(Json.toJson(invalidHeadersResponse)))
+        case Left(_) =>
+          Future.successful(
+            Results.UnprocessableEntity(Json.toJson(Errors("003", "Request could not be processed")))
+          )
         case Right(_) =>
           hipStubService.validateArn(arn) match {
             case Left(_) =>
@@ -132,7 +134,7 @@ class HipStubController @Inject() (
                   case Some(record) if agentIsSuspendedForSubscription(record) =>
                     Results.UnprocessableEntity(Json.toJson(Errors("058", "Agent is terminated")))
                   case Some(record) => Ok(Json.toJson(record))
-                  case None         => Results.NotFound(Json.toJson(Errors("006", "Subscription Data Not Found ")))
+                  case None         => Results.UnprocessableEntity(Json.toJson(Errors("006", "Subscription Data Not Found ")))
                 }
                 .recover { case e =>
                   logger.error("Incomplete subscription", e)
@@ -368,6 +370,29 @@ class HipStubController @Inject() (
       processingDate = Instant.now().truncatedTo(ChronoUnit.SECONDS).toString,
       relationshipDisplayResponse = response.relationship.map(relationship =>
         RelationshipDisplayResponse(
+          refNumber = relationship.referenceNumber,
+          arn = relationship.agentReferenceNumber,
+          individual = relationship.individual,
+          organisation = relationship.organisation,
+          dateFrom = relationship.dateFrom,
+          dateTo = relationship.dateTo.getOrElse(LocalDate.parse("9999-12-31")),
+          contractAccountCategory = relationship.contractAccountCategory,
+          activity = relationship.activity,
+          relationshipType = relationship.relationshipType,
+          authProfile = relationship.authProfile
+        )
+      )
+    )
+
+  private def convertAgentSubscriptionResponseToNewFormat(response: GetRelationships.Response): AgentRelationshipDisplayResponse =
+    HipAgentSubscriptionResponse(
+      processingDate = Instant.now().truncatedTo(ChronoUnit.SECONDS).toString,
+      agentSubscriptionDisplayResponse = response.relationship.map(relationship =>
+        AgentSubscriptionDisplayResponse(
+
+
+
+
           refNumber = relationship.referenceNumber,
           arn = relationship.agentReferenceNumber,
           individual = relationship.individual,
