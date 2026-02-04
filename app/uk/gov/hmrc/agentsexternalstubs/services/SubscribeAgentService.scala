@@ -131,18 +131,4 @@ object SubscribeAgentService {
       .withIsAnAgent(true)
       .withIsAnASAgent(true)
   }
-
-  sealed trait SubscribeAgentServiceResponse
-
-  case class DesIfResponse(safeId: String, agentRegistrationNumber: String) extends SubscribeAgentServiceResponse
-
-  object DesIfResponse {
-    implicit val writes: Writes[DesIfResponse] = Json.writes[DesIfResponse]
-  }
-
-  case class HipResponse(processingDate: LocalDateTime, arn: String) extends SubscribeAgentServiceResponse
-
-  object HipResponse {
-    implicit val writes: Writes[HipResponse] = Json.writes[HipResponse]
-  }
 }

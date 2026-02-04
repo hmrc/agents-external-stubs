@@ -296,8 +296,7 @@ class HipStubController @Inject() (
                               case Some(record) =>
                                 Results.Created(
                                   Json.toJson(
-                                    SubscribeAgentService
-                                      .HipResponse(LocalDateTime.now(), record.agentReferenceNumber.get)
+                                    HipResponse(LocalDateTime.now(), record.agentReferenceNumber.get)
                                   )
                                 )
                               case None =>
