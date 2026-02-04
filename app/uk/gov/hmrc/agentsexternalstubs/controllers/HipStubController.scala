@@ -384,27 +384,4 @@ class HipStubController @Inject() (
       )
     )
 
-  private def convertAgentSubscriptionResponseToNewFormat(response: GetRelationships.Response): AgentRelationshipDisplayResponse =
-    HipAgentSubscriptionResponse(
-      processingDate = Instant.now().truncatedTo(ChronoUnit.SECONDS).toString,
-      agentSubscriptionDisplayResponse = response.relationship.map(relationship =>
-        AgentSubscriptionDisplayResponse(
-
-
-
-
-          refNumber = relationship.referenceNumber,
-          arn = relationship.agentReferenceNumber,
-          individual = relationship.individual,
-          organisation = relationship.organisation,
-          dateFrom = relationship.dateFrom,
-          dateTo = relationship.dateTo.getOrElse(LocalDate.parse("9999-12-31")),
-          contractAccountCategory = relationship.contractAccountCategory,
-          activity = relationship.activity,
-          relationshipType = relationship.relationshipType,
-          authProfile = relationship.authProfile
-        )
-      )
-    )
-
 }
