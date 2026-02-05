@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import com.github.tomakehurst.wiremock.client.WireMock
-import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatest.concurrent.Eventually
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
@@ -26,120 +24,67 @@ import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, EnrolmentKe
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.agentsexternalstubs.support._
 
-class RoboticsControllerISpec
-    extends ServerBaseISpec with TestRequests with Eventually {
+class RoboticsControllerISpec extends ServerBaseISpec with TestRequests with Eventually {
 
   lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
   lazy val knownFactsRepository: KnownFactsRepository = app.injector.instanceOf[KnownFactsRepository]
 
   "RoboticsController POST /RTServer/rest/nice/rti/ra/invocation" should {
 
-    "return 200 and create known facts for SA (CESA)" in {
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+    val scenarios = Seq(
+      ("CESA", "AA1 1AA", "CREATE", "IR-SA-AGENT", "IRAGENTPOSTCODE", "Agent Created Successfully"),
+      ("CESA", "AA1 1AA", "UPDATE", "IR-SA-AGENT", "IRAGENTPOSTCODE", "Agent Updated their {name}/{address}/{contact} Successfully"),
+      ("COTAX", "BB2 2BB", "CREATE", "IR-CT-AGENT", "POSTCODE", "Agent Created Successfully"),
+      ("COTAX", "BB2 2BB", "UPDATE", "IR-CT-AGENT", "POSTCODE", "Agent Updated their {name}/{address}/{contact} Successfully")
+    )
 
-      val requestId = "REQ-2025-001234"
-      val operationData =
-        Json.stringify(
+    scenarios.foreach { case (targetSystem, postcode, operationRequired, enrolmentPrefix, postCodeKey, expectedMessage) =>
+      s"return 200 and handle $operationRequired for $targetSystem" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val requestId = s"REQ-${targetSystem.take(2)}-${System.currentTimeMillis().toString.takeRight(6)}"
+
+        val operationData = Json.stringify(
           Json.obj(
-            "requestId"    -> requestId,
-            "targetSystem" -> "CESA",
-            "agentDetails" -> Json.obj(
-              "address" -> Json.obj(
-                "postcode" -> "AA1 1AA"
-              )
-            )
+            "requestId"         -> requestId,
+            "targetSystem"      -> targetSystem,
+            "postcode"          -> postcode,
+            "operationRequired" -> operationRequired
           )
         )
-      val payload: JsObject = Json.obj(
-        "requestData" -> Json.arr(
-          Json.obj(
-            "workflowData" -> Json.obj(
-              "arguments" -> Json.arr(
-                Json.obj(
-                  "type"  -> "string",
-                  "value" -> operationData
+
+        val payload: JsObject = Json.obj(
+          "requestData" -> Json.arr(
+            Json.obj(
+              "workflowData" -> Json.obj(
+                "arguments" -> Json.arr(
+                  Json.obj(
+                    "type"  -> "string",
+                    "value" -> operationData
+                  )
                 )
               )
             )
           )
         )
-      )
 
-      val expectedAgentId =
-        uk.gov.hmrc.agentsexternalstubs.models.GroupGenerator.agentId(requestId)
+        val expectedAgentId = uk.gov.hmrc.agentsexternalstubs.models.GroupGenerator.agentId(requestId)
+        val enrolmentKey = EnrolmentKey.from(enrolmentPrefix, "IRAgentReference" -> expectedAgentId)
 
-      val enrolmentKey =
-        EnrolmentKey.from("IR-SA-AGENT", "IRAgentReference" -> expectedAgentId)
+        // Ensure no known facts exist yet
+        await(knownFactsRepository.findByEnrolmentKey(enrolmentKey, session.planetId)).size shouldBe 0
 
-      await(
-        knownFactsRepository.findByEnrolmentKey(enrolmentKey, session.planetId)
-      ).size shouldBe 0
+        val response = Robotics.invokeRobotics(payload)
+        response should haveStatus(200)
+        (response.json \ "request_Id").as[String] shouldBe requestId
 
-      val response = Robotics.invokeRobotics(payload)
-
-      response should haveStatus(200)
-      (response.json \ "request_Id").as[String] shouldBe requestId
-
-      val requestReference = requestId.take(12).toUpperCase
-
-      eventually {
-        verifyKnownFacts(enrolmentKey, "IRAGENTPOSTCODE", "AA1 1AA", session.planetId)
-      }
-    }
-
-    "return 200 and create known facts for CT (COTAX)" in {
-      implicit val session: AuthenticatedSession =
-        SignIn.signInAndGetSession()
-
-      val requestId = "REQ-CT-0001"
-      val operationData =
-        Json.stringify(
-          Json.obj(
-            "requestId"    -> requestId,
-            "targetSystem" -> "COTAX",
-            "agentDetails" -> Json.obj(
-              "address" -> Json.obj(
-                "postcode" -> "BB2 2BB"
-              )
-            )
-          )
-        )
-      val payload: JsObject = Json.obj(
-        "requestData" -> Json.arr(
-          Json.obj(
-            "workflowData" -> Json.obj(
-              "arguments" -> Json.arr(
-                Json.obj(
-                  "type"  -> "string",
-                  "value" -> operationData
-                )
-              )
-            )
-          )
-        )
-      )
-
-      val agentId =
-        uk.gov.hmrc.agentsexternalstubs.models.GroupGenerator.agentId(requestId)
-
-      val enrolmentKey =
-        EnrolmentKey.from("IR-CT-AGENT", "IRAgentReference" -> agentId)
-
-      await(
-        knownFactsRepository.findByEnrolmentKey(enrolmentKey, session.planetId)
-      ).size shouldBe 0
-
-      val response = Robotics.invokeRobotics(payload)
-
-      response should haveStatus(200)
-
-      val requestReference = requestId.take(12).toUpperCase
-
-      eventually {
-        verifyKnownFacts(enrolmentKey, "POSTCODE", "BB2 2BB", session.planetId)
+        // Verify known facts creation
+        eventually {
+          verifyKnownFacts(enrolmentKey, postCodeKey, postcode, session.planetId)
+        }
       }
     }
   }
+
 
   private def verifyKnownFacts(
     enrolmentKey: EnrolmentKey,

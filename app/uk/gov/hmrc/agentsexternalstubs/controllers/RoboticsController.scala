@@ -51,16 +51,16 @@ class RoboticsController @Inject() (
 
         case Right(targetSystem) =>
           val workflow: JsValue = Json.parse(workflowValue(request.body).as[String])
-          val requestId =
-            (workflow \ "requestId").asOpt[String].getOrElse(UUID.randomUUID().toString)
-
-          val postcode =
-            (workflow \ "agentDetails" \ "address" \ "postcode").as[String]
+          val requestId = (workflow \ "requestId").asOpt[String].getOrElse(UUID.randomUUID().toString)
+          val postcode = (workflow \ "postcode").as[String]
+          val operationRequired = (workflow \ "operationRequired").as[String]
 
           val agentId = GroupGenerator.agentId(requestId)
           val callbackDelay = appConfig.roboticsCallbackDelay
           val knownFactsDelay = appConfig.roboticsKnownFactsDelay
-          val requestReference = requestId.take(12).toUpperCase
+
+          // Extract correlationId from incoming request headers
+          val correlationId = request.headers.get("CorrelationId").getOrElse(UUID.randomUUID().toString)
 
           val taskActor = actorSystem.actorOf(
             Props(
@@ -74,7 +74,8 @@ class RoboticsController @Inject() (
                 callbackDelay,
                 knownFactsDelay,
                 actorSystem.scheduler,
-                requestReference
+                operationRequired,
+                correlationId
               )
             )
           )
@@ -104,7 +105,8 @@ class RoboticsTaskActor(
   callbackDelay: Int,
   knownFactsDelay: Int,
   scheduler: Scheduler,
-  requestReference: String
+  operationRequired: String,
+  correlationId: String
 )(implicit ec: ExecutionContext)
     extends org.apache.pekko.actor.Actor with play.api.Logging {
 
@@ -114,19 +116,27 @@ class RoboticsTaskActor(
       scheduler.scheduleOnce(callbackDelay.millis, self, Callback)(ec)
 
     case Callback =>
+      val requestMessage = operationRequired match {
+        case "CREATE" => "Agent Created Successfully"
+        case "UPDATE" => s"Agent Updated their {name}/{address}/{contact} Successfully"
+        case _        => "Operation Completed Successfully"
+      }
+
       val callbackPayload = Json.obj(
-        "requestReference" -> requestReference,
-        "agentId"          -> agentId.take(5).toUpperCase,
-        "status"           -> "COMPLETED",
-        "regime"           -> targetSystem,
-        "timestamp"        -> java.time.Instant.now().toString
+        "targetSystem"      -> targetSystem,
+        "operationRequired" -> operationRequired,
+        "agentId"           -> agentId.take(5).toUpperCase,
+        "status"            -> "success",
+        "requestMessage"    -> requestMessage
       )
-      roboticsConnector.sendCallback(callbackPayload)
+
+      roboticsConnector.sendCallback(callbackPayload, correlationId)
+
       // Schedule known facts creation after knownFactsDelay
       scheduler.scheduleOnce(knownFactsDelay.millis, self, CreateKnownFacts)(ec)
 
     case CreateKnownFacts =>
-      createKnownFacts(agentId, targetSystem, postcode, planetId)
+      createKnownFacts(agentId, targetSystem, postcode)
         .foreach { kf =>
           knownFactsRepository.upsert(
             KnownFacts.sanitize(kf.enrolmentKey.tag)(kf),
@@ -152,17 +162,13 @@ object RoboticsController extends HttpHelpers {
     }
   }
 
-  private def parseOperationData(body: JsValue): JsValue =
-    Json.parse((workflowValue(body)).as[String])
-
   private def workflowValue(body: JsValue): JsLookupResult =
     body \ "requestData" \ 0 \ "workflowData" \ "arguments" \ 0 \ "value"
 
   private[controllers] def createKnownFacts(
     agentId: String,
     targetSystem: String,
-    postcode: String,
-    planetId: String
+    postcode: String
   ) = {
     val enrolmentKey =
       targetSystem match {

@@ -32,9 +32,8 @@ class RoboticsConnector @Inject() (httpClientV2: HttpClientV2, appConfig: AppCon
 
   private val callbackUrl: String = appConfig.agentServicesAccountUrl
   implicit val hc: HeaderCarrier = HeaderCarrier()
-  val correlationId = UUID.randomUUID().toString
 
-  def sendCallback(payload: JsValue): Future[Unit] =
+  def sendCallback(payload: JsValue, correlationId: String): Future[Unit] =
     httpClientV2
       .post(url"$callbackUrl/robotics/callback")
       .setHeader("CorrelationId" -> correlationId)
