@@ -23,34 +23,77 @@ class RoboticsControllerSpec extends BaseUnitSpec {
 
   "validateTargetSystem" should {
     "return Right for CESA" in {
-      val json = Json.parse("""{
-      "requestData": { "workflowData": { "arguments": { "value": { "targetSystem": "CESA" } } } }
-    }""")
+      val operationData =
+        Json.stringify(
+          Json.obj("targetSystem" -> "CESA")
+        )
+      val json = Json.obj(
+        "requestData" -> Json.obj(
+          "workflowData" -> Json.obj(
+            "arguments" -> Json.obj(
+              "value" -> operationData
+            )
+          )
+        )
+      )
 
       RoboticsController.validateTargetSystem(json) shouldBe Right("CESA")
     }
 
     "return Right for COTAX" in {
-      val json = Json.parse("""{
-          "requestData": { "workflowData": { "arguments": { "value": { "targetSystem": "COTAX" } } } }
-        }""")
+      val operationData =
+        Json.stringify(
+          Json.obj("targetSystem" -> "COTAX")
+        )
+
+      val json = Json.obj(
+        "requestData" -> Json.obj(
+          "workflowData" -> Json.obj(
+            "arguments" -> Json.obj(
+              "value" -> operationData
+            )
+          )
+        )
+      )
 
       RoboticsController.validateTargetSystem(json) shouldBe Right("COTAX")
     }
 
     "return Left with missing targetSystem" in {
-      val json = Json.parse("""{
-          "requestData": { "workflowData": { "arguments": { "value": {} } } }
-        }""")
+      val operationData =
+        Json.stringify(
+          Json.obj("targetSystem" -> "")
+        )
+
+      val json = Json.obj(
+        "requestData" -> Json.obj(
+          "workflowData" -> Json.obj(
+            "arguments" -> Json.obj(
+              "value" -> operationData
+            )
+          )
+        )
+      )
 
       val result = RoboticsController.validateTargetSystem(json)
       result.swap.getOrElse(fail("Expected Left")).header.status shouldBe 400
     }
 
     "return Left with invalid targetSystem" in {
-      val json = Json.parse("""{
-          "requestData": { "workflowData": { "arguments": { "value": { "targetSystem": "INVALID" } } } }
-        }""")
+      val operationData =
+        Json.stringify(
+          Json.obj("targetSystem" -> "INVALID")
+        )
+
+      val json = Json.obj(
+        "requestData" -> Json.obj(
+          "workflowData" -> Json.obj(
+            "arguments" -> Json.obj(
+              "value" -> operationData
+            )
+          )
+        )
+      )
 
       val result = RoboticsController.validateTargetSystem(json)
       result.swap.getOrElse(fail("Expected Left")).header.status shouldBe 400

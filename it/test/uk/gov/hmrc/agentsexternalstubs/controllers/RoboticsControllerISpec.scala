@@ -24,12 +24,8 @@ import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, EnrolmentKe
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.agentsexternalstubs.support._
 
-import scala.concurrent.duration._
-
 class RoboticsControllerISpec extends ServerBaseISpec with TestRequests with Eventually {
 
-  implicit override val patienceConfig: PatienceConfig =
-    PatienceConfig(timeout = 5.seconds, interval = 200.millis)
   lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
   lazy val knownFactsRepository: KnownFactsRepository = app.injector.instanceOf[KnownFactsRepository]
 
@@ -39,31 +35,28 @@ class RoboticsControllerISpec extends ServerBaseISpec with TestRequests with Eve
       implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
       val requestId = "REQ-2025-001234"
-
-      val payload: JsObject = Json
-        .parse(
-          s"""
-            |{
-            |  "requestData": {
-            |    "workflowData": {
-            |      "arguments": {
-            |        "type": "string",
-            |        "value": {
-            |          "requestId": "$requestId",
-            |          "targetSystem": "CESA",
-            |          "agentDetails": {
-            |            "address": {
-            |              "postcode": "AA1 1AA"
-            |            }
-            |          }
-            |        }
-            |      }
-            |    }
-            |  }
-            |}
-            |""".stripMargin
+      val operationData =
+        Json.stringify(
+          Json.obj(
+            "requestId"    -> requestId,
+            "targetSystem" -> "CESA",
+            "agentDetails" -> Json.obj(
+              "address" -> Json.obj(
+                "postcode" -> "AA1 1AA"
+              )
+            )
+          )
         )
-        .as[JsObject]
+      val payload: JsObject = Json.obj(
+        "requestData" -> Json.obj(
+          "workflowData" -> Json.obj(
+            "arguments" -> Json.obj(
+              "type"  -> "string",
+              "value" -> operationData
+            )
+          )
+        )
+      )
 
       val expectedAgentId =
         uk.gov.hmrc.agentsexternalstubs.models.GroupGenerator.agentId(requestId)
@@ -104,28 +97,27 @@ class RoboticsControllerISpec extends ServerBaseISpec with TestRequests with Eve
         SignIn.signInAndGetSession()
 
       val requestId = "REQ-CT-0001"
-
-      val payload = Json.parse(
-        s"""
-          |{
-          |  "requestData": {
-          |    "workflowData": {
-          |      "arguments": {
-          |        "type": "string",
-          |        "value": {
-          |          "requestId": "$requestId",
-          |          "targetSystem": "COTAX",
-          |          "agentDetails": {
-          |            "address": {
-          |              "postcode": "BB2 2BB"
-          |            }
-          |          }
-          |        }
-          |      }
-          |    }
-          |  }
-          |}
-          |""".stripMargin
+      val operationData =
+        Json.stringify(
+          Json.obj(
+            "requestId"    -> requestId,
+            "targetSystem" -> "COTAX",
+            "agentDetails" -> Json.obj(
+              "address" -> Json.obj(
+                "postcode" -> "BB2 2BB"
+              )
+            )
+          )
+        )
+      val payload: JsObject = Json.obj(
+        "requestData" -> Json.obj(
+          "workflowData" -> Json.obj(
+            "arguments" -> Json.obj(
+              "type"  -> "string",
+              "value" -> operationData
+            )
+          )
+        )
       )
 
       val agentId =

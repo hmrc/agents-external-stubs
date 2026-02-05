@@ -21,6 +21,7 @@ import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 
+import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -31,10 +32,12 @@ class RoboticsConnector @Inject() (httpClientV2: HttpClientV2, appConfig: AppCon
 
   private val callbackUrl: String = appConfig.agentServicesAccountUrl
   implicit val hc: HeaderCarrier = HeaderCarrier()
+  val correlationId = UUID.randomUUID().toString
 
   def sendCallback(payload: JsValue): Future[Unit] =
     httpClientV2
       .post(url"$callbackUrl/robotics/callback")
+      .setHeader("CorrelationId" -> correlationId)
       .withBody(payload)
       .execute[HttpResponse]
       .map(_ => ())

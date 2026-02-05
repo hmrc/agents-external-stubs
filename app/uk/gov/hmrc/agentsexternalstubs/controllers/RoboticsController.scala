@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsLookupResult, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents, Result}
 import uk.gov.hmrc.agentsexternalstubs.connectors.RoboticsConnector
 import uk.gov.hmrc.agentsexternalstubs.controllers.RoboticsController.{createKnownFacts, validateTargetSystem, workflowValue}
@@ -25,9 +25,11 @@ import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import org.apache.pekko.actor.{ActorSystem, Props, Scheduler}
 
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -36,7 +38,8 @@ class RoboticsController @Inject() (
   knownFactsRepository: KnownFactsRepository,
   cc: ControllerComponents,
   val authenticationService: AuthenticationService,
-  appConfig: AppConfig
+  appConfig: AppConfig,
+  actorSystem: ActorSystem
 )(implicit ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
@@ -47,7 +50,7 @@ class RoboticsController @Inject() (
           Future.successful(errorResult)
 
         case Right(targetSystem) =>
-          val workflow = workflowValue(request.body)
+          val workflow: JsValue = Json.parse(workflowValue(request.body).as[String])
           val requestId =
             (workflow \ "requestId").asOpt[String].getOrElse(UUID.randomUUID().toString)
 
@@ -57,26 +60,26 @@ class RoboticsController @Inject() (
           val agentId = GroupGenerator.agentId(requestId)
           val callbackDelay = appConfig.roboticsCallbackDelay
           val knownFactsDelay = appConfig.roboticsKnownFactsDelay
+          val requestReference = requestId.take(12).toUpperCase
 
-          val callbackPayload = Json.obj(
-            "targetSystem" -> targetSystem,
-            "agentId"      -> agentId,
-            "status"       -> "success"
+          val taskActor = actorSystem.actorOf(
+            Props(
+              new RoboticsTaskActor(
+                roboticsConnector,
+                knownFactsRepository,
+                agentId,
+                targetSystem,
+                postcode,
+                session.planetId,
+                callbackDelay,
+                knownFactsDelay,
+                actorSystem.scheduler,
+                requestReference
+              )
+            )
           )
 
-          Future {
-            Thread.sleep(callbackDelay)
-            roboticsConnector.sendCallback(callbackPayload)
-            Thread.sleep(knownFactsDelay)
-            createKnownFacts(agentId, targetSystem, postcode, session.planetId)
-              .map { kf =>
-                knownFactsRepository.upsert(
-                  KnownFacts.sanitize(kf.enrolmentKey.tag)(kf),
-                  session.planetId
-                )
-              }
-              .getOrElse(Future.unit)
-          }
+          actorSystem.scheduler.scheduleOnce(0.seconds, taskActor, Start)
 
           Future.successful(
             Ok(
@@ -91,35 +94,76 @@ class RoboticsController @Inject() (
   }
 }
 
-object RoboticsController extends HttpHelpers {
-  def validateTargetSystem(body: JsValue): Either[Result, String] =
-    (workflowValue(body) \ "targetSystem")
-      .asOpt[String] match {
+class RoboticsTaskActor(
+  roboticsConnector: RoboticsConnector,
+  knownFactsRepository: KnownFactsRepository,
+  agentId: String,
+  targetSystem: String,
+  postcode: String,
+  planetId: String,
+  callbackDelay: Int,
+  knownFactsDelay: Int,
+  scheduler: Scheduler,
+  requestReference: String
+)(implicit ec: ExecutionContext)
+    extends org.apache.pekko.actor.Actor with play.api.Logging {
 
-      case None =>
-        Left(
-          badRequest(
-            "MISSING_TARGET_SYSTEM",
-            "targetSystem is required"
+  def receive: PartialFunction[Any, Unit] = {
+    case Start =>
+      // Schedule callback after callbackDelay
+      scheduler.scheduleOnce(callbackDelay.millis, self, Callback)(ec)
+
+    case Callback =>
+      val callbackPayload = Json.obj(
+        "requestReference" -> requestReference,
+        "agentId"          -> agentId.take(5).toUpperCase,
+        "status"           -> "COMPLETED",
+        "regime"           -> targetSystem,
+        "timestamp"        -> java.time.Instant.now().toString
+      )
+      roboticsConnector.sendCallback(callbackPayload)
+      // Schedule known facts creation after knownFactsDelay
+      scheduler.scheduleOnce(knownFactsDelay.millis, self, CreateKnownFacts)(ec)
+
+    case CreateKnownFacts =>
+      createKnownFacts(agentId, targetSystem, postcode, planetId)
+        .foreach { kf =>
+          knownFactsRepository.upsert(
+            KnownFacts.sanitize(kf.enrolmentKey.tag)(kf),
+            planetId
           )
-        )
+        }
+  }
+}
+
+object RoboticsController extends HttpHelpers {
+  def validateTargetSystem(body: JsValue): Either[Result, String] = {
+    val workflow = Json.parse((workflowValue(body)).as[String])
+
+    (workflow \ "targetSystem").asOpt[String] match {
+      case None =>
+        Left(badRequest("MISSING_TARGET_SYSTEM", "targetSystem is required"))
 
       case Some(ts) if Set("CESA", "COTAX").contains(ts) =>
         Right(ts)
 
       case Some(ts) =>
-        Left(
-          badRequest(
-            "INVALID_TARGET_SYSTEM",
-            s"targetSystem '$ts' is not supported"
-          )
-        )
+        Left(badRequest("INVALID_TARGET_SYSTEM", s"targetSystem '$ts' is not supported"))
     }
+  }
 
-  private def workflowValue(body: JsValue) =
+  private def parseOperationData(body: JsValue): JsValue =
+    Json.parse((workflowValue(body)).as[String])
+
+  private def workflowValue(body: JsValue): JsLookupResult =
     body \ "requestData" \ "workflowData" \ "arguments" \ "value"
 
-  private def createKnownFacts(agentId: String, targetSystem: String, postcode: String, planetId: String) = {
+  private[controllers] def createKnownFacts(
+    agentId: String,
+    targetSystem: String,
+    postcode: String,
+    planetId: String
+  ) = {
     val enrolmentKey =
       targetSystem match {
         case "CESA"  => EnrolmentKey.from("IR-SA-AGENT", "IRAgentReference" -> agentId)
@@ -137,3 +181,8 @@ object RoboticsController extends HttpHelpers {
       )
   }
 }
+
+sealed trait RoboticsMessage
+case object Start extends RoboticsMessage
+case object Callback extends RoboticsMessage
+case object CreateKnownFacts extends RoboticsMessage
