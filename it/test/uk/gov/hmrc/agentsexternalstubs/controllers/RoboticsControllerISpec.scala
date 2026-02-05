@@ -16,15 +16,31 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
+import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatest.concurrent.Eventually
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, EnrolmentKey}
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
+import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
+import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 
-class RoboticsControllerISpec extends ServerBaseISpec with TestRequests with Eventually {
+class RoboticsControllerISpec
+    extends ServerBaseISpec with TestRequests with TestStubs with WireMockSupport with Eventually {
+
+  final override val playServer: TestPlayServer = new TestPlayServer {
+    override def configuration: Seq[(String, Any)] =
+      super.configuration ++ Seq(
+        "microservice.services.agent-services-account.host"     -> "localhost",
+        "microservice.services.agent-services-account.port"     -> wireMockPort,
+        "microservice.services.agent-services-account.protocol" -> "http",
+        "robotics.callback.delay"                               -> 0,
+        "robotics.known-facts.delay"                            -> 0
+      )
+  }
 
   lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
   lazy val knownFactsRepository: KnownFactsRepository = app.injector.instanceOf[KnownFactsRepository]
@@ -33,6 +49,13 @@ class RoboticsControllerISpec extends ServerBaseISpec with TestRequests with Eve
 
     "return 200 and create known facts for SA (CESA)" in {
       implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+      println(app.injector.instanceOf[AppConfig].agentServicesAccountUrl)
+      stubFor(
+        WireMock
+          .post(urlEqualTo("/robotics/callback"))
+          .willReturn(aResponse().withStatus(204))
+      )
 
       val requestId = "REQ-2025-001234"
       val operationData =
@@ -71,30 +94,26 @@ class RoboticsControllerISpec extends ServerBaseISpec with TestRequests with Eve
       val response = Robotics.invokeRobotics(payload)
 
       response should haveStatus(200)
-      println(response.json)
       (response.json \ "request_Id").as[String] shouldBe requestId
 
+      val requestReference = requestId.take(12).toUpperCase
+
       eventually {
-        val knownFacts =
-          await(
-            knownFactsRepository.findByEnrolmentKey(enrolmentKey, session.planetId)
-          )
+        verifyCallbackRequest(requestReference, "CESA")
 
-        knownFacts shouldBe defined
-        val kf = knownFacts.get
-
-        kf.verifiers.size should be > 0
-        val postcode = kf.verifiers
-          .find(_.key.equalsIgnoreCase("IRAGENTPOSTCODE"))
-          .map(_.value)
-
-        postcode shouldBe Some("AA1 1AA")
+        verifyKnownFacts(enrolmentKey, "IRAGENTPOSTCODE", "AA1 1AA", session.planetId)
       }
     }
 
     "return 200 and create known facts for CT (COTAX)" in {
       implicit val session: AuthenticatedSession =
         SignIn.signInAndGetSession()
+
+      stubFor(
+        WireMock
+          .post(urlEqualTo("/robotics/callback"))
+          .willReturn(aResponse().withStatus(204))
+      )
 
       val requestId = "REQ-CT-0001"
       val operationData =
@@ -134,22 +153,50 @@ class RoboticsControllerISpec extends ServerBaseISpec with TestRequests with Eve
 
       response should haveStatus(200)
 
+      val requestReference = requestId.take(12).toUpperCase
+
       eventually {
-        val knownFacts =
-          await(
-            knownFactsRepository.findByEnrolmentKey(enrolmentKey, session.planetId)
-          )
+        verifyCallbackRequest(requestReference, "COTAX")
 
-        knownFacts shouldBe defined
-        val kf = knownFacts.get
-
-        kf.verifiers.size should be > 0
-        val postcode = kf.verifiers
-          .find(_.key.equalsIgnoreCase("POSTCODE"))
-          .map(_.value)
-
-        postcode shouldBe Some("BB2 2BB")
+        verifyKnownFacts(enrolmentKey, "POSTCODE", "BB2 2BB", session.planetId)
       }
     }
+  }
+
+  private def verifyCallbackRequest(requestReference: String, regime: String): Unit =
+    WireMock.verify(
+      1,
+      postRequestedFor(urlPathEqualTo("/robotics/callback"))
+        .withRequestBody(
+          matchingJsonPath("$.requestReference", equalTo(requestReference))
+        )
+        .withRequestBody(
+          matchingJsonPath("$.status", equalTo("COMPLETED"))
+        )
+        .withRequestBody(
+          matchingJsonPath("$.regime", equalTo(regime))
+        )
+    )
+
+  private def verifyKnownFacts(
+    enrolmentKey: EnrolmentKey,
+    postCodeKey: String,
+    expectedPostcode: String,
+    planetId: String
+  ) = {
+    val knownFacts =
+      await(
+        knownFactsRepository.findByEnrolmentKey(enrolmentKey, planetId)
+      )
+
+    knownFacts shouldBe defined
+    val kf = knownFacts.get
+
+    kf.verifiers.size should be > 0
+    val postcode = kf.verifiers
+      .find(_.key.equalsIgnoreCase(postCodeKey))
+      .map(_.value)
+
+    postcode shouldBe Some(expectedPostcode)
   }
 }
