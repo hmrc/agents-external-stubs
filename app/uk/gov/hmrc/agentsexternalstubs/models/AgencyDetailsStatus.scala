@@ -104,6 +104,19 @@ object AgencyDetailsStatus {
       override val validate: Validator[A] = validateFor[A]
       override val sanitizers: Seq[Update] = Seq(seed => e => sanitizerFor(rebuild)(seed)(e))
     }
+
+  def toResponseField(prefix: String, statusOpt: Option[AgencyDetailsStatus]): JsObject =
+    statusOpt match {
+      case None =>
+        Json.obj()
+
+      case Some(s) =>
+        Json.obj(
+          s"${prefix}Status" -> s.status.value,
+          s"${prefix}LastUpdated" -> s.lastUpdated,
+          s"${prefix}LastSuccessfullyComplete" -> s.lastSuccessfullyCompleted
+        )
+    }
 }
 
 final case class UpdateDetailsStatus(
