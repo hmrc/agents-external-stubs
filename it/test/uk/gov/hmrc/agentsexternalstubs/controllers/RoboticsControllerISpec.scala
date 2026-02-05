@@ -26,7 +26,6 @@ import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, EnrolmentKe
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support._
-import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 
 class RoboticsControllerISpec
     extends ServerBaseISpec with TestRequests with TestStubs with WireMockSupport with Eventually {
@@ -70,11 +69,15 @@ class RoboticsControllerISpec
           )
         )
       val payload: JsObject = Json.obj(
-        "requestData" -> Json.obj(
-          "workflowData" -> Json.obj(
-            "arguments" -> Json.obj(
-              "type"  -> "string",
-              "value" -> operationData
+        "requestData" -> Json.arr(
+          Json.obj(
+            "workflowData" -> Json.obj(
+              "arguments" -> Json.arr(
+                Json.obj(
+                  "type"  -> "string",
+                  "value" -> operationData
+                )
+              )
             )
           )
         )
@@ -128,11 +131,15 @@ class RoboticsControllerISpec
           )
         )
       val payload: JsObject = Json.obj(
-        "requestData" -> Json.obj(
-          "workflowData" -> Json.obj(
-            "arguments" -> Json.obj(
-              "type"  -> "string",
-              "value" -> operationData
+        "requestData" -> Json.arr(
+          Json.obj(
+            "workflowData" -> Json.obj(
+              "arguments" -> Json.arr(
+                Json.obj(
+                  "type"  -> "string",
+                  "value" -> operationData
+                )
+              )
             )
           )
         )

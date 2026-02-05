@@ -27,15 +27,7 @@ class RoboticsControllerSpec extends BaseUnitSpec {
         Json.stringify(
           Json.obj("targetSystem" -> "CESA")
         )
-      val json = Json.obj(
-        "requestData" -> Json.obj(
-          "workflowData" -> Json.obj(
-            "arguments" -> Json.obj(
-              "value" -> operationData
-            )
-          )
-        )
-      )
+      val json = requestData(operationData)
 
       RoboticsController.validateTargetSystem(json) shouldBe Right("CESA")
     }
@@ -46,15 +38,7 @@ class RoboticsControllerSpec extends BaseUnitSpec {
           Json.obj("targetSystem" -> "COTAX")
         )
 
-      val json = Json.obj(
-        "requestData" -> Json.obj(
-          "workflowData" -> Json.obj(
-            "arguments" -> Json.obj(
-              "value" -> operationData
-            )
-          )
-        )
-      )
+      val json = requestData(operationData)
 
       RoboticsController.validateTargetSystem(json) shouldBe Right("COTAX")
     }
@@ -65,15 +49,7 @@ class RoboticsControllerSpec extends BaseUnitSpec {
           Json.obj("targetSystem" -> "")
         )
 
-      val json = Json.obj(
-        "requestData" -> Json.obj(
-          "workflowData" -> Json.obj(
-            "arguments" -> Json.obj(
-              "value" -> operationData
-            )
-          )
-        )
-      )
+      val json = requestData(operationData)
 
       val result = RoboticsController.validateTargetSystem(json)
       result.swap.getOrElse(fail("Expected Left")).header.status shouldBe 400
@@ -85,19 +61,25 @@ class RoboticsControllerSpec extends BaseUnitSpec {
           Json.obj("targetSystem" -> "INVALID")
         )
 
-      val json = Json.obj(
-        "requestData" -> Json.obj(
-          "workflowData" -> Json.obj(
-            "arguments" -> Json.obj(
-              "value" -> operationData
-            )
-          )
-        )
-      )
+      val json = requestData(operationData)
 
       val result = RoboticsController.validateTargetSystem(json)
       result.swap.getOrElse(fail("Expected Left")).header.status shouldBe 400
     }
   }
 
+  private def requestData(operationData: String) = Json.obj(
+    "requestData" -> Json.arr(
+      Json.obj(
+        "workflowData" -> Json.obj(
+          "arguments" -> Json.arr(
+            Json.obj(
+              "type" -> "string",
+              "value" -> operationData
+            )
+          )
+        )
+      )
+    )
+  )
 }

@@ -156,7 +156,7 @@ object RoboticsController extends HttpHelpers {
     Json.parse((workflowValue(body)).as[String])
 
   private def workflowValue(body: JsValue): JsLookupResult =
-    body \ "requestData" \ "workflowData" \ "arguments" \ "value"
+    body \ "requestData" \ 0 \ "workflowData" \ "arguments" \ 0 \ "value"
 
   private[controllers] def createKnownFacts(
     agentId: String,
