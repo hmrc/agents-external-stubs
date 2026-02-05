@@ -74,7 +74,7 @@ class RoboticsControllerSpec extends BaseUnitSpec {
         "workflowData" -> Json.obj(
           "arguments" -> Json.arr(
             Json.obj(
-              "type" -> "string",
+              "type"  -> "string",
               "value" -> operationData
             )
           )
