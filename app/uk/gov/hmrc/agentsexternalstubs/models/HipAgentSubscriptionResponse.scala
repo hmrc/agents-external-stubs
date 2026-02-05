@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import play.api.libs.json.{JsObject, Json, OFormat, OWrites}
+import play.api.libs.json.{JsObject, Json, OFormat, OWrites, Reads}
 
 case class HipAgentSubscriptionResponse(
   success: AgentSubscriptionDisplayResponse
@@ -52,7 +52,7 @@ case class AgentSubscriptionDisplayResponse(
 
 object AgentSubscriptionDisplayResponse {
 
-  implicit val reads: OFormat[AgentSubscriptionDisplayResponse] = Json.format[AgentSubscriptionDisplayResponse]
+  implicit val reads: Reads[AgentSubscriptionDisplayResponse] = Json.reads[AgentSubscriptionDisplayResponse]
   implicit val writes: OWrites[AgentSubscriptionDisplayResponse] = OWrites { s =>
     val base: JsObject =
       Json.obj(

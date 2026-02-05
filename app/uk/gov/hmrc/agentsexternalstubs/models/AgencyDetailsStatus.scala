@@ -70,6 +70,8 @@ sealed trait AgencyDetailsStatus {
 
 object AgencyDetailsStatus {
 
+  implicit val format: Format[AgencyDetailsStatus] = Json.format[AgencyDetailsStatus]
+
   private val validateDateTime: Validator[LocalDateTime] =
     Validator.check(_ => true, "Invalid LocalDateTime")
 
@@ -112,8 +114,8 @@ object AgencyDetailsStatus {
 
       case Some(s) =>
         Json.obj(
-          s"${prefix}Status" -> s.status.value,
-          s"${prefix}LastUpdated" -> s.lastUpdated,
+          s"${prefix}Status"                   -> s.status.value,
+          s"${prefix}LastUpdated"              -> s.lastUpdated,
           s"${prefix}LastSuccessfullyComplete" -> s.lastSuccessfullyCompleted
         )
     }
