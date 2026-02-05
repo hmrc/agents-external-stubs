@@ -50,7 +50,6 @@ class RoboticsControllerISpec
     "return 200 and create known facts for SA (CESA)" in {
       implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
-      println(app.injector.instanceOf[AppConfig].agentServicesAccountUrl)
       stubFor(
         WireMock
           .post(urlEqualTo("/robotics/callback"))
