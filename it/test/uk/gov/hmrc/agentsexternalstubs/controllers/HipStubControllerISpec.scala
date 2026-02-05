@@ -31,7 +31,7 @@ import uk.gov.hmrc.agentsexternalstubs.support._
 import java.time.{LocalDate, LocalDateTime}
 
 class HipStubControllerISpec
-  extends ServerBaseISpec with TestRequests with TestStubs with ExampleDesPayloads with WireMockSupport {
+    extends ServerBaseISpec with TestRequests with TestStubs with ExampleDesPayloads with WireMockSupport {
 
   lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
   lazy val repo: RecordsRepository = app.injector.instanceOf[RecordsRepository]
@@ -635,7 +635,6 @@ class HipStubControllerISpec
 
   }
 
-
   "HipStubController.getAgentSubscription" when {
     "all request parameters are valid" should {
       "return the agent subscription response with status 200" in {
@@ -647,7 +646,7 @@ class HipStubControllerISpec
           directorPartnerUpdateStatus,
           acceptNewTermsStatus,
           reriskStatus
-          ) = (
+        ) = (
           UpdateDetailsStatus(AgencyDetailsStatusValue.fromString("ACCEPTED")),
           AmlSupervisionUpdateStatus(AgencyDetailsStatusValue.fromString("ACCEPTED")),
           DirectorPartnerUpdateStatus(AgencyDetailsStatusValue.fromString("ACCEPTED")),
@@ -673,27 +672,33 @@ class HipStubControllerISpec
             countryCode = "GB"
           ),
           contactDetails = Some(BusinessPartnerRecord.ContactDetails()),
-          agencyDetails = Some(BusinessPartnerRecord
-            .AgencyDetails()
-            .withAgencyName(Option("ABC Agency"))
-            .withAgencyAddress(Some(BusinessPartnerRecord.UkAddress(
-              "1 Agency Street",
-              None,
-              None,
-              None,
-              "NE1 1DE",
-              "GB"
-            )))
-            .withAgencyEmail(Some("abc@test.com"))
-            .withAgencyTelephoneNumber (Some("01911234567"))
-            .withSupervisoryBody (Some("HMRC"))
-            .withMembershipNumber (Some("1234567890"))
-            .withEvidenceObjectReference (Some("1234e4567-e89b-12d3-a456-426614174000"))
-            .withUpdateDetailsStatus(Some(updateDetailsStatus))
-            .withAmlSupervisionUpdateStatus(Some(amlSupervisionUpdateStatus))
-            .withDirectorPartnerUpdateStatus(Some(directorPartnerUpdateStatus))
-            .withAcceptNewTermsStatus(Some(acceptNewTermsStatus))
-            .withReriskStatus(Some(reriskStatus))),
+          agencyDetails = Some(
+            BusinessPartnerRecord
+              .AgencyDetails()
+              .withAgencyName(Option("ABC Agency"))
+              .withAgencyAddress(
+                Some(
+                  BusinessPartnerRecord.UkAddress(
+                    "1 Agency Street",
+                    None,
+                    None,
+                    None,
+                    "NE1 1DE",
+                    "GB"
+                  )
+                )
+              )
+              .withAgencyEmail(Some("abc@test.com"))
+              .withAgencyTelephoneNumber(Some("01911234567"))
+              .withSupervisoryBody(Some("HMRC"))
+              .withMembershipNumber(Some("1234567890"))
+              .withEvidenceObjectReference(Some("1234e4567-e89b-12d3-a456-426614174000"))
+              .withUpdateDetailsStatus(Some(updateDetailsStatus))
+              .withAmlSupervisionUpdateStatus(Some(amlSupervisionUpdateStatus))
+              .withDirectorPartnerUpdateStatus(Some(directorPartnerUpdateStatus))
+              .withAcceptNewTermsStatus(Some(acceptNewTermsStatus))
+              .withReriskStatus(Some(reriskStatus))
+          ),
           suspensionDetails = Some(SuspensionDetails(false, None)),
           id = None
         )
@@ -708,7 +713,6 @@ class HipStubControllerISpec
       }
     }
   }
-
 
   "HipStubController.createAgentSubscription" when {
 
