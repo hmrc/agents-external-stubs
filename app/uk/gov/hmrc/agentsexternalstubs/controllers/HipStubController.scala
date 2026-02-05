@@ -133,7 +133,7 @@ class HipStubController @Inject() (
                 .map {
                   case Some(record) if agentIsSuspendedForSubscription(record) =>
                     Results.UnprocessableEntity(Json.toJson(Errors("058", "Agent is terminated")))
-                  case Some(record) => Ok(Json.toJson(record))
+                  case Some(record) => Ok(Json.toJson(convertToGetAgentSubscriptionResponse(record)))
                   case None         => Results.UnprocessableEntity(Json.toJson(Errors("006", "Subscription Data Not Found")))
                 }
                 .recover { case e =>
@@ -145,6 +145,43 @@ class HipStubController @Inject() (
           }
       }
     }(SessionRecordNotFound)
+  }
+
+  private def convertToGetAgentSubscriptionResponse(record: BusinessPartnerRecord): HipAgentSubscriptionResponse = {
+    val (addr1, addr2, addr3, addr4, postcode, country) = record.agencyDetails.flatMap(x => x.agencyAddress match {
+      case BusinessPartnerRecord.UkAddress(l1, l2, l3, l4, pc, cc) =>
+        (l1, l2, l3, Some(l4), Some(pc), cc)
+      case BusinessPartnerRecord.ForeignAddress(l1, l2, l3, l4, pc, cc) =>
+        (l1, Some(l2), Some(l3), Some(l4), None, cc)
+      case _ => ("", None, None, None, None, "")
+    }
+    )
+
+    HipAgentSubscriptionResponse(
+      AgentSubscriptionDisplayResponse(
+        processingDate = LocalDateTime.now().toString,
+        utr = record.utr,
+        name = record.agencyDetails.flatMap(_.agencyName).getOrElse(""),
+        addr1 = addr1,
+        addr2 = addr2,
+        addr3 = addr3,
+        addr4 = addr4,
+        postcode = postcode,
+        country = country,
+        phone = record.agencyDetails.flatMap(_.agencyTelephone).getOrElse(""),
+        email = record.agencyDetails.flatMap(_.agencyEmail).getOrElse(""),
+        suspensionStatus = if (record.suspensionDetails.exists(_.suspensionStatus)) "T" else "F",
+        regime = record.suspensionDetails.map(_.suspendedRegimes).getOrElse(Seq.empty),
+        supervisoryBody = record.agencyDetails.flatMap(_.supervisoryBody).getOrElse(""),
+        membershipNumber = record.agencyDetails.flatMap(_.membershipNumber).getOrElse(""),
+        evidenceObjectReference = None,
+        updateDetailsStatus = None,
+        amlSupervisionUpdateStatus = None,
+        directorPartnerUpdateStatus = None,
+        acceptNewTermsStatus = None,
+        reriskStatus = None
+      )
+    )
   }
 
   def updateAgentRelationship: Action[JsValue] = Action(parse.json).async { implicit request =>
