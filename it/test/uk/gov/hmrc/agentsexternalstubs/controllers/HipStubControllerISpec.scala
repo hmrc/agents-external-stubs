@@ -17,6 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.http.Status._
+import play.api.libs.json.JsObject
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.AgencyDetails
@@ -654,10 +655,15 @@ class HipStubControllerISpec
           ReriskStatus(AgencyDetailsStatusValue.fromString("ACCEPTED"))
         )
 
+        val safeId = "XA0000123456789"
+
+        val arn = Generator.arn(safeId)
+
         val existingRecord = BusinessPartnerRecord(
           businessPartnerExists = true,
           safeId = "XA0000123456789",
-          agentReferenceNumber = Some("ZARN1234567"),
+          utr = Some("1234567890"),
+          agentReferenceNumber = Some(arn.value),
           isAnAgent = true,
           isAnASAgent = true,
           isAnIndividual = true,
@@ -706,10 +712,20 @@ class HipStubControllerISpec
         await(repo.store(existingRecord, session.planetId))
 
         val result = HipStub.getSubscription(
-          arn = "ZARN1234567"
+          arn = arn.value
         )
 
-        println(result)
+        result should haveStatus(OK)
+
+        result should haveValidJsonBody(
+          haveProperty[JsObject]("success", not be empty))
+
+        val json = result.json
+
+        (json \ "success" \ "processingDate").as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
+        (json \ "success" \ "name").as[String] should be("ABC Agency")
+
+        println(json)
       }
     }
 
