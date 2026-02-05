@@ -134,7 +134,7 @@ class HipStubController @Inject() (
                   case Some(record) if agentIsSuspendedForSubscription(record) =>
                     Results.UnprocessableEntity(Json.toJson(Errors("058", "Agent is terminated")))
                   case Some(record) => Ok(Json.toJson(record))
-                  case None         => Results.UnprocessableEntity(Json.toJson(Errors("006", "Subscription Data Not Found ")))
+                  case None         => Results.UnprocessableEntity(Json.toJson(Errors("006", "Subscription Data Not Found")))
                 }
                 .recover { case e =>
                   logger.error("Incomplete subscription", e)
