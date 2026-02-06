@@ -20,7 +20,7 @@ import play.api.libs.json.{JsLookupResult, JsUndefined, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents, Request, Result}
 import uk.gov.hmrc.agentsexternalstubs.connectors.RoboticsConnector
 import uk.gov.hmrc.agentsexternalstubs.controllers.RoboticsController.{createKnownFacts, validateRequest}
-import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, GroupGenerator, KnownFacts, RoboticsRequest}
+import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, Generator, GroupGenerator, KnownFacts, RoboticsRequest, Services}
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
@@ -50,7 +50,29 @@ class RoboticsController @Inject() (
           Future.successful(errorResult)
 
         case Right(req) =>
-          val agentId = GroupGenerator.agentId(req.requestId)
+          val enrolment: EnrolmentKey = {
+
+            def fail(msg: String): Nothing = throw new RuntimeException(msg)
+
+            val service = req.targetSystem match {
+              case "CESA" => Services("IR-SA-AGENT").toRight("Service IR-SA-AGENT not found")
+              case "COTAX" => Services("IR-CT-AGENT").toRight("Service IR-CT-AGENT not found")
+            }
+
+            val result: Either[String, EnrolmentKey] = for {
+              s <- service
+              idf <- s.identifiers.headOption.toRight(s"No identifiers found for service ${s.name}")
+              value <- Generator.get(idf.valueGenerator)(session.userId).toRight(
+                s"Generator failed for valueGenerator ${idf.valueGenerator}"
+              )
+            } yield EnrolmentKey.from(s.name, idf.name -> value)
+
+            result.fold(msg => fail(s"Failed to create enrolment: $msg"), identity)
+          }
+
+
+          val agentId = enrolment.identifiers.head.value
+
           val callbackDelay = appConfig.roboticsCallbackDelay
           val knownFactsDelay = appConfig.roboticsKnownFactsDelay
 
@@ -62,6 +84,7 @@ class RoboticsController @Inject() (
                 roboticsConnector,
                 knownFactsRepository,
                 agentId,
+                enrolment,
                 req.targetSystem,
                 req.postcode,
                 session.planetId,
@@ -93,6 +116,7 @@ class RoboticsTaskActor(
   roboticsConnector: RoboticsConnector,
   knownFactsRepository: KnownFactsRepository,
   agentId: String,
+  enrolmentKey: EnrolmentKey,
   targetSystem: String,
   postcode: String,
   planetId: String,
@@ -130,7 +154,7 @@ class RoboticsTaskActor(
       scheduler.scheduleOnce(knownFactsDelay.millis, self, CreateKnownFacts)(ec)
 
     case CreateKnownFacts =>
-      createKnownFacts(agentId, targetSystem, postcode)
+      createKnownFacts(enrolmentKey, postcode)
         .foreach { kf =>
           knownFactsRepository.upsert(
             KnownFacts.sanitize(kf.enrolmentKey.tag)(kf),
@@ -155,20 +179,15 @@ object RoboticsController extends HttpHelpers {
     }
 
   private[controllers] def createKnownFacts(
-    agentId: String,
-    targetSystem: String,
+    enrolmentKey: EnrolmentKey,
     postcode: String
   ) = {
-    val enrolmentKey =
-      targetSystem match {
-        case "CESA"  => EnrolmentKey.from("IR-SA-AGENT", "IRAgentReference" -> agentId)
-        case "COTAX" => EnrolmentKey.from("IR-CT-AGENT", "IRAgentReference" -> agentId)
-      }
+
 
     KnownFacts
       .generate(
         enrolmentKey,
-        agentId,
+        enrolmentKey.identifiers.head.value,
         {
           case "IRAgentPostcode" | "Postcode" => Some(postcode)
           case _                              => None

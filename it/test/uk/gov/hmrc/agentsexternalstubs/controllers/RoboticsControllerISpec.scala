@@ -20,7 +20,7 @@ import org.scalatest.concurrent.Eventually
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, EnrolmentKey}
+import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, EnrolmentKey, Generator, Services}
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.agentsexternalstubs.support._
 
@@ -67,8 +67,24 @@ class RoboticsControllerISpec extends ServerBaseISpec with TestRequests with Eve
           )
         )
 
-        val expectedAgentId = uk.gov.hmrc.agentsexternalstubs.models.GroupGenerator.agentId(requestId)
-        val enrolmentKey = EnrolmentKey.from(enrolmentPrefix, "IRAgentReference" -> expectedAgentId)
+        val serviceName =
+          if (targetSystem == "CESA") "IR-SA-AGENT" else "IR-CT-AGENT"
+
+        val service =
+          Services(serviceName).getOrElse(
+            fail(s"Service $serviceName not found")
+          )
+
+        val identifier =
+          service.identifiers.headOption.getOrElse(
+            fail(s"No identifiers for service $serviceName")
+          )
+
+        val generatedValue =
+          Generator.get(identifier.valueGenerator)(session.userId)
+            .getOrElse(fail("Generator failed"))
+
+        val enrolmentKey = EnrolmentKey.from(service.name, identifier.name -> generatedValue)
 
         // Ensure no known facts exist yet
         await(knownFactsRepository.findByEnrolmentKey(enrolmentKey, session.planetId)).size shouldBe 0
