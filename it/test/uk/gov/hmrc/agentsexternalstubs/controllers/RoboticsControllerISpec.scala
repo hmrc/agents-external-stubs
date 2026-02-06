@@ -75,7 +75,7 @@ class RoboticsControllerISpec extends ServerBaseISpec with TestRequests with Eve
 
         val response = Robotics.invokeRobotics(payload)
         response should haveStatus(200)
-        (response.json \ "request_Id").as[String] shouldBe requestId
+        (response.json \ "requestId").as[String] shouldBe requestId
 
         // Verify known facts creation
         eventually {

@@ -1081,8 +1081,17 @@ trait TestRequests extends ScalaFutures {
 
   object Robotics {
     def invokeRobotics[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
-      post("/RTServer/rest/nice/rti/ra/invocation", payload)
-
+      wsClient
+        .url(s"$url/RTServer/rest/nice/rti/ra/invocation")
+        .withHttpHeaders(
+          authContext.headers ++
+            Seq(
+              "correlationId" -> Some("it-test-invoke-robotics-correlation-id")
+            ).collect { case (name, Some(value: String)) =>
+              (name, value)
+            }: _*)
+        .post[T](payload)
+        .futureValue
   }
 
 }

@@ -16,11 +16,11 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import play.api.libs.json.{JsLookupResult, JsValue, Json}
-import play.api.mvc.{Action, ControllerComponents, Result}
+import play.api.libs.json.{JsLookupResult, JsUndefined, JsValue, Json}
+import play.api.mvc.{Action, ControllerComponents, Request, Result}
 import uk.gov.hmrc.agentsexternalstubs.connectors.RoboticsConnector
-import uk.gov.hmrc.agentsexternalstubs.controllers.RoboticsController.{createKnownFacts, validateTargetSystem, workflowValue}
-import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, GroupGenerator, KnownFacts}
+import uk.gov.hmrc.agentsexternalstubs.controllers.RoboticsController.{createKnownFacts, validateRequest}
+import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, GroupGenerator, KnownFacts, RoboticsRequest}
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
@@ -45,22 +45,16 @@ class RoboticsController @Inject() (
 
   def invoke: Action[JsValue] = Action.async(parse.json) { implicit request =>
     withCurrentSession { session =>
-      validateTargetSystem(request.body) match {
+      validateRequest(request) match {
         case Left(errorResult) =>
           Future.successful(errorResult)
 
-        case Right(targetSystem) =>
-          val workflow: JsValue = Json.parse(workflowValue(request.body).as[String])
-          val requestId = (workflow \ "requestId").asOpt[String].getOrElse(UUID.randomUUID().toString)
-          val postcode = (workflow \ "postcode").as[String]
-          val operationRequired = (workflow \ "operationRequired").as[String]
-
-          val agentId = GroupGenerator.agentId(requestId)
+        case Right(req) =>
+          val agentId = GroupGenerator.agentId(req.requestId)
           val callbackDelay = appConfig.roboticsCallbackDelay
           val knownFactsDelay = appConfig.roboticsKnownFactsDelay
 
-          // Extract correlationId from incoming request headers
-          val correlationId = request.headers.get("CorrelationId").getOrElse(UUID.randomUUID().toString)
+          val correlationId = request.headers.get("correlationId").getOrElse(UUID.randomUUID().toString)
 
           val taskActor = actorSystem.actorOf(
             Props(
@@ -68,13 +62,13 @@ class RoboticsController @Inject() (
                 roboticsConnector,
                 knownFactsRepository,
                 agentId,
-                targetSystem,
-                postcode,
+                req.targetSystem,
+                req.postcode,
                 session.planetId,
                 callbackDelay,
                 knownFactsDelay,
                 actorSystem.scheduler,
-                operationRequired,
+                req.operationRequired,
                 correlationId
               )
             )
@@ -85,8 +79,8 @@ class RoboticsController @Inject() (
           Future.successful(
             Ok(
               Json.obj(
-                "message"    -> "success",
-                "request_Id" -> requestId
+                "message"   -> "success",
+                "requestId" -> req.requestId
               )
             )
           )
@@ -147,23 +141,18 @@ class RoboticsTaskActor(
 }
 
 object RoboticsController extends HttpHelpers {
-  def validateTargetSystem(body: JsValue): Either[Result, String] = {
-    val workflow = Json.parse((workflowValue(body)).as[String])
-
-    (workflow \ "targetSystem").asOpt[String] match {
-      case None =>
-        Left(badRequest("MISSING_TARGET_SYSTEM", "targetSystem is required"))
-
-      case Some(ts) if Set("CESA", "COTAX").contains(ts) =>
-        Right(ts)
-
-      case Some(ts) =>
-        Left(badRequest("INVALID_TARGET_SYSTEM", s"targetSystem '$ts' is not supported"))
-    }
-  }
-
   private def workflowValue(body: JsValue): JsLookupResult =
-    body \ "requestData" \ 0 \ "workflowData" \ "arguments" \ 0 \ "value"
+    (body \ "requestData").asOpt[Seq[JsValue]] match {
+      case Some(items) =>
+        items
+          .collectFirst {
+            case item if (item \ "workflowData" \ "arguments").asOpt[Seq[JsValue]].exists(_.nonEmpty) =>
+              item \ "workflowData" \ "arguments" \ 0 \ "value"
+          }
+          .getOrElse(JsUndefined("workflowData.arguments[0] not found"))
+      case None =>
+        JsUndefined("requestData array not found")
+    }
 
   private[controllers] def createKnownFacts(
     agentId: String,
@@ -186,6 +175,55 @@ object RoboticsController extends HttpHelpers {
         }
       )
   }
+
+  def validateRequest(request: Request[JsValue]): Either[Result, RoboticsRequest] = {
+    val workflowJson =
+      workflowValue(request.body)
+        .asOpt[String]
+        .toRight(badRequest("INVALID_PAYLOAD", "workflowData is missing"))
+        .flatMap { s =>
+          scala.util
+            .Try(Json.parse(s))
+            .toEither
+            .left
+            .map(_ => badRequest("INVALID_JSON", "workflowData is not valid JSON"))
+        }
+
+    workflowJson.flatMap { workflow =>
+      for {
+        targetSystem <- (workflow \ "targetSystem")
+                          .asOpt[String]
+                          .toRight(badRequest("MISSING_TARGET_SYSTEM", "targetSystem is required"))
+                          .flatMap {
+                            case ts @ ("CESA" | "COTAX") => Right(ts)
+                            case ts                      => Left(badRequest("INVALID_TARGET_SYSTEM", s"targetSystem '$ts' is not supported"))
+                          }
+
+        postcode <- (workflow \ "postcode")
+                      .asOpt[String]
+                      .toRight(badRequest("MISSING_POSTCODE", "postcode is required"))
+
+        operationRequired <- (workflow \ "operationRequired")
+                               .asOpt[String]
+                               .toRight(badRequest("MISSING_OPERATION", "operationRequired is required"))
+
+        requestId =
+          (workflow \ "requestId").asOpt[String].getOrElse(UUID.randomUUID().toString)
+
+        correlationId <- request.headers
+                           .get("correlationId")
+                           .toRight(badRequest("MISSING_CORRELATION_ID", "CorrelationId header is required"))
+
+      } yield RoboticsRequest(
+        targetSystem,
+        postcode,
+        operationRequired,
+        requestId,
+        correlationId
+      )
+    }
+  }
+
 }
 
 sealed trait RoboticsMessage
