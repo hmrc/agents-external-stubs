@@ -32,7 +32,7 @@ abstract class ServerBaseISpec
     interval = scaled(Span(150, Millis))
   )
 
-  val playServer: TestPlayServer = TestPlayServer
+  def playServer: TestPlayServer = TestPlayServer
   def port: Int = playServer.port
   def wireMockPort: Int = playServer.wireMockPort
 
@@ -41,9 +41,9 @@ abstract class ServerBaseISpec
     playServer.run()
   }
 
-  override lazy val app: Application = playServer.app
+  override def app: Application = playServer.app
 
-  val url = s"http://localhost:$port"
+  def url = s"http://localhost:$port"
 
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.global
 
