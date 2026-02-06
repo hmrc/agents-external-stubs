@@ -722,7 +722,14 @@ class HipStubControllerISpec
         val json = result.json
 
         (json \ "success" \ "processingDate").as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
+        (json \ "success" \ "utr").as[String] should be("1234567890")
         (json \ "success" \ "name").as[String] should be("ABC Agency")
+        (json \ "success" \ "addr1").as[String] should be("10 New Street")
+//        (json \ "success" \ "addr2").as[String] should be(None)
+//        (json \ "success" \ "addr3").as[String] should be(None)
+//        (json \ "success" \ "addr4").as[String] should be(None)
+        (json \ "success" \ "postcode").as[String] should be("AA11AA")
+        (json \ "success" \ "country").as[String] should be("GB")
 
         println(json)
       }
@@ -823,14 +830,100 @@ class HipStubControllerISpec
     }
 
     "business partner record does not exist" should {
-      "return 422 ARN Not found" in {
+      "return 422 Subscription Data Not Found" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
-        val arn = "ZARN1234567"
+        val safeId = "XA0000123456789"
+
+        val arn = Generator.arn(safeId)
 
         val result =
           HipStub.getSubscription(
-            arn = arn
+            arn = arn.value
+          )
+
+        result should haveStatus(UNPROCESSABLE_ENTITY)
+        result.json.toString should include("""code":"006","text":"Subscription Data Not Found""")
+      }
+    }
+
+    "if it's not an ASA agent" should {
+      "return 422 unprocessable entity" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val (
+          updateDetailsStatus,
+          amlSupervisionUpdateStatus,
+          directorPartnerUpdateStatus,
+          acceptNewTermsStatus,
+          reriskStatus
+        ) = (
+          UpdateDetailsStatus(AgencyDetailsStatusValue.fromString("ACCEPTED")),
+          AmlSupervisionUpdateStatus(AgencyDetailsStatusValue.fromString("ACCEPTED")),
+          DirectorPartnerUpdateStatus(AgencyDetailsStatusValue.fromString("ACCEPTED")),
+          AcceptNewTermsStatus(AgencyDetailsStatusValue.fromString("ACCEPTED")),
+          ReriskStatus(AgencyDetailsStatusValue.fromString("ACCEPTED"))
+        )
+
+        val safeId = "XA0000123456789"
+
+        val arn = Generator.arn(safeId)
+
+        val existingRecord = BusinessPartnerRecord(
+          businessPartnerExists = true,
+          safeId = "XA0000123456789",
+          utr = Some("1234567890"),
+          agentReferenceNumber = Some(arn.value),
+          isAnAgent = true,
+          isAnASAgent = false,
+          isAnIndividual = true,
+          individual = Some(BusinessPartnerRecord.Individual("Bill", None, "Jones", "1990-01-01")),
+          organisation = None,
+          addressDetails = BusinessPartnerRecord.UkAddress(
+            addressLine1 = "10 New Street",
+            addressLine2 = None,
+            addressLine3 = None,
+            addressLine4 = None,
+            postalCode = "AA11AA",
+            countryCode = "GB"
+          ),
+          contactDetails = Some(BusinessPartnerRecord.ContactDetails()),
+          agencyDetails = Some(
+            BusinessPartnerRecord
+              .AgencyDetails()
+              .withAgencyName(Option("ABC Agency"))
+              .withAgencyAddress(
+                Some(
+                  BusinessPartnerRecord.UkAddress(
+                    "1 Agency Street",
+                    None,
+                    None,
+                    None,
+                    "NE1 1DE",
+                    "GB"
+                  )
+                )
+              )
+              .withAgencyEmail(Some("abc@test.com"))
+              .withAgencyTelephoneNumber(Some("01911234567"))
+              .withSupervisoryBody(Some("HMRC"))
+              .withMembershipNumber(Some("1234567890"))
+              .withEvidenceObjectReference(Some("1234e4567-e89b-12d3-a456-426614174000"))
+              .withUpdateDetailsStatus(Some(updateDetailsStatus))
+              .withAmlSupervisionUpdateStatus(Some(amlSupervisionUpdateStatus))
+              .withDirectorPartnerUpdateStatus(Some(directorPartnerUpdateStatus))
+              .withAcceptNewTermsStatus(Some(acceptNewTermsStatus))
+              .withReriskStatus(Some(reriskStatus))
+          ),
+          suspensionDetails = Some(SuspensionDetails(false, None)),
+          id = None
+        )
+
+        await(repo.store(existingRecord, session.planetId))
+
+        val result =
+          HipStub.getSubscription(
+            arn = arn.value
           )
 
         result should haveStatus(UNPROCESSABLE_ENTITY)
@@ -856,10 +949,15 @@ class HipStubControllerISpec
           ReriskStatus(AgencyDetailsStatusValue.fromString("ACCEPTED"))
         )
 
+        val safeId = "XA0000123456789"
+
+        val arn = Generator.arn(safeId)
+
         val existingRecord = BusinessPartnerRecord(
           businessPartnerExists = true,
           safeId = "XA0000123456789",
-          agentReferenceNumber = Some("ZARN1234567"),
+          utr = Some("1234567890"),
+          agentReferenceNumber = Some(arn.value),
           isAnAgent = true,
           isAnASAgent = true,
           isAnIndividual = true,
@@ -908,10 +1006,8 @@ class HipStubControllerISpec
         await(repo.store(existingRecord, session.planetId))
 
         val result = HipStub.getSubscription(
-          arn = "ZARN1234567"
+          arn = arn.value
         )
-
-        println(result)
 
         result should haveStatus(UNPROCESSABLE_ENTITY)
         result.json.toString should include("""code":"058","text":"Agent is terminated""")
@@ -920,20 +1016,17 @@ class HipStubControllerISpec
     }
 
     "there is no session" should {
-      "return the agent subscription response with status 200" in {
-        "return an unauthorized error" in {
-          val arn = "ZARN1234567"
+      "return an unauthorized error" in {
+        val arn = "ZARN1234567"
 
-          val result =
-            wsClient
-              .url(s"$url/etmp/RESTAdapter/generic/agent/subscription/$arn")
-              .get()
-              .futureValue
+        val result =
+          wsClient
+            .url(s"$url/etmp/RESTAdapter/generic/agent/subscription/$arn")
+            .get()
+            .futureValue
 
-          result should haveStatus(UNAUTHORIZED)
-          result.json.toString should include("""{"code":"UNAUTHORIZED","reason":"SessionRecordNotFound"}""")
-        }
-
+        result should haveStatus(UNAUTHORIZED)
+        result.json.toString should include("""{"code":"UNAUTHORIZED","reason":"SessionRecordNotFound"}""")
       }
     }
 

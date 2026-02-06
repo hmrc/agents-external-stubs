@@ -20,8 +20,7 @@ import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.GetRelationships
-import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.AgencyDetails.AgencyAddress
-import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{AgencyDetails, ForeignAddress, UkAddress}
+import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{ForeignAddress, UkAddress}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
