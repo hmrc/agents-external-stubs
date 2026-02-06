@@ -16,9 +16,10 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import play.api.libs.json.{JsObject, Json, OFormat, OWrites, Reads}
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
+import play.api.libs.json._
 
-case class HipAgentSubscriptionResponse(
+final case class HipAgentSubscriptionResponse(
   success: AgentSubscriptionDisplayResponse
 )
 
@@ -26,7 +27,7 @@ object HipAgentSubscriptionResponse {
   implicit val format: OFormat[HipAgentSubscriptionResponse] = Json.format[HipAgentSubscriptionResponse]
 }
 
-case class AgentSubscriptionDisplayResponse(
+final case class AgentSubscriptionDisplayResponse(
   processingDate: String,
   utr: Option[String],
   name: String,
@@ -39,49 +40,127 @@ case class AgentSubscriptionDisplayResponse(
   phone: Option[String],
   email: String,
   suspensionStatus: String,
-  regime: Seq[String],
+  regime: Option[Seq[String]],
   supervisoryBody: Option[String],
   membershipNumber: Option[String],
   evidenceObjectReference: Option[String],
-  updateDetailsStatus: Option[AgencyDetailsStatus],
-  amlSupervisionUpdateStatus: Option[AgencyDetailsStatus],
-  directorPartnerUpdateStatus: Option[AgencyDetailsStatus],
-  acceptNewTermsStatus: Option[AgencyDetailsStatus],
-  reriskStatus: Option[AgencyDetailsStatus]
+  updateDetailsStatus: AgencyDetailsStatus,
+  amlSupervisionUpdateStatus: AgencyDetailsStatus,
+  directorPartnerUpdateStatus: AgencyDetailsStatus,
+  acceptNewTermsStatus: AgencyDetailsStatus,
+  reriskStatus: AgencyDetailsStatus
 )
 
 object AgentSubscriptionDisplayResponse {
 
-  implicit val reads: Reads[AgentSubscriptionDisplayResponse] = Json.reads[AgentSubscriptionDisplayResponse]
-  implicit val writes: OWrites[AgentSubscriptionDisplayResponse] = OWrites { s =>
-    val base: JsObject =
-      Json.obj(
-        "processingDate"   -> s.processingDate,
-        "name"             -> s.name,
-        "addr1"            -> s.addr1,
-        "country"          -> s.country,
-        "email"            -> s.email,
-        "suspensionStatus" -> s.suspensionStatus
-      ) ++
-        Json.obj(
-          "utr"                     -> s.utr,
-          "addr2"                   -> s.addr2,
-          "addr3"                   -> s.addr3,
-          "addr4"                   -> s.addr4,
-          "postcode"                -> s.postcode,
-          "phone"                   -> s.phone,
-          "supervisoryBody"         -> s.supervisoryBody,
-          "membershipNumber"        -> s.membershipNumber,
-          "evidenceObjectReference" -> s.evidenceObjectReference
-        ) ++
-        Json.obj("regime" -> s.regime)
+  private final case class BasePart(
+    processingDate: String,
+    utr: Option[String],
+    name: String,
+    addr1: String,
+    addr2: Option[String],
+    addr3: Option[String],
+    addr4: Option[String],
+    postcode: Option[String],
+    country: String,
+    phone: Option[String],
+    email: String,
+    suspensionStatus: String,
+    regime: Option[Seq[String]],
+    supervisoryBody: Option[String],
+    membershipNumber: Option[String],
+    evidenceObjectReference: Option[String]
+  )
 
-    base ++
-      AgencyDetailsStatus.toResponseField("updateDetails", s.updateDetailsStatus) ++
-      AgencyDetailsStatus.toResponseField("amlSupervisionUpdate", s.amlSupervisionUpdateStatus) ++
-      AgencyDetailsStatus.toResponseField("directorPartnerUpdate", s.directorPartnerUpdateStatus) ++
-      AgencyDetailsStatus.toResponseField("acceptNewTerms", s.acceptNewTermsStatus) ++
-      AgencyDetailsStatus.toResponseField("rerisk", s.reriskStatus)
+  private object BasePart {
+    implicit val format: OFormat[BasePart] = Json.format[BasePart]
+  }
+
+  private final case class StatusPart(
+    updateDetailsStatus: AgencyDetailsStatus,
+    amlSupervisionUpdateStatus: AgencyDetailsStatus,
+    directorPartnerUpdateStatus: AgencyDetailsStatus,
+    acceptNewTermsStatus: AgencyDetailsStatus,
+    reriskStatus: AgencyDetailsStatus
+  )
+
+  private object StatusPart {
+
+    implicit val reads: Reads[StatusPart] =
+      (
+        AgencyDetailsStatus.fromResponseField("updateDetails") and
+          AgencyDetailsStatus.fromResponseField("amlSupervisionUpdate") and
+          AgencyDetailsStatus.fromResponseField("directorPartnerUpdate") and
+          AgencyDetailsStatus.fromResponseField("acceptNewTerms") and
+          AgencyDetailsStatus.fromResponseField("rerisk")
+      )(StatusPart.apply _)
+
+    implicit val writes: OWrites[StatusPart] = OWrites { s =>
+      Json.obj() ++
+        AgencyDetailsStatus.toResponseField("updateDetails", s.updateDetailsStatus) ++
+        AgencyDetailsStatus.toResponseField("amlSupervisionUpdate", s.amlSupervisionUpdateStatus) ++
+        AgencyDetailsStatus.toResponseField("directorPartnerUpdate", s.directorPartnerUpdateStatus) ++
+        AgencyDetailsStatus.toResponseField("acceptNewTerms", s.acceptNewTermsStatus) ++
+        AgencyDetailsStatus.toResponseField("rerisk", s.reriskStatus)
+    }
+  }
+
+  implicit val reads: Reads[AgentSubscriptionDisplayResponse] =
+    (implicitly[Reads[BasePart]] and implicitly[Reads[StatusPart]]).apply { (b, st) =>
+      AgentSubscriptionDisplayResponse(
+        processingDate = b.processingDate,
+        utr = b.utr,
+        name = b.name,
+        addr1 = b.addr1,
+        addr2 = b.addr2,
+        addr3 = b.addr3,
+        addr4 = b.addr4,
+        postcode = b.postcode,
+        country = b.country,
+        phone = b.phone,
+        email = b.email,
+        suspensionStatus = b.suspensionStatus,
+        regime = b.regime,
+        supervisoryBody = b.supervisoryBody,
+        membershipNumber = b.membershipNumber,
+        evidenceObjectReference = b.evidenceObjectReference,
+        updateDetailsStatus = st.updateDetailsStatus,
+        amlSupervisionUpdateStatus = st.amlSupervisionUpdateStatus,
+        directorPartnerUpdateStatus = st.directorPartnerUpdateStatus,
+        acceptNewTermsStatus = st.acceptNewTermsStatus,
+        reriskStatus = st.reriskStatus
+      )
+    }
+
+  implicit val writes: OWrites[AgentSubscriptionDisplayResponse] = OWrites { r =>
+    val base = BasePart(
+      processingDate = r.processingDate,
+      utr = r.utr,
+      name = r.name,
+      addr1 = r.addr1,
+      addr2 = r.addr2,
+      addr3 = r.addr3,
+      addr4 = r.addr4,
+      postcode = r.postcode,
+      country = r.country,
+      phone = r.phone,
+      email = r.email,
+      suspensionStatus = r.suspensionStatus,
+      regime = r.regime,
+      supervisoryBody = r.supervisoryBody,
+      membershipNumber = r.membershipNumber,
+      evidenceObjectReference = r.evidenceObjectReference
+    )
+
+    val statuses = StatusPart(
+      updateDetailsStatus = r.updateDetailsStatus,
+      amlSupervisionUpdateStatus = r.amlSupervisionUpdateStatus,
+      directorPartnerUpdateStatus = r.directorPartnerUpdateStatus,
+      acceptNewTermsStatus = r.acceptNewTermsStatus,
+      reriskStatus = r.reriskStatus
+    )
+
+    Json.toJsObject(base)(implicitly[OWrites[BasePart]]) ++ Json.toJsObject(statuses)(implicitly[OWrites[StatusPart]])
   }
 
   implicit val format: OFormat[AgentSubscriptionDisplayResponse] =

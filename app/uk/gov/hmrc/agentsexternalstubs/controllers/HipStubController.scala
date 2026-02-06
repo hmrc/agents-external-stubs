@@ -171,15 +171,25 @@ class HipStubController @Inject() (
         phone = record.agencyDetails.flatMap(_.agencyTelephone),
         email = record.agencyDetails.flatMap(_.agencyEmail).getOrElse(""),
         suspensionStatus = if (record.suspensionDetails.exists(_.suspensionStatus)) "T" else "F",
-        regime = record.suspensionDetails.map(_.suspendedRegimes.toSeq).getOrElse(Seq.empty),
+        regime = record.suspensionDetails.map(_.suspendedRegimes.toSeq),
         supervisoryBody = record.agencyDetails.flatMap(_.supervisoryBody),
         membershipNumber = record.agencyDetails.flatMap(_.membershipNumber),
         evidenceObjectReference = record.agencyDetails.flatMap(_.evidenceObjectReference),
-        updateDetailsStatus = record.agencyDetails.flatMap(_.updateDetailsStatus),
-        amlSupervisionUpdateStatus = record.agencyDetails.flatMap(_.amlSupervisionUpdateStatus),
-        directorPartnerUpdateStatus = record.agencyDetails.flatMap(_.directorPartnerUpdateStatus),
-        acceptNewTermsStatus = record.agencyDetails.flatMap(_.acceptNewTermsStatus),
-        reriskStatus = record.agencyDetails.flatMap(_.reriskStatus)
+        updateDetailsStatus = record.agencyDetails
+          .flatMap(_.updateDetailsStatus)
+          .getOrElse(throw new IllegalStateException("updateDetailsStatus is missing")),
+        amlSupervisionUpdateStatus = record.agencyDetails
+          .flatMap(_.amlSupervisionUpdateStatus)
+          .getOrElse(throw new IllegalStateException("amlSupervisionUpdateStatus is missing")),
+        directorPartnerUpdateStatus = record.agencyDetails
+          .flatMap(_.directorPartnerUpdateStatus)
+          .getOrElse(throw new IllegalStateException("directorPartnerUpdateStatus is missing")),
+        acceptNewTermsStatus = record.agencyDetails
+          .flatMap(_.acceptNewTermsStatus)
+          .getOrElse(throw new IllegalStateException("acceptNewTermsStatus is missing")),
+        reriskStatus = record.agencyDetails
+          .flatMap(_.reriskStatus)
+          .getOrElse(throw new IllegalStateException("reriskStatus is missing"))
       )
     )
   }
