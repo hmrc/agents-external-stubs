@@ -733,27 +733,113 @@ class HipStubControllerISpec
         (json \ "success" \ "phone").as[String] should be("01911234567")
         (json \ "success" \ "email").as[String] should be("abc@test.com")
         (json \ "success" \ "suspensionStatus").as[String] should be("F")
-//        (json \ "success" \ "regime").toOption should be(empty)
+        (json \ "success" \ "regime").toOption should be(empty)
         (json \ "success" \ "supervisoryBody").as[String] should be("HMRC")
         (json \ "success" \ "membershipNumber").as[String] should be("1234567890")
         (json \ "success" \ "evidenceObjectReference").as[String] should be("1234e4567-e89b-12d3-a456-426614174000")
         (json \ "success" \ "updateDetailsStatus").as[String] should be("ACCEPTED")
-//        (json \ "success" \ "updateDetailsLastUpdated").as[String] should be("")
-//        (json \ "success" \ "updateDetailsLastSuccessfullyComplete").as[String] should be("")
+        (json \ "success" \ "updateDetailsLastUpdated").as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
+        (json \ "success" \ "updateDetailsLastSuccessfullyComplete").as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
         (json \ "success" \ "amlSupervisionUpdateStatus").as[String] should be("ACCEPTED")
-//        (json \ "success" \ "amlSupervisionUpdateLastUpdated").as[String] should be("")
-//        (json \ "success" \ "amlSupervisionUpdateLastSuccessfullyComplete").as[String] should be("")
+        (json \ "success" \ "amlSupervisionUpdateLastUpdated").as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
+        (json \ "success" \ "amlSupervisionUpdateLastSuccessfullyComplete").as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
         (json \ "success" \ "directorPartnerUpdateStatus").as[String] should be("ACCEPTED")
-//        (json \ "success" \ "directorPartnerUpdateLastUpdated").as[String] should be("")
-//        (json \ "success" \ "directorPartnerUpdateLastSuccessfullyComplete").as[String] should be("")
+        (json \ "success" \ "directorPartnerUpdateLastUpdated").as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
+        (json \ "success" \ "directorPartnerUpdateLastSuccessfullyComplete").as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
         (json \ "success" \ "acceptNewTermsStatus").as[String] should be("ACCEPTED")
-//        (json \ "success" \ "acceptNewTermsLastUpdated").as[String] should be("")
-//        (json \ "success" \ "acceptNewTermsLastSuccessfullyComplete").as[String] should be("")
+        (json \ "success" \ "acceptNewTermsLastUpdated").as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
+        (json \ "success" \ "acceptNewTermsLastSuccessfullyComplete").as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
         (json \ "success" \ "reriskStatus").as[String] should be("ACCEPTED")
-//        (json \ "success" \ "reriskLastUpdated").as[String] should be("")
-//        (json \ "success" \ "reriskLastSuccessfullyComplete").as[String] should be("")
+        (json \ "success" \ "reriskLastUpdated").as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
+        (json \ "success" \ "reriskLastSuccessfullyComplete").as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
+      }
 
-        println(json)
+      "return the agent subscription response with status 200 with list of regimes when agent is suspended" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val (
+          updateDetailsStatus,
+          amlSupervisionUpdateStatus,
+          directorPartnerUpdateStatus,
+          acceptNewTermsStatus,
+          reriskStatus
+        ) = (
+          UpdateDetailsStatus(AgencyDetailsStatusValue.fromString("ACCEPTED")),
+          AmlSupervisionUpdateStatus(AgencyDetailsStatusValue.fromString("ACCEPTED")),
+          DirectorPartnerUpdateStatus(AgencyDetailsStatusValue.fromString("ACCEPTED")),
+          AcceptNewTermsStatus(AgencyDetailsStatusValue.fromString("ACCEPTED")),
+          ReriskStatus(AgencyDetailsStatusValue.fromString("ACCEPTED"))
+        )
+
+        val safeId = "XA0000123456789"
+
+        val arn = Generator.arn(safeId)
+
+        val existingRecord = BusinessPartnerRecord(
+          businessPartnerExists = true,
+          safeId = "XA0000123456789",
+          utr = Some("1234567890"),
+          agentReferenceNumber = Some(arn.value),
+          isAnAgent = true,
+          isAnASAgent = true,
+          isAnIndividual = true,
+          individual = Some(BusinessPartnerRecord.Individual("Bill", None, "Jones", "1990-01-01")),
+          organisation = None,
+          addressDetails = BusinessPartnerRecord.UkAddress(
+            addressLine1 = "10 New Street",
+            addressLine2 = None,
+            addressLine3 = None,
+            addressLine4 = None,
+            postalCode = "AA11AA",
+            countryCode = "GB"
+          ),
+          contactDetails = Some(BusinessPartnerRecord.ContactDetails()),
+          agencyDetails = Some(
+            BusinessPartnerRecord
+              .AgencyDetails()
+              .withAgencyName(Option("ABC Agency"))
+              .withAgencyAddress(
+                Some(
+                  BusinessPartnerRecord.UkAddress(
+                    "1 Agency Street",
+                    None,
+                    None,
+                    None,
+                    "NE1 1DE",
+                    "GB"
+                  )
+                )
+              )
+              .withAgencyEmail(Some("abc@test.com"))
+              .withAgencyTelephoneNumber(Some("01911234567"))
+              .withSupervisoryBody(Some("HMRC"))
+              .withMembershipNumber(Some("1234567890"))
+              .withEvidenceObjectReference(Some("1234e4567-e89b-12d3-a456-426614174000"))
+              .withUpdateDetailsStatus(Some(updateDetailsStatus))
+              .withAmlSupervisionUpdateStatus(Some(amlSupervisionUpdateStatus))
+              .withDirectorPartnerUpdateStatus(Some(directorPartnerUpdateStatus))
+              .withAcceptNewTermsStatus(Some(acceptNewTermsStatus))
+              .withReriskStatus(Some(reriskStatus))
+          ),
+          suspensionDetails = Some(SuspensionDetails(suspensionStatus = true, regimes = Some(Set("VATC", "MTDIT")))),
+          id = None
+        )
+
+        await(repo.store(existingRecord, session.planetId))
+
+        val result = HipStub.getSubscription(
+          arn = arn.value
+        )
+
+        result should haveStatus(OK)
+
+        result should haveValidJsonBody(haveProperty[JsObject]("success", not be empty))
+
+        val json = result.json
+
+
+        (json \ "success" \ "suspensionStatus").as[String] should be("T")
+        (json \ "success" \ "regime").as[Seq[String]] should be(Seq("VATC", "MTDIT"))
       }
     }
 
@@ -953,7 +1039,7 @@ class HipStubControllerISpec
       }
     }
 
-    "agent is suspended" should {
+    "agent is terminated" should {
       "return 422 Unprocessable Entity" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
 
@@ -1021,7 +1107,7 @@ class HipStubControllerISpec
               .withAcceptNewTermsStatus(Some(acceptNewTermsStatus))
               .withReriskStatus(Some(reriskStatus))
           ),
-          suspensionDetails = Some(SuspensionDetails(true, None)),
+          suspensionDetails = None,
           id = None
         )
 

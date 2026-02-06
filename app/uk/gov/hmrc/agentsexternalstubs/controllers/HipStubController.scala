@@ -132,7 +132,7 @@ class HipStubController @Inject() (
               recordsService
                 .getRecordMaybeExt[BusinessPartnerRecord, Arn](Arn(arn), session.planetId)
                 .map {
-                  case Some(record) if agentIsSuspendedForSubscription(record) =>
+                  case Some(record) if terminatedTest(record) =>
                     Results.UnprocessableEntity(Json.toJson(Errors("058", "Agent is terminated")))
                   case Some(record) if !record.isAnASAgent =>
                     Results.UnprocessableEntity(Json.toJson(Errors("006", "Subscription Data Not Found")))
@@ -150,10 +150,17 @@ class HipStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
+  private def terminatedTest(record: BusinessPartnerRecord): Boolean = false
+
   private def convertToGetAgentSubscriptionResponse(record: BusinessPartnerRecord): HipAgentSubscriptionResponse = {
     val (l1, l2, l3, l4, pc, cc) = record.addressDetails match {
       case UkAddress(l1, l2, l3, l4, pc, cc)      => (l1, l2, l3, l4, Some(pc), cc)
       case ForeignAddress(l1, l2, l3, l4, pc, cc) => (l1, l2, l3, l4, pc, cc)
+    }
+
+    val regime: Option[Seq[String]] = record.suspensionDetails.map(_.suspendedRegimes) match {
+      case Some(set) if set.nonEmpty => Some(set.toSeq)
+      case _                         => None
     }
 
     HipAgentSubscriptionResponse(
@@ -170,7 +177,7 @@ class HipStubController @Inject() (
         phone = record.agencyDetails.flatMap(_.agencyTelephone),
         email = record.agencyDetails.flatMap(_.agencyEmail).getOrElse(""),
         suspensionStatus = if (record.suspensionDetails.exists(_.suspensionStatus)) "T" else "F",
-        regime = record.suspensionDetails.map(_.suspendedRegimes.toSeq),
+        regime = regime,
         supervisoryBody = record.agencyDetails.flatMap(_.supervisoryBody),
         membershipNumber = record.agencyDetails.flatMap(_.membershipNumber),
         evidenceObjectReference = record.agencyDetails.flatMap(_.evidenceObjectReference),
