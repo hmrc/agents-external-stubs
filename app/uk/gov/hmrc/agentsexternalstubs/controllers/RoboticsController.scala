@@ -55,21 +55,22 @@ class RoboticsController @Inject() (
             def fail(msg: String): Nothing = throw new RuntimeException(msg)
 
             val service = req.targetSystem match {
-              case "CESA" => Services("IR-SA-AGENT").toRight("Service IR-SA-AGENT not found")
+              case "CESA"  => Services("IR-SA-AGENT").toRight("Service IR-SA-AGENT not found")
               case "COTAX" => Services("IR-CT-AGENT").toRight("Service IR-CT-AGENT not found")
             }
 
             val result: Either[String, EnrolmentKey] = for {
-              s <- service
+              s   <- service
               idf <- s.identifiers.headOption.toRight(s"No identifiers found for service ${s.name}")
-              value <- Generator.get(idf.valueGenerator)(session.userId).toRight(
-                s"Generator failed for valueGenerator ${idf.valueGenerator}"
-              )
+              value <- Generator
+                         .get(idf.valueGenerator)(session.userId)
+                         .toRight(
+                           s"Generator failed for valueGenerator ${idf.valueGenerator}"
+                         )
             } yield EnrolmentKey.from(s.name, idf.name -> value)
 
             result.fold(msg => fail(s"Failed to create enrolment: $msg"), identity)
           }
-
 
           val agentId = enrolment.identifiers.head.value
 
@@ -181,9 +182,7 @@ object RoboticsController extends HttpHelpers {
   private[controllers] def createKnownFacts(
     enrolmentKey: EnrolmentKey,
     postcode: String
-  ) = {
-
-
+  ) =
     KnownFacts
       .generate(
         enrolmentKey,
@@ -193,7 +192,6 @@ object RoboticsController extends HttpHelpers {
           case _                              => None
         }
       )
-  }
 
   def validateRequest(request: Request[JsValue]): Either[Result, RoboticsRequest] = {
     val workflowJson =
