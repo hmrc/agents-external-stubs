@@ -39,6 +39,8 @@ trait AuthContext {
 
 object AuthContext {
 
+  val cookieEncoding = new DefaultCookieHeaderEncoding(CookiesConfiguration())
+
   def fromToken(authToken: String): AuthContext = new AuthContext {
     override def headers: Seq[(String, String)] = Seq(
       HeaderNames.AUTHORIZATION -> s"Bearer $authToken"
@@ -51,8 +53,6 @@ object AuthContext {
       uk.gov.hmrc.http.HeaderNames.xSessionId -> sessionId
     )
   }
-
-  val cookieEncoding = new DefaultCookieHeaderEncoding(CookiesConfiguration())
 
   def fromCookies(response: WSResponse): AuthContext = new AuthContext with CookieConverter {
     override def headers: Seq[(String, String)] = Seq(
@@ -71,6 +71,7 @@ case object NotAuthorized extends AuthContext {
 
 trait TestRequests extends ScalaFutures {
   def url: String
+
   def wsClient: WSClient
 
   implicit def jsonBodyWritable[T](implicit
@@ -123,6 +124,20 @@ trait TestRequests extends ScalaFutures {
       .futureValue
 
   object SignIn {
+    def currentSession(implicit authContext: AuthContext): WSResponse =
+      get("/agents-external-stubs/session/current")
+
+    def signInAndGetSession(
+      userId: String = null,
+      password: String = "p@ssw0rd",
+      planetId: String = UUID.randomUUID().toString,
+      syncToAuthLoginApi: Boolean = false
+    ): AuthenticatedSession = {
+      val signedIn = signIn(userId, password, planetId = planetId, syncToAuthLoginApi = syncToAuthLoginApi)
+      val session = authSessionFor(signedIn)
+      session.json.as[AuthenticatedSession]
+    }
+
     def signIn(
       userId: String = null,
       password: String = null,
@@ -150,20 +165,6 @@ trait TestRequests extends ScalaFutures {
         .url(s"$url${loginResponse.header(HeaderNames.LOCATION).getOrElse("")}")
         .get()
         .futureValue
-
-    def currentSession(implicit authContext: AuthContext): WSResponse =
-      get("/agents-external-stubs/session/current")
-
-    def signInAndGetSession(
-      userId: String = null,
-      password: String = "p@ssw0rd",
-      planetId: String = UUID.randomUUID().toString,
-      syncToAuthLoginApi: Boolean = false
-    ): AuthenticatedSession = {
-      val signedIn = signIn(userId, password, planetId = planetId, syncToAuthLoginApi = syncToAuthLoginApi)
-      val session = authSessionFor(signedIn)
-      session.json.as[AuthenticatedSession]
-    }
 
     def signOut(implicit authContext: AuthContext): WSResponse = get(s"/agents-external-stubs/sign-out")
   }
@@ -244,14 +245,6 @@ trait TestRequests extends ScalaFutures {
         .put(Json.toJson(user))
         .futureValue
 
-    // Only use this to add a user to an existing group
-    def unsafeCreate(user: User)(implicit authContext: AuthContext): WSResponse =
-      wsClient
-        .url(s"$url/agents-external-stubs/users?userIdFromPool")
-        .withHttpHeaders(authContext.headers: _*)
-        .post(Json.toJson(user))
-        .futureValue
-
     /*
      Utility function to create both user and group with the given enrolments.
      If the user has any assigned enrolments, they will be added to the group's allocated enrolment as well, for consistency.
@@ -281,6 +274,14 @@ trait TestRequests extends ScalaFutures {
         )
       )
     }
+
+    // Only use this to add a user to an existing group
+    def unsafeCreate(user: User)(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/agents-external-stubs/users?userIdFromPool")
+        .withHttpHeaders(authContext.headers: _*)
+        .post(Json.toJson(user))
+        .futureValue
 
     def delete(userId: String)(implicit authContext: AuthContext): WSResponse =
       wsClient
@@ -553,6 +554,29 @@ trait TestRequests extends ScalaFutures {
             (name, value)
           }: _*
         )
+        .withHttpHeaders(
+          authContext.headers ++
+            Seq(
+              "X-Transmitting-System" -> transmittingSystemHeader,
+              "X-Originating-System"  -> originatingSystemHeader,
+              "correlationid"         -> correlationIdHeader,
+              "X-Receipt-Date"        -> receiptDateHeader
+            ).collect { case (name, Some(value: String)) =>
+              (name, value)
+            }: _*
+        )
+        .get()
+        .futureValue
+
+    def getSubscription(
+      arn: String = "ZARN1234567",
+      transmittingSystemHeader: Option[String] = Some("HIP"),
+      originatingSystemHeader: Option[String] = Some("MDTP"),
+      correlationIdHeader: Option[String] = Some("dc87872c-3fe2-4dbf-ab72-0bfe8bccc502"),
+      receiptDateHeader: Option[String] = Some("2024-11-22T12:54:24Z")
+    )(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/etmp/RESTAdapter/generic/agent/subscription/$arn")
         .withHttpHeaders(
           authContext.headers ++
             Seq(

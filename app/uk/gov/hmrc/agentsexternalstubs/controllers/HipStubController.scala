@@ -20,6 +20,7 @@ import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.GetRelationships
+import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{ForeignAddress, UkAddress}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
@@ -107,6 +108,94 @@ class HipStubController @Inject() (
           }
       }
     }(SessionRecordNotFound)
+  }
+
+  def getAgentSubscription(arn: String): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      hipStubService.validateBaseHeaders(
+        request.headers.get("X-Transmitting-System"),
+        request.headers.get("X-Originating-System"),
+        request.headers.get("correlationid"),
+        request.headers.get("X-Receipt-Date")
+      ) match {
+        case Left(_) =>
+          Future.successful(
+            Results.UnprocessableEntity(Json.toJson(Errors("003", "Request could not be processed")))
+          )
+        case Right(_) =>
+          hipStubService.validateArn(arn) match {
+            case Left(_) =>
+              Future.successful(
+                Results.UnprocessableEntity(Json.toJson(Errors("003", "Request could not be processed")))
+              )
+            case Right(_) =>
+              recordsService
+                .getRecordMaybeExt[BusinessPartnerRecord, Arn](Arn(arn), session.planetId)
+                .map {
+                  case Some(record) if !record.isAnASAgent =>
+                    Results.UnprocessableEntity(Json.toJson(Errors("006", "Subscription Data Not Found")))
+                  case Some(record) => Ok(Json.toJson(convertToGetAgentSubscriptionResponse(record)))
+                  case None         => Results.UnprocessableEntity(Json.toJson(Errors("006", "Subscription Data Not Found")))
+                }
+                .recover { case e =>
+                  logger.error("Incomplete subscription", e)
+                  Results.InternalServerError(
+                    Json.parse("""{"error":{"code":"500","message":"Internal server error","logID": "1234567890"}}""")
+                  )
+                }
+          }
+      }
+    }(SessionRecordNotFound)
+  }
+
+  private def terminatedTest(record: BusinessPartnerRecord): Boolean = false
+
+  private def convertToGetAgentSubscriptionResponse(record: BusinessPartnerRecord): HipAgentSubscriptionResponse = {
+    val (l1, l2, l3, l4, pc, cc) = record.addressDetails match {
+      case UkAddress(l1, l2, l3, l4, pc, cc)      => (l1, l2, l3, l4, Some(pc), cc)
+      case ForeignAddress(l1, l2, l3, l4, pc, cc) => (l1, l2, l3, l4, pc, cc)
+    }
+
+    val regime: Option[Seq[String]] = record.suspensionDetails.map(_.suspendedRegimes) match {
+      case Some(set) if set.nonEmpty => Some(set.toSeq)
+      case _                         => None
+    }
+
+    HipAgentSubscriptionResponse(
+      AgentSubscriptionDisplayResponse(
+        processingDate = LocalDateTime.now().toString,
+        utr = record.utr,
+        name = record.agencyDetails.flatMap(_.agencyName).getOrElse(""),
+        addr1 = l1,
+        addr2 = l2,
+        addr3 = l3,
+        addr4 = l4,
+        postcode = pc,
+        country = cc,
+        phone = record.agencyDetails.flatMap(_.agencyTelephone),
+        email = record.agencyDetails.flatMap(_.agencyEmail).getOrElse(""),
+        suspensionStatus = if (record.suspensionDetails.exists(_.suspensionStatus)) "T" else "F",
+        regime = regime,
+        supervisoryBody = record.agencyDetails.flatMap(_.supervisoryBody),
+        membershipNumber = record.agencyDetails.flatMap(_.membershipNumber),
+        evidenceObjectReference = record.agencyDetails.flatMap(_.evidenceObjectReference),
+        updateDetailsStatus = record.agencyDetails
+          .flatMap(_.updateDetailsStatus)
+          .getOrElse(throw new IllegalStateException("updateDetailsStatus is missing")),
+        amlSupervisionUpdateStatus = record.agencyDetails
+          .flatMap(_.amlSupervisionUpdateStatus)
+          .getOrElse(throw new IllegalStateException("amlSupervisionUpdateStatus is missing")),
+        directorPartnerUpdateStatus = record.agencyDetails
+          .flatMap(_.directorPartnerUpdateStatus)
+          .getOrElse(throw new IllegalStateException("directorPartnerUpdateStatus is missing")),
+        acceptNewTermsStatus = record.agencyDetails
+          .flatMap(_.acceptNewTermsStatus)
+          .getOrElse(throw new IllegalStateException("acceptNewTermsStatus is missing")),
+        reriskStatus = record.agencyDetails
+          .flatMap(_.reriskStatus)
+          .getOrElse(throw new IllegalStateException("reriskStatus is missing"))
+      )
+    )
   }
 
   def updateAgentRelationship: Action[JsValue] = Action(parse.json).async { implicit request =>
@@ -316,6 +405,11 @@ class HipStubController @Inject() (
 
   private def agentIsSuspended(businessPartnerRecord: BusinessPartnerRecord, regime: String): Boolean =
     businessPartnerRecord.suspensionDetails.fold(false)(_.suspendedRegimes.contains(regime))
+
+  private def agentIsSuspendedForSubscription(businessPartnerRecord: BusinessPartnerRecord): Boolean =
+    businessPartnerRecord.suspensionDetails.exists { suspensionDetails =>
+      suspensionDetails.suspensionStatus || suspensionDetails.suspendedRegimes.nonEmpty
+    }
 
   private val withProcessingDate = Json.parse(s"""{"success":{"processingDate": "${LocalDateTime.now()}"}}""")
   private def correlationId(implicit request: Request[_]): (String, String) =

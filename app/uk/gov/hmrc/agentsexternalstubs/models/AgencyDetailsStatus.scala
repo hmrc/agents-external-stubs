@@ -17,6 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalacheck.Gen
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 import uk.gov.hmrc.agentsexternalstubs.models.Validator.Validator
 
@@ -104,6 +105,63 @@ object AgencyDetailsStatus {
       override val validate: Validator[A] = validateFor[A]
       override val sanitizers: Seq[Update] = Seq(seed => e => sanitizerFor(rebuild)(seed)(e))
     }
+
+  implicit val genericFormat: OFormat[AgencyDetailsStatus] = {
+    val reads: Reads[AgencyDetailsStatus] =
+      (
+        (__ \ "status").read[AgencyDetailsStatusValue] and
+          (__ \ "lastUpdated").read[LocalDateTime] and
+          (__ \ "lastSuccessfullyCompleted").read[LocalDateTime]
+      ).apply { (st, lu, lsc) =>
+        new AgencyDetailsStatus {
+          override val status: AgencyDetailsStatusValue = st
+          override val lastUpdated: LocalDateTime = lu
+          override val lastSuccessfullyCompleted: LocalDateTime = lsc
+        }
+      }
+
+    val writes: OWrites[AgencyDetailsStatus] =
+      OWrites { s =>
+        Json.obj(
+          "status"                    -> s.status,
+          "lastUpdated"               -> s.lastUpdated,
+          "lastSuccessfullyCompleted" -> s.lastSuccessfullyCompleted
+        )
+      }
+
+    OFormat(reads, writes)
+  }
+
+  def toResponseField(prefix: String, status: AgencyDetailsStatus): JsObject =
+    Json.obj(
+      s"${prefix}Status"                   -> status.status.value,
+      s"${prefix}LastUpdated"              -> status.lastUpdated,
+      s"${prefix}LastSuccessfullyComplete" -> status.lastSuccessfullyCompleted
+    )
+
+  def fromResponseField(prefix: String): Reads[AgencyDetailsStatus] = {
+    val statusPath = __ \ s"${prefix}Status"
+    val luPath = __ \ s"${prefix}LastUpdated"
+    val lscPath = __ \ s"${prefix}LastSuccessfullyComplete"
+
+    (
+      statusPath.read[String] and
+        luPath.read[LocalDateTime] and
+        lscPath.read[LocalDateTime]
+    ).apply { (st, lu, lsc) =>
+      new AgencyDetailsStatus {
+        override val status: AgencyDetailsStatusValue =
+          AgencyDetailsStatusValue.fromString(st)
+
+        override val lastUpdated: LocalDateTime =
+          lu
+
+        override val lastSuccessfullyCompleted: LocalDateTime =
+          lsc
+      }
+    }
+  }
+
 }
 
 final case class UpdateDetailsStatus(

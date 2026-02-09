@@ -91,6 +91,8 @@ GET           /etmp/RESTAdapter/itsa/taxpayer/business-details                  
 
 POST          /etmp/RESTAdapter/generic/agent/subscription/:safeId                                   @uk.gov.hmrc.agentsexternalstubs.controllers.HipStubController.createAgentSubscription(safeId: String)
 
+GET           /etmp/RESTAdapter/generic/agent/subscription/:arn                                     @uk.gov.hmrc.agentsexternalstubs.controllers.HipStubController.getAgentSubscription(arn: String)
+
 # Datastream
 POST          /write/audit                                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.DataStreamStubController.writeEvent
 POST          /write/audit/merged                                                                    @uk.gov.hmrc.agentsexternalstubs.controllers.DataStreamStubController.writeEvent
