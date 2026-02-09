@@ -132,8 +132,6 @@ class HipStubController @Inject() (
               recordsService
                 .getRecordMaybeExt[BusinessPartnerRecord, Arn](Arn(arn), session.planetId)
                 .map {
-                  case Some(record) if terminatedTest(record) =>
-                    Results.UnprocessableEntity(Json.toJson(Errors("058", "Agent is terminated")))
                   case Some(record) if !record.isAnASAgent =>
                     Results.UnprocessableEntity(Json.toJson(Errors("006", "Subscription Data Not Found")))
                   case Some(record) => Ok(Json.toJson(convertToGetAgentSubscriptionResponse(record)))
