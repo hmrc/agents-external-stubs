@@ -22,12 +22,14 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.{EnrolmentsFromKnownFactsRequest, SetKnownFactsRequest}
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{AuthContext, ServerBaseISpec, TestRequests}
 
 class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRequests with TestStubs {
 
   lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
+  lazy val knownFactsRepository: KnownFactsRepository = app.injector.instanceOf[KnownFactsRepository]
 
   "EnrolmentStoreProxyStubController" when {
 
@@ -326,7 +328,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
               .generate("IR-SA~UTR~12345678", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts"))
+              .getOrElse(fail("Could not generate known facts"))
           )
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
@@ -490,6 +492,28 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         user2.assignedDelegatedEnrolments should contain.only(EnrolmentKey("HMRC-MTD-IT-SUPP~MTDITID~ZIZI45093893553"))
       }
 
+      "create known facts for a delegated enrolment when missing" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        val mtdItId = "ABCD12345678906"
+        val enrolmentKey = s"HMRC-MTD-IT-SUPP~MTDITID~$mtdItId"
+
+        Users.create(UserGenerator.agent(userId = "agentAdmin1", groupId = "group1"), Some(AG.Agent))
+
+        await(knownFactsRepository.findByEnrolmentKey(EnrolmentKey(enrolmentKey), session.planetId)) shouldBe None
+
+        val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
+          "group1",
+          enrolmentKey,
+          Json.parse("""{
+            |    "userId" : "agentAdmin1",
+            |    "type" :         "delegated"
+            |}""".stripMargin)
+        )
+
+        result should haveStatus(201)
+        await(knownFactsRepository.findByEnrolmentKey(EnrolmentKey(enrolmentKey), session.planetId)) shouldBe defined
+      }
+
       "return 409 for secondary enrolment if delegated secondary enrolment is already assigned " in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         EnrolmentStoreProxyStub
@@ -497,7 +521,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             "HMRC-MTD-IT~MTDITID~ZIZI45093893553",
             SetKnownFactsRequest
               .generate("HMRC-MTD-IT~MTDITID~ZIZI45093893553", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts"))
+              .getOrElse(fail("Could not generate known facts"))
           )
         Users.create(
           UserGenerator
@@ -531,7 +555,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             "HMRC-MTD-IT~MTDITID~ZIZI45093893553",
             SetKnownFactsRequest
               .generate("HMRC-MTD-IT~MTDITID~ZIZI45093893553", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts"))
+              .getOrElse(fail("Could not generate known facts"))
           )
         Users.create(
           UserGenerator
@@ -573,7 +597,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             "HMRC-MTD-IT~MTDITID~ZIZI45093893553",
             SetKnownFactsRequest
               .generate("HMRC-MTD-IT-SUPP~MTDITID~ZIZI45093893553", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts"))
+              .getOrElse(fail("Could not generate known facts"))
           )
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
@@ -599,30 +623,25 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         result should haveStatus(400)
       }
 
-      "fail to allocate delegated enrolment to the agent if enrolment does not exist" in {
+      "allocate delegated enrolment to the agent even if principal enrolment does not exist" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        val mtdItId = "ABCD12345678907"
+        val enrolmentKey = s"HMRC-MTD-IT-SUPP~MTDITID~$mtdItId"
         Users.create(UserGenerator.agent(userId = "0000000021313132", groupId = "group1"), Some(AG.Agent))
-        EnrolmentStoreProxyStub
-          .setKnownFacts(
-            "IR-SA~UTR~12345678",
-            SetKnownFactsRequest
-              .generate("IR-SA~UTR~12345678", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts"))
-          )
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
           "group1",
-          "IR-SA~UTR~12345678",
+          enrolmentKey,
           Json.parse("""{
-            |    "userId" : "foo",
+            |    "userId" : "0000000021313132",
             |    "type" :         "delegated"
             |}""".stripMargin)
         )
 
-        result should haveStatus(400)
+        result should haveStatus(201)
 
         val group: Group = await(groupsService.findByGroupId("group1", session.planetId)).get
-        group.delegatedEnrolments.isEmpty shouldBe true
+        group.delegatedEnrolments should contain.only(Enrolment("HMRC-MTD-IT-SUPP", "MTDITID", mtdItId))
       }
 
       "allocate delegated enrolment to the group identified by legacy-agentCode" in {
@@ -643,7 +662,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
               .generate("IR-SA~UTR~12345678", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts"))
+              .getOrElse(fail("Could not generate known facts"))
           )
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
@@ -666,32 +685,30 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         user.assignedDelegatedEnrolments should contain.only(EnrolmentKey("IR-SA~UTR~12345678"))
       }
 
-      "fail to allocate delegated enrolment to the agent (identified by legacy-agentCode) if enrolment does not exist" in {
+      "allocate delegated enrolment to the agent (identified by legacy-agentCode) even if principal enrolment does not exist" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        val mtdItId = "ABCD12345678908"
+        val enrolmentKey = s"HMRC-MTD-IT-SUPP~MTDITID~$mtdItId"
         Users.create(
           UserGenerator.agent(userId = "0000000021313132", groupId = "group1"),
           Some(AG.Agent),
           agentCode = Some("ABC123")
         )
-        EnrolmentStoreProxyStub
-          .setKnownFacts(
-            "IR-SA~UTR~12345678",
-            SetKnownFactsRequest
-              .generate("IR-SA~UTR~12345678", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts"))
-          )
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
           "group1",
-          "IR-SA~UTR~12345678",
+          enrolmentKey,
           Json.parse("""{
-            |    "userId" : "foo",
+            |    "userId" : "0000000021313132",
             |    "type" :         "delegated"
             |}""".stripMargin),
           `legacy-agentCode` = Some("ABC123")
         )
 
-        result should haveStatus(400)
+        result should haveStatus(201)
+
+        val group: Group = await(groupsService.findByGroupId("group1", session.planetId)).get
+        group.delegatedEnrolments should contain.only(Enrolment("HMRC-MTD-IT-SUPP", "MTDITID", mtdItId))
       }
 
       "return 400 if groupId does not exist" in {
@@ -702,7 +719,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
               .generate("IR-SA~UTR~12345678", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts"))
+              .getOrElse(fail("Could not generate known facts"))
           )
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
@@ -715,6 +732,32 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         )
 
         result should haveStatus(400)
+      }
+
+      "return 400 NO_ADMIN_USER if group has no admin user" in {
+        userService
+          .createUser(
+            UserGenerator.agent(userId = "agentAdmin", groupId = "agentGroup"),
+            planetId = "testPlanet",
+            affinityGroup = Some(AG.Agent)
+          )
+          .futureValue
+
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("agentAdmin", planetId = "testPlanet")
+
+        Groups.create(GroupGenerator.generate(session.planetId, AG.Agent, groupId = Some("noAdminGroup")))
+
+        val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
+          "noAdminGroup",
+          "IR-SA~UTR~12345678",
+          Json.parse("""{
+            |    "userId" : "agentAdmin",
+            |    "type":         "delegated"
+            |}""".stripMargin)
+        )
+
+        result should haveStatus(400)
+        result.body should include("NO_ADMIN_USER")
       }
 
       "return 403 if userId does not exist" in {
@@ -733,7 +776,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
               .generate("IR-SA~UTR~12345678", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts"))
+              .getOrElse(fail("Could not generate known facts"))
           )
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
@@ -748,7 +791,9 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         result should haveStatus(403)
       }
 
-      "return 404 if enrolment does not exist" in {
+      "allocate delegated enrolment even if no principal enrolment exists" in {
+        val mtdItId = "ABCD12345678909"
+        val enrolmentKey = s"HMRC-MTD-IT-SUPP~MTDITID~$mtdItId"
         userService
           .createUser(
             UserGenerator.agent(userId = "00000000123166122235", groupId = "group1"),
@@ -768,14 +813,17 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
           "group1",
-          "IR-SA~UTR~12345678",
+          enrolmentKey,
           Json.parse("""{
-            |    "userId" : "foo1",
+            |    "userId" : "00000000123166122235",
             |    "type": "delegated"
             |}""".stripMargin)
         )
 
-        result should haveStatus(404)
+        result should haveStatus(201)
+
+        val group: Group = await(groupsService.findByGroupId("group1", session.planetId)).get
+        group.delegatedEnrolments should contain.only(Enrolment("HMRC-MTD-IT-SUPP", "MTDITID", mtdItId))
       }
 
       "return 400 if enrolment key is invalid" in {
@@ -801,7 +849,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
               .generate("IR-SA~UTR~12345678", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts"))
+              .getOrElse(fail("Could not generate known facts"))
           )
         Users.create(
           UserGenerator
@@ -829,7 +877,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             "IR-SA~UTR~12345678",
             SetKnownFactsRequest
               .generate("IR-SA~UTR~12345678", _ => None)
-              .getOrElse(throw new Exception("Could not generate known facts"))
+              .getOrElse(fail("Could not generate known facts"))
           )
         Users.create(
           UserGenerator
@@ -1646,7 +1694,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
           enrolmentKey,
           SetKnownFactsRequest
             .generate(enrolmentKey, _ => None)
-            .getOrElse(throw new Exception("Could not generate known facts"))
+            .getOrElse(fail("Could not generate known facts"))
         )
 
       "assign an enrolment to a user successfully" in {
@@ -1735,7 +1783,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
           enrolmentKey,
           SetKnownFactsRequest
             .generate(enrolmentKey, _ => None)
-            .getOrElse(throw new Exception("Could not generate known facts"))
+            .getOrElse(fail("Could not generate known facts"))
         )
       "deassign an enrolment successfully" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
@@ -1782,7 +1830,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
           enrolmentKey,
           SetKnownFactsRequest
             .generate(enrolmentKey, _ => None)
-            .getOrElse(throw new Exception("Could not generate known facts"))
+            .getOrElse(fail("Could not generate known facts"))
         )
 
       "return OK with matching identifiers and verifiers" in {
