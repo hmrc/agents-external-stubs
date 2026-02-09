@@ -16,8 +16,11 @@
 
 package uk.gov.hmrc.agentsexternalstubs.wiring
 import com.google.inject.ImplementedBy
+
 import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+
+import scala.concurrent.duration.{Duration, DurationInt}
 
 @ImplementedBy(classOf[AppConfigImpl])
 trait AppConfig {
@@ -40,6 +43,8 @@ trait AppConfig {
   val authLoginApiUrl: String
   val agentAccessControlUrl: String
   val apiPlatformTestUserUrl: String
+
+  val agentServicesAccountUrl: String
 
   // Proxies config
   val isProxyMode: Boolean
@@ -71,6 +76,9 @@ trait AppConfig {
 
   val granPermsTestGenMaxClients: Int
   val granPermsTestGenMaxAgents: Int
+
+  val roboticsCallbackDelay: Int
+  val roboticsKnownFactsDelay: Int
 }
 
 @Singleton
@@ -94,6 +102,8 @@ class AppConfigImpl @Inject() (config: ServicesConfig) extends AppConfig {
   val apiPlatformTestUserUrl: String = config.baseUrl("api-platform-test-user")
   val agentUserClientDetailsUrl: String = config.baseUrl("agent-user-client-details")
   val agentPermissionsUrl: String = config.baseUrl("agent-permissions")
+
+  val agentServicesAccountUrl: String = config.baseUrl("agent-services-account")
 
   // Proxies config
   val httpPort: Int = config.getInt("http.port")
@@ -126,4 +136,7 @@ class AppConfigImpl @Inject() (config: ServicesConfig) extends AppConfig {
 
   val granPermsTestGenMaxClients: Int = config.getInt("gran-perms-test-gen-max-clients")
   val granPermsTestGenMaxAgents: Int = config.getInt("gran-perms-test-gen-max-agents")
+
+  val roboticsCallbackDelay: Int = config.getConfInt("robotics.callback-delay", 0)
+  val roboticsKnownFactsDelay: Int = config.getConfInt("robotics.known-facts-delay", 0)
 }

@@ -204,7 +204,8 @@ GET           /agents-external-stubs/config/services                            
 # Planets management
 DELETE        /agents-external-stubs/planets/:planetId                                               @uk.gov.hmrc.agentsexternalstubs.controllers.PlanetsController.destroy(planetId: String)
 
-
+# Robotics management
+POST          /RTServer/rest/nice/rti/ra/invocation                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.RoboticsController.invoke
 
 
 ## DO NOT PUT STUBBED ROUTES BELOW THIS POINT
