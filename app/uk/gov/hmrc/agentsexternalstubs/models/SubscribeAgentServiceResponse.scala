@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import play.api.libs.json.{Json, Writes}
 
-import java.time.LocalDateTime
+import java.time.{Instant, LocalDateTime}
 
 sealed trait SubscribeAgentServiceResponse
 
@@ -32,4 +32,10 @@ case class HipResponse(processingDate: LocalDateTime, arn: String) extends Subsc
 
 object HipResponse {
   implicit val writes: Writes[HipResponse] = Json.writes[HipResponse]
+}
+
+case class HipAmendAgentSubscriptionResponse(processingDate: Instant)
+
+object HipAmendAgentSubscriptionResponse {
+  implicit val writes: Writes[HipAmendAgentSubscriptionResponse] = Json.writes[HipAmendAgentSubscriptionResponse]
 }
