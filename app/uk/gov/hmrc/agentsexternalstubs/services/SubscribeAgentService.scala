@@ -17,6 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
 import play.api.libs.json.{Json, Writes}
+import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{AddressDetails, AgencyDetails, ContactDetails, ForeignAddress, UkAddress}
 import uk.gov.hmrc.agentsexternalstubs.models._
 
 import java.time.LocalDateTime
@@ -130,5 +131,102 @@ object SubscribeAgentService {
       .withAddressDetails(address)
       .withIsAnAgent(true)
       .withIsAnASAgent(true)
+  }
+
+  def toBusinessPartnerRecord(
+    payload: HipAmendAgentSubscriptionPayload,
+    existingRecord: BusinessPartnerRecord
+  ): BusinessPartnerRecord = {
+
+    val updatedAgencyDetails =
+      existingRecord.agencyDetails.getOrElse(BusinessPartnerRecord.AgencyDetails())
+
+        // Only update if defined
+        .withAgencyName(payload.name.orElse(existingRecord.agencyDetails.flatMap(_.agencyName)))
+        .withAgencyEmail(payload.email.orElse(existingRecord.agencyDetails.flatMap(_.agencyEmail)))
+        .withAgencyTelephoneNumber(payload.phone.orElse(existingRecord.agencyDetails.flatMap(_.agencyTelephone)))
+        .withSupervisoryBody(payload.supervisoryBody.orElse(existingRecord.agencyDetails.flatMap(_.supervisoryBody)))
+        .withMembershipNumber(payload.membershipNumber.orElse(existingRecord.agencyDetails.flatMap(_.membershipNumber)))
+        .withEvidenceObjectReference(payload.evidenceObjectReference.orElse(existingRecord.agencyDetails.flatMap(_.evidenceObjectReference)))
+
+        // Status fields
+        .withUpdateDetailsStatus(
+          payload.updateDetailsStatus
+            .map(s => UpdateDetailsStatus(AgencyDetailsStatusValue.fromString(s)))
+            .orElse(existingRecord.agencyDetails.flatMap(_.updateDetailsStatus))
+        )
+        .withAmlSupervisionUpdateStatus(
+          payload.amlSupervisionUpdateStatus
+            .map(s => AmlSupervisionUpdateStatus(AgencyDetailsStatusValue.fromString(s)))
+            .orElse(existingRecord.agencyDetails.flatMap(_.amlSupervisionUpdateStatus))
+        )
+        .withDirectorPartnerUpdateStatus(
+          payload.directorPartnerUpdateStatus
+            .map(s => DirectorPartnerUpdateStatus(AgencyDetailsStatusValue.fromString(s)))
+            .orElse(existingRecord.agencyDetails.flatMap(_.directorPartnerUpdateStatus))
+        )
+        .withAcceptNewTermsStatus(
+          payload.acceptNewTermsStatus
+            .map(s => AcceptNewTermsStatus(AgencyDetailsStatusValue.fromString(s)))
+            .orElse(existingRecord.agencyDetails.flatMap(_.acceptNewTermsStatus))
+        )
+        .withReriskStatus(
+          payload.reriskStatus
+            .map(s => ReriskStatus(AgencyDetailsStatusValue.fromString(s)))
+            .orElse(existingRecord.agencyDetails.flatMap(_.reriskStatus))
+        )
+
+    val updatedAddress =
+      if (payload.addressProvided) {
+        payload.country match {
+          case Some("GB") =>
+            BusinessPartnerRecord.UkAddress(
+              payload.addr1.getOrElse(""),
+              payload.addr2,
+              payload.addr3,
+              payload.addr4,
+              payload.postcode.getOrElse(""),
+              "GB"
+            )
+          case _ =>
+            BusinessPartnerRecord.ForeignAddress(
+              payload.addr1.getOrElse(""),
+              payload.addr2,
+              payload.addr3,
+              payload.addr4,
+              payload.postcode,
+              payload.country.getOrElse("")
+            )
+        }
+      } else {
+        existingRecord.addressDetails match {
+          case addr: BusinessPartnerRecord.UkAddress => addr
+          case addr: BusinessPartnerRecord.ForeignAddress => addr
+          case other =>
+            // fallback: wrap as ForeignAddress with empty fields if original type is not one of the above
+            BusinessPartnerRecord.ForeignAddress(
+              addressLine1 = "",
+              addressLine2 = None,
+              addressLine3 = None,
+              addressLine4 = None,
+              postalCode = None,
+              countryCode = "GB"
+            )
+        }
+      }
+
+    existingRecord
+      .modifyAgentReferenceNumber { case None =>
+        Some(Generator.arn(existingRecord.utr.getOrElse(existingRecord.safeId)).value)
+      }
+      .withAgencyDetails(Some(updatedAgencyDetails))
+      .modifyContactDetails { case Some(contactDetails) =>
+        Some(
+          contactDetails
+            .withPhoneNumber(payload.phone)
+            .withEmailAddress(payload.email)
+        )
+      }
+      .withAddressDetails(updatedAddress)
   }
 }
