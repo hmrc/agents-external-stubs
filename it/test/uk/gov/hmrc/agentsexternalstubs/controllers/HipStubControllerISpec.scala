@@ -24,6 +24,7 @@ import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.AgencyDetail
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, PPOB}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.models.identifiers.SuspensionDetails
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.Arn
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.services.{RecordsService, RelationshipRecordsService}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
@@ -1355,6 +1356,385 @@ class HipStubControllerISpec
           wsClient
             .url(s"$url/etmp/RESTAdapter/generic/agent/subscription/$safeId")
             .post(play.api.libs.json.Json.obj("name" -> "x"))
+            .futureValue
+
+        result should haveStatus(UNAUTHORIZED)
+        result.json.toString should include("""{"code":"UNAUTHORIZED","reason":"SessionRecordNotFound"}""")
+      }
+    }
+  }
+
+  "HipStubController.amendAgentSubscription" when {
+
+    def businessPartnerRecord(arn: String) = BusinessPartnerRecord(
+      businessPartnerExists = true,
+      safeId = "XA0000123456789",
+      isAnIndividual = true,
+      individual = Some(BusinessPartnerRecord.Individual("Bill", None, "Jones", "1990-01-01")),
+      organisation = None,
+      addressDetails = BusinessPartnerRecord.UkAddress(
+        addressLine1 = "10 Old Street",
+        addressLine2 = None,
+        addressLine3 = None,
+        addressLine4 = None,
+        postalCode = "AA11AA",
+        countryCode = "GB"
+      ),
+      contactDetails = Some(BusinessPartnerRecord.ContactDetails()),
+      agencyDetails = Some(
+        AgencyDetails(
+          agencyName = Some("Old Name"),
+          agencyAddress = None,
+          agencyEmail = None,
+          agencyTelephone = None,
+          supervisoryBody = None,
+          membershipNumber = None,
+          evidenceObjectReference = None,
+          updateDetailsStatus = None,
+          amlSupervisionUpdateStatus = None,
+          directorPartnerUpdateStatus = None,
+          acceptNewTermsStatus = None,
+          reriskStatus = None
+        )
+      ),
+      suspensionDetails = None,
+      id = None
+    ).copy(
+      isAnAgent = true,
+      isAnASAgent = true,
+      agentReferenceNumber = Some(arn)
+    )
+    "all request parameters are valid" should {
+      "return OK and amend the business partner record" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val arn = "ZARN0001391"
+
+        val existingRecord = businessPartnerRecord(arn)
+
+        await(repo.store(existingRecord, session.planetId))
+
+        val result =
+          HipStub.amendAgentSubscription(
+            arn = arn,
+            name = Some("Alex Rider"),
+            addr1 = Some("River House"),
+            addr2 = Some("London"),
+            addr3 = Some("Westminster"),
+            addr4 = Some("UK"),
+            postcode = Some("W11AA"),
+            country = Some("GB"),
+            phone = Some("01911234567"),
+            email = Some("test@example.com"),
+            supervisoryBody = Some("Mi6"),
+            membershipNumber = Some("MEM123"),
+            evidenceObjectReference = Some("123e4567-e89b-12d3-a456-426614174000"),
+            updateDetailsStatus = Some("ACCEPTED"),
+            amlSupervisionUpdateStatus = Some("PENDING"),
+            directorPartnerUpdateStatus = Some("REQUIRED"),
+            acceptNewTermsStatus = Some("ACCEPTED"),
+            reriskStatus = Some("REJECTED")
+          )
+
+        result should haveStatus(OK)
+        result should haveValidJsonBody(
+          haveProperty[String]("processingDate", not be empty)
+        )
+
+        val updated =
+          await(
+            recordsService.getRecordMaybeExt[BusinessPartnerRecord, Arn](
+              Arn(arn),
+              session.planetId
+            )
+          )
+
+        updated shouldBe defined
+        val record = updated.getOrElse(fail)
+
+        record.agentReferenceNumber shouldBe Some(arn)
+
+        record.addressDetails match {
+          case a: BusinessPartnerRecord.UkAddress =>
+            a.addressLine1 shouldBe "River House"
+            a.addressLine2 shouldBe Some("London")
+            a.postalCode shouldBe "W11AA"
+            a.countryCode shouldBe "GB"
+          case other =>
+            fail(s"Expected UkAddress but got: ${other.getClass.getSimpleName}")
+        }
+
+        val agentDetails = record.agencyDetails.getOrElse(fail)
+
+        agentDetails.agencyName shouldBe Some("Alex Rider")
+        agentDetails.agencyEmail shouldBe Some("test@example.com")
+        agentDetails.agencyTelephone shouldBe Some("01911234567")
+        agentDetails.supervisoryBody shouldBe Some("Mi6")
+        agentDetails.membershipNumber shouldBe Some("MEM123")
+        agentDetails.evidenceObjectReference shouldBe Some("123e4567-e89b-12d3-a456-426614174000")
+
+        agentDetails.updateDetailsStatus match {
+          case Some(UpdateDetailsStatus(status, lastUpdated, lastSuccessfulUpdate)) =>
+            status shouldBe AgencyDetailsStatusValue.Accepted
+
+            val now = LocalDateTime.now()
+            lastUpdated should (be >= now.minusMinutes(1) and be <= now)
+            lastSuccessfulUpdate should (be >= now.minusMinutes(1) and be <= now)
+
+          case other =>
+            fail(s"Expected UpdateDetailsStatus but got: $other")
+        }
+      }
+    }
+
+    "all request fields are empty" should {
+      "return OK and leave the record mostly unchanged" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val arn = "ZARN0001392"
+
+        val existingRecord = BusinessPartnerRecord(
+          businessPartnerExists = true,
+          safeId = "XA0000123456789",
+          isAnIndividual = true,
+          individual = Some(BusinessPartnerRecord.Individual("Bill", None, "Jones", "1990-01-01")),
+          organisation = None,
+          addressDetails = BusinessPartnerRecord.UkAddress(
+            addressLine1 = "10 Old Street",
+            addressLine2 = None,
+            addressLine3 = None,
+            addressLine4 = None,
+            postalCode = "AA11AA",
+            countryCode = "GB"
+          ),
+          contactDetails = Some(BusinessPartnerRecord.ContactDetails()),
+          agencyDetails = Some(
+            AgencyDetails(
+              agencyName = Some("Old Name"),
+              agencyAddress = None,
+              agencyEmail = None,
+              agencyTelephone = None,
+              supervisoryBody = None,
+              membershipNumber = None,
+              evidenceObjectReference = None,
+              updateDetailsStatus = None,
+              amlSupervisionUpdateStatus = None,
+              directorPartnerUpdateStatus = None,
+              acceptNewTermsStatus = None,
+              reriskStatus = None
+            )
+          ),
+          suspensionDetails = None,
+          id = None
+        ).copy(
+          isAnAgent = true,
+          isAnASAgent = true,
+          agentReferenceNumber = Some(arn)
+        )
+
+        await(repo.store(existingRecord, session.planetId))
+
+        val result = HipStub.amendAgentSubscription(
+          arn = arn,
+          name = None,
+          addr1 = None,
+          addr2 = None,
+          addr3 = None,
+          addr4 = None,
+          postcode = None,
+          country = None,
+          phone = None,
+          email = None,
+          supervisoryBody = None,
+          membershipNumber = None,
+          evidenceObjectReference = None,
+          updateDetailsStatus = None,
+          amlSupervisionUpdateStatus = None,
+          directorPartnerUpdateStatus = None,
+          acceptNewTermsStatus = None,
+          reriskStatus = None
+        )
+
+        result should haveStatus(OK)
+        val updated = await(recordsService.getRecordMaybeExt[BusinessPartnerRecord, Arn](Arn(arn), session.planetId))
+        updated shouldBe defined
+
+        val record = updated.getOrElse(fail)
+        val agentDetails = record.agencyDetails.getOrElse(fail)
+
+        agentDetails.agencyName shouldBe Some("Old Name")
+        agentDetails.agencyEmail shouldBe None
+        agentDetails.agencyTelephone shouldBe None
+        agentDetails.updateDetailsStatus shouldBe None
+      }
+    }
+
+    "partial payload" should {
+      "update only the provided fields and leave others unchanged" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val arn = "ZARN0001393"
+
+        val existingRecord = businessPartnerRecord(arn)
+        await(repo.store(existingRecord, session.planetId))
+
+        val result = HipStub.amendAgentSubscription(
+          arn = arn,
+          name = Some("James Bond"),
+          email = Some("jbond@mi6.co.uk")
+        )
+
+        result should haveStatus(OK)
+
+        val updated = await(recordsService.getRecordMaybeExt[BusinessPartnerRecord, Arn](Arn(arn), session.planetId))
+        val agentDetails = updated.get.agencyDetails.getOrElse(fail)
+
+        agentDetails.agencyName shouldBe Some("James Bond")
+        agentDetails.agencyEmail shouldBe Some("jbond@mi6.co.uk")
+        agentDetails.agencyTelephone shouldBe None // unchanged
+        agentDetails.supervisoryBody shouldBe None
+      }
+    }
+
+    "address only payload" should {
+      "update only the address fields" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val arn = "ZARN0001394"
+
+        val existingRecord = businessPartnerRecord(arn)
+        await(repo.store(existingRecord, session.planetId))
+
+        val result = HipStub.amendAgentSubscription(
+          arn = arn,
+          addr1 = Some("MI6 HQ"),
+          addr2 = Some("Vauxhall"),
+          postcode = Some("SW1A1AA"),
+          country = Some("GB")
+        )
+
+        result should haveStatus(OK)
+
+        val updated = await(recordsService.getRecordMaybeExt[BusinessPartnerRecord, Arn](Arn(arn), session.planetId))
+        updated.get.addressDetails match {
+          case a: BusinessPartnerRecord.UkAddress =>
+            a.addressLine1 shouldBe "MI6 HQ"
+            a.addressLine2 shouldBe Some("Vauxhall")
+            a.postalCode shouldBe "SW1A1AA"
+          case other => fail(s"Expected UkAddress but got ${other.getClass.getSimpleName}")
+        }
+      }
+    }
+
+    "status only payload" should {
+      "update only the status fields" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val arn = "ZARN0001395"
+
+        val existingRecord = businessPartnerRecord(arn)
+        await(repo.store(existingRecord, session.planetId))
+
+        val result = HipStub.amendAgentSubscription(
+          arn = arn,
+          updateDetailsStatus = Some("ACCEPTED"),
+          amlSupervisionUpdateStatus = Some("REJECTED")
+        )
+
+        result should haveStatus(OK)
+
+        val updated = await(recordsService.getRecordMaybeExt[BusinessPartnerRecord, Arn](Arn(arn), session.planetId))
+        val agentDetails = updated.get.agencyDetails.getOrElse(fail)
+
+        agentDetails.updateDetailsStatus.map(_.status) shouldBe Some(AgencyDetailsStatusValue.Accepted)
+        agentDetails.amlSupervisionUpdateStatus.map(_.status) shouldBe Some(AgencyDetailsStatusValue.Rejected)
+        agentDetails.directorPartnerUpdateStatus shouldBe None
+      }
+    }
+
+    "payload with invalid enum values" should {
+      "return 422 Unprocessable Entity" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val arn = "ZARN0001396"
+
+        val existingRecord = businessPartnerRecord(arn)
+        await(repo.store(existingRecord, session.planetId))
+
+        val result = HipStub.amendAgentSubscription(
+          arn = arn,
+          updateDetailsStatus = Some("NOT_A_STATUS")
+        )
+
+        result should haveStatus(UNPROCESSABLE_ENTITY)
+        result.json.toString should include("Request could not be processed")
+      }
+    }
+
+
+    "base headers are invalid" should {
+      "return 422 Unprocessable Entity" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result =
+          HipStub.amendAgentSubscription(
+            arn = "ZARN0001391",
+            transmittingSystemHeader = Some("NOT_HIP")
+          )
+
+        result should haveStatus(UNPROCESSABLE_ENTITY)
+        result.json.toString should include("""code":"003","text":"Request could not be processed""")
+      }
+    }
+
+    "arn is invalid" should {
+      "return 422 Unprocessable Entity" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result =
+          HipStub.amendAgentSubscription(
+            arn = "NOT_AN_ARN"
+          )
+
+        result should haveStatus(UNPROCESSABLE_ENTITY)
+        result.json.toString should include("""code":"003","text":"Request could not be processed""")
+      }
+    }
+
+    "body contains invalid data" should {
+      "return 422 Unprocessable Entity" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result =
+          HipStub.amendAgentSubscription(
+            arn = "ZARN0001391",
+            name = Some("")
+          )
+
+        result should haveStatus(UNPROCESSABLE_ENTITY)
+        result.json.toString should include("Request could not be processed")
+      }
+    }
+
+    "subscription does not exist" should {
+      "return 422 Subscription Data Not Found" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result =
+          HipStub.amendAgentSubscription(
+            arn = "ZARN0001391",
+            name =  Some("Alex Rider")
+          )
+
+        result should haveStatus(UNPROCESSABLE_ENTITY)
+        result.json.toString should include("""code":"006","text":"Subscription Data Not Found""")
+      }
+    }
+
+    "there is no session" should {
+      "return an unauthorized error" in {
+        val arn = "ZARN0001391"
+
+        val result =
+          wsClient
+            .url(s"$url/etmp/RESTAdapter/generic/agent/subscription/$arn")
+            .put(play.api.libs.json.Json.obj("name" -> "x"))
             .futureValue
 
         result should haveStatus(UNAUTHORIZED)

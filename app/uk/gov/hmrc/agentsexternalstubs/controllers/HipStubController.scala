@@ -403,13 +403,78 @@ class HipStubController @Inject() (
     }(SessionRecordNotFound)
   )
 
+  def amendAgentSubscription(arn: String): Action[JsValue] = Action(parse.json).async { implicit request =>
+    withCurrentSession { session =>
+      hipStubService.validateBaseHeaders(
+        request.headers.get("X-Transmitting-System"),
+        request.headers.get("X-Originating-System"),
+        request.headers.get("correlationid"),
+        request.headers.get("X-Receipt-Date")
+      ) match {
+        case Left(_) =>
+          Future.successful(
+            Results.UnprocessableEntity(Json.toJson(Errors("003", "Request could not be processed")))
+          )
+        case Right(_) =>
+          RegexPatterns.validArn(arn) match {
+            case Left(_) =>
+              Future.successful(
+                Results.UnprocessableEntity(Json.toJson(Errors("003", "Request could not be processed")))
+              )
+            case Right(_) =>
+              HipAmendAgentSubscriptionPayload.validateAmendAgentSubscriptionPayload(
+                request.body.as[HipAmendAgentSubscriptionPayload]
+              ) match {
+                case Left(errors) =>
+                  Future.successful(Results.UnprocessableEntity(Json.toJson(errors)))
+                case Right(payload) =>
+                  if (payload.isEmpty) {
+                    Future.successful(
+                      Results.Ok(Json.toJson(HipAmendAgentSubscriptionResponse(Instant.now())))
+                    )
+                  } else {
+                    recordsService
+                    .getRecordMaybeExt[BusinessPartnerRecord, Arn](Arn(arn), session.planetId)
+                    .flatMap {
+                      case None =>
+                        Future.successful(
+                          Results.UnprocessableEntity(
+                            Json.toJson(Errors("006", "Subscription Data Not Found"))
+                          )
+                        )
+
+                      case Some(existingRecord) =>
+                        if (!existingRecord.isAnASAgent) {
+                          Future.successful(
+                            Results.UnprocessableEntity(
+                              Json.toJson(Errors("002", "Incomplete subscription"))
+                            )
+                          )
+                        } else {
+                          val amendedRecord =
+                            SubscribeAgentService
+                              .toBusinessPartnerRecord(payload, existingRecord)
+
+                          recordsService
+                            .store(amendedRecord, autoFill = false, session.planetId)
+                            .map { _ =>
+                              Results.Ok(
+                                Json.toJson(
+                                  HipAmendAgentSubscriptionResponse(Instant.now())
+                                )
+                              )
+                            }
+                        }
+                    }
+                  }
+              }
+          }
+      }
+    }(SessionRecordNotFound)
+  }
+
   private def agentIsSuspended(businessPartnerRecord: BusinessPartnerRecord, regime: String): Boolean =
     businessPartnerRecord.suspensionDetails.fold(false)(_.suspendedRegimes.contains(regime))
-
-  private def agentIsSuspendedForSubscription(businessPartnerRecord: BusinessPartnerRecord): Boolean =
-    businessPartnerRecord.suspensionDetails.exists { suspensionDetails =>
-      suspensionDetails.suspensionStatus || suspensionDetails.suspendedRegimes.nonEmpty
-    }
 
   private val withProcessingDate = Json.parse(s"""{"success":{"processingDate": "${LocalDateTime.now()}"}}""")
   private def correlationId(implicit request: Request[_]): (String, String) =

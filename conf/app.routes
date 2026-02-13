@@ -90,6 +90,7 @@ POST          /etmp/RESTAdapter/rosm/agent-relationship                         
 GET           /etmp/RESTAdapter/itsa/taxpayer/business-details                                       @uk.gov.hmrc.agentsexternalstubs.controllers.HipStubController.itsaTaxPayerBusinessDetails
 
 POST          /etmp/RESTAdapter/generic/agent/subscription/:safeId                                   @uk.gov.hmrc.agentsexternalstubs.controllers.HipStubController.createAgentSubscription(safeId: String)
+PUT           /etmp/RESTAdapter/generic/agent/subscription/:arn                                      @uk.gov.hmrc.agentsexternalstubs.controllers.HipStubController.amendAgentSubscription(arn: String)
 
 GET           /etmp/RESTAdapter/generic/agent/subscription/:arn                                     @uk.gov.hmrc.agentsexternalstubs.controllers.HipStubController.getAgentSubscription(arn: String)
 
