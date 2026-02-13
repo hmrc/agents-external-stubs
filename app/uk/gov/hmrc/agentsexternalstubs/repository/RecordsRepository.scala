@@ -25,9 +25,13 @@ import uk.gov.hmrc.agentsexternalstubs.models.Record.TYPE
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository._
 import uk.gov.hmrc.agentsexternalstubs.syntax.|>
+import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
+import java.time.Instant
+import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -35,6 +39,7 @@ object RecordsRepository {
   final val PLANET_ID = "_planetId"
   final val UNIQUE_KEY = "_uniqueKey"
   final val KEYS = "_keys"
+  final val UPDATED = "lastUpdatedAt"
 }
 
 @ImplementedBy(classOf[RecordsRepositoryMongo])
@@ -64,7 +69,7 @@ trait RecordsRepository {
 }
 
 @Singleton
-class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: ExecutionContext)
+class RecordsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfig)(implicit val ec: ExecutionContext)
     extends PlayMongoRepository[JsonAbuse[Record]](
       mongoComponent = mongo,
       collectionName = "records",
@@ -72,13 +77,15 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
       indexes = Seq(
         IndexModel(Indexes.ascending(KEYS), IndexOptions().name("Keys")),
         IndexModel(Indexes.ascending(UNIQUE_KEY), IndexOptions().name("UniqueKey").unique(true).sparse(true)),
-        IndexModel(Indexes.ascending(PLANET_ID))
+        IndexModel(Indexes.ascending(PLANET_ID)),
+        IndexModel(
+          Indexes.ascending(UPDATED),
+          IndexOptions().name("TtlIndex").expireAfter(appConfig.collectionsTtl, TimeUnit.HOURS)
+        )
       ),
       extraCodecs = Seq(Codecs.playFormatCodec(Record.formats)),
       replaceIndexes = true
     ) with RecordsRepository {
-
-  final val UPDATED = "_last_updated_at"
 
   override def store[T <: Record](entity: T, planetId: String)(implicit writes: Writes[T]): Future[String] = {
     val typeName = Record.typeOf(entity)
@@ -107,7 +114,7 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
           .insertOne(
             entityWithExtraJson
               .addField(Record.ID, Json.toJson(Id(newId))(Id.internalFormats))
-              .addField(UPDATED, JsNumber(System.currentTimeMillis()))
+              .addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat))
           )
           .toFuture()
           .map((_, newId))
@@ -116,7 +123,8 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
         collection
           .replaceOne(
             filter = Filters.equal(Record.ID, new ObjectId(id)),
-            replacement = entityWithExtraJson.addField(UPDATED, JsNumber(System.currentTimeMillis())),
+            replacement =
+              entityWithExtraJson.addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat)),
             ReplaceOptions().upsert(true)
           )
           .toFuture()
@@ -134,7 +142,7 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
                   Filters.equal(Record.ID, new ObjectId(recordId)),
                   entityWithExtraJson
                     .addField(Record.ID, Json.obj("$oid" -> JsString(recordId)))
-                    .addField(UPDATED, JsNumber(System.currentTimeMillis())),
+                    .addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat)),
                   ReplaceOptions().upsert(true)
                 )
                 .toFuture()
@@ -145,7 +153,7 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
                 .insertOne(
                   entityWithExtraJson
                     .addField(Record.ID, Json.obj("$oid" -> JsString(newId)))
-                    .addField(UPDATED, JsNumber(System.currentTimeMillis()))
+                    .addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat))
                 )
                 .toFuture()
                 .map(_ => newId)
@@ -159,7 +167,7 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: 
       .insertOne(
         record
           .addField(Record.ID, Json.obj("$oid" -> JsString(newId)))
-          .addField(UPDATED, JsNumber(System.currentTimeMillis()))
+          .addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat))
       )
       .toFuture()
       .map((_, newId))

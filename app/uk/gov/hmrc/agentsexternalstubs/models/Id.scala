@@ -22,6 +22,7 @@ case class Id(value: String)
 object Id {
 
   final val ID = "_id"
+  implicit val specialCaseFormat: OFormat[Id] = Json.format[Id]
 
   object internal {
 

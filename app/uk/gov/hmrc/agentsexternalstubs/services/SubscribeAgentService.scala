@@ -20,8 +20,6 @@ import play.api.libs.json.{Json, Writes}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{AddressDetails, AgencyDetails, ContactDetails, ForeignAddress, UkAddress}
 import uk.gov.hmrc.agentsexternalstubs.models._
 
-import java.time.LocalDateTime
-
 object SubscribeAgentService {
 
   def toBusinessPartnerRecord(
