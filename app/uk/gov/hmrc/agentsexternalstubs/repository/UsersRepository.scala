@@ -19,18 +19,21 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 import com.google.inject.ImplementedBy
 import com.mongodb.client.model.Updates
 import org.mongodb.scala.MongoWriteException
-import org.mongodb.scala.model.Filters.equal
+import org.mongodb.scala.model.Filters._
 import org.mongodb.scala.model.Projections.{excludeId, fields, include}
 import org.mongodb.scala.model._
-import org.mongodb.scala.model.Filters._
 import org.mongodb.scala.result.DeleteResult
 import play.api.libs.json._
 import play.api.{Logger, Logging}
 import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, User}
 import uk.gov.hmrc.agentsexternalstubs.repository.UsersRepositoryMongo._
+import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
+import java.time.Instant
+import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -81,10 +84,11 @@ object UsersRepositoryMongo {
   private final val KEY_USER_ID = "keyUserId"
   private final val PLANET_ID = "planetId"
   private final val KEY_PLANET_ID = "keyPlanetId"
+  private final val UPDATED = "lastUpdatedAt"
 }
 
 @Singleton
-class UsersRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: ExecutionContext)
+class UsersRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfig)(implicit val ec: ExecutionContext)
     extends PlayMongoRepository[JsonAbuse[User]](
       mongoComponent = mongo,
       collectionName = "users",
@@ -93,12 +97,14 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: Ex
         IndexModel(Indexes.ascending(KEYS), IndexOptions().name("Keys")),
         IndexModel(Indexes.ascending(UNIQUE_KEYS), IndexOptions().name("UniqueKeys").unique(true).sparse(true)),
         IndexModel(Indexes.ascending(USER_ID), IndexOptions().name(KEY_USER_ID)),
-        IndexModel(Indexes.ascending(PLANET_ID), IndexOptions().name(KEY_PLANET_ID))
+        IndexModel(Indexes.ascending(PLANET_ID), IndexOptions().name(KEY_PLANET_ID)),
+        IndexModel(
+          Indexes.ascending(UPDATED),
+          IndexOptions().name("TtlIndex").expireAfter(appConfig.collectionsTtl, TimeUnit.HOURS)
+        )
       ),
       replaceIndexes = true
     ) with UsersRepository with Logging {
-
-  final val UPDATED = "_last_updated_at"
 
   private def keyOf(key: String, planetId: String): String = s"${key.replace(" ", "")}@$planetId"
 
@@ -243,7 +249,9 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: Ex
 
   override def create(user: User, planetId: String): Future[Unit] =
     collection
-      .insertOne(serializeUser(user, planetId).addField(UPDATED, JsNumber(System.currentTimeMillis())))
+      .insertOne(
+        serializeUser(user, planetId).addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat))
+      )
       .toFuture()
       .map(_ => ())
       .recoverWith {
@@ -255,7 +263,8 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: Ex
     collection
       .replaceOne(
         filter = Filters.equal(UNIQUE_KEYS, keyOf(User.userIdKey(user.userId), planetId)),
-        replacement = serializeUser(user, planetId).addField(UPDATED, JsNumber(System.currentTimeMillis())),
+        replacement = serializeUser(user, planetId)
+          .addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat)),
         ReplaceOptions().upsert(true)
       )
       .toFuture()

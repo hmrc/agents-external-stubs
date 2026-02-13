@@ -16,11 +16,9 @@
 
 package uk.gov.hmrc.agentsexternalstubs.wiring
 import com.google.inject.ImplementedBy
-
-import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-import scala.concurrent.duration.{Duration, DurationInt}
+import javax.inject.{Inject, Singleton}
 
 @ImplementedBy(classOf[AppConfigImpl])
 trait AppConfig {
@@ -70,7 +68,6 @@ trait AppConfig {
   val specialCasesDisabled: Boolean
   val specialCasesUseTruncatedRequestUriMatch: Boolean
   val preloadRecordsForDefaultUserIds: Boolean
-  val clearOldMongoDbDocumentsDaily: Boolean
 
   val syncToAuthLoginApi: Boolean
 
@@ -79,6 +76,7 @@ trait AppConfig {
 
   val roboticsCallbackDelay: Int
   val roboticsKnownFactsDelay: Int
+  val collectionsTtl: Int
 }
 
 @Singleton
@@ -130,7 +128,8 @@ class AppConfigImpl @Inject() (config: ServicesConfig) extends AppConfig {
   val specialCasesUseTruncatedRequestUriMatch: Boolean =
     config.getBoolean("features.specialCases.truncate-request-uri-match")
   val preloadRecordsForDefaultUserIds: Boolean = config.getBoolean("features.preloadRecordsForDefaultUserIds")
-  val clearOldMongoDbDocumentsDaily: Boolean = config.getBoolean("features.clearOldMongoDbDocumentsDaily")
+
+  val collectionsTtl: Int = config.getInt("mongodb.expireAfterDays")
 
   val syncToAuthLoginApi: Boolean = config.getBoolean("features.syncToAuthLoginApi")
 

@@ -17,8 +17,6 @@
 package uk.gov.hmrc.agentsexternalstubs.connectors
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 
-import scala.concurrent.duration.{Duration, DurationInt}
-
 case class TestAppConfig(wireMockBaseUrl: String, wireMockPort: Int) extends AppConfig {
 
   override val appName: String = "agents-external-stubs"
@@ -56,7 +54,7 @@ case class TestAppConfig(wireMockBaseUrl: String, wireMockPort: Int) extends App
   override val specialCasesDisabled: Boolean = false
   override val specialCasesUseTruncatedRequestUriMatch: Boolean = false
   override val preloadRecordsForDefaultUserIds: Boolean = false
-  override val clearOldMongoDbDocumentsDaily: Boolean = false
+  override val collectionsTtl: Int = wireMockPort
 
   override val identityVerification: Int = wireMockPort
   override val personalDetailsValidation: Int = wireMockPort

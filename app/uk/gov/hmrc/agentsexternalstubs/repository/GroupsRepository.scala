@@ -25,9 +25,13 @@ import play.api.{Logger, Logging}
 import uk.gov.hmrc.agentsexternalstubs.models.{Enrolment, EnrolmentKey, Group}
 import uk.gov.hmrc.agentsexternalstubs.repository.GroupsRepositoryMongo._
 import uk.gov.hmrc.agentsexternalstubs.syntax.|>
+import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
+import java.time.Instant
+import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -66,10 +70,11 @@ object GroupsRepositoryMongo {
   private final val KEYS = "_keys"
   private final val GROUP_ID = "groupId"
   private final val PLANET_ID = "planetId"
+  private final val UPDATED = "lastUpdatedAt"
 }
 
 @Singleton
-class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: ExecutionContext)
+class GroupsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfig)(implicit val ec: ExecutionContext)
     extends PlayMongoRepository[JsonAbuse[Group]](
       mongoComponent = mongo,
       collectionName = "groups",
@@ -80,13 +85,15 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
         IndexModel(Indexes.ascending(KEYS), IndexOptions().name("Keys")),
         IndexModel(Indexes.ascending(UNIQUE_KEYS), IndexOptions().name("UniqueKeys").unique(true).sparse(true)),
         IndexModel(Indexes.ascending(GROUP_ID), IndexOptions().name("keyGroupId")),
-        IndexModel(Indexes.ascending(PLANET_ID), IndexOptions().name("keyPlanetId"))
+        IndexModel(Indexes.ascending(PLANET_ID), IndexOptions().name("keyPlanetId")),
+        IndexModel(
+          Indexes.ascending(UPDATED),
+          IndexOptions().name("TtlIndex").expireAfter(appConfig.collectionsTtl, TimeUnit.HOURS)
+        )
       ),
       replaceIndexes = true,
       extraCodecs = Seq(Codecs.playFormatCodec(Enrolment.tinyFormat))
     ) with GroupsRepository with Logging {
-
-  final val UPDATED = "_last_updated_at"
 
   private def keyOf(key: String, planetId: String): String = s"${key.replace(" ", "")}@$planetId"
 
@@ -199,7 +206,10 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
 
   override def create(group: Group, planetId: String): Future[Unit] =
     collection
-      .insertOne(serializeGroup(group, planetId).addField(UPDATED, JsNumber(System.currentTimeMillis())))
+      .insertOne(
+        serializeGroup(group, planetId)
+          .addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat))
+      )
       .toFuture()
       .map(_ => ())
       .recoverWith {
@@ -211,7 +221,8 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: E
     collection
       .findOneAndReplace(
         filter = Filters.equal(UNIQUE_KEYS, keyOf(groupIdIndexKey(group.groupId), planetId)),
-        replacement = serializeGroup(group, planetId).addField(UPDATED, JsNumber(System.currentTimeMillis())),
+        replacement = serializeGroup(group, planetId)
+          .addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat)),
         options = FindOneAndReplaceOptions().upsert(true)
       )
       .toFuture()

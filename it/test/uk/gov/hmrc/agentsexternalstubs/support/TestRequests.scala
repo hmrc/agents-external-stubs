@@ -1113,7 +1113,8 @@ trait TestRequests extends ScalaFutures {
               "correlationId" -> Some("it-test-invoke-robotics-correlation-id")
             ).collect { case (name, Some(value: String)) =>
               (name, value)
-            }: _*)
+            }: _*
+        )
         .post[T](payload)
         .futureValue
   }

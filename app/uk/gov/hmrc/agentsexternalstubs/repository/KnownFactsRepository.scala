@@ -20,9 +20,12 @@ import com.google.inject.ImplementedBy
 import org.mongodb.scala.model._
 import uk.gov.hmrc.agentsexternalstubs.models.KnownFacts.{identifierKey, verifierKey}
 import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, Identifier, KnownFact, KnownFacts}
+import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepositoryMongo.{PLANET_ID, UPDATED}
+import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
+import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -44,24 +47,31 @@ trait KnownFactsRepository {
   def destroyPlanet(planetId: String): Future[Unit]
 }
 
+object KnownFactsRepositoryMongo {
+  private final val PLANET_ID = "planetId"
+  private final val UPDATED = "lastUpdatedAt"
+}
+
 @Singleton
-class KnownFactsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val ec: ExecutionContext)
-    extends PlayMongoRepository[KnownFacts](
+class KnownFactsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfig)(implicit
+  val ec: ExecutionContext
+) extends PlayMongoRepository[JsonAbuse[KnownFacts]](
       mongoComponent = mongo,
       collectionName = "knownFacts",
-      domainFormat = KnownFacts.formats,
+      domainFormat = JsonAbuse.format[KnownFacts](extractExtraFieldsOnRead = false),
       indexes = Seq(
         IndexModel(Indexes.ascending("planetId")),
         IndexModel(
           Indexes.ascending(KnownFacts.UNIQUE_KEY),
           IndexOptions().name("KnownFactsByEnrolmentKey").unique(true)
+        ),
+        IndexModel(
+          Indexes.ascending(UPDATED),
+          IndexOptions().name("TtlIndex").expireAfter(appConfig.collectionsTtl, TimeUnit.HOURS)
         )
       ),
       replaceIndexes = true
     ) with KnownFactsRepository {
-
-  private final val PLANET_ID = "planetId"
-  final val UPDATED = "_last_updated_at"
 
   def findByEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(implicit
     ec: ExecutionContext
@@ -70,18 +80,21 @@ class KnownFactsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val e
       .find(Filters.equal(KnownFacts.UNIQUE_KEY, KnownFacts.uniqueKey(enrolmentKey.tag, planetId)))
       .toFuture()
       .map(_.headOption)
+      .map(_.map(_.value))
 
   override def findByIdentifier(identifier: Identifier, planetId: String): Future[Option[KnownFacts]] =
     collection
       .find(Filters.equal(KnownFacts.IDENTIFIER_KEYS, identifierKey(identifier, planetId)))
       .toFuture()
       .map(_.headOption)
+      .map(_.map(_.value))
 
   override def findByVerifier(knownFacts: KnownFact, planetId: String): Future[Option[KnownFacts]] =
     collection
       .find(Filters.equal(KnownFacts.VERIFIERS_KEYS, verifierKey(knownFacts, planetId)))
       .toFuture()
       .map(_.headOption)
+      .map(_.map(_.value))
 
   def upsert(knownFacts: KnownFacts, planetId: String): Future[Unit] =
     KnownFacts
@@ -93,7 +106,7 @@ class KnownFactsRepositoryMongo @Inject() (mongo: MongoComponent)(implicit val e
             .replaceOne(
               filter =
                 Filters.equal(KnownFacts.UNIQUE_KEY, KnownFacts.uniqueKey(knownFacts.enrolmentKey.tag, planetId)),
-              replacement = knownFacts.copy(planetId = Some(planetId)),
+              replacement = JsonAbuse(knownFacts.copy(planetId = Some(planetId))),
               options = ReplaceOptions().upsert(true)
             )
             .toFuture()
