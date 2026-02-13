@@ -18,13 +18,16 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 
 import com.google.inject.ImplementedBy
 import org.mongodb.scala.model._
+import play.api.libs.json.Json
 import uk.gov.hmrc.agentsexternalstubs.models.KnownFacts.{identifierKey, verifierKey}
 import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, Identifier, KnownFact, KnownFacts}
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepositoryMongo.{PLANET_ID, UPDATED}
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -106,7 +109,8 @@ class KnownFactsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: App
             .replaceOne(
               filter =
                 Filters.equal(KnownFacts.UNIQUE_KEY, KnownFacts.uniqueKey(knownFacts.enrolmentKey.tag, planetId)),
-              replacement = JsonAbuse(knownFacts.copy(planetId = Some(planetId))),
+              replacement = JsonAbuse(knownFacts.copy(planetId = Some(planetId)))
+                .addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat)),
               options = ReplaceOptions().upsert(true)
             )
             .toFuture()

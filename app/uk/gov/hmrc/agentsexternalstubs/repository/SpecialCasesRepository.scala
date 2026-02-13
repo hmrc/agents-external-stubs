@@ -27,7 +27,9 @@ import uk.gov.hmrc.agentsexternalstubs.syntax.|>
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -114,7 +116,8 @@ class SpecialCasesRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: A
                     Filters.equal(Id.ID, new ObjectId(id.value)),
                     Filters.equal(PLANET_ID, planetId)
                   ),
-                  replacement = JsonAbuse(specialCase.copy(planetId = Some(planetId))),
+                  replacement = JsonAbuse(specialCase.copy(planetId = Some(planetId)))
+                    .addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat)),
                   ReplaceOptions().upsert(false)
                 )
                 .toFuture()
@@ -136,7 +139,8 @@ class SpecialCasesRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: A
                           Filters.equal(Id.ID, new ObjectId(sc.value.id.map(_.value).get)),
                           Filters.equal(PLANET_ID, planetId)
                         ),
-                        replacement = JsonAbuse(specialCase.copy(planetId = Some(planetId))),
+                        replacement = JsonAbuse(specialCase.copy(planetId = Some(planetId)))
+                          .addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat)),
                         options = ReplaceOptions().upsert(false)
                       )
                       .toFuture()
@@ -146,6 +150,7 @@ class SpecialCasesRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: A
                     collection
                       .insertOne(
                         JsonAbuse(specialCase.copy(planetId = Some(planetId), id = Some(Id(newId))))
+                          .addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat))
                       )
                       .toFuture()
                       .map((_, newId))
