@@ -93,7 +93,8 @@ class RoboticsController @Inject() (
                 knownFactsDelay,
                 actorSystem.scheduler,
                 req.operationRequired,
-                correlationId
+                correlationId,
+                req.requestId
               )
             )
           )
@@ -125,7 +126,8 @@ class RoboticsTaskActor(
   knownFactsDelay: Int,
   scheduler: Scheduler,
   operationRequired: String,
-  correlationId: String
+  correlationId: String,
+  requestId: String
 )(implicit ec: ExecutionContext)
     extends org.apache.pekko.actor.Actor with play.api.Logging {
 
@@ -142,9 +144,10 @@ class RoboticsTaskActor(
       }
 
       val callbackPayload = Json.obj(
+        "requestId"         -> requestId,
         "targetSystem"      -> targetSystem,
         "operationRequired" -> operationRequired,
-        "agentId"           -> agentId.take(5).toUpperCase,
+        "agentId"           -> agentId,
         "status"            -> "success",
         "requestMessage"    -> requestMessage
       )

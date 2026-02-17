@@ -434,38 +434,38 @@ class HipStubController @Inject() (
                     )
                   } else {
                     recordsService
-                    .getRecordMaybeExt[BusinessPartnerRecord, Arn](Arn(arn), session.planetId)
-                    .flatMap {
-                      case None =>
-                        Future.successful(
-                          Results.UnprocessableEntity(
-                            Json.toJson(Errors("006", "Subscription Data Not Found"))
-                          )
-                        )
-
-                      case Some(existingRecord) =>
-                        if (!existingRecord.isAnASAgent) {
+                      .getRecordMaybeExt[BusinessPartnerRecord, Arn](Arn(arn), session.planetId)
+                      .flatMap {
+                        case None =>
                           Future.successful(
                             Results.UnprocessableEntity(
-                              Json.toJson(Errors("002", "Incomplete subscription"))
+                              Json.toJson(Errors("006", "Subscription Data Not Found"))
                             )
                           )
-                        } else {
-                          val amendedRecord =
-                            SubscribeAgentService
-                              .toBusinessPartnerRecord(payload, existingRecord)
 
-                          recordsService
-                            .store(amendedRecord, autoFill = false, session.planetId)
-                            .map { _ =>
-                              Results.Ok(
-                                Json.toJson(
-                                  HipAmendAgentSubscriptionResponse(Instant.now())
-                                )
+                        case Some(existingRecord) =>
+                          if (!existingRecord.isAnASAgent) {
+                            Future.successful(
+                              Results.UnprocessableEntity(
+                                Json.toJson(Errors("002", "Incomplete subscription"))
                               )
-                            }
-                        }
-                    }
+                            )
+                          } else {
+                            val amendedRecord =
+                              SubscribeAgentService
+                                .toBusinessPartnerRecord(payload, existingRecord)
+
+                            recordsService
+                              .store(amendedRecord, autoFill = false, session.planetId)
+                              .map { _ =>
+                                Results.Ok(
+                                  Json.toJson(
+                                    HipAmendAgentSubscriptionResponse(Instant.now())
+                                  )
+                                )
+                              }
+                          }
+                      }
                   }
               }
           }

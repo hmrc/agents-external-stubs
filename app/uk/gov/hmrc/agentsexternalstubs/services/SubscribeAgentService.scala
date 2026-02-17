@@ -137,7 +137,8 @@ object SubscribeAgentService {
   ): BusinessPartnerRecord = {
 
     val updatedAgencyDetails =
-      existingRecord.agencyDetails.getOrElse(BusinessPartnerRecord.AgencyDetails())
+      existingRecord.agencyDetails
+        .getOrElse(BusinessPartnerRecord.AgencyDetails())
 
         // Only update if defined
         .withAgencyName(payload.name.orElse(existingRecord.agencyDetails.flatMap(_.agencyName)))
@@ -145,7 +146,9 @@ object SubscribeAgentService {
         .withAgencyTelephoneNumber(payload.phone.orElse(existingRecord.agencyDetails.flatMap(_.agencyTelephone)))
         .withSupervisoryBody(payload.supervisoryBody.orElse(existingRecord.agencyDetails.flatMap(_.supervisoryBody)))
         .withMembershipNumber(payload.membershipNumber.orElse(existingRecord.agencyDetails.flatMap(_.membershipNumber)))
-        .withEvidenceObjectReference(payload.evidenceObjectReference.orElse(existingRecord.agencyDetails.flatMap(_.evidenceObjectReference)))
+        .withEvidenceObjectReference(
+          payload.evidenceObjectReference.orElse(existingRecord.agencyDetails.flatMap(_.evidenceObjectReference))
+        )
 
         // Status fields
         .withUpdateDetailsStatus(
@@ -198,9 +201,9 @@ object SubscribeAgentService {
         }
       } else {
         existingRecord.addressDetails match {
-          case addr: BusinessPartnerRecord.UkAddress => addr
+          case addr: BusinessPartnerRecord.UkAddress      => addr
           case addr: BusinessPartnerRecord.ForeignAddress => addr
-          case other =>
+          case other                                      =>
             // fallback: wrap as ForeignAddress with empty fields if original type is not one of the above
             BusinessPartnerRecord.ForeignAddress(
               addressLine1 = "",

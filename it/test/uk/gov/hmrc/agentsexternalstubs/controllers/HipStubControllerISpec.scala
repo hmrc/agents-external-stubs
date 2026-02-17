@@ -1667,7 +1667,6 @@ class HipStubControllerISpec
       }
     }
 
-
     "base headers are invalid" should {
       "return 422 Unprocessable Entity" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
@@ -1719,7 +1718,7 @@ class HipStubControllerISpec
         val result =
           HipStub.amendAgentSubscription(
             arn = "ZARN0001391",
-            name =  Some("Alex Rider")
+            name = Some("Alex Rider")
           )
 
         result should haveStatus(UNPROCESSABLE_ENTITY)
