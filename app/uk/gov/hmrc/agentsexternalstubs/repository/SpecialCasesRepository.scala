@@ -69,7 +69,7 @@ class SpecialCasesRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: A
         IndexModel(Indexes.ascending(Id.ID, PLANET_ID), IndexOptions().name("SpecialCaseId").unique(true)),
         IndexModel(
           Indexes.ascending(UPDATED),
-          IndexOptions().name("TtlIndex").expireAfter(appConfig.collectionsTtl, TimeUnit.HOURS)
+          IndexOptions().name("TtlIndex").expireAfter(appConfig.collectionsTtl, TimeUnit.DAYS)
         )
       ),
       replaceIndexes = true

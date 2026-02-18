@@ -80,7 +80,7 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppCon
         IndexModel(Indexes.ascending(PLANET_ID)),
         IndexModel(
           Indexes.ascending(UPDATED),
-          IndexOptions().name("TtlIndex").expireAfter(appConfig.collectionsTtl, TimeUnit.HOURS)
+          IndexOptions().name("TtlIndex").expireAfter(appConfig.collectionsTtl, TimeUnit.DAYS)
         )
       ),
       extraCodecs = Seq(Codecs.playFormatCodec(Record.formats)),

@@ -70,7 +70,7 @@ class KnownFactsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: App
         ),
         IndexModel(
           Indexes.ascending(UPDATED),
-          IndexOptions().name("TtlIndex").expireAfter(appConfig.collectionsTtl, TimeUnit.HOURS)
+          IndexOptions().name("TtlIndex").expireAfter(appConfig.collectionsTtl, TimeUnit.DAYS)
         )
       ),
       replaceIndexes = true

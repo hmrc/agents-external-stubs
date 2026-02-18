@@ -88,7 +88,7 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConf
         IndexModel(Indexes.ascending(PLANET_ID), IndexOptions().name("keyPlanetId")),
         IndexModel(
           Indexes.ascending(UPDATED),
-          IndexOptions().name("TtlIndex").expireAfter(appConfig.collectionsTtl, TimeUnit.HOURS)
+          IndexOptions().name("TtlIndex").expireAfter(appConfig.collectionsTtl, TimeUnit.DAYS)
         )
       ),
       replaceIndexes = true,
