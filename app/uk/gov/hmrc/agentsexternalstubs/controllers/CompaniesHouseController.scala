@@ -39,9 +39,24 @@ class CompaniesHouseController @Inject() (cc: ControllerComponents)(implicit ec:
     } else if (surname.contains("Empty")) {
       emptyOfficersResponse(companyNumber)
     } else {
-      companyOfficersResponse(companyNumber, surname.getOrElse(Generator.surname.sample.get).toUpperCase)
+      companyNumber match {
+        case "11111111" => officersForBusinessType("limited-company", "company-officers-template")
+        case "11111116" => officersForBusinessType("limited-company", "six-company-officers-template")
+        case "22222222" => officersForBusinessType("limited-liability-partnership", "company-officers-template")
+        case "22222226" => officersForBusinessType("limited-liability-partnership", "six-company-officers-template")
+        case "33333333" => officersForBusinessType("limited-partnership", "company-officers-template")
+        case "33333336" => officersForBusinessType("limited-partnership", "six-company-officers-template")
+        case "44444444" => officersForBusinessType("scottish-limited-partnership", "company-officers-template")
+        case "44444446" => officersForBusinessType("scottish-limited-partnership", "six-company-officers-template")
+        case _ => companyOfficersResponse(companyNumber, surname.getOrElse(Generator.surname.sample.get).toUpperCase)
+      }
+
     }
   }
+
+  private def officersForBusinessType(businessType: String, template: String): Future[Result] =
+    findResource(s"/resources/companies-house/$businessType/$template.json")
+      .map(_.fold[Result](NotFound)(jsonStr => Ok(Json.parse(jsonStr))))
 
   private def companyResponse(companyNumber: String): Future[Result] =
     // Based on https://github.com/hmrc/iv-test-data/tree/main/conf/resources/company-house/company
