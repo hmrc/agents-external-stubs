@@ -48,7 +48,7 @@ class CompaniesHouseController @Inject() (cc: ControllerComponents)(implicit ec:
         case "33333336" => officersForBusinessType("limited-partnership", "six-company-officers-template")
         case "44444444" => officersForBusinessType("scottish-limited-partnership", "company-officers-template")
         case "44444446" => officersForBusinessType("scottish-limited-partnership", "six-company-officers-template")
-        case _ => companyOfficersResponse(companyNumber, surname.getOrElse(Generator.surname.sample.get).toUpperCase)
+        case _          => companyOfficersResponse(companyNumber, surname.getOrElse(Generator.surname.sample.get).toUpperCase)
       }
 
     }
