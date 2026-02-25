@@ -120,22 +120,31 @@ class HipStubController @Inject() (
       ) match {
         case Left(_) =>
           Future.successful(
-            Results.UnprocessableEntity(Json.toJson(Errors("003", "Request could not be processed")))
+            Results.UnprocessableEntity(
+              subscriptionDisplayErrorResponse(Errors("003", "Request could not be processed"))
+            )
           )
         case Right(_) =>
           hipStubService.validateArn(arn) match {
             case Left(_) =>
               Future.successful(
-                Results.UnprocessableEntity(Json.toJson(Errors("003", "Request could not be processed")))
+                Results.UnprocessableEntity(
+                  subscriptionDisplayErrorResponse(Errors("003", "Request could not be processed"))
+                )
               )
             case Right(_) =>
               recordsService
                 .getRecordMaybeExt[BusinessPartnerRecord, Arn](Arn(arn), session.planetId)
                 .map {
                   case Some(record) if !record.isAnASAgent =>
-                    Results.UnprocessableEntity(Json.toJson(Errors("006", "Subscription Data Not Found")))
-                  case Some(record) => Ok(Json.toJson(convertToGetAgentSubscriptionResponse(record)))
-                  case None         => Results.UnprocessableEntity(Json.toJson(Errors("006", "Subscription Data Not Found")))
+                    Results.UnprocessableEntity(
+                      subscriptionDisplayErrorResponse(Errors("006", "Subscription Data Not Found"))
+                    )
+                  case Some(record) => Ok(subscriptionDisplaySuccessResponse(record))
+                  case None =>
+                    Results.UnprocessableEntity(
+                      subscriptionDisplayErrorResponse(Errors("006", "Subscription Data Not Found"))
+                    )
                 }
                 .recover { case e =>
                   logger.error("Incomplete subscription", e)
@@ -499,5 +508,10 @@ class HipStubController @Inject() (
         )
       )
     )
+
+  private def subscriptionDisplayErrorResponse(errors: Errors) =
+    s"""{"AgentSubscriptionDisplay_Response": {"errors": ${Json.toJson(errors)}}}"""
+  private def subscriptionDisplaySuccessResponse(record: BusinessPartnerRecord) =
+    s"""{"AgentSubscriptionDisplay_Response": ${Json.toJson(convertToGetAgentSubscriptionResponse(record))}}"""
 
 }

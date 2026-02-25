@@ -718,9 +718,9 @@ class HipStubControllerISpec
 
         result should haveStatus(OK)
 
-        result should haveValidJsonBody(haveProperty[JsObject]("success", not be empty))
+        result should haveValidJsonBody(haveProperty[JsObject]("AgentSubscriptionDisplay_Response", not be empty))
 
-        val json = result.json
+        val json = result.json \ "AgentSubscriptionDisplay_Response"
 
         (json \ "success" \ "processingDate").as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
         (json \ "success" \ "utr").as[String] should be("1234567890")
@@ -843,9 +843,9 @@ class HipStubControllerISpec
 
         result should haveStatus(OK)
 
-        result should haveValidJsonBody(haveProperty[JsObject]("success", not be empty))
+        result should haveValidJsonBody(haveProperty[JsObject]("AgentSubscriptionDisplay_Response", not be empty))
 
-        val json = result.json
+        val json = result.json \ "AgentSubscriptionDisplay_Response"
 
         (json \ "success" \ "suspensionStatus").as[String] should be("T")
         (json \ "success" \ "regime").as[Seq[String]] should be(Seq("VATC", "MTDIT"))
