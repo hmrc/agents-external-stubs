@@ -40,7 +40,7 @@ class HipStubService @Inject() extends Logging {
     if (!transmittingSystem.getOrElse("").equals("HIP")) {
       logger.error("transmittingSystem header missing or invalid")
       Left(Errors("006", requestCouldNotBeProcessed))
-    } else if (!originatingSystem.getOrElse("").equals("MDTP")) {
+    } else if (!originatingSystem.getOrElse("").contains("MDTP")) {
       logger.error("originatingSystem header missing or invalid")
       Left(Errors("006", requestCouldNotBeProcessed))
     } else if (
