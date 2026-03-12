@@ -116,8 +116,7 @@ object ApiPlatform {
         additionalInformation =
           testUser.vatRegistrationDate.map(date => AdditionalInformation(vatRegistrationDate = Some(date))),
         utr =
-          if (testUser.affinityGroup == AG.Individual) testUser.saUtr.orElse(Some(Generator.utr(testUser.userId)))
-          else None
+          if (testUser.affinityGroup == AG.Agent) None else testUser.saUtr.orElse(Some(Generator.utr(testUser.userId)))
       )
       val group = Group(
         groupId = groupId,
