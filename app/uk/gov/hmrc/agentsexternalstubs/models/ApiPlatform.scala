@@ -114,7 +114,9 @@ object ApiPlatform {
         ),
         assignedPrincipalEnrolments = mapServicesToEnrolments(testUser).flatMap(_.toEnrolmentKey),
         additionalInformation =
-          testUser.vatRegistrationDate.map(date => AdditionalInformation(vatRegistrationDate = Some(date)))
+          testUser.vatRegistrationDate.map(date => AdditionalInformation(vatRegistrationDate = Some(date))),
+        utr =
+          if (testUser.affinityGroup == AG.Agent) None else testUser.saUtr.orElse(Some(Generator.utr(testUser.userId)))
       )
       val group = Group(
         groupId = groupId,
@@ -129,7 +131,7 @@ object ApiPlatform {
     def mapServicesToEnrolments(testUser: ApiPlatform.TestUser): Seq[Enrolment] =
       testUser.services
         .map {
-          case "national-insurance" => None
+          case "national-insurance" => testUser.nino.map(Enrolment("HMRC-PT", "NINO", _))
           case "self-assessment"    => testUser.saUtr.map(Enrolment("IR-SA", "UTR", _))
           case "corporation-tax"    => testUser.ctUtr.map(Enrolment("IR-CT", "UTR", _))
           case "paye-for-employers" =>
