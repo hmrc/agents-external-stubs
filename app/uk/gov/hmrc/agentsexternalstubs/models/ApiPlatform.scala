@@ -115,7 +115,9 @@ object ApiPlatform {
         assignedPrincipalEnrolments = mapServicesToEnrolments(testUser).flatMap(_.toEnrolmentKey),
         additionalInformation =
           testUser.vatRegistrationDate.map(date => AdditionalInformation(vatRegistrationDate = Some(date))),
-        utr = testUser.saUtr
+        utr =
+          if (testUser.affinityGroup == AG.Individual) testUser.saUtr.orElse(Some(Generator.utr(testUser.userId)))
+          else None
       )
       val group = Group(
         groupId = groupId,
