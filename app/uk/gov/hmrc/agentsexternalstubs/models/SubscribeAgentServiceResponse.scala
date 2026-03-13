@@ -31,11 +31,24 @@ object DesIfResponse {
 case class HipResponse(processingDate: LocalDateTime, arn: String) extends SubscribeAgentServiceResponse
 
 object HipResponse {
-  implicit val writes: Writes[HipResponse] = Json.writes[HipResponse]
+  implicit val writes: Writes[HipResponse] = Writes { response =>
+    Json.obj(
+      "success" -> Json.obj(
+        "processingDate" -> response.processingDate.toString,
+        "arn"            -> response.arn
+      )
+    )
+  }
 }
 
 case class HipAmendAgentSubscriptionResponse(processingDate: Instant)
 
 object HipAmendAgentSubscriptionResponse {
-  implicit val writes: Writes[HipAmendAgentSubscriptionResponse] = Json.writes[HipAmendAgentSubscriptionResponse]
+  implicit val writes: Writes[HipAmendAgentSubscriptionResponse] = Writes { response =>
+    Json.obj(
+      "success" -> Json.obj(
+        "processingDate" -> response.processingDate.toString
+      )
+    )
+  }
 }
