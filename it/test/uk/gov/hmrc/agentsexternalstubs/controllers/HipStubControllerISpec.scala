@@ -1116,8 +1116,7 @@ class HipStubControllerISpec
 
         result should haveStatus(CREATED)
         result should haveValidJsonBody(
-          haveProperty[String]("arn", not be empty) and
-            haveProperty[String]("processingDate", not be empty)
+          haveProperty[JsObject]("success", not be empty)
         )
 
         val updated =
@@ -1438,7 +1437,7 @@ class HipStubControllerISpec
 
         result should haveStatus(OK)
         result should haveValidJsonBody(
-          haveProperty[String]("processingDate", not be empty)
+          haveProperty[JsObject]("success", not be empty)
         )
 
         val updated =
