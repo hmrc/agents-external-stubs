@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{Json, OFormat, Writes}
 import uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.GetRelationships.{Individual, Organisation}
 
 import java.time.{Instant, LocalDate}
@@ -55,5 +55,13 @@ case class Errors(
 )
 
 object Errors {
-  implicit val formats: OFormat[Errors] = Json.format[Errors]
+  implicit val writes: Writes[Errors] = Writes { errors =>
+    Json.obj(
+      "errors" -> Json.obj(
+        "code"           -> errors.code,
+        "text"           -> errors.text,
+        "processingDate" -> errors.processingDate
+      )
+    )
+  }
 }

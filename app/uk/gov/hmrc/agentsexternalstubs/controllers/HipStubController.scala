@@ -121,7 +121,7 @@ class HipStubController @Inject() (
         case Left(_) =>
           Future.successful(
             Results.UnprocessableEntity(
-              subscriptionDisplayErrorResponse(Errors("003", "Request could not be processed"))
+              Json.toJson(Errors("003", "Request could not be processed"))
             )
           )
         case Right(_) =>
@@ -129,7 +129,7 @@ class HipStubController @Inject() (
             case Left(_) =>
               Future.successful(
                 Results.UnprocessableEntity(
-                  subscriptionDisplayErrorResponse(Errors("003", "Request could not be processed"))
+                  Json.toJson(Errors("003", "Request could not be processed"))
                 )
               )
             case Right(_) =>
@@ -138,12 +138,12 @@ class HipStubController @Inject() (
                 .map {
                   case Some(record) if !record.isAnASAgent =>
                     Results.UnprocessableEntity(
-                      subscriptionDisplayErrorResponse(Errors("006", "Subscription Data Not Found"))
+                      Json.toJson(Errors("006", "Subscription Data Not Found"))
                     )
-                  case Some(record) => Ok(subscriptionDisplaySuccessResponse(record))
+                  case Some(record) => Ok(Json.toJson(convertToGetAgentSubscriptionResponse(record)))
                   case None =>
                     Results.UnprocessableEntity(
-                      subscriptionDisplayErrorResponse(Errors("006", "Subscription Data Not Found"))
+                      Json.toJson(Errors("006", "Subscription Data Not Found"))
                     )
                 }
                 .recover { case e =>
@@ -508,10 +508,4 @@ class HipStubController @Inject() (
         )
       )
     )
-
-  private def subscriptionDisplayErrorResponse(errors: Errors) =
-    s"""{"AgentSubscriptionDisplay_Response": {"errors": ${Json.toJson(errors)}}}"""
-  private def subscriptionDisplaySuccessResponse(record: BusinessPartnerRecord) =
-    s"""{"AgentSubscriptionDisplay_Response": ${Json.toJson(convertToGetAgentSubscriptionResponse(record))}}"""
-
 }

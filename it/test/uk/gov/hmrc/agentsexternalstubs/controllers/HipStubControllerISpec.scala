@@ -718,50 +718,45 @@ class HipStubControllerISpec
 
         result should haveStatus(OK)
 
-        result should haveValidJsonBody(haveProperty[JsObject]("AgentSubscriptionDisplay_Response", not be empty))
+        result should haveValidJsonBody(haveProperty[JsObject]("success", not be empty))
 
-        val json = result.json \ "AgentSubscriptionDisplay_Response"
+        val json = result.json \ "success"
 
-        (json \ "success" \ "processingDate").as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
-        (json \ "success" \ "utr").as[String] should be("1234567890")
-        (json \ "success" \ "name").as[String] should be("ABC Agency")
-        (json \ "success" \ "addr1").as[String] should be("10 New Street")
-        (json \ "success" \ "addr2").toOption should be(empty)
-        (json \ "success" \ "addr3").toOption should be(empty)
-        (json \ "success" \ "addr4").toOption should be(empty)
-        (json \ "success" \ "postcode").as[String] should be("AA11AA")
-        (json \ "success" \ "country").as[String] should be("GB")
-        (json \ "success" \ "phone").as[String] should be("01911234567")
-        (json \ "success" \ "email").as[String] should be("abc@test.com")
-        (json \ "success" \ "suspensionStatus").as[String] should be("F")
-        (json \ "success" \ "regime").toOption should be(empty)
-        (json \ "success" \ "supervisoryBody").as[String] should be("HMRC")
-        (json \ "success" \ "membershipNumber").as[String] should be("1234567890")
-        (json \ "success" \ "evidenceObjectReference").as[String] should be("1234e4567-e89b-12d3-a456-426614174000")
-        (json \ "success" \ "updateDetailsStatus").as[String] should be("ACCEPTED")
-        (json \ "success" \ "updateDetailsLastUpdated")
+        (json \ "processingDate").as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
+        (json \ "utr").as[String] should be("1234567890")
+        (json \ "name").as[String] should be("ABC Agency")
+        (json \ "addr1").as[String] should be("10 New Street")
+        (json \ "addr2").toOption should be(empty)
+        (json \ "addr3").toOption should be(empty)
+        (json \ "addr4").toOption should be(empty)
+        (json \ "postcode").as[String] should be("AA11AA")
+        (json \ "country").as[String] should be("GB")
+        (json \ "phone").as[String] should be("01911234567")
+        (json \ "email").as[String] should be("abc@test.com")
+        (json \ "suspensionStatus").as[String] should be("F")
+        (json \ "regime").toOption should be(empty)
+        (json \ "supervisoryBody").as[String] should be("HMRC")
+        (json \ "membershipNumber").as[String] should be("1234567890")
+        (json \ "evidenceObjectReference").as[String] should be("1234e4567-e89b-12d3-a456-426614174000")
+        (json \ "updateDetailsStatus").as[String] should be("ACCEPTED")
+        (json \ "updateDetailsLastUpdated").as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
+        (json \ "updateDetailsLastSuccessfullyComplete")
           .as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
-        (json \ "success" \ "updateDetailsLastSuccessfullyComplete")
+        (json \ "amlSupervisionUpdateStatus").as[String] should be("ACCEPTED")
+        (json \ "amlSupervisionUpdateLastUpdated").as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
+        (json \ "amlSupervisionUpdateLastSuccessfullyComplete")
           .as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
-        (json \ "success" \ "amlSupervisionUpdateStatus").as[String] should be("ACCEPTED")
-        (json \ "success" \ "amlSupervisionUpdateLastUpdated")
+        (json \ "directorPartnerUpdateStatus").as[String] should be("ACCEPTED")
+        (json \ "directorPartnerUpdateLastUpdated").as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
+        (json \ "directorPartnerUpdateLastSuccessfullyComplete")
           .as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
-        (json \ "success" \ "amlSupervisionUpdateLastSuccessfullyComplete")
+        (json \ "acceptNewTermsStatus").as[String] should be("ACCEPTED")
+        (json \ "acceptNewTermsLastUpdated").as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
+        (json \ "acceptNewTermsLastSuccessfullyComplete")
           .as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
-        (json \ "success" \ "directorPartnerUpdateStatus").as[String] should be("ACCEPTED")
-        (json \ "success" \ "directorPartnerUpdateLastUpdated")
-          .as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
-        (json \ "success" \ "directorPartnerUpdateLastSuccessfullyComplete")
-          .as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
-        (json \ "success" \ "acceptNewTermsStatus").as[String] should be("ACCEPTED")
-        (json \ "success" \ "acceptNewTermsLastUpdated")
-          .as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
-        (json \ "success" \ "acceptNewTermsLastSuccessfullyComplete")
-          .as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
-        (json \ "success" \ "reriskStatus").as[String] should be("ACCEPTED")
-        (json \ "success" \ "reriskLastUpdated").as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
-        (json \ "success" \ "reriskLastSuccessfullyComplete")
-          .as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
+        (json \ "reriskStatus").as[String] should be("ACCEPTED")
+        (json \ "reriskLastUpdated").as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
+        (json \ "reriskLastSuccessfullyComplete").as[LocalDateTime] should be >= LocalDateTime.now().minusMinutes(1)
       }
 
       "return the agent subscription response with status 200 with list of regimes when agent is suspended" in {
@@ -843,12 +838,12 @@ class HipStubControllerISpec
 
         result should haveStatus(OK)
 
-        result should haveValidJsonBody(haveProperty[JsObject]("AgentSubscriptionDisplay_Response", not be empty))
+        result should haveValidJsonBody(haveProperty[JsObject]("success", not be empty))
 
-        val json = result.json \ "AgentSubscriptionDisplay_Response"
+        val json = result.json \ "success"
 
-        (json \ "success" \ "suspensionStatus").as[String] should be("T")
-        (json \ "success" \ "regime").as[Seq[String]] should be(Seq("VATC", "MTDIT"))
+        (json \ "suspensionStatus").as[String] should be("T")
+        (json \ "regime").as[Seq[String]] should be(Seq("VATC", "MTDIT"))
       }
     }
 
