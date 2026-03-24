@@ -35,7 +35,7 @@ class RoboticsConnector @Inject() (httpClientV2: HttpClientV2, appConfig: AppCon
 
   def sendCallback(payload: JsValue, correlationId: String): Future[Unit] =
     httpClientV2
-      .post(url"$callbackUrl/robotics/callback")
+      .post(url"$callbackUrl/agent-services-account/robotics/callback")
       .setHeader("correlationId" -> correlationId)
       .withBody(payload)
       .execute[HttpResponse]
