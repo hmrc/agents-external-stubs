@@ -20,6 +20,7 @@ import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.{Service => identifierService}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.{EnrolmentsFromKnownFactsRequest, SetKnownFactsRequest}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
@@ -1823,9 +1824,8 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
 
     "POST /enrolment-store-proxy/enrolment-store/enrolments (ES20)" should {
       val cbcId = "XECBC0666272111"
-      val enrolmentKey = s"HMRC-CBC-ORG~cbcId~$cbcId~UTR~8989040376"
 
-      def setKnownFacts()(implicit ac: AuthContext) = EnrolmentStoreProxyStub
+      def setKnownFacts(enrolmentKey: String)(implicit ac: AuthContext) = EnrolmentStoreProxyStub
         .setKnownFacts(
           enrolmentKey,
           SetKnownFactsRequest
@@ -1835,7 +1835,8 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
 
       "return OK with matching identifiers and verifiers" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
-        setKnownFacts()
+        val enrolmentKey = s"HMRC-CBC-ORG~cbcId~$cbcId~UTR~8989040376"
+        setKnownFacts(enrolmentKey)
 
         val result = EnrolmentStoreProxyStub.queryKnownFacts(
           EnrolmentsFromKnownFactsRequest(
@@ -1847,6 +1848,47 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         result should haveStatus(OK)
         // add test for JSON
 
+      }
+
+      "return OK with correct service when multiple services share same identifier" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+
+        val cbcId = "XECBC0666272111"
+        val ekCbc = EnrolmentKey.from(identifierService.Cbc.id, "cbcId" -> cbcId)
+        val ekCbcNonUk = EnrolmentKey.from(identifierService.CbcNonUk.id, "cbcId" -> cbcId)
+
+        setKnownFacts(ekCbc.toString)
+        setKnownFacts(ekCbcNonUk.toString)
+
+        val result = EnrolmentStoreProxyStub.queryKnownFacts(
+          EnrolmentsFromKnownFactsRequest(
+            identifierService.CbcNonUk.id,
+            Seq(Identifier("cbcId", cbcId))
+          )
+        )
+
+        result should haveStatus(OK)
+
+        (result.json \ "service").as[String] shouldBe identifierService.CbcNonUk.id
+      }
+
+      "return 204 when identifier exists but service does not match" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+
+        val cbcId = "XECBC0666272111"
+
+        val ekCbc = EnrolmentKey.from(identifierService.Cbc.id, "cbcId" -> cbcId)
+
+        setKnownFacts(ekCbc.toString)
+
+        val result = EnrolmentStoreProxyStub.queryKnownFacts(
+          EnrolmentsFromKnownFactsRequest(
+            identifierService.CbcNonUk.id,
+            Seq(Identifier("cbcId", cbcId))
+          )
+        )
+
+        result should haveStatus(NO_CONTENT)
       }
 
       "return NoContent if nothing found" in {
