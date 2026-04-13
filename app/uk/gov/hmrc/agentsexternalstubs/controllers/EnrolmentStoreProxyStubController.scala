@@ -396,19 +396,18 @@ class EnrolmentStoreProxyStubController @Inject() (
               error => badRequestF("INVALID_PAYLOAD", error.mkString(", ")),
               _ =>
                 knownFactsRepository
-                  .findByIdentifier(payload.knownFacts.head, session.planetId)
+                  .findAllByIdentifier(payload.knownFacts.head, session.planetId)
                   .map(knownFacts =>
-                    knownFacts.fold(NoContent)(knownFact =>
-                      if (payload.service == knownFact.enrolmentKey.service) {
+                    knownFacts
+                      .find(_.enrolmentKey.service == payload.service)
+                      .map(kf =>
                         Ok(
                           Json.toJson(
-                            EnrolmentsFromKnownFactsResponse.fromKnownFacts(knownFact)
+                            EnrolmentsFromKnownFactsResponse.fromKnownFacts(kf)
                           )
                         )
-                      } else {
-                        NoContent
-                      }
-                    )
+                      )
+                      .getOrElse(NoContent)
                   )
             )
         }
