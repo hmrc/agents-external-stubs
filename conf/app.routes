@@ -94,6 +94,10 @@ PUT           /etmp/RESTAdapter/generic/agent/subscription/:arn                 
 
 GET           /etmp/RESTAdapter/generic/agent/subscription/:arn                                     @uk.gov.hmrc.agentsexternalstubs.controllers.HipStubController.getAgentSubscription(arn: String)
 
+# UCR Customer API V2 Stubs
+POST          /customer/v2/api/individuals/identifier-search                                           @uk.gov.hmrc.agentsexternalstubs.controllers.HipStubController.ucrIndividualIdentifierSearch
+POST          /customer/v2/api/organisations/identifier-search                                         @uk.gov.hmrc.agentsexternalstubs.controllers.HipStubController.ucrOrganisationIdentifierSearch
+
 # Datastream
 POST          /write/audit                                                                           @uk.gov.hmrc.agentsexternalstubs.controllers.DataStreamStubController.writeEvent
 POST          /write/audit/merged                                                                    @uk.gov.hmrc.agentsexternalstubs.controllers.DataStreamStubController.writeEvent

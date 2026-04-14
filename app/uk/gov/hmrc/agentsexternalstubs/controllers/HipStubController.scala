@@ -36,6 +36,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class HipStubController @Inject() (
   hipStubService: HipStubService,
+  ucrStubService: UcrStubService,
   val authenticationService: AuthenticationService,
   relationshipRecordsService: RelationshipRecordsService,
   recordsService: RecordsService,
@@ -477,6 +478,60 @@ class HipStubController @Inject() (
                       }
                   }
               }
+          }
+      }
+    }(SessionRecordNotFound)
+  }
+
+  /** UCR Customer API v2 - Search Individual By Identifier.
+    * Searches for an individual's VRNs and PAYE refs (EMPREFs) by NINO or UTR.
+    * Looks up the User in the stub database and extracts identifiers from their enrolments.
+    * @see
+    *   https://admin.tax.service.gov.uk/api-hub/apis/details/ucr-customer-api-v2 "Search Individual By Identifier"
+    */
+  def ucrIndividualIdentifierSearch: Action[JsValue] = Action(parse.json).async { implicit request =>
+    withCurrentSession { session =>
+      val correlationId = request.headers.get("correlationid").getOrElse(java.util.UUID.randomUUID().toString)
+      hipStubService.validateBaseHeaders(
+        request.headers.get("X-Transmitting-System"),
+        request.headers.get("X-Originating-System"),
+        request.headers.get("correlationid"),
+        request.headers.get("X-Receipt-Date")
+      ) match {
+        case Left(invalidHeadersResponse) =>
+          Future.successful(Results.UnprocessableEntity(Json.toJson(invalidHeadersResponse)))
+        case Right(_) =>
+          ucrStubService.validateSystemId(request.headers.get("system-id")) match {
+            case Left(errorResult) => Future.successful(errorResult)
+            case Right(_) =>
+              ucrStubService.processIndividualIdentifierSearch(request.body, session.planetId, correlationId)
+          }
+      }
+    }(SessionRecordNotFound)
+  }
+
+  /** UCR Customer API v2 - Search Organisation By Identifier.
+    * Searches for an organisation's VRNs and PAYE refs (EMPREFs) by UTR.
+    * Looks up the User by CT UTR enrolment and extracts identifiers from their group's enrolments.
+    * @see
+    *   https://admin.tax.service.gov.uk/api-hub/apis/details/ucr-customer-api-v2 "Search Organisation By Identifier"
+    */
+  def ucrOrganisationIdentifierSearch: Action[JsValue] = Action(parse.json).async { implicit request =>
+    withCurrentSession { session =>
+      val correlationId = request.headers.get("correlationid").getOrElse(java.util.UUID.randomUUID().toString)
+      hipStubService.validateBaseHeaders(
+        request.headers.get("X-Transmitting-System"),
+        request.headers.get("X-Originating-System"),
+        request.headers.get("correlationid"),
+        request.headers.get("X-Receipt-Date")
+      ) match {
+        case Left(invalidHeadersResponse) =>
+          Future.successful(Results.UnprocessableEntity(Json.toJson(invalidHeadersResponse)))
+        case Right(_) =>
+          ucrStubService.validateSystemId(request.headers.get("system-id")) match {
+            case Left(errorResult) => Future.successful(errorResult)
+            case Right(_) =>
+              ucrStubService.processOrganisationIdentifierSearch(request.body, session.planetId, correlationId)
           }
       }
     }(SessionRecordNotFound)

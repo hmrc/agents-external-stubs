@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.http.Status._
-import play.api.libs.json.JsObject
+import play.api.libs.json.{JsObject, JsValue}
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.AgencyDetails
@@ -1733,6 +1733,173 @@ class HipStubControllerISpec
         result should haveStatus(UNAUTHORIZED)
         result.json.toString should include("""{"code":"UNAUTHORIZED","reason":"SessionRecordNotFound"}""")
       }
+    }
+  }
+
+  private def ucrIdentifierValue(json: JsValue, identifierType: String): Option[String] =
+    ((json \ "results")(0) \ "identifiers")
+      .as[Seq[JsValue]]
+      .find(i => (i \ "identifier" \ "type").as[String] == identifierType)
+      .map(i => (i \ "identifier" \ "value").as[String])
+
+  private def ucrIdentifierTypes(json: JsValue): Seq[String] =
+    ((json \ "results")(0) \ "identifiers")
+      .as[Seq[JsValue]]
+      .map(i => (i \ "identifier" \ "type").as[String])
+
+  "HipStubController.ucrIndividualIdentifierSearch" should {
+
+    "return 200 with identifiers extracted from user enrolments when searching by NINO" in {
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      val nino = "AB123456C"
+      val user = UserGenerator
+        .individual(nino = nino)
+        .copy(
+          utr = Some("1234567890"),
+          assignedPrincipalEnrolments = Seq(
+            Enrolment("HMRC-MTD-VAT", "VRN", "462783770").toEnrolmentKey.get
+          )
+        )
+      await(userService.createUser(user, session.planetId, Some(AG.Individual)))
+
+      val result = HipStub.ucrIndividualIdentifierSearch(identifierType = "NINO", identifierValue = nino)
+
+      result should haveStatus(OK)
+      val json = result.json
+      (json \ "status" \ "code").as[String] shouldBe "001"
+      ucrIdentifierValue(json, "NINO") shouldBe Some("AB123456C")
+      ucrIdentifierValue(json, "UTR") shouldBe Some("1234567890")
+      ucrIdentifierValue(json, "VRN") shouldBe Some("462783770")
+    }
+
+    "return 200 with only NINO and UTR when user has no VAT or PAYE enrolments" in {
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      val nino = "AB654321D"
+      val user = UserGenerator.individual(nino = nino).copy(utr = Some("9876543210"))
+      await(userService.createUser(user, session.planetId, Some(AG.Individual)))
+
+      val result = HipStub.ucrIndividualIdentifierSearch(identifierType = "NINO", identifierValue = nino)
+
+      result should haveStatus(OK)
+      val json = result.json
+      (json \ "status" \ "code").as[String] shouldBe "001"
+      ucrIdentifierValue(json, "NINO") shouldBe Some("AB654321D")
+      ucrIdentifierValue(json, "UTR") shouldBe Some("9876543210")
+      ucrIdentifierTypes(json) should contain noneOf ("VRN", "EMPREF")
+    }
+
+    "return 200 with no-match response when user is not found" in {
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+      val result = HipStub.ucrIndividualIdentifierSearch(identifierType = "NINO", identifierValue = "AB999999D")
+
+      result should haveStatus(OK)
+      val json = result.json
+      (json \ "status" \ "code").as[String] shouldBe "004"
+      (json \ "status" \ "description").as[String] shouldBe "No match found"
+      (json \ "results").as[Seq[JsValue]] shouldBe empty
+    }
+
+    "return 422 when HIP base headers are missing" in {
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+      val result = HipStub.ucrIndividualIdentifierSearch(
+        identifierType = "NINO",
+        identifierValue = "AB000000A",
+        transmittingSystemHeader = None
+      )
+
+      result should haveStatus(UNPROCESSABLE_ENTITY)
+    }
+
+    "return 400 when system-id header is missing" in {
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+      val result = HipStub.ucrIndividualIdentifierSearch(
+        identifierType = "NINO",
+        identifierValue = "AB000000A",
+        systemId = None
+      )
+
+      result should haveStatus(BAD_REQUEST)
+    }
+  }
+
+  "HipStubController.ucrOrganisationIdentifierSearch" should {
+
+    "return 200 with UTR, VRN and EMPREF identifiers when searching by CT UTR" in {
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      val ctUtr = "1234567890"
+      val user = UserGenerator
+        .organisation()
+        .copy(assignedPrincipalEnrolments =
+          Seq(
+            Enrolment("IR-CT", "UTR", ctUtr).toEnrolmentKey.get,
+            Enrolment("HMRC-MTD-VAT", "VRN", "462783770").toEnrolmentKey.get,
+            EnrolmentKey.from("IR-PAYE", "TaxOfficeNumber" -> "123", "TaxOfficeReference" -> "A45678")
+          )
+        )
+      await(userService.createUser(user, session.planetId, Some(AG.Organisation)))
+
+      val result = HipStub.ucrOrganisationIdentifierSearch(identifierValue = ctUtr)
+
+      result should haveStatus(OK)
+      val json = result.json
+      (json \ "status" \ "code").as[String] shouldBe "001"
+      ucrIdentifierValue(json, "UTR") shouldBe Some("1234567890")
+      ucrIdentifierValue(json, "VRN") shouldBe Some("462783770")
+      ucrIdentifierValue(json, "EMPREF") shouldBe Some("123/A45678")
+    }
+
+    "return 200 with only UTR when organisation has no VAT or PAYE enrolments" in {
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      val ctUtr = "5554443332"
+      val user = UserGenerator
+        .organisation()
+        .copy(assignedPrincipalEnrolments = Seq(Enrolment("IR-CT", "UTR", ctUtr).toEnrolmentKey.get))
+      await(userService.createUser(user, session.planetId, Some(AG.Organisation)))
+
+      val result = HipStub.ucrOrganisationIdentifierSearch(identifierValue = ctUtr)
+
+      result should haveStatus(OK)
+      val json = result.json
+      (json \ "status" \ "code").as[String] shouldBe "001"
+      ucrIdentifierValue(json, "UTR") shouldBe Some("5554443332")
+      ucrIdentifierTypes(json) should contain noneOf ("VRN", "EMPREF")
+    }
+
+    "return 200 with no-match response when organisation is not found" in {
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+      val result = HipStub.ucrOrganisationIdentifierSearch(identifierValue = "0000000001")
+
+      result should haveStatus(OK)
+      val json = result.json
+      (json \ "status" \ "code").as[String] shouldBe "004"
+      (json \ "status" \ "description").as[String] shouldBe "No match found"
+      (json \ "results").as[Seq[JsValue]] shouldBe empty
+    }
+
+    "return 422 when HIP base headers are missing" in {
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+      val result = HipStub.ucrOrganisationIdentifierSearch(
+        identifierValue = "1234567890",
+        transmittingSystemHeader = None
+      )
+
+      result should haveStatus(UNPROCESSABLE_ENTITY)
+    }
+
+    "return 400 when system-id header is missing" in {
+      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+      val result = HipStub.ucrOrganisationIdentifierSearch(
+        identifierValue = "1234567890",
+        systemId = None
+      )
+
+      result should haveStatus(BAD_REQUEST)
     }
   }
 
