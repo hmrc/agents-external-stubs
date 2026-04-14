@@ -156,15 +156,15 @@ class UcrStubService @Inject() (
 
   private def ucrIdentifier(idType: String, value: String, thirdPartyKey: String, sourceSystem: String): String =
     s"""{
-       |  "identifier": { "type": "$idType", "value": "$value" },
-       |  "sourceSystems": [{ "thirdPartyKey": "$thirdPartyKey", "name": "$sourceSystem" }]
-       |}""".stripMargin
+      |  "identifier": { "type": "$idType", "value": "$value" },
+      |  "sourceSystems": [{ "thirdPartyKey": "$thirdPartyKey", "name": "$sourceSystem" }]
+      |}""".stripMargin
 
   private def ucrOrgIdentifier(idType: String, value: String, thirdPartyKey: String, sourceSystem: String): String =
     s"""{
-       |  "identifier": { "type": "$idType", "value": "$value", "invalidFormat": false },
-       |  "sourceSystems": [{ "thirdPartyKey": "$thirdPartyKey", "name": "$sourceSystem" }]
-       |}""".stripMargin
+      |  "identifier": { "type": "$idType", "value": "$value", "invalidFormat": false },
+      |  "sourceSystems": [{ "thirdPartyKey": "$thirdPartyKey", "name": "$sourceSystem" }]
+      |}""".stripMargin
 
   private def replaceIdentifiers(maybeJson: Option[String], identifiers: String): Option[String] =
     maybeJson.map(_.replace("%%%IDENTIFIERS%%%", identifiers))

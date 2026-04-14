@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.http.Status._
-import play.api.libs.json.JsObject
+import play.api.libs.json.{JsObject, JsValue}
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.AgencyDetails
@@ -1736,6 +1736,17 @@ class HipStubControllerISpec
     }
   }
 
+  private def ucrIdentifierValue(json: JsValue, identifierType: String): Option[String] =
+    ((json \ "results")(0) \ "identifiers")
+      .as[Seq[JsValue]]
+      .find(i => (i \ "identifier" \ "type").as[String] == identifierType)
+      .map(i => (i \ "identifier" \ "value").as[String])
+
+  private def ucrIdentifierTypes(json: JsValue): Seq[String] =
+    ((json \ "results")(0) \ "identifiers")
+      .as[Seq[JsValue]]
+      .map(i => (i \ "identifier" \ "type").as[String])
+
   "HipStubController.ucrIndividualIdentifierSearch" should {
 
     "return 200 with identifiers extracted from user enrolments when searching by NINO" in {
@@ -1754,11 +1765,11 @@ class HipStubControllerISpec
       val result = HipStub.ucrIndividualIdentifierSearch(identifierType = "NINO", identifierValue = nino)
 
       result should haveStatus(OK)
-      val body = result.json.toString
-      body should include(""""code":"001"""")
-      body should include(""""type":"NINO","value":"AB123456C"""")
-      body should include(""""type":"UTR","value":"1234567890"""")
-      body should include(""""type":"VRN","value":"462783770"""")
+      val json = result.json
+      (json \ "status" \ "code").as[String] shouldBe "001"
+      ucrIdentifierValue(json, "NINO") shouldBe Some("AB123456C")
+      ucrIdentifierValue(json, "UTR") shouldBe Some("1234567890")
+      ucrIdentifierValue(json, "VRN") shouldBe Some("462783770")
     }
 
     "return 200 with only NINO and UTR when user has no VAT or PAYE enrolments" in {
@@ -1770,12 +1781,11 @@ class HipStubControllerISpec
       val result = HipStub.ucrIndividualIdentifierSearch(identifierType = "NINO", identifierValue = nino)
 
       result should haveStatus(OK)
-      val body = result.json.toString
-      body should include(""""code":"001"""")
-      body should include(""""type":"NINO","value":"AB654321D"""")
-      body should include(""""type":"UTR","value":"9876543210"""")
-      body should not include """"type":"VRN""""
-      body should not include """"type":"EMPREF""""
+      val json = result.json
+      (json \ "status" \ "code").as[String] shouldBe "001"
+      ucrIdentifierValue(json, "NINO") shouldBe Some("AB654321D")
+      ucrIdentifierValue(json, "UTR") shouldBe Some("9876543210")
+      ucrIdentifierTypes(json) should contain noneOf ("VRN", "EMPREF")
     }
 
     "return 200 with no-match response when user is not found" in {
@@ -1784,9 +1794,10 @@ class HipStubControllerISpec
       val result = HipStub.ucrIndividualIdentifierSearch(identifierType = "NINO", identifierValue = "AB999999D")
 
       result should haveStatus(OK)
-      val body = result.json.toString
-      body should include(""""code":"004"""")
-      body should include(""""description":"No match found"""")
+      val json = result.json
+      (json \ "status" \ "code").as[String] shouldBe "004"
+      (json \ "status" \ "description").as[String] shouldBe "No match found"
+      (json \ "results").as[Seq[JsValue]] shouldBe empty
     }
 
     "return 422 when HIP base headers are missing" in {
@@ -1833,11 +1844,11 @@ class HipStubControllerISpec
       val result = HipStub.ucrOrganisationIdentifierSearch(identifierValue = ctUtr)
 
       result should haveStatus(OK)
-      val body = result.json.toString
-      body should include(""""code":"001"""")
-      body should include(""""type":"UTR","value":"1234567890"""")
-      body should include(""""type":"VRN","value":"462783770"""")
-      body should include(""""type":"EMPREF","value":"123/A45678"""")
+      val json = result.json
+      (json \ "status" \ "code").as[String] shouldBe "001"
+      ucrIdentifierValue(json, "UTR") shouldBe Some("1234567890")
+      ucrIdentifierValue(json, "VRN") shouldBe Some("462783770")
+      ucrIdentifierValue(json, "EMPREF") shouldBe Some("123/A45678")
     }
 
     "return 200 with only UTR when organisation has no VAT or PAYE enrolments" in {
@@ -1851,11 +1862,10 @@ class HipStubControllerISpec
       val result = HipStub.ucrOrganisationIdentifierSearch(identifierValue = ctUtr)
 
       result should haveStatus(OK)
-      val body = result.json.toString
-      body should include(""""code":"001"""")
-      body should include(""""type":"UTR","value":"5554443332"""")
-      body should not include """"type":"VRN""""
-      body should not include """"type":"EMPREF""""
+      val json = result.json
+      (json \ "status" \ "code").as[String] shouldBe "001"
+      ucrIdentifierValue(json, "UTR") shouldBe Some("5554443332")
+      ucrIdentifierTypes(json) should contain noneOf ("VRN", "EMPREF")
     }
 
     "return 200 with no-match response when organisation is not found" in {
@@ -1864,9 +1874,10 @@ class HipStubControllerISpec
       val result = HipStub.ucrOrganisationIdentifierSearch(identifierValue = "0000000001")
 
       result should haveStatus(OK)
-      val body = result.json.toString
-      body should include(""""code":"004"""")
-      body should include(""""description":"No match found"""")
+      val json = result.json
+      (json \ "status" \ "code").as[String] shouldBe "004"
+      (json \ "status" \ "description").as[String] shouldBe "No match found"
+      (json \ "results").as[Seq[JsValue]] shouldBe empty
     }
 
     "return 422 when HIP base headers are missing" in {
