@@ -787,6 +787,70 @@ trait TestRequests extends ScalaFutures {
         .put(payload)
         .futureValue
     }
+
+    def ucrIndividualIdentifierSearch(
+      identifierType: String = "NINO",
+      identifierValue: String,
+      systemId: Option[String] = Some("agent-registration"),
+      transmittingSystemHeader: Option[String] = Some("HIP"),
+      originatingSystemHeader: Option[String] = Some("MDTP-AgentRegistration"),
+      correlationIdHeader: Option[String] = Some("f0bd1f32-de51-45cc-9b18-0520d6e3ab1a"),
+      receiptDateHeader: Option[String] = Some("2025-01-30T23:59:59Z")
+    )(implicit authContext: AuthContext): WSResponse = {
+      val payload = Json.obj(
+        "identifier" -> Json.obj(
+          "type"  -> identifierType,
+          "value" -> identifierValue
+        ),
+        "excludeDeceased" -> true,
+        "registryMarker"  -> "GREEN"
+      )
+      wsClient
+        .url(s"$url/customer/v2/api/individuals/identifier-search")
+        .withHttpHeaders(
+          authContext.headers ++
+            Seq(
+              "system-id"             -> systemId,
+              "X-Transmitting-System" -> transmittingSystemHeader,
+              "X-Originating-System"  -> originatingSystemHeader,
+              "correlationid"         -> correlationIdHeader,
+              "X-Receipt-Date"        -> receiptDateHeader
+            ).collect { case (k, Some(v)) => k -> v }: _*
+        )
+        .post(payload)
+        .futureValue
+    }
+
+    def ucrOrganisationIdentifierSearch(
+      identifierValue: String,
+      systemId: Option[String] = Some("agent-registration"),
+      transmittingSystemHeader: Option[String] = Some("HIP"),
+      originatingSystemHeader: Option[String] = Some("MDTP-AgentRegistration"),
+      correlationIdHeader: Option[String] = Some("f0bd1f32-de51-45cc-9b18-0520d6e3ab1a"),
+      receiptDateHeader: Option[String] = Some("2025-01-30T23:59:59Z")
+    )(implicit authContext: AuthContext): WSResponse = {
+      val payload = Json.obj(
+        "identifier" -> Json.obj(
+          "type"  -> "UTR",
+          "value" -> identifierValue
+        ),
+        "registryMarker" -> "GREEN"
+      )
+      wsClient
+        .url(s"$url/customer/v2/api/organisations/identifier-search")
+        .withHttpHeaders(
+          authContext.headers ++
+            Seq(
+              "system-id"             -> systemId,
+              "X-Transmitting-System" -> transmittingSystemHeader,
+              "X-Originating-System"  -> originatingSystemHeader,
+              "correlationid"         -> correlationIdHeader,
+              "X-Receipt-Date"        -> receiptDateHeader
+            ).collect { case (k, Some(v)) => k -> v }: _*
+        )
+        .post(payload)
+        .futureValue
+    }
   }
 
   object DesStub {
