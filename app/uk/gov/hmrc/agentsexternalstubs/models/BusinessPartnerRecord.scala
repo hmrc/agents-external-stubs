@@ -543,11 +543,6 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
         entity.copy(
           supervisoryBody = supervisoryBodyValidator(entity.supervisoryBody)
             .fold(_ => None, _ => entity.supervisoryBody)
-            .orElse(
-              Generator.get(
-                UserGenerator.agencyNameGen.map(_.take(40)).suchThat(_.length >= 1).suchThat(_.length <= 100)
-              )(seed)
-            )
         )
 
     val membershipNumberSanitizer: Update = seed =>
@@ -555,11 +550,6 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
         entity.copy(
           membershipNumber = membershipNumberValidator(entity.membershipNumber)
             .fold(_ => None, _ => entity.membershipNumber)
-            .orElse(
-              Generator.get(
-                Gen.alphaNumStr.map(_.take(40)).suchThat(_.length >= 1).suchThat(_.length <= 100)
-              )(seed)
-            )
         )
 
     val evidenceObjectReferenceSanitizer: Update = seed =>
@@ -567,11 +557,6 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
         entity.copy(
           evidenceObjectReference = evidenceObjectReferenceValidator(entity.evidenceObjectReference)
             .fold(_ => None, _ => entity.evidenceObjectReference)
-            .orElse(
-              Generator.get(
-                Gen.alphaNumStr.map(_.take(100)).suchThat(_.length >= 1).suchThat(_.length <= 36)
-              )(seed)
-            )
         )
 
     val updateDetailsStatusSanitizer: Update = seed =>
