@@ -72,6 +72,43 @@ class AgencyCreator @Inject() (
   }
 
   private def persistAgentRecord(agencyCreationPayload: AgencyCreationPayload): Future[Unit] = {
+    val agencyAddress = agencyCreationPayload.agentUser.address.map { address =>
+      val line1 = address.line1.getOrElse("1 Test Street")
+      val line2 = address.line2
+      val line3 = address.line3
+      val line4 = address.line4
+      val postcode = address.postcode
+      address.countryCode match {
+        case Some("GB") =>
+          BusinessPartnerRecord.UkAddress(
+            addressLine1 = line1,
+            addressLine2 = line2,
+            addressLine3 = line3,
+            addressLine4 = line4,
+            postalCode = postcode.getOrElse("AA1 1AA"),
+            countryCode = "GB"
+          )
+        case Some(countryCode) =>
+          BusinessPartnerRecord.ForeignAddress(
+            addressLine1 = line1,
+            addressLine2 = line2,
+            addressLine3 = line3,
+            addressLine4 = line4,
+            postalCode = postcode,
+            countryCode = countryCode
+          )
+        case None =>
+          BusinessPartnerRecord.UkAddress(
+            addressLine1 = line1,
+            addressLine2 = line2,
+            addressLine3 = line3,
+            addressLine4 = line4,
+            postalCode = postcode.getOrElse("AA1 1AA"),
+            countryCode = "GB"
+          )
+      }
+    }
+
     val agentBusinessPartnerRecord = BusinessPartnerRecord
       .generate(agencyCreationPayload.agentUser.userId)
       .withBusinessPartnerExists(businessPartnerExists = true)
@@ -86,7 +123,11 @@ class AgencyCreator @Inject() (
           AgencyDetails
             .generate(agencyCreationPayload.agentUser.userId)
             .withAgencyName(Some("Fancy agency"))
+            .withAgencyAddress(agencyAddress)
             .withAgencyEmail(Some(Generator.email(agencyCreationPayload.agentUser.userId)))
+            .withSupervisoryBody(None)
+            .withMembershipNumber(None)
+            .withEvidenceObjectReference(None)
         )
       )
 
