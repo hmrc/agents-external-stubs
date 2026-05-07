@@ -40,7 +40,7 @@ class CompaniesHouseController @Inject() (cc: ControllerComponents)(implicit ec:
   def findCompanyOfficers(companyNumber: String, surname: Option[String]): Action[AnyContent] = Action.async {
     if (surname.contains("Tester")) {
       multipleOfficersResponse(companyNumber)
-    } else if (surname.contains("Empty")) {
+    } else if (surname.contains("Empty") | companyNumber.equals("55555555")) {
       emptyOfficersResponse(companyNumber)
     } else {
       companyNumber match {
