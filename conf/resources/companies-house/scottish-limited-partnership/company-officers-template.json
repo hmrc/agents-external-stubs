@@ -29,6 +29,30 @@
       "appointed_on": "2015-04-09",
       "occupation": "Partner",
       "country_of_residence": "United Kingdom",
+      "identification":  {
+        "identification_type": "uk-limited-company",
+        "legal_authority": "uk-prs",
+        "legal_form": "private-limited-company",
+        "registration_number": "01234567"
+      },
+      "officer_role": "general-partner-in-a-limited-partnership",
+      "address": {
+        "locality": "London",
+        "country": "England",
+        "address_line_1": "189a Goldhurst Terrace",
+        "postal_code": "NW6 3ER"
+      },
+      "name": "XYZ Ltd",
+      "links": {
+        "officer": {
+          "appointments": "/officers/mlvDFJq0QpFX1hTw93U7MJNh_ko/appointments"
+        }
+      }
+    },
+    {
+      "appointed_on": "2015-04-09",
+      "occupation": "Partner",
+      "country_of_residence": "United Kingdom",
       "date_of_birth": {
         "year": 1973,
         "month": 8
