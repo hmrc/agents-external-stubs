@@ -43,7 +43,17 @@ case class LegacyAgentRecord(
 
 object LegacyAgentRecord extends RecordUtils[LegacyAgentRecord] {
 
+  private val addressLineMaxLength = 28
+
   def agentIdKey(agentId: String): String = s"agentId:$agentId"
+
+  def trimAddressLines(record: LegacyAgentRecord): LegacyAgentRecord =
+    record.copy(
+      address1 = record.address1.take(addressLineMaxLength),
+      address2 = record.address2.take(addressLineMaxLength),
+      address3 = record.address3.map(_.take(addressLineMaxLength)),
+      address4 = record.address4.map(_.take(addressLineMaxLength))
+    )
 
   import Validator._
 
@@ -92,5 +102,7 @@ object LegacyAgentRecord extends RecordUtils[LegacyAgentRecord] {
   val postcodeSanitizer: Update = seed =>
     e => e.copy(postcode = e.postcode.orElse(Generator.get(Generator.postcode)(seed)))
 
-  override val sanitizers: Seq[Update] = Seq(agentPhoneNoSanitizer, postcodeSanitizer)
+  val addressLineSanitizer: Update = _ => trimAddressLines
+
+  override val sanitizers: Seq[Update] = Seq(addressLineSanitizer, agentPhoneNoSanitizer, postcodeSanitizer)
 }
