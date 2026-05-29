@@ -299,6 +299,49 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
       result.agentName shouldBe group.agentFriendlyName.get
     }
 
+    "sync ir-sa-agent agent to valid legacy agent records when user address lines are longer than legacy limits" in {
+      val planetId = UUID.randomUUID().toString
+      val groupId = "testGroupId"
+      val longAddressLine1 = "131C Hathersage Hall Business Centre"
+      val longAddressLine2 = "Second Floor Central Administration"
+      val longAddressLine3 = "North Wing Business Administration"
+      val longAddressLine4 = "Industrial Estate Main Buildings"
+      val group = groupsService
+        .createGroup(
+          GroupGenerator
+            .agent(planetId = planetId, groupId = Some(groupId))
+            .copy(principalEnrolments = Seq(Enrolment("IR-SA-AGENT"))),
+          planetId = planetId
+        )
+        .futureValue
+      val user = UserGenerator
+        .agent("foo", groupId = groupId)
+        .copy(
+          address = Some(
+            User.Address(
+              line1 = Some(longAddressLine1),
+              line2 = Some(longAddressLine2),
+              line3 = Some(longAddressLine3),
+              line4 = Some(longAddressLine4),
+              postcode = Some("CB11 0UF"),
+              countryCode = Some("GB")
+            )
+          ),
+          assignedPrincipalEnrolments = group.principalEnrolments.map(_.toEnrolmentKey.get)
+        )
+
+      usersService.createUser(user, planetId, affinityGroup = Some(AG.Agent)).futureValue
+
+      val saAgentReference = group.findIdentifierValue("IR-SA-AGENT", "IRAgentReference").get
+
+      val result = await(legacyRelationshipRecordsService.getLegacyAgentByAgentId(saAgentReference, planetId)).get
+      result.address1 shouldBe longAddressLine1.take(28)
+      result.address2 shouldBe longAddressLine2.take(28)
+      result.address3 shouldBe Some(longAddressLine3.take(28))
+      result.address4 shouldBe Some(longAddressLine4.take(28))
+      LegacyAgentRecord.validate(result).isValid shouldBe true
+    }
+
     "sync ir-sa-agent agent to agent records and create legacy relationships" in {
       val planetId = UUID.randomUUID().toString
       val groupId = "testGroupId"
