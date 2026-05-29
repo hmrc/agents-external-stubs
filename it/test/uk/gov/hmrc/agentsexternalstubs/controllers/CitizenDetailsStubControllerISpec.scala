@@ -16,13 +16,15 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
+import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.client.WireMock._
 import play.api.libs.json.JsObject
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Planet, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
-import uk.gov.hmrc.agentsexternalstubs.support.{NotAuthorized, ServerBaseISpec, TestRequests}
+import uk.gov.hmrc.agentsexternalstubs.support.{NotAuthorized, ServerBaseISpec, TestRequests, WireMockSupport}
 
-class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequests with TestStubs {
+class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequests with TestStubs with WireMockSupport {
 
   lazy val wsClient = app.injector.instanceOf[WSClient]
   private val testPlanetId = "testPlanet"
@@ -232,6 +234,46 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
           "address",
           haveProperty[String]("line1") and haveProperty[String]("postcode") and haveProperty[String]("country")
         ))
+      }
+
+      "sync API Platform test user without country and return designatory country" in {
+        WireMock.stubFor(
+          WireMock
+            .get(urlEqualTo("/individuals/shortnino/PE938808"))
+            .willReturn(
+              aResponse()
+                .withStatus(200)
+                .withBody(
+                  s"""
+                    |{
+                    |  "userId": "apidemo1",
+                    |  "password": "bLohysg8utsa",
+                    |  "userFullName": "Ida Newton",
+                    |  "emailAddress": "ida.newton@example.com",
+                    |  "individualDetails": {
+                    |    "firstName": "Ida",
+                    |    "lastName": "Newton",
+                    |    "dateOfBirth": "1960-06-01",
+                    |    "address": {
+                    |      "line1": "45 Springfield Rise",
+                    |      "line2": "Glasgow",
+                    |      "postcode": "TS1 1PA"
+                    |    }
+                    |  },
+                    |  "saUtr": "6214961180",
+                    |  "nino": "PE938808A"
+                    |}
+                    |""".stripMargin
+                )
+            )
+        )
+
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+
+        val result = CitizenDetailsStub.getDesignatoryDetails("PE938808A")
+
+        result should haveStatus(200)
+        (result.json \ "address" \ "country").as[String] shouldBe "GREAT BRITAIN"
       }
 
       "return user designatory details for Agents" in {
