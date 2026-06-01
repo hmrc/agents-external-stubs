@@ -20,7 +20,7 @@ import play.api.libs.json.{JsLookupResult, JsUndefined, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents, Request, Result}
 import uk.gov.hmrc.agentsexternalstubs.connectors.RoboticsConnector
 import uk.gov.hmrc.agentsexternalstubs.controllers.RoboticsController.{createKnownFacts, validateRequest}
-import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, Generator, GroupGenerator, KnownFacts, RoboticsRequest, Services}
+import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, Generator, KnownFacts, RoboticsRequest, Services}
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
@@ -120,7 +120,7 @@ class RoboticsTaskActor(
   agentId: String,
   enrolmentKey: EnrolmentKey,
   targetSystem: String,
-  postcode: String,
+  postcode: Option[String],
   planetId: String,
   callbackDelay: Int,
   knownFactsDelay: Int,
@@ -184,14 +184,14 @@ object RoboticsController extends HttpHelpers {
 
   private[controllers] def createKnownFacts(
     enrolmentKey: EnrolmentKey,
-    postcode: String
+    postcode: Option[String]
   ) =
     KnownFacts
       .generate(
         enrolmentKey,
         enrolmentKey.identifiers.head.value,
         {
-          case "IRAgentPostcode" | "Postcode" => Some(postcode)
+          case "IRAgentPostcode" | "Postcode" => postcode
           case _                              => None
         }
       )
@@ -219,9 +219,8 @@ object RoboticsController extends HttpHelpers {
                             case ts                      => Left(badRequest("INVALID_TARGET_SYSTEM", s"targetSystem '$ts' is not supported"))
                           }
 
-        postcode <- (workflow \ "postcode")
-                      .asOpt[String]
-                      .toRight(badRequest("MISSING_POSTCODE", "postcode is required"))
+        postcode =
+          (workflow \ "postcode").asOpt[String]
 
         operationRequired <- (workflow \ "operationRequired")
                                .asOpt[String]
