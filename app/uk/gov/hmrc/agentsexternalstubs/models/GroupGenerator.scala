@@ -57,18 +57,19 @@ object GroupGenerator {
 
   def agentId(seed: String): String = agentIdGen.seeded(seed).get
 
+  // TODO replace And with & when ASA PAYE/SA/CT Subscription journey validates ASA name appropriately
   val agencyNameGen: Gen[String] = for {
     ln <- surname
     suffix <- Gen.oneOf(
                 " Accountants",
                 " and Company",
-                " & Co",
+                " And Co",
                 " Professional Services",
                 " Accountancy",
-                " Chartered Accountants & Business Advisers",
+                " Chartered Accountants And Business Advisers",
                 " Group of Accountants",
                 " Professional",
-                " & " + ln
+                " And " + ln
               )
   } yield s"$ln$suffix"
 
