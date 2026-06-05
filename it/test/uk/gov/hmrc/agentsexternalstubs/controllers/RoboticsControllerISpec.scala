@@ -32,19 +32,21 @@ class RoboticsControllerISpec extends ServerBaseISpec with TestRequests with Eve
   "RoboticsController POST /RTServer/rest/nice/rti/ra/invocation" should {
 
     val scenarios = Seq(
-      ("CESA", "AA1 1AA", "CREATE", "IR-SA-AGENT", "IRAGENTPOSTCODE", "Agent Created Successfully"),
+      ("CESA", Some("AA1 1AA"), "CREATE", "IR-SA-AGENT", "IRAGENTPOSTCODE", "Agent Created Successfully"),
+      ("CESA", None, "CREATE", "IR-SA-AGENT", "IRAGENTPOSTCODE", "Agent Created Successfully"),
       (
         "CESA",
-        "AA1 1AA",
+        Some("AA1 1AA"),
         "UPDATE",
         "IR-SA-AGENT",
         "IRAGENTPOSTCODE",
         "Agent Updated their {name}/{address}/{contact} Successfully"
       ),
-      ("COTAX", "BB2 2BB", "CREATE", "IR-CT-AGENT", "POSTCODE", "Agent Created Successfully"),
+      ("COTAX", Some("BB2 2BB"), "CREATE", "IR-CT-AGENT", "POSTCODE", "Agent Created Successfully"),
+      ("COTAX", None, "CREATE", "IR-CT-AGENT", "POSTCODE", "Agent Created Successfully"),
       (
         "COTAX",
-        "BB2 2BB",
+        Some("BB2 2BB"),
         "UPDATE",
         "IR-CT-AGENT",
         "POSTCODE",
@@ -52,75 +54,75 @@ class RoboticsControllerISpec extends ServerBaseISpec with TestRequests with Eve
       )
     )
 
-    scenarios.foreach {
-      case (targetSystem, postcode, operationRequired, enrolmentPrefix, postCodeKey, expectedMessage) =>
-        s"return 200 and handle $operationRequired for $targetSystem" in {
-          implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
-          val requestId = s"REQ-${targetSystem.take(2)}-${System.currentTimeMillis().toString.takeRight(6)}"
+    scenarios.foreach { case (targetSystem, postcode, operationRequired, _, postCodeKey, _) =>
+      val postcodeDescription = postcode.fold("without postcode")(pc => s"with postcode $pc")
 
-          val operationData = Json.stringify(
+      s"return 200 and handle $operationRequired for $targetSystem $postcodeDescription" in {
+        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        val requestId = s"REQ-${targetSystem.take(2)}-${System.currentTimeMillis().toString.takeRight(6)}"
+
+        val operationData = Json.stringify(
+          Json.obj(
+            "requestId"         -> requestId,
+            "targetSystem"      -> targetSystem,
+            "operationRequired" -> operationRequired
+          ) ++ postcode.fold(Json.obj())(pc => Json.obj("postcode" -> pc))
+        )
+
+        val payload: JsObject = Json.obj(
+          "requestData" -> Json.arr(
             Json.obj(
-              "requestId"         -> requestId,
-              "targetSystem"      -> targetSystem,
-              "postcode"          -> postcode,
-              "operationRequired" -> operationRequired
-            )
-          )
-
-          val payload: JsObject = Json.obj(
-            "requestData" -> Json.arr(
-              Json.obj(
-                "workflowData" -> Json.obj(
-                  "arguments" -> Json.arr(
-                    Json.obj(
-                      "type"  -> "string",
-                      "value" -> operationData
-                    )
+              "workflowData" -> Json.obj(
+                "arguments" -> Json.arr(
+                  Json.obj(
+                    "type"  -> "string",
+                    "value" -> operationData
                   )
                 )
               )
             )
           )
+        )
 
-          val serviceName =
-            if (targetSystem == "CESA") "IR-SA-AGENT" else "IR-CT-AGENT"
+        val serviceName =
+          if (targetSystem == "CESA") "IR-SA-AGENT" else "IR-CT-AGENT"
 
-          val service =
-            Services(serviceName).getOrElse(
-              fail(s"Service $serviceName not found")
-            )
+        val service =
+          Services(serviceName).getOrElse(
+            fail(s"Service $serviceName not found")
+          )
 
-          val identifier =
-            service.identifiers.headOption.getOrElse(
-              fail(s"No identifiers for service $serviceName")
-            )
+        val identifier =
+          service.identifiers.headOption.getOrElse(
+            fail(s"No identifiers for service $serviceName")
+          )
 
-          val generatedValue =
-            Generator
-              .get(identifier.valueGenerator)(session.userId)
-              .getOrElse(fail("Generator failed"))
+        val generatedValue =
+          Generator
+            .get(identifier.valueGenerator)(session.userId)
+            .getOrElse(fail("Generator failed"))
 
-          val enrolmentKey = EnrolmentKey.from(service.name, identifier.name -> generatedValue)
+        val enrolmentKey = EnrolmentKey.from(service.name, identifier.name -> generatedValue)
 
-          // Ensure no known facts exist yet
-          await(knownFactsRepository.findByEnrolmentKey(enrolmentKey, session.planetId)).size shouldBe 0
+        // Ensure no known facts exist yet
+        await(knownFactsRepository.findByEnrolmentKey(enrolmentKey, session.planetId)).size shouldBe 0
 
-          val response = Robotics.invokeRobotics(payload)
-          response should haveStatus(200)
-          (response.json \ "requestId").as[String] shouldBe requestId
+        val response = Robotics.invokeRobotics(payload)
+        response should haveStatus(200)
+        (response.json \ "requestId").as[String] shouldBe requestId
 
-          // Verify known facts creation
-          eventually {
-            verifyKnownFacts(enrolmentKey, postCodeKey, postcode, session.planetId)
-          }
+        // Verify known facts creation
+        eventually {
+          verifyKnownFacts(enrolmentKey, postCodeKey, postcode, session.planetId)
         }
+      }
     }
   }
 
   private def verifyKnownFacts(
     enrolmentKey: EnrolmentKey,
     postCodeKey: String,
-    expectedPostcode: String,
+    expectedPostcode: Option[String],
     planetId: String
   ) = {
     val knownFacts =
@@ -136,6 +138,9 @@ class RoboticsControllerISpec extends ServerBaseISpec with TestRequests with Eve
       .find(_.key.equalsIgnoreCase(postCodeKey))
       .map(_.value)
 
-    postcode shouldBe Some(expectedPostcode)
+    expectedPostcode match {
+      case Some(value) => postcode shouldBe Some(value)
+      case None        => postcode should not be empty
+    }
   }
 }
