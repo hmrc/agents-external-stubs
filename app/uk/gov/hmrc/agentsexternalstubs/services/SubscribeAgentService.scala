@@ -131,6 +131,7 @@ object SubscribeAgentService {
       .withIsAnASAgent(true)
   }
 
+//  TODO: 11584: Need to review the setting logic here. Possibly if sends None, need to set to None??
   def toBusinessPartnerRecord(
     payload: HipAmendAgentSubscriptionPayload,
     existingRecord: BusinessPartnerRecord

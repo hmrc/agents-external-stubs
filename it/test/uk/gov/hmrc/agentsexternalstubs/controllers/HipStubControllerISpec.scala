@@ -1358,6 +1358,7 @@ class HipStubControllerISpec
     }
   }
 
+  //  TODO: 11584 Update ITs here
   "HipStubController.amendAgentSubscription" when {
 
     def businessPartnerRecord(arn: String) = BusinessPartnerRecord(
@@ -1398,6 +1399,7 @@ class HipStubControllerISpec
       isAnASAgent = true,
       agentReferenceNumber = Some(arn)
     )
+
     "all request parameters are valid" should {
       "return OK and amend the business partner record" in {
         implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
