@@ -64,6 +64,25 @@ case class UserSanitizer(affinityGroup: Option[String]) extends RecordUtils[User
         case None                  => user.copy(nino = None)
       }
 
+  private val ensureUKAgentsAndSAIndividualsHaveAUtr: Update = seed =>
+    user =>
+      affinityGroup match {
+        case Some(AG.Agent) =>
+          user.copy(utr =
+            user.utr.orElse(if (user.address.exists(_.isUKAddress)) Option(Generator.utr(seed)) else None)
+          )
+        case Some(AG.Individual) =>
+          user.assignedPrincipalEnrolments.find(_.service == "IR-SA") match {
+            case Some(EnrolmentKey(_, identifiers)) => user.copy(utr = identifiers.headOption.map(_.value))
+            case None =>
+              user.assignedPrincipalEnrolments.find(_.service == "HMRC-MTD-IT") match {
+                case Some(_) => user.copy(utr = Option(Generator.utr(seed)))
+                case None    => user
+              }
+          }
+        case _ => user
+      }
+
   private val ensureOnlyIndividualUserHaveConfidenceLevel: Update = _ =>
     user =>
       affinityGroup match {
@@ -202,7 +221,8 @@ case class UserSanitizer(affinityGroup: Option[String]) extends RecordUtils[User
       ensureUserHaveAddress,
       ensurePrincipalEnrolmentKeysAreDistinct,
       ensurePrincipalEnrolmentsHaveIdentifiers,
-      ensureDelegatedEnrolmentsHaveIdentifiers
+      ensureDelegatedEnrolmentsHaveIdentifiers,
+      ensureUKAgentsAndSAIndividualsHaveAUtr
     )
 
   override val validate: Validator[User] = UserValidator(affinityGroup).validate
