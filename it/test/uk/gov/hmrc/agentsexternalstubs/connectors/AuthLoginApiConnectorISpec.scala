@@ -59,7 +59,7 @@ class AuthLoginApiConnectorISpec extends ServerBaseISpec with TestRequests with 
         val authLoginApiRequest = AuthLoginApi.Request(
           credId = "foo@bar",
           affinityGroup = "Agent",
-          confidenceLevel = Some(250),
+          confidenceLevel = Some(ConfidenceLevel.Default),
           credentialStrength = "strong",
           credentialRole = Some("Admin"),
           enrolments = Seq.empty,

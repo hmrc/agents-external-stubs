@@ -90,7 +90,7 @@ object ApiPlatform {
       val user = User(
         userId = testUser.userId,
         groupId = Some(groupId),
-        confidenceLevel = if (testUser.affinityGroup == AG.Individual) Some(250) else None,
+        confidenceLevel = if (testUser.affinityGroup == AG.Individual) Some(ConfidenceLevel.Default) else None,
         credentialStrength = Some("strong"),
         nino = if (testUser.affinityGroup == AG.Individual) testUser.nino.map(Nino.apply) else None,
         name = (testUser.affinityGroup match {

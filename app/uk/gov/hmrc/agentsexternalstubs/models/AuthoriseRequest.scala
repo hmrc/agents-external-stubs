@@ -155,6 +155,8 @@ case class ConfidenceLevel(confidenceLevel: Int) extends Predicate {
 
 object ConfidenceLevel extends PredicateFormat[ConfidenceLevel]("confidenceLevel") {
   implicit val format: Format[ConfidenceLevel] = Json.format[ConfidenceLevel]
+
+  val Default: Int = 600
 }
 
 case class AffinityGroup(affinityGroup: String) extends Predicate {
