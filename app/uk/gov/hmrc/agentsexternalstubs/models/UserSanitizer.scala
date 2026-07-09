@@ -88,7 +88,7 @@ case class UserSanitizer(affinityGroup: Option[String]) extends RecordUtils[User
       affinityGroup match {
         case Some(AG.Individual) =>
           if (user.confidenceLevel.isEmpty)
-            user.copy(confidenceLevel = Some(250))
+            user.copy(confidenceLevel = Some(ConfidenceLevel.Default))
           else user
         case _ => user.copy(confidenceLevel = None)
       }

@@ -74,8 +74,8 @@ class UserSanitizerSpec extends BaseUnitSpec {
     }
 
     "add missing ConfidenceLevel to the Individual" in {
-      UserSanitizer(Some(AG.Individual)).sanitize(User("foo")).confidenceLevel shouldBe Some(250)
-      UserSanitizer(Some(AG.Individual)).sanitize(User("boo")).confidenceLevel shouldBe Some(250)
+      UserSanitizer(Some(AG.Individual)).sanitize(User("foo")).confidenceLevel shouldBe Some(600)
+      UserSanitizer(Some(AG.Individual)).sanitize(User("boo")).confidenceLevel shouldBe Some(600)
     }
 
     "remove ConfidenceLevel if not Individual" in {
