@@ -313,6 +313,58 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
 
     }
 
+    "GET /enrolment-store/groups/:groupId/enrolments/:enrolmentKey" should {
+
+      "return allocated enrolment when group and enrolment exist" in {
+
+        implicit val session: AuthenticatedSession =
+          SignIn.signInAndGetSession("foo1", planetId = "testPlanet")
+
+        Groups.create(
+          GroupGenerator
+            .generate(
+              planetId = "testPlanet",
+              affinityGroup = AG.Agent,
+              groupId = Some("group1")
+            )
+            .copy(
+              delegatedEnrolments = Seq(
+                Enrolment("IR-SA", "UTR", "12345678")
+              )
+            )
+        )
+
+        val result =
+          EnrolmentStoreProxyStub.getGroupAllocatedEnrolment(
+            "group1",
+            "IR-SA~UTR~12345678"
+          )
+
+        result should haveStatus(200)
+
+        val json = result.json
+
+        (json \ "service").as[String] shouldBe "IR-SA"
+        (json \ "status").asOpt[String] shouldBe defined
+        (json \ "enrolmentDate").asOpt[String] shouldBe defined
+      }
+
+
+      "return 404 when enrolment does not exist" in {
+
+        implicit val session: AuthenticatedSession =
+          SignIn.signInAndGetSession("foo1")
+
+        val result =
+          EnrolmentStoreProxyStub.getGroupAllocatedEnrolment(
+            "group1",
+            "IR-SA~UTR~99999999"
+          )
+
+        result should haveStatus(404)
+      }
+    }
+
     "POST /enrolment-store/groups/:groupId/enrolments/:enrolmentKey" should {
       "allocate principal enrolment to the group identified by groupId" in {
         userService
