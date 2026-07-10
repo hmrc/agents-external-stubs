@@ -149,9 +149,6 @@ class EnrolmentStoreProxyStubController @Inject() (
               println(s"$e -> $matches")
               matches
             }
-          val enrolment =
-            (group.principalEnrolments ++ group.delegatedEnrolments)
-              .find(_.key == enrolmentKey)
           matched.fold(NotFound: Result) { e =>
             Ok(
               Json.toJson(
