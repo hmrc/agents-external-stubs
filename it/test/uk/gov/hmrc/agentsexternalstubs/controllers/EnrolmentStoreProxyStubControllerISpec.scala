@@ -328,8 +328,8 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
               groupId = Some("group1")
             )
             .copy(
-              delegatedEnrolments = Seq(
-                Enrolment("IR-SA", "UTR", "12345678")
+              principalEnrolments = Seq(
+                Enrolment("IR-SA-AGENT", "IRAgentReference", "AB1234")
               )
             )
         )
@@ -337,14 +337,14 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         val result =
           EnrolmentStoreProxyStub.getGroupAllocatedEnrolment(
             "group1",
-            "IR-SA~UTR~12345678"
+            "IR-SA-AGENT~IRAgentReference~AB1234"
           )
 
         result should haveStatus(200)
 
         val json = result.json
 
-        (json \ "service").as[String] shouldBe "IR-SA"
+        (json \ "service").as[String] shouldBe "IR-SA-AGENT"
         (json \ "status").asOpt[String] shouldBe defined
         (json \ "enrolmentDate").asOpt[String] shouldBe defined
       }
