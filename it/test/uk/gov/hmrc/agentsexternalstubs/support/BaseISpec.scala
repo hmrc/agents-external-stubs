@@ -22,6 +22,8 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.Application
+import play.api.libs.json.JsValue
+import play.api.libs.ws.{BodyWritable, writeableOf_JsValue}
 import play.api.i18n.{Lang, Messages, MessagesApi}
 import play.api.mvc.Result
 import play.api.test.Helpers.defaultAwaitTimeout
@@ -52,9 +54,10 @@ abstract class BaseISpec extends AnyWordSpecLike with Matchers with OptionValues
 
   def app: Application
 
-  protected implicit lazy val materializer: Materializer = app.materializer
+  protected given Materializer = app.materializer
+  protected given BodyWritable[JsValue] = writeableOf_JsValue
   private lazy val messagesApi = app.injector.instanceOf[MessagesApi]
-  private implicit lazy val messages: Messages = messagesApi.preferred(Seq.empty[Lang])
+  private given Messages = messagesApi.preferred(Seq.empty[Lang])
 
   protected def checkHtmlResultWithBodyText(result: Result, expectedSubstring: String): Unit = {
     status(result) shouldBe 200
@@ -65,7 +68,7 @@ abstract class BaseISpec extends AnyWordSpecLike with Matchers with OptionValues
 
   protected def htmlEscapedMessage(key: String): String = HtmlFormat.escape(Messages(key)).toString
 
-  implicit def hc(implicit request: FakeRequest[_]): HeaderCarrier =
+  given hc(using request: FakeRequest[?]): HeaderCarrier =
     HeaderCarrierConverter.fromRequestAndSession(request, request.session)
 
   def randomId: String = UUID.randomUUID().toString

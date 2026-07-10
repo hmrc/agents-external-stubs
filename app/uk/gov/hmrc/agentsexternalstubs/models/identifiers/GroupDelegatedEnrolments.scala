@@ -23,11 +23,11 @@ import play.api.libs.json.{Json, OFormat}
 case class AssignedClient(clientEnrolmentKey: String, friendlyName: Option[String], assignedTo: String)
 
 object AssignedClient {
-  implicit val formatAssignedClient: OFormat[AssignedClient] = Json.format[AssignedClient]
+  given OFormat[AssignedClient] = Json.format[AssignedClient]
 }
 
 case class GroupDelegatedEnrolments(clients: Seq[AssignedClient])
 
 object GroupDelegatedEnrolments {
-  implicit val formatGroupDelegatedEnrolments: OFormat[GroupDelegatedEnrolments] = Json.format[GroupDelegatedEnrolments]
+  given OFormat[GroupDelegatedEnrolments] = Json.format[GroupDelegatedEnrolments]
 }

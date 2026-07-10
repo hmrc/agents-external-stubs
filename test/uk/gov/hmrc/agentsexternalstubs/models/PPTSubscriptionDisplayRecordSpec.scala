@@ -27,7 +27,7 @@ class PPTSubscriptionDisplayRecordSpec extends BaseUnitSpec {
   "CustomerDetails" should {
 
     "be generated correctly" in {
-      Inspectors.forAll(seeds) { seed: String =>
+      Inspectors.forAll(seeds) { seed =>
         val entity = CustomerDetails.generate(seed)
         entity.customerType match {
           case "Individual" =>

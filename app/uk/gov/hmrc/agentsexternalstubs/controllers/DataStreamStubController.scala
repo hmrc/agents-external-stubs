@@ -29,7 +29,7 @@ class DataStreamStubController @Inject() (cc: ControllerComponents) extends Back
 
   private val logger = Logger(getClass)
 
-  val writeEvent: Action[AnyContent] = Action.async { implicit request =>
+  val writeEvent: Action[AnyContent] = Action.async { request =>
     request.body.asJson
       .map(Json.prettyPrint)
       .foreach(logger.info(_))

@@ -59,5 +59,5 @@ object AuthenticatedSession {
         .addAttr(TypedKey(TAG_PLANET_ID), session.planetId)
   }
 
-  implicit val formats: Format[AuthenticatedSession] = format[AuthenticatedSession]
+  given formats: Format[AuthenticatedSession] = format[AuthenticatedSession]
 }

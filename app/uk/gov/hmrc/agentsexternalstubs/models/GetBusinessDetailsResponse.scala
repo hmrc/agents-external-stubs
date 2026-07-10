@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import play.api.libs.json._
+import play.api.libs.json.*
 
 import java.time.Instant
 
@@ -26,7 +26,7 @@ case class GetBusinessDetailsResponse(
 )
 
 object GetBusinessDetailsResponse {
-  implicit val format: Format[GetBusinessDetailsResponse] = Json.format[GetBusinessDetailsResponse]
+  given Format[GetBusinessDetailsResponse] = Json.format[GetBusinessDetailsResponse]
 }
 
 object ItsaTaxpayerBusinessDetailsResponse {

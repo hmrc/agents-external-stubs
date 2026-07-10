@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import com.github.tomakehurst.wiremock.client.WireMock
-import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import play.api.libs.json.JsObject
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Planet, UserGenerator}
@@ -48,7 +48,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
           )
           .futureValue
 
-        implicit val session: AuthenticatedSession =
+        given session: AuthenticatedSession =
           SignIn.signInAndGetSession(user.userId, planetId = user.planetId.get)
 
         val result = CitizenDetailsStub.getCitizen("nino", "HW827856C")
@@ -62,7 +62,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
       }
 
       "respond 400 if called without suffix" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = CitizenDetailsStub.getCitizen("nino", "HW827856")
 
@@ -84,7 +84,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
           )
           .futureValue
 
-        implicit val session: AuthenticatedSession =
+        given session: AuthenticatedSession =
           SignIn.signInAndGetSession(user.userId, planetId = user.planetId.get)
 
         val result = CitizenDetailsStub.getCitizen("nino", "HW827856A")
@@ -98,7 +98,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
       }
 
       "respond 404 if not found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         Users.update(
           UserGenerator
             .individual(
@@ -115,7 +115,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
       }
 
       "respond 400 if nino not valid" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = CitizenDetailsStub.getCitizen("nino", "W82785C")
 
@@ -123,7 +123,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
       }
 
       "respond 400 if tax identifier type not supported" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = CitizenDetailsStub.getCitizen("foo", "HW827856C")
 
@@ -131,7 +131,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
       }
 
       "respond 401 if not authenticated" in {
-        val result = CitizenDetailsStub.getCitizen("foo", "HW827856C")(NotAuthorized)
+        val result = CitizenDetailsStub.getCitizen("foo", "HW827856C")(using NotAuthorized)
 
         result should haveStatus(401)
       }
@@ -152,7 +152,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
           )
           .futureValue
 
-        implicit val session: AuthenticatedSession =
+        given session: AuthenticatedSession =
           SignIn.signInAndGetSession(user.userId, planetId = user.planetId.get)
 
         val result = CitizenDetailsStub.getCitizen("nino-no-suffix", "HW827856")
@@ -166,7 +166,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
       }
 
       "respond 400 if called with suffix" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = CitizenDetailsStub.getCitizen("nino-no-suffix", "HW827856C")
 
@@ -174,7 +174,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
       }
 
       "respond 404 if not found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         Users.update(
           UserGenerator
             .individual(
@@ -191,7 +191,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
       }
 
       "respond 400 if nino not valid" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = CitizenDetailsStub.getCitizen("nino-no-suffix", "W82785")
 
@@ -199,7 +199,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
       }
 
       "respond 401 if not authenticated" in {
-        val result = CitizenDetailsStub.getCitizen("nino-no-suffix", "HW827856C")(NotAuthorized)
+        val result = CitizenDetailsStub.getCitizen("nino-no-suffix", "HW827856C")(using NotAuthorized)
 
         result should haveStatus(401)
       }
@@ -216,7 +216,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
           )
           .futureValue
 
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession(testUserId, planetId = testPlanetId)
+        given session: AuthenticatedSession = SignIn.signInAndGetSession(testUserId, planetId = testPlanetId)
 
         val result = CitizenDetailsStub.getDesignatoryDetails(user.nino.get.value.replace(" ", ""))
 
@@ -268,7 +268,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
             )
         )
 
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+        given session: AuthenticatedSession = SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
 
         val result = CitizenDetailsStub.getDesignatoryDetails("PE938808A")
 
@@ -286,7 +286,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
           )
           .futureValue
 
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession(testUserId, planetId = testPlanetId)
+        given session: AuthenticatedSession = SignIn.signInAndGetSession(testUserId, planetId = testPlanetId)
 
         val result = CitizenDetailsStub.getDesignatoryDetails(user.nino.get.value.replace(" ", ""))
 
@@ -318,7 +318,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
           )
           .futureValue
 
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession(testUserId, planetId = testPlanetId)
+        given session: AuthenticatedSession = SignIn.signInAndGetSession(testUserId, planetId = testPlanetId)
 
         val result = CitizenDetailsStub.getDesignatoryDetailsBasic(user.nino.get.value.replace(" ", ""))
 
@@ -336,7 +336,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
 
     "GET /citizen-details/sautr/:sautr" should {
       "return Bad request when utr supplied is invalid" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession(testUserId, planetId = testPlanetId)
+        given session: AuthenticatedSession = SignIn.signInAndGetSession(testUserId, planetId = testPlanetId)
         val result = CitizenDetailsStub.getCitizen("sautr", "01234567890")
 
         result should haveStatus(400)
@@ -357,7 +357,7 @@ class CitizenDetailsStubControllerISpec extends ServerBaseISpec with TestRequest
           )
           .futureValue
 
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession(testUserId, planetId = testPlanetId)
+        given session: AuthenticatedSession = SignIn.signInAndGetSession(testUserId, planetId = testPlanetId)
 
         val result = CitizenDetailsStub.getCitizen("sautr", user.utr.get)
 

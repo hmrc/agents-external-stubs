@@ -19,7 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import play.api.libs.json.JsObject
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.agentsexternalstubs.models.AuthenticatedSession
-import uk.gov.hmrc.agentsexternalstubs.support._
+import uk.gov.hmrc.agentsexternalstubs.support.*
 
 class CompaniesHouseControllerISpec extends ServerBaseISpec with TestRequests {
 
@@ -29,7 +29,7 @@ class CompaniesHouseControllerISpec extends ServerBaseISpec with TestRequests {
 
     "GET /companies-house-api-proxy/company/:companynumber" should {
       "respond 200 with company details" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val companyNumber = "01234567"
 
@@ -46,7 +46,7 @@ class CompaniesHouseControllerISpec extends ServerBaseISpec with TestRequests {
 
     "GET /companies-house-api-proxy/company/:companynumber/officers" should {
       "respond 200 with company details" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val companyNumber = "01234567"
         val surname = "Norton"

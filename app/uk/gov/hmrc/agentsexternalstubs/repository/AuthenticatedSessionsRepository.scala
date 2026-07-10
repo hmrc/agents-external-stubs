@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class AuthenticatedSessionsRepository @Inject() (mongo: MongoComponent)(implicit val ec: ExecutionContext)
+class AuthenticatedSessionsRepository @Inject() (mongo: MongoComponent)(using ExecutionContext)
     extends PlayMongoRepository[AuthenticatedSession](
       mongoComponent = mongo,
       collectionName = "authenticated-sessions",
@@ -84,7 +84,7 @@ class AuthenticatedSessionsRepository @Inject() (mongo: MongoComponent)(implicit
     query: Seq[(String, String)]
   ): Future[Option[AuthenticatedSession]] =
     collection
-      .find(Filters.and(query.map { case (field, value) => Filters.equal(field, value) }: _*))
+      .find(Filters.and(query.map { case (field, value) => Filters.equal(field, value) }*))
       .first()
       .toFuture()
       .map(Option.apply)

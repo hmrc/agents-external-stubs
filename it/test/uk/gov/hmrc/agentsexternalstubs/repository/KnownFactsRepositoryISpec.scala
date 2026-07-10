@@ -17,8 +17,8 @@
 package uk.gov.hmrc.agentsexternalstubs.repository
 
 import org.scalacheck.Gen
-import play.api.test.Helpers._
-import uk.gov.hmrc.agentsexternalstubs.models._
+import play.api.test.Helpers.*
+import uk.gov.hmrc.agentsexternalstubs.models.*
 import uk.gov.hmrc.agentsexternalstubs.support.AppBaseISpec
 
 import java.util.UUID

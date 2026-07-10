@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{Json, Writes}
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Request}
 import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Generator, Group, User}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -30,12 +30,13 @@ class UserDetailsStubController @Inject() (
   val authenticationService: AuthenticationService,
   usersService: UsersService,
   cc: ControllerComponents
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
-  import UserDetailsStubController._
+  import UserDetailsStubController.*
 
-  def getUser(id: String): Action[AnyContent] = Action.async { implicit request =>
+  def getUser(id: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       usersService.findUserAndGroup(id, session.planetId).map {
         case (Some(user), maybeGroup) => Ok(RestfulResponse(GetUserResponse.from(user, maybeGroup, session)))
@@ -94,13 +95,13 @@ object UserDetailsStubController {
   )
 
   object GetUserResponse {
-    implicit val writes: Writes[GetUserResponse] = Json.writes[GetUserResponse]
+    given writes: Writes[GetUserResponse] = Json.writes[GetUserResponse]
 
     def from(user: User, group: Option[Group], session: AuthenticatedSession): GetUserResponse = GetUserResponse(
       authProviderId = user.userId,
       authProviderType = session.providerType,
-      name = (if (group.exists(_.affinityGroup == AG.Individual)) user.firstName else user.name).getOrElse("John Doe"),
-      lastName = if (group.exists(_.affinityGroup == AG.Individual)) user.lastName else None,
+      name = (if group.exists(_.affinityGroup == AG.Individual) then user.firstName else user.name).getOrElse("John Doe"),
+      lastName = if group.exists(_.affinityGroup == AG.Individual) then user.lastName else None,
       email = Generator.email(user.userId),
       affinityGroup = group.fold("none")(_.affinityGroup),
       agentCode = group.flatMap(_.agentCode),

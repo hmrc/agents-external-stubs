@@ -28,12 +28,12 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 @Singleton
-class TcpProxies @Inject() (appConfig: AppConfig)(implicit system: ActorSystem, materializer: Materializer) {
+class TcpProxies @Inject() (appConfig: AppConfig)(using system: ActorSystem, materializer: Materializer) {
 
   if (appConfig.isProxyMode) {
     Logger(getClass).info("Starting local TCP proxies ...")
 
-    implicit val ec: ExecutionContext = system.dispatcher
+    given ec: ExecutionContext = system.dispatcher
 
     val agentsExternalStubsPort = Try(appConfig.httpPort.toInt).toOption.getOrElse(9009)
 

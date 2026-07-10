@@ -18,8 +18,8 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.json.{JsArray, JsBoolean, JsObject}
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.support._
+import uk.gov.hmrc.agentsexternalstubs.models.*
+import uk.gov.hmrc.agentsexternalstubs.support.*
 
 import java.time.LocalDateTime
 import java.util.UUID
@@ -34,7 +34,7 @@ class CountryByCountryControllerISpec extends ServerBaseISpec with TestRequests 
 
     "POST /dac6/dct50d/v1 (display cbc subscription) " should {
       "respond 200 with country by country subscription details" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val email = "test@foo.uk"
 
         //gen a record
@@ -70,7 +70,7 @@ class CountryByCountryControllerISpec extends ServerBaseISpec with TestRequests 
       }
 
       "respond NOT_FOUND with error response if no record" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = post[DisplaySubscriptionForCbCRequestPayload](
           s"/dac6/dct50d/v1",
@@ -94,7 +94,7 @@ class CountryByCountryControllerISpec extends ServerBaseISpec with TestRequests 
       }
 
       "respond BAD_REQUEST with error response if invalid payload" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = post[DisplaySubscriptionForCbCRequestPayload](
           s"/dac6/dct50d/v1",

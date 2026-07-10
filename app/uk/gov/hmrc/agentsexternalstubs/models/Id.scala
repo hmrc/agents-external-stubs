@@ -15,14 +15,15 @@
  */
 
 package uk.gov.hmrc.agentsexternalstubs.models
-import play.api.libs.json._
+import play.api.libs.json.*
 
 case class Id(value: String)
 
 object Id {
 
   final val ID = "_id"
-  implicit val specialCaseFormat: OFormat[Id] = Json.format[Id]
+  given OFormat[Id] = Json.format[Id]
+  val specialCaseFormat: OFormat[Id] = summon[OFormat[Id]]
 
   object internal {
 

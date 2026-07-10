@@ -17,8 +17,8 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalacheck.{Arbitrary, Gen}
-import play.api.libs.json._
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import play.api.libs.json.*
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
 import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord.ChangeOfCircumstanceDetails.DeregistrationDetails
 import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord.{ChangeOfCircumstanceDetails, LegalEntityDetails}
 import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord.LegalEntityDetails.CustomerDetails
@@ -76,20 +76,20 @@ case class PPTSubscriptionDisplayRecord(
 
 object PPTSubscriptionDisplayRecord extends RecordUtils[PPTSubscriptionDisplayRecord] {
 
-  implicit val recordUtils: RecordUtils[PPTSubscriptionDisplayRecord] = this
+  given RecordUtils[PPTSubscriptionDisplayRecord] = this
 
-  implicit val takesPptRefKey: TakesKey[PPTSubscriptionDisplayRecord, PptRef] =
+  given TakesKey[PPTSubscriptionDisplayRecord, PptRef] =
     TakesKey(pptRef => Seq(pptReferenceKey(pptRef.value)))
 
-  implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
-  implicit val recordType: RecordMetaData[PPTSubscriptionDisplayRecord] =
+  given Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
+  given RecordMetaData[PPTSubscriptionDisplayRecord] =
     RecordMetaData[PPTSubscriptionDisplayRecord]
 
   def uniqueKey(key: String): String = pptReferenceKey(key)
   def pptReferenceKey(key: String): String = s"""pptReference:${key.toUpperCase}"""
 
-  import Validator._
-  import Generator.GenOps._
+  import Validator.*
+  import Generator.GenOps.*
 
   val pptReferenceValidator: Validator[String] = check(
     _.matches(Common.pptReferencePattern),
@@ -148,7 +148,8 @@ object PPTSubscriptionDisplayRecord extends RecordUtils[PPTSubscriptionDisplayRe
 
   override val sanitizers: Seq[Update] = Seq(legalEntityDetailsSanitizer, changeOfCircumstanceDetailsSanitizer)
 
-  implicit val formats: Format[PPTSubscriptionDisplayRecord] = Json.format[PPTSubscriptionDisplayRecord]
+  given Format[PPTSubscriptionDisplayRecord] = Json.format[PPTSubscriptionDisplayRecord]
+  val formats: Format[PPTSubscriptionDisplayRecord] = summon[Format[PPTSubscriptionDisplayRecord]]
 
   case class ChangeOfCircumstanceDetails(deregistrationDetails: ChangeOfCircumstanceDetails.DeregistrationDetails) {
 
@@ -184,7 +185,8 @@ object PPTSubscriptionDisplayRecord extends RecordUtils[PPTSubscriptionDisplayRe
 
     override val sanitizers: Seq[Update] = Seq(deregistrationDetailsSanitizer)
 
-    implicit val formats: Format[ChangeOfCircumstanceDetails] = Json.format[ChangeOfCircumstanceDetails]
+    given Format[ChangeOfCircumstanceDetails] = Json.format[ChangeOfCircumstanceDetails]
+    val formats: Format[ChangeOfCircumstanceDetails] = summon[Format[ChangeOfCircumstanceDetails]]
 
     case class DeregistrationDetails(deregistrationDate: String) {
 
@@ -213,7 +215,8 @@ object PPTSubscriptionDisplayRecord extends RecordUtils[PPTSubscriptionDisplayRe
 
       override val sanitizers: Seq[Update] = Seq()
 
-      implicit val formats: Format[DeregistrationDetails] = Json.format[DeregistrationDetails]
+      given Format[DeregistrationDetails] = Json.format[DeregistrationDetails]
+      val formats: Format[DeregistrationDetails] = summon[Format[DeregistrationDetails]]
     }
   }
 
@@ -262,7 +265,8 @@ object PPTSubscriptionDisplayRecord extends RecordUtils[PPTSubscriptionDisplayRe
 
     override val sanitizers: Seq[Update] = Seq(firstNameSanitizer, lastNameSanitizer)
 
-    implicit val formats: Format[IndividualDetails] = Json.format[IndividualDetails]
+    given Format[IndividualDetails] = Json.format[IndividualDetails]
+    val formats: Format[IndividualDetails] = summon[Format[IndividualDetails]]
 
   }
 
@@ -317,7 +321,8 @@ object PPTSubscriptionDisplayRecord extends RecordUtils[PPTSubscriptionDisplayRe
 
     override val sanitizers: Seq[Update] = Seq(dateOfApplicationSanitizer, customerDetailsSanitizer)
 
-    implicit val formats: Format[LegalEntityDetails] = Json.format[LegalEntityDetails]
+    given Format[LegalEntityDetails] = Json.format[LegalEntityDetails]
+    val formats: Format[LegalEntityDetails] = summon[Format[LegalEntityDetails]]
 
     case class CustomerDetails(
       customerType: String,
@@ -456,7 +461,8 @@ object PPTSubscriptionDisplayRecord extends RecordUtils[PPTSubscriptionDisplayRe
 
       override val sanitizers: Seq[Update] = Seq(individualDetailsOrOrganisationDetailsAlternativeSanitizer)
 
-      implicit val formats: Format[CustomerDetails] = Json.format[CustomerDetails]
+      given Format[CustomerDetails] = Json.format[CustomerDetails]
+      val formats: Format[CustomerDetails] = summon[Format[CustomerDetails]]
 
     }
 
@@ -494,7 +500,8 @@ object PPTSubscriptionDisplayRecord extends RecordUtils[PPTSubscriptionDisplayRe
 
     override val sanitizers: Seq[Update] = Seq(organisationNameSanitizer)
 
-    implicit val formats: Format[OrganisationDetails] = Json.format[OrganisationDetails]
+    given Format[OrganisationDetails] = Json.format[OrganisationDetails]
+    val formats: Format[OrganisationDetails] = summon[Format[OrganisationDetails]]
 
   }
 

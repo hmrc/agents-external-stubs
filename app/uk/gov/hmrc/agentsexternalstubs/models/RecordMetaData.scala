@@ -25,7 +25,7 @@ trait RecordMetaData[T] {
 
 object RecordMetaData {
 
-  def apply[T](implicit classTag: ClassTag[T]): RecordMetaData[T] =
+  def apply[T](using classTag: ClassTag[T]): RecordMetaData[T] =
     new RecordMetaData[T] {
       override val typeName: String = classTag.runtimeClass.getSimpleName
     }

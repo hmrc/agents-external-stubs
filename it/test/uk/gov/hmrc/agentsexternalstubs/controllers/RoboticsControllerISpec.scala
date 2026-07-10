@@ -19,10 +19,10 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import org.scalatest.concurrent.Eventually
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, EnrolmentKey, Generator, Services}
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
-import uk.gov.hmrc.agentsexternalstubs.support._
+import uk.gov.hmrc.agentsexternalstubs.support.*
 
 class RoboticsControllerISpec extends ServerBaseISpec with TestRequests with Eventually {
 
@@ -58,7 +58,7 @@ class RoboticsControllerISpec extends ServerBaseISpec with TestRequests with Eve
       val postcodeDescription = postcode.fold("without postcode")(pc => s"with postcode $pc")
 
       s"return 200 and handle $operationRequired for $targetSystem $postcodeDescription" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val requestId = s"REQ-${targetSystem.take(2)}-${System.currentTimeMillis().toString.takeRight(6)}"
 
         val operationData = Json.stringify(

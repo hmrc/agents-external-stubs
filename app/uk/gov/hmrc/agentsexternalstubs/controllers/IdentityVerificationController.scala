@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.json.JsValue
-import play.api.mvc.{Action, ControllerComponents}
+import play.api.mvc.{Action, ControllerComponents, Request}
 import uk.gov.hmrc.agentsexternalstubs.models.{NinoClStoreEntry, User}
 import uk.gov.hmrc.agentsexternalstubs.repository.DuplicateUserException
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
@@ -33,14 +33,15 @@ class IdentityVerificationController @Inject() (
   cc: ControllerComponents,
   usersService: UsersService,
   val authenticationService: AuthenticationService
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
   private def addNinoToUser(nino: Nino)(user: User): User = user.copy(nino = Some(nino))
 
-  def storeNino(credId: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def storeNino(credId: String): Action[JsValue] = Action.async(parse.json) { request =>
+    given Request[JsValue] = request
     withJsonBody[NinoClStoreEntry] { entry =>
-      if (entry.credId != credId)
+      if entry.credId != credId then
         Future.successful(BadRequest)
       else {
         withCurrentSession { session =>

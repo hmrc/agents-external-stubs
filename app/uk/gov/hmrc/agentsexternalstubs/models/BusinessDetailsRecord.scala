@@ -17,9 +17,9 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalacheck.{Arbitrary, Gen}
-import play.api.libs.json._
+import play.api.libs.json.*
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.{BusinessData, PropertyData}
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
 import uk.gov.hmrc.domain.Nino
 
 /** ----------------------------------------------------------------------------
@@ -84,17 +84,17 @@ case class BusinessDetailsRecord(
 
 object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
 
-  implicit val recordUtils: RecordUtils[BusinessDetailsRecord] = this
+  given RecordUtils[BusinessDetailsRecord] = this
 
-  implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
-  implicit val recordType: RecordMetaData[BusinessDetailsRecord] = RecordMetaData[BusinessDetailsRecord]
+  given Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
+  given RecordMetaData[BusinessDetailsRecord] = RecordMetaData[BusinessDetailsRecord]
 
-  implicit val takesNinoKey: TakesKey[BusinessDetailsRecord, Nino] = TakesKey(nino => ninoKey(nino.value))
-  implicit val takesNinoWithoutSuffixKey: TakesKey[BusinessDetailsRecord, NinoWithoutSuffix] =
+  given TakesKey[BusinessDetailsRecord, Nino] = TakesKey(nino => ninoKey(nino.value))
+  given TakesKey[BusinessDetailsRecord, NinoWithoutSuffix] =
     TakesKey(nino => ninoKeys(nino.value))
-  implicit val takesMtdIdKey: TakesKey[BusinessDetailsRecord, MtdItId] =
+  given TakesKey[BusinessDetailsRecord, MtdItId] =
     TakesKey(mtdItId => mtdIdKey(mtdItId.value))
-  implicit val takesCgtRefKey: TakesKey[BusinessDetailsRecord, CgtRef] =
+  given TakesKey[BusinessDetailsRecord, CgtRef] =
     TakesKey(cgtRef => cgtPdRefKey(cgtRef.value))
 
   def uniqueKey(key: String): String = s"""safeId:${key.toUpperCase}"""
@@ -105,8 +105,8 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
 
   def cgtPdRefKey(key: String): Seq[String] = Seq(s"""cgtPdRef:${key.toUpperCase}""")
 
-  import Generator.GenOps._
-  import Validator._
+  import Generator.GenOps.*
+  import Validator.*
 
   val safeIdValidator: Validator[String] =
     check(_.lengthMinMaxInclusive(1, 16), "Invalid length of safeId, should be between 1 and 16 inclusive")
@@ -157,7 +157,8 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
 
   override val sanitizers: Seq[Update] = Seq(businessDataSanitizer, propertyDataSanitizer)
 
-  implicit val formats: Format[BusinessDetailsRecord] = Json.format[BusinessDetailsRecord]
+  given Format[BusinessDetailsRecord] = Json.format[BusinessDetailsRecord]
+  val formats: Format[BusinessDetailsRecord] = summon[Format[BusinessDetailsRecord]]
 
   case class BusinessContactDetails(
     phoneNumber: Option[String] = None,
@@ -242,7 +243,8 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     override val sanitizers: Seq[Update] =
       Seq(phoneNumberSanitizer, mobileNumberSanitizer, faxNumberSanitizer, emailAddressSanitizer)
 
-    implicit val formats: Format[BusinessContactDetails] = Json.format[BusinessContactDetails]
+    given Format[BusinessContactDetails] = Json.format[BusinessContactDetails]
+    val formats: Format[BusinessContactDetails] = summon[Format[BusinessContactDetails]]
 
   }
 
@@ -404,7 +406,8 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
       cessationDateSanitizer
     )
 
-    implicit val formats: Format[BusinessData] = Json.format[BusinessData]
+    given Format[BusinessData] = Json.format[BusinessData]
+    val formats: Format[BusinessData] = summon[Format[BusinessData]]
 
     sealed trait BusinessAddressDetails {
       def addressLine2: Option[String] = None
@@ -432,7 +435,7 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
       }
       override val sanitizers: Seq[Update] = Seq(sanitizer)
 
-      implicit val reads: Reads[BusinessAddressDetails] = new Reads[BusinessAddressDetails] {
+      given Reads[BusinessAddressDetails] = new Reads[BusinessAddressDetails] {
         override def reads(json: JsValue): JsResult[BusinessAddressDetails] = {
           val r0 =
             UkAddress.formats.reads(json).flatMap(e => UkAddress.validate(e).fold(_ => JsError(), _ => JsSuccess(e)))
@@ -461,7 +464,7 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
           )
       }
 
-      implicit val writes: Writes[BusinessAddressDetails] = new Writes[BusinessAddressDetails] {
+      given Writes[BusinessAddressDetails] = new Writes[BusinessAddressDetails] {
         override def writes(o: BusinessAddressDetails): JsValue = o match {
           case x: UkAddress      => UkAddress.formats.writes(x)
           case x: ForeignAddress => ForeignAddress.formats.writes(x)
@@ -577,7 +580,8 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
     override val sanitizers: Seq[Update] =
       Seq(addressLine2Sanitizer, addressLine3Sanitizer, addressLine4Sanitizer, postalCodeSanitizer)
 
-    implicit val formats: Format[ForeignAddress] = Json.format[ForeignAddress]
+    given Format[ForeignAddress] = Json.format[ForeignAddress]
+    val formats: Format[ForeignAddress] = summon[Format[ForeignAddress]]
 
   }
 
@@ -746,7 +750,8 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
       cessationDateSanitizer
     )
 
-    implicit val formats: Format[PropertyData] = Json.format[PropertyData]
+    given Format[PropertyData] = Json.format[PropertyData]
+    val formats: Format[PropertyData] = summon[Format[PropertyData]]
 
   }
 
@@ -848,7 +853,8 @@ object BusinessDetailsRecord extends RecordUtils[BusinessDetailsRecord] {
 
     override val sanitizers: Seq[Update] = Seq(addressLine2Sanitizer, addressLine3Sanitizer, addressLine4Sanitizer)
 
-    implicit val formats: Format[UkAddress] = Json.format[UkAddress]
+    given Format[UkAddress] = Json.format[UkAddress]
+    val formats: Format[UkAddress] = summon[Format[UkAddress]]
 
   }
 

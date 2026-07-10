@@ -17,8 +17,8 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.json.{Format, JsValue, Json}
-import play.api.mvc.{Action, ControllerComponents}
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import play.api.mvc.{Action, ControllerComponents, Request}
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
 import uk.gov.hmrc.agentsexternalstubs.models.{BusinessPartnerRecord, RegexPatterns, Validator}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, RecordsService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -31,12 +31,13 @@ class NiExemptionRegistrationStubController @Inject() (
   val authenticationService: AuthenticationService,
   recordsService: RecordsService,
   cc: ControllerComponents
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
-  import NiExemptionRegistrationStubController._
+  import NiExemptionRegistrationStubController.*
 
-  def niBusinesses(utr: String): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+  def niBusinesses(utr: String): Action[JsValue] = Action.async(parse.tolerantJson) { request =>
+    given Request[JsValue] = request
     withCurrentSession { session =>
       withPayload[NiBusinessesPayload] { payload =>
         Utr.isValid(utr) match {
@@ -75,13 +76,13 @@ object NiExemptionRegistrationStubController {
 
   object NiBusinessesPayload {
 
-    import Validator._
+    import Validator.*
 
     val validate: Validator[NiBusinessesPayload] = Validator(
       check(_.postcode.isRight(RegexPatterns.validPostcode), "Invalid postcode")
     )
 
-    implicit val formats: Format[NiBusinessesPayload] = Json.format[NiBusinessesPayload]
+    given formats: Format[NiBusinessesPayload] = Json.format[NiBusinessesPayload]
   }
 
   case class NiBussinessesSubscription(status: String, eori: Option[String])
@@ -96,13 +97,13 @@ object NiExemptionRegistrationStubController {
           .orElse(record.individual.map(i => s"${i.firstName} ${i.lastName}"))
           .getOrElse("")
       val eoriOpt = record.eori
-      val status = if (eoriOpt.isDefined) "NI_SUBSCRIBED" else "NI_NOT_SUBSCRIBED"
+      val status = if eoriOpt.isDefined then "NI_SUBSCRIBED" else "NI_NOT_SUBSCRIBED"
       val subscription = NiBussinessesSubscription(status, eoriOpt)
       NiBussinessesResponse(name, subscription)
     }
 
-    implicit val formats1: Format[NiBussinessesSubscription] = Json.format[NiBussinessesSubscription]
-    implicit val formats2: Format[NiBussinessesResponse] = Json.format[NiBussinessesResponse]
+    given formats1: Format[NiBussinessesSubscription] = Json.format[NiBussinessesSubscription]
+    given formats2: Format[NiBussinessesResponse] = Json.format[NiBussinessesResponse]
   }
 
   private def canonical(str: String): String = str.toUpperCase.replace(" ", "")

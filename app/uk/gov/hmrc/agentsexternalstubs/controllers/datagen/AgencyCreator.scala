@@ -22,8 +22,8 @@ import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.BusinessData
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessDetailsRecord.BusinessData.BusinessAddressDetails
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.AgencyDetails
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, PPOB}
-import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.repository._
+import uk.gov.hmrc.agentsexternalstubs.models.*
+import uk.gov.hmrc.agentsexternalstubs.repository.*
 import uk.gov.hmrc.agentsexternalstubs.services.GranPermsService
 
 import javax.inject.Inject
@@ -36,7 +36,7 @@ class AgencyCreator @Inject() (
   groupsRepository: GroupsRepositoryMongo,
   knownFactsRepository: KnownFactsRepository,
   granPermsService: GranPermsService
-)(implicit executionContext: ExecutionContext)
+)(using executionContext: ExecutionContext)
     extends Logging {
 
   def create(agencyCreationPayload: AgencyCreationPayload): Future[Unit] = {
@@ -325,7 +325,7 @@ class AgencyCreator @Inject() (
     }).flatten
 
   private def recordAsJson(record: Record, planetId: String): JsonAbuse[Record] = {
-    import uk.gov.hmrc.agentsexternalstubs.syntax.|>
+    import uk.gov.hmrc.agentsexternalstubs.syntax.*
 
     val PLANET_ID = "_planetId"
     val UNIQUE_KEY = "_uniqueKey"

@@ -29,9 +29,11 @@ abstract class AppBaseISpec
   override lazy val app: Application = TestPlayServer.app
   val port: Int = TestPlayServer.port
 
-  implicit val ec: ExecutionContext = app.actorSystem.dispatcher
+  given ec: ExecutionContext = app.actorSystem.dispatcher
 
-  implicit override val patienceConfig: PatienceConfig =
+  override val patienceConfig: PatienceConfig =
     PatienceConfig(timeout = Span(15, Seconds), interval = Span(50, Milliseconds))
+
+  given PatienceConfig = patienceConfig
 
 }

@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{JsArray, JsObject, Json, Writes}
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Request}
 import uk.gov.hmrc.agentsexternalstubs.controllers.UsersGroupsSearchStubController.{GetGroupResponse, GetUserResponse}
 import uk.gov.hmrc.agentsexternalstubs.models.{AG, Generator, Group, User}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GroupsService, UsersService}
@@ -32,10 +32,11 @@ class UsersGroupsSearchStubController @Inject() (
   usersService: UsersService,
   groupsService: GroupsService,
   cc: ControllerComponents
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
-  def getUser(userId: String): Action[AnyContent] = Action.async { implicit request =>
+  def getUser(userId: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       for {
         maybeUser <- usersService.findByUserId(userId, session.planetId)
@@ -50,7 +51,8 @@ class UsersGroupsSearchStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def getGroup(groupId: String): Action[AnyContent] = Action.async { implicit request =>
+  def getGroup(groupId: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       groupsService
         .findByGroupId(groupId, session.planetId)
@@ -71,14 +73,15 @@ class UsersGroupsSearchStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def getGroupUsers(groupId: String): Action[AnyContent] = Action.async { implicit request =>
+  def getGroupUsers(groupId: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     def addEmailFieldInUserJson(user: User): JsObject =
       Json.toJson(user).as[JsObject] + ("email" -> Json.toJson(Generator.email(user.userId)))
 
     withCurrentSession { session =>
-      if (groupId == "wrongGroupId") {
+      if groupId == "wrongGroupId" then
         Future.successful(notFound("GROUP_NOT_FOUND"))
-      } else {
+      else
         usersService
           .findByGroupId(groupId, session.planetId)(Some(100))
           .map {
@@ -87,11 +90,11 @@ class UsersGroupsSearchStubController @Inject() (
             case users =>
               NonAuthoritativeInformation(JsArray(users.map(addEmailFieldInUserJson)))
           }
-      }
     }(SessionRecordNotFound)
   }
 
-  def getGroupByAgentCode(agentCode: String): Action[AnyContent] = Action.async { implicit request =>
+  def getGroupByAgentCode(agentCode: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       groupsService
         .findByAgentCode(agentCode, session.planetId)
@@ -142,7 +145,7 @@ object UsersGroupsSearchStubController {
   )
 
   object GetUserResponse {
-    implicit val writes: Writes[GetUserResponse] = Json.writes[GetUserResponse]
+    given writes: Writes[GetUserResponse] = Json.writes[GetUserResponse]
 
     def from(user: User, group: Group): GetUserResponse =
       GetUserResponse(
@@ -177,7 +180,7 @@ object UsersGroupsSearchStubController {
   )
 
   object GetGroupResponse {
-    implicit val writes: Writes[GetGroupResponse] = Json.writes[GetGroupResponse]
+    given writes: Writes[GetGroupResponse] = Json.writes[GetGroupResponse]
 
     def from(group: Group): GetGroupResponse =
       GetGroupResponse(

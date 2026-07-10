@@ -17,21 +17,22 @@
 package uk.gov.hmrc.agentsexternalstubs.connectors
 
 import play.api.libs.json.JsValue
+import play.api.libs.ws.writeableOf_JsValue
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 
-import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class RoboticsConnector @Inject() (httpClientV2: HttpClientV2, appConfig: AppConfig)(implicit
+class RoboticsConnector @Inject() (httpClientV2: HttpClientV2, appConfig: AppConfig)(using
   ec: ExecutionContext
 ) {
 
   private val callbackUrl: String = appConfig.agentServicesAccountUrl
-  implicit val hc: HeaderCarrier = HeaderCarrier()
+  given HeaderCarrier = HeaderCarrier()
 
   def sendCallback(payload: JsValue, correlationId: String): Future[Unit] =
     httpClientV2

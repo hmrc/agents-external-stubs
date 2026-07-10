@@ -24,7 +24,7 @@ import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticateRequest, Authenticate
 import uk.gov.hmrc.agentsexternalstubs.repository.AuthenticatedSessionsRepository
 import uk.gov.hmrc.http.HeaderCarrier
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
@@ -43,7 +43,7 @@ class AuthenticationService @Inject() (
 
   def findByAuthTokenOrLookupExternal(
     authToken: String
-  )(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[Option[AuthenticatedSession]] =
+  )(using ec: ExecutionContext, hc: HeaderCarrier): Future[Option[AuthenticatedSession]] =
     authenticatedSessionCache.getOption(
       authToken,
       authSessionRepository.findByAuthToken(authToken).flatMap {
@@ -54,10 +54,10 @@ class AuthenticationService @Inject() (
       }
     )
 
-  def findByAuthToken(authToken: String)(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
+  def findByAuthToken(authToken: String)(using ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
     authenticatedSessionCache.getOption(authToken, authSessionRepository.findByAuthToken(authToken))
 
-  def findBySessionId(sessionId: String)(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
+  def findBySessionId(sessionId: String)(using ec: ExecutionContext): Future[Option[AuthenticatedSession]] =
     authenticatedSessionCache.getOption(sessionId, authSessionRepository.findBySessionId(sessionId))
 
   def findByPlanetId(planetId: String): Future[Option[AuthenticatedSession]] =
@@ -65,7 +65,7 @@ class AuthenticationService @Inject() (
 
   def authenticate(
     request: AuthenticateRequest
-  )(implicit ec: ExecutionContext): Future[Option[AuthenticatedSession]] = {
+  )(using ec: ExecutionContext): Future[Option[AuthenticatedSession]] = {
     val authToken = request.authTokenOpt.getOrElse(UUID.randomUUID().toString)
     val authenticatedSession =
       AuthenticatedSession(request.sessionId, request.userId, authToken, request.providerType, request.planetId)
@@ -78,7 +78,7 @@ class AuthenticationService @Inject() (
     }
   }
 
-  def removeAuthentication(authToken: String)(implicit ec: ExecutionContext): Future[Unit] =
+  def removeAuthentication(authToken: String)(using ec: ExecutionContext): Future[Unit] =
     for {
       _ <- authenticatedSessionCache.invalidate(authToken)
       _ <- authSessionRepository.delete(authToken)

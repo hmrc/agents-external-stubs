@@ -72,7 +72,7 @@ case class HipAmendAgentSubscriptionPayload(
 
 object HipAmendAgentSubscriptionPayload {
 
-  import Validator._
+  import Validator.*
 
   private val validationError =
     Errors("003", "Request could not be processed")
@@ -81,13 +81,6 @@ object HipAmendAgentSubscriptionPayload {
     Set("ACCEPTED", "REJECTED", "PENDING", "REQUIRED")
 
   private type PayloadValidator = Validator[HipAmendAgentSubscriptionPayload]
-
-  private def strLenValidator(
-    extract: HipAmendAgentSubscriptionPayload => String,
-    min: Int,
-    max: Int
-  ): PayloadValidator =
-    checkProperty(extract, check[String](_.lengthMinMaxInclusive(min, max), validationError.text))
 
   private def optEnumValidator(
     extract: HipAmendAgentSubscriptionPayload => Option[String]
@@ -136,6 +129,5 @@ object HipAmendAgentSubscriptionPayload {
       .toEither
       .map(_ => payload)
 
-  implicit val format: Format[HipAmendAgentSubscriptionPayload] =
-    Json.format[HipAmendAgentSubscriptionPayload]
+  given format:Format[HipAmendAgentSubscriptionPayload] = Json.format[HipAmendAgentSubscriptionPayload]
 }

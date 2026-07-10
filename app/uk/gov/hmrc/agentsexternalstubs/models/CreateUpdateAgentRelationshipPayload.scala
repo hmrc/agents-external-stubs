@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import play.api.libs.json._
-import uk.gov.hmrc.agentsexternalstubs.models.CreateUpdateAgentRelationshipPayload._
+import play.api.libs.json.*
+import uk.gov.hmrc.agentsexternalstubs.models.CreateUpdateAgentRelationshipPayload.*
 
 /** ----------------------------------------------------------------------------
   * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
@@ -76,7 +76,7 @@ case class CreateUpdateAgentRelationshipPayload(
 
 object CreateUpdateAgentRelationshipPayload {
 
-  import Validator._
+  import Validator.*
 
   val acknowledgmentReferenceValidator: Validator[String] = check(
     _.matches(Common.acknowledgmentReferencePattern),
@@ -118,7 +118,7 @@ object CreateUpdateAgentRelationshipPayload {
     checkProperty(_.authProfile, authProfileValidator)
   )
 
-  implicit val formats: Format[CreateUpdateAgentRelationshipPayload] = Json.format[CreateUpdateAgentRelationshipPayload]
+  given Format[CreateUpdateAgentRelationshipPayload] = Json.format[CreateUpdateAgentRelationshipPayload]
 
   sealed trait Authorisation { def action: String }
 
@@ -129,7 +129,7 @@ object CreateUpdateAgentRelationshipPayload {
       case x: Deauthorise => Deauthorise.validate(x)
     }
 
-    implicit val reads: Reads[Authorisation] = new Reads[Authorisation] {
+    given reads: Reads[Authorisation] = new Reads[Authorisation] {
       override def reads(json: JsValue): JsResult[Authorisation] = {
         val r0 =
           Authorise.formats.reads(json).flatMap(e => Authorise.validate(e).fold(_ => JsError(), _ => JsSuccess(e)))
@@ -154,7 +154,7 @@ object CreateUpdateAgentRelationshipPayload {
         )
     }
 
-    implicit val writes: Writes[Authorisation] = new Writes[Authorisation] {
+    given writes: Writes[Authorisation] = new Writes[Authorisation] {
       override def writes(o: Authorisation): JsValue = o match {
         case x: Authorise   => Authorise.formats.writes(x)
         case x: Deauthorise => Deauthorise.formats.writes(x)
@@ -180,7 +180,7 @@ object CreateUpdateAgentRelationshipPayload {
 
     val validate: Validator[Authorise] = Validator(checkProperty(_.action, actionValidator))
 
-    implicit val formats: Format[Authorise] = Json.format[Authorise]
+    given formats: Format[Authorise] = Json.format[Authorise]
 
   }
 
@@ -198,7 +198,7 @@ object CreateUpdateAgentRelationshipPayload {
 
     val validate: Validator[Deauthorise] = Validator(checkProperty(_.action, actionValidator))
 
-    implicit val formats: Format[Deauthorise] = Json.format[Deauthorise]
+    given formats: Format[Deauthorise] = Json.format[Deauthorise]
 
   }
 

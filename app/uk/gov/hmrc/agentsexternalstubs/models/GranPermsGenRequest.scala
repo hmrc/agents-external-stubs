@@ -52,7 +52,7 @@ object GranPermsGenRequest {
     "HMRC-PILLAR2-ORG"   -> 1.0
   )
 
-  implicit val format: OFormat[GranPermsGenRequest] = Json.format[GranPermsGenRequest]
+  given OFormat[GranPermsGenRequest] = Json.format[GranPermsGenRequest]
 }
 
 case class GranPermsGenResponse(
@@ -61,5 +61,5 @@ case class GranPermsGenResponse(
 )
 
 object GranPermsGenResponse {
-  implicit val format: OFormat[GranPermsGenResponse] = Json.format[GranPermsGenResponse]
+  given OFormat[GranPermsGenResponse] = Json.format[GranPermsGenResponse]
 }

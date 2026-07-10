@@ -39,7 +39,7 @@ object JsonAbuse {
     * which is not a problem if we only need to use the extra fields in Mongo queries etc. which stay at Json level.
     * 'true' will make all these extra fields available after deserialising, at the cost of performance.
     */
-  def format[A](extractExtraFieldsOnRead: Boolean = false)(implicit fa: OFormat[A]): Format[JsonAbuse[A]] =
+  def format[A](extractExtraFieldsOnRead: Boolean = false)(using fa: OFormat[A]): Format[JsonAbuse[A]] =
     new OFormat[JsonAbuse[A]] {
       override def reads(json: JsValue): JsResult[JsonAbuse[A]] = for {
         value <- fa.reads(json)
@@ -56,6 +56,6 @@ object JsonAbuse {
         fa.writes(o.value) ++ JsObject(o.extraFields)
     }
 
-  def fromJson[A](json: JsObject)(implicit fa: OFormat[A]): Option[JsonAbuse[A]] =
+  def fromJson[A](json: JsObject)(using fa: OFormat[A]): Option[JsonAbuse[A]] =
     format(true).reads(json).asOpt
 }

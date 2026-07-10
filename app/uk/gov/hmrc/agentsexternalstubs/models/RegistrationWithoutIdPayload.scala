@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import play.api.libs.json._
-import uk.gov.hmrc.agentsexternalstubs.models.RegistrationWithoutIdPayload._
+import play.api.libs.json.*
+import uk.gov.hmrc.agentsexternalstubs.models.RegistrationWithoutIdPayload.*
 
 /** ----------------------------------------------------------------------------
   * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
@@ -86,7 +86,7 @@ case class RegistrationWithoutIdPayload(
 
 object RegistrationWithoutIdPayload {
 
-  import Validator._
+  import Validator.*
 
   val regimeValidator: Validator[String] =
     check(_.matches(Common.regimePattern), s"""Invalid regime, does not matches regex ${Common.regimePattern}""")
@@ -111,7 +111,7 @@ object RegistrationWithoutIdPayload {
     checkIfOnlyOneSetIsDefined(Seq(Set(_.organisation), Set(_.individual)), "[{organisation},{individual}]")
   )
 
-  implicit val formats: Format[RegistrationWithoutIdPayload] = Json.format[RegistrationWithoutIdPayload]
+  given formats: Format[RegistrationWithoutIdPayload] = Json.format[RegistrationWithoutIdPayload]
 
   sealed trait Address {
     def addressLine2: String
@@ -128,7 +128,7 @@ object RegistrationWithoutIdPayload {
       case x: UkAddress      => UkAddress.validate(x)
     }
 
-    implicit val reads: Reads[Address] = new Reads[Address] {
+    given reads: Reads[Address] = new Reads[Address] {
       override def reads(json: JsValue): JsResult[Address] = {
         val r0 = ForeignAddress.formats
           .reads(json)
@@ -154,7 +154,7 @@ object RegistrationWithoutIdPayload {
         )
     }
 
-    implicit val writes: Writes[Address] = new Writes[Address] {
+    given writes: Writes[Address] = new Writes[Address] {
       override def writes(o: Address): JsValue = o match {
         case x: ForeignAddress => ForeignAddress.formats.writes(x)
         case x: UkAddress      => UkAddress.formats.writes(x)
@@ -208,7 +208,7 @@ object RegistrationWithoutIdPayload {
       checkProperty(_.emailAddress, emailAddressValidator)
     )
 
-    implicit val formats: Format[ContactDetails] = Json.format[ContactDetails]
+    given formats: Format[ContactDetails] = Json.format[ContactDetails]
 
   }
 
@@ -273,7 +273,7 @@ object RegistrationWithoutIdPayload {
       checkProperty(_.countryCode, countryCodeValidator)
     )
 
-    implicit val formats: Format[ForeignAddress] = Json.format[ForeignAddress]
+    given formats: Format[ForeignAddress] = Json.format[ForeignAddress]
 
   }
 
@@ -313,7 +313,7 @@ object RegistrationWithoutIdPayload {
       checkProperty(_.issuingCountryCode, issuingCountryCodeValidator)
     )
 
-    implicit val formats: Format[Identification] = Json.format[Identification]
+    given formats: Format[Identification] = Json.format[Identification]
 
   }
 
@@ -359,7 +359,7 @@ object RegistrationWithoutIdPayload {
       checkProperty(_.dateOfBirth, dateOfBirthValidator)
     )
 
-    implicit val formats: Format[Individual] = Json.format[Individual]
+    given formats: Format[Individual] = Json.format[Individual]
 
   }
 
@@ -379,7 +379,7 @@ object RegistrationWithoutIdPayload {
 
     val validate: Validator[Organisation] = Validator(checkProperty(_.organisationName, organisationNameValidator))
 
-    implicit val formats: Format[Organisation] = Json.format[Organisation]
+    given formats: Format[Organisation] = Json.format[Organisation]
 
   }
 
@@ -446,7 +446,7 @@ object RegistrationWithoutIdPayload {
       checkProperty(_.countryCode, countryCodeValidator)
     )
 
-    implicit val formats: Format[UkAddress] = Json.format[UkAddress]
+    given formats: Format[UkAddress] = Json.format[UkAddress]
 
   }
 

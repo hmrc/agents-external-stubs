@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalacheck.Gen
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.libs.json._
+import play.api.libs.json.*
 import uk.gov.hmrc.agentsexternalstubs.models.Validator.Validator
 
 import java.time.LocalDateTime
@@ -33,7 +33,7 @@ object AgencyDetailsStatusValue {
 
   val values: Seq[AgencyDetailsStatusValue] = Seq(Accepted, Rejected, Pending, Required)
 
-  implicit val reads: Reads[AgencyDetailsStatusValue] =
+  given reads: Reads[AgencyDetailsStatusValue] =
     Reads.StringReads.collect(JsonValidationError("Invalid AgencyDetailsStatusValue")) {
       case "ACCEPTED" => Accepted
       case "REJECTED" => Rejected
@@ -41,8 +41,8 @@ object AgencyDetailsStatusValue {
       case "REQUIRED" => Required
     }
 
-  implicit val writes: Writes[AgencyDetailsStatusValue] = Writes(v => JsString(v.value))
-  implicit val format: Format[AgencyDetailsStatusValue] = Format(reads, writes)
+  given writes: Writes[AgencyDetailsStatusValue] = Writes(v => JsString(v.value))
+  given format: Format[AgencyDetailsStatusValue] = Format(reads, writes)
 
   val gen: Gen[AgencyDetailsStatusValue] = Gen.oneOf(values)
 
@@ -106,7 +106,7 @@ object AgencyDetailsStatus {
       override val sanitizers: Seq[Update] = Seq(seed => e => sanitizerFor(rebuild)(seed)(e))
     }
 
-  implicit val genericFormat: OFormat[AgencyDetailsStatus] = {
+  given genericFormat: OFormat[AgencyDetailsStatus] = {
     val reads: Reads[AgencyDetailsStatus] =
       (
         (__ \ "status").read[AgencyDetailsStatusValue] and
@@ -178,7 +178,7 @@ object UpdateDetailsStatus extends RecordUtils[UpdateDetailsStatus] {
   override val gen: Gen[UpdateDetailsStatus] = base.gen
   override val validate: Validator[UpdateDetailsStatus] = base.validate
   override val sanitizers: Seq[Update] = base.sanitizers
-  implicit val format: OFormat[UpdateDetailsStatus] = Json.format[UpdateDetailsStatus]
+  given format: OFormat[UpdateDetailsStatus] = Json.format[UpdateDetailsStatus]
 }
 
 final case class AmlSupervisionUpdateStatus(
@@ -195,7 +195,7 @@ object AmlSupervisionUpdateStatus extends RecordUtils[AmlSupervisionUpdateStatus
   override val gen: Gen[AmlSupervisionUpdateStatus] = base.gen
   override val validate: Validator[AmlSupervisionUpdateStatus] = base.validate
   override val sanitizers: Seq[Update] = base.sanitizers
-  implicit val format: OFormat[AmlSupervisionUpdateStatus] = Json.format[AmlSupervisionUpdateStatus]
+  given format: OFormat[AmlSupervisionUpdateStatus] = Json.format[AmlSupervisionUpdateStatus]
 }
 
 final case class DirectorPartnerUpdateStatus(
@@ -212,7 +212,7 @@ object DirectorPartnerUpdateStatus extends RecordUtils[DirectorPartnerUpdateStat
   override val gen: Gen[DirectorPartnerUpdateStatus] = base.gen
   override val validate: Validator[DirectorPartnerUpdateStatus] = base.validate
   override val sanitizers: Seq[Update] = base.sanitizers
-  implicit val format: OFormat[DirectorPartnerUpdateStatus] = Json.format[DirectorPartnerUpdateStatus]
+  given format: OFormat[DirectorPartnerUpdateStatus] = Json.format[DirectorPartnerUpdateStatus]
 }
 
 final case class AcceptNewTermsStatus(
@@ -229,7 +229,7 @@ object AcceptNewTermsStatus extends RecordUtils[AcceptNewTermsStatus] {
   override val gen: Gen[AcceptNewTermsStatus] = base.gen
   override val validate: Validator[AcceptNewTermsStatus] = base.validate
   override val sanitizers: Seq[Update] = base.sanitizers
-  implicit val format: OFormat[AcceptNewTermsStatus] = Json.format[AcceptNewTermsStatus]
+  given format: OFormat[AcceptNewTermsStatus] = Json.format[AcceptNewTermsStatus]
 }
 
 final case class ReriskStatus(
@@ -246,5 +246,5 @@ object ReriskStatus extends RecordUtils[ReriskStatus] {
   override val gen: Gen[ReriskStatus] = base.gen
   override val validate: Validator[ReriskStatus] = base.validate
   override val sanitizers: Seq[Update] = base.sanitizers
-  implicit val format: OFormat[ReriskStatus] = Json.format[ReriskStatus]
+  given format: OFormat[ReriskStatus] = Json.format[ReriskStatus]
 }

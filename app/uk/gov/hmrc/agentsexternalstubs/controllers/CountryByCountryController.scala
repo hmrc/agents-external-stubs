@@ -17,8 +17,8 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{Action, ControllerComponents, Result}
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import play.api.mvc.{Action, ControllerComponents, Result, Request}
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
 import uk.gov.hmrc.agentsexternalstubs.models.{CbcSubscriptionRecord, DisplaySubscriptionForCbC, DisplaySubscriptionForCbCRequestPayload}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, RecordsService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -32,11 +32,12 @@ class CountryByCountryController @Inject() (
   val authenticationService: AuthenticationService,
   recordsService: RecordsService,
   cc: ControllerComponents
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BackendController(cc) with HttpHelpers with CurrentSession {
 
   /** MTDP -> (EIS -> ETMP) */
-  def displaySubscriptionForCbC: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+  def displaySubscriptionForCbC: Action[JsValue] = Action.async(parse.tolerantJson) { request =>
+    given Request[JsValue] = request
     withCurrentSession(session =>
       withPayload[DisplaySubscriptionForCbCRequestPayload] { payload =>
         DisplaySubscriptionForCbCRequestPayload

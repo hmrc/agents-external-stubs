@@ -57,7 +57,7 @@ class SignInControllerWithSyncISpec extends ServerBaseISpec with TestRequests wi
       "authenticate anonymous user and return current session data" in {
         givenSuccessfulAuthLoginStubResponse()
         val authToken = SignIn.signInAndGetSession("foo", "boo", syncToAuthLoginApi = true).authToken
-        val result = SignIn.currentSession(AuthContext.fromToken(authToken))
+        val result = SignIn.currentSession(using AuthContext.fromToken(authToken))
         result.status shouldBe 200
       }
 
@@ -85,7 +85,7 @@ class SignInControllerWithSyncISpec extends ServerBaseISpec with TestRequests wi
       "remove authentication" in {
         givenSuccessfulAuthLoginStubResponse()
         val authToken = SignIn.signInAndGetSession("foo", "boo", syncToAuthLoginApi = true).authToken
-        val result = SignIn.signOut(AuthContext.fromToken(authToken))
+        val result = SignIn.signOut(using AuthContext.fromToken(authToken))
         result should haveStatus(204)
         result.header(HeaderNames.LOCATION) should be(empty)
       }

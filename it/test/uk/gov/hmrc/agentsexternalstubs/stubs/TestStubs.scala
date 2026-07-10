@@ -18,9 +18,9 @@ package uk.gov.hmrc.agentsexternalstubs.stubs
 
 import org.scalatest.Suite
 import play.api.Application
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.agentsexternalstubs.models.User.CR
-import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.*
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GroupsService, UsersService}
 
 import java.util.UUID
@@ -42,7 +42,7 @@ trait TestStubs {
     affinityGroup: Option[String],
     agentCode: Option[String] = None,
     agentFriendlyName: Option[String] = None
-  )(implicit ec: ExecutionContext): String =
+  )(using ExecutionContext): String =
     await(for {
       authSession <-
         authenticationService
@@ -70,7 +70,7 @@ trait TestStubs {
     identifierKey: String,
     identifierValue: String,
     credRole: String = CR.User
-  )(implicit ec: ExecutionContext): Unit = await {
+  )(using ExecutionContext): Unit = await {
     userService.findByUserId(userId, planetId).flatMap {
       case None =>
         userService.createUser(
@@ -97,13 +97,11 @@ trait TestStubs {
     }
   }
 
-  def givenUserWithStrideRole(userId: String, planetId: String, role: String)(implicit
-    ec: ExecutionContext
+  def givenUserWithStrideRole(userId: String, planetId: String, role: String)(using ExecutionContext
   ): Unit =
     await(addStrideRole(userId, planetId, role))
 
-  private def addStrideRole(userId: String, planetId: String, role: String)(implicit
-    ec: ExecutionContext
+  private def addStrideRole(userId: String, planetId: String, role: String)(using ExecutionContext
   ): Future[User] =
     userService.updateUser(
       userId,

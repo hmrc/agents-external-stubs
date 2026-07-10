@@ -19,7 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, User, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
-import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests}
+import uk.gov.hmrc.agentsexternalstubs.support.{AuthContext, ServerBaseISpec, TestRequests}
 
 class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with TestRequests with TestStubs {
 
@@ -29,7 +29,7 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with TestRequ
 
     "GET /users-groups-search/users/:userId" should {
       "respond 200 with individual user details if found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         Users.create(
           UserGenerator
             .individual(userId = "foo1", name = "Alan Brian Foo-Foe", groupId = "foo-group-1"),
@@ -53,7 +53,7 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with TestRequ
       }
 
       "respond 200 with agent user details if found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         Users.create(
           UserGenerator
             .agent(
@@ -65,7 +65,7 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with TestRequ
           agentCode = Some("AAABBBCCCDDD"),
           agentFriendlyName = Some("Foo-Foe Accountants"),
           agentId = Some("1234567")
-        )(session)
+        )(using AuthContext.fromTokenAndSessionId(session.authToken, session.sessionId))
 
         val result = UsersGroupSearchStub.getUser("foo2")
 
@@ -84,7 +84,7 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with TestRequ
       }
 
       "respond 404 if user not found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo2")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo2")
 
         val result = UsersGroupSearchStub.getUser("foo2-1")
 
@@ -103,7 +103,7 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with TestRequ
           )
           .futureValue
 
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo3", planetId = "testPlanet2")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo3", planetId = "testPlanet2")
 
         val result = UsersGroupSearchStub.getGroup("foo-group-3")
 
@@ -118,7 +118,7 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with TestRequ
       }
 
       "respond 200 with agent group details if found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo4")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo4")
         Users.create(
           UserGenerator
             .agent(
@@ -145,7 +145,7 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with TestRequ
       }
 
       "respond 404 if group not found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo2")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo2")
 
         val result = UsersGroupSearchStub.getGroup("foo-group-4-1")
 
@@ -155,7 +155,7 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with TestRequ
 
     "GET /users-groups-search/groups?agentCode=:agentCode&agentId=:agentId" should {
       "respond 200 with agent group details if found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo5")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo5")
         Users.create(
           UserGenerator
             .agent(
@@ -182,7 +182,7 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with TestRequ
       }
 
       "respond 404 if group not found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo2")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo2")
 
         val result = UsersGroupSearchStub.getGroupByAgentCode("dumb", "any")
 
@@ -193,7 +193,7 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with TestRequ
 
   "GET /users-groups-search/groups/:groupId/users" should {
     "respond 200 with the list of users in the group" in {
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "juniper")
+      given session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "juniper")
       Users.create(
         UserGenerator
           .individual(userId = "foo6-1", name = "A", groupId = "foo-group-6"),
@@ -210,7 +210,7 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with TestRequ
         UserGenerator
           .individual(userId = "foo6-3", name = "C", groupId = "foo-group-6", credentialRole = User.CR.Assistant),
         affinityGroup = Some(AG.Individual)
-      )(session2)
+      )(using AuthContext.fromTokenAndSessionId(session2.authToken, session2.sessionId))
 
       val result = UsersGroupSearchStub.getGroupUsers("foo-group-6")
 
@@ -220,7 +220,7 @@ class UsersGroupsSearchStubControllerISpec extends ServerBaseISpec with TestRequ
     }
 
     "respond 404 if group is empty" in {
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo7-1", planetId = "juniper")
+      given session: AuthenticatedSession = SignIn.signInAndGetSession("foo7-1", planetId = "juniper")
       Users.create(
         UserGenerator
           .individual(userId = "foo7-1", name = "A", groupId = "foo-group-7"),

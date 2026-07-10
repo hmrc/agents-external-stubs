@@ -20,10 +20,10 @@ import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
 import play.mvc.Http.HeaderNames
-import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.*
 import uk.gov.hmrc.agentsexternalstubs.services.UsersService
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
-import uk.gov.hmrc.agentsexternalstubs.support._
+import uk.gov.hmrc.agentsexternalstubs.support.*
 import uk.gov.hmrc.domain.Nino
 
 import java.time.LocalDate
@@ -37,21 +37,21 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
 
     "GET /agents-external-stubs/users/:userId" should {
       "return 404 NotFound for non existent user id" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession()
         val result = Users.get("1261a762761")
         result should haveStatus(404)
       }
 
       "return 404 NotFound if user exists but on a different planet" in {
         SignIn.signInAndGetSession()
-        implicit val authSession2: AuthenticatedSession = SignIn.signInAndGetSession("boo")
+        given authSession2: AuthenticatedSession = SignIn.signInAndGetSession("boo")
         val result = Users.get("foo")
         result should haveStatus(404)
       }
 
       "return an existing user" in {
         val session1 = SignIn.signInAndGetSession("712717287")
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession(planetId = session1.planetId)
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession(planetId = session1.planetId)
         val result = Users.get("712717287")
         result should haveStatus(200)
         val user = result.json.as[User]
@@ -62,21 +62,21 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
 
     "POST /agents-external-stubs/users/" should {
       "store a new user" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession()
         val result = Users.create(User("yuwyquhh"), Some(AG.Individual))
         result should haveStatus(201)
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/yuwyquhh")
       }
 
       "store a new STRIDE user" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession()
         val result = Users.create(User("stride").withStrideRole("FOO"), affinityGroup = None)
         result should haveStatus(201)
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/stride")
       }
 
       "fail if trying to store user with duplicated userId on the same planet" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession()
         val result1 = Users.create(User("yuwyquhh"), Some(AG.Individual))
         result1 should haveStatus(201)
         result1.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/yuwyquhh")
@@ -85,13 +85,13 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       }
 
       "sanitize invalid user and succeed" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession()
         val result = Users.create(User("yuwyquhh", nino = Some(Nino("HW827856C"))), Some(AG.Individual))
         result should haveStatus(201)
       }
 
       "give user the credentialRole of 'User' if none exist in the group" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         val result = Users.create(
           UserGenerator.agent("bar"),
           affinityGroup = Some(AG.Agent)
@@ -101,7 +101,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       }
 
       "return 400 if a user with credentialRole of 'Admin' exists already in the group" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         val result1 = Users.create(
           UserGenerator.agent("bar", groupId = "testGroup", credentialRole = User.CR.Admin),
           affinityGroup = Some(AG.Agent)
@@ -115,7 +115,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       }
 
       "return 400 if a user with credentialRole of 'User' exists already in the group" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         val result1 = Users.create(
           UserGenerator.agent("bar", groupId = "testGroup2", credentialRole = User.CR.User),
           affinityGroup = Some(AG.Agent)
@@ -131,7 +131,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
 
     "PUT /agents-external-stubs/users" should {
       "update current user" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
         val currentUser = userService.findByUserId(authSession.userId, planetId = authSession.planetId).futureValue.get
         val result =
           Users.updateCurrent(currentUser.copy(name = Some("New Name")))
@@ -144,10 +144,10 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
 
     "POST /agents-external-stubs/users" should {
       "create a new user on the same planet as the logged-in user (if planetId is unspecified)" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
         val result = wsClient
           .url(s"$url/agents-external-stubs/users?affinityGroup=Individual")
-          .withHttpHeaders(implicitly[AuthContext].headers: _*)
+          .withHttpHeaders(summon[AuthContext].headers*)
           .post(Json.toJson(User("foo")))
           .futureValue
         result should haveStatus(201)
@@ -155,10 +155,10 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       }
 
       "create a new user on a different planet if one is specified" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
         val result = wsClient
           .url(s"$url/agents-external-stubs/users?affinityGroup=Individual&planetId=bar")
-          .withHttpHeaders(implicitly[AuthContext].headers: _*)
+          .withHttpHeaders(summon[AuthContext].headers*)
           .post(Json.toJson(User("foo")))
           .futureValue
         result should haveStatus(201)
@@ -186,13 +186,13 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
 
     "PUT /agents-external-stubs/users/:userId" should {
       "return 404 if userId not found" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession()
         val result = Users.update(User("7728378273", name = Some("New Name")))
         result should haveStatus(404)
       }
 
       "update an existing user" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
         val currentUser = userService.findByUserId(authSession.userId, planetId = authSession.planetId).futureValue.get
         val result = Users.update(currentUser.copy(name = Some("New Name")))
         result should haveStatus(202)
@@ -204,13 +204,13 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
 
     "DELETE /agents-external-stubs/users/:userId" should {
       "return 204 if user can be removed" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession()
         val result = Users.delete(authSession.userId)
         result should haveStatus(204)
       }
 
       "return 404 if userId not found" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession()
         val result = Users.delete("ABC123")
         result should haveStatus(404)
       }
@@ -230,7 +230,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
             affinityGroup = Some(AG.Individual)
           )
           .futureValue
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "testPlanet")
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "testPlanet")
 
         val result = Users.delete(authSession.userId)
         result should haveStatus(400)
@@ -273,10 +273,14 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
 
       "return 200 with the list of all users on the current planet only" in {
         val otherPlanetAuthSession: AuthenticatedSession = SignIn.signInAndGetSession("boo")
-        Users.create(UserGenerator.individual("boo1"), Some(AG.Individual))(otherPlanetAuthSession)
-        Users.create(UserGenerator.organisation("boo2"), Some(AG.Organisation))(otherPlanetAuthSession)
+        Users.create(UserGenerator.individual("boo1"), Some(AG.Individual))(using
+          AuthContext.fromTokenAndSessionId(otherPlanetAuthSession.authToken, otherPlanetAuthSession.sessionId)
+        )
+        Users.create(UserGenerator.organisation("boo2"), Some(AG.Organisation))(using
+          AuthContext.fromTokenAndSessionId(otherPlanetAuthSession.authToken, otherPlanetAuthSession.sessionId)
+        )
 
-        implicit val currentAuthSession: AuthenticatedSession = SignIn.signInAndGetSession()
+        given currentAuthSession: AuthenticatedSession = SignIn.signInAndGetSession()
         Users.create(UserGenerator.individual("foo1"), Some(AG.Individual))
         Users.create(UserGenerator.organisation("foo2"), Some(AG.Organisation))
         Users.create(UserGenerator.agent("foo3"), Some(AG.Agent))
@@ -287,7 +291,9 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
         users1.size shouldBe 4
         users1.map(_.userId) should contain.only(currentAuthSession.userId, "foo1", "foo2", "foo3")
 
-        val result2 = Users.getAll()(otherPlanetAuthSession)
+        val result2 = Users.getAll()(using
+          AuthContext.fromTokenAndSessionId(otherPlanetAuthSession.authToken, otherPlanetAuthSession.sessionId)
+        )
         result2 should haveStatus(200)
         val users2 = result2.json.as[Users].users
         users2.size shouldBe 3
@@ -297,7 +303,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       "return 200 with users whose userId contains the supplied userId query parameter" in {
         val planetId = "searchPlanet"
 
-        implicit val authSession: AuthenticatedSession =
+        given authSession: AuthenticatedSession =
           SignIn.signInAndGetSession(userId = "admin", planetId = planetId)
 
         usersList.foreach { user =>
@@ -322,7 +328,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       "return 200 with the list of users having given groupId" in {
         val planetId = "searchPlanet"
 
-        implicit val currentAuthSession: AuthenticatedSession =
+        given currentAuthSession: AuthenticatedSession =
           SignIn.signInAndGetSession(userId = "admin", planetId = planetId)
 
         usersList.foreach { user =>
@@ -352,7 +358,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
         userService.createUser(UserGenerator.individual("foo2"), planetId = planetId, Some(AG.Organisation)).futureValue
         userService.createUser(UserGenerator.individual("foo3"), planetId = planetId, Some(AG.Agent)).futureValue
 
-        implicit val currentAuthSession: AuthenticatedSession =
+        given currentAuthSession: AuthenticatedSession =
           SignIn.signInAndGetSession(userId = "foo1", planetId = planetId)
 
         val result1 = Users.getAll(affinityGroup = Some("Agent"))
@@ -371,7 +377,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       "return 200 with the list of users having given principalEnrolmentService" in {
         val planetId = "searchPlanet"
 
-        implicit val currentAuthSession: AuthenticatedSession =
+        given currentAuthSession: AuthenticatedSession =
           SignIn.signInAndGetSession(userId = "admin", planetId = planetId)
 
         usersList.foreach { user =>
@@ -397,7 +403,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       "return 200 with the list of users to a limit value" in {
         val planetId = "searchPlanet"
 
-        implicit val currentAuthSession: AuthenticatedSession =
+        given currentAuthSession: AuthenticatedSession =
           SignIn.signInAndGetSession(userId = "foo", planetId = planetId)
 
         usersList.foreach { user =>
@@ -423,7 +429,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       "return 200 with the list of users filtered by userId, groupId, principalEnrolmentService and limit" in {
         val planetId = "searchPlanet"
 
-        implicit val currentAuthSession: AuthenticatedSession =
+        given currentAuthSession: AuthenticatedSession =
           SignIn.signInAndGetSession(userId = "admin", planetId = planetId)
 
         usersList.foreach { user =>
@@ -454,7 +460,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
 
     "POST /agents-external-stubs/users/api-platform" should {
       "store a new individual user" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession()
         val userId = "apitestuser"
         val utr = Generator.utr(userId)
         val nino = Generator.ninoNoSpaces(userId)
@@ -497,7 +503,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
     }
 
     "store a new organisation user" in {
-      implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
+      given authSession: AuthenticatedSession = SignIn.signInAndGetSession()
       val userId = "apitestuser"
       val utr = Generator.utr(userId)
       val eori = Generator.eori(userId)
@@ -548,6 +554,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
     "store a new agent user" in {
       val userId = "apitestuser"
       val arn = Generator.arn(userId).value
+      val nino = Generator.ninoWithSpaces(userId)
       val payload = Json.parse(s"""{
         |   "userId": "$userId",
         |   "userFullName": "API Test User",
@@ -561,21 +568,21 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       """.stripMargin)
 
       {
-        implicit val authContext: AuthContext = NotAuthorized.withHeader("X-Client-ID", "fooClientId")
+        given authContext: AuthContext = NotAuthorized.withHeader("X-Client-ID", "fooClientId")
         val result = Users.createApiPlatformTestUser(payload)
 
         result should haveStatus(201)
         result.header(HeaderNames.LOCATION) shouldBe Some("/agents-external-stubs/users/apitestuser")
       }
       {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
         val userAndGroup =
           userService.findUserAndGroup(userId, planetId = authSession.planetId).futureValue
         val user = userAndGroup._1.get
         val group = userAndGroup._2.get
 
         group.affinityGroup shouldBe AG.Agent
-        user.nino shouldBe Some(Nino("WZ 58 73 41 D"))
+        user.nino shouldBe Some(nino)
         user.dateOfBirth shouldBe defined
         user.name shouldBe Some("API Test User")
         group.principalEnrolments should contain.only(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", arn))
@@ -585,7 +592,7 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
 
   "POST /agents-external-stubs/users/re-index" should {
     "re-index all existing users" in {
-      implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
+      given authSession: AuthenticatedSession = SignIn.signInAndGetSession()
       val result = Users.reindexAllUsers
       result.status shouldBe 200
       result.body should include("true")

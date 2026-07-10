@@ -17,8 +17,9 @@
 package uk.gov.hmrc.agentsexternalstubs.repository
 
 import org.mongodb.scala.model.Filters
-import play.api.test.Helpers._
-import uk.gov.hmrc.agentsexternalstubs.models._
+import org.mongodb.scala.ObservableFuture
+import play.api.test.Helpers.*
+import uk.gov.hmrc.agentsexternalstubs.models.*
 import uk.gov.hmrc.agentsexternalstubs.services.LegacyRelationshipRecordsService
 import uk.gov.hmrc.agentsexternalstubs.support.AppBaseISpec
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository

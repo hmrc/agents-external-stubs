@@ -20,7 +20,7 @@ package uk.gov.hmrc.agentsexternalstubs
 
 import better.files.File
 import play.api.libs.json.{JsObject, Json}
-import uk.gov.hmrc.agentsexternalstubs.JsonSchema._
+import uk.gov.hmrc.agentsexternalstubs.JsonSchema.*
 import uk.gov.hmrc.agentsexternalstubs.RecordCodeRenderer.Context.safeName
 
 import scala.collection.MapView
@@ -48,7 +48,7 @@ object RecordClassGeneratorFromJsonSchema extends App {
   require(sink != null && sink.nonEmpty)
   require(className != null && className.nonEmpty)
 
-  val options = args.drop(3)
+  val options = args.drop(3).toIndexedSeq
 
   val schema = Json.parse(Source.fromFile(source, "utf-8").mkString).as[JsObject]
   val definition = JsonSchema.read(schema)
@@ -161,10 +161,7 @@ trait JsonSchemaCodeRenderer extends JsonSchemaRenderer {
   private def findInterfaceMethods(subtypes: Seq[TypeDefinition]): Set[(String, String)] =
     subtypes
       .map(_.definition)
-      .map {
-        case o: ObjectDefinition => o.properties.map(d => (d.name, typeOf(d, ""))).toSet
-        case _                   => Set.empty[(String, String)]
-      }
+      .collect { case o: ObjectDefinition => o.properties.map(d => (d.name, typeOf(d, ""))).toSet }
       .reduce[Set[(String, String)]]((a, b) => a.intersect(b))
 
   protected def typeOf(
@@ -264,7 +261,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
         .getOrElse(map)
 
     private def externalizeEnum(s: StringDefinition, map: Map[String, List[String]]): Map[String, List[String]] =
-      s.enum
+      s.`enum`
         .map(e => {
           val key = s"""Seq(${e.mkString("\"", "\",\"", "\"")})"""
           map
@@ -298,8 +295,8 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
     s"""package uk.gov.hmrc.agentsexternalstubs.models
        |
        |${if (context.isRecordOutputType) "import org.scalacheck.{Arbitrary, Gen}" else "\r"}
-       |import play.api.libs.json._
-       |import uk.gov.hmrc.agentsexternalstubs.models.$className._
+       |import play.api.libs.json.*
+       |import uk.gov.hmrc.agentsexternalstubs.models.$className.*
        |
        |/**
        |  * ----------------------------------------------------------------------------
@@ -326,7 +323,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
 
     lazy val classFields = generateClassFields(typeDef)
     lazy val propertyValidators = generatePropertyValidators(typeDef.definition, context)
-    lazy val objectValidator = generateObjectValidator(typeDef.definition, context)
+    lazy val objectValidator = generateObjectValidator(typeDef.definition)
     lazy val fieldGenerators = generateFieldGenerators(typeDef.definition, context)
     lazy val fieldsInitialization = generateGenFieldsInitialization(typeDef.definition)
     lazy val sanitizers = generateSanitizers(typeDef.definition, context)
@@ -339,8 +336,8 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
     lazy val recordObjectMembersCode: String = if (isTopLevel) {
       if (context.isRecordOutputType)
         s"""
-           |  implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
-           |  implicit val recordType: RecordMetaData[${typeDef.name}] = RecordMetaData[${typeDef.name}]
+           |  given Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
+           |  given RecordMetaData[${typeDef.name}] = RecordMetaData[${typeDef.name}]
            |  ${if (context.uniqueKey.isDefined)
              s"\n  def uniqueKey(key: String): String = s${quoted(s"${context.uniqueKey.get._2}:$${key.toUpperCase}")}"
            else ""}${if (context.keys.nonEmpty)
@@ -349,12 +346,12 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
                .mkString("\n  ")
            else ""}
            |
-           |  import Validator._
-           |  import Generator.GenOps._
+           |  import Validator.*
+           |  import Generator.GenOps.*
          """.stripMargin
       else
         """
-          |   import Validator._
+          |   import Validator.*
         """.stripMargin
     } else ""
 
@@ -394,7 +391,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
     lazy val formatsCode: String =
       if (typeDef.isInterface)
         s"""
-           |  implicit val reads: Reads[${typeDef.name}] = new Reads[${typeDef.name}] {
+           |  given Reads[${typeDef.name}] with {
            |      override def reads(json: JsValue): JsResult[${typeDef.name}] = {
            |      ${typeDef.subtypes.zipWithIndex
              .map {
@@ -418,7 +415,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
            |        })
            |  }
            |
-           |  implicit val writes: Writes[${typeDef.name}] = new Writes[${typeDef.name}] {
+           |  given Writes[${typeDef.name}] with {
            |    override def writes(o: ${typeDef.name}): JsValue = o match {
            |      ${typeDef.subtypes
              .map(subTypeDef => s"""case x: ${subTypeDef.name}   => ${subTypeDef.name}.formats.writes(x)""")
@@ -427,8 +424,8 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
            |  }
           """.stripMargin
       else
-        s"""
-           |implicit val formats: Format[${typeDef.name}] = Json.format[${typeDef.name}]
+          s"""
+           |given Format[${typeDef.name}] = Json.format[${typeDef.name}]
            |""".stripMargin
 
     // -----------------------------------------
@@ -519,9 +516,9 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
       .orElse(knownFieldGenerators(property.pathLastPart))
       .getOrElse(property match {
         case s: StringDefinition =>
-          s.customGenerator.getOrElse(if (s.enum.isDefined) {
-            if (s.enum.get.size == 1) s"""Gen.const("${s.enum.get.head}")"""
-            else s"""Gen.oneOf(${context.commonReference(s"Seq(${s.enum.get.mkString("\"", "\",\"", "\"")})")})"""
+          s.customGenerator.getOrElse(if (s.`enum`.isDefined) {
+            if (s.`enum`.get.size == 1) s"""Gen.const("${s.`enum`.get.head}")"""
+            else s"""Gen.oneOf(${context.commonReference(s"Seq(${s.`enum`.get.mkString("\"", "\",\"", "\"")})")})"""
           } else if (s.pattern.isDefined)
             s"""Generator.regex(${context.commonReference(quoted(s.pattern.get))})"""
           else if (s.minLength.isDefined || s.maxLength.isDefined)
@@ -536,7 +533,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
             case _                           => "Gen.const(BigDecimal(0))"
           })
 
-        case b: BooleanDefinition => "Generator.booleanGen"
+        case _: BooleanDefinition => "Generator.booleanGen"
         case a: ArrayDefinition   => s"Generator.nonEmptyListOfMaxN(1,${generateValueGenerator(a.item, context, wrapOption = false)})"
         case o: ObjectDefinition  => s"${o.typeName}.gen"
 
@@ -575,10 +572,10 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
       }
       .mkString("\n", "\n  ", "\n")
 
-  private def generateObjectValidator(definition: ObjectDefinition, context: Context): String = {
+  private def generateObjectValidator(definition: ObjectDefinition): String = {
     val propertyValidatorsCalls = definition.properties
       .take(22)
-      .map(prop => generateValueValidatorCall(prop, context))
+      .map(prop => generateValueValidatorCall(prop))
       .collect { case Some(validator) => s"""$validator""".stripMargin }
     val validators =
       if (definition.alternatives.isEmpty) propertyValidatorsCalls
@@ -602,7 +599,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
     val propertyExtractor = if (extractProperty) s"_.${property.name}" else "identity"
     property match {
       case s: StringDefinition =>
-        if (s.enum.isDefined) Some(s"""  check($propertyReference.isOneOf(${context.commonReference(s"Seq(${s.enum.get
+        if (s.`enum`.isDefined) Some(s"""  check($propertyReference.isOneOf(${context.commonReference(s"Seq(${s.`enum`.get
           .mkString("\"", "\",\"", "\"")})")}), "Invalid ${property.name}, does not match allowed values")""")
         else if (s.pattern.isDefined)
           Some(s"""  check($propertyReference.matches(${context
@@ -673,9 +670,7 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
   }
 
   private def generateValueValidatorCall(
-    property: Definition,
-    context: Context,
-    isMandatory: Boolean = false): Option[String] =
+    property: Definition): Option[String] =
     property match {
       case d: Definition if d.shallBeValidated =>
         Some(s"""  checkProperty(_.${property.name}, ${property.name}Validator)""")

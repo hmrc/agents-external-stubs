@@ -16,15 +16,15 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import play.api.libs.json.Reads._
-import play.api.libs.json._
+import play.api.libs.json.Reads.*
+import play.api.libs.json.*
 
 import scala.reflect.ClassTag
 
 case class AuthoriseRequest(authorise: Seq[Predicate], retrieve: Seq[String])
 
 object AuthoriseRequest {
-  implicit val format: Format[AuthoriseRequest] = Json.format[AuthoriseRequest]
+  given format: Format[AuthoriseRequest] = Json.format[AuthoriseRequest]
   val empty: AuthoriseRequest = new AuthoriseRequest(Seq.empty, Seq.empty)
 }
 
@@ -34,7 +34,7 @@ sealed trait Predicate {
 
 object Predicate {
 
-  val supportedPredicateFormats: Set[PredicateFormat[_ <: Predicate]] = Set(
+  val supportedPredicateFormats: Set[PredicateFormat[? <: Predicate]] = Set(
     EnrolmentPredicate,
     AuthProvidersPredicate,
     CredentialStrength,
@@ -47,10 +47,10 @@ object Predicate {
 
   val supportedKeys = supportedPredicateFormats.map(_.key).mkString(",")
 
-  val predicateFormatByClass: Map[Class[_], PredicateFormat[Predicate]] =
+  val predicateFormatByClass: Map[Class[?], PredicateFormat[Predicate]] =
     supportedPredicateFormats.map(p => (p.tag.runtimeClass, p.asInstanceOf[PredicateFormat[Predicate]])).toSeq.toMap
 
-  implicit val reads: Reads[Predicate] = JsObjectReads.flatMap(readsForPredicate)
+  given reads: Reads[Predicate] = JsObjectReads.flatMap(readsForPredicate)
 
   def readsForPredicate(json: JsObject): Reads[Predicate] = {
     val keys = json.keys
@@ -62,12 +62,15 @@ object Predicate {
       .getOrElse(failedReads(json))
   }
 
-  def failedReads(json: JsObject) = new Reads[Predicate]() {
-    override def reads(json: JsValue): JsResult[Predicate] =
-      JsError(s"Unsupported predicate ${json.toString}, should be one of [$supportedKeys]")
+  def failedReads(_json: JsObject) = {
+    val _ = _json
+    new Reads[Predicate]() {
+      override def reads(json: JsValue): JsResult[Predicate] =
+        JsError(s"Unsupported predicate ${json.toString}, should be one of [$supportedKeys]")
+    }
   }
 
-  implicit val writes: Writes[Seq[Predicate]] = new Writes[Seq[Predicate]] {
+  given writes: Writes[Seq[Predicate]] = new Writes[Seq[Predicate]] {
     override def writes(predicates: Seq[Predicate]): JsValue = {
       val objects = predicates
         .map { p =>
@@ -80,8 +83,8 @@ object Predicate {
 
 }
 
-abstract class PredicateFormat[P <: Predicate](val key: String)(implicit val tag: ClassTag[P]) {
-  val format: Format[P]
+abstract class PredicateFormat[P <: Predicate](val key: String)(using val tag: ClassTag[P]) {
+  lazy val format: Format[P]
 }
 
 case class EnrolmentPredicate(
@@ -92,11 +95,11 @@ case class EnrolmentPredicate(
   override def validate(context: AuthoriseContext): Either[String, Unit] =
     (delegatedAuthRule, identifiers) match {
       case (Some(rule), Some(identifierSeq)) =>
-        if (context.hasDelegatedAuth(rule, identifierSeq)) Right(()) else Left("InsufficientEnrolments")
+        if context.hasDelegatedAuth(rule, identifierSeq) then Right(()) else Left("InsufficientEnrolments")
       case (Some(rule), None) =>
         Left(s"Missing predicate part: delegated $rule enrolment identifiers")
       case (None, _) =>
-        if (context.providerType == "PrivilegedApplication")
+        if context.providerType == "PrivilegedApplication" then
           context.strideRoles.find(_ == enrolment).map(_ => ()).toRight("InsufficientEnrolments")
         else
           context.principalEnrolments
@@ -117,8 +120,9 @@ case class EnrolmentPredicate(
     }
 }
 
-object EnrolmentPredicate extends PredicateFormat[EnrolmentPredicate]("enrolment") {
-  implicit val format: Format[EnrolmentPredicate] = Json.format[EnrolmentPredicate]
+object EnrolmentPredicate
+    extends PredicateFormat[EnrolmentPredicate]("enrolment")(using ClassTag(classOf[EnrolmentPredicate])) {
+  given format: Format[EnrolmentPredicate] = Json.format[EnrolmentPredicate]
 }
 
 case class AuthProviders(authProviders: Seq[String]) extends Predicate {
@@ -129,8 +133,9 @@ case class AuthProviders(authProviders: Seq[String]) extends Predicate {
     }
 }
 
-object AuthProvidersPredicate extends PredicateFormat[AuthProviders]("authProviders") {
-  implicit val format: Format[AuthProviders] = Json.format[AuthProviders]
+object AuthProvidersPredicate
+    extends PredicateFormat[AuthProviders]("authProviders")(using ClassTag(classOf[AuthProviders])) {
+  given format: Format[AuthProviders] = Json.format[AuthProviders]
 }
 
 case class CredentialStrength(credentialStrength: String) extends Predicate {
@@ -141,8 +146,9 @@ case class CredentialStrength(credentialStrength: String) extends Predicate {
     }
 }
 
-object CredentialStrength extends PredicateFormat[CredentialStrength]("credentialStrength") {
-  implicit val format: Format[CredentialStrength] = Json.format[CredentialStrength]
+object CredentialStrength
+    extends PredicateFormat[CredentialStrength]("credentialStrength")(using ClassTag(classOf[CredentialStrength])) {
+  given format: Format[CredentialStrength] = Json.format[CredentialStrength]
 }
 
 case class ConfidenceLevel(confidenceLevel: Int) extends Predicate {
@@ -153,8 +159,8 @@ case class ConfidenceLevel(confidenceLevel: Int) extends Predicate {
     }
 }
 
-object ConfidenceLevel extends PredicateFormat[ConfidenceLevel]("confidenceLevel") {
-  implicit val format: Format[ConfidenceLevel] = Json.format[ConfidenceLevel]
+object ConfidenceLevel extends PredicateFormat[ConfidenceLevel]("confidenceLevel")(using ClassTag(classOf[ConfidenceLevel])) {
+  given format: Format[ConfidenceLevel] = Json.format[ConfidenceLevel]
 
   val Default: Int = 600
 }
@@ -167,24 +173,24 @@ case class AffinityGroup(affinityGroup: String) extends Predicate {
     }
 }
 
-object AffinityGroup extends PredicateFormat[AffinityGroup]("affinityGroup") {
-  implicit val format: Format[AffinityGroup] = Json.format[AffinityGroup]
+object AffinityGroup extends PredicateFormat[AffinityGroup]("affinityGroup")(using ClassTag(classOf[AffinityGroup])) {
+  given format: Format[AffinityGroup] = Json.format[AffinityGroup]
 }
 
 case class HasNino(hasNino: Boolean, nino: Option[String] = None) extends Predicate {
   override def validate(context: AuthoriseContext): Either[String, Unit] =
     context.nino.isDefined == hasNino match {
-      case false => if (hasNino) Left("Nino required but not found") else Left("Nino found but not expected")
+      case false => if hasNino then Left("Nino required but not found") else Left("Nino found but not expected")
       case true =>
         nino match {
-          case Some(expected) => if (context.nino.exists(_.value == expected)) Right(()) else Left("Nino doesn't match")
+          case Some(expected) => if context.nino.exists(_.value == expected) then Right(()) else Left("Nino doesn't match")
           case None           => Right(())
         }
     }
 }
 
-object HasNino extends PredicateFormat[HasNino]("nino") {
-  implicit val format: Format[HasNino] = Json.format[HasNino]
+object HasNino extends PredicateFormat[HasNino]("nino")(using ClassTag(classOf[HasNino])) {
+  given format: Format[HasNino] = Json.format[HasNino]
 }
 
 case class CredentialRole(credentialRole: String) extends Predicate {
@@ -195,8 +201,8 @@ case class CredentialRole(credentialRole: String) extends Predicate {
     }
 }
 
-object CredentialRole extends PredicateFormat[CredentialRole]("credentialRole") {
-  implicit val format: Format[CredentialRole] = Json.format[CredentialRole]
+object CredentialRole extends PredicateFormat[CredentialRole]("credentialRole")(using ClassTag(classOf[CredentialRole])) {
+  given format: Format[CredentialRole] = Json.format[CredentialRole]
 }
 
 case class Alternative(`$or`: Seq[Predicate]) extends Predicate {
@@ -204,7 +210,7 @@ case class Alternative(`$or`: Seq[Predicate]) extends Predicate {
     `$or`.foldLeft[Either[String, Unit]](Left(""))((a, p) => a.fold(_ => p.validate(context), Right.apply))
 }
 
-object Alternative extends PredicateFormat[Alternative]("$or") {
+object Alternative extends PredicateFormat[Alternative]("$or")(using ClassTag(classOf[Alternative])) {
   val writes: Writes[Alternative] = Json.writes[Alternative]
   val reads: Reads[Alternative] = new Reads[Alternative] {
     override def reads(json: JsValue): JsResult[Alternative] = json match {
@@ -217,6 +223,6 @@ object Alternative extends PredicateFormat[Alternative]("$or") {
     }
   }
 
-  implicit val format: Format[Alternative] = Format(reads, writes)
+  given format: Format[Alternative] = Format(reads, writes)
 
 }

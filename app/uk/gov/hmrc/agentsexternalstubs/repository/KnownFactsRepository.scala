@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.repository
 
 import com.google.inject.ImplementedBy
-import org.mongodb.scala.model._
+import org.mongodb.scala.model.*
 import play.api.libs.json.Json
 import uk.gov.hmrc.agentsexternalstubs.models.KnownFacts.{identifierKey, verifierKey}
 import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, Identifier, KnownFact, KnownFacts}
@@ -35,9 +35,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[KnownFactsRepositoryMongo])
 trait KnownFactsRepository {
 
-  def findByEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[Option[KnownFacts]]
+  def findByEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(using ec: ExecutionContext): Future[Option[KnownFacts]]
 
   def findByIdentifier(identifier: Identifier, planetId: String): Future[Option[KnownFacts]]
 
@@ -58,7 +56,7 @@ object KnownFactsRepositoryMongo {
 }
 
 @Singleton
-class KnownFactsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfig)(implicit
+class KnownFactsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfig)(using
   val ec: ExecutionContext
 ) extends PlayMongoRepository[JsonAbuse[KnownFacts]](
       mongoComponent = mongo,
@@ -72,15 +70,13 @@ class KnownFactsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: App
         ),
         IndexModel(
           Indexes.ascending(UPDATED),
-          IndexOptions().name("TtlIndex").expireAfter(appConfig.collectionsTtl, TimeUnit.DAYS)
+          IndexOptions().name("TtlIndex").expireAfter(appConfig.collectionsTtl.toLong, TimeUnit.DAYS)
         )
       ),
       replaceIndexes = true
     ) with KnownFactsRepository {
 
-  def findByEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[Option[KnownFacts]] =
+  def findByEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(using ec: ExecutionContext): Future[Option[KnownFacts]] =
     collection
       .find(Filters.equal(KnownFacts.UNIQUE_KEY, KnownFacts.uniqueKey(enrolmentKey.tag, planetId)))
       .toFuture()
@@ -118,11 +114,11 @@ class KnownFactsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: App
               filter =
                 Filters.equal(KnownFacts.UNIQUE_KEY, KnownFacts.uniqueKey(knownFacts.enrolmentKey.tag, planetId)),
               replacement = JsonAbuse(knownFacts.copy(planetId = Some(planetId)))
-                .addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat)),
+                .addField(UPDATED, Json.toJson(Instant.now())(using MongoJavatimeFormats.instantFormat)),
               options = ReplaceOptions().upsert(true)
             )
             .toFuture()
-            .flatMap(MongoHelper.interpretUpdateResultUnit)
+            .flatMap(_ => MongoHelper.interpretUpdateResultUnit())
       )
 
   def delete(enrolmentKey: EnrolmentKey, planetId: String): Future[Unit] =

@@ -24,7 +24,7 @@ trait JsonMatchers {
 
   private val EMPTY = MatchResult(true, "", "")
 
-  def haveProperty[T: Reads](name: String, matchers: Matcher[T]*)(implicit classTag: ClassTag[T]): Matcher[JsObject] =
+  def haveProperty[T: Reads](name: String, matchers: Matcher[T]*)(using classTag: ClassTag[T]): Matcher[JsObject] =
     new Matcher[JsObject] {
       val matcher =
         if (matchers.nonEmpty) matchers.reduce(_ and _)
@@ -58,8 +58,7 @@ trait JsonMatchers {
         }
     }
 
-  def havePropertyArrayOf[T: Reads](name: String, matchers: Matcher[T]*)(implicit
-    classTag: ClassTag[T]
+  def havePropertyArrayOf[T: Reads](name: String, matchers: Matcher[T]*)(using classTag: ClassTag[T]
   ): Matcher[JsObject] =
     new Matcher[JsObject] {
       val matcher =
@@ -73,12 +72,15 @@ trait JsonMatchers {
               .map(_.as[T])
               .foldLeft(EMPTY)((a: MatchResult, v: T) => if (a.matches) matcher(v) else a)
           case _ =>
+            val details =
+              if (obj.fields.isEmpty) {
+                "was empty."
+              } else {
+                obj.fields.map(f => s"${f._1}:${f._2.getClass.getSimpleName}").mkString(", ")
+              }
             MatchResult(
               false,
-              s"JSON should have array property `$name` of item type ${classTag.runtimeClass.getSimpleName}, but ${if (obj.fields.isEmpty)
-                "was empty."} ${obj.fields
-                .map(f => s"${f._1}:${f._2.getClass.getSimpleName}")
-                .mkString(", ")}",
+              s"JSON should have array property `$name` of item type ${classTag.runtimeClass.getSimpleName}, but $details",
               "."
             )
         }

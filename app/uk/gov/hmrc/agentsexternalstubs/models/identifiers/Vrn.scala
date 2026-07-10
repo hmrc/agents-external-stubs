@@ -22,8 +22,8 @@ case class Vrn(value: String) extends TaxIdentifier
 
 object Vrn {
 
-  implicit val vrnReads: SimpleObjectReads[Vrn] = new SimpleObjectReads[Vrn]("value", Vrn.apply)
-  implicit val vrnWrites: SimpleObjectWrites[Vrn] = new SimpleObjectWrites[Vrn](_.value)
+  given SimpleObjectReads[Vrn] = new SimpleObjectReads[Vrn]("value", Vrn.apply)
+  given SimpleObjectWrites[Vrn] = new SimpleObjectWrites[Vrn](_.value)
 
   private def regexCheck(vrn: String): Boolean = vrn.matches("[0-9]{9}")
 

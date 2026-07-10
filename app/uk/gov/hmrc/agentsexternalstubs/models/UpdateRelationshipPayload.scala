@@ -30,7 +30,7 @@ case class UpdateRelationshipPayload(
 )
 
 object UpdateRelationshipPayload {
-  implicit val format: Format[UpdateRelationshipPayload] = Json.format[UpdateRelationshipPayload]
+  given format:Format[UpdateRelationshipPayload] = Json.format[UpdateRelationshipPayload]
 
   def toRelationshipRecord(payload: UpdateRelationshipPayload): RelationshipRecord =
     RelationshipRecord(

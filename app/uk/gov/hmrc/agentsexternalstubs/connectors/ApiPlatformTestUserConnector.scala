@@ -23,37 +23,37 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 
 @Singleton
 class ApiPlatformTestUserConnector @Inject() (appConfig: AppConfig, http: HttpClientV2) {
 
-  def getIndividualUserByNino(nino: String)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
+  def getIndividualUserByNino(nino: String)(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
     getUser(appConfig.apiPlatformTestUserUrl + s"/individuals/nino/$nino")
 
   def getIndividualUserByShortNino(
     nino: String
-  )(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
+  )(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
     getUser(appConfig.apiPlatformTestUserUrl + s"/individuals/shortnino/$nino")
 
   def getIndividualUserBySaUtr(
     saUtr: String
-  )(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
+  )(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
     getUser(appConfig.apiPlatformTestUserUrl + s"/individuals/sautr/$saUtr")
 
-  def getIndividualUserByVrn(vrn: String)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
+  def getIndividualUserByVrn(vrn: String)(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
     getUser(appConfig.apiPlatformTestUserUrl + s"/individuals/vrn/$vrn")
 
   def getOrganisationUserByEmpRef(
     empRef: String
-  )(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
+  )(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
     getUser(appConfig.apiPlatformTestUserUrl + s"/organisations/empref/$empRef")
 
-  def getOrganisationUserByVrn(vrn: String)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
+  def getOrganisationUserByVrn(vrn: String)(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
     getUser(appConfig.apiPlatformTestUserUrl + s"/organisations/vrn/$vrn")
 
-  private def getUser(url: String)(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
+  private def getUser(url: String)(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
     http
       .get(url"$url")
       .execute[HttpResponse]

@@ -28,7 +28,7 @@ case class AgentRelationshipDisplayResponse(
 )
 
 object AgentRelationshipDisplayResponse {
-  implicit val format: OFormat[AgentRelationshipDisplayResponse] = Json.format[AgentRelationshipDisplayResponse]
+  given OFormat[AgentRelationshipDisplayResponse] = Json.format[AgentRelationshipDisplayResponse]
 }
 
 case class RelationshipDisplayResponse(
@@ -45,7 +45,7 @@ case class RelationshipDisplayResponse(
 )
 
 object RelationshipDisplayResponse {
-  implicit val format: OFormat[RelationshipDisplayResponse] = Json.format[RelationshipDisplayResponse]
+  given OFormat[RelationshipDisplayResponse] = Json.format[RelationshipDisplayResponse]
 }
 
 case class Errors(
@@ -55,7 +55,7 @@ case class Errors(
 )
 
 object Errors {
-  implicit val writes: Writes[Errors] = Writes { errors =>
+  given Writes[Errors] = Writes { errors =>
     Json.obj(
       "errors" -> Json.obj(
         "code"           -> errors.code,

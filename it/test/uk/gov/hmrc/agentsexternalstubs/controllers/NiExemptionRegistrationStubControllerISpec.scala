@@ -29,7 +29,7 @@ class NiExemptionRegistrationStubControllerISpec extends ServerBaseISpec with Te
 
   "NiExemptionRegistrationStub" should {
     "return 200 with subscribed NI business details with eori" in {
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
       val seed = "foo"
       val utr = Generator.utr(seed)
@@ -62,7 +62,7 @@ class NiExemptionRegistrationStubControllerISpec extends ServerBaseISpec with Te
     }
 
     "return 200 with not_subscribed NI business details without eori" in {
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
       val seed = "foo"
       val utr = Generator.utr(seed)
@@ -95,7 +95,7 @@ class NiExemptionRegistrationStubControllerISpec extends ServerBaseISpec with Te
     }
 
     "return 409 when postcode does not match" in {
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
       val seed = "foo"
       val utr = Generator.utr(seed)
@@ -122,7 +122,7 @@ class NiExemptionRegistrationStubControllerISpec extends ServerBaseISpec with Te
     }
 
     "return 409 when business partner record does not exist" in {
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
       val seed = "foo"
       val utr = Generator.utr(seed)
@@ -134,7 +134,7 @@ class NiExemptionRegistrationStubControllerISpec extends ServerBaseISpec with Te
     }
 
     "return 409 when utr is invalid" in {
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
       val utr = "ab12345678"
 

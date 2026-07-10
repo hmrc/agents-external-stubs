@@ -40,10 +40,10 @@ object UserIdGenerator {
     strings.zip(LazyList.continually(Random.nextInt())).sortBy(_._2).map(_._1)
 
   def nextUserIdFor(planetId: String, userIdFromPool: Boolean): String =
-    if (userIdFromPool)
+    if userIdFromPool then
       Option(userIdSeries.get(planetId)) match {
         case Some(iterator) =>
-          if (iterator.hasNext) iterator.next() else nextUserId
+          if iterator.hasNext then iterator.next() else nextUserId
         case None =>
           val iterator = new UserIdIterator(shuffle(defaultUserIds))
           userIdSeries.put(planetId, iterator)

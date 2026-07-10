@@ -17,15 +17,15 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.data.Form
-import play.api.data.Forms._
+import play.api.data.Forms.*
 import play.api.data.validation.{Constraint, Constraints, Invalid, Valid}
-import play.api.libs.json._
-import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import play.api.libs.json.*
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Result, Request}
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
 import uk.gov.hmrc.agentsexternalstubs.models.TrustDetailsResponse.getErrorResponseFor
-import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.*
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
-import uk.gov.hmrc.agentsexternalstubs.services._
+import uk.gov.hmrc.agentsexternalstubs.services.*
 import uk.gov.hmrc.domain.{AgentCode, Nino, Vrn}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -36,19 +36,19 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class DesIfStubController @Inject() (
   val authenticationService: AuthenticationService,
-  relationshipRecordsService: RelationshipRecordsService,
   legacyRelationshipRecordsService: LegacyRelationshipRecordsService,
   recordsRepository: RecordsRepository,
   recordsService: RecordsService,
   usersService: UsersService,
   groupsService: GroupsService,
   cc: ControllerComponents
-)(implicit executionContext: ExecutionContext)
+)(using executionContext: ExecutionContext)
     extends BackendController(cc) with ExternalCurrentSession {
 
-  import DesIfStubController._
+  import DesIfStubController.*
 
-  def getLegacyRelationshipsByUtr(utr: String): Action[AnyContent] = Action.async { implicit request =>
+  def getLegacyRelationshipsByUtr(utr: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       RegexPatterns
         .validUtr(utr)
@@ -62,7 +62,8 @@ class DesIfStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def getLegacyRelationshipsByNino(nino: String): Action[AnyContent] = Action.async { implicit request =>
+  def getLegacyRelationshipsByNino(nino: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       RegexPatterns
         .validNinoNoSpaces(nino)
@@ -76,8 +77,8 @@ class DesIfStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def getBusinessPartnerRecord(idType: String, idNumber: String): Action[AnyContent] = Action.async {
-    implicit request =>
+  def getBusinessPartnerRecord(idType: String, idNumber: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
       withCurrentSession { session =>
         withValidIdentifier(idType, idNumber) {
           case ("arn", arn) =>
@@ -98,7 +99,8 @@ class DesIfStubController @Inject() (
       }(SessionRecordNotFound)
   }
 
-  def getVatCustomerInformation(vrn: String): Action[AnyContent] = Action.async { implicit request =>
+  def getVatCustomerInformation(vrn: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       RegexPatterns.validVrn(vrn) match {
         case Left(error) => badRequestF("INVALID_VRN", error)
@@ -111,8 +113,8 @@ class DesIfStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def subscribeAgentServicesWithUtr(identifier: String): Action[JsValue] = Action.async(parse.tolerantJson) {
-    implicit request =>
+  def subscribeAgentServicesWithUtr(identifier: String): Action[JsValue] = Action.async(parse.tolerantJson) { request =>
+    given Request[JsValue] = request
       withCurrentSession { session =>
         RegexPatterns
           .validUtr(identifier)
@@ -153,8 +155,8 @@ class DesIfStubController @Inject() (
       }(SessionRecordNotFound)
   }
 
-  def subscribeAgentServicesWithSafeId(identifier: String): Action[JsValue] = Action.async(parse.tolerantJson) {
-    implicit request =>
+  def subscribeAgentServicesWithSafeId(identifier: String): Action[JsValue] = Action.async(parse.tolerantJson) { request =>
+    given Request[JsValue] = request
       withCurrentSession { session =>
         RegexPatterns
           .validSafeId(identifier)
@@ -194,26 +196,28 @@ class DesIfStubController @Inject() (
       }(SessionRecordNotFound)
   }
 
-  def register(idType: String, idNumber: String): Action[JsValue] = Action.async(parse.tolerantJson) {
-    implicit request =>
+  def register(idType: String, idNumber: String): Action[JsValue] = Action.async(parse.tolerantJson) { request =>
+    given Request[JsValue] = request
       withCurrentSession { session =>
-        withPayload[RegistrationPayload] { payload =>
-          withValidIdentifier(idType, idNumber) { case (idType, idNumber) =>
-            ((idType, idNumber) match {
-              case ("utr", utr) =>
-                recordsService.getRecordMaybeExt[BusinessPartnerRecord, Utr](Utr(utr), session.planetId)
-              case ("nino", nino) =>
-                recordsService.getRecordMaybeExt[BusinessPartnerRecord, Nino](Nino(nino), session.planetId)
-              case ("eori", eori) =>
-                recordsService.getRecordMaybeExt[BusinessPartnerRecord, Eori](Eori(eori), session.planetId)
-            }).flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId))
+          withPayload[RegistrationPayload] { payload =>
+            withValidIdentifier(idType, idNumber) { case (idType, idNumber) =>
+              ((idType, idNumber) match {
+                case ("utr", utr) =>
+                  recordsService.getRecordMaybeExt[BusinessPartnerRecord, Utr](Utr(utr), session.planetId)
+                case ("nino", nino) =>
+                  recordsService.getRecordMaybeExt[BusinessPartnerRecord, Nino](Nino(nino), session.planetId)
+                case ("eori", eori) =>
+                  recordsService.getRecordMaybeExt[BusinessPartnerRecord, Eori](Eori(eori), session.planetId)
+                case other =>
+                  Future.failed(new MatchError(other))
+              }).flatMap(getOrCreateBusinessPartnerRecord(payload, idType, idNumber, session.planetId))
           }
         }
       }(SessionRecordNotFound)
   }
 
-  def agentClientAuthorisationFlags(agentref: String, utr: String): Action[AnyContent] = Action.async {
-    implicit request =>
+  def agentClientAuthorisationFlags(agentref: String, utr: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
       withCurrentSession { session =>
         RegexPatterns
           .validUtr(utr)
@@ -230,10 +234,11 @@ class DesIfStubController @Inject() (
       }(SessionRecordNotFound)
   }
 
-  def registerIndividualWithoutID: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+  def registerIndividualWithoutID: Action[JsValue] = Action.async(parse.tolerantJson) { request =>
+    given Request[JsValue] = request
     withCurrentSession { session =>
       withPayload[RegistrationWithoutIdPayload] { payload =>
-        if (payload.individual.isDefined) {
+        if payload.individual.isDefined then {
           val recordToCreate = RegistrationWithoutId.toBusinessPartnerRecord(payload)
           recordsService
             .store(recordToCreate, autoFill = false, session.planetId)
@@ -249,10 +254,11 @@ class DesIfStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def registerOrganisationWithoutID: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+  def registerOrganisationWithoutID: Action[JsValue] = Action.async(parse.tolerantJson) { request =>
+    given Request[JsValue] = request
     withCurrentSession { session =>
       withPayload[RegistrationWithoutIdPayload] { payload =>
-        if (payload.organisation.isDefined) {
+        if payload.organisation.isDefined then {
           val recordToCreate = RegistrationWithoutId.toBusinessPartnerRecord(payload)
           recordsService
             .store(recordToCreate, autoFill = false, session.planetId)
@@ -268,8 +274,8 @@ class DesIfStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def retrieveLegacyAgentClientPayeInformation(agentCode: String): Action[JsValue] = Action.async(parse.tolerantJson) {
-    implicit request =>
+  def retrieveLegacyAgentClientPayeInformation(agentCode: String): Action[JsValue] = Action.async(parse.tolerantJson) { request =>
+    given Request[JsValue] = request
       withCurrentSession { session =>
         RegexPatterns
           .validAgentCode(agentCode)
@@ -295,7 +301,8 @@ class DesIfStubController @Inject() (
     agentCode: String,
     taxOfficeNumber: String,
     taxOfficeReference: String
-  ): Action[AnyContent] = Action.async { implicit request =>
+  ): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       Validator
         .product(
@@ -313,7 +320,7 @@ class DesIfStubController @Inject() (
                 case Some(record) =>
                   val newEmployerAuths =
                     LegacyAgentClientPayeRelationship.remove(record, taxOfficeNumber, taxOfficeReference)
-                  if (newEmployerAuths.empAuthList.nonEmpty)
+                  if newEmployerAuths.empAuthList.nonEmpty then
                     recordsService
                       .store(newEmployerAuths, false, session.planetId)
                       .map(_ => Ok)
@@ -326,7 +333,8 @@ class DesIfStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def getCtReference(idType: String, idValue: String): Action[AnyContent] = Action.async { implicit request =>
+  def getCtReference(idType: String, idValue: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       withValidIdentifier(idType, idValue) { case ("crn", crn) =>
         recordsService
@@ -340,7 +348,8 @@ class DesIfStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def getVatKnownFacts(vrn: String) = Action.async { implicit request =>
+  def getVatKnownFacts(vrn: String) = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       RegexPatterns
         .validVrn(vrn)
@@ -372,7 +381,8 @@ class DesIfStubController @Inject() (
     validation: RegexPatterns.Matcher,
     service: String,
     key: String
-  ): Action[AnyContent] = Action.async { implicit request =>
+  ): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       validation(id)
         .fold(
@@ -395,7 +405,7 @@ class DesIfStubController @Inject() (
                     maybeUtr,
                     maybeUrn,
                     user.name.getOrElse(""),
-                    TrustAddress(user.user.address),
+                    TrustAddress(user.address),
                     "TERS"
                   )
                 )
@@ -413,8 +423,8 @@ class DesIfStubController @Inject() (
       .flatMap(_.toEnrolmentKeyTag)
       .map(_.split('~').takeRight(1).mkString)
 
-  def getCgtSubscription(regime: String, idType: String, cgtRef: String): Action[AnyContent] = Action.async {
-    implicit request =>
+  def getCgtSubscription(regime: String, idType: String, cgtRef: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
       withCurrentSession { session =>
         (regime, idType) match {
           case ("CGT", "ZCGT") =>
@@ -486,9 +496,10 @@ class DesIfStubController @Inject() (
   }
 
   //    //API #1712 Get Plastic Packaging Tax Subscription Display
-  def getPPTSubscriptionDisplay(regime: String, pptReferenceNumber: String) = Action.async { implicit request =>
+  def getPPTSubscriptionDisplay(regime: String, pptReferenceNumber: String) = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
-      if (regime == "PPT") {
+      if regime == "PPT" then {
         RegexPatterns
           .validPptRef(pptReferenceNumber)
           .fold(
@@ -506,9 +517,10 @@ class DesIfStubController @Inject() (
   }
 
   //API #2143 Retrieve Subscription Details For OECD Tax Pillar 2 Service
-  def getPillar2SubscriptionDetails(plrReference: String): Action[AnyContent] = Action.async { implicit request =>
+  def getPillar2SubscriptionDetails(plrReference: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
-      if (PlrId.isValid(plrReference)) {
+      if PlrId.isValid(plrReference) then {
         recordsService
           .getRecord[Pillar2Record, PlrId](PlrId(plrReference), session.planetId)
           .map {
@@ -529,16 +541,16 @@ class DesIfStubController @Inject() (
     idType: String,
     idNumber: String,
     planetId: String
-  )(implicit writes: Writes[T]): Option[T] => Future[Result] = {
+  )(using writes: Writes[T]): Option[T] => Future[Result] = {
 
-    case Some(record) => okF(record, Registration.fixSchemaDifferences _)
+    case Some(record) => okF(record, Registration.fixSchemaDifferences)
     case None =>
-      if (payload.organisation.isDefined || payload.individual.isDefined) {
+      if payload.organisation.isDefined || payload.individual.isDefined then {
         recordsService
           .store(Registration.toBusinessPartnerRecord(payload, idType, idNumber), autoFill = false, planetId)
           .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, planetId))
           .map {
-            case Some(record) => ok(record, Registration.fixSchemaDifferences _)
+            case Some(record) => ok(record, Registration.fixSchemaDifferences)
             case _ =>
               internalServerError("SERVER_ERROR", "BusinessPartnerRecord creation failed silently.")
           }
@@ -567,7 +579,7 @@ class DesIfStubController @Inject() (
     matcher(idNumber).fold(
       error => badRequestF(errorCode, error),
       _ =>
-        if (pf.isDefinedAt((idType, idNumber))) pf((idType, idNumber))
+        if pf.isDefinedAt((idType, idNumber)) then pf((idType, idNumber))
         else badRequestF(errorCode, "Unsupported identifier type")
     )
 }
@@ -592,20 +604,20 @@ object DesIfStubController {
   case class AuthoriseResponse(processingDate: Instant = Instant.now())
 
   object AuthoriseResponse {
-    implicit val writes: Writes[AuthoriseResponse] = Json.writes[AuthoriseResponse]
+    given writes: Writes[AuthoriseResponse] = Json.writes[AuthoriseResponse]
   }
 
   object GetRelationships {
 
     private val queryConstraint: Constraint[RelationshipRecordQuery] = Constraint(q =>
-      if (q.agent && q.arn.isEmpty) Invalid("Missing arn")
-      else if (!q.agent && q.getRefNumber.isEmpty)
+      if q.agent && q.arn.isEmpty then Invalid("Missing arn")
+      else if !q.agent && q.getRefNumber.isEmpty then
         Invalid("ref-no [DES] or referenceNumber [IF] must be present")
-      else if ((!q.activeOnly || q.to.isDefined) && q.from.isEmpty) Invalid("Missing from date")
-      else if (!q.activeOnly && q.to.isEmpty) Invalid("Missing to date")
-      else if ((q.regime == "VATC" || q.regime == "CGT") && q.relationship.isEmpty)
+      else if (!q.activeOnly || q.to.isDefined) && q.from.isEmpty then Invalid("Missing from date")
+      else if !q.activeOnly && q.to.isEmpty then Invalid("Missing to date")
+      else if (q.regime == "VATC" || q.regime == "CGT") && q.relationship.isEmpty then
         Invalid(s"relationship type is mandatory for ${q.regime} regime")
-      else if ((q.regime == "VATC" || q.regime == "CGT") && q.authProfile.isEmpty)
+      else if (q.regime == "VATC" || q.regime == "CGT") && q.authProfile.isEmpty then
         Invalid(s"auth profile is mandatory for ${q.regime} regime")
       else Valid
     )
@@ -639,12 +651,12 @@ object DesIfStubController {
 
     case class Individual(firstName: String, lastName: String)
     object Individual {
-      implicit val format: OFormat[Individual] = Json.format[Individual]
+      given format: OFormat[Individual] = Json.format[Individual]
     }
 
     case class Organisation(organisationName: String)
     object Organisation {
-      implicit val format: OFormat[Organisation] = Json.format[Organisation]
+      given format: OFormat[Organisation] = Json.format[Organisation]
     }
 
     case class Relationship(
@@ -662,9 +674,9 @@ object DesIfStubController {
 
     object Relationship {
 
-      implicit val writes1: Writes[Individual] = Json.writes[Individual]
-      implicit val writes2: Writes[Organisation] = Json.writes[Organisation]
-      implicit val writes3: Writes[Relationship] = Json.writes[Relationship]
+      given writes1: Writes[Individual] = Json.writes[Individual]
+      given writes2: Writes[Organisation] = Json.writes[Organisation]
+      given writes3: Writes[Relationship] = Json.writes[Relationship]
 
       def from(record: RelationshipRecord): Relationship = Relationship(
         referenceNumber = record.refNumber,
@@ -679,14 +691,14 @@ object DesIfStubController {
       )
 
       def decideIndividual(record: RelationshipRecord): Option[Individual] =
-        if (record.regime == "ITSA") {
+        if record.regime == "ITSA" then {
           val nameParts: Array[String] =
             UserGenerator.nameForIndividual(record.idType + "/" + record.refNumber).split(" ")
           Some(Individual(nameParts.init.mkString(" "), nameParts.last))
         } else None
 
       def decideOrganisation(record: RelationshipRecord): Option[Organisation] =
-        if (record.regime != "ITSA")
+        if record.regime != "ITSA" then
           Some(Organisation(UserGenerator.nameForOrganisation(record.idType + "/" + record.refNumber)))
         else None
     }
@@ -694,7 +706,7 @@ object DesIfStubController {
     case class Response(relationship: Seq[Relationship])
 
     object Response {
-      implicit val writes: Writes[Response] = Json.writes[Response]
+      given writes: Writes[Response] = Json.writes[Response]
 
       def from(records: Seq[RelationshipRecord]): Response =
         Response(relationship = records.map(Relationship.from))
@@ -750,8 +762,8 @@ object DesIfStubController {
         )
       }
 
-      implicit val formats1: Format[LegacyAgent] = Json.format[LegacyAgent]
-      implicit val formats: Format[Response] = Json.format[Response]
+      given formats1: Format[LegacyAgent] = Json.format[LegacyAgent]
+      given formats: Format[Response] = Json.format[Response]
     }
   }
 
@@ -760,9 +772,9 @@ object DesIfStubController {
     def toBusinessPartnerRecord(payload: RegistrationPayload, idType: String, idNumber: String): BusinessPartnerRecord =
       BusinessPartnerRecord
         .seed(idNumber)
-        .withNino(if (idType == "nino") Some(idNumber) else None)
-        .withUtr(if (idType == "utr") Some(idNumber) else None)
-        .withEori(if (idType == "eori") Some(idNumber) else None)
+        .withNino(if idType == "nino" then Some(idNumber) else None)
+        .withUtr(if idType == "utr" then Some(idNumber) else None)
+        .withEori(if idType == "eori" then Some(idNumber) else None)
         .withIsAnIndividual(payload.individual.isDefined)
         .withIsAnOrganisation(payload.organisation.isDefined)
         .withIsAnAgent(payload.isAnAgent)
@@ -833,7 +845,7 @@ object DesIfStubController {
     case class Response(processingDate: Instant = Instant.now(), sapNumber: String, safeId: String)
 
     object Response {
-      implicit val formats: Format[Response] = Json.format[Response]
+      given formats: Format[Response] = Json.format[Response]
     }
 
     def responseFrom(record: BusinessPartnerRecord): Response =
@@ -850,7 +862,7 @@ object DesIfStubController {
       def from(relationship: LegacyRelationshipRecord): Response =
         Response(relationship.`Auth_64-8`.getOrElse(false), relationship.`Auth_i64-8`.getOrElse(false))
 
-      implicit val formats: Format[Response] = Json.format[Response]
+      given formats: Format[Response] = Json.format[Response]
     }
 
   }
@@ -872,7 +884,7 @@ object DesIfStubController {
           )
         )
       )
-      if (filtered.empAuthList.isEmpty) None else Some(filtered)
+      if filtered.empAuthList.isEmpty then None else Some(filtered)
     }
   }
 
@@ -883,7 +895,7 @@ object DesIfStubController {
     object Response {
       def from(record: BusinessPartnerRecord): Option[Response] = record.utr.map(Response.apply)
 
-      implicit val formats: Format[Response] = Json.format[Response]
+      given formats: Format[Response] = Json.format[Response]
     }
 
   }
@@ -914,7 +926,7 @@ object DesIfStubController {
         renewalSubmissionFlag = false,
         currentAMLSOutstandingBalance = "0",
         deRegistrationDate = None,
-        currentRegYearEndDate = if (expired) Some(LocalDate.now()) else Some(LocalDate.parse(s"${now.getYear}-12-31")),
+        currentRegYearEndDate = if expired then Some(LocalDate.now()) else Some(LocalDate.parse(s"${now.getYear}-12-31")),
         currentRegYearStartDate = Some(LocalDate.parse(s"${now.getYear}-01-01")),
         safeId = "111234567890123",
         suspended = suspended

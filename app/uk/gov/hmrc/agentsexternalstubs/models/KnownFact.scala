@@ -22,6 +22,6 @@ case class KnownFact(key: String, value: String) {
 }
 
 object KnownFact {
-  implicit val formats: Format[KnownFact] = Json.format[KnownFact]
-  implicit val ordering: Ordering[KnownFact] = Ordering.by(_.key)
+  given Format[KnownFact] = Json.format[KnownFact]
+  given Ordering[KnownFact] = Ordering.by(_.key)
 }

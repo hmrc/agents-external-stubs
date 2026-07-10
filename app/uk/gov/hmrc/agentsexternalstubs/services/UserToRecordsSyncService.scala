@@ -15,10 +15,10 @@
  */
 
 package uk.gov.hmrc.agentsexternalstubs.services
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{AgencyDetails, Individual, Organisation}
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, IndividualName}
-import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.*
 import uk.gov.hmrc.agentsexternalstubs.models.identifiers.Service.Pillar2
 import uk.gov.hmrc.agentsexternalstubs.repository.{KnownFactsRepository, UsersRepository}
 import uk.gov.hmrc.domain.{AgentCode, Nino}
@@ -34,7 +34,7 @@ class UserToRecordsSyncService @Inject() (
   legacyRelationshipRecordsService: LegacyRelationshipRecordsService,
   recordsService: RecordsService,
   usersRepository: UsersRepository
-)(implicit ec: ExecutionContext) {
+)(using ec: ExecutionContext) {
 
   type SaveRecordId = String => Future[Unit]
   type UserAndGroupRecordsSync = SaveRecordId => PartialFunction[(User, Group), Future[Unit]]
@@ -59,7 +59,7 @@ class UserToRecordsSyncService @Inject() (
       .sequence(
         userAndGroupRecordsSyncOperations
           .map(f =>
-            if (f(saveRecordId).isDefinedAt((user, group))) f(saveRecordId)((user, group))
+            if f(saveRecordId).isDefinedAt((user, group)) then f(saveRecordId)((user, group))
             else Future.successful(())
           )
       )
@@ -78,7 +78,7 @@ class UserToRecordsSyncService @Inject() (
 
   private object Sync {
 
-    implicit val optionGenStrategy: Generator.OptionGenStrategy = Generator.AlwaysSome
+    given Generator.OptionGenStrategy = Generator.AlwaysSome
 
     private val dateFormatddMMyy = DateTimeFormatter.ofPattern("dd/MM/yy")
     private val dateFormatyyyyMMdd = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -125,7 +125,7 @@ class UserToRecordsSyncService @Inject() (
 
         val address = user.address
           .map(a =>
-            if (a.isUKAddress)
+            if a.isUKAddress then
               BusinessDetailsRecord.UkAddress(
                 addressLine1 = a.line1.getOrElse("1 Kingdom Road"),
                 addressLine2 = a.line2,
@@ -233,7 +233,7 @@ class UserToRecordsSyncService @Inject() (
         def getPptRegDate(knownFacts: Option[KnownFacts]) = knownFacts.fold(Option.empty[String])(
           _.getVerifierValue("PPTRegistrationDate")
             .map(date => LocalDate.parse(date, dateFormatddMMyy))
-            .map(date => if (date.isAfter(LocalDate.now())) date.minusYears(100) else date)
+            .map(date => if date.isAfter(LocalDate.now()) then date.minusYears(100) else date)
             .map(_.format(dateFormatyyyyMMdd))
         )
 
@@ -259,7 +259,7 @@ class UserToRecordsSyncService @Inject() (
 
       val address = user.address
         .map(a =>
-          if (a.isUKAddress)
+          if a.isUKAddress then
             BusinessDetailsRecord.UkAddress(
               addressLine1 = a.line1.getOrElse("1 Kingdom Road"),
               addressLine2 = a.line2,
@@ -325,13 +325,13 @@ class UserToRecordsSyncService @Inject() (
             _.flatMap(
               _.getVerifierValue("VATRegistrationDate")
                 .map(LocalDate.parse(_, dateFormatddMMyy))
-                .map(date => if (date.isAfter(LocalDate.now())) date.minusYears(100) else date)
+                .map(date => if date.isAfter(LocalDate.now()) then date.minusYears(100) else date)
             )
           )
           .flatMap { vatRegistrationDateOpt =>
             val address = user.address
               .map(a =>
-                if (a.isUKAddress)
+                if a.isUKAddress then
                   VatCustomerInformationRecord.UkAddress(
                     line1 = a.line1.getOrElse("1 Kingdom Road"),
                     line2 = a.line2.getOrElse("Brighton"),
@@ -399,13 +399,13 @@ class UserToRecordsSyncService @Inject() (
             _.flatMap(
               _.getVerifierValue("VATRegistrationDate")
                 .map(LocalDate.parse(_, dateFormatddMMyy))
-                .map(date => if (date.isAfter(LocalDate.now())) date.minusYears(100) else date)
+                .map(date => if date.isAfter(LocalDate.now()) then date.minusYears(100) else date)
             )
           )
           .flatMap { vatRegistrationDateOpt =>
             val address = user.address
               .map(a =>
-                if (a.isUKAddress)
+                if a.isUKAddress then
                   VatCustomerInformationRecord.UkAddress(
                     line1 = a.line1.getOrElse("1 Kingdom Road"),
                     line2 = a.line2.getOrElse("Brighton"),
@@ -466,13 +466,13 @@ class UserToRecordsSyncService @Inject() (
             _.flatMap(
               _.getVerifierValue("IREFFREGDATE")
                 .map(LocalDate.parse(_, dateFormatddMMyy))
-                .map(date => if (date.isAfter(LocalDate.now())) date.minusYears(100) else date)
+                .map(date => if date.isAfter(LocalDate.now()) then date.minusYears(100) else date)
             )
           )
           .flatMap { vatRegistrationDateOpt =>
             val address = user.address
               .map(a =>
-                if (a.isUKAddress)
+                if a.isUKAddress then
                   VatCustomerInformationRecord.UkAddress(
                     line1 = a.line1.getOrElse("1 Kingdom Road"),
                     line2 = a.line2.getOrElse("Brighton"),
@@ -528,7 +528,7 @@ class UserToRecordsSyncService @Inject() (
     val businessPartnerRecordForAnAgent: UserAndGroupRecordsSync = saveRecordId => { case (user, Group.Agent(group)) =>
       val address = user.address
         .map(a =>
-          if (a.isUKAddress)
+          if a.isUKAddress then
             BusinessPartnerRecord.UkAddress(
               addressLine1 = a.line1.getOrElse("1 Kingdom Road"),
               addressLine2 = a.line2,
@@ -738,7 +738,7 @@ class UserToRecordsSyncService @Inject() (
                          )
                          .toSeq
                        val record = existing.copy(empAuthList = existing.empAuthList ++ empAuthsToAdd)
-                       if (record.empAuthList.nonEmpty)
+                       if record.empAuthList.nonEmpty then
                          recordsService
                            .store(record, autoFill = false, user.planetId.get)
                            .flatMap(saveRecordId)
@@ -759,7 +759,7 @@ class UserToRecordsSyncService @Inject() (
                          )
                          .toSeq
                        val record = EmployerAuths(agentCode = agentCode, empAuthList = empAuthList)
-                       if (record.empAuthList.nonEmpty)
+                       if record.empAuthList.nonEmpty then
                          recordsService
                            .store(record, autoFill = false, user.planetId.get)
                            .flatMap(saveRecordId)

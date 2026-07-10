@@ -17,20 +17,19 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 import java.time.format.DateTimeFormatter
 import org.scalacheck.Gen
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
 import uk.gov.hmrc.domain.{Modulus11Check, Modulus23Check, Nino}
-import uk.gov.hmrc.smartstub.{Addresses, Companies, Names, Temporal, ToLong}
+import uk.gov.hmrc.smartstub.{Enumerable, PatternContext, enumToGen, genToRich}
 import wolfendale.scalacheck.regexp.RegexpGen
 
 import java.util.Locale
 
-object Generator extends Names with Temporal with Companies with Addresses {
+object Generator extends uk.gov.hmrc.smartstub.Names
+    with uk.gov.hmrc.smartstub.Temporal
+    with uk.gov.hmrc.smartstub.Companies
+    with uk.gov.hmrc.smartstub.Addresses {
 
-  implicit val tls: ToLong[String] = new ToLong[String] {
-    def asLong(s: String): Long = s.hashCode.toLong
-  }
-
-  import uk.gov.hmrc.smartstub._
+  given uk.gov.hmrc.smartstub.ToLong[String] = (s: String) => s.hashCode.toLong
 
   def get[T](gen: Gen[T]): String => Option[T] =
     (seed: String) => gen.seeded(seed)
@@ -41,7 +40,7 @@ object Generator extends Names with Temporal with Companies with Addresses {
     s.take(p).reverse + s.drop(p)
   }
 
-  def variant(seed: String, i: Int): String = if (i == 0) seed else variant(shake(seed), i - 1)
+  def variant(seed: String, i: Int): String = if i == 0 then seed else variant(shake(seed), i - 1)
 
   def pattern(pattern: String): Gen[String] =
     knownPatterns.getOrElse(pattern, PatternContext(StringContext(pattern)).pattern())
@@ -58,10 +57,10 @@ object Generator extends Names with Temporal with Companies with Addresses {
   val AlwaysNone = OptionGenStrategy(0)
   val MostlySome = OptionGenStrategy(95)
 
-  def optionGen[T](gen: Gen[T])(implicit os: OptionGenStrategy = MostlySome): Gen[Option[T]] =
+  def optionGen[T](gen: Gen[T])(using os: OptionGenStrategy = MostlySome): Gen[Option[T]] =
     Gen.frequency(os.someFrequency -> gen.map(Some(_)), (100 - os.someFrequency) -> Gen.const(None))
 
-  def biasedOptionGen[T](gen: Gen[T]): Gen[Option[T]] = optionGen(gen)(MostlySome)
+  def biasedOptionGen[T](gen: Gen[T]): Gen[Option[T]] = optionGen(gen)(using MostlySome)
 
   def nonEmptyListOfMaxN[T](max: Int, gen: Gen[T]): Gen[List[T]] =
     for {
@@ -79,16 +78,16 @@ object Generator extends Names with Temporal with Companies with Addresses {
   def planetID(seed: String): String = planetID.seeded(seed).get
 
   lazy val ninoWithSpacesGen: Gen[String] =
-    Enumerable.instances.ninoEnum.gen.map(n => if (Nino.isValid(n)) n else "AB" + n.drop(2))
+    Enumerable.instances.ninoEnum.gen.map(n => if Nino.isValid(n) then n else "AB" + n.drop(2))
   def ninoWithSpaces(seed: String): Nino =
-    ninoWithSpacesGen.seeded(seed).map(n => if (Nino.isValid(n)) Nino.apply(n) else ninoWithSpaces("_" + seed)).get
+    ninoWithSpacesGen.seeded(seed).map(n => if Nino.isValid(n) then Nino.apply(n) else ninoWithSpaces("_" + seed)).get
 
   lazy val ninoNoSpacesGen: Gen[String] =
-    Enumerable.instances.ninoEnumNoSpaces.gen.map(n => if (Nino.isValid(n)) n else "AB" + n.drop(2))
+    Enumerable.instances.ninoEnumNoSpaces.gen.map(n => if Nino.isValid(n) then n else "AB" + n.drop(2))
   def ninoNoSpaces(seed: String): Nino =
     ninoNoSpacesGen
       .seeded(seed)
-      .map(n => if (RegexPatterns.validNinoNoSpaces(n).isRight) Nino.apply(n) else ninoNoSpaces("_" + seed))
+      .map(n => if RegexPatterns.validNinoNoSpaces(n).isRight then Nino.apply(n) else ninoNoSpaces("_" + seed))
       .get
 
   lazy val mtdIdGen: Gen[String] = pattern"ZZZZ99999999999".gen
@@ -107,7 +106,7 @@ object Generator extends Names with Temporal with Companies with Addresses {
       var x = total
       while (x >= 0)
         x = x - 97
-      if (x > -10) s"0${-x}" else (-x).toString
+      if x > -10 then s"0${-x}" else (-x).toString
     }
 
     private def weightedTotal(reference: String): Int = {
@@ -269,9 +268,8 @@ object Generator extends Names with Temporal with Companies with Addresses {
   )
 
   object GenOps {
-    implicit class GenOps[T](val gen: Gen[T]) extends AnyVal {
+    extension [T](gen: Gen[T])
       def variant(v: String): Gen[T] = gen.withPerturb(s => s.reseed(s.long._1 + v.hashCode.toLong))
-    }
   }
 
 }

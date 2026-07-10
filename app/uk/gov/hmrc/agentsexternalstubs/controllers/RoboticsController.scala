@@ -40,10 +40,11 @@ class RoboticsController @Inject() (
   val authenticationService: AuthenticationService,
   appConfig: AppConfig,
   actorSystem: ActorSystem
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
-  def invoke: Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def invoke: Action[JsValue] = Action.async(parse.json) { request =>
+    given Request[JsValue] = request
     withCurrentSession { session =>
       validateRequest(request) match {
         case Left(errorResult) =>
@@ -128,13 +129,13 @@ class RoboticsTaskActor(
   operationRequired: String,
   correlationId: String,
   requestId: String
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends org.apache.pekko.actor.Actor with play.api.Logging {
 
   def receive: PartialFunction[Any, Unit] = {
     case Start =>
       // Schedule callback after callbackDelay
-      scheduler.scheduleOnce(callbackDelay.millis, self, Callback)(ec)
+      scheduler.scheduleOnce(callbackDelay.millis, self, Callback)(using ec, self)
 
     case Callback =>
       val requestMessage = operationRequired match {
@@ -155,7 +156,7 @@ class RoboticsTaskActor(
       roboticsConnector.sendCallback(callbackPayload, correlationId)
 
       // Schedule known facts creation after knownFactsDelay
-      scheduler.scheduleOnce(knownFactsDelay.millis, self, CreateKnownFacts)(ec)
+      scheduler.scheduleOnce(knownFactsDelay.millis, self, CreateKnownFacts)(using ec, self)
 
     case CreateKnownFacts =>
       createKnownFacts(enrolmentKey, postcode)

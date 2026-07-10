@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.agentsexternalstubs.services
 
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
-import uk.gov.hmrc.agentsexternalstubs.models.{Errors, HipSubscribeAgentServicesPayload}
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
+import uk.gov.hmrc.agentsexternalstubs.models.Errors
 import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 
 import java.time.LocalDate

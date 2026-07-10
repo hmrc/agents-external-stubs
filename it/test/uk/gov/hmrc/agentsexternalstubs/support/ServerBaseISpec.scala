@@ -27,7 +27,7 @@ abstract class ServerBaseISpec
     extends BaseISpec with BeforeAndAfterAll with ScalaFutures with JsonMatchers with WSResponseMatchers with MongoDB
     with IntegrationPatience {
 
-  implicit override val patienceConfig: PatienceConfig = PatienceConfig(
+  override val patienceConfig: PatienceConfig = PatienceConfig(
     timeout = scaled(Span(25, Seconds)),
     interval = scaled(Span(150, Millis))
   )
@@ -45,6 +45,7 @@ abstract class ServerBaseISpec
 
   def url = s"http://localhost:$port"
 
-  implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+  given ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+  given PatienceConfig = patienceConfig
 
 }

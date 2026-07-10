@@ -18,13 +18,13 @@ package uk.gov.hmrc.agentsexternalstubs.repository
 
 import com.google.inject.ImplementedBy
 import org.bson.types.ObjectId
-import org.mongodb.scala.model._
+import org.mongodb.scala.model.*
 import play.api.libs.json.Json.toJsFieldJsValueWrapper
-import play.api.libs.json.{OWrites => _, _}
+import play.api.libs.json.{OWrites as _, *}
 import uk.gov.hmrc.agentsexternalstubs.models.Record.TYPE
-import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository._
-import uk.gov.hmrc.agentsexternalstubs.syntax.|>
+import uk.gov.hmrc.agentsexternalstubs.models.*
+import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository.*
+import uk.gov.hmrc.agentsexternalstubs.syntax.*
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
@@ -45,14 +45,14 @@ object RecordsRepository {
 @ImplementedBy(classOf[RecordsRepositoryMongo])
 trait RecordsRepository {
 
-  def store[T <: Record](entity: T, planetId: String)(implicit writes: Writes[T]): Future[String]
+  def store[T <: Record](entity: T, planetId: String)(using writes: Writes[T]): Future[String]
 
-  def findByKey[T](key: String, planetId: String, limit: Option[Int])(implicit
+  def findByKey[T](key: String, planetId: String, limit: Option[Int])(using
     recordType: RecordMetaData[T],
     reads: Reads[T]
   ): Future[Seq[T]]
 
-  def findByKeys[T](keys: Seq[String], planetId: String, limit: Option[Int])(implicit
+  def findByKeys[T](keys: Seq[String], planetId: String, limit: Option[Int])(using
     recordType: RecordMetaData[T],
     reads: Reads[T]
   ): Future[Seq[T]]
@@ -66,24 +66,24 @@ trait RecordsRepository {
     * logback.xml, so a warning logged from this layer is silently swallowed; callers (e.g. RecordsService) are
     * responsible for deciding how to handle/log ambiguity.
     */
-  def findByKeysAnyPlanet[T](keys: Seq[String], limit: Int)(implicit
+  def findByKeysAnyPlanet[T](keys: Seq[String], limit: Int)(using
     recordType: RecordMetaData[T],
     reads: Reads[T]
   ): Future[Seq[(String, T)]]
 
-  def findById[T](id: String, planetId: String)(implicit reads: Reads[T]): Future[Option[T]]
+  def findById[T](id: String, planetId: String)(using reads: Reads[T]): Future[Option[T]]
 
   def findByPlanetId(planetId: String, limit: Option[Int] = None): Future[Seq[Record]]
 
   def remove(id: String, planetId: String): Future[Unit]
 
-  def removeByKey[T](key: String, planetId: String)(implicit recordType: RecordMetaData[T]): Future[Unit]
+  def removeByKey[T](key: String, planetId: String)(using recordType: RecordMetaData[T]): Future[Unit]
 
   def destroyPlanet(planetId: String): Future[Unit]
 }
 
 @Singleton
-class RecordsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfig)(implicit val ec: ExecutionContext)
+class RecordsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfig)(using ExecutionContext)
     extends PlayMongoRepository[JsonAbuse[Record]](
       mongoComponent = mongo,
       collectionName = "records",
@@ -94,14 +94,14 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppCon
         IndexModel(Indexes.ascending(PLANET_ID)),
         IndexModel(
           Indexes.ascending(UPDATED),
-          IndexOptions().name("TtlIndex").expireAfter(appConfig.collectionsTtl, TimeUnit.DAYS)
+          IndexOptions().name("TtlIndex").expireAfter(appConfig.collectionsTtl.toLong, TimeUnit.DAYS)
         )
       ),
       extraCodecs = Seq(Codecs.playFormatCodec(Record.formats)),
       replaceIndexes = true
     ) with RecordsRepository {
 
-  override def store[T <: Record](entity: T, planetId: String)(implicit writes: Writes[T]): Future[String] = {
+  override def store[T <: Record](entity: T, planetId: String)(using writes: Writes[T]): Future[String] = {
     val typeName = Record.typeOf(entity)
     val entityWithExtraJson = JsonAbuse(entity: Record)
       .addField(PLANET_ID, JsString(planetId))
@@ -127,8 +127,8 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppCon
         collection
           .insertOne(
             entityWithExtraJson
-              .addField(Record.ID, Json.toJson(Id(newId))(Id.internalFormats))
-              .addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat))
+              .addField(Record.ID, Json.toJson(Id(newId))(using Id.internalFormats))
+              .addField(UPDATED, Json.toJson(Instant.now())(using MongoJavatimeFormats.instantFormat))
           )
           .toFuture()
           .map((_, newId))
@@ -138,7 +138,7 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppCon
           .replaceOne(
             filter = Filters.equal(Record.ID, new ObjectId(id)),
             replacement =
-              entityWithExtraJson.addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat)),
+              entityWithExtraJson.addField(UPDATED, Json.toJson(Instant.now())(using MongoJavatimeFormats.instantFormat)),
             ReplaceOptions().upsert(true)
           )
           .toFuture()
@@ -156,7 +156,7 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppCon
                   Filters.equal(Record.ID, new ObjectId(recordId)),
                   entityWithExtraJson
                     .addField(Record.ID, Json.obj("$oid" -> JsString(recordId)))
-                    .addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat)),
+                    .addField(UPDATED, Json.toJson(Instant.now())(using MongoJavatimeFormats.instantFormat)),
                   ReplaceOptions().upsert(true)
                 )
                 .toFuture()
@@ -167,7 +167,7 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppCon
                 .insertOne(
                   entityWithExtraJson
                     .addField(Record.ID, Json.obj("$oid" -> JsString(newId)))
-                    .addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat))
+                    .addField(UPDATED, Json.toJson(Instant.now())(using MongoJavatimeFormats.instantFormat))
                 )
                 .toFuture()
                 .map(_ => newId)
@@ -181,14 +181,14 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppCon
       .insertOne(
         record
           .addField(Record.ID, Json.obj("$oid" -> JsString(newId)))
-          .addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat))
+          .addField(UPDATED, Json.toJson(Instant.now())(using MongoJavatimeFormats.instantFormat))
       )
       .toFuture()
       .map((_, newId))
       .flatMap(MongoHelper.interpretInsertOneResult)
   }
 
-  override def findByKey[T](key: String, planetId: String, limit: Option[Int])(implicit
+  override def findByKey[T](key: String, planetId: String, limit: Option[Int])(using
     recordType: RecordMetaData[T],
     reads: Reads[T]
   ): Future[Seq[T]] =
@@ -198,17 +198,17 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppCon
       .toFuture()
       .map(_.map(_.value.asInstanceOf[T]))
 
-  override def findByKeys[T](keys: Seq[String], planetId: String, limit: Option[Int])(implicit
+  override def findByKeys[T](keys: Seq[String], planetId: String, limit: Option[Int])(using
     recordType: RecordMetaData[T],
     reads: Reads[T]
   ): Future[Seq[T]] =
     collection
-      .find(Filters.in(KEYS, keys.map(key => keyOf(key, planetId, recordType.typeName)): _*))
+      .find(Filters.in(KEYS, keys.map(key => keyOf(key, planetId, recordType.typeName))*))
       .|>(o => if (limit.exists(_ >= 0)) o.limit(limit.get) else o)
       .toFuture()
       .map(_.map(_.value.asInstanceOf[T]))
 
-  override def findByKeysAnyPlanet[T](keys: Seq[String], limit: Int)(implicit
+  override def findByKeysAnyPlanet[T](keys: Seq[String], limit: Int)(using
     recordType: RecordMetaData[T],
     reads: Reads[T]
   ): Future[Seq[(String, T)]] = {
@@ -224,7 +224,7 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppCon
       .map(_.map(doc => (doc.extraFields(PLANET_ID).as[String], doc.value.asInstanceOf[T])))
   }
 
-  override def findById[T](id: String, planetId: String)(implicit reads: Reads[T]): Future[Option[T]] =
+  override def findById[T](id: String, planetId: String)(using reads: Reads[T]): Future[Option[T]] =
     collection
       .find(
         Filters.and(
@@ -253,7 +253,7 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppCon
       .toFuture()
       .map(_ => ())
 
-  def removeByKey[T](key: String, planetId: String)(implicit recordType: RecordMetaData[T]): Future[Unit] =
+  def removeByKey[T](key: String, planetId: String)(using recordType: RecordMetaData[T]): Future[Unit] =
     collection
       .deleteOne(
         Filters.equal(KEYS, keyOf(key, planetId, recordType.typeName))

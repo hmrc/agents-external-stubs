@@ -17,8 +17,8 @@
 package uk.gov.hmrc.agentsexternalstubs.connectors
 
 import play.api.libs.ws.WSClient
-import play.api.test.Helpers._
-import uk.gov.hmrc.agentsexternalstubs.models._
+import play.api.test.Helpers.*
+import uk.gov.hmrc.agentsexternalstubs.models.*
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests}
 
@@ -34,7 +34,7 @@ class UsersGroupsSearchConnectorISpec extends ServerBaseISpec with TestRequests 
         val userFoo = UserGenerator.agent(userId = "foo", groupId = "foo-group-1")
         userService.createUser(userFoo, planetId = "testPlanetId", affinityGroup = Some(AG.Agent)).futureValue
 
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "testPlanetId")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "testPlanetId")
 
         val currentUser = Users.get(session.userId).json.as[User]
         val maybeAgentCode = Groups.get(currentUser.groupId.get).json.as[Group].agentCode

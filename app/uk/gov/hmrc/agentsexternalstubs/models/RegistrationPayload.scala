@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import play.api.libs.json._
-import uk.gov.hmrc.agentsexternalstubs.models.RegistrationPayload._
+import play.api.libs.json.*
+import uk.gov.hmrc.agentsexternalstubs.models.RegistrationPayload.*
 
 /** ----------------------------------------------------------------------------
   * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
@@ -57,7 +57,7 @@ case class RegistrationPayload(
 
 object RegistrationPayload {
 
-  import Validator._
+  import Validator.*
 
   val regimeValidator: Validator[String] =
     check(_.matches(Common.regimePattern), s"""Invalid regime, does not matches regex ${Common.regimePattern}""")
@@ -71,7 +71,7 @@ object RegistrationPayload {
     checkIfOnlyOneSetIsDefined(Seq(Set(_.individual), Set(_.organisation)), "[{individual},{organisation}]")
   )
 
-  implicit val formats: Format[RegistrationPayload] = Json.format[RegistrationPayload]
+  given Format[RegistrationPayload] = Json.format[RegistrationPayload]
 
   case class Individual(firstName: String, lastName: String, dateOfBirth: Option[String] = None)
 
@@ -96,7 +96,7 @@ object RegistrationPayload {
       checkProperty(_.dateOfBirth, dateOfBirthValidator)
     )
 
-    implicit val formats: Format[Individual] = Json.format[Individual]
+    given Format[Individual] = Json.format[Individual]
 
   }
 
@@ -124,7 +124,7 @@ object RegistrationPayload {
       checkProperty(_.organisationType, organisationTypeValidator)
     )
 
-    implicit val formats: Format[Organisation] = Json.format[Organisation]
+    given Format[Organisation] = Json.format[Organisation]
 
   }
 

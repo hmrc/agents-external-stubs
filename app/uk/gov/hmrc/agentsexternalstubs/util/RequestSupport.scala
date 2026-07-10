@@ -23,13 +23,16 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendHeaderCarrierProvide
 import javax.inject.Inject
 
 class RequestSupport @Inject() () {
-  implicit def hc(implicit request: Request[_]): HeaderCarrier = RequestSupport.hc
+  def hc(using request: Request[?]): HeaderCarrier = RequestSupport.hc
 }
 
 object RequestSupport {
-  implicit def hc(implicit request: RequestHeader): HeaderCarrier = HcProvider.headerCarrier
+
+  given HeaderCarrier(using request: RequestHeader): HeaderCarrier = HcProvider.headerCarrier
+  def hc(using request: RequestHeader): HeaderCarrier = summon[HeaderCarrier]
 
   private object HcProvider extends BackendHeaderCarrierProvider {
-    def headerCarrier(implicit request: RequestHeader): HeaderCarrier = hc(request)
+    def headerCarrier(using request: RequestHeader): HeaderCarrier = RequestSupport.hc
   }
+
 }

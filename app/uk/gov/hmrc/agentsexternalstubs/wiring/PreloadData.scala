@@ -24,14 +24,12 @@ import javax.inject.{Inject, Singleton}
 @Singleton
 class PreloadData @Inject() (appConfig: AppConfig) {
 
-  if (appConfig.preloadRecordsForDefaultUserIds) {
+  if appConfig.preloadRecordsForDefaultUserIds then
     Logger(getClass).info("Pre-loading records for default user ids")
     UserIdGenerator.defaultUserIds.foreach { userId =>
       VatCustomerInformationRecord.generate(userId)
       BusinessDetailsRecord.generate(userId)
       BusinessPartnerRecord.generate(userId)
     }
-
-  }
 
 }

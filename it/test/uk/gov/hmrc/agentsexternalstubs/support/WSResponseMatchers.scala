@@ -18,11 +18,13 @@ package uk.gov.hmrc.agentsexternalstubs.support
 import org.scalatest.matchers.{MatchResult, Matcher}
 import play.api.http.HeaderNames
 import play.api.libs.json.{JsArray, JsObject}
+import play.api.libs.ws.WSBodyReadables.readableAsString
 import play.api.libs.ws.WSResponse
 
 import scala.util.{Failure, Success, Try}
 
 trait WSResponseMatchers {
+  protected given play.api.libs.ws.BodyReadable[String] = readableAsString
 
   def haveStatus(status: Int): Matcher[WSResponse] = new Matcher[WSResponse] {
     override def apply(left: WSResponse): MatchResult =

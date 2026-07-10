@@ -20,6 +20,6 @@ import play.api.libs.json.{Format, Json, Writes}
 case class Users(users: Seq[User])
 
 object Users {
-  implicit val userWrites: Writes[User] = User.writes
-  implicit def format: Format[Users] = Json.format[Users]
+  given userWrites: Writes[User] = User.writes
+  given format: Format[Users] = Json.format[Users]
 }

@@ -31,7 +31,7 @@ case class TrustAddress(
 )
 
 object TrustAddress {
-  implicit val format: Format[TrustAddress] = Json.format[TrustAddress]
+  given Format[TrustAddress] = Json.format[TrustAddress]
 
   def apply(userAddress: Option[Address]): TrustAddress =
     userAddress match {
@@ -59,31 +59,30 @@ case class TrustDetails(
 )
 
 object TrustDetails {
-  implicit val format: Format[TrustDetails] = Json.format[TrustDetails]
+  given Format[TrustDetails] = Json.format[TrustDetails]
 }
 
 case class TrustDetailsResponse(trustDetails: TrustDetails)
 
 object TrustDetailsResponse extends HttpHelpers {
-  implicit val format: Format[TrustDetailsResponse] = Json.format[TrustDetailsResponse]
+  given Format[TrustDetailsResponse] = Json.format[TrustDetailsResponse]
 
   def getErrorResponseFor(UtrOrUrn: String): Result =
-    if (UtrOrUrn == "3887997235") {
+    if UtrOrUrn == "3887997235" then
       badRequest(
         "INVALID_TRUST_STATE",
         "The remote endpoint has indicated that the Trust/Estate is Closed and playback is not possible."
       )
-    } else if (UtrOrUrn == "5786221775") {
+    else if UtrOrUrn == "5786221775" then
       badRequest(
         "INVALID_TRUST_STATE",
         "The remote endpoint has indicated that there are Pending changes yet to be processed and playback is not yet possible."
       )
-    } else if (UtrOrUrn == "6028812143") {
+    else if UtrOrUrn == "6028812143" then
       badRequest("INVALID_REGIME", "The remote endpoint has indicated that the REGIME provided is invalid.")
-    } else {
+    else
       notFound(
         "RESOURCE_NOT_FOUND",
         "The remote endpoint has indicated that no resource can be returned for the UTR provided and playback is not possible."
       )
-    }
 }

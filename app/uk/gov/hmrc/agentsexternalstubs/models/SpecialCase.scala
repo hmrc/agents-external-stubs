@@ -19,7 +19,7 @@ import java.net.URLEncoder
 
 import org.apache.pekko.util.ByteString
 import play.api.http.HttpEntity
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.{ResponseHeader, Result}
 import play.mvc.Http.HeaderNames
 
@@ -62,7 +62,7 @@ object SpecialCase {
   def matchKey(method: String, path: String): String =
     s"$method ${path.split("/").map(URLEncoder.encode(_, "utf-8")).mkString("/")}"
 
-  import Validator._
+  import Validator.*
 
   val validate: Validator[SpecialCase] = Validator(
     check(
@@ -75,27 +75,27 @@ object SpecialCase {
     )
   )
 
-  import play.api.libs.functional.syntax._
+  import play.api.libs.functional.syntax.*
 
-  implicit val formats1: Format[RequestMatch] = Json.format[RequestMatch]
-  implicit val formats2: Format[Header] = Json.format[Header]
+  given formats1: Format[RequestMatch] = Json.format[RequestMatch]
+  given formats2: Format[Header] = Json.format[Header]
 
   val responseReads: Reads[Response] = ((JsPath \ "status").read[Int] and
     (JsPath \ "body").readNullable[String] and
     (JsPath \ "headers")
       .readNullable[Seq[Header]]
-      .map(_.getOrElse(Seq.empty)))(Response.apply _)
-  implicit val responseFormats: Format[Response] = Format(responseReads, Json.writes[Response])
+      .map(_.getOrElse(Seq.empty)))(Response.apply)
+  given responseFormats: Format[Response] = Format(responseReads, Json.writes[Response])
 
   object internal {
 
-    implicit val idFormats: Format[Id] = Id.internalFormats
+    given idFormats: Format[Id] = Id.internalFormats
 
     val reads: Reads[SpecialCase] =
       ((JsPath \ "requestMatch").read[RequestMatch] and
         (JsPath \ "response").read[Response] and
         (JsPath \ "planetId").readNullable[String] and
-        (JsPath \ "_id").readNullable[Id])(SpecialCase.apply _)
+        (JsPath \ "_id").readNullable[Id])(SpecialCase.apply)
 
     type Transformer = JsObject => JsObject
 
@@ -123,7 +123,7 @@ object SpecialCase {
 
   object external {
 
-    implicit val idFormats: Format[Id] = Id.externalFormats
+    given idFormats: Format[Id] = Id.externalFormats
     val reads: Reads[SpecialCase] = Json.reads[SpecialCase]
     val writes: OWrites[SpecialCase] = Json.writes[SpecialCase]
   }

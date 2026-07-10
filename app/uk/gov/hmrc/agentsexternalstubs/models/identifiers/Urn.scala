@@ -30,7 +30,7 @@ object Urn {
       case _              => false
     }
 
-  implicit val urnReads: SimpleObjectReads[Urn] = new SimpleObjectReads[Urn]("value", Urn.apply)
-  implicit val urnWrites: SimpleObjectWrites[Urn] = new SimpleObjectWrites[Urn](_.value)
+  given SimpleObjectReads[Urn] = new SimpleObjectReads[Urn]("value", Urn.apply)
+  given SimpleObjectWrites[Urn] = new SimpleObjectWrites[Urn](_.value)
 
 }

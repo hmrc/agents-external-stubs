@@ -20,10 +20,10 @@ import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.http.HeaderNames
-import play.api.libs.json._
-import play.api.mvc._
+import play.api.libs.json.*
+import play.api.mvc.*
 import uk.gov.hmrc.agentsexternalstubs.connectors.AgentAccessControlConnector
-import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.*
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, AuthorisationCache, GroupsService, UsersService}
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -38,14 +38,15 @@ class AuthStubController @Inject() (
   agentAccessControlConnector: AgentAccessControlConnector,
   appConfig: AppConfig,
   cc: ControllerComponents
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
-  import AuthStubController._
+  import AuthStubController.*
 
-  val authCacheFlag: Option[Unit] = if (appConfig.authCacheEnabled) Some(()) else None
+  val authCacheFlag: Option[Unit] = if appConfig.authCacheEnabled then Some(()) else None
 
-  val authorise: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+  val authorise: Action[JsValue] = Action.async(parse.tolerantJson) { request =>
+    given Request[JsValue] = request
     request.headers.get(HeaderNames.AUTHORIZATION) match {
       case Some(BearerToken(authToken)) =>
         for {
@@ -77,13 +78,15 @@ class AuthStubController @Inject() (
                                                       groupsService,
                                                       authenticatedSession,
                                                       authoriseRequest,
-                                                      agentAccessControlConnector
+                                                      agentAccessControlConnector,
+                                                      ec,
+                                                      hc
                                                     )
                                                   )
                                                 case _ =>
                                                   Left("SessionRecordNotFound")
                                               }) map { maybeResponse =>
-                                                if (authCacheFlag.isDefined)
+                                                if authCacheFlag.isDefined then
                                                   AuthorisationCache
                                                     .put(authenticatedSession, authoriseRequest, maybeResponse)
                                                 maybeResponse.fold(
@@ -116,14 +119,14 @@ class AuthStubController @Inject() (
 
   private def withAuthorisedUserAndSession(
     body: (User, AuthenticatedSession) => Future[Result]
-  )(implicit request: Request[AnyContent]): Future[Result] =
+  )(using request: Request[AnyContent]): Future[Result] =
     withAuthorisedUserGroupAndSession { case (user, _, session) =>
       body(user, session)
     }
 
   private def withAuthorisedUserGroupAndSession(
     body: (User, Group, AuthenticatedSession) => Future[Result]
-  )(implicit request: Request[AnyContent]): Future[Result] = request.headers.get(HeaderNames.AUTHORIZATION) match {
+  )(using request: Request[AnyContent]): Future[Result] = request.headers.get(HeaderNames.AUTHORIZATION) match {
     case Some(BearerToken(authToken)) =>
       for {
         maybeSession <- authenticationService.findByAuthTokenOrLookupExternal(authToken)
@@ -149,25 +152,29 @@ class AuthStubController @Inject() (
       unauthorizedF("MissingBearerToken")
   }
 
-  val getAuthority: Action[AnyContent] = Action.async { implicit request =>
-    withAuthorisedUserGroupAndSession { (user, group, session) =>
-      Future.successful(Ok(Json.toJson(Authority.prepareAuthorityResponse(user, group, session))))
+  val getAuthority: Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
+    withAuthorisedUserGroupAndSession { (user, group, _) =>
+      Future.successful(Ok(Json.toJson(Authority.prepareAuthorityResponse(user, group))))
     }
   }
 
-  val getIds: Action[AnyContent] = Action.async { implicit request =>
+  val getIds: Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withAuthorisedUserAndSession { (user, _) =>
       Future.successful(Ok(Json.toJson(Authority.prepareIdsResponse(user))))
     }
   }
 
-  val getEnrolments: Action[AnyContent] = Action.async { implicit request =>
+  val getEnrolments: Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withAuthorisedUserGroupAndSession { (user, group, _) =>
       Future.successful(Ok(Json.toJson(Authority.prepareEnrolmentsResponse(user, group))))
     }
   }
 
-  def getUserByOid(oid: String): Action[AnyContent] = Action.async { implicit request =>
+  def getUserByOid(oid: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       for {
         maybeUser <- usersService.findByUserId(oid, session.planetId)
@@ -177,13 +184,14 @@ class AuthStubController @Inject() (
                           groupsService.findByGroupId(groupId, session.planetId)
                         )
       } yield (maybeUser, maybeGroup) match {
-        case (Some(user), Some(group)) => ok(Authority.prepareAuthorityResponse(user, group, session))
+        case (Some(user), Some(group)) => ok(Authority.prepareAuthorityResponse(user, group))
         case _                         => notFound(s"User $oid not found on a planet ${session.planetId}")
       }
     }(SessionRecordNotFound)
   }
 
-  def getEnrolmentsByOid(oid: String): Action[AnyContent] = Action.async { implicit request =>
+  def getEnrolmentsByOid(oid: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       for {
         maybeUser <- usersService.findByUserId(oid, session.planetId)
@@ -211,7 +219,7 @@ object AuthStubController {
 
   object Authorise {
 
-    def prepareAuthoriseResponse(context: AuthoriseContext)(implicit ex: ExecutionContext): Retrieve.MaybeResponse =
+    def prepareAuthoriseResponse(context: AuthoriseContext)(using ex: ExecutionContext): Retrieve.MaybeResponse =
       checkPredicates(context).fold(error => Left(error), _ => retrieveDetails(context))
 
     def checkPredicates(context: AuthoriseContext): Either[String, Unit] =
@@ -219,12 +227,12 @@ object AuthStubController {
         result.fold(error => Left(error), _ => p.validate(context))
       )
 
-    def retrieveDetails(context: AuthoriseContext)(implicit ex: ExecutionContext): Retrieve.MaybeResponse =
+    def retrieveDetails(context: AuthoriseContext)(using ex: ExecutionContext): Retrieve.MaybeResponse =
       context.request.retrieve.foldLeft[Retrieve.MaybeResponse](Right(AuthoriseResponse()))((result, r: String) =>
         result.fold(error => Left(error), response => addDetailToResponse(response, r, context))
       )
 
-    def addDetailToResponse(response: AuthoriseResponse, retrieve: String, context: AuthoriseContext)(implicit
+    def addDetailToResponse(response: AuthoriseResponse, retrieve: String, context: AuthoriseContext)(using
       ex: ExecutionContext
     ): Retrieve.MaybeResponse =
       Retrieve.of(retrieve).fill(response, context)
@@ -232,7 +240,7 @@ object AuthStubController {
 
   object Authority {
 
-    def prepareAuthorityResponse(user: User, group: Group, session: AuthenticatedSession): Response = Response(
+    def prepareAuthorityResponse(user: User, group: Group): Response = Response(
       uri = s"/auth/oid/${user.userId}",
       confidenceLevel = user.confidenceLevel.getOrElse(50),
       credentialStrength = user.credentialStrength.getOrElse("weak"),
@@ -267,13 +275,13 @@ object AuthStubController {
     )
 
     object Response {
-      implicit val writes: Writes[Response] = Json.writes[Response]
+      given writes: Writes[Response] = Json.writes[Response]
     }
 
     case class Credentials(gatewayId: String)
 
     object Credentials {
-      implicit val writes: Writes[Credentials] = Json.writes[Credentials]
+      given writes: Writes[Credentials] = Json.writes[Credentials]
     }
 
     case class Accounts(
@@ -329,7 +337,7 @@ object AuthStubController {
         case _ => None
       }
 
-      implicit val writes: Writes[Accounts] = Json.writes[Accounts]
+      given writes: Writes[Accounts] = Json.writes[Accounts]
 
       case class Agent(
         agentUserRole: String,
@@ -340,50 +348,50 @@ object AuthStubController {
       )
 
       object Agent {
-        implicit val writes: Writes[Agent] = Json.writes[Agent]
+        given writes: Writes[Agent] = Json.writes[Agent]
       }
 
       case class Ct(link: String, utr: String)
 
       object Ct {
-        implicit val formats: Format[Ct] = Json.format[Ct]
+        given formats: Format[Ct] = Json.format[Ct]
       }
 
       case class Epaye(link: String, empRef: String)
 
       object Epaye {
-        implicit val formats: Format[Epaye] = Json.format[Epaye]
+        given formats: Format[Epaye] = Json.format[Epaye]
       }
 
       case class Paye(link: String, nino: String)
 
       object Paye {
-        implicit val formats: Format[Paye] = Json.format[Paye]
+        given formats: Format[Paye] = Json.format[Paye]
       }
 
       case class Sa(link: String, utr: String)
 
       object Sa {
-        implicit val formats: Format[Sa] = Json.format[Sa]
+        given formats: Format[Sa] = Json.format[Sa]
       }
 
       case class Vat(link: String, vrn: String)
 
       object Vat {
-        implicit val formats: Format[Vat] = Json.format[Vat]
+        given formats: Format[Vat] = Json.format[Vat]
       }
     }
 
     case class Ids(internalId: String, externalId: String)
 
     object Ids {
-      implicit val writes: Writes[Ids] = Json.writes[Ids]
+      given writes: Writes[Ids] = Json.writes[Ids]
     }
 
     def prepareIdsResponse(user: User): Ids = Ids(user.userId, user.userId)
 
     def prepareEnrolmentsResponse(user: User, group: Group): Seq[Enrolment] =
-      if (group.affinityGroup == AG.Individual || group.affinityGroup == AG.Organisation && user.nino.isDefined)
+      if group.affinityGroup == AG.Individual || group.affinityGroup == AG.Organisation && user.nino.isDefined then
         group.principalEnrolments :+ Enrolment("HMRC-NI", "NINO", user.nino.get.value)
       else group.principalEnrolments
   }

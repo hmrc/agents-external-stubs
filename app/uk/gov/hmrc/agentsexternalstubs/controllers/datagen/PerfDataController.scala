@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers.datagen
 
-import play.api.libs.json._
-import play.api.mvc.{Action, ControllerComponents}
+import play.api.libs.json.*
+import play.api.mvc.{Action, ControllerComponents, Request}
 import uk.gov.hmrc.agentsexternalstubs.controllers.CurrentSession
-import uk.gov.hmrc.agentsexternalstubs.repository._
+import uk.gov.hmrc.agentsexternalstubs.repository.*
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, ExternalTestDataCleanupService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -31,13 +31,13 @@ case class Agency(clients: Int, teamMembers: Int)
 
 case class AgencyRepeat(clients: Int, teamMembers: Int, times: Int)
 object AgencyRepeat {
-  implicit val format: OFormat[AgencyRepeat] = Json.format[AgencyRepeat]
+  given format: OFormat[AgencyRepeat] = Json.format[AgencyRepeat]
 }
 
 case class PerfDataRequest(agencies: Seq[AgencyRepeat], populateFriendlyNames: Boolean)
 
 object PerfDataRequest {
-  implicit val format: OFormat[PerfDataRequest] = Json.format[PerfDataRequest]
+  given format: OFormat[PerfDataRequest] = Json.format[PerfDataRequest]
 }
 
 class PerfDataController @Inject() (
@@ -52,7 +52,7 @@ class PerfDataController @Inject() (
   agencyDataAssembler: AgencyDataAssembler,
   agencyCreator: AgencyCreator,
   externalDataCleanup: ExternalTestDataCleanupService
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
   /** Accepts a JSON payload like:
@@ -74,7 +74,8 @@ class PerfDataController @Inject() (
     * }
     * </pre>
     */
-  def generate: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+  def generate: Action[JsValue] = Action.async(parse.tolerantJson) { request =>
+    given Request[JsValue] = request
     withPayload[PerfDataRequest] { perfDataRequest =>
       val agencies = perfDataRequest.agencies.flatMap { agencyRepeat =>
         (1 to (if (agencyRepeat.times < 1) 1 else agencyRepeat.times))
@@ -109,9 +110,16 @@ class PerfDataController @Inject() (
     }
 
   private def extractArnAndGroupId(agencyCreationPayload: AgencyCreationPayload): (String, String) = {
-    val arn = agencyCreationPayload.agentUser.assignedPrincipalEnrolments.headOption match {
-      case Some(ek) if ek.service == "HMRC-AS-AGENT" => ek.identifiers.head.value
-    }
+    val arn =
+      agencyCreationPayload.agentUser.assignedPrincipalEnrolments
+        .collectFirst {
+          case ek if ek.service == "HMRC-AS-AGENT" => ek.identifiers.head.value
+        }
+        .getOrElse(
+          throw new IllegalStateException(
+            s"No HMRC-AS-AGENT enrolment found for payload ${agencyCreationPayload.agentUser.userId}"
+          )
+        )
     val groupId = agencyCreationPayload.agentUser.groupId.get
     (arn, groupId)
   }

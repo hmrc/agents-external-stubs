@@ -39,8 +39,8 @@ class KnownFactsControllerSpec extends BaseUnitSpec {
     val mockUsersRepo: UsersRepository = mock[UsersRepository]
     val mockAuthService: AuthenticationService = mock[AuthenticationService]
     val controllerComponents: ControllerComponents = Helpers.stubControllerComponents()
-    implicit val eC: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
-    implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
+    given ExecutionContext = scala.concurrent.ExecutionContext.global
+    given HeaderCarrier = HeaderCarrier()
 
     val authSessionHeaders: FakeHeaders = FakeHeaders(
       Seq(
@@ -69,7 +69,7 @@ class KnownFactsControllerSpec extends BaseUnitSpec {
 
     // known facts repo mocks
     def expectFindKnownFactByEnrolmentKey(knownFacts: Option[KnownFacts]): OngoingStubbing[Future[Option[KnownFacts]]] =
-      when(mockKnownFactsRepo.findByEnrolmentKey(any[EnrolmentKey], any[String])(any[ExecutionContext]))
+      when(mockKnownFactsRepo.findByEnrolmentKey(any[EnrolmentKey], any[String])(using any[ExecutionContext]()))
         .thenReturn(Future.successful(knownFacts))
 
     def expectUpsertKnownFacts: OngoingStubbing[Future[Unit]] =

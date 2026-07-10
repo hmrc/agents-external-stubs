@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import cats.data.Validated.{Invalid, Valid}
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{Format, Json, OFormat}
 
 case class Group(
   planetId: String,
@@ -71,10 +71,10 @@ case class Group(
 }
 
 object Group {
-  implicit val format: OFormat[Group] = Json.format[Group]
+  given format: OFormat[Group] = Json.format[Group]
 
   val compressedFormat: OFormat[Group] = {
-    implicit val enrolmentFormat = Enrolment.tinyFormat // Use the space-saving Json representation for Enrolment
+    given Format[Enrolment] = Enrolment.tinyFormat // Use the space-saving Json representation for Enrolment
     Json.format[Group]
   }
 
@@ -86,17 +86,17 @@ object Group {
 
   object Individual {
     def unapply(group: Group): Option[Group] =
-      if (group.affinityGroup == AG.Individual) Some(group) else None
+      if group.affinityGroup == AG.Individual then Some(group) else None
   }
 
   object Organisation {
     def unapply(group: Group): Option[Group] =
-      if (group.affinityGroup == AG.Organisation) Some(group) else None
+      if group.affinityGroup == AG.Organisation then Some(group) else None
   }
 
   object Agent {
     def unapply(group: Group): Option[Group] =
-      if (group.affinityGroup == AG.Agent) Some(group) else None
+      if group.affinityGroup == AG.Agent then Some(group) else None
   }
 
   object Matches {
@@ -105,14 +105,14 @@ object Group {
   }
 
   case class MatchesAffinityGroupAndEnrolment(affinityGroupMatches: String => Boolean, serviceName: String) {
-    def unapply(group: Group): Option[(Group, String)] = if (!affinityGroupMatches(group.affinityGroup)) None
-    else {
-      group.principalEnrolments
-        .find(_.key == serviceName)
-        .flatMap(_.identifiers)
-        .flatMap(_.map(_.value).headOption)
-        .map((group, _))
-    }
+    def unapply(group: Group): Option[(Group, String)] =
+      if !affinityGroupMatches(group.affinityGroup) then None
+      else
+        group.principalEnrolments
+          .find(_.key == serviceName)
+          .flatMap(_.identifiers)
+          .flatMap(_.map(_.value).headOption)
+          .map((group, _))
   }
 
   def groupIdKey(groupId: String): String = s"gid:$groupId"

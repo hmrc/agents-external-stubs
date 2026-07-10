@@ -21,8 +21,11 @@ import uk.gov.hmrc.agentsexternalstubs.models.RegexPatterns
 object MoreConstraints {
 
   def pattern(matcher: RegexPatterns.Matcher, field: String): Constraint[String] =
-    Constraint(
-      matcher(_).fold(e => Invalid(s"Invalid value of the `$field`, does not follow regex pattern"), _ => Valid)
+    Constraint(value =>
+      matcher(value).fold(
+        _ => Invalid(s"Invalid value of the `$field`, does not follow regex pattern"),
+        _ => Valid
+      )
     )
 
 }

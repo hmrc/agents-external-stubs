@@ -16,17 +16,17 @@
 
 package uk.gov.hmrc.agentsexternalstubs.repository
 
-import com.google.inject.ImplementedBy
 import com.mongodb.client.model.Updates
 import org.mongodb.scala.MongoWriteException
-import org.mongodb.scala.model.Filters._
+import org.mongodb.scala.model.Filters.*
 import org.mongodb.scala.model.Projections.{excludeId, fields, include}
-import org.mongodb.scala.model._
+import org.mongodb.scala.model.*
 import org.mongodb.scala.result.DeleteResult
-import play.api.libs.json._
+import org.mongodb.scala.documentToUntypedDocument
+import play.api.libs.json.*
 import play.api.{Logger, Logging}
 import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, User}
-import uk.gov.hmrc.agentsexternalstubs.repository.UsersRepositoryMongo._
+import uk.gov.hmrc.agentsexternalstubs.repository.UsersRepositoryFields.*
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
@@ -40,7 +40,6 @@ import scala.util.control.NonFatal
 
 case class DuplicateUserException(msg: String, key: Option[String] = None) extends IllegalStateException(msg)
 
-@ImplementedBy(classOf[UsersRepositoryMongo])
 trait UsersRepository {
 
   def findByUserId(userId: String, planetId: String): Future[Option[User]]
@@ -77,18 +76,18 @@ trait UsersRepository {
   def reindexAllUsers: Future[Boolean]
 }
 
-object UsersRepositoryMongo {
-  private final val UNIQUE_KEYS = "_uniqueKeys"
-  private final val KEYS = "_keys"
-  private final val USER_ID = "userId"
-  private final val KEY_USER_ID = "keyUserId"
-  private final val PLANET_ID = "planetId"
-  private final val KEY_PLANET_ID = "keyPlanetId"
-  private final val UPDATED = "lastUpdatedAt"
+object UsersRepositoryFields {
+  final val UNIQUE_KEYS = "_uniqueKeys"
+  final val KEYS = "_keys"
+  final val USER_ID = "userId"
+  final val KEY_USER_ID = "keyUserId"
+  final val PLANET_ID = "planetId"
+  final val KEY_PLANET_ID = "keyPlanetId"
+  final val UPDATED = "lastUpdatedAt"
 }
 
 @Singleton
-class UsersRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfig)(implicit val ec: ExecutionContext)
+class UsersRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfig)(using ExecutionContext)
     extends PlayMongoRepository[JsonAbuse[User]](
       mongoComponent = mongo,
       collectionName = "users",
@@ -100,7 +99,7 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfi
         IndexModel(Indexes.ascending(PLANET_ID), IndexOptions().name(KEY_PLANET_ID)),
         IndexModel(
           Indexes.ascending(UPDATED),
-          IndexOptions().name("TtlIndex").expireAfter(appConfig.collectionsTtl, TimeUnit.DAYS)
+          IndexOptions().name("TtlIndex").expireAfter(appConfig.collectionsTtl.toLong, TimeUnit.DAYS)
         )
       ),
       replaceIndexes = true
@@ -128,7 +127,7 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfi
 
   override def findByNino(nino: String, planetId: String): Future[Option[User]] =
     collection
-      .find(Filters.in(UNIQUE_KEYS, User.ninoIndexKeys(nino).map(keyOf(_, planetId)): _*))
+      .find(Filters.in(UNIQUE_KEYS, User.ninoIndexKeys(nino).map(keyOf(_, planetId))*))
       .headOption()
       .map(_.map(_.value))
 
@@ -250,7 +249,7 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfi
   override def create(user: User, planetId: String): Future[Unit] =
     collection
       .insertOne(
-        serializeUser(user, planetId).addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat))
+        serializeUser(user, planetId).addField(UPDATED, Json.toJson(Instant.now())(using MongoJavatimeFormats.instantFormat))
       )
       .toFuture()
       .map(_ => ())
@@ -264,7 +263,7 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfi
       .replaceOne(
         filter = Filters.equal(UNIQUE_KEYS, keyOf(User.userIdKey(user.userId), planetId)),
         replacement = serializeUser(user, planetId)
-          .addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat)),
+          .addField(UPDATED, Json.toJson(Instant.now())(using MongoJavatimeFormats.instantFormat)),
         ReplaceOptions().upsert(true)
       )
       .toFuture()
@@ -327,7 +326,7 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfi
             update = Updates.pull("recordIds", recordId.substring(2))
           )
           .toFuture()
-          .flatMap(MongoHelper.interpretUpdateResultUnit)
+          .flatMap(_ => MongoHelper.interpretUpdateResultUnit())
       } else {
         collection
           .updateOne(
@@ -335,7 +334,7 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfi
             update = Updates.push("recordIds", recordId)
           )
           .toFuture()
-          .flatMap(MongoHelper.interpretUpdateResultUnit)
+          .flatMap(_ => MongoHelper.interpretUpdateResultUnit())
       }
     } else Future.failed(new Exception("Empty recordId"))
 

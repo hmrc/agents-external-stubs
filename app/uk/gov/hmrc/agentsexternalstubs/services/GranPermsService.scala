@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.agentsexternalstubs.services
 
-import cats.implicits._
-import uk.gov.hmrc.agentsexternalstubs.models._
+import cats.implicits.*
+import uk.gov.hmrc.agentsexternalstubs.models.*
 import uk.gov.hmrc.domain.Nino
 import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
@@ -33,8 +33,8 @@ class GranPermsService @Inject() (
 
   type ClientType = String
 
-  def massGenerateClients(planetId: String, genRequest: GranPermsGenRequest, idNaming: Option[Int => String] = None)(
-    implicit ec: ExecutionContext
+  def massGenerateClients(planetId: String, genRequest: GranPermsGenRequest, idNaming: Option[Int => String] = None)(using
+    ec: ExecutionContext
   ): Future[List[User]] = {
     val idFunction: Int => String = idNaming.getOrElse(n => f"${genRequest.idPrefix}%sC$n%05d")
     val clientTypeAndEnrolmentToGenerate: Seq[(ClientType, EnrolmentKey)] = {
@@ -101,7 +101,7 @@ class GranPermsService @Inject() (
     groupId: String,
     currentUser: User,
     idNaming: Option[Int => String] = None
-  )(implicit ec: ExecutionContext): Future[List[User]] = {
+  )(using ec: ExecutionContext): Future[List[User]] = {
     val idFn: Int => String = idNaming.getOrElse(x => f"${genRequest.idPrefix}%sA$x%04d")
     (1 to genRequest.numberOfAgents).toList.traverse { x =>
       val user = UserGenerator
@@ -122,7 +122,7 @@ class GranPermsService @Inject() (
 
   private def withItsaSupportingAgentEnrolmentsAdded(clientEnrolments: Seq[Enrolment]): Seq[Enrolment] =
     clientEnrolments.collect {
-      case e: Enrolment if e.key == "HMRC-MTD-IT" => if (Random.nextInt(10) > 3) e.copy(key = "HMRC-MTD-IT-SUPP") else e
+      case e: Enrolment if e.key == "HMRC-MTD-IT" => if Random.nextInt(10) > 3 then e.copy(key = "HMRC-MTD-IT-SUPP") else e
       case e                                      => e
     }
 
@@ -131,12 +131,12 @@ class GranPermsService @Inject() (
     currentUser: User,
     usersGroup: Group,
     genRequest: GranPermsGenRequest
-  )(implicit ec: ExecutionContext): Future[(Seq[User], Seq[User])] = for {
+  )(using ec: ExecutionContext): Future[(Seq[User], Seq[User])] = for {
     clients <- massGenerateClients(planetId, genRequest)
     newDelegatedEnrolsForAgent: Seq[Enrolment] =
       clients.flatMap(client =>
         client.assignedPrincipalEnrolments.map(ek =>
-          if (genRequest.fillFriendlyNames) Enrolment.from(ek).copy(friendlyName = client.name) else Enrolment.from(ek)
+          if genRequest.fillFriendlyNames then Enrolment.from(ek).copy(friendlyName = client.name) else Enrolment.from(ek)
         )
       )
 
@@ -160,9 +160,7 @@ class GranPermsService @Inject() (
               )
   } yield (agents, clients)
 
-  def persistRelationshipRecords(clients: Seq[User], arn: String, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[Unit] = {
+  def persistRelationshipRecords(clients: Seq[User], arn: String, planetId: String)(using ec: ExecutionContext): Future[Unit] = {
     val records = clients
       .map(client => assembleRelationshipRecord(client, arn))
       .collect { case Some(record) => record }
@@ -217,7 +215,7 @@ class GranPermsService @Inject() (
     val normalisedDistribution = distribution.view.mapValues(_ / distribution.values.sum).toSeq
     val randomNumber = Random.nextDouble()
     val chosenIndex = normalisedDistribution.map(_._2).scan(0.0)(_ + _).tail.indexWhere(randomNumber < _)
-    if (chosenIndex < 0) // not found - should only ever happen (rarely) due to rounding errors
+    if chosenIndex < 0 then // not found - should only ever happen (rarely) due to rounding errors
       normalisedDistribution.last._1
     else
       normalisedDistribution(chosenIndex)._1
@@ -230,7 +228,7 @@ class GranPermsService @Inject() (
     (0 until n).toSeq.map { i =>
       val fractionalIndex = (i.toDouble + 0.5) / n.toDouble
       val chosenIndex = intervalPartition.indexWhere(fractionalIndex < _)
-      if (chosenIndex < 0) // not found - should only ever happen (rarely) due to rounding errors
+      if chosenIndex < 0 then // not found - should only ever happen (rarely) due to rounding errors
         normalisedDistribution.last._1
       else
         normalisedDistribution(chosenIndex)._1

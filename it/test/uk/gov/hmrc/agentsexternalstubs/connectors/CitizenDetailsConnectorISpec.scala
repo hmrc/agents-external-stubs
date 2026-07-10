@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.connectors
 
 import play.api.libs.ws.WSClient
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests}
@@ -47,7 +47,7 @@ class CitizenDetailsConnectorISpec extends ServerBaseISpec with TestRequests wit
             affinityGroup = Some(AG.Individual)
           )
           .futureValue
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "testPlanet")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "testPlanet")
 
         val result = await(connector.getCitizenDateOfBirth(Nino("HW827856C")))
         result.flatMap(_.dateOfBirth) shouldBe Some(LocalDate.parse("1975-12-18"))

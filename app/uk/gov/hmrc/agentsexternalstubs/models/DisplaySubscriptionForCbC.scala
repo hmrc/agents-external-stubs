@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalacheck.Gen
 import play.api.libs.json.{Format, Json, OFormat}
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
 import uk.gov.hmrc.agentsexternalstubs.models.Validator.{Validator, check, checkEachIfSome, checkIfOnlyOneSetIsDefined, checkProperty}
 
 import java.time.LocalDateTime
@@ -47,7 +47,7 @@ import java.time.LocalDateTime
 case class CbCRequestParams(paramName: String, paramValue: String)
 
 object CbCRequestParams {
-  implicit val format: OFormat[CbCRequestParams] = Json.format[CbCRequestParams]
+  given OFormat[CbCRequestParams] = Json.format[CbCRequestParams]
 }
 
 case class CbCRequestCommon(
@@ -60,7 +60,7 @@ case class CbCRequestCommon(
 )
 
 object CbCRequestCommon {
-  implicit val format: OFormat[CbCRequestCommon] = Json.format[CbCRequestCommon]
+  given OFormat[CbCRequestCommon] = Json.format[CbCRequestCommon]
 
   val cbcRegimeValidator: Validator[String] = check(_.equals("CBC"), s"invalid regime, only CbC supported")
   val cbcOriginSystemValidator: Validator[String] = check(_.equals("MDTP"), s"invalid origin, only MDTP supported")
@@ -78,7 +78,7 @@ case class CbCRequestDetail(
 )
 
 object CbCRequestDetail {
-  implicit val format: OFormat[CbCRequestDetail] = Json.format[CbCRequestDetail]
+  given OFormat[CbCRequestDetail] = Json.format[CbCRequestDetail]
 
   val idTypeValidator: Validator[String] = check(_.equals("CBC"), s"invalid id type")
 
@@ -91,14 +91,14 @@ object CbCRequestDetail {
 case class DisplaySubscriptionForCBCRequest(requestCommon: CbCRequestCommon, requestDetail: CbCRequestDetail)
 
 object DisplaySubscriptionForCBCRequest {
-  implicit val format: OFormat[DisplaySubscriptionForCBCRequest] = Json.format[DisplaySubscriptionForCBCRequest]
+  given OFormat[DisplaySubscriptionForCBCRequest] = Json.format[DisplaySubscriptionForCBCRequest]
 }
 
 /** Request payload originating from MTDP to display a Country by Country subscription */
 case class DisplaySubscriptionForCbCRequestPayload(displaySubscriptionForCBCRequest: DisplaySubscriptionForCBCRequest)
 
 object DisplaySubscriptionForCbCRequestPayload {
-  implicit val format: OFormat[DisplaySubscriptionForCbCRequestPayload] =
+  given OFormat[DisplaySubscriptionForCbCRequestPayload] =
     Json.format[DisplaySubscriptionForCbCRequestPayload]
 
   val validate: Validator[DisplaySubscriptionForCbCRequestPayload] = Validator(
@@ -116,7 +116,7 @@ case class IndividualContact(
 )
 
 object IndividualContact {
-  implicit val format: OFormat[IndividualContact] = Json.format[IndividualContact]
+  given OFormat[IndividualContact] = Json.format[IndividualContact]
 
   val gen: Gen[IndividualContact] = for {
     first  <- Generator.forename()
@@ -128,7 +128,7 @@ object IndividualContact {
 case class OrganisationContact(organisationName: String)
 
 object OrganisationContact {
-  implicit val format: OFormat[OrganisationContact] = Json.format[OrganisationContact]
+  given OFormat[OrganisationContact] = Json.format[OrganisationContact]
 
   val gen: Gen[OrganisationContact] = for {
     name <- Generator.tradingNameGen
@@ -145,7 +145,7 @@ case class CbcContactInformation(
 )
 
 object CbcContactInformation {
-  implicit val format: OFormat[CbcContactInformation] = Json.format[CbcContactInformation]
+  given OFormat[CbcContactInformation] = Json.format[CbcContactInformation]
 
   val validate: Validator[CbcContactInformation] = Validator(
     checkIfOnlyOneSetIsDefined(
@@ -170,7 +170,6 @@ object CbcContactInformation {
       )
     case orgC: OrganisationContact =>
       CbcContactInformation(email = email, phone = phone, mobile = mobile, individual = None, organisation = Some(orgC))
-    case _ => throw new RuntimeException("invalid contact type")
   }
 
 }
@@ -178,7 +177,7 @@ object CbcContactInformation {
 case class CbCReturnParameters(paramName: String, paramValue: String)
 
 object CbCReturnParameters {
-  implicit val format: OFormat[CbCReturnParameters] = Json.format[CbCReturnParameters]
+  given OFormat[CbCReturnParameters] = Json.format[CbCReturnParameters]
 }
 
 case class CbCResponseCommon(
@@ -189,7 +188,7 @@ case class CbCResponseCommon(
 )
 
 object CbCResponseCommon {
-  implicit val format: OFormat[CbCResponseCommon] = Json.format[CbCResponseCommon]
+  given OFormat[CbCResponseCommon] = Json.format[CbCResponseCommon]
 }
 
 case class CbCResponseDetail(
@@ -201,13 +200,13 @@ case class CbCResponseDetail(
 )
 
 object CbCResponseDetail {
-  implicit val format: OFormat[CbCResponseDetail] = Json.format[CbCResponseDetail]
+  given OFormat[CbCResponseDetail] = Json.format[CbCResponseDetail]
 }
 
 case class DisplaySubscriptionForCBCResponse(responseCommon: CbCResponseCommon, responseDetail: CbCResponseDetail)
 
 object DisplaySubscriptionForCBCResponse {
-  implicit val format: OFormat[DisplaySubscriptionForCBCResponse] = Json.format[DisplaySubscriptionForCBCResponse]
+  given OFormat[DisplaySubscriptionForCBCResponse] = Json.format[DisplaySubscriptionForCBCResponse]
 
   def fromRecord(record: CbcSubscriptionRecord): DisplaySubscriptionForCBCResponse =
     DisplaySubscriptionForCBCResponse(
@@ -227,7 +226,7 @@ object DisplaySubscriptionForCBCResponse {
 case class DisplaySubscriptionForCbC(displaySubscriptionForCBCResponse: DisplaySubscriptionForCBCResponse)
 
 object DisplaySubscriptionForCbC {
-  implicit val format: OFormat[DisplaySubscriptionForCbC] = Json.format[DisplaySubscriptionForCbC]
+  given OFormat[DisplaySubscriptionForCbC] = Json.format[DisplaySubscriptionForCbC]
 
   def fromRecord(record: CbcSubscriptionRecord): DisplaySubscriptionForCbC =
     DisplaySubscriptionForCbC(
@@ -252,7 +251,7 @@ object DisplaySubscriptionForCbC {
 
 case class CbCSourceFaultDetail(detail: Array[String])
 
-object CbCSourceFaultDetail { implicit val format: OFormat[CbCSourceFaultDetail] = Json.format[CbCSourceFaultDetail] }
+object CbCSourceFaultDetail { given OFormat[CbCSourceFaultDetail] = Json.format[CbCSourceFaultDetail] }
 
 case class CbCErrorDetail(
   timestamp: LocalDateTime,
@@ -263,13 +262,13 @@ case class CbCErrorDetail(
   sourceFaultDetail: CbCSourceFaultDetail
 )
 
-object CbCErrorDetail { implicit val format: OFormat[CbCErrorDetail] = Json.format[CbCErrorDetail] }
+object CbCErrorDetail { given OFormat[CbCErrorDetail] = Json.format[CbCErrorDetail] }
 
 /** Error response from EIS/ETMP for Country by Country subscription */
 case class DisplaySubscriptionForCbCError(errorDetail: CbCErrorDetail)
 
 object DisplaySubscriptionForCbCError {
-  implicit val format: OFormat[DisplaySubscriptionForCbCError] = Json.format[DisplaySubscriptionForCbCError]
+  given OFormat[DisplaySubscriptionForCbCError] = Json.format[DisplaySubscriptionForCbCError]
 }
 
 //******************************//
@@ -299,11 +298,11 @@ case class CbcSubscriptionRecord(
 
 object CbcSubscriptionRecord extends RecordUtils[CbcSubscriptionRecord] {
 
-  implicit val recordUtils: RecordUtils[CbcSubscriptionRecord] = this
+  given RecordUtils[CbcSubscriptionRecord] = this
 
-  implicit val takesCbcIdKey: TakesKey[CbcSubscriptionRecord, CbcId] = TakesKey(cbcId => Seq(cbcIdKey(cbcId.value)))
+  given TakesKey[CbcSubscriptionRecord, CbcId] = TakesKey(cbcId => Seq(cbcIdKey(cbcId.value)))
 
-  implicit val recordType: RecordMetaData[CbcSubscriptionRecord] = RecordMetaData[CbcSubscriptionRecord]
+  given RecordMetaData[CbcSubscriptionRecord] = RecordMetaData[CbcSubscriptionRecord]
 
   def uniqueKey(key: String): String = cbcIdKey(key)
   def cbcIdKey(key: String): String = s"""cbcId:${key.toUpperCase}"""
@@ -335,6 +334,6 @@ object CbcSubscriptionRecord extends RecordUtils[CbcSubscriptionRecord] {
   )
   override val sanitizers = Seq()
 
-  implicit val formats: Format[CbcSubscriptionRecord] = Json.format[CbcSubscriptionRecord]
+  given formats:Format[CbcSubscriptionRecord] = Json.format[CbcSubscriptionRecord]
 
 }

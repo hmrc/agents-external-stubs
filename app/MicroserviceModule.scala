@@ -17,14 +17,21 @@
 import com.google.inject.AbstractModule
 import play.api.{Configuration, Environment, Logger}
 import uk.gov.hmrc.agentsexternalstubs.TcpProxies
+import uk.gov.hmrc.agentsexternalstubs.repository.*
 import uk.gov.hmrc.agentsexternalstubs.wiring.PreloadData
+import scala.annotation.unused
 
-class MicroserviceModule(environment: Environment, configuration: Configuration) extends AbstractModule {
+class MicroserviceModule(environment: Environment, @unused configuration: Configuration) extends AbstractModule {
 
   override def configure(): Unit = {
     Logger(getClass).info(s"Starting microservice agents-external-stubs in mode : ${environment.mode}")
 
     bind(classOf[TcpProxies]).asEagerSingleton()
     bind(classOf[PreloadData]).asEagerSingleton()
+    bind(classOf[GroupsRepository]).to(classOf[GroupsRepositoryMongo])
+    bind(classOf[UsersRepository]).to(classOf[UsersRepositoryMongo])
+    bind(classOf[SpecialCasesRepository]).to(classOf[SpecialCasesRepositoryMongo])
+    bind(classOf[KnownFactsRepository]).to(classOf[KnownFactsRepositoryMongo])
+    bind(classOf[RecordsRepository]).to(classOf[RecordsRepositoryMongo])
   }
 }

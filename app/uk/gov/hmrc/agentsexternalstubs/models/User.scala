@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import cats.data.Validated.{Invalid, Valid}
-import play.api.libs.json._
+import play.api.libs.json.*
 import uk.gov.hmrc.agentsexternalstubs.models.User.AdditionalInformation
 import uk.gov.hmrc.agentsexternalstubs.models.identifiers.NinoWithoutSuffix
 import uk.gov.hmrc.domain.Nino
@@ -75,7 +75,7 @@ case class User(
   lazy val firstName: Option[String] =
     name
       .map(_.split(" ").dropRight(1))
-      .map(a => if (a.nonEmpty) a.mkString(" ") else Generator.get(Generator.forename())(userId).getOrElse("John"))
+      .map(a => if a.nonEmpty then a.mkString(" ") else Generator.get(Generator.forename())(userId).getOrElse("John"))
 
   def lastName: Option[String] = name.map(_.split(" ").last)
 
@@ -101,13 +101,13 @@ object User {
   }
 
   object Address {
-    implicit lazy val formats: Format[Address] = Json.format[Address]
+    given formats: Format[Address] = Json.format[Address]
   }
 
   case class AdditionalInformation(vatRegistrationDate: Option[LocalDate] = None)
 
   object AdditionalInformation {
-    implicit lazy val formats: Format[AdditionalInformation] = Json.format[AdditionalInformation]
+    given formats: Format[AdditionalInformation] = Json.format[AdditionalInformation]
   }
 
   object CR {
@@ -130,7 +130,7 @@ object User {
       case Invalid(errors) => Left(errors)
     }
 
-  implicit class UserBuilder(val user: User) extends AnyVal {
+  extension (user: User) {
     def withStrideRole(role: String): User = user.copy(strideRoles = user.strideRoles :+ role)
 
     def withAssignedPrincipalEnrolment(enrolmentKey: EnrolmentKey): User =
@@ -163,11 +163,11 @@ object User {
   def credentialRoleKey(credentialRole: String): String =
     s"cr:${credentialRole.toLowerCase}"
 
-  import play.api.libs.functional.syntax._
+  import play.api.libs.functional.syntax.*
 
   def reads(tolerateEnrolmentKeysWithNoIdentifiers: Boolean): Reads[User] = {
-    implicit val enrolmentKeyReads: Reads[EnrolmentKey] =
-      if (tolerateEnrolmentKeysWithNoIdentifiers) EnrolmentKey.tolerantReads else EnrolmentKey.reads
+    given enrolmentKeyReads: Reads[EnrolmentKey] =
+      if tolerateEnrolmentKeysWithNoIdentifiers then EnrolmentKey.tolerantReads else EnrolmentKey.reads
     (
       (JsPath \ "userId").readNullable[String].map(_.orNull) and
         (JsPath \ "groupId").readNullable[String] and
@@ -188,19 +188,19 @@ object User {
         (JsPath \ "strideRoles").readNullable[Seq[String]].map(_.getOrElse(Seq.empty)) and
         (JsPath \ "deceased").readNullable[Boolean] and
         (JsPath \ "utr").readNullable[String]
-    )(User.apply _)
+    )(User.apply)
   }
 
-  implicit val reads: Reads[User] = reads(tolerateEnrolmentKeysWithNoIdentifiers = false)
+  given reads: Reads[User] = reads(tolerateEnrolmentKeysWithNoIdentifiers = false)
   val tolerantReads: Reads[User] = reads(tolerateEnrolmentKeysWithNoIdentifiers = true)
 
-  implicit val writes: OWrites[User] = Json.writes[User]
+  given writes: OWrites[User] = Json.writes[User]
 
   val formats = OFormat(reads, writes)
 
   def parseUserIdAtPlanetId(credId: String, defaultPlanetId: => String): (String, String) = {
     val at = credId.indexOf('@')
-    if (at >= 0) (credId.substring(0, at), credId.substring(at + 1))
+    if at >= 0 then (credId.substring(0, at), credId.substring(at + 1))
     else (credId, defaultPlanetId)
   }
 

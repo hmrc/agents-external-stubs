@@ -16,12 +16,12 @@
 
 package uk.gov.hmrc.agentsexternalstubs.services
 
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.agentsexternalstubs.connectors.TestAppConfig
 import uk.gov.hmrc.agentsexternalstubs.controllers.BearerToken
-import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.*
 import uk.gov.hmrc.agentsexternalstubs.stubs.AuthStubs
-import uk.gov.hmrc.agentsexternalstubs.support._
+import uk.gov.hmrc.agentsexternalstubs.support.*
 import uk.gov.hmrc.auth.core.{AuthConnector, PlayAuthConnector}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.client.HttpClientV2
@@ -69,7 +69,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       val planetId = UUID.randomUUID().toString
       val authToken = "Bearer " + UUID.randomUUID().toString
       val sessionId = UUID.randomUUID().toString
-      val hc = HeaderCarrier(authorization = Some(Authorization(authToken)), sessionId = Some(SessionId(sessionId)))
+      given hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(authToken)), sessionId = Some(SessionId(sessionId)))
 
       givenAuthorisedFor(
         authoriseRequest,
@@ -88,7 +88,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
         )
       )
       val sessionOpt =
-        await(underTest.maybeExternalSession(planetId, authenticationService.authenticate)(ec, hc))
+        await(underTest.maybeExternalSession(planetId, authenticationService.authenticate))
       sessionOpt shouldBe defined
       val session = sessionOpt.get
       session.authToken shouldBe BearerToken.unapply(authToken).get
@@ -109,7 +109,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       user.confidenceLevel shouldBe None
       user.credentialStrength shouldBe None
       user.credentialRole shouldBe Some("User")
-      user.nino shouldBe Some(Nino("AB 08 00 48 B"))
+      user.nino shouldBe Some(Generator.ninoWithSpaces("AgentFoo"))
       user.groupId shouldBe Some("foo-group-1")
       user.name shouldBe Some("Foo Bar")
       user.dateOfBirth shouldBe defined
@@ -122,7 +122,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       val planetId = UUID.randomUUID().toString
       val authToken = "Bearer " + UUID.randomUUID().toString
       val sessionId = UUID.randomUUID().toString
-      val hc = HeaderCarrier(authorization = Some(Authorization(authToken)), sessionId = Some(SessionId(sessionId)))
+      given hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(authToken)), sessionId = Some(SessionId(sessionId)))
 
       givenAuthorisedFor(
         authoriseRequest,
@@ -142,7 +142,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       )
 
       val sessionOpt =
-        await(underTest.maybeExternalSession(planetId, authenticationService.authenticate)(ec, hc))
+        await(underTest.maybeExternalSession(planetId, authenticationService.authenticate))
       sessionOpt shouldBe defined
       val session = sessionOpt.get
       session.authToken shouldBe BearerToken.unapply(authToken).get
@@ -174,18 +174,18 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
 
     "consult external auth service, and if session missing do nothing" in {
       val planetId = UUID.randomUUID().toString
-      val hc = HeaderCarrier(authorization = Some(Authorization(UUID.randomUUID().toString)))
+      given hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(UUID.randomUUID().toString)))
 
       givenUnauthorised
 
       val sessionOpt =
-        await(underTest.maybeExternalSession(planetId, authenticationService.authenticate)(ec, hc))
+        await(underTest.maybeExternalSession(planetId, authenticationService.authenticate))
       sessionOpt shouldBe None
     }
 
     "consult external auth service, and if session exists recreate session and merge individual user" in {
       val planetId = UUID.randomUUID().toString
-      val hc = HeaderCarrier(authorization = Some(Authorization("Bearer " + UUID.randomUUID().toString)))
+      given hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization("Bearer " + UUID.randomUUID().toString)))
 
       val existingUser = await(
         usersService.createUser(
@@ -217,7 +217,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       )
 
       val sessionOpt =
-        await(underTest.maybeExternalSession(planetId, authenticationService.authenticate)(ec, hc))
+        await(underTest.maybeExternalSession(planetId, authenticationService.authenticate))
       sessionOpt shouldBe defined
 
       val (userOpt, groupOpt) = await(usersService.findUserAndGroup("UserFoo", sessionOpt.get.planetId))
@@ -247,7 +247,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       val planetId = UUID.randomUUID().toString
       val authToken = "Bearer " + UUID.randomUUID().toString
       val sessionId = UUID.randomUUID().toString
-      val hc = HeaderCarrier(authorization = Some(Authorization(authToken)), sessionId = Some(SessionId(sessionId)))
+      given hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(authToken)), sessionId = Some(SessionId(sessionId)))
 
       givenAuthorisedFor(
         s"""
@@ -283,7 +283,7 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       )
 
       val sessionOpt =
-        await(underTest.maybeExternalSession(planetId, authenticationService.authenticate)(ec, hc))
+        await(underTest.maybeExternalSession(planetId, authenticationService.authenticate))
       sessionOpt shouldBe defined
       val session = sessionOpt.get
       session.authToken shouldBe BearerToken.unapply(authToken).get

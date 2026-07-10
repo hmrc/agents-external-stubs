@@ -21,10 +21,10 @@ import java.util.function.BiFunction
 import com.github.blemale.scaffeine.{Cache, Scaffeine}
 import uk.gov.hmrc.agentsexternalstubs.controllers.AuthStubController.Authorise
 import uk.gov.hmrc.agentsexternalstubs.models.Retrieve.MaybeResponse
-import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.*
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 object AuthorisationCache {
 
@@ -41,7 +41,7 @@ object AuthorisationCache {
 
   def get(authenticatedSession: AuthenticatedSession, authoriseRequest: AuthoriseRequest): Option[MaybeResponse] = {
     val key = s"${authenticatedSession.userId}@${authenticatedSession.planetId}"
-    if (isEligibleToCache(authoriseRequest))
+    if isEligibleToCache(authoriseRequest) then
       authPlanetCache
         .getIfPresent(key)
         .flatMap(m => Option(m.get(authoriseRequest)))
@@ -54,7 +54,7 @@ object AuthorisationCache {
     maybeResponse: MaybeResponse
   ): Unit = {
     val key = s"${authenticatedSession.userId}@${authenticatedSession.planetId}"
-    if (isEligibleToCache(authoriseRequest))
+    if isEligibleToCache(authoriseRequest) then
       authPlanetCache
         .get(key, _ => new ConcurrentHashMap[AuthoriseRequest, Retrieve.MaybeResponse]())
         .put(authoriseRequest, maybeResponse)
@@ -67,7 +67,7 @@ object AuthorisationCache {
     userService: UsersService,
     groupsService: GroupsService,
     planetId: String
-  )(implicit ec: ExecutionContext): Unit = {
+  )(using _ec: ExecutionContext): Unit = {
     val key = s"${user.userId}@$planetId"
     authPlanetCache
       .get(key, _ => new ConcurrentHashMap[AuthoriseRequest, Retrieve.MaybeResponse]())
@@ -75,7 +75,15 @@ object AuthorisationCache {
         override def apply(authoriseRequest: AuthoriseRequest, u: MaybeResponse): MaybeResponse =
           Authorise
             .prepareAuthoriseResponse(
-              SimplifiedAuthoriseContext(authoriseRequest, user, group, userService, groupsService, Some(planetId))
+              SimplifiedAuthoriseContext(
+                authoriseRequest,
+                user,
+                group,
+                userService,
+                groupsService,
+                Some(planetId),
+                _ec
+              )
             )
       })
 
@@ -95,9 +103,12 @@ case class SimplifiedAuthoriseContext(
   group: Option[Group],
   userService: UsersService,
   groupsService: GroupsService,
-  planetId: Option[String]
-)(implicit val ec: ExecutionContext)
+  planetId: Option[String],
+  executionContext: ExecutionContext
+)
     extends AuthoriseUserContext(user, group) {
+
+  given ec: ExecutionContext = executionContext
 
   override def userId: String = user.userId
   override def providerType: String = "GovernmentGateway"

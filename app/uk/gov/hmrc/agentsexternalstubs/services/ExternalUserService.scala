@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 
 import javax.inject.{Inject, Provider, Singleton}
 import play.api.{Logger, Logging}
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
 import uk.gov.hmrc.agentsexternalstubs.connectors.ApiPlatformTestUserConnector
 import uk.gov.hmrc.agentsexternalstubs.models.ApiPlatform.TestUser
 import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, Planet, User}
@@ -39,8 +39,8 @@ class ExternalUserService @Inject() (
   private def maybeSyncExternalUser(
     userIdentifier: TaxIdentifier,
     planetId: String
-  )(implicit ec: ExecutionContext): Future[Option[User]] = {
-    implicit val hc: HeaderCarrier = HeaderCarrier()
+  )(using ec: ExecutionContext): Future[Option[User]] = {
+    given HeaderCarrier = HeaderCarrier()
     def userFromApiPlatform(id: TaxIdentifier): Future[Option[TestUser]] = id match {
       case nino: Nino =>
         apiPlatformTestUserConnector.getIndividualUserByNino(nino.value)
@@ -63,7 +63,7 @@ class ExternalUserService @Inject() (
         )
     }
 
-    if (appConfig.syncUsersAllPlanets || planetId == Planet.DEFAULT) {
+    if appConfig.syncUsersAllPlanets || planetId == Planet.DEFAULT then
       userFromApiPlatform(userIdentifier)
         .flatMap {
           case None =>
@@ -85,21 +85,21 @@ class ExternalUserService @Inject() (
           Logger(getClass).error(s"External user sync failed with ${e.getMessage}")
           None
         }
-    } else Future.successful(None)
+    else Future.successful(None)
   }
 
   def lookupExternalUser(
     userIdentifier: TaxIdentifier,
     planetId: String
-  )(implicit ec: ExecutionContext): Future[Option[User]] =
-    if (appConfig.syncUsersAllPlanets || planetId == Planet.DEFAULT)
+  )(using ec: ExecutionContext): Future[Option[User]] =
+    if appConfig.syncUsersAllPlanets || planetId == Planet.DEFAULT then
       maybeSyncExternalUser(userIdentifier, planetId)
     else Future.successful(None)
 
   def lookupExternalUserByEnrolmentKey(
     enrolmentKey: EnrolmentKey,
     planetId: String
-  )(implicit ec: ExecutionContext): Future[Option[User]] =
+  )(using ec: ExecutionContext): Future[Option[User]] =
     identifierFor(enrolmentKey) match {
       case None                 => Future.successful(None)
       case Some(userIdentifier) => lookupExternalUser(userIdentifier, planetId)
@@ -109,7 +109,7 @@ class ExternalUserService @Inject() (
   def syncAndRetry[A](
     userIdentifier: TaxIdentifier,
     planetId: String
-  )(block: () => Future[Option[A]])(implicit ec: ExecutionContext): Future[Option[A]] =
+  )(block: () => Future[Option[A]])(using ec: ExecutionContext): Future[Option[A]] =
     block().flatMap {
       case Some(a) => Future.successful(Some(a))
       case None =>

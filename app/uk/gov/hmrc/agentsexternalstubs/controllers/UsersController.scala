@@ -17,8 +17,8 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import javax.inject.{Inject, Singleton}
-import play.api.libs.json.JsValue
-import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
+import play.api.libs.json.{JsValue, Reads}
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Request, Result}
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models.{ApiPlatform, RegexPatterns, User, UserIdGenerator, Users}
 import uk.gov.hmrc.agentsexternalstubs.repository.DuplicateUserException
@@ -34,7 +34,7 @@ class UsersController @Inject() (
   groupsService: GroupsService,
   val authenticationService: AuthenticationService,
   cc: ControllerComponents
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
   val userIdFromPool = "userIdFromPool"
@@ -47,7 +47,8 @@ class UsersController @Inject() (
     principalEnrolmentService: Option[String],
     userId: Option[String]
   ): Action[AnyContent] =
-    Action.async { implicit request =>
+    Action.async { request =>
+      given Request[AnyContent] = request
       withCurrentSession { session =>
         require(
           !(agentCode.isDefined && groupId.isDefined),
@@ -87,7 +88,7 @@ class UsersController @Inject() (
           case _ => usersService.findByPlanetId(session.planetId)(effectiveLimit)
         }
         futureUsers.map { users =>
-          val modifiedUsers = if (requireModifiedLimit) {
+          val modifiedUsers = if requireModifiedLimit then
             users
               .filter(user => userId.forall(user.userId.contains(_)))
               .filter { user =>
@@ -95,15 +96,15 @@ class UsersController @Inject() (
                 principalEnrolmentService.forall(userPrincipalEnrolmentServices.contains(_))
               }
               .take(limit.getOrElse(100))
-          } else {
+          else
             users.take(limit.getOrElse(100))
-          }
           Ok(RestfulResponse(Users(modifiedUsers)))
         }
       }(SessionRecordNotFound)
     }
 
-  def getUser(userId: String): Action[AnyContent] = Action.async { implicit request =>
+  def getUser(userId: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       usersService.findByUserId(userId, session.planetId).map {
         case Some(user) =>
@@ -114,29 +115,31 @@ class UsersController @Inject() (
               Link("delete", routes.UsersController.deleteUser(userId).url),
               Link("store", routes.UsersController.createUser(None).url),
               Link("list", routes.UsersController.getUsers(None, None).url)
-            )(User.writes)
+            )(using User.writes)
           )
         case None => notFound("USER_NOT_FOUND", s"Could not found user $userId")
       }
     }(SessionRecordNotFound)
   }
 
-  def getUserForNino(nino: String): Action[AnyContent] = Action.async { implicit request =>
+  def getUserForNino(nino: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       RegexPatterns.validNinoNoSpaces(nino) match {
         case Left(_) => badRequestF("INVALID_NINO", s"Provided NINO $nino is not valid")
         case Right(_) =>
           usersService.findByNino(nino, session.planetId).map {
-            case Some(user) => Ok(RestfulResponse(user)(User.writes))
+            case Some(user) => Ok(RestfulResponse(user)(using User.writes))
             case None       => notFound("USER_NOT_FOUND", s"Could not found user for nino $nino")
           }
       }
     }(SessionRecordNotFound)
   }
 
-  def updateCurrentUser: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+  def updateCurrentUser: Action[JsValue] = Action.async(parse.tolerantJson) { request =>
+    given Request[JsValue] = request
     withCurrentSession { session =>
-      implicit val userReads =
+      given userReads: Reads[User] =
         User.tolerantReads // tolerant Reads needed to allow enrolments without identifiers (to be populated by the sanitizer)
       withPayload[User](updatedUser =>
         usersService
@@ -153,9 +156,10 @@ class UsersController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def updateUser(userId: String): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+  def updateUser(userId: String): Action[JsValue] = Action.async(parse.tolerantJson) { request =>
+    given Request[JsValue] = request
     withCurrentSession { session =>
-      implicit val userReads =
+      given userReads: Reads[User] =
         User.tolerantReads // tolerant Reads needed to allow enrolments without identifiers (to be populated by the sanitizer)
       withPayload[User] { updatedUser =>
         usersService
@@ -177,16 +181,17 @@ class UsersController @Inject() (
     * The value supplied explicitly, if any, takes precedence.
     */
   def createUser(affinityGroup: Option[String], planetId: Option[String] = None): Action[JsValue] =
-    Action.async(parse.tolerantJson) { implicit request =>
+    Action.async(parse.tolerantJson) { request =>
+      given Request[JsValue] = request
       def doCreateUser(planetId: String): Future[Result] = {
-        implicit val userReads =
+        given userReads: Reads[User] =
           User.tolerantReads // tolerant Reads needed to allow enrolments without identifiers (to be populated by the sanitizer)
         withPayload[User] { newUser =>
           usersService
             .createUser(
               newUser.copy(
                 userId =
-                  if (newUser.userId == null)
+                  if newUser.userId == null then
                     UserIdGenerator.nextUserIdFor(planetId, request.getQueryString(userIdFromPool).isDefined)
                   else newUser.userId
               ),
@@ -212,7 +217,8 @@ class UsersController @Inject() (
       })
     }
 
-  def deleteUser(userId: String): Action[AnyContent] = Action.async { implicit request =>
+  def deleteUser(userId: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       usersService.findByUserId(userId, session.planetId).flatMap {
         case Some(_) => usersService.deleteUser(userId, session.planetId).map(_ => NoContent)
@@ -221,13 +227,14 @@ class UsersController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def createApiPlatformTestUser(): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+  def createApiPlatformTestUser(): Action[JsValue] = Action.async(parse.tolerantJson) { request =>
+    given Request[JsValue] = request
     withMaybeCurrentSession { maybeSession =>
-      val planetId = CurrentPlanetId(maybeSession, request)
+      val planetId = CurrentPlanetId(maybeSession)
       withPayload[ApiPlatform.TestUser] { testUser =>
         val (user, group) = ApiPlatform.TestUser.asUserAndGroup(testUser)
         (for {
-          createdGroup <- groupsService.createGroup(group, planetId)
+          _            <- groupsService.createGroup(group, planetId)
           createdUser  <- usersService.createUser(user, planetId, Some(testUser.affinityGroup))
         } yield Created(s"API Platform test user ${createdUser.userId} has been created on the planet $planetId")
           .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(createdUser.userId).url)).recover {
@@ -238,7 +245,8 @@ class UsersController @Inject() (
     }
   }
 
-  def reindexAllUsers(): Action[AnyContent] = Action.async { implicit request =>
+  def reindexAllUsers(): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { _ =>
       usersService.reindexAllUsers.map(result => Ok(result.toString))
     }(SessionRecordNotFound)

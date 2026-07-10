@@ -30,11 +30,11 @@ object GroupUsersValidator {
   type GroupConstraint = Seq[User] => Validated[String, Unit]
 
   val groupMustHaveOneAndAtMostOneAdmin: GroupConstraint = users =>
-    if (users.isEmpty || users.count(_.isAdmin) == 1) Valid(())
+    if users.isEmpty || users.count(_.isAdmin) == 1 then Valid(())
     else Invalid("Group MUST have one and at most one Admin")
 
   val groupMayNotHaveOnlyAssistants: GroupConstraint = users =>
-    if (users.isEmpty || !users.forall(_.isAssistant)) Valid(())
+    if users.isEmpty || !users.forall(_.isAssistant) then Valid(())
     else Invalid("Group MAY NOT consist of Assistants only")
 
   private val constraints: Seq[GroupConstraint] =
@@ -43,6 +43,6 @@ object GroupUsersValidator {
       groupMayNotHaveOnlyAssistants
     )
 
-  val validate: Seq[User] => Validated[List[String], Unit] = Validator.validate(constraints: _*)
+  val validate: Seq[User] => Validated[List[String], Unit] = Validator.validate(constraints*)
 
 }

@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.services
 
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
 import uk.gov.hmrc.agentsexternalstubs.models.RelationshipRecord
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.http.BadRequestException
@@ -31,7 +31,7 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
   private val MAX_DOCS = 1000
 
   def store(record: RelationshipRecord, autoFill: Boolean, planetId: String): Future[String] = {
-    val entity = if (autoFill) RelationshipRecord.sanitize(record.arn)(record) else record
+    val entity = if autoFill then RelationshipRecord.sanitize(record.arn)(record) else record
     RelationshipRecord
       .validate(entity)
       .fold(
@@ -40,12 +40,10 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
       )
   }
 
-  def authorise(relationship: RelationshipRecord, planetId: String, isExclusiveAgent: Boolean = true)(implicit
-    ec: ExecutionContext
-  ): Future[Unit] =
+  def authorise(relationship: RelationshipRecord, planetId: String, isExclusiveAgent: Boolean = true)(using ec: ExecutionContext): Future[Unit] =
     for {
       existing <-
-        if (isExclusiveAgent)
+        if isExclusiveAgent then
           findByKey(
             RelationshipRecord.clientWithAuthProfileKey(
               relationship.regime,
@@ -63,9 +61,7 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
              .store[RelationshipRecord](relationship.copy(active = true, startDate = Some(LocalDate.now())), planetId)
     } yield ()
 
-  def deAuthorise(relationship: RelationshipRecord, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[Seq[String]] =
+  def deAuthorise(relationship: RelationshipRecord, planetId: String)(using ec: ExecutionContext): Future[Seq[String]] =
     for {
       existing <- relationship.authProfile match {
                     case Some(authProfile) =>
@@ -93,9 +89,7 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
 
     } yield result
 
-  private def deActivate(relationships: Seq[RelationshipRecord], planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[Seq[String]] =
+  private def deActivate(relationships: Seq[RelationshipRecord], planetId: String)(using ec: ExecutionContext): Future[Seq[String]] =
     Future.sequence(
       relationships
         .filter(_.active)
@@ -109,32 +103,29 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
   def findByKeys(keys: Seq[String], planetId: String): Future[Seq[RelationshipRecord]] =
     recordsRepository.findByKeys[RelationshipRecord](keys, planetId, limit = Some(MAX_DOCS))
 
-  def findByQuery(query: RelationshipRecordQuery, planetId: String)(implicit
-    ec: ExecutionContext
-  ): Future[Seq[RelationshipRecord]] = {
+  def findByQuery(query: RelationshipRecordQuery, planetId: String)(using ec: ExecutionContext): Future[Seq[RelationshipRecord]] = {
 
-    val maybeActiveOnly: RelationshipRecord => Boolean = r => if (query.activeOnly) r.active else true
+    val maybeActiveOnly: RelationshipRecord => Boolean = r => if query.activeOnly then r.active else true
 
     val maybeFromDate: RelationshipRecord => Boolean = r =>
-      if (query.activeOnly) true
+      if query.activeOnly then true
       else query.from.forall(qf => r.startDate.forall(rf => !rf.isBefore(qf)))
 
     val maybeToDate: RelationshipRecord => Boolean = r =>
-      if (query.activeOnly) true else query.to.forall(qt => r.startDate.forall(rt => !rt.isAfter(qt)))
+      if query.activeOnly then true else query.to.forall(qt => r.startDate.forall(rt => !rt.isAfter(qt)))
 
     val keys =
-      if (query.agent) {
-        if (!query.activeOnly && query.regime == "AGSV") { //AGSV to retrieve all types of inactive relationships
+      if query.agent then
+        if !query.activeOnly && query.regime == "AGSV" then //AGSV to retrieve all types of inactive relationships
           RelationshipRecord.agentKeys(query.arn.getOrElse(throw new Exception("Missing arn parameter")))
-        } else {
+        else
           Seq(
             RelationshipRecord
               .agentKey(query.regime, query.arn.getOrElse(throw new Exception("Missing arn parameter")))
           )
-        }
-      } else {
+      else
         val refNum = query.getRefNumber.getOrElse(throw new Exception("Missing refNumber parameter"))
-        if (query.authProfile.isEmpty) {
+        if query.authProfile.isEmpty then
           Seq(
             RelationshipRecord.clientKey(
               query.regime,
@@ -142,7 +133,7 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
               refNum
             )
           )
-        } else {
+        else
           Seq(
             RelationshipRecord.clientWithAuthProfileKey(
               query.regime,
@@ -151,9 +142,6 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
               query.authProfile.get
             )
           )
-        }
-
-      }
 
     findByKeys(keys, planetId)
       .map(
@@ -168,15 +156,16 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
    * For example, for ITSA idType param is not required in the request, but when the record was created
    * (via API#1167) idType was supplied and therefore included in the stub record.
    * */
-  private def idType(suppliedIdType: String, refNumber: String): String = if (suppliedIdType == "none")
-    refNumber match {
-      case value if MtdItId.isValid(value) => "MTDBSA"
-      case value =>
-        throw new RuntimeException(
-          s"idType was not supplied in the query and refNumber $value has not been implemented as a idType lookup"
-        )
-    }
-  else suppliedIdType
+  private def idType(suppliedIdType: String, refNumber: String): String =
+    if suppliedIdType == "none" then
+      refNumber match {
+        case value if MtdItId.isValid(value) => "MTDBSA"
+        case value =>
+          throw new RuntimeException(
+            s"idType was not supplied in the query and refNumber $value has not been implemented as a idType lookup"
+          )
+      }
+    else suppliedIdType
 }
 
 case class RelationshipRecordQuery(
@@ -193,4 +182,52 @@ case class RelationshipRecordQuery(
   authProfile: Option[String] = None
 ) {
   def getRefNumber: Option[String] = Seq(refNumber, referenceNumber).flatten.headOption
+}
+
+object RelationshipRecordQuery {
+  def apply(
+    regime: String,
+    arn: Option[String],
+    idType: String,
+    activeOnly: Boolean,
+    agent: Boolean,
+    from: Option[LocalDate],
+    to: Option[LocalDate],
+    relationship: Option[String],
+    authProfile: Option[String]
+  ): RelationshipRecordQuery =
+    new RelationshipRecordQuery(regime, arn, idType, None, None, activeOnly, agent, from, to, relationship, authProfile)
+
+  def unapply(
+    query: RelationshipRecordQuery
+  ): Option[
+    (
+      String,
+      Option[String],
+      String,
+      Option[String],
+      Option[String],
+      Boolean,
+      Boolean,
+      Option[LocalDate],
+      Option[LocalDate],
+      Option[String],
+      Option[String]
+    )
+  ] =
+    Some(
+      (
+        query.regime,
+        query.arn,
+        query.idType,
+        query.refNumber,
+        query.referenceNumber,
+        query.activeOnly,
+        query.agent,
+        query.from,
+        query.to,
+        query.relationship,
+        query.authProfile
+      )
+    )
 }
