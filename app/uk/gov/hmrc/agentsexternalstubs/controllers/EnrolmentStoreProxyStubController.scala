@@ -144,9 +144,8 @@ class EnrolmentStoreProxyStubController @Inject() (
         case None => NotFound
         case Some(group) =>
           val matched =
-            group.delegatedEnrolments.find { e =>
+            group.principalEnrolments.find { e =>
               val matches = e.toEnrolmentKey.exists(_.tag == enrolmentKey.tag)
-              println(s"$e -> $matches")
               matches
             }
           matched.fold(NotFound: Result) { e =>
