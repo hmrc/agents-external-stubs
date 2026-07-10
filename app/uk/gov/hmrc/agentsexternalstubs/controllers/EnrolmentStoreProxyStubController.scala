@@ -135,6 +135,34 @@ class EnrolmentStoreProxyStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
+  def getGroupAllocatedEnrolment(
+    groupId: String,
+    enrolmentKey: EnrolmentKey
+  ): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      groupsService.findByGroupId(groupId, session.planetId).map {
+        case None => NotFound
+        case Some(group) =>
+          val matched =
+            group.principalEnrolments.find { e =>
+              val matches = e.toEnrolmentKey.exists(_.tag == enrolmentKey.tag)
+              matches
+            }
+          matched.fold(NotFound: Result) { e =>
+            Ok(
+              Json.toJson(
+                Es5GroupAllocatedEnrolment(
+                  service = e.key,
+                  status = Some(e.state),
+                  enrolmentDate = Option(randomDateTimeInTheLastFiveYears)
+                )
+              )
+            )
+          }
+      }
+    }(SessionRecordNotFound)
+  }
+
   // ES8
   def allocateGroupEnrolment(
     groupId: String,
@@ -554,12 +582,6 @@ object EnrolmentStoreProxyStubController {
       )
     }
 
-    private def randomDateTimeInTheLastFiveYears: Instant = {
-      val start = LocalDate.now().minusYears(5)
-      val end = LocalDate.now()
-      Generator.date(start, end).sample.get.atStartOfDay(ZoneId.systemDefault).toInstant
-    }
-
     implicit val writes1: Writes[Enrolment] = Json.writes[Enrolment]
     implicit val writes2: Writes[GetUserEnrolmentsResponse] = Json.writes[GetUserEnrolmentsResponse]
   }
@@ -579,5 +601,21 @@ object EnrolmentStoreProxyStubController {
     val validate: Validator[SetFriendlyNameRequest] = Validator(
       checkProperty(_.friendlyName, es19FriendlyNameValidator)
     )
+  }
+
+  case class Es5GroupAllocatedEnrolment(
+    service: String,
+    status: Option[String],
+    enrolmentDate: Option[Instant]
+  )
+
+  object Es5GroupAllocatedEnrolment {
+    implicit val formats: OFormat[Es5GroupAllocatedEnrolment] = Json.format[Es5GroupAllocatedEnrolment]
+  }
+
+  private def randomDateTimeInTheLastFiveYears: Instant = {
+    val start = LocalDate.now().minusYears(5)
+    val end = LocalDate.now()
+    Generator.date(start, end).sample.get.atStartOfDay(ZoneId.systemDefault).toInstant
   }
 }

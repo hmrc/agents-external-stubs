@@ -72,7 +72,7 @@ object GroupGenerator {
                 " Professional",
                 " And " + ln,
                 " & " + ln,
-                "&" + ln,
+                "&" + ln
               )
   } yield s"$ln$suffix"
 

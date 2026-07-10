@@ -412,6 +412,16 @@ trait TestRequests extends ScalaFutures {
         .get()
         .futureValue
 
+    def getGroupAllocatedEnrolment(
+      groupId: String,
+      enrolmentKey: String
+    )(implicit authContext: AuthContext): WSResponse =
+      wsClient
+        .url(s"$url/enrolment-store-proxy/enrolment-store/groups/$groupId/enrolments/$enrolmentKey")
+        .withHttpHeaders(authContext.headers: _*)
+        .get()
+        .futureValue
+
     def allocateEnrolmentToGroup[T: BodyWritable](
       groupId: String,
       enrolmentKey: String,
