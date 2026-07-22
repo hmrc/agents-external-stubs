@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.services
 
+import play.api.Logger
 import play.api.libs.json.{Reads, Writes}
 import uk.gov.hmrc.agentsexternalstubs.models.{Record, RecordMetaData, RecordUtils, TakesKey}
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
@@ -80,14 +81,25 @@ final class RecordsService @Inject() (recordsRepository: RecordsRepository, exte
   /** Same as getRecord, but searches across all planets rather than a single known one, for use when there is no
     * session/planetId to scope the lookup to (e.g. a machine-to-machine caller with no resolvable session - see
     * ExternalCurrentSession). Only safe when the identifier is expected to be globally unique; if it collides
-    * across planets which match "wins" is arbitrary. Returns the owning planetId alongside the record.
+    * across planets, logs a warning and arbitrarily uses the first match. Returns the owning planetId alongside
+    * the record.
     */
   def getRecordAnyPlanet[A, K](identifier: K)(implicit
+    ec: ExecutionContext,
     metadata: RecordMetaData[A],
     ev: TakesKey[A, K],
     reads: Reads[A]
   ): Future[Option[(String, A)]] =
-    recordsRepository.findFirstByKeysAnyPlanet[A](ev.toKeys(identifier))
+    recordsRepository.findByKeysAnyPlanet[A](ev.toKeys(identifier), limit = 2).map { matches =>
+      if (matches.size > 1) {
+        Logger(getClass).warn(
+          s"getRecordAnyPlanet found more than one ${metadata.typeName} matching identifier '$identifier' " +
+            s"across planets [${matches.map(_._1).mkString(", ")}] - expected at most one match if this " +
+            s"identifier is meant to be globally unique. Arbitrarily using the first match."
+        )
+      }
+      matches.headOption
+    }
 
   def deleteRecord[A, K](identifier: K, planetId: String)(implicit
     ec: ExecutionContext,

@@ -57,15 +57,19 @@ trait RecordsRepository {
     reads: Reads[T]
   ): Future[Seq[T]]
 
-  /** Finds the first record matching any of the given keys, regardless of which planet it belongs to.
-    * Only safe to rely on when the identifier the keys are derived from is expected to be globally unique
-    * (e.g. a safeId minted uniquely per test run) - otherwise which planet's match "wins" is arbitrary.
-    * Returns the owning planetId alongside the record, since there is no session to source it from.
+  /** Finds records matching any of the given keys, regardless of which planet they belong to, up to `limit`.
+    * Only safe to rely on returning a single, unambiguous match when the identifier the keys are derived from
+    * is expected to be globally unique (e.g. a safeId minted uniquely per test run) - callers should treat more
+    * than one result as a sign that assumption doesn't hold. Returns the owning planetId alongside each record,
+    * since there is no session to source it from. Deliberately returns raw matches rather than picking a
+    * "winner" or logging here - `uk.gov.hmrc.agentsexternalstubs.repository` is configured ERROR-only in
+    * logback.xml, so a warning logged from this layer is silently swallowed; callers (e.g. RecordsService) are
+    * responsible for deciding how to handle/log ambiguity.
     */
-  def findFirstByKeysAnyPlanet[T](keys: Seq[String])(implicit
+  def findByKeysAnyPlanet[T](keys: Seq[String], limit: Int)(implicit
     recordType: RecordMetaData[T],
     reads: Reads[T]
-  ): Future[Option[(String, T)]]
+  ): Future[Seq[(String, T)]]
 
   def findById[T](id: String, planetId: String)(implicit reads: Reads[T]): Future[Option[T]]
 
@@ -204,10 +208,10 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppCon
       .toFuture()
       .map(_.map(_.value.asInstanceOf[T]))
 
-  override def findFirstByKeysAnyPlanet[T](keys: Seq[String])(implicit
+  override def findByKeysAnyPlanet[T](keys: Seq[String], limit: Int)(implicit
     recordType: RecordMetaData[T],
     reads: Reads[T]
-  ): Future[Option[(String, T)]] = {
+  ): Future[Seq[(String, T)]] = {
     // Same normalisation as keyOf, minus the "@planetId" suffix - anchored-prefix regex against the
     // existing KEYS index, so this doesn't need a new index or a schema change.
     val prefixPattern = keys
@@ -215,7 +219,8 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppCon
       .mkString("|")
     collection
       .find(Filters.regex(KEYS, prefixPattern))
-      .headOption()
+      .limit(limit)
+      .toFuture()
       .map(_.map(doc => (doc.extraFields(PLANET_ID).as[String], doc.value.asInstanceOf[T])))
   }
 
