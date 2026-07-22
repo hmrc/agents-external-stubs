@@ -177,7 +177,21 @@ class EnrolmentStoreProxyStubController @Inject() (
             error => badRequestF("INVALID_JSON_BODY", error.mkString(", ")),
             _ =>
               (for {
-                maybeUser <- usersService.findByUserId(payload.userId, session.planetId)
+                maybeUserByPayload <- usersService.findByUserId(payload.userId, session.planetId)
+                // The session.userId fallback below is scoped to the backend/scheduler shape only —
+                // no `Authorization` bearer AND no `X-Session-ID`. Authenticated callers (real UI
+                // sessions or bearer-authed API tests) keep the strict lookup and still get 403 on
+                // an unknown `payload.userId`, so existing "return 403 if userId does not exist"
+                // integration tests are preserved. Only requests routed in via `X-Planet-Id` alone
+                // (agent-registration-risking's SubscriptionService) benefit from the fallback.
+                maybeUser <- maybeUserByPayload match {
+                               case some @ Some(_) => Future.successful(some)
+                               case None
+                                   if request.headers.get("Authorization").isEmpty &&
+                                     request.headers.get(uk.gov.hmrc.http.HeaderNames.xSessionId).isEmpty =>
+                                 usersService.findByUserId(session.userId, session.planetId)
+                               case None => Future.successful(None)
+                             }
                 user = maybeUser match {
                          case Some(usr)
                              if usr.credentialRole.exists(cr => Seq(User.CR.User, User.CR.Admin).contains(cr)) =>
@@ -193,10 +207,12 @@ class EnrolmentStoreProxyStubController @Inject() (
                          `legacy-agentCode`,
                          session.planetId
                        )
-                // Assign the new enrolment to the user specified in the payload (as per EACD behaviour spec)
+                // Assign the new enrolment to the resolved user (== payload.userId on the happy
+                // path, session.userId on the stubs fallback above) so we never target a userId
+                // that doesn't exist on the planet.
                 _ <- usersService
                        .assignEnrolmentToUser(
-                         userId = payload.userId,
+                         userId = user.userId,
                          enrolmentKey = enrolmentKey,
                          planetId = session.planetId
                        )
