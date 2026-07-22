@@ -119,41 +119,42 @@ trait ExternalCurrentSession extends DesHttpHelpers {
 
   final def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(
     ifSessionNotFound: => Future[Result]
-  )(implicit request: Request[T], ec: ExecutionContext): Future[Result] =
-    // When DES request originates from an authenticated UI session
-    request.headers.get(uk.gov.hmrc.http.HeaderNames.xSessionId) match {
-      case Some(sessionId) =>
-        (for {
-          maybeSession <- authenticationService.findBySessionId(sessionId)
-          result <- maybeSession match {
-                      case Some(session) =>
-                        body(session)
-                      case _ =>
-                        Logger(getClass).warn(
-                          s"AuthenticatedSession for sessionIs=$sessionId not found, cannot continue to DES stubs"
-                        )
-                        ifSessionNotFound
-                    }
-        } yield result)
-          .recover(errorHandler)
-      case None =>
-        // When DES request originates from an API gateway
-        val planetId = CurrentPlanetId(None, request)
-        (for {
-          maybeSession <- authenticationService.findByPlanetId(planetId)
-          result <- maybeSession match {
-                      case Some(session) =>
-                        body(session)
-                      case _ =>
-                        Logger(getClass).warn(
-                          s"AuthenticatedSession for planetId=$planetId not found, cannot continue to DES stubs"
-                        )
-                        ifSessionNotFound
-                    }
-        } yield result)
-          .recover(errorHandler)
+  )(implicit request: Request[T], ec: ExecutionContext): Future[Result] = {
 
+    // When DES request originates from an API gateway (no X-Session-ID at all), or
+    // carries an X-Session-ID that doesn't correspond to any session we know about
+    // (e.g. an incidental tracing session id forwarded by hmrc-http's internal-host
+    // header propagation on a machine-to-machine call) - fall back to whatever session
+    // currently exists on the default planet.
+    def fallBackToDefaultPlanet(): Future[Result] = {
+      val planetId = CurrentPlanetId(None, request)
+      authenticationService.findByPlanetId(planetId).flatMap {
+        case Some(session) =>
+          body(session)
+        case _ =>
+          Logger(getClass).warn(
+            s"AuthenticatedSession for planetId=$planetId not found, cannot continue to DES stubs"
+          )
+          ifSessionNotFound
+      }
     }
+
+    (request.headers.get(uk.gov.hmrc.http.HeaderNames.xSessionId) match {
+      case Some(sessionId) =>
+        // When DES request originates from an authenticated UI session
+        authenticationService.findBySessionId(sessionId).flatMap {
+          case Some(session) =>
+            body(session)
+          case _ =>
+            Logger(getClass).warn(
+              s"AuthenticatedSession for sessionId=$sessionId not found, falling back to default planet"
+            )
+            fallBackToDefaultPlanet()
+        }
+      case None =>
+        fallBackToDefaultPlanet()
+    }).recover(errorHandler)
+  }
 
 }
 
