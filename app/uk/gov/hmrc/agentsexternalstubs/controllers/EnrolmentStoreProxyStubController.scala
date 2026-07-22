@@ -178,18 +178,10 @@ class EnrolmentStoreProxyStubController @Inject() (
             _ =>
               (for {
                 maybeUserByPayload <- usersService.findByUserId(payload.userId, session.planetId)
-                // The session.userId fallback below is scoped to the backend/scheduler shape only —
-                // no `Authorization` bearer AND no `X-Session-ID`. Authenticated callers (real UI
-                // sessions or bearer-authed API tests) keep the strict lookup and still get 403 on
-                // an unknown `payload.userId`, so existing "return 403 if userId does not exist"
-                // integration tests are preserved. Only requests routed in via `X-Planet-Id` alone
-                // (agent-registration-risking's SubscriptionService) benefit from the fallback.
                 maybeUser <- maybeUserByPayload match {
                                case some @ Some(_) => Future.successful(some)
-                               case None
-                                   if request.headers.get("Authorization").isEmpty &&
-                                     request.headers.get(uk.gov.hmrc.http.HeaderNames.xSessionId).isEmpty =>
-                                 usersService.findByUserId(session.userId, session.planetId)
+                               case None if request.headers.get("X-Planet-Id").isDefined =>
+                                 usersService.findAdminByGroupId(groupId, session.planetId)
                                case None => Future.successful(None)
                              }
                 user = maybeUser match {
