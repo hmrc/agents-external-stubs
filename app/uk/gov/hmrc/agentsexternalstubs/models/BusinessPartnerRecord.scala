@@ -1144,7 +1144,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
   object Common {
     val eoriPattern = """^[A-z]{2}[0-9]{10,15}$"""
     val ninoPattern = """^((?!(BG|GB|KN|NK|NT|TN|ZZ)|(D|F|I|Q|U|V)[A-Z]|[A-Z](D|F|I|O|Q|U|V))[A-Z]{2})[0-9]{6}[A-D]?$"""
-    val phoneNumberPattern = """^[A-Z0-9 )/(*#-]+$"""
+    val phoneNumberPattern = """^[A-Z0-9 )/(*#+-]+$"""
     val countryCodeEnum0 = Seq(
       "AD",
       "AE",

@@ -177,7 +177,13 @@ class EnrolmentStoreProxyStubController @Inject() (
             error => badRequestF("INVALID_JSON_BODY", error.mkString(", ")),
             _ =>
               (for {
-                maybeUser <- usersService.findByUserId(payload.userId, session.planetId)
+                maybeUserByPayload <- usersService.findByUserId(payload.userId, session.planetId)
+                maybeUser <- maybeUserByPayload match {
+                               case some @ Some(_) => Future.successful(some)
+                               case None if request.headers.get("X-Planet-Id").isDefined =>
+                                 usersService.findAdminByGroupId(groupId, session.planetId)
+                               case None => Future.successful(None)
+                             }
                 user = maybeUser match {
                          case Some(usr)
                              if usr.credentialRole.exists(cr => Seq(User.CR.User, User.CR.Admin).contains(cr)) =>
@@ -193,10 +199,12 @@ class EnrolmentStoreProxyStubController @Inject() (
                          `legacy-agentCode`,
                          session.planetId
                        )
-                // Assign the new enrolment to the user specified in the payload (as per EACD behaviour spec)
+                // Assign the new enrolment to the resolved user (== payload.userId on the happy
+                // path, session.userId on the stubs fallback above) so we never target a userId
+                // that doesn't exist on the planet.
                 _ <- usersService
                        .assignEnrolmentToUser(
-                         userId = payload.userId,
+                         userId = user.userId,
                          enrolmentKey = enrolmentKey,
                          planetId = session.planetId
                        )

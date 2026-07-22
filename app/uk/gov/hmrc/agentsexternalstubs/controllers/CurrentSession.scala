@@ -65,7 +65,10 @@ trait CurrentSession extends HttpHelpers with RequestAwareLogging {
                                }
                              case some => Future.successful(some)
                            }
-          result <- body(maybeSession2)
+          maybeSession3 = maybeSession2.orElse(
+                            request.headers.get("X-Planet-Id").map(CurrentSession.synthesizeStubsPlanetSession)
+                          )
+          result <- body(maybeSession3)
         } yield result
     }
 
@@ -137,24 +140,41 @@ trait ExternalCurrentSession extends DesHttpHelpers {
         } yield result)
           .recover(errorHandler)
       case None =>
-        // When DES request originates from an API gateway
-        val planetId = CurrentPlanetId(None, request)
-        (for {
-          maybeSession <- authenticationService.findByPlanetId(planetId)
-          result <- maybeSession match {
-                      case Some(session) =>
-                        body(session)
-                      case _ =>
-                        Logger(getClass).warn(
-                          s"AuthenticatedSession for planetId=$planetId not found, cannot continue to DES stubs"
-                        )
-                        ifSessionNotFound
-                    }
-        } yield result)
-          .recover(errorHandler)
+        request.headers.get("X-Planet-Id") match {
+          case Some(planetId) =>
+            body(CurrentSession.synthesizeStubsPlanetSession(planetId)).recover(errorHandler)
+          case None =>
+            val planetId = CurrentPlanetId(None, request)
+            (for {
+              maybeSession <- authenticationService.findByPlanetId(planetId)
+              result <- maybeSession match {
+                          case Some(session) =>
+                            body(session)
+                          case _ =>
+                            Logger(getClass).warn(
+                              s"AuthenticatedSession for planetId=$planetId not found, cannot continue to DES stubs"
+                            )
+                            ifSessionNotFound
+                        }
+            } yield result)
+              .recover(errorHandler)
+        }
 
     }
 
+}
+
+object CurrentSession {
+  val StubsPlanetHeaderSentinel: String = "stubs-planet-header-fallback"
+
+  def synthesizeStubsPlanetSession(planetId: String): AuthenticatedSession =
+    AuthenticatedSession(
+      sessionId = StubsPlanetHeaderSentinel,
+      userId = StubsPlanetHeaderSentinel,
+      authToken = StubsPlanetHeaderSentinel,
+      providerType = "GovernmentGateway",
+      planetId = planetId
+    )
 }
 
 object CurrentPlanetId {
