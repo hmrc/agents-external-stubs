@@ -57,6 +57,16 @@ trait RecordsRepository {
     reads: Reads[T]
   ): Future[Seq[T]]
 
+  /** Finds the first record matching any of the given keys, regardless of which planet it belongs to.
+    * Only safe to rely on when the identifier the keys are derived from is expected to be globally unique
+    * (e.g. a safeId minted uniquely per test run) - otherwise which planet's match "wins" is arbitrary.
+    * Returns the owning planetId alongside the record, since there is no session to source it from.
+    */
+  def findFirstByKeysAnyPlanet[T](keys: Seq[String])(implicit
+    recordType: RecordMetaData[T],
+    reads: Reads[T]
+  ): Future[Option[(String, T)]]
+
   def findById[T](id: String, planetId: String)(implicit reads: Reads[T]): Future[Option[T]]
 
   def findByPlanetId(planetId: String, limit: Option[Int] = None): Future[Seq[Record]]
@@ -193,6 +203,21 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppCon
       .|>(o => if (limit.exists(_ >= 0)) o.limit(limit.get) else o)
       .toFuture()
       .map(_.map(_.value.asInstanceOf[T]))
+
+  override def findFirstByKeysAnyPlanet[T](keys: Seq[String])(implicit
+    recordType: RecordMetaData[T],
+    reads: Reads[T]
+  ): Future[Option[(String, T)]] = {
+    // Same normalisation as keyOf, minus the "@planetId" suffix - anchored-prefix regex against the
+    // existing KEYS index, so this doesn't need a new index or a schema change.
+    val prefixPattern = keys
+      .map(key => "^" + java.util.regex.Pattern.quote(s"${recordType.typeName}:${key.replace(" ", "").toLowerCase}@"))
+      .mkString("|")
+    collection
+      .find(Filters.regex(KEYS, prefixPattern))
+      .headOption()
+      .map(_.map(doc => (doc.extraFields(PLANET_ID).as[String], doc.value.asInstanceOf[T])))
+  }
 
   override def findById[T](id: String, planetId: String)(implicit reads: Reads[T]): Future[Option[T]] =
     collection

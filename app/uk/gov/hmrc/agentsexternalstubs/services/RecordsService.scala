@@ -77,6 +77,18 @@ final class RecordsService @Inject() (recordsRepository: RecordsRepository, exte
         getRecord[A, K](identifier, planetId)
       }
 
+  /** Same as getRecord, but searches across all planets rather than a single known one, for use when there is no
+    * session/planetId to scope the lookup to (e.g. a machine-to-machine caller with no resolvable session - see
+    * ExternalCurrentSession). Only safe when the identifier is expected to be globally unique; if it collides
+    * across planets which match "wins" is arbitrary. Returns the owning planetId alongside the record.
+    */
+  def getRecordAnyPlanet[A, K](identifier: K)(implicit
+    metadata: RecordMetaData[A],
+    ev: TakesKey[A, K],
+    reads: Reads[A]
+  ): Future[Option[(String, A)]] =
+    recordsRepository.findFirstByKeysAnyPlanet[A](ev.toKeys(identifier))
+
   def deleteRecord[A, K](identifier: K, planetId: String)(implicit
     ec: ExecutionContext,
     metadata: RecordMetaData[A],

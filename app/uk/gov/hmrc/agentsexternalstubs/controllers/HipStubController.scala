@@ -111,51 +111,62 @@ class HipStubController @Inject() (
   }
 
   def getAgentSubscription(arn: String): Action[AnyContent] = Action.async { implicit request =>
-    withCurrentSession { session =>
-      hipStubService.validateBaseHeaders(
-        request.headers.get("X-Transmitting-System"),
-        request.headers.get("X-Originating-System"),
-        request.headers.get("correlationid"),
-        request.headers.get("X-Receipt-Date")
-      ) match {
-        case Left(_) =>
-          Future.successful(
-            Results.UnprocessableEntity(
-              Json.toJson(Errors("003", "Request could not be processed"))
-            )
-          )
-        case Right(_) =>
-          hipStubService.validateArn(arn) match {
-            case Left(_) =>
-              Future.successful(
-                Results.UnprocessableEntity(
-                  Json.toJson(Errors("003", "Request could not be processed"))
-                )
-              )
-            case Right(_) =>
-              recordsService
-                .getRecordMaybeExt[BusinessPartnerRecord, Arn](Arn(arn), session.planetId)
-                .map {
-                  case Some(record) if !record.isAnASAgent =>
-                    Results.UnprocessableEntity(
-                      Json.toJson(Errors("006", "Subscription Data Not Found"))
-                    )
-                  case Some(record) => Ok(Json.toJson(convertToGetAgentSubscriptionResponse(record)))
-                  case None =>
-                    Results.UnprocessableEntity(
-                      Json.toJson(Errors("006", "Subscription Data Not Found"))
-                    )
-                }
-                .recover { case e =>
-                  logger.error("Incomplete subscription", e)
-                  Results.InternalServerError(
-                    Json.parse("""{"error":{"code":"500","message":"Internal server error","logID": "1234567890"}}""")
-                  )
-                }
-          }
+    withCurrentSession(session => handleGetAgentSubscription(arn, session.planetId)) {
+      // No session resolvable (e.g. m2m caller with no live session on the default planet) - fall back to
+      // finding the BusinessPartnerRecord by arn regardless of planet. Only safe because arn/safeId are now
+      // minted globally unique per test run - see .claude/findings/validation-and-records.md.
+      recordsService.getRecordAnyPlanet[BusinessPartnerRecord, Arn](Arn(arn)).flatMap {
+        case Some((planetId, _)) => handleGetAgentSubscription(arn, planetId)
+        case None                => SessionRecordNotFound
       }
-    }(SessionRecordNotFound)
+    }
   }
+
+  private def handleGetAgentSubscription(arn: String, planetId: String)(implicit
+    request: Request[AnyContent]
+  ): Future[Result] =
+    hipStubService.validateBaseHeaders(
+      request.headers.get("X-Transmitting-System"),
+      request.headers.get("X-Originating-System"),
+      request.headers.get("correlationid"),
+      request.headers.get("X-Receipt-Date")
+    ) match {
+      case Left(_) =>
+        Future.successful(
+          Results.UnprocessableEntity(
+            Json.toJson(Errors("003", "Request could not be processed"))
+          )
+        )
+      case Right(_) =>
+        hipStubService.validateArn(arn) match {
+          case Left(_) =>
+            Future.successful(
+              Results.UnprocessableEntity(
+                Json.toJson(Errors("003", "Request could not be processed"))
+              )
+            )
+          case Right(_) =>
+            recordsService
+              .getRecordMaybeExt[BusinessPartnerRecord, Arn](Arn(arn), planetId)
+              .map {
+                case Some(record) if !record.isAnASAgent =>
+                  Results.UnprocessableEntity(
+                    Json.toJson(Errors("006", "Subscription Data Not Found"))
+                  )
+                case Some(record) => Ok(Json.toJson(convertToGetAgentSubscriptionResponse(record)))
+                case None =>
+                  Results.UnprocessableEntity(
+                    Json.toJson(Errors("006", "Subscription Data Not Found"))
+                  )
+              }
+              .recover { case e =>
+                logger.error("Incomplete subscription", e)
+                Results.InternalServerError(
+                  Json.parse("""{"error":{"code":"500","message":"Internal server error","logID": "1234567890"}}""")
+                )
+              }
+        }
+    }
 
   private def terminatedTest(record: BusinessPartnerRecord): Boolean = false
 
@@ -344,143 +355,165 @@ class HipStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def createAgentSubscription(safeId: String): Action[JsValue] = Action(parse.json).async(implicit request =>
-    withCurrentSession { session =>
-      hipStubService.validateBaseHeaders(
-        request.headers.get("X-Transmitting-System"),
-        request.headers.get("X-Originating-System"),
-        request.headers.get("correlationid"),
-        request.headers.get("X-Receipt-Date")
-      ) match {
-        case Left(_) =>
-          Future.successful(Results.UnprocessableEntity(Json.toJson(Errors("003", "Request could not be processed"))))
-        case _ =>
-          RegexPatterns.validSafeId(safeId) match {
-            case Left(_) =>
-              Future.successful(
-                Results.UnprocessableEntity(Json.toJson(Errors("003", "Request could not be processed")))
-              )
-            case Right(_) =>
-              HipSubscribeAgentServicesPayload.validateCreateAgentSubscriptionPayload(
-                request.body.as[HipSubscribeAgentServicesPayload]
-              ) match {
-                case Left(errors) =>
-                  Future.successful(Results.UnprocessableEntity(Json.toJson(errors)))
-                case Right(payload) =>
-                  recordsService
-                    .getRecordMaybeExt[BusinessPartnerRecord, SafeId](SafeId(safeId), session.planetId)
-                    .flatMap {
-                      case None =>
-                        Future.successful(Results.UnprocessableEntity(Json.toJson(Errors("006", "SAFE ID Not found"))))
-                      case Some(existingRecord) =>
-                        if (existingRecord.isAnASAgent)
-                          Future.successful(
-                            Results.UnprocessableEntity(
-                              Json.toJson(
-                                Errors(
-                                  "061",
-                                  s"BP has already a valid Agent Subscription ${existingRecord.agentReferenceNumber.get}"
-                                )
-                              )
-                            )
-                          )
-                        else {
-                          val recordToCreate: BusinessPartnerRecord =
-                            SubscribeAgentService.toBusinessPartnerRecord(payload, existingRecord)
-                          recordsService
-                            .store(recordToCreate, autoFill = false, session.planetId)
-                            .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, session.planetId))
-                            .map {
-                              case Some(record) =>
-                                Results.Created(
-                                  Json.toJson(
-                                    HipResponse(LocalDateTime.now(), record.agentReferenceNumber.get)
-                                  )
-                                )
-                              case None =>
-                                Results.InternalServerError(
-                                  Json.parse(
-                                    """{"error":{"code":"500","message":"Internal server error","logID": "1234567890"}}"""
-                                  )
-                                )
-                            }
-                        }
-                    }
-              }
-          }
+  def createAgentSubscription(safeId: String): Action[JsValue] = Action(parse.json).async { implicit request =>
+    withCurrentSession(session => handleCreateAgentSubscription(safeId, session.planetId)) {
+      // No session resolvable - fall back to finding the BusinessPartnerRecord by safeId regardless of
+      // planet. Only safe because safeId is now minted globally unique per test run, not the old shared
+      // hardcoded value - see .claude/findings/validation-and-records.md.
+      recordsService.getRecordAnyPlanet[BusinessPartnerRecord, SafeId](SafeId(safeId)).flatMap {
+        case Some((planetId, _)) => handleCreateAgentSubscription(safeId, planetId)
+        case None                => SessionRecordNotFound
       }
-    }(SessionRecordNotFound)
-  )
+    }
+  }
 
-  def amendAgentSubscription(arn: String): Action[JsValue] = Action(parse.json).async { implicit request =>
-    withCurrentSession { session =>
-      hipStubService.validateBaseHeaders(
-        request.headers.get("X-Transmitting-System"),
-        request.headers.get("X-Originating-System"),
-        request.headers.get("correlationid"),
-        request.headers.get("X-Receipt-Date")
-      ) match {
-        case Left(_) =>
-          Future.successful(
-            Results.UnprocessableEntity(Json.toJson(Errors("003", "Request could not be processed")))
-          )
-        case Right(_) =>
-          RegexPatterns.validArn(arn) match {
-            case Left(_) =>
-              Future.successful(
-                Results.UnprocessableEntity(Json.toJson(Errors("003", "Request could not be processed")))
-              )
-            case Right(_) =>
-              HipAmendAgentSubscriptionPayload.validateAmendAgentSubscriptionPayload(
-                request.body.as[HipAmendAgentSubscriptionPayload]
-              ) match {
-                case Left(errors) =>
-                  Future.successful(Results.UnprocessableEntity(Json.toJson(errors)))
-                case Right(payload) =>
-                  if (payload.isEmpty) {
-                    Future.successful(
-                      Results.Ok(Json.toJson(HipAmendAgentSubscriptionResponse(Instant.now())))
-                    )
-                  } else {
-                    recordsService
-                      .getRecordMaybeExt[BusinessPartnerRecord, Arn](Arn(arn), session.planetId)
-                      .flatMap {
-                        case None =>
-                          Future.successful(
-                            Results.UnprocessableEntity(
-                              Json.toJson(Errors("006", "Subscription Data Not Found"))
-                            )
-                          )
-
-                        case Some(existingRecord) =>
-                          if (!existingRecord.isAnASAgent) {
-                            Future.successful(
-                              Results.UnprocessableEntity(
-                                Json.toJson(Errors("002", "Incomplete subscription"))
+  private def handleCreateAgentSubscription(safeId: String, planetId: String)(implicit
+    request: Request[JsValue]
+  ): Future[Result] =
+    hipStubService.validateBaseHeaders(
+      request.headers.get("X-Transmitting-System"),
+      request.headers.get("X-Originating-System"),
+      request.headers.get("correlationid"),
+      request.headers.get("X-Receipt-Date")
+    ) match {
+      case Left(_) =>
+        Future.successful(Results.UnprocessableEntity(Json.toJson(Errors("003", "Request could not be processed"))))
+      case _ =>
+        RegexPatterns.validSafeId(safeId) match {
+          case Left(_) =>
+            Future.successful(
+              Results.UnprocessableEntity(Json.toJson(Errors("003", "Request could not be processed")))
+            )
+          case Right(_) =>
+            HipSubscribeAgentServicesPayload.validateCreateAgentSubscriptionPayload(
+              request.body.as[HipSubscribeAgentServicesPayload]
+            ) match {
+              case Left(errors) =>
+                Future.successful(Results.UnprocessableEntity(Json.toJson(errors)))
+              case Right(payload) =>
+                recordsService
+                  .getRecordMaybeExt[BusinessPartnerRecord, SafeId](SafeId(safeId), planetId)
+                  .flatMap {
+                    case None =>
+                      Future.successful(Results.UnprocessableEntity(Json.toJson(Errors("006", "SAFE ID Not found"))))
+                    case Some(existingRecord) =>
+                      if (existingRecord.isAnASAgent)
+                        Future.successful(
+                          Results.UnprocessableEntity(
+                            Json.toJson(
+                              Errors(
+                                "061",
+                                s"BP has already a valid Agent Subscription ${existingRecord.agentReferenceNumber.get}"
                               )
                             )
-                          } else {
-                            val amendedRecord =
-                              SubscribeAgentService
-                                .toBusinessPartnerRecord(payload, existingRecord)
-
-                            recordsService
-                              .store(amendedRecord, autoFill = false, session.planetId)
-                              .map { _ =>
-                                Results.Ok(
-                                  Json.toJson(
-                                    HipAmendAgentSubscriptionResponse(Instant.now())
-                                  )
+                          )
+                        )
+                      else {
+                        val recordToCreate: BusinessPartnerRecord =
+                          SubscribeAgentService.toBusinessPartnerRecord(payload, existingRecord)
+                        recordsService
+                          .store(recordToCreate, autoFill = false, planetId)
+                          .flatMap(id => recordsRepository.findById[BusinessPartnerRecord](id, planetId))
+                          .map {
+                            case Some(record) =>
+                              Results.Created(
+                                Json.toJson(
+                                  HipResponse(LocalDateTime.now(), record.agentReferenceNumber.get)
                                 )
-                              }
+                              )
+                            case None =>
+                              Results.InternalServerError(
+                                Json.parse(
+                                  """{"error":{"code":"500","message":"Internal server error","logID": "1234567890"}}"""
+                                )
+                              )
                           }
                       }
                   }
-              }
-          }
+            }
+        }
+    }
+
+  def amendAgentSubscription(arn: String): Action[JsValue] = Action(parse.json).async { implicit request =>
+    withCurrentSession(session => handleAmendAgentSubscription(arn, session.planetId)) {
+      // No session resolvable - fall back to finding the BusinessPartnerRecord by arn regardless of
+      // planet. Only safe because arn/safeId are now minted globally unique per test run - see
+      // .claude/findings/validation-and-records.md.
+      recordsService.getRecordAnyPlanet[BusinessPartnerRecord, Arn](Arn(arn)).flatMap {
+        case Some((planetId, _)) => handleAmendAgentSubscription(arn, planetId)
+        case None                => SessionRecordNotFound
       }
-    }(SessionRecordNotFound)
+    }
   }
+
+  private def handleAmendAgentSubscription(arn: String, planetId: String)(implicit
+    request: Request[JsValue]
+  ): Future[Result] =
+    hipStubService.validateBaseHeaders(
+      request.headers.get("X-Transmitting-System"),
+      request.headers.get("X-Originating-System"),
+      request.headers.get("correlationid"),
+      request.headers.get("X-Receipt-Date")
+    ) match {
+      case Left(_) =>
+        Future.successful(
+          Results.UnprocessableEntity(Json.toJson(Errors("003", "Request could not be processed")))
+        )
+      case Right(_) =>
+        RegexPatterns.validArn(arn) match {
+          case Left(_) =>
+            Future.successful(
+              Results.UnprocessableEntity(Json.toJson(Errors("003", "Request could not be processed")))
+            )
+          case Right(_) =>
+            HipAmendAgentSubscriptionPayload.validateAmendAgentSubscriptionPayload(
+              request.body.as[HipAmendAgentSubscriptionPayload]
+            ) match {
+              case Left(errors) =>
+                Future.successful(Results.UnprocessableEntity(Json.toJson(errors)))
+              case Right(payload) =>
+                if (payload.isEmpty) {
+                  Future.successful(
+                    Results.Ok(Json.toJson(HipAmendAgentSubscriptionResponse(Instant.now())))
+                  )
+                } else {
+                  recordsService
+                    .getRecordMaybeExt[BusinessPartnerRecord, Arn](Arn(arn), planetId)
+                    .flatMap {
+                      case None =>
+                        Future.successful(
+                          Results.UnprocessableEntity(
+                            Json.toJson(Errors("006", "Subscription Data Not Found"))
+                          )
+                        )
+
+                      case Some(existingRecord) =>
+                        if (!existingRecord.isAnASAgent) {
+                          Future.successful(
+                            Results.UnprocessableEntity(
+                              Json.toJson(Errors("002", "Incomplete subscription"))
+                            )
+                          )
+                        } else {
+                          val amendedRecord =
+                            SubscribeAgentService
+                              .toBusinessPartnerRecord(payload, existingRecord)
+
+                          recordsService
+                            .store(amendedRecord, autoFill = false, planetId)
+                            .map { _ =>
+                              Results.Ok(
+                                Json.toJson(
+                                  HipAmendAgentSubscriptionResponse(Instant.now())
+                                )
+                              )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
   private def agentIsSuspended(businessPartnerRecord: BusinessPartnerRecord, regime: String): Boolean =
     businessPartnerRecord.suspensionDetails.fold(false)(_.suspendedRegimes.contains(regime))
