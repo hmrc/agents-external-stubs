@@ -25,8 +25,8 @@ import play.api.mvc.{ControllerComponents, Request, Result}
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, EnrolmentKey, User}
-import uk.gov.hmrc.agentsexternalstubs.repository.{DuplicateUserException, KnownFactsRepository}
-import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GroupsService, UsersService}
+import uk.gov.hmrc.agentsexternalstubs.repository.{DuplicateUserException, KnownFactsRepository, RecordsRepository}
+import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, ExternalUserService, GroupsService, RecordsService, UsersService}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
 
@@ -42,6 +42,10 @@ class EnrolmentStoreProxyStubControllerSpec extends BaseUnitSpec {
     val mockKnownFactsRepository: KnownFactsRepository = mock[KnownFactsRepository]
     val mockUsersService: UsersService = mock[UsersService]
     val mockGroupsService: GroupsService = mock[GroupsService]
+    // RecordsService is a final class, so Mockito can't mock it directly - build a real instance
+    // backed by mocks of its own (mockable) dependencies instead. Not stubbed with `when(...)`
+    // anywhere below since these tests don't exercise the no-session global-lookup fallback path.
+    val mockRecordsService: RecordsService = new RecordsService(mock[RecordsRepository], mock[ExternalUserService])
     val cc: ControllerComponents = Helpers.stubControllerComponents()
 
     val controller: EnrolmentStoreProxyStubController = new EnrolmentStoreProxyStubController(
@@ -49,6 +53,7 @@ class EnrolmentStoreProxyStubControllerSpec extends BaseUnitSpec {
       mockKnownFactsRepository,
       mockUsersService,
       mockGroupsService,
+      mockRecordsService,
       cc
     )(ex) {
       override def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(

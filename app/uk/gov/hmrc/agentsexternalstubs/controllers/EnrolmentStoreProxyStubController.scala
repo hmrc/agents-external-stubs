@@ -20,7 +20,6 @@ import cats.data.Validated
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Request, Result}
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.SetKnownFactsRequest.Legacy
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController._
 import uk.gov.hmrc.agentsexternalstubs.models.Validator.{Validator, check, checkProperty}

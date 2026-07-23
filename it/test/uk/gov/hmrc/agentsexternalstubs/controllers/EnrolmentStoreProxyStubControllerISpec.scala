@@ -349,7 +349,6 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         (json \ "enrolmentDate").asOpt[String] shouldBe defined
       }
 
-
       "return 404 when enrolment does not exist" in {
 
         implicit val session: AuthenticatedSession =

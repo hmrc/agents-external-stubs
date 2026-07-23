@@ -500,23 +500,21 @@ class HipStubController @Inject() (
                             SubscribeAgentService
                               .toBusinessPartnerRecord(payload, existingRecord)
 
-                            recordsService
-                              .store(amendedRecord, autoFill = false, session.planetId)
-                              .map { _ =>
-                                Results.Ok(
-                                  Json.toJson(
-                                    HipAmendAgentSubscriptionResponse(Instant.now())
-                                  )
+                          recordsService
+                            .store(amendedRecord, autoFill = false, planetId)
+                            .map { _ =>
+                              Results.Ok(
+                                Json.toJson(
+                                  HipAmendAgentSubscriptionResponse(Instant.now())
                                 )
-                              }
-                          }
-                      }
-                  }
-              }
-          }
-      }
-    }(SessionRecordNotFound)
-  }
+                              )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
   /** UCR Customer API v2 - Search Individual By Identifier.
     * Searches for an individual's VRNs and PAYE refs (EMPREFs) by NINO or UTR.
