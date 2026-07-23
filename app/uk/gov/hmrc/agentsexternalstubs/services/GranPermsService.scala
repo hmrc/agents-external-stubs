@@ -84,7 +84,7 @@ class GranPermsService @Inject() (
           UserGenerator
             .individual(
               userId = idFunction(i),
-              confidenceLevel = 250,
+              confidenceLevel = ConfidenceLevel.Default,
               nino = randomNino
             )
             .copy(assignedPrincipalEnrolments = Seq(enrolmentKey))

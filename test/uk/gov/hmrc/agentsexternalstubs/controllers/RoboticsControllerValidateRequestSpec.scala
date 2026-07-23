@@ -42,10 +42,61 @@ class RoboticsControllerValidateRequestSpec extends BaseUnitSpec {
 
       val roboticsReq = result.toOption.get
       roboticsReq.targetSystem shouldBe "CESA"
-      roboticsReq.postcode shouldBe "AA1 1AA"
+      roboticsReq.postcode shouldBe Some("AA1 1AA")
       roboticsReq.operationRequired shouldBe "CREATE"
       roboticsReq.requestId shouldBe "REQ-123"
       roboticsReq.correlationId shouldBe "CID-123"
+    }
+
+    "return Right for a live robotics payload with metadata" in {
+      val operationData = Json.stringify(
+        Json.obj(
+          "requestId"         -> "REQ-123",
+          "targetSystem"      -> "CESA",
+          "operationRequired" -> "CREATE",
+          "entityType"        -> "LLP",
+          "agentName"         -> "Agent Name",
+          "tradingAs"         -> "Agent Name",
+          "isAbroad"          -> true,
+          "addressLine1"      -> "1 Rue Example",
+          "addressLine2"      -> "Paris",
+          "ARN"               -> "TARN0000001"
+        )
+      )
+
+      val body = Json.obj(
+        "requestMetaData" -> Json.obj(
+          "initiatorType"        -> "THIRD_PARTY_APP",
+          "initiatorId"          -> "ASA",
+          "externalInvokerReqId" -> "REQ-123"
+        ),
+        "requestData" -> Json.arr(
+          Json.obj(
+            "workflowMetaData" -> Json.obj(
+              "solution"   -> "solution",
+              "workflowId" -> "workflow-id"
+            ),
+            "workflowData" -> Json.obj(
+              "arguments" -> Json.arr(
+                Json.obj(
+                  "type"  -> "string",
+                  "value" -> operationData
+                )
+              )
+            )
+          )
+        )
+      )
+
+      val req = FakeRequest().withBody(body).withHeaders("correlationId" -> "CID-123")
+      val result = RoboticsController.validateRequest(req)
+      result.isRight shouldBe true
+
+      val roboticsReq = result.toOption.get
+      roboticsReq.targetSystem shouldBe "CESA"
+      roboticsReq.postcode shouldBe None
+      roboticsReq.operationRequired shouldBe "CREATE"
+      roboticsReq.requestId shouldBe "REQ-123"
     }
 
     "return Left if requestData key is missing" in {
@@ -54,7 +105,7 @@ class RoboticsControllerValidateRequestSpec extends BaseUnitSpec {
 
       val result = RoboticsController.validateRequest(req)
       result.isLeft shouldBe true
-      result.left.get.header.status shouldBe 400
+      result.swap.toOption.get.header.status shouldBe 400
     }
 
     "return Left if requestData array is empty" in {
@@ -63,11 +114,10 @@ class RoboticsControllerValidateRequestSpec extends BaseUnitSpec {
 
       val result = RoboticsController.validateRequest(req)
       result.isLeft shouldBe true
-      result.left.get.header.status shouldBe 400
+      result.swap.toOption.get.header.status shouldBe 400
     }
 
     "return Left if workflowData.arguments array is missing" in {
-      val operationData = Json.stringify(Json.obj("targetSystem" -> "CESA"))
       val body = Json.obj(
         "requestData" -> Json.arr(
           Json.obj("workflowData" -> Json.obj()) // no arguments
@@ -77,7 +127,7 @@ class RoboticsControllerValidateRequestSpec extends BaseUnitSpec {
 
       val result = RoboticsController.validateRequest(req)
       result.isLeft shouldBe true
-      result.left.get.header.status shouldBe 400
+      result.swap.toOption.get.header.status shouldBe 400
     }
 
     "return Left if workflowData.arguments array is empty" in {
@@ -94,7 +144,7 @@ class RoboticsControllerValidateRequestSpec extends BaseUnitSpec {
 
       val result = RoboticsController.validateRequest(req)
       result.isLeft shouldBe true
-      result.left.get.header.status shouldBe 400
+      result.swap.toOption.get.header.status shouldBe 400
     }
 
     "return Left if workflowData is invalid JSON" in {
@@ -116,7 +166,7 @@ class RoboticsControllerValidateRequestSpec extends BaseUnitSpec {
 
       val result = RoboticsController.validateRequest(req)
       result.isLeft shouldBe true
-      result.left.get.header.status shouldBe 400
+      result.swap.toOption.get.header.status shouldBe 400
     }
 
     "return Left if targetSystem is missing" in {
@@ -125,7 +175,7 @@ class RoboticsControllerValidateRequestSpec extends BaseUnitSpec {
 
       val result = RoboticsController.validateRequest(req)
       result.isLeft shouldBe true
-      result.left.get.header.status shouldBe 400
+      result.swap.toOption.get.header.status shouldBe 400
     }
 
     "return Left if targetSystem is invalid" in {
@@ -136,16 +186,16 @@ class RoboticsControllerValidateRequestSpec extends BaseUnitSpec {
 
       val result = RoboticsController.validateRequest(req)
       result.isLeft shouldBe true
-      result.left.get.header.status shouldBe 400
+      result.swap.toOption.get.header.status shouldBe 400
     }
 
-    "return Left if postcode is missing" in {
+    "return Right if postcode is missing" in {
       val operationData = Json.stringify(Json.obj("targetSystem" -> "CESA", "operationRequired" -> "CREATE"))
       val req = makeRequest(operationData)
 
       val result = RoboticsController.validateRequest(req)
-      result.isLeft shouldBe true
-      result.left.get.header.status shouldBe 400
+      result.isRight shouldBe true
+      result.toOption.get.postcode shouldBe None
     }
 
     "return Left if operationRequired is missing" in {
@@ -154,7 +204,7 @@ class RoboticsControllerValidateRequestSpec extends BaseUnitSpec {
 
       val result = RoboticsController.validateRequest(req)
       result.isLeft shouldBe true
-      result.left.get.header.status shouldBe 400
+      result.swap.toOption.get.header.status shouldBe 400
     }
 
     "return Left if CorrelationId header is missing" in {
@@ -165,7 +215,7 @@ class RoboticsControllerValidateRequestSpec extends BaseUnitSpec {
 
       val result = RoboticsController.validateRequest(req)
       result.isLeft shouldBe true
-      result.left.get.header.status shouldBe 400
+      result.swap.toOption.get.header.status shouldBe 400
     }
   }
 

@@ -33,11 +33,12 @@ case class UserValidator(affinityGroup: Option[String]) {
 
   val validateConfidenceLevel: UserConstraint = user =>
     user.confidenceLevel match {
-      case Some(50) | Some(200) | Some(250) if affinityGroup.contains(AG.Individual) && user.nino.isDefined =>
+      case Some(50) | Some(200) | Some(250) | Some(600)
+          if affinityGroup.contains(AG.Individual) && user.nino.isDefined =>
         Valid(())
       case None => Valid(())
       case _ =>
-        Invalid("confidenceLevel can only be set for Individuals and has to be one of [50, 200, 250]")
+        Invalid("confidenceLevel can only be set for Individuals and has to be one of [50, 200, 250, 600]")
     }
 
   val validateCredentialStrength: UserConstraint = user =>

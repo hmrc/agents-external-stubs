@@ -1,0 +1,53 @@
+{
+  "status": {
+    "code": "001",
+    "description": "Match found, all results returned"
+  },
+  "results": [
+    {
+      "accountId": "001UE00000BDvk7YAD",
+      "entityId": "543218976",
+      "productSubscriptions": [],
+      "registryMarker": {
+        "indicator": "GREEN",
+        "reasons": []
+      },
+      "organisationName": "Test Organisation Ltd",
+      "partyType": "",
+      "identifiers": [%%%IDENTIFIERS%%%],
+      "addresses": [
+        {
+          "correspondenceName": "",
+          "communicationName": "",
+          "type": "Registered",
+          "uprn": "",
+          "street": "1 TEST BUSINESS PARK",
+          "city": "LONDON",
+          "state": "",
+          "postcode": "SW1A 2AA",
+          "country": "UK",
+          "rlsFlag": false,
+          "abroadFlag": false,
+          "sourceSystem": {
+            "thirdPartyKey": "STUB",
+            "name": "ETMP"
+          }
+        }
+      ],
+      "telephoneNumbers": [],
+      "emails": [],
+      "hodAccounts": [
+        {
+          "organisationName": "Test Organisation Ltd",
+          "permanentlyCeased": false,
+          "insolvent": false,
+          "archived": false,
+          "sourceSystem": {
+            "thirdPartyKey": "STUB",
+            "name": "ETMP"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -62,13 +62,17 @@ object GroupGenerator {
     suffix <- Gen.oneOf(
                 " Accountants",
                 " and Company",
-                " & Co",
+                " & Company",
+                " And Co",
+                "&Co",
                 " Professional Services",
                 " Accountancy",
-                " Chartered Accountants & Business Advisers",
+                " Chartered Accountants And Business Advisers",
                 " Group of Accountants",
                 " Professional",
-                " & " + ln
+                " And " + ln,
+                " & " + ln,
+                "&" + ln
               )
   } yield s"$ln$suffix"
 

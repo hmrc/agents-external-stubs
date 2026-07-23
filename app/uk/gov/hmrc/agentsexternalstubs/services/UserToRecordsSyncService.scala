@@ -654,19 +654,21 @@ class UserToRecordsSyncService @Inject() (
     }
 
     val legacySaAgentRecord: UserAndGroupRecordsSync = saveRecordId => { case (user, SaAgentMatch(group, saAgentRef)) =>
-      val agentRecord = LegacyAgentRecord(
-        agentId = saAgentRef,
-        govAgentId = group.agentId,
-        agentName = group.agentFriendlyName.orElse(user.name).getOrElse("John Doe"),
-        address1 = user.address.flatMap(_.line1).getOrElse(Generator.address(user.userId).street),
-        address2 = user.address.flatMap(_.line2).getOrElse(Generator.address(user.userId).town),
-        address3 = user.address.flatMap(_.line3),
-        address4 = user.address
-          .flatMap(_.line4)
-          .orElse(user.address.flatMap(_.countryCode).flatMap { case "GB" => None; case x => Some(x) }),
-        postcode = user.address.flatMap(_.postcode),
-        isRegisteredAgent = Some(true),
-        isAgentAbroad = !user.address.exists(_.countryCode.contains("GB"))
+      val agentRecord = LegacyAgentRecord.trimAddressLines(
+        LegacyAgentRecord(
+          agentId = saAgentRef,
+          govAgentId = group.agentId,
+          agentName = group.agentFriendlyName.orElse(user.name).getOrElse("John Doe"),
+          address1 = user.address.flatMap(_.line1).getOrElse(Generator.address(user.userId).street),
+          address2 = user.address.flatMap(_.line2).getOrElse(Generator.address(user.userId).town),
+          address3 = user.address.flatMap(_.line3),
+          address4 = user.address
+            .flatMap(_.line4)
+            .orElse(user.address.flatMap(_.countryCode).flatMap { case "GB" => None; case x => Some(x) }),
+          postcode = user.address.flatMap(_.postcode),
+          isRegisteredAgent = Some(true),
+          isAgentAbroad = !user.address.exists(_.countryCode.contains("GB"))
+        )
       )
       for {
         entity <- legacyRelationshipRecordsService

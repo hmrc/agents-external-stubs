@@ -25,6 +25,7 @@ import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubContro
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController._
 import uk.gov.hmrc.agentsexternalstubs.models.Validator.{Validator, check, checkProperty}
 import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.agentsexternalstubs.repository.{DuplicateUserException, KnownFactsRepository}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, EnrolmentAlreadyExists, GroupsService, RecordsService, UsersService}
 import uk.gov.hmrc.auth.core.UnsupportedCredentialRole
@@ -161,6 +162,34 @@ class EnrolmentStoreProxyStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
+  def getGroupAllocatedEnrolment(
+    groupId: String,
+    enrolmentKey: EnrolmentKey
+  ): Action[AnyContent] = Action.async { implicit request =>
+    withCurrentSession { session =>
+      groupsService.findByGroupId(groupId, session.planetId).map {
+        case None => NotFound
+        case Some(group) =>
+          val matched =
+            group.principalEnrolments.find { e =>
+              val matches = e.toEnrolmentKey.exists(_.tag == enrolmentKey.tag)
+              matches
+            }
+          matched.fold(NotFound: Result) { e =>
+            Ok(
+              Json.toJson(
+                Es5GroupAllocatedEnrolment(
+                  service = e.key,
+                  status = Some(e.state),
+                  enrolmentDate = Option(randomDateTimeInTheLastFiveYears)
+                )
+              )
+            )
+          }
+      }
+    }(SessionRecordNotFound)
+  }
+
   // ES8
   def allocateGroupEnrolment(
     groupId: String,
@@ -278,9 +307,6 @@ class EnrolmentStoreProxyStubController @Inject() (
           notFoundF("INVALID_GROUP_ID")
         case Some(group) =>
           val principal = `type` == "principal"
-          val getKnownFacts: EnrolmentKey => Future[Option[KnownFacts]] =
-            if (principal) knownFactsRepository.findByEnrolmentKey(_, planetId)
-            else _ => Future.successful(None)
           val startRecord = `start-record`.getOrElse(1)
           def assignedEnrolments(user: User) = if (principal) user.assignedPrincipalEnrolments
           else user.assignedDelegatedEnrolments
@@ -288,13 +314,12 @@ class EnrolmentStoreProxyStubController @Inject() (
             .filter(e => service.forall(_ == e.key))
             .filter(e => assignedToUser.forall(user => e.toEnrolmentKey.exists(assignedEnrolments(user).contains(_))))
             .slice(startRecord - 1, startRecord - 1 + `max-records`.getOrElse(1000))
-          Future
-            .sequence(enrolments.map(_.toEnrolmentKey).collect { case Some(x) => x }.map(getKnownFacts))
-            .map(_.collect { case Some(x) => x })
-            .map(knownFacts => GetUserEnrolmentsResponse.from(startRecord, enrolments, knownFacts))
-            .map { response =>
-              if (response.totalRecords == 0) NoContent else Ok(Json.toJson(response))
-            }
+
+          val response = GetUserEnrolmentsResponse.from(startRecord, enrolments)
+          Future.successful {
+            if (response.totalRecords == 0) NoContent
+            else Ok(Json.toJson(response))
+          }
       }
     }
 
@@ -439,19 +464,18 @@ class EnrolmentStoreProxyStubController @Inject() (
               error => badRequestF("INVALID_PAYLOAD", error.mkString(", ")),
               _ =>
                 knownFactsRepository
-                  .findByIdentifier(payload.knownFacts.head, session.planetId)
+                  .findAllByIdentifier(payload.knownFacts.head, session.planetId)
                   .map(knownFacts =>
-                    knownFacts.fold(NoContent)(knownFact =>
-                      if (payload.service == knownFact.enrolmentKey.service) {
+                    knownFacts
+                      .find(_.enrolmentKey.service == payload.service)
+                      .map(kf =>
                         Ok(
                           Json.toJson(
-                            EnrolmentsFromKnownFactsResponse.fromKnownFacts(knownFact)
+                            EnrolmentsFromKnownFactsResponse.fromKnownFacts(kf)
                           )
                         )
-                      } else {
-                        NoContent
-                      }
-                    )
+                      )
+                      .getOrElse(NoContent)
                   )
             )
         }
@@ -571,7 +595,7 @@ object EnrolmentStoreProxyStubController {
 
     object Enrolment {
 
-      def from(e: uk.gov.hmrc.agentsexternalstubs.models.Enrolment, kf: Option[KnownFacts]): Enrolment = Enrolment(
+      def from(e: uk.gov.hmrc.agentsexternalstubs.models.Enrolment): Enrolment = Enrolment(
         service = e.key,
         state = e.state,
         friendlyName = e.friendlyName.getOrElse(""),
@@ -580,30 +604,22 @@ object EnrolmentStoreProxyStubController {
         enrolmentDate = Option(randomDateTimeInTheLastFiveYears),
         enrolmentTokenExpiryDate = None,
         identifiers = e.identifiers
-          .getOrElse(Seq.empty) ++ kf.map(_.verifiers.map(v => Identifier(v.key, v.value))).getOrElse(Seq.empty)
+          .getOrElse(Seq.empty)
       )
     }
 
     def from(
       startRecord: Int,
-      enrolments: Seq[uk.gov.hmrc.agentsexternalstubs.models.Enrolment],
-      knownFacts: Seq[KnownFacts]
+      enrolments: Seq[uk.gov.hmrc.agentsexternalstubs.models.Enrolment]
     ): GetUserEnrolmentsResponse = {
-      val ee =
+      val responseEnrolment =
         enrolments
-          .map(e => (e, knownFacts.find(kf => e.toEnrolmentKeyTag.contains(kf.enrolmentKey.tag))))
-          .map { case (e, kf) => Enrolment.from(e, kf) }
+          .map(e => Enrolment.from(e))
       GetUserEnrolmentsResponse(
         startRecord = startRecord,
-        totalRecords = ee.size,
-        enrolments = ee
+        totalRecords = responseEnrolment.size,
+        enrolments = responseEnrolment
       )
-    }
-
-    private def randomDateTimeInTheLastFiveYears: Instant = {
-      val start = LocalDate.now().minusYears(5)
-      val end = LocalDate.now()
-      Generator.date(start, end).sample.get.atStartOfDay(ZoneId.systemDefault).toInstant
     }
 
     implicit val writes1: Writes[Enrolment] = Json.writes[Enrolment]
@@ -625,5 +641,21 @@ object EnrolmentStoreProxyStubController {
     val validate: Validator[SetFriendlyNameRequest] = Validator(
       checkProperty(_.friendlyName, es19FriendlyNameValidator)
     )
+  }
+
+  case class Es5GroupAllocatedEnrolment(
+    service: String,
+    status: Option[String],
+    enrolmentDate: Option[Instant]
+  )
+
+  object Es5GroupAllocatedEnrolment {
+    implicit val formats: OFormat[Es5GroupAllocatedEnrolment] = Json.format[Es5GroupAllocatedEnrolment]
+  }
+
+  private def randomDateTimeInTheLastFiveYears: Instant = {
+    val start = LocalDate.now().minusYears(5)
+    val end = LocalDate.now()
+    Generator.date(start, end).sample.get.atStartOfDay(ZoneId.systemDefault).toInstant
   }
 }

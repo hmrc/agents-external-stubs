@@ -115,7 +115,7 @@ class AgencyDataAssembler extends Logging {
             .individual(
               userId = userId,
               groupId = UserGenerator.groupId(userId),
-              confidenceLevel = 250,
+              confidenceLevel = ConfidenceLevel.Default,
               credentialRole = User.CR.User,
               nino = f"AB${index + 1}%06dC"
             )

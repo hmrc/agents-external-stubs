@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 final case class RoboticsRequest(
   targetSystem: String,
-  postcode: String,
+  postcode: Option[String],
   operationRequired: String,
   requestId: String,
   correlationId: String

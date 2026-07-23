@@ -65,6 +65,7 @@ class ApiPlatformTestUserConnectorISpec
         user.firstName shouldBe Some("Ida")
         user.lastName shouldBe Some("Newton")
         user.nino shouldBe Some(Nino("PE938808A"))
+        user.address.flatMap(_.countryCode) shouldBe Some("GB")
       }
 
       "return none if missing" in {

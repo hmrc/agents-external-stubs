@@ -25,7 +25,7 @@ import uk.gov.hmrc.agentsexternalstubs.repository.{KnownFactsRepository, UsersRe
 import uk.gov.hmrc.agentsexternalstubs.services.AuthenticationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class KnownFactsController @Inject() (
@@ -158,7 +158,9 @@ class KnownFactsController @Inject() (
             badRequestF("KNOWN_FACTS_GENERATION_FAILED", s"Could not generate known facts for $enrolmentKey")
         }
       }
-    }(SessionRecordNotFound)
+    }(
+      Future.successful(NoContent)
+    ) // TODO This is a fallback to a simple stubbing to support original OPRA flow while it is still live. We always expect to find a session when calling from ASA and that session is necessary for data creation.
   }
 
 }

@@ -41,6 +41,8 @@ trait KnownFactsRepository {
 
   def findByIdentifier(identifier: Identifier, planetId: String): Future[Option[KnownFacts]]
 
+  def findAllByIdentifier(identifier: Identifier, planetId: String): Future[Seq[KnownFacts]]
+
   def findByVerifier(knownFacts: KnownFact, planetId: String): Future[Option[KnownFacts]]
 
   def upsert(knownFacts: KnownFacts, planetId: String): Future[Unit]
@@ -90,6 +92,12 @@ class KnownFactsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: App
       .find(Filters.equal(KnownFacts.IDENTIFIER_KEYS, identifierKey(identifier, planetId)))
       .toFuture()
       .map(_.headOption)
+      .map(_.map(_.value))
+
+  override def findAllByIdentifier(identifier: Identifier, planetId: String): Future[Seq[KnownFacts]] =
+    collection
+      .find(Filters.equal(KnownFacts.IDENTIFIER_KEYS, identifierKey(identifier, planetId)))
+      .toFuture()
       .map(_.map(_.value))
 
   override def findByVerifier(knownFacts: KnownFact, planetId: String): Future[Option[KnownFacts]] =

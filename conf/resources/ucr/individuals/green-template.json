@@ -1,0 +1,64 @@
+{
+  "status": {
+    "code": "001",
+    "description": "Match found, all results returned"
+  },
+  "results": [
+    {
+      "accountId": "001UE00000BDvkLYAT",
+      "productSubscriptions": [],
+      "registryMarker": {
+        "indicator": "GREEN",
+        "reasons": []
+      },
+      "title": "MR",
+      "givenName": "JOHN",
+      "middleName": "",
+      "familyName": "SMITH",
+      "givenNameKnownAs": "",
+      "middleNameKnownAs": "",
+      "familyNameKnownAs": "",
+      "deceased": false,
+      "insolvent": false,
+      "dateOfBirth": "1985-03-15",
+      "identifiers": [%%%IDENTIFIERS%%%],
+      "addresses": [
+        {
+          "type": "Residential",
+          "street": "1 TEST STREET",
+          "city": "LONDON",
+          "state": "",
+          "country": "UK",
+          "postcode": "SW1A 1AA",
+          "sourceSystem": {
+            "thirdPartyKey": "STUB",
+            "name": "NPS"
+          }
+        }
+      ],
+      "telephoneNumbers": [],
+      "emails": [],
+      "hodAccounts": [
+        {
+          "title": "MR",
+          "givenName": "JOHN",
+          "middleName": "",
+          "familyName": "SMITH",
+          "givenNameKnownAs": "",
+          "middleNameKnownAs": "",
+          "familyNameKnownAs": "",
+          "givenNameAlias": "",
+          "middleNameAlias": "",
+          "familyNameAlias": "",
+          "deceased": false,
+          "insolvent": false,
+          "dateOfBirth": "1985-03-15",
+          "sourceSystem": {
+            "thirdPartyKey": "STUB",
+            "name": "NPS"
+          }
+        }
+      ]
+    }
+  ]
+}
