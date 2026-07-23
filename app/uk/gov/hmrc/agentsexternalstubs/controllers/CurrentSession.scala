@@ -121,11 +121,15 @@ trait ExternalCurrentSession extends DesHttpHelpers {
     ifSessionNotFound: => Future[Result]
   )(implicit request: Request[T], ec: ExecutionContext): Future[Result] = {
 
-    // When DES request originates from an API gateway (no X-Session-ID at all), or
-    // carries an X-Session-ID that doesn't correspond to any session we know about
-    // (e.g. an incidental tracing session id forwarded by hmrc-http's internal-host
-    // header propagation on a machine-to-machine call) - fall back to whatever session
-    // currently exists on the default planet.
+    // When DES request originates from an API gateway (no X-Session-ID at all) - fall back
+    // to whatever session currently exists on the default planet before finally giving up
+    // via ifSessionNotFound (some controllers use that slot to attempt a further, more
+    // precise global-by-identifier lookup instead of failing outright - see
+    // RecordsService.getRecordAnyPlanet, used by HipStubController and
+    // EnrolmentStoreProxyStubController). Deliberately tried in this order, default planet
+    // first: it's backward compatible with callers that already worked this way, and it
+    // avoids the global lookup landing on some unrelated caller's planet by coincidence
+    // when the default planet would have resolved things correctly anyway.
     def fallBackToDefaultPlanet(): Future[Result] = {
       val planetId = CurrentPlanetId(None, request)
       authenticationService.findByPlanetId(planetId).flatMap {
@@ -141,15 +145,24 @@ trait ExternalCurrentSession extends DesHttpHelpers {
 
     (request.headers.get(uk.gov.hmrc.http.HeaderNames.xSessionId) match {
       case Some(sessionId) =>
-        // When DES request originates from an authenticated UI session
+        // When DES request originates from an authenticated UI session. Deliberately does
+        // NOT fall back to the default planet if this session id doesn't resolve - a
+        // presented-but-wrong/expired/unregistered session is a different signal from one
+        // that was never presented at all, and silently defaulting to "whatever's currently
+        // signed in on the default planet" risks serving a completely unrelated caller's
+        // data instead of failing cleanly. Goes straight to ifSessionNotFound instead, same
+        // as before the 2026-07-22 fix that briefly made this symmetric with the None case -
+        // reverted per PR review. Controllers with a more precise fallback (global lookup by
+        // safeId/arn) still get a real chance to resolve correctly via that slot; everything
+        // else fails hard here, which is the safer default.
         authenticationService.findBySessionId(sessionId).flatMap {
           case Some(session) =>
             body(session)
           case _ =>
             Logger(getClass).warn(
-              s"AuthenticatedSession for sessionId=$sessionId not found, falling back to default planet"
+              s"AuthenticatedSession for sessionId=$sessionId not found, cannot continue to DES stubs"
             )
-            fallBackToDefaultPlanet()
+            ifSessionNotFound
         }
       case None =>
         fallBackToDefaultPlanet()
