@@ -145,16 +145,17 @@ trait ExternalCurrentSession extends DesHttpHelpers {
 
     (request.headers.get(uk.gov.hmrc.http.HeaderNames.xSessionId) match {
       case Some(sessionId) =>
-        // When DES request originates from an authenticated UI session. Deliberately does
-        // NOT fall back to the default planet if this session id doesn't resolve - a
-        // presented-but-wrong/expired/unregistered session is a different signal from one
-        // that was never presented at all, and silently defaulting to "whatever's currently
-        // signed in on the default planet" risks serving a completely unrelated caller's
-        // data instead of failing cleanly. Goes straight to ifSessionNotFound instead, same
-        // as before the 2026-07-22 fix that briefly made this symmetric with the None case -
-        // reverted per PR review. Controllers with a more precise fallback (global lookup by
-        // safeId/arn) still get a real chance to resolve correctly via that slot; everything
-        // else fails hard here, which is the safer default.
+        // When a DES request comes from an authenticated UI session, this code looks up
+        // the session using the provided session ID. If the session ID is invalid, expired,
+        // or not found, it does NOT fall back to the default planet. This is intentional:
+        // an invalid session ID means something went wrong (user logged out, session expired,
+        // or wrong ID), which is different from having no session ID at all (which typically
+        // happens when a backend microservice makes a call from a scheduler, where there's
+        // no user request and thus no session ID is possible). Using the default planet's
+        // session when given an invalid ID could return data belonging to a completely
+        // different user, which is dangerous. Instead, it goes to ifSessionNotFound, which
+        // either tries other lookup methods (like finding by safeId/arn) or fails safely.
+        // This approach prevents accidentally serving the wrong user's data.
         authenticationService.findBySessionId(sessionId).flatMap {
           case Some(session) =>
             body(session)
