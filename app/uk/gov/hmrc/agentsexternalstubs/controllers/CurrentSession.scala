@@ -119,41 +119,56 @@ trait ExternalCurrentSession extends DesHttpHelpers {
 
   final def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(
     ifSessionNotFound: => Future[Result]
-  )(implicit request: Request[T], ec: ExecutionContext): Future[Result] =
-    // When DES request originates from an authenticated UI session
-    request.headers.get(uk.gov.hmrc.http.HeaderNames.xSessionId) match {
-      case Some(sessionId) =>
-        (for {
-          maybeSession <- authenticationService.findBySessionId(sessionId)
-          result <- maybeSession match {
-                      case Some(session) =>
-                        body(session)
-                      case _ =>
-                        Logger(getClass).warn(
-                          s"AuthenticatedSession for sessionIs=$sessionId not found, cannot continue to DES stubs"
-                        )
-                        ifSessionNotFound
-                    }
-        } yield result)
-          .recover(errorHandler)
-      case None =>
-        // When DES request originates from an API gateway
-        val planetId = CurrentPlanetId(None, request)
-        (for {
-          maybeSession <- authenticationService.findByPlanetId(planetId)
-          result <- maybeSession match {
-                      case Some(session) =>
-                        body(session)
-                      case _ =>
-                        Logger(getClass).warn(
-                          s"AuthenticatedSession for planetId=$planetId not found, cannot continue to DES stubs"
-                        )
-                        ifSessionNotFound
-                    }
-        } yield result)
-          .recover(errorHandler)
+  )(implicit request: Request[T], ec: ExecutionContext): Future[Result] = {
 
+    // When DES request originates from an API gateway (no X-Session-ID at all) - fall back
+    // to whatever session currently exists on the default planet before finally giving up
+    // via ifSessionNotFound (some controllers use that slot to attempt a further, more
+    // precise global-by-identifier lookup instead of failing outright - see
+    // RecordsService.getRecordAnyPlanet, used by HipStubController and
+    // EnrolmentStoreProxyStubController). Deliberately tried in this order, default planet
+    // first: it's backward compatible with callers that already worked this way, and it
+    // avoids the global lookup landing on some unrelated caller's planet by coincidence
+    // when the default planet would have resolved things correctly anyway.
+    def fallBackToDefaultPlanet(): Future[Result] = {
+      val planetId = CurrentPlanetId(None, request)
+      authenticationService.findByPlanetId(planetId).flatMap {
+        case Some(session) =>
+          body(session)
+        case _ =>
+          Logger(getClass).warn(
+            s"AuthenticatedSession for planetId=$planetId not found, cannot continue to DES stubs"
+          )
+          ifSessionNotFound
+      }
     }
+
+    (request.headers.get(uk.gov.hmrc.http.HeaderNames.xSessionId) match {
+      case Some(sessionId) =>
+        // When a DES request comes from an authenticated UI session, this code looks up
+        // the session using the provided session ID. If the session ID is invalid, expired,
+        // or not found, it does NOT fall back to the default planet. This is intentional:
+        // an invalid session ID means something went wrong (user logged out, session expired,
+        // or wrong ID), which is different from having no session ID at all (which typically
+        // happens when a backend microservice makes a call from a scheduler, where there's
+        // no user request and thus no session ID is possible). Using the default planet's
+        // session when given an invalid ID could return data belonging to a completely
+        // different user, which is dangerous. Instead, it goes to ifSessionNotFound, which
+        // either tries other lookup methods (like finding by safeId/arn) or fails safely.
+        // This approach prevents accidentally serving the wrong user's data.
+        authenticationService.findBySessionId(sessionId).flatMap {
+          case Some(session) =>
+            body(session)
+          case _ =>
+            Logger(getClass).warn(
+              s"AuthenticatedSession for sessionId=$sessionId not found, cannot continue to DES stubs"
+            )
+            ifSessionNotFound
+        }
+      case None =>
+        fallBackToDefaultPlanet()
+    }).recover(errorHandler)
+  }
 
 }
 

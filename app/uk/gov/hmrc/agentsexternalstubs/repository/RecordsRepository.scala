@@ -57,6 +57,20 @@ trait RecordsRepository {
     reads: Reads[T]
   ): Future[Seq[T]]
 
+  /** Finds records matching any of the given keys, regardless of which planet they belong to, up to `limit`.
+    * Only safe to rely on returning a single, unambiguous match when the identifier the keys are derived from
+    * is expected to be globally unique (e.g. a safeId minted uniquely per test run) - callers should treat more
+    * than one result as a sign that assumption doesn't hold. Returns the owning planetId alongside each record,
+    * since there is no session to source it from. Deliberately returns raw matches rather than picking a
+    * "winner" or logging here - `uk.gov.hmrc.agentsexternalstubs.repository` is configured ERROR-only in
+    * logback.xml, so a warning logged from this layer is silently swallowed; callers (e.g. RecordsService) are
+    * responsible for deciding how to handle/log ambiguity.
+    */
+  def findByKeysAnyPlanet[T](keys: Seq[String], limit: Int)(implicit
+    recordType: RecordMetaData[T],
+    reads: Reads[T]
+  ): Future[Seq[(String, T)]]
+
   def findById[T](id: String, planetId: String)(implicit reads: Reads[T]): Future[Option[T]]
 
   def findByPlanetId(planetId: String, limit: Option[Int] = None): Future[Seq[Record]]
@@ -193,6 +207,22 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppCon
       .|>(o => if (limit.exists(_ >= 0)) o.limit(limit.get) else o)
       .toFuture()
       .map(_.map(_.value.asInstanceOf[T]))
+
+  override def findByKeysAnyPlanet[T](keys: Seq[String], limit: Int)(implicit
+    recordType: RecordMetaData[T],
+    reads: Reads[T]
+  ): Future[Seq[(String, T)]] = {
+    // Same normalisation as keyOf, minus the "@planetId" suffix - anchored-prefix regex against the
+    // existing KEYS index, so this doesn't need a new index or a schema change.
+    val prefixPattern = keys
+      .map(key => "^" + java.util.regex.Pattern.quote(s"${recordType.typeName}:${key.replace(" ", "").toLowerCase}@"))
+      .mkString("|")
+    collection
+      .find(Filters.regex(KEYS, prefixPattern))
+      .limit(limit)
+      .toFuture()
+      .map(_.map(doc => (doc.extraFields(PLANET_ID).as[String], doc.value.asInstanceOf[T])))
+  }
 
   override def findById[T](id: String, planetId: String)(implicit reads: Reads[T]): Future[Option[T]] =
     collection

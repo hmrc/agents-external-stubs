@@ -17,15 +17,16 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import cats.data.Validated
+import play.api.Logger
 import play.api.libs.json._
-import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Request, Result}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.SetKnownFactsRequest.Legacy
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController._
 import uk.gov.hmrc.agentsexternalstubs.models.Validator.{Validator, check, checkProperty}
 import uk.gov.hmrc.agentsexternalstubs.models._
 import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
 import uk.gov.hmrc.agentsexternalstubs.repository.{DuplicateUserException, KnownFactsRepository}
-import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, EnrolmentAlreadyExists, GroupsService, UsersService}
+import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, EnrolmentAlreadyExists, GroupsService, RecordsService, UsersService}
 import uk.gov.hmrc.auth.core.UnsupportedCredentialRole
 import uk.gov.hmrc.http.{BadRequestException, ForbiddenException, NotFoundException}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -41,9 +42,26 @@ class EnrolmentStoreProxyStubController @Inject() (
   knownFactsRepository: KnownFactsRepository,
   usersService: UsersService,
   groupsService: GroupsService,
+  recordsService: RecordsService,
   cc: ControllerComponents
 )(implicit executionContext: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
+
+  /** No session resolvable (e.g. a machine-to-machine caller with no live session on any planet) - fall back to
+    * finding which planet owns the BusinessPartnerRecord for the ARN embedded in this enrolment key, the same
+    * way HipStubController does for its BPR-keyed endpoints. Only safe because ARNs are minted globally unique
+    * (as of the safeId fix - see .claude/findings/validation-and-records.md). Logs a warning (doesn't fail) if
+    * more than one planet has a matching record - see RecordsRepository.findFirstByKeysAnyPlanet.
+    */
+  private def planetIdFromArnGlobally(enrolmentKey: EnrolmentKey): Future[Option[String]] =
+    enrolmentKey.identifiers.find(_.key == "AgentReferenceNumber").map(_.value) match {
+      case Some(arn) => recordsService.getRecordAnyPlanet[BusinessPartnerRecord, Arn](Arn(arn)).map(_.map(_._1))
+      case None =>
+        Logger(getClass).warn(
+          s"Cannot fall back to a global lookup for enrolmentKey $enrolmentKey - no AgentReferenceNumber identifier"
+        )
+        Future.successful(None)
+    }
 
   def getUserIds(enrolmentKey: EnrolmentKey, `type`: String): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
@@ -85,14 +103,22 @@ class EnrolmentStoreProxyStubController @Inject() (
 
   def setKnownFacts(enrolmentKey: EnrolmentKey): Action[JsValue] = Action.async(parse.tolerantJson) {
     implicit request =>
-      withCurrentSession { session =>
-        withPayload[SetKnownFactsRequest] { payload =>
-          knownFactsRepository
-            .upsert(KnownFacts(enrolmentKey, enrolmentKey.identifiers, payload.verifiers), session.planetId)
-            .map(_ => NoContent)
+      withCurrentSession(session => handleSetKnownFacts(enrolmentKey, session.planetId)) {
+        planetIdFromArnGlobally(enrolmentKey).flatMap {
+          case Some(planetId) => handleSetKnownFacts(enrolmentKey, planetId)
+          case None           => SessionRecordNotFound
         }
-      }(SessionRecordNotFound)
+      }
   }
+
+  private def handleSetKnownFacts(enrolmentKey: EnrolmentKey, planetId: String)(implicit
+    request: Request[JsValue]
+  ): Future[Result] =
+    withPayload[SetKnownFactsRequest] { payload =>
+      knownFactsRepository
+        .upsert(KnownFacts(enrolmentKey, enrolmentKey.identifiers, payload.verifiers), planetId)
+        .map(_ => NoContent)
+    }
 
   def removeKnownFacts(enrolmentKey: EnrolmentKey): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
@@ -169,47 +195,60 @@ class EnrolmentStoreProxyStubController @Inject() (
     enrolmentKey: EnrolmentKey,
     `legacy-agentCode`: Option[String]
   ): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
-    withCurrentSession { session =>
-      withPayload[AllocateGroupEnrolmentRequest] { payload =>
-        AllocateGroupEnrolmentRequest
-          .validate(payload)
-          .fold(
-            error => badRequestF("INVALID_JSON_BODY", error.mkString(", ")),
-            _ =>
-              (for {
-                maybeUser <- usersService.findByUserId(payload.userId, session.planetId)
-                user = maybeUser match {
-                         case Some(usr)
-                             if usr.credentialRole.exists(cr => Seq(User.CR.User, User.CR.Admin).contains(cr)) =>
-                           usr
-                         case _ => throw UnsupportedCredentialRole("INVALID_CREDENTIAL_ID")
-                       }
-                _ <- groupsService
-                       .allocateEnrolmentToGroup(
-                         user,
-                         groupId,
-                         enrolmentKey,
-                         payload.`type`,
-                         `legacy-agentCode`,
-                         session.planetId
-                       )
-                // Assign the new enrolment to the user specified in the payload (as per EACD behaviour spec)
-                _ <- usersService
-                       .assignEnrolmentToUser(
-                         userId = payload.userId,
-                         enrolmentKey = enrolmentKey,
-                         planetId = session.planetId
-                       )
-              } yield Created)
-                .recover {
-                  case _: EnrolmentAlreadyExists                          => Conflict
-                  case _: DuplicateUserException                          => Conflict
-                  case UnsupportedCredentialRole("INVALID_CREDENTIAL_ID") => Forbidden
-                }
-          )
+    withCurrentSession(session =>
+      handleAllocateGroupEnrolment(groupId, enrolmentKey, `legacy-agentCode`, session.planetId)
+    ) {
+      planetIdFromArnGlobally(enrolmentKey).flatMap {
+        case Some(planetId) => handleAllocateGroupEnrolment(groupId, enrolmentKey, `legacy-agentCode`, planetId)
+        case None           => SessionRecordNotFound
       }
-    }(SessionRecordNotFound)
+    }
   }
+
+  private def handleAllocateGroupEnrolment(
+    groupId: String,
+    enrolmentKey: EnrolmentKey,
+    `legacy-agentCode`: Option[String],
+    planetId: String
+  )(implicit request: Request[JsValue]): Future[Result] =
+    withPayload[AllocateGroupEnrolmentRequest] { payload =>
+      AllocateGroupEnrolmentRequest
+        .validate(payload)
+        .fold(
+          error => badRequestF("INVALID_JSON_BODY", error.mkString(", ")),
+          _ =>
+            (for {
+              maybeUser <- usersService.findByUserId(payload.userId, planetId)
+              user = maybeUser match {
+                       case Some(usr)
+                           if usr.credentialRole.exists(cr => Seq(User.CR.User, User.CR.Admin).contains(cr)) =>
+                         usr
+                       case _ => throw UnsupportedCredentialRole("INVALID_CREDENTIAL_ID")
+                     }
+              _ <- groupsService
+                     .allocateEnrolmentToGroup(
+                       user,
+                       groupId,
+                       enrolmentKey,
+                       payload.`type`,
+                       `legacy-agentCode`,
+                       planetId
+                     )
+              // Assign the new enrolment to the user specified in the payload (as per EACD behaviour spec)
+              _ <- usersService
+                     .assignEnrolmentToUser(
+                       userId = payload.userId,
+                       enrolmentKey = enrolmentKey,
+                       planetId = planetId
+                     )
+            } yield Created)
+              .recover {
+                case _: EnrolmentAlreadyExists                          => Conflict
+                case _: DuplicateUserException                          => Conflict
+                case UnsupportedCredentialRole("INVALID_CREDENTIAL_ID") => Forbidden
+              }
+        )
+    }
 
   def deallocateGroupEnrolment(
     groupId: String,
