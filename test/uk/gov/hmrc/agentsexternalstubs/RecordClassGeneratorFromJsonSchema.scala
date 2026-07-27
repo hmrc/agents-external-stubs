@@ -28,10 +28,12 @@ import scala.io.Source
 import scala.util.matching.Regex
 
 /**
-  * This app generates a ready-to-use implementation of a Record
-  * based on the provided json schema.
+  * DELETEME: historical schema-to-scala generator.
   *
-  * Usage:
+  * This is no longer a supported repo workflow because the checked-in model
+  * files reference schema inputs that are not present in this repo.
+  *
+  * Usage retained for reference only:
   * <pre>sbt "test:runMain uk.gov.hmrc.agentsexternalstubs.RecordClassGeneratorFromJsonSchema {sourceSchemaPath} {targetClassPath} {recordName} output:[record|payload]"</pre>
   *
   * output options:
@@ -300,9 +302,8 @@ object RecordCodeRenderer extends JsonSchemaCodeRenderer with KnownFieldGenerato
        |
        |/**
        |  * ----------------------------------------------------------------------------
-       |  * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
-       |  * How to regenerate? Run this command in the project root directory:
-       |  * $description
+       |  * Historical note: this model originated from a schema-driven generator.
+       |  * This generator is retained only as deprecated reference tooling.
        |  * ----------------------------------------------------------------------------
        |  *
        |  *  ${generateTypesMap(typeDef)}

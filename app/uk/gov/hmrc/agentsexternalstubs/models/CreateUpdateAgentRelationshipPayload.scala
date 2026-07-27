@@ -20,9 +20,9 @@ import play.api.libs.json.*
 import uk.gov.hmrc.agentsexternalstubs.models.CreateUpdateAgentRelationshipPayload.*
 
 /** ----------------------------------------------------------------------------
-  * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
-  * How to regenerate? Run this command in the project root directory:
-  * sbt "test:runMain uk.gov.hmrc.agentsexternalstubs.RecordClassGeneratorFromJsonSchema docs/schemas/DES1167.json app/uk/gov/hmrc/agentsexternalstubs/models/CreateUpdateAgentRelationshipPayload.scala CreateUpdateAgentRelationshipPayload output:payload"
+  * Historical note: this model originated from a schema-driven generator, but it
+  * is now maintained directly in this repo. The old regeneration instructions
+  * were removed because the referenced schema inputs are no longer present here.
   * ----------------------------------------------------------------------------
   *
   *  CreateUpdateAgentRelationshipPayload

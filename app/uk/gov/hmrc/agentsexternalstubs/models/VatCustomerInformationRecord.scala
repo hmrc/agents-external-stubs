@@ -22,9 +22,9 @@ import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.Appro
 import uk.gov.hmrc.domain.Vrn
 
 /** ----------------------------------------------------------------------------
-  * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
-  * How to regenerate? Run this command in the project root directory:
-  * sbt "test:runMain uk.gov.hmrc.agentsexternalstubs.RecordClassGeneratorFromJsonSchema docs/schemas/DES1136.json app/uk/gov/hmrc/agentsexternalstubs/models/VatCustomerInformationRecord.scala VatCustomerInformationRecord "
+  * Historical note: this model originated from a schema-driven generator, but it
+  * is now maintained directly in this repo. The old regeneration instructions
+  * were removed because the referenced schema inputs are no longer present here.
   * ----------------------------------------------------------------------------
   *
   *  VatCustomerInformationRecord
