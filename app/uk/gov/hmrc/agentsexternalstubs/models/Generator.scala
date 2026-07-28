@@ -188,7 +188,7 @@ object Generator
 
   lazy val emailGen: Gen[String] = for {
     domain       <- Gen.oneOf(".com", ".co.uk", ".uk", ".eu", ".me")
-    host         <- Gen.oneOf("mail", "post", "email", "inbox", "domain")
+    host         <- Gen.oneOf("imail", "post", "send", "inbox", "domain")
     size         <- Gen.chooseNum[Int](10, 32 - (domain.length + host.length))
     usernameSize <- Gen.chooseNum[Int](1, size - 3)
     username     <- stringMaxN(usernameSize)
