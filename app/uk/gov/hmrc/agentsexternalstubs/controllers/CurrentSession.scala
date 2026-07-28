@@ -37,7 +37,7 @@ trait CurrentSession extends HttpHelpers with RequestAwareLogging {
     case e: BadRequestException    => badRequest("BAD_REQUEST", e.getMessage)
     case e: HttpException          => Results.Status(e.responseCode)(errorMessage("SERVER_ERROR", Some(e.getMessage)))
     case e: AuthorisationException => forbidden(e.getMessage)
-    case NonFatal(e) =>
+    case NonFatal(e)               =>
       e.printStackTrace()
       internalServerError("SERVER_ERROR", e.getMessage)
   }
@@ -47,7 +47,7 @@ trait CurrentSession extends HttpHelpers with RequestAwareLogging {
   )(using request: Request[T], ec: ExecutionContext, hc: HeaderCarrier): Future[R] =
     AuthenticatedSession.fromRequest(request) match {
       case s @ Some(_) => body(s)
-      case None =>
+      case None        =>
         for {
           maybeSession1 <- request.headers.get(HeaderNames.AUTHORIZATION) match {
                              case Some(BearerToken(authToken)) =>

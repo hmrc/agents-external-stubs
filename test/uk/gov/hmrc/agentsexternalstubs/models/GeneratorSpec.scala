@@ -25,7 +25,7 @@ class GeneratorSpec extends BaseUnitSpec {
   private val seeds = Seq("foo", "bar", "baz", "zig")
 
   "Generator" should {
-    "generate stable and valid identifiers for the same seed" in {
+    "generate stable and valid identifiers for the same seed" in
       forAll(seeds) { seed =>
         val nino = Generator.get(Generator.ninoNoSpacesGen)(seed).value
         val arn = Generator.get(Generator.arnGen)(seed).value
@@ -51,7 +51,6 @@ class GeneratorSpec extends BaseUnitSpec {
         email should include("@")
         RegexPatterns.validPostcode(postcode).isRight shouldBe true
       }
-    }
 
     "generate stable address records and perturb variants" in {
       forAll(seeds) { seed =>
@@ -79,7 +78,7 @@ class GeneratorSpec extends BaseUnitSpec {
   }
 
   "UserGenerator" should {
-    "produce stable individual users with the expected default shape" in {
+    "produce stable individual users with the expected default shape" in
       forAll(seeds) { seed =>
         val user = UserGenerator.individual(seed)
 
@@ -92,9 +91,8 @@ class GeneratorSpec extends BaseUnitSpec {
         user.groupId shouldBe defined
         user.nino shouldBe defined
       }
-    }
 
-    "produce stable agent and organisation users" in {
+    "produce stable agent and organisation users" in
       forAll(seeds) { seed =>
         val agent = UserGenerator.agent(seed)
         val organisation = UserGenerator.organisation(seed)
@@ -113,7 +111,6 @@ class GeneratorSpec extends BaseUnitSpec {
         organisation.name shouldBe defined
         organisation.credentialRole shouldBe Some(User.CR.User)
       }
-    }
   }
 
   "GroupGenerator" should {
@@ -125,7 +122,7 @@ class GeneratorSpec extends BaseUnitSpec {
       GroupGenerator.generate(planetId, AG.Agent).affinityGroup shouldBe AG.Agent
     }
 
-    "produce stable helper ids and names for the same seed" in {
+    "produce stable helper ids and names for the same seed" in
       forAll(seeds) { seed =>
         GroupGenerator.groupId(seed) shouldBe GroupGenerator.groupId(seed)
         GroupGenerator.agentCode(seed) shouldBe GroupGenerator.agentCode(seed)
@@ -134,9 +131,8 @@ class GeneratorSpec extends BaseUnitSpec {
         GroupGenerator.nameForAgent(seed) shouldBe GroupGenerator.nameForAgent(seed)
         GroupGenerator.nameForOrganisation(seed) shouldBe GroupGenerator.nameForOrganisation(seed)
       }
-    }
 
-    "produce groups with the expected shape" in {
+    "produce groups with the expected shape" in
       forAll(seeds) { seed =>
         val individual = GroupGenerator.individual(seed, None)
         val agent = GroupGenerator.agent(seed, None)
@@ -157,6 +153,5 @@ class GeneratorSpec extends BaseUnitSpec {
         organisation.affinityGroup shouldBe AG.Organisation
         organisation.groupId should not be empty
       }
-    }
   }
 }

@@ -45,7 +45,7 @@ object EnrolmentKey {
     else Left("INVALID_SERVICE")
 
   def validateIdentifiers(ek: EnrolmentKey): Either[String, EnrolmentKey] = Services(ek.service) match {
-    case None => Left("INVALID_SERVICE")
+    case None          => Left("INVALID_SERVICE")
     case Some(service) =>
       ek.identifiers
         .foldLeft[Either[String, Unit]](Right(()))((a, i) => a.flatMap(_ => validateIdentifier(i, service)))
@@ -53,11 +53,10 @@ object EnrolmentKey {
   }
 
   def validateIdentifier(identifier: Identifier, service: Service): Either[String, Unit] =
-    if
-      identifier.key.nonEmpty && identifier.value.nonEmpty && identifier.key.length <= 40 && identifier.value.length <= 50
+    if identifier.key.nonEmpty && identifier.value.nonEmpty && identifier.key.length <= 40 && identifier.value.length <= 50
     then
       service.getIdentifier(identifier.key) match {
-        case None => Left("INVALID_IDENTIFIERS")
+        case None                    => Left("INVALID_IDENTIFIERS")
         case Some(serviceIdentifier) =>
           serviceIdentifier
             .validate(identifier.value)

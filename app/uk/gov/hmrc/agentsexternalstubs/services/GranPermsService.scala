@@ -33,8 +33,8 @@ class GranPermsService @Inject() (
 
   type ClientType = String
 
-  def massGenerateClients(planetId: String, genRequest: GranPermsGenRequest, idNaming: Option[Int => String] = None)(using
-    ec: ExecutionContext
+  def massGenerateClients(planetId: String, genRequest: GranPermsGenRequest, idNaming: Option[Int => String] = None)(
+    using ec: ExecutionContext
   ): Future[List[User]] = {
     val idFunction: Int => String = idNaming.getOrElse(n => f"${genRequest.idPrefix}%sC$n%05d")
     val clientTypeAndEnrolmentToGenerate: Seq[(ClientType, EnrolmentKey)] = {
@@ -122,8 +122,9 @@ class GranPermsService @Inject() (
 
   private def withItsaSupportingAgentEnrolmentsAdded(clientEnrolments: Seq[Enrolment]): Seq[Enrolment] =
     clientEnrolments.collect {
-      case e: Enrolment if e.key == "HMRC-MTD-IT" => if Random.nextInt(10) > 3 then e.copy(key = "HMRC-MTD-IT-SUPP") else e
-      case e                                      => e
+      case e: Enrolment if e.key == "HMRC-MTD-IT" =>
+        if Random.nextInt(10) > 3 then e.copy(key = "HMRC-MTD-IT-SUPP") else e
+      case e => e
     }
 
   def massGenerateAgentsAndClients(
@@ -136,7 +137,8 @@ class GranPermsService @Inject() (
     newDelegatedEnrolsForAgent: Seq[Enrolment] =
       clients.flatMap(client =>
         client.assignedPrincipalEnrolments.map(ek =>
-          if genRequest.fillFriendlyNames then Enrolment.from(ek).copy(friendlyName = client.name) else Enrolment.from(ek)
+          if genRequest.fillFriendlyNames then Enrolment.from(ek).copy(friendlyName = client.name)
+          else Enrolment.from(ek)
         )
       )
 
@@ -148,7 +150,7 @@ class GranPermsService @Inject() (
            grp => grp.copy(delegatedEnrolments = grp.delegatedEnrolments ++ agentDelegatedEnrolments)
          )
 
-    //Create relationship records for each client
+    // Create relationship records for each client
     arn = currentUser.assignedPrincipalEnrolments.headOption.map(_.tag.split('~').last).getOrElse("")
     _ <- persistRelationshipRecords(clients, arn, planetId)
 
@@ -160,7 +162,9 @@ class GranPermsService @Inject() (
               )
   } yield (agents, clients)
 
-  def persistRelationshipRecords(clients: Seq[User], arn: String, planetId: String)(using ec: ExecutionContext): Future[Unit] = {
+  def persistRelationshipRecords(clients: Seq[User], arn: String, planetId: String)(using
+    ec: ExecutionContext
+  ): Future[Unit] = {
     val records = clients
       .map(client => assembleRelationshipRecord(client, arn))
       .collect { case Some(record) => record }
@@ -217,8 +221,7 @@ class GranPermsService @Inject() (
     val chosenIndex = normalisedDistribution.map(_._2).scan(0.0)(_ + _).tail.indexWhere(randomNumber < _)
     if chosenIndex < 0 then // not found - should only ever happen (rarely) due to rounding errors
       normalisedDistribution.last._1
-    else
-      normalisedDistribution(chosenIndex)._1
+    else normalisedDistribution(chosenIndex)._1
   }
 
   private def pickFromDistributionProportionally[A](distribution: Map[A, Double], n: Int): Seq[A] = {
@@ -230,8 +233,7 @@ class GranPermsService @Inject() (
       val chosenIndex = intervalPartition.indexWhere(fractionalIndex < _)
       if chosenIndex < 0 then // not found - should only ever happen (rarely) due to rounding errors
         normalisedDistribution.last._1
-      else
-        normalisedDistribution(chosenIndex)._1
+      else normalisedDistribution(chosenIndex)._1
     }
   }
 

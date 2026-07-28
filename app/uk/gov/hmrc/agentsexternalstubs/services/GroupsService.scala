@@ -68,16 +68,19 @@ class GroupsService @Inject() (
     } yield refined
   }
 
-  def updateGroup(groupId: String, planetId: String, modify: Group => Group)(using ec: ExecutionContext): Future[Group] =
+  def updateGroup(groupId: String, planetId: String, modify: Group => Group)(using
+    ec: ExecutionContext
+  ): Future[Group] =
     for {
-      maybeGroup <- findByGroupId(groupId, planetId)
+      maybeGroup   <- findByGroupId(groupId, planetId)
       updatedGroup <- maybeGroup match {
                         case Some(existingGroup) =>
                           val modified = modify(existingGroup).copy(planetId = planetId)
-                          if modified != existingGroup then for {
-                            refined <- refineAndValidateGroup(modified)
-                            _       <- groupsRepository.update(refined, planetId)
-                          } yield refined
+                          if modified != existingGroup then
+                            for {
+                              refined <- refineAndValidateGroup(modified)
+                              _       <- groupsRepository.update(refined, planetId)
+                            } yield refined
                           else Future.successful(existingGroup)
                         case None => Future.failed(new NotFoundException(s"Group $groupId not found"))
                       }
@@ -87,7 +90,7 @@ class GroupsService @Inject() (
   def deleteGroup(groupId: String, planetId: String)(using ec: ExecutionContext): Future[Unit] =
     for {
       maybeGroup <- findByGroupId(groupId, planetId)
-      _ <- maybeGroup match {
+      _          <- maybeGroup match {
              case Some(group) =>
                for {
                  _ <- groupsRepository.delete(group.groupId, planetId)
@@ -98,8 +101,8 @@ class GroupsService @Inject() (
            }
     } yield ()
 
-  def setEnrolmentFriendlyName(groupId: String, planetId: String, enrolmentKey: EnrolmentKey, friendlyName: String)(using
-    ec: ExecutionContext
+  def setEnrolmentFriendlyName(groupId: String, planetId: String, enrolmentKey: EnrolmentKey, friendlyName: String)(
+    using ec: ExecutionContext
   ): Future[Option[Unit]] = {
     logger.info(
       s"Updating friendly name '$friendlyName', enrolment key '$enrolmentKey', group '$groupId', planet '$planetId'"
@@ -174,7 +177,7 @@ class GroupsService @Inject() (
     val delegationEnrolmentKeys: DelegationEnrolmentKeys = DelegationEnrolmentKeys(enrolmentKey)
     for {
       group <- resolveGroupForAllocation(user, groupId, agentCodeOpt, planetId)
-      _ <- (enrolmentType, delegationEnrolmentKeys.isPrimary, group.affinityGroup) match {
+      _     <- (enrolmentType, delegationEnrolmentKeys.isPrimary, group.affinityGroup) match {
              case ("principal", true, _) =>
                val enrolment = Enrolment.from(delegationEnrolmentKeys.primaryEnrolmentKey)
                if group.principalEnrolments.contains(enrolment) then Future.failed(new EnrolmentAlreadyExists)
@@ -245,15 +248,14 @@ class GroupsService @Inject() (
   )(using ec: ExecutionContext): Future[Unit] =
     for {
       ownerOpt <- findByPrincipalEnrolmentKey(delegationEnrolmentKeys.primaryEnrolmentKey, planetId)
-      _ <- ownerOpt match {
+      _        <- ownerOpt match {
              case Some(owner) if owner.affinityGroup == AG.Agent =>
                Future.failed(new BadRequestException("OWNER_IS_AN_AGENT"))
              case _ =>
                Future.unit
            }
       _ <-
-        if
-          agentGroup.delegatedEnrolments
+        if agentGroup.delegatedEnrolments
             .exists(existing => delegationEnrolmentKeys.delegationEnrolments.exists(existing.matches))
         then Future.failed(new EnrolmentAlreadyExists)
         else Future.unit
@@ -307,8 +309,7 @@ class GroupsService @Inject() (
     }
 
   private def appendEnrolment(enrolments: Seq[Enrolment], enrolment: Enrolment): Seq[Enrolment] =
-    if
-      enrolments.exists(e => e.key == enrolment.key && e.identifiers.exists(ii => enrolment.identifiers.contains(ii)))
+    if enrolments.exists(e => e.key == enrolment.key && e.identifiers.exists(ii => enrolment.identifiers.contains(ii)))
     then enrolments
     else enrolments :+ enrolment
 

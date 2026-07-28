@@ -46,21 +46,31 @@ class LegacyRelationshipRecordsService @Inject() (recordsRepository: RecordsRepo
       )
   }
 
-  def getLegacyRelationshipsByNino(nino: String, planetId: String)(using ec: ExecutionContext): Future[Seq[(String, LegacyAgentRecord)]] =
+  def getLegacyRelationshipsByNino(nino: String, planetId: String)(using
+    ec: ExecutionContext
+  ): Future[Seq[(String, LegacyAgentRecord)]] =
     findRelationshipsByKeys(LegacyRelationshipRecord.ninoKeys(nino), planetId)
       .flatMap(rr => getNinosWithAgents(rr.distinct, planetId))
 
-  def getLegacyRelationshipsByUtr(utr: String, planetId: String)(using ec: ExecutionContext): Future[Seq[(String, LegacyAgentRecord)]] =
+  def getLegacyRelationshipsByUtr(utr: String, planetId: String)(using
+    ec: ExecutionContext
+  ): Future[Seq[(String, LegacyAgentRecord)]] =
     findRelationshipsByKey(LegacyRelationshipRecord.utrKey(utr), planetId)
       .flatMap(rr => getNinosWithAgents(rr.distinct, planetId))
 
-  def getLegacyRelationshipByAgentIdAndUtr(agentId: String, utr: String, planetId: String)(using ec: ExecutionContext): Future[Option[LegacyRelationshipRecord]] =
+  def getLegacyRelationshipByAgentIdAndUtr(agentId: String, utr: String, planetId: String)(using
+    ec: ExecutionContext
+  ): Future[Option[LegacyRelationshipRecord]] =
     findRelationshipsByKey(LegacyRelationshipRecord.agentIdAndUtrKey(agentId, utr), planetId).map(_.headOption)
 
-  def getLegacyAgentByAgentId(saAgentRef: String, planetId: String)(using ec: ExecutionContext): Future[Option[LegacyAgentRecord]] =
+  def getLegacyAgentByAgentId(saAgentRef: String, planetId: String)(using
+    ec: ExecutionContext
+  ): Future[Option[LegacyAgentRecord]] =
     findAgentByKey(LegacyAgentRecord.agentIdKey(saAgentRef), planetId)
 
-  private def getNinosWithAgents(relationships: Seq[LegacyRelationshipRecord], planetId: String)(using ec: ExecutionContext): Future[Seq[(String, LegacyAgentRecord)]] =
+  private def getNinosWithAgents(relationships: Seq[LegacyRelationshipRecord], planetId: String)(using
+    ec: ExecutionContext
+  ): Future[Seq[(String, LegacyAgentRecord)]] =
     Future
       .sequence(
         relationships
@@ -92,17 +102,23 @@ class LegacyRelationshipRecordsService @Inject() (recordsRepository: RecordsRepo
         )
       )
 
-  private def findAgentByKey(key: String, planetId: String)(using ec: ExecutionContext): Future[Option[LegacyAgentRecord]] =
+  private def findAgentByKey(key: String, planetId: String)(using
+    ec: ExecutionContext
+  ): Future[Option[LegacyAgentRecord]] =
     recordsRepository
       .findByKey[LegacyAgentRecord](key, planetId, limit = Some(1))
       .map(_.headOption.collect { case x: LegacyAgentRecord => x })
 
-  private def findRelationshipsByKey(key: String, planetId: String)(using ec: ExecutionContext): Future[Seq[LegacyRelationshipRecord]] =
+  private def findRelationshipsByKey(key: String, planetId: String)(using
+    ec: ExecutionContext
+  ): Future[Seq[LegacyRelationshipRecord]] =
     recordsRepository
       .findByKey[LegacyRelationshipRecord](key, planetId, limit = Some(1000))
       .map(_.collect { case x: LegacyRelationshipRecord => x })
 
-  private def findRelationshipsByKeys(keys: Seq[String], planetId: String)(using ec: ExecutionContext): Future[Seq[LegacyRelationshipRecord]] =
+  private def findRelationshipsByKeys(keys: Seq[String], planetId: String)(using
+    ec: ExecutionContext
+  ): Future[Seq[LegacyRelationshipRecord]] =
     recordsRepository
       .findByKeys[LegacyRelationshipRecord](keys, planetId, limit = Some(1000))
       .map(_.collect { case x: LegacyRelationshipRecord => x })

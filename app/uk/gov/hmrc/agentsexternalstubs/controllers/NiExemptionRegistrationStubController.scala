@@ -42,7 +42,7 @@ class NiExemptionRegistrationStubController @Inject() (
       withPayload[NiBusinessesPayload] { payload =>
         Utr.isValid(utr) match {
           case false => conflictF("INVALID_UTR", s"Provided UTR $utr is not valid")
-          case true =>
+          case true  =>
             NiBusinessesPayload
               .validate(payload)
               .fold(

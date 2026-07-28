@@ -39,10 +39,8 @@ object NinoClStoreEntry {
       params
         .get(key)
         .flatMap(_.headOption.map { value =>
-          if Nino.isValid(value) then
-            Right(Nino(value))
-          else
-            Left(s"Invalid Nino: $value")
+          if Nino.isValid(value) then Right(Nino(value))
+          else Left(s"Invalid Nino: $value")
         })
 
     override def unbind(key: String, value: Nino): String = value.value
@@ -50,10 +48,8 @@ object NinoClStoreEntry {
   }
   given PathBindable[Nino] = new PathBindable[Nino] {
     override def bind(key: String, value: String): Either[String, Nino] =
-      if Nino.isValid(value) then
-        Right(Nino(value))
-      else
-        Left(s"Invalid Nino: $value")
+      if Nino.isValid(value) then Right(Nino(value))
+      else Left(s"Invalid Nino: $value")
     override def unbind(key: String, value: Nino): String = value.value
   }
 }

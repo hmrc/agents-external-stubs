@@ -45,7 +45,7 @@ object MongoHelper {
     // TODO! No idea how to replicate the 'interpret' logic with the newer Mongo library
     Future.successful(id)
   }
-  def interpretUpdateResultUnit():  Future[Unit] =
+  def interpretUpdateResultUnit(): Future[Unit] =
     // TODO! No idea how to replicate the 'interpret' logic with the newer Mongo library
     Future.successful(())
 }

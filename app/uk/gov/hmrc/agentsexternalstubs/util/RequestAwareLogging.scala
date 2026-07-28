@@ -29,8 +29,8 @@ trait RequestAwareLogging {
     )
 }
 
-/** A logger which is aware of the request. It will append to the message extra information such as session ID, request ID, user agent, referer, and device ID
-  * etc.
+/** A logger which is aware of the request. It will append to the message extra information such as session ID, request
+  * ID, user agent, referer, and device ID etc.
   *
   * Logged messages are enriched with request-specific context.
   */

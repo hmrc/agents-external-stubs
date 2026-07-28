@@ -38,7 +38,7 @@ class ProxyController @Inject() (ws: WSClient, config: Configuration, cc: Contro
 
   given writeableFor(using request: Request[AnyContent], codec: Codec): BodyWritable[AnyContent] =
     request.contentType match {
-      case None => BodyWritable(_ => EmptyBody, request.contentType.getOrElse(""))
+      case None                    => BodyWritable(_ => EmptyBody, request.contentType.getOrElse(""))
       case Some(ContentTypes.JSON) =>
         BodyWritable(a => InMemoryBody(codec.encode(Json.stringify(a.asJson.get))), request.contentType.getOrElse(""))
       case Some(ct) if ct.startsWith(MimeTypes.XML) =>

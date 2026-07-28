@@ -19,7 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import play.api.http.HeaderNames
-import play.api.mvc.{Action, AnyContent, ControllerComponents, Result, Request}
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Request, Result}
 import uk.gov.hmrc.agentsexternalstubs.models.*
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -90,7 +90,7 @@ class SignInController @Inject() (
         )
       (user, mGroup) <- mExistingUser match {
                           case Some(existingUser) => Future.successful((existingUser, mExistingGroup))
-                          case _ =>
+                          case _                  =>
                             usersService
                               .createUser(
                                 signInRequest.newUserData.map(_.copy(userId = userId)).getOrElse(User(userId)),
@@ -101,8 +101,7 @@ class SignInController @Inject() (
                         }
       isNewUser = mExistingUser.isEmpty
       maybeExistingSession <-
-        if
-          appConfig.syncToAuthLoginApi &&
+        if appConfig.syncToAuthLoginApi &&
           signInRequest.syncToAuthLoginApi.getOrElse(false)
         then {
           authLoginApiConnector
@@ -144,16 +143,16 @@ class SignInController @Inject() (
                   case Some(session) =>
                     if isNewUser then {
                       Created.withHeaders(
-                        HeaderNames.LOCATION                    -> routes.SignInController.session(session.authToken).url,
-                        HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
+                        HeaderNames.LOCATION      -> routes.SignInController.session(session.authToken).url,
+                        HeaderNames.AUTHORIZATION -> s"Bearer ${session.authToken}",
                         uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId,
                         "X-Planet-ID"                           -> planetId,
                         "X-User-ID"                             -> user.userId
                       )
                     } else {
                       Accepted.withHeaders(
-                        HeaderNames.LOCATION                    -> routes.SignInController.session(session.authToken).url,
-                        HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
+                        HeaderNames.LOCATION      -> routes.SignInController.session(session.authToken).url,
+                        HeaderNames.AUTHORIZATION -> s"Bearer ${session.authToken}",
                         uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId,
                         "X-Planet-ID"                           -> planetId,
                         "X-User-ID"                             -> user.userId

@@ -334,6 +334,6 @@ object CbcSubscriptionRecord extends RecordUtils[CbcSubscriptionRecord] {
   )
   override val sanitizers = Seq()
 
-  given formats:Format[CbcSubscriptionRecord] = Json.format[CbcSubscriptionRecord]
+  given formats: Format[CbcSubscriptionRecord] = Json.format[CbcSubscriptionRecord]
 
 }

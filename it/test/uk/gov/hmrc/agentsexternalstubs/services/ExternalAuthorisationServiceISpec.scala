@@ -69,7 +69,8 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       val planetId = UUID.randomUUID().toString
       val authToken = "Bearer " + UUID.randomUUID().toString
       val sessionId = UUID.randomUUID().toString
-      given hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(authToken)), sessionId = Some(SessionId(sessionId)))
+      given hc: HeaderCarrier =
+        HeaderCarrier(authorization = Some(Authorization(authToken)), sessionId = Some(SessionId(sessionId)))
 
       givenAuthorisedFor(
         authoriseRequest,
@@ -122,7 +123,8 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       val planetId = UUID.randomUUID().toString
       val authToken = "Bearer " + UUID.randomUUID().toString
       val sessionId = UUID.randomUUID().toString
-      given hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(authToken)), sessionId = Some(SessionId(sessionId)))
+      given hc: HeaderCarrier =
+        HeaderCarrier(authorization = Some(Authorization(authToken)), sessionId = Some(SessionId(sessionId)))
 
       givenAuthorisedFor(
         authoriseRequest,
@@ -185,7 +187,8 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
 
     "consult external auth service, and if session exists recreate session and merge individual user" in {
       val planetId = UUID.randomUUID().toString
-      given hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization("Bearer " + UUID.randomUUID().toString)))
+      given hc: HeaderCarrier =
+        HeaderCarrier(authorization = Some(Authorization("Bearer " + UUID.randomUUID().toString)))
 
       val existingUser = await(
         usersService.createUser(
@@ -247,7 +250,8 @@ class ExternalAuthorisationServiceISpec extends ServerBaseISpec with WireMockSup
       val planetId = UUID.randomUUID().toString
       val authToken = "Bearer " + UUID.randomUUID().toString
       val sessionId = UUID.randomUUID().toString
-      given hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(authToken)), sessionId = Some(SessionId(sessionId)))
+      given hc: HeaderCarrier =
+        HeaderCarrier(authorization = Some(Authorization(authToken)), sessionId = Some(SessionId(sessionId)))
 
       givenAuthorisedFor(
         s"""

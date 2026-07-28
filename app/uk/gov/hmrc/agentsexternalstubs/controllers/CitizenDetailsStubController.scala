@@ -46,7 +46,7 @@ class CitizenDetailsStubController @Inject() (
       idName match {
         case "nino" =>
           RegexPatterns.validNinoNoSpacesWithSuffix(taxId) match {
-            case Left(_) => badRequestF("INVALID_NINO", s"Provided NINO $taxId is not valid")
+            case Left(_)  => badRequestF("INVALID_NINO", s"Provided NINO $taxId is not valid")
             case Right(_) =>
               usersService.findByNino(taxId, session.planetId).map {
                 case None       => notFound("CITIZEN_RECORD_NOT_FOUND", s"Citizen record for $idName=$taxId not found")
@@ -55,7 +55,7 @@ class CitizenDetailsStubController @Inject() (
           }
         case "nino-no-suffix" =>
           RegexPatterns.validNinoNoSpacesNoSuffix(taxId) match {
-            case Left(_) => badRequestF("INVALID_NINO", s"Provided NINO $taxId is not valid")
+            case Left(_)  => badRequestF("INVALID_NINO", s"Provided NINO $taxId is not valid")
             case Right(_) =>
               usersService.findByNino(taxId, session.planetId).map {
                 case None       => notFound("CITIZEN_RECORD_NOT_FOUND", s"Citizen record for $idName=$taxId not found")
@@ -78,10 +78,10 @@ class CitizenDetailsStubController @Inject() (
     given Request[AnyContent] = request
     withCurrentSession { session =>
       RegexPatterns.validNinoNoSpacesWithSuffix(nino) match {
-        case Left(_) => badRequestF("INVALID_NINO", s"Provided NINO $nino is not valid")
+        case Left(_)  => badRequestF("INVALID_NINO", s"Provided NINO $nino is not valid")
         case Right(_) =>
           for {
-            maybeUser <- usersService.findByNino(nino, session.planetId)
+            maybeUser  <- usersService.findByNino(nino, session.planetId)
             maybeGroup <-
               maybeUser
                 .flatMap(_.groupId)
@@ -99,7 +99,7 @@ class CitizenDetailsStubController @Inject() (
     given Request[AnyContent] = request
     withCurrentSession { session =>
       RegexPatterns.validNinoNoSpacesWithSuffix(nino) match {
-        case Left(_) => badRequestF("INVALID_NINO", s"Provided NINO $nino is not valid")
+        case Left(_)  => badRequestF("INVALID_NINO", s"Provided NINO $nino is not valid")
         case Right(_) =>
           usersService.findByNino(nino, session.planetId).map {
             case None       => notFound("NOT_FOUND", s"Citizen details are not found for $nino")
@@ -113,19 +113,8 @@ class CitizenDetailsStubController @Inject() (
 
 object CitizenDetailsStubController {
 
-  /** {
-    *   "name": {
-    *     "current": {
-    *       "firstName": "John",
-    *       "lastName": "Smith"
-    *     },
-    *     "previous": []
-    *   },
-    *   "ids": {
-    *     "nino": "AA055075C"
-    *   },
-    *   "dateOfBirth": "11121971"
-    * }
+  /** { "name": { "current": { "firstName": "John", "lastName": "Smith" }, "previous": [] }, "ids": { "nino":
+    * "AA055075C" }, "dateOfBirth": "11121971" }
     */
   case class GetCitizenResponse(
     name: GetCitizenResponse.Names,
@@ -149,8 +138,7 @@ object CitizenDetailsStubController {
       name
         .map { n =>
           val nameParts = n.split(" ")
-          val (fn, ln) = if nameParts.length > 1 then
-            (nameParts.init.mkString(" "), Some(nameParts.last))
+          val (fn, ln) = if nameParts.length > 1 then (nameParts.init.mkString(" "), Some(nameParts.last))
           else (nameParts.headOption.getOrElse("John"), Some("Doe"))
           Name(fn, ln)
         }
@@ -166,29 +154,10 @@ object CitizenDetailsStubController {
 
   }
 
-  /** {
-    *   "etag" : "115",
-    *   "person" : {
-    *     "firstName" : "HIPPY",
-    *     "middleName" : "T",
-    *     "lastName" : "NEWYEAR",
-    *     "title" : "Mr",
-    *     "honours": "BSC",
-    *     "sex" : "M",
-    *     "dateOfBirth" : "1952-04-01",
-    *     "nino" : "TW189213B",
-    *     "deceased" : false
-    *   },
-    *   "address" : {
-    *     "line1" : "26 FARADAY DRIVE",
-    *     "line2" : "PO BOX 45",
-    *     "line3" : "LONDON",
-    *     "postcode" : "CT1 1RQ",
-    *     "startDate": "2009-08-29",
-    *     "country" : "GREAT BRITAIN",
-    *     "type" : "Residential"
-    *   }
-    * }
+  /** { "etag" : "115", "person" : { "firstName" : "HIPPY", "middleName" : "T", "lastName" : "NEWYEAR", "title" : "Mr",
+    * "honours": "BSC", "sex" : "M", "dateOfBirth" : "1952-04-01", "nino" : "TW189213B", "deceased" : false }, "address"
+    * : { "line1" : "26 FARADAY DRIVE", "line2" : "PO BOX 45", "line3" : "LONDON", "postcode" : "CT1 1RQ", "startDate":
+    * "2009-08-29", "country" : "GREAT BRITAIN", "type" : "Residential" } }
     */
   case class GetDesignatoryDetailsResponse(
     etag: String,
@@ -254,14 +223,8 @@ object CitizenDetailsStubController {
     given format3: OFormat[GetDesignatoryDetailsResponse] = Json.format[GetDesignatoryDetailsResponse]
   }
 
-  /** {
-    *   "etag" : "115",
-    *   "firstName" : "HIPPY",
-    *   "lastName" : "NEWYEAR",
-    *   "title" : "Mr",
-    *   "nino" : "TW189213B",
-    *   "deceased" : false
-    * }
+  /** { "etag" : "115", "firstName" : "HIPPY", "lastName" : "NEWYEAR", "title" : "Mr", "nino" : "TW189213B", "deceased"
+    * : false }
     */
   case class GetDesignatoryDetailsBasicResponse(
     etag: String,

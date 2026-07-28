@@ -44,10 +44,12 @@ trait JsonMatchers {
             }
           case _ =>
             val failureMessage =
-              s"JSON should have property `$name` of type ${classTag.runtimeClass.getSimpleName}, but ${if (obj.fields.isEmpty) "was empty."
-              else "had only"} ${obj.fields
-                .map(f => s"${f._1}:${f._2.getClass.getSimpleName}")
-                .mkString(", ")}"
+              s"JSON should have property `$name` of type ${classTag.runtimeClass.getSimpleName}, but ${
+                  if (obj.fields.isEmpty) "was empty."
+                  else "had only"
+                } ${obj.fields
+                  .map(f => s"${f._1}:${f._2.getClass.getSimpleName}")
+                  .mkString(", ")}"
             MatchResult(
               matches = false,
               rawFailureMessage = failureMessage,
@@ -58,7 +60,8 @@ trait JsonMatchers {
         }
     }
 
-  def havePropertyArrayOf[T: Reads](name: String, matchers: Matcher[T]*)(using classTag: ClassTag[T]
+  def havePropertyArrayOf[T: Reads](name: String, matchers: Matcher[T]*)(using
+    classTag: ClassTag[T]
   ): Matcher[JsObject] =
     new Matcher[JsObject] {
       val matcher =

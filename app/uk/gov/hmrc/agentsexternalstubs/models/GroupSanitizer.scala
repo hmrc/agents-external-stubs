@@ -37,8 +37,7 @@ object GroupSanitizer extends RecordUtils[Group] {
     group =>
       group.affinityGroup match {
         case AG.Agent =>
-          if group.agentCode.isEmpty then
-            group.copy(agentCode = Some(GroupGenerator.agentCode(group.groupId)))
+          if group.agentCode.isEmpty then group.copy(agentCode = Some(GroupGenerator.agentCode(group.groupId)))
           else group
         case _ => group.copy(agentCode = None)
       }
@@ -66,22 +65,21 @@ object GroupSanitizer extends RecordUtils[Group] {
       }
 
   private val ensurePrincipalEnrolmentKeysAreDistinct: Update = _ =>
-    group => {
+    group =>
       group.copy(principalEnrolments =
         group.principalEnrolments
           .groupBy(_.key)
           .collect {
             case (key, es) if es.size == 1 || Services(key).exists(_.flags.multipleEnrolment) => es
-            case (_, es) =>
+            case (_, es)                                                                      =>
               Seq(es.maxBy(_.identifiers.map(_.size).getOrElse(0)))
           }
           .flatten
           .toSeq
       )
-    }
 
   private val ensurePrincipalEnrolmentsHaveIdentifiers: Update = seed =>
-    group => {
+    group =>
       group.copy(principalEnrolments =
         group.principalEnrolments
           .groupBy(_.key)
@@ -90,10 +88,9 @@ object GroupSanitizer extends RecordUtils[Group] {
           }
           .toSeq
       )
-    }
 
   private val ensureDelegatedEnrolmentsHaveIdentifiers: Update = seed =>
-    group => {
+    group =>
       group.copy(delegatedEnrolments =
         group.delegatedEnrolments
           .groupBy(_.key)
@@ -102,7 +99,6 @@ object GroupSanitizer extends RecordUtils[Group] {
           }
           .toSeq
       )
-    }
 
   private val ensureEnrolmentHaveIdentifier: String => Enrolment => Enrolment = seed =>
     e =>

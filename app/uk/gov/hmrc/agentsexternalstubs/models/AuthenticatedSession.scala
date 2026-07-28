@@ -50,7 +50,7 @@ object AuthenticatedSession {
     } yield AuthenticatedSession(sessionId, userId, authToken, providerType, planetId)
 
   def tagRequest(rh: RequestHeader, maybeSession: Option[AuthenticatedSession]): RequestHeader = maybeSession match {
-    case None => rh
+    case None          => rh
     case Some(session) =>
       rh.addAttr(TypedKey(TAG_SESSION_ID), session.sessionId)
         .addAttr(TypedKey(TAG_USER_ID), session.userId)

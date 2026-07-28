@@ -99,24 +99,24 @@ class KnownFactsControllerSpec extends BaseUnitSpec {
 
   "GET /known-facts/:enrolmentKey" should {
     "return 200 with EnrolmentInfo (not known facts!)" in new TestScope {
-      //given
+      // given
       expectFindKnownFactByEnrolmentKey(Some(matchingKnownFacts))
       expectFindUserByPrincipalEnrolmentKey()
       expectFindUserByDelegatedEnrolmentKey()
-      //when
+      // when
       val result: Future[Result] =
         controller.getKnownFacts(enrolment).apply(requestWithAuthSession("GET", s"/known-facts/$enrolmentKeyStr"))
-      //then
+      // then
       status(result) shouldBe 200 // add check for EnrolmentInfo?
     }
 
     "return NOT_FOUND if not in repo" in new TestScope {
-      //given
+      // given
       expectFindKnownFactByEnrolmentKey(None)
-      //when
+      // when
       val result: Future[Result] =
         controller.getKnownFacts(enrolment).apply(requestWithAuthSession("GET", s"/known-facts/$enrolmentKeyStr"))
-      //then
+      // then
       status(result) shouldBe 404
     }
 
@@ -131,7 +131,7 @@ class KnownFactsControllerSpec extends BaseUnitSpec {
 
   "POST /known-facts" should {
     "create a sanitized known fact and return 201" in new TestScope {
-      //given
+      // given
       expectUpsertKnownFacts
 
       val jsonPayload = Json.parse(s"""
@@ -152,9 +152,9 @@ class KnownFactsControllerSpec extends BaseUnitSpec {
 
       val request: FakeRequest[JsValue] = jsRequest("POST", s"/known-facts", jsonPayload)
 
-      //then
+      // then
       val result: Future[Result] = controller.createKnownFacts()(request)
-      //when
+      // when
       status(result) shouldBe 201
     }
   }
@@ -243,25 +243,25 @@ class KnownFactsControllerSpec extends BaseUnitSpec {
 
   "DELETE /known-facts/:enrolmentKey" should {
     "remove known fact if exists and return 204" in new TestScope {
-      //given
+      // given
       expectFindKnownFactByEnrolmentKey(Some(matchingKnownFacts))
       expectDeleteKnownFacts
 
       val request = requestWithAuthSession("DELETE", s"/known-facts/$enrolmentKeyStr")
-      //when
+      // when
       val result = controller.deleteKnownFacts(enrolment).apply(request)
-      //then
+      // then
       status(result) shouldBe 204
     }
 
     "return NOT_FOUND if known facts do not exist" in new TestScope {
-      //given
+      // given
       expectFindKnownFactByEnrolmentKey(None)
 
       val request = requestWithAuthSession("DELETE", s"/known-facts/$enrolmentKeyStr")
-      //when
+      // when
       val result = controller.deleteKnownFacts(enrolment).apply(request)
-      //then
+      // then
       status(result) shouldBe 404
     }
   }

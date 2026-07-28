@@ -76,8 +76,8 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConf
     extends PlayMongoRepository[JsonAbuse[Group]](
       mongoComponent = mongo,
       collectionName = "groups",
-      domainFormat = JsonAbuse.format[Group](extractExtraFieldsOnRead = false)(
-        using Group.compressedFormat /* use space-saving Enrolment Json representation */
+      domainFormat = JsonAbuse.format[Group](extractExtraFieldsOnRead = false)(using
+        Group.compressedFormat /* use space-saving Enrolment Json representation */
       ),
       indexes = Seq(
         IndexModel(Indexes.ascending(KEYS), IndexOptions().name("Keys")),
@@ -195,7 +195,7 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConf
   private def planetIdKey(planetId: String): String = s"planet:$planetId"
 
   private def serializeGroup(group: Group, planetId: String): JsonAbuse[Group] =
-      JsonAbuse(group.copy(planetId = planetId))
+    JsonAbuse(group.copy(planetId = planetId))
       .addField(UNIQUE_KEYS, JsArray(group.uniqueKeys.map(key => JsString(keyOf(key, planetId)))))
       .addField(
         KEYS,
@@ -263,7 +263,7 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConf
 
   private val duplicatedGroupMessageByKeyPrefix: Map[String, (String, String) => String] = Map(
     "gid" -> ((k: String, p: String) => s"Duplicated group $k on $p"),
-    "ac" -> ((k: String, p: String) =>
+    "ac"  -> ((k: String, p: String) =>
       s"Existing group already has this agentCode $k. Two groups cannot share the same agentCode on the same $p planet."
     ),
     "penr" -> ((k: String, p: String) =>

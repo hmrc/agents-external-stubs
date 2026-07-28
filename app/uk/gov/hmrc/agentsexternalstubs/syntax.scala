@@ -18,7 +18,6 @@ package uk.gov.hmrc.agentsexternalstubs
 
 object syntax {
 
-  extension [A](value: A)
-    infix def |>[B](fx: Function[A, B]): B = fx.apply(value)
+  extension [A](value: A) infix def |>[B](fx: Function[A, B]): B = fx.apply(value)
 
 }

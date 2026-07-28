@@ -26,14 +26,14 @@ object GroupValidator {
   val validateAffinityGroup: GroupConstraint = group =>
     group.affinityGroup match {
       case AG.Individual | AG.Organisation | AG.Agent => Valid(())
-      case _ =>
+      case _                                          =>
         Invalid("affinityGroup must be none, or one of [Individual, Organisation, Agent]")
     }
 
   val validateAgentCode: GroupConstraint = group =>
     group.agentCode match {
       case Some(_) if group.affinityGroup == AG.Agent => Valid(())
-      case None if group.affinityGroup == AG.Agent =>
+      case None if group.affinityGroup == AG.Agent    =>
         Invalid("agentCode is required for Agent")
       case _ => Valid(())
     }
@@ -85,7 +85,7 @@ object GroupValidator {
 
   val validateEachDelegatedEnrolment: GroupConstraint = group =>
     group.delegatedEnrolments match {
-      case s if s.isEmpty => Valid(())
+      case s if s.isEmpty                       => Valid(())
       case _ if group.affinityGroup == AG.Agent =>
         group.delegatedEnrolments
           .map(e =>

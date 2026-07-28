@@ -19,15 +19,14 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import play.api.libs.json.*
 import uk.gov.hmrc.agentsexternalstubs.models.RegistrationPayload.*
 
-/** ----------------------------------------------------------------------------
-  * Historical note: this model originated from a schema-driven generator, but it
-  * is now maintained directly in this repo. The old regeneration instructions
+/** ---------------------------------------------------------------------------- Historical note: this model originated
+  * from a schema-driven generator, but it is now maintained directly in this repo. The old regeneration instructions
   * were removed because the referenced schema inputs are no longer present here.
   * ----------------------------------------------------------------------------
   *
-  *  RegistrationPayload
-  *  -  Individual
-  *  -  Organisation
+  * RegistrationPayload
+  *   - Individual
+  *   - Organisation
   */
 case class RegistrationPayload(
   regime: String,

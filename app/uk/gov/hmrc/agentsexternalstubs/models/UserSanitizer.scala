@@ -31,7 +31,7 @@ case class UserSanitizer(affinityGroup: Option[String]) extends RecordUtils[User
       if user.name.isEmpty then
         affinityGroup match {
           case Some(AG.Individual) => user.copy(name = Some(UserGenerator.nameForIndividual(seed)))
-          case Some(AG.Agent) =>
+          case Some(AG.Agent)      =>
             user.copy(name = Some(UserGenerator.nameForAgent(seed, user.groupId.getOrElse(seed))))
           case Some(_) => user.copy(name = Some(UserGenerator.nameForOrganisation(seed)))
           case None    => user
@@ -60,21 +60,20 @@ case class UserSanitizer(affinityGroup: Option[String]) extends RecordUtils[User
     user =>
       affinityGroup match {
         case Some(AG.Organisation) => user // APB-6051 Organisations may also have a Nino
-        case Some(_)               => if user.nino.isEmpty then user.copy(nino = Some(Generator.ninoWithSpaces(seed))) else user
-        case None                  => user.copy(nino = None)
+        case Some(_) => if user.nino.isEmpty then user.copy(nino = Some(Generator.ninoWithSpaces(seed))) else user
+        case None    => user.copy(nino = None)
       }
 
   private val ensureUKAgentsAndSAIndividualsHaveAUtr: Update = seed =>
     user =>
       affinityGroup match {
         case Some(AG.Agent) =>
-          user.copy(utr =
-            user.utr.orElse(if user.address.exists(_.isUKAddress) then Option(Generator.utr(seed)) else None)
-          )
+          user.copy(utr = user.utr.orElse(if user.address.exists(_.isUKAddress) then Option(Generator.utr(seed))
+          else None))
         case Some(AG.Individual) =>
           user.assignedPrincipalEnrolments.find(_.service == "IR-SA") match {
             case Some(EnrolmentKey(_, identifiers)) => user.copy(utr = identifiers.headOption.map(_.value))
-            case None =>
+            case None                               =>
               user.assignedPrincipalEnrolments.find(_.service == "HMRC-MTD-IT") match {
                 case Some(_) => user.copy(utr = Option(Generator.utr(seed)))
                 case None    => user
@@ -87,8 +86,7 @@ case class UserSanitizer(affinityGroup: Option[String]) extends RecordUtils[User
     user =>
       affinityGroup match {
         case Some(AG.Individual) =>
-          if user.confidenceLevel.isEmpty then
-            user.copy(confidenceLevel = Some(ConfidenceLevel.Default))
+          if user.confidenceLevel.isEmpty then user.copy(confidenceLevel = Some(ConfidenceLevel.Default))
           else user
         case _ => user.copy(confidenceLevel = None)
       }
@@ -107,7 +105,7 @@ case class UserSanitizer(affinityGroup: Option[String]) extends RecordUtils[User
     user =>
       affinityGroup match {
         case Some(AG.Organisation) => user
-        case Some(_) =>
+        case Some(_)               =>
           if user.dateOfBirth.isEmpty then user.copy(dateOfBirth = Some(UserGenerator.dateOfBirth(seed))) else user
         case None => user.copy(dateOfBirth = None)
       }
@@ -119,22 +117,21 @@ case class UserSanitizer(affinityGroup: Option[String]) extends RecordUtils[User
       else user
 
   private val ensurePrincipalEnrolmentKeysAreDistinct: Update = _ =>
-    user => {
+    user =>
       user.copy(assignedPrincipalEnrolments =
         user.assignedPrincipalEnrolments
           .groupBy(_.service)
           .collect {
             case (key, eks) if eks.size == 1 || Services(key).exists(_.flags.multipleEnrolment) => eks
-            case (_, eks) =>
+            case (_, eks)                                                                       =>
               Seq(eks.maxBy(_.identifiers.size))
           }
           .flatten
           .toSeq
       )
-    }
 
   private val ensurePrincipalEnrolmentsHaveIdentifiers: Update = seed =>
-    user => {
+    user =>
       user.copy(assignedPrincipalEnrolments =
         user.assignedPrincipalEnrolments
           .groupBy(_.service)
@@ -143,10 +140,9 @@ case class UserSanitizer(affinityGroup: Option[String]) extends RecordUtils[User
           }
           .toSeq
       )
-    }
 
   private val ensureDelegatedEnrolmentsHaveIdentifiers: Update = seed =>
-    user => {
+    user =>
       user.copy(assignedDelegatedEnrolments =
         user.assignedDelegatedEnrolments
           .groupBy(_.service)
@@ -155,7 +151,6 @@ case class UserSanitizer(affinityGroup: Option[String]) extends RecordUtils[User
           }
           .toSeq
       )
-    }
 
   private def ensureEnrolmentKeyHasIdentifier(seed: String, ek: EnrolmentKey): EnrolmentKey =
     ensureEnrolmentHaveIdentifier(seed)(Enrolment.from(ek)).toEnrolmentKey.get

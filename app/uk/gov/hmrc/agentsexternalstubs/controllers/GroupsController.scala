@@ -45,10 +45,8 @@ class GroupsController @Inject() (
     Action.async { request =>
       given Request[AnyContent] = request
       withCurrentSession { session =>
-        (if agentCode.isDefined then
-           groupsService.findByAgentCode(agentCode.get, session.planetId).map(_.toSeq)
-         else
-           groupsService.findByPlanetId(session.planetId, affinityGroup)(limit.getOrElse(100))).map(groups =>
+        (if agentCode.isDefined then groupsService.findByAgentCode(agentCode.get, session.planetId).map(_.toSeq)
+         else groupsService.findByPlanetId(session.planetId, affinityGroup)(limit.getOrElse(100))).map(groups =>
           Ok(RestfulResponse(Groups(groups)))
         )
       }(SessionRecordNotFound)

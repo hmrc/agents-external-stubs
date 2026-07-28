@@ -116,7 +116,8 @@ object ApiPlatform {
         additionalInformation =
           testUser.vatRegistrationDate.map(date => AdditionalInformation(vatRegistrationDate = Some(date))),
         utr =
-          if testUser.affinityGroup == AG.Agent then None else testUser.saUtr.orElse(Some(Generator.utr(testUser.userId)))
+          if testUser.affinityGroup == AG.Agent then None
+          else testUser.saUtr.orElse(Some(Generator.utr(testUser.userId)))
       )
       val group = Group(
         groupId = groupId,
@@ -146,11 +147,11 @@ object ApiPlatform {
                 )
               )
             )
-          case "submit-vat-returns" => testUser.vrn.map(Enrolment("HMCE-VATDEC-ORG", "VATRegNo", _))
-          case "mtd-vat"            => testUser.vrn.map(Enrolment("HMRC-MTD-VAT", "VRN", _))
-          case "mtd-income-tax"     => testUser.mtdItId.map(Enrolment("HMRC-MTD-IT", "MTDITID", _))
-          case "agent-services"     => testUser.arn.map(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", _))
-          case "lisa"               => testUser.lisaManRefNum.map(Enrolment("HMRC-LISA-ORG", "ZREF", _))
+          case "submit-vat-returns"         => testUser.vrn.map(Enrolment("HMCE-VATDEC-ORG", "VATRegNo", _))
+          case "mtd-vat"                    => testUser.vrn.map(Enrolment("HMRC-MTD-VAT", "VRN", _))
+          case "mtd-income-tax"             => testUser.mtdItId.map(Enrolment("HMRC-MTD-IT", "MTDITID", _))
+          case "agent-services"             => testUser.arn.map(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", _))
+          case "lisa"                       => testUser.lisaManRefNum.map(Enrolment("HMRC-LISA-ORG", "ZREF", _))
           case "secure-electronic-transfer" =>
             testUser.secureElectronicTransferReferenceNumber.map(Enrolment("HMRC-SET-ORG", "SETReference", _))
           case "relief-at-source" =>

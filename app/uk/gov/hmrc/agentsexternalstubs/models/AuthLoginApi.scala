@@ -73,19 +73,16 @@ object AuthLoginApi {
     object DelegatedEnrolment {
 
       def from(group: Group): Option[Seq[DelegatedEnrolment]] =
-        if group.delegatedEnrolments.isEmpty then
-          None
+        if group.delegatedEnrolments.isEmpty then None
         else {
           val delegatedEnrolments =
             group.delegatedEnrolments
               .map(e =>
-                delegatedAuthRuleFor(e.key).map(rule =>
-                  DelegatedEnrolment(e.key, e.identifiers.getOrElse(Seq.empty), rule)
-                )
+                delegatedAuthRuleFor(e.key)
+                  .map(rule => DelegatedEnrolment(e.key, e.identifiers.getOrElse(Seq.empty), rule))
               )
               .collect { case Some(e) => e }
-          if delegatedEnrolments.isEmpty then
-            None
+          if delegatedEnrolments.isEmpty then None
           else Some(delegatedEnrolments)
         }
 

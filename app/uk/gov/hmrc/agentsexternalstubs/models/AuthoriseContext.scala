@@ -99,8 +99,9 @@ abstract class AuthoriseUserContext(user: User, group: Option[Group]) extends Au
 
   override def principalEnrolments: Seq[Enrolment] = {
     val enrolments =
-      if
-        group.exists(g => g.affinityGroup == AG.Individual || g.affinityGroup == AG.Organisation) && user.nino.isDefined
+      if group.exists(g =>
+          g.affinityGroup == AG.Individual || g.affinityGroup == AG.Organisation
+        ) && user.nino.isDefined
       then
         group.map(_.principalEnrolments).getOrElse(Seq.empty) :+ Enrolment(
           "HMRC-NI",
@@ -159,11 +160,10 @@ case class FullAuthoriseContext(
   agentAccessControlConnector: AgentAccessControlConnector,
   executionContext: ExecutionContext,
   hc: HeaderCarrier
-)
-    extends AuthoriseUserContext(user, group) {
+) extends AuthoriseUserContext(user, group) {
 
   given ec: ExecutionContext = executionContext
-  given HeaderCarrier    = hc
+  given HeaderCarrier = hc
 
   override def providerType: String = authenticatedSession.providerType
   override def planetId: Option[String] = Some(authenticatedSession.planetId)

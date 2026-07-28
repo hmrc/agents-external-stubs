@@ -444,7 +444,7 @@ class RelationshipRecordsServiceISpec extends AppBaseISpec {
       await(service.authorise(RelationshipRecord("R1", "A1", "D", "C2"), "pluto"))
       await(service.authorise(RelationshipRecord("R1", "A1", "D", "C3"), "pluto"))
       await(service.authorise(RelationshipRecord("R2", "A1", "D", "C1"), "pluto"))
-      await(service.authorise(RelationshipRecord("R1", "A2", "D", "C1"), "pluto")) //replaces #2
+      await(service.authorise(RelationshipRecord("R1", "A2", "D", "C1"), "pluto")) // replaces #2
 
       val allOfAgent = await(
         service.findByQuery(

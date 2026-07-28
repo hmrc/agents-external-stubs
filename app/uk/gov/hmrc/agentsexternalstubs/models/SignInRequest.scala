@@ -29,5 +29,5 @@ case class SignInRequest(
 )
 
 object SignInRequest {
-  given formats:Format[SignInRequest] = Json.format[SignInRequest]
+  given formats: Format[SignInRequest] = Json.format[SignInRequest]
 }

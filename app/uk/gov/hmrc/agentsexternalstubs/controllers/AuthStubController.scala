@@ -51,7 +51,7 @@ class AuthStubController @Inject() (
       case Some(BearerToken(authToken)) =>
         for {
           maybeSession <- authenticationService.findByAuthTokenOrLookupExternal(authToken)
-          response <- request.body.validate[AuthoriseRequest] match {
+          response     <- request.body.validate[AuthoriseRequest] match {
                         case JsSuccess(authoriseRequest, _) =>
                           maybeSession match {
                             case Some(authenticatedSession) =>
@@ -130,14 +130,14 @@ class AuthStubController @Inject() (
     case Some(BearerToken(authToken)) =>
       for {
         maybeSession <- authenticationService.findByAuthTokenOrLookupExternal(authToken)
-        result <- maybeSession match {
+        result       <- maybeSession match {
                     case Some(authenticatedSession) =>
                       for {
                         maybeUser <- usersService
                                        .findUserAndGroup(authenticatedSession.userId, authenticatedSession.planetId)
                         result <- maybeUser match {
                                     case (Some(user), Some(group)) => body(user, group, authenticatedSession)
-                                    case _ =>
+                                    case _                         =>
                                       unauthorizedF("UserRecordNotFound")
                                   }
                       } yield result
@@ -177,7 +177,7 @@ class AuthStubController @Inject() (
     given Request[AnyContent] = request
     withCurrentSession { session =>
       for {
-        maybeUser <- usersService.findByUserId(oid, session.planetId)
+        maybeUser  <- usersService.findByUserId(oid, session.planetId)
         maybeGroup <- maybeUser
                         .flatMap(_.groupId)
                         .fold(Future.successful(Option.empty[Group]))(groupId =>
@@ -194,7 +194,7 @@ class AuthStubController @Inject() (
     given Request[AnyContent] = request
     withCurrentSession { session =>
       for {
-        maybeUser <- usersService.findByUserId(oid, session.planetId)
+        maybeUser  <- usersService.findByUserId(oid, session.planetId)
         maybeGroup <- maybeUser
                         .flatMap(_.groupId)
                         .fold(Future.successful(Option.empty[Group]))(groupId =>

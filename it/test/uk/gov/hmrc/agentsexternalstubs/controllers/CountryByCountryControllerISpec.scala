@@ -37,7 +37,7 @@ class CountryByCountryControllerISpec extends ServerBaseISpec with TestRequests 
         given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val email = "test@foo.uk"
 
-        //gen a record
+        // gen a record
         val createRecord = Records.createCbcSubscriptionRecord(
           CbcSubscriptionRecord
             .seed("foo")

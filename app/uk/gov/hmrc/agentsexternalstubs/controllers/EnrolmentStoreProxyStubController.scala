@@ -48,16 +48,16 @@ class EnrolmentStoreProxyStubController @Inject() (
 )(using executionContext: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
-  /** No session resolvable (e.g. a machine-to-machine caller with no live session on any planet) - fall back to
-    * finding which planet owns the BusinessPartnerRecord for the ARN embedded in this enrolment key, the same
-    * way HipStubController does for its BPR-keyed endpoints. Only safe because ARNs are minted globally unique
-    * (as of the safeId fix - see .claude/findings/validation-and-records.md). Logs a warning (doesn't fail) if
-    * more than one planet has a matching record - see RecordsRepository.findFirstByKeysAnyPlanet.
+  /** No session resolvable (e.g. a machine-to-machine caller with no live session on any planet) - fall back to finding
+    * which planet owns the BusinessPartnerRecord for the ARN embedded in this enrolment key, the same way
+    * HipStubController does for its BPR-keyed endpoints. Only safe because ARNs are minted globally unique (as of the
+    * safeId fix - see .claude/findings/validation-and-records.md). Logs a warning (doesn't fail) if more than one
+    * planet has a matching record - see RecordsRepository.findFirstByKeysAnyPlanet.
     */
   private def planetIdFromArnGlobally(enrolmentKey: EnrolmentKey): Future[Option[String]] =
     enrolmentKey.identifiers.find(_.key == "AgentReferenceNumber").map(_.value) match {
       case Some(arn) => recordsService.getRecordAnyPlanet[BusinessPartnerRecord, Arn](Arn(arn)).map(_.map(_._1))
-      case None =>
+      case None      =>
         Logger(getClass).warn(
           s"Cannot fall back to a global lookup for enrolmentKey $enrolmentKey - no AgentReferenceNumber identifier"
         )
@@ -68,9 +68,10 @@ class EnrolmentStoreProxyStubController @Inject() (
     given Request[AnyContent] = request
     withCurrentSession { session =>
       (for {
-        principal <- if `type` == "all" || `type` == "principal" then
-                       usersService.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
-                     else Future.successful(None)
+        principal <-
+          if `type` == "all" || `type` == "principal" then
+            usersService.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
+          else Future.successful(None)
         delegated <- if `type` == "all" || `type` == "delegated" then {
                        usersService.findUserIdsByAssignedDelegatedEnrolmentKey(
                          enrolmentKey,
@@ -90,12 +91,14 @@ class EnrolmentStoreProxyStubController @Inject() (
     given Request[AnyContent] = request
     withCurrentSession { session =>
       (for {
-        principal <- if `type` == "all" || `type` == "principal" then
-                       groupsService.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
-                     else Future.successful(None)
-        delegated <- if `type` == "all" || `type` == "delegated" then
-                       groupsService.findByDelegatedEnrolmentKey(enrolmentKey, session.planetId)(1000)
-                     else Future.successful(Seq.empty)
+        principal <-
+          if `type` == "all" || `type` == "principal" then
+            groupsService.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
+          else Future.successful(None)
+        delegated <-
+          if `type` == "all" || `type` == "delegated" then
+            groupsService.findByDelegatedEnrolmentKey(enrolmentKey, session.planetId)(1000)
+          else Future.successful(Seq.empty)
       } yield GetGroupIdsResponse.from(principal, delegated)).map {
         case GetGroupIdsResponse(None, None) => NoContent
         case response                        => Ok(RestfulResponse(response))
@@ -104,18 +107,19 @@ class EnrolmentStoreProxyStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def setKnownFacts(enrolmentKey: EnrolmentKey): Action[JsValue] = Action.async(parse.tolerantJson) {
-    request =>
-      given Request[JsValue] = request
-      withCurrentSession(session => handleSetKnownFacts(enrolmentKey, session.planetId)) {
-        planetIdFromArnGlobally(enrolmentKey).flatMap {
-          case Some(planetId) => handleSetKnownFacts(enrolmentKey, planetId)
-          case None           => SessionRecordNotFound
-        }
+  def setKnownFacts(enrolmentKey: EnrolmentKey): Action[JsValue] = Action.async(parse.tolerantJson) { request =>
+    given Request[JsValue] = request
+    withCurrentSession(session => handleSetKnownFacts(enrolmentKey, session.planetId)) {
+      planetIdFromArnGlobally(enrolmentKey).flatMap {
+        case Some(planetId) => handleSetKnownFacts(enrolmentKey, planetId)
+        case None           => SessionRecordNotFound
       }
+    }
   }
 
-  private def handleSetKnownFacts(enrolmentKey: EnrolmentKey, planetId: String)(using request: Request[JsValue]): Future[Result] =
+  private def handleSetKnownFacts(enrolmentKey: EnrolmentKey, planetId: String)(using
+    request: Request[JsValue]
+  ): Future[Result] =
     withPayload[SetKnownFactsRequest] { payload =>
       knownFactsRepository
         .upsert(KnownFacts(enrolmentKey, enrolmentKey.identifiers, payload.verifiers), planetId)
@@ -172,7 +176,7 @@ class EnrolmentStoreProxyStubController @Inject() (
   ): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       groupsService.findByGroupId(groupId, session.planetId).map {
-        case None => NotFound
+        case None        => NotFound
         case Some(group) =>
           val matched =
             group.principalEnrolments.find { e =>
@@ -364,15 +368,15 @@ class EnrolmentStoreProxyStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  //ES3
+  // ES3
   def getGroupEnrolments(
-                          groupId: String,
-                          `type`: String,
-                          service: Option[String],
-                          `start-record`: Option[Int],
-                          `max-records`: Option[Int],
-                          @unused _userId: Option[String],
-                          @unused _unassignedClients: Option[Boolean]
+    groupId: String,
+    `type`: String,
+    service: Option[String],
+    `start-record`: Option[Int],
+    `max-records`: Option[Int],
+    @unused _userId: Option[String],
+    @unused _unassignedClients: Option[Boolean]
   ): Action[AnyContent] = Action.async { request =>
     given Request[AnyContent] = request
     withCurrentSession { session =>
@@ -414,8 +418,7 @@ class EnrolmentStoreProxyStubController @Inject() (
             .map(groupedByEnrolment => groupedByEnrolment._1 -> groupedByEnrolment._2.map(_._2))
         val enrolmentsToAssignedUsersMergedWithDelegatedEnrolments: Map[Enrolment, Seq[String]] =
           setOfDelegatedEnrolments.foldLeft(mapOfEnrolmentsToAssignedUsers) { (accumulatedMap, delegatedEnrolment) =>
-            if
-              accumulatedMap.keySet.exists(assignedEnrolment =>
+            if accumulatedMap.keySet.exists(assignedEnrolment =>
                 assignedEnrolment.key == delegatedEnrolment.key &&
                   assignedEnrolment.identifiers == delegatedEnrolment.identifiers
               )
@@ -443,7 +446,7 @@ class EnrolmentStoreProxyStubController @Inject() (
 
   def setEnrolmentFriendlyName(groupId: String, enrolmentKey: EnrolmentKey): Action[JsValue] =
     Action.async(parse.tolerantJson) { request =>
-    given Request[JsValue] = request
+      given Request[JsValue] = request
       withCurrentSession { session =>
         withPayload[SetFriendlyNameRequest] { payload =>
           SetFriendlyNameRequest
@@ -461,12 +464,12 @@ class EnrolmentStoreProxyStubController @Inject() (
 
   /** ES20 - ES allows for a list of known facts (identifiers and verifiers)
     *
-    *  Assume it is 1 identifier (cbcId) to get multiple identifiers (UTR and cbcId),
-    *  to allow us to construct the full enrolment key for HMRC-CBC-ORG
+    * Assume it is 1 identifier (cbcId) to get multiple identifiers (UTR and cbcId), to allow us to construct the full
+    * enrolment key for HMRC-CBC-ORG
     */
   def queryEnrolmentsFromKnownFacts: Action[JsValue] =
     Action.async(parse.tolerantJson) { request =>
-    given Request[JsValue] = request
+      given Request[JsValue] = request
       withCurrentSession { session =>
         withPayload[EnrolmentsFromKnownFactsRequest] { payload =>
           EnrolmentsFromKnownFactsRequest
@@ -496,7 +499,7 @@ class EnrolmentStoreProxyStubController @Inject() (
 
 object EnrolmentStoreProxyStubController {
 
-  //matches response from ES20
+  // matches response from ES20
   case class IdentifiersAndVerifiers(identifiers: Seq[Identifier], verifiers: Seq[KnownFact])
 
   object IdentifiersAndVerifiers {
@@ -541,7 +544,10 @@ object EnrolmentStoreProxyStubController {
     given writes: Writes[GetUserIdsResponse] = Json.writes[GetUserIdsResponse]
 
     def from(principal: Option[User], delegated: Seq[String]): GetUserIdsResponse =
-      GetUserIdsResponse(principal.map(u => Seq(u.userId)), if delegated.isEmpty then None else Some(delegated.distinct))
+      GetUserIdsResponse(
+        principal.map(u => Seq(u.userId)),
+        if delegated.isEmpty then None else Some(delegated.distinct)
+      )
   }
 
   case class GetGroupIdsResponse(principalGroupIds: Option[Seq[String]], delegatedGroupIds: Option[Seq[String]])

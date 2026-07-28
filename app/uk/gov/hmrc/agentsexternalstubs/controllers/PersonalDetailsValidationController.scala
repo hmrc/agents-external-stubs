@@ -47,8 +47,7 @@ class PersonalDetailsValidationController @Inject() (cc: ControllerComponents) e
       if validationIds.getOrElse(id, false) then
         PersonalDetailsValidation
           .successful(id, PersonalDetailsWithNino("Fred", "Bloggs", LocalDate.now(), Generator.ninoNoSpaces(id)))
-      else
-        PersonalDetailsValidation.failed(id)
+      else PersonalDetailsValidation.failed(id)
   }
 
 }

@@ -44,7 +44,7 @@ class KnownFactsController @Inject() (
       knownFactsRepository
         .findByEnrolmentKey(enrolmentKey, session.planetId)
         .flatMap {
-          case None => notFoundF("NOT_FOUND")
+          case None     => notFoundF("NOT_FOUND")
           case Some(kf) =>
             for {
               maybeUser <- usersRepository.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
@@ -72,38 +72,39 @@ class KnownFactsController @Inject() (
 
   def upsertKnownFacts(enrolmentKey: EnrolmentKey): Action[JsValue] = Action.async(parse.tolerantJson) { request =>
     given Request[JsValue] = request
-      withCurrentSession { session =>
-        withPayload[KnownFacts](knownFacts =>
-          knownFactsRepository
-            .findByEnrolmentKey(enrolmentKey, session.planetId)
-            .flatMap {
-              case None =>
-                knownFactsRepository
-                  .upsert(
-                    KnownFacts.sanitize(enrolmentKey.tag)(knownFacts.copy(enrolmentKey = enrolmentKey)),
-                    session.planetId
-                  )
-                  .map(_ =>
-                    Created(s"Known facts ${knownFacts.enrolmentKey.tag} has been created.")
-                      .withHeaders(HeaderNames.LOCATION -> routes.KnownFactsController.getKnownFacts(enrolmentKey).url)
-                  )
-              case Some(_) =>
-                knownFactsRepository
-                  .upsert(
-                    KnownFacts.sanitize(enrolmentKey.tag)(knownFacts.copy(enrolmentKey = enrolmentKey)),
-                    session.planetId
-                  )
-                  .map(_ =>
-                    Accepted(s"Known facts ${knownFacts.enrolmentKey.tag} has been updated.")
-                      .withHeaders(HeaderNames.LOCATION -> routes.KnownFactsController.getKnownFacts(enrolmentKey).url)
-                  )
-            }
-        )
-      }(SessionRecordNotFound)
+    withCurrentSession { session =>
+      withPayload[KnownFacts](knownFacts =>
+        knownFactsRepository
+          .findByEnrolmentKey(enrolmentKey, session.planetId)
+          .flatMap {
+            case None =>
+              knownFactsRepository
+                .upsert(
+                  KnownFacts.sanitize(enrolmentKey.tag)(knownFacts.copy(enrolmentKey = enrolmentKey)),
+                  session.planetId
+                )
+                .map(_ =>
+                  Created(s"Known facts ${knownFacts.enrolmentKey.tag} has been created.")
+                    .withHeaders(HeaderNames.LOCATION -> routes.KnownFactsController.getKnownFacts(enrolmentKey).url)
+                )
+            case Some(_) =>
+              knownFactsRepository
+                .upsert(
+                  KnownFacts.sanitize(enrolmentKey.tag)(knownFacts.copy(enrolmentKey = enrolmentKey)),
+                  session.planetId
+                )
+                .map(_ =>
+                  Accepted(s"Known facts ${knownFacts.enrolmentKey.tag} has been updated.")
+                    .withHeaders(HeaderNames.LOCATION -> routes.KnownFactsController.getKnownFacts(enrolmentKey).url)
+                )
+          }
+      )
+    }(SessionRecordNotFound)
   }
 
-  def upsertKnownFactVerifier(enrolmentKey: EnrolmentKey): Action[JsValue] = Action.async(parse.tolerantJson) { request =>
-    given Request[JsValue] = request
+  def upsertKnownFactVerifier(enrolmentKey: EnrolmentKey): Action[JsValue] = Action.async(parse.tolerantJson) {
+    request =>
+      given Request[JsValue] = request
       withCurrentSession { session =>
         withPayload[KnownFact](knownFact =>
           knownFactsRepository

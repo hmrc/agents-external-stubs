@@ -28,19 +28,19 @@ case class CgtAddressDetails(
 )
 
 case object CgtAddressDetails {
-  given format:Format[CgtAddressDetails] = Json.format[CgtAddressDetails]
+  given format: Format[CgtAddressDetails] = Json.format[CgtAddressDetails]
 }
 
 case class IndividualName(firstName: String, lastName: String)
 
 case object IndividualName {
-  given format:Format[IndividualName] = Json.format[IndividualName]
+  given format: Format[IndividualName] = Json.format[IndividualName]
 }
 
 case class OrganisationName(name: String)
 
 case object OrganisationName {
-  given format:Format[OrganisationName] = Json.format[OrganisationName]
+  given format: Format[OrganisationName] = Json.format[OrganisationName]
 }
 
 case class TypeOfPersonDetails(typeOfPerson: String, name: Either[IndividualName, OrganisationName])
@@ -68,11 +68,11 @@ object TypeOfPersonDetails {
 case class SubscriptionDetails(typeOfPersonDetails: TypeOfPersonDetails, addressDetails: CgtAddressDetails)
 
 object SubscriptionDetails {
-  given writes:Writes[SubscriptionDetails] = Json.writes[SubscriptionDetails]
+  given writes: Writes[SubscriptionDetails] = Json.writes[SubscriptionDetails]
 }
 
 case class CgtSubscription(regime: String, subscriptionDetails: SubscriptionDetails)
 
 object CgtSubscription {
-  given writes:Writes[CgtSubscription] = Json.writes[CgtSubscription]
+  given writes: Writes[CgtSubscription] = Json.writes[CgtSubscription]
 }

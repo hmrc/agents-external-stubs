@@ -92,9 +92,9 @@ class HipStubControllerISpec
         result should haveStatus(OK)
         result.json.toString() should include(
           s"""relationshipDisplayResponse":[{"refNumber":"012345678901234","arn":"ZARN1234567","individual":{"firstName":"${nameParts.init
-            .mkString(
-              " "
-            )}","lastName":"${nameParts.last}"},"dateFrom":"2012-01-01","dateTo":"9999-12-31","contractAccountCategory":"33"}]}"""
+              .mkString(
+                " "
+              )}","lastName":"${nameParts.last}"},"dateFrom":"2012-01-01","dateTo":"9999-12-31","contractAccountCategory":"33"}]}"""
         )
       }
     }

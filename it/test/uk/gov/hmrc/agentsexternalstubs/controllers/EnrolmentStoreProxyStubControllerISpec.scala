@@ -505,7 +505,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
           Some(AG.Individual)
         )
 
-        //Delegate first agent
+        // Delegate first agent
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
           "group1",
           "HMRC-MTD-IT-SUPP~MTDITID~ZIZI45093893553",
@@ -524,7 +524,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         val user: User = await(userService.findByUserId("0000000021313132", session.planetId)).get
         user.assignedDelegatedEnrolments should contain.only(EnrolmentKey("HMRC-MTD-IT-SUPP~MTDITID~ZIZI45093893553"))
 
-        //Delegate second agent
+        // Delegate second agent
         val result2 = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
           "group2",
           "HMRC-MTD-IT-SUPP~MTDITID~ZIZI45093893553",
@@ -1404,7 +1404,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
     }
 
-    //ES3
+    // ES3
     "GET /enrolment-store/groups/:groupId/enrolments" should {
       "return 204 with an empty list of principal enrolments" in {
         userService

@@ -155,7 +155,8 @@ trait EnrolmentStoreProxyHelper extends TestRequests with TestStubs with Matcher
     case _          => throw new IllegalArgumentException(s"Tax identifier not supported $identifier")
   }
 
-  def givenPrincipalGroupIdExistsFor(taxIdentifier: TaxIdentifier, groupId: String)(using authContext: AuthContext
+  def givenPrincipalGroupIdExistsFor(taxIdentifier: TaxIdentifier, groupId: String)(using
+    authContext: AuthContext
   ): Unit = taxIdentifier match {
     case _: Arn =>
       Users.create(
@@ -173,7 +174,8 @@ trait EnrolmentStoreProxyHelper extends TestRequests with TestStubs with Matcher
       )
   }
 
-  def givenDelegatedGroupIdsExistFor(taxIdentifier: TaxIdentifier, groupIds: Set[String])(using authContext: AuthContext
+  def givenDelegatedGroupIdsExistFor(taxIdentifier: TaxIdentifier, groupIds: Set[String])(using
+    authContext: AuthContext
   ): Unit = for (groupId <- groupIds) {
     val result = Users.create(
       UserGenerator
@@ -184,7 +186,8 @@ trait EnrolmentStoreProxyHelper extends TestRequests with TestStubs with Matcher
     result should haveStatus(201)
   }
 
-  def givenDelegatedGroupIdsExistForKey(enrolmentKey: String, groupIds: Set[String])(using authContext: AuthContext
+  def givenDelegatedGroupIdsExistForKey(enrolmentKey: String, groupIds: Set[String])(using
+    authContext: AuthContext
   ): Unit = {
     val enrolment = Enrolment.from(EnrolmentKey.parse(enrolmentKey).toOption.get)
     for (groupId <- groupIds) {
@@ -198,25 +201,25 @@ trait EnrolmentStoreProxyHelper extends TestRequests with TestStubs with Matcher
     }
   }
 
-  def givenPrincipalUserIdExistFor(taxIdentifier: TaxIdentifier, userId: String)(using authContext: AuthContext
-  ): Unit = taxIdentifier match {
-    case _: Arn =>
-      val result = Users.create(
-        UserGenerator
-          .agent(userId = userId)
-          .withAssignedPrincipalEnrolment(asEnrolment(taxIdentifier).toEnrolmentKey.get),
-        Some(AG.Agent)
-      )
-      result should haveStatus(201)
-    case _ =>
-      val result = Users.create(
-        UserGenerator
-          .individual(userId = userId)
-          .withAssignedPrincipalEnrolment(asEnrolment(taxIdentifier).toEnrolmentKey.get),
-        Some(AG.Individual)
-      )
-      result should haveStatus(201)
-  }
+  def givenPrincipalUserIdExistFor(taxIdentifier: TaxIdentifier, userId: String)(using authContext: AuthContext): Unit =
+    taxIdentifier match {
+      case _: Arn =>
+        val result = Users.create(
+          UserGenerator
+            .agent(userId = userId)
+            .withAssignedPrincipalEnrolment(asEnrolment(taxIdentifier).toEnrolmentKey.get),
+          Some(AG.Agent)
+        )
+        result should haveStatus(201)
+      case _ =>
+        val result = Users.create(
+          UserGenerator
+            .individual(userId = userId)
+            .withAssignedPrincipalEnrolment(asEnrolment(taxIdentifier).toEnrolmentKey.get),
+          Some(AG.Individual)
+        )
+        result should haveStatus(201)
+    }
 
   def givenEnrolmentDeallocationSucceeds(
     groupId: String,

@@ -59,7 +59,7 @@ object GroupGenerator {
   def agentId(seed: String): String = agentIdGen.seeded(seed).get
 
   val agencyNameGen: Gen[String] = for {
-    ln <- surname
+    ln     <- surname
     suffix <- Gen.oneOf(
                 " Accountants",
                 " and Company",

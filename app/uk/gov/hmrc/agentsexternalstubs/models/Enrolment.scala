@@ -50,12 +50,12 @@ object Enrolment {
   def apply(key: String, identifierKey: String, identifierValue: String): Enrolment =
     Enrolment(key, Some(Seq(Identifier(identifierKey, identifierValue))))
 
-  val validate: Enrolment => Validated[String, Unit] = e => {
+  val validate: Enrolment => Validated[String, Unit] = e =>
     e.identifiers match {
-      case None => Valid(())
+      case None              => Valid(())
       case Some(identifiers) =>
         Services(e.key) match {
-          case None => Invalid(s"Unknown service ${e.key}")
+          case None          => Invalid(s"Unknown service ${e.key}")
           case Some(service) =>
             Validated
               .cond(
@@ -66,7 +66,6 @@ object Enrolment {
               .andThen(_ => identifiers.map(i => validateIdentifier(i, service)).reduce(_ combine _))
         }
     }
-  }
 
   def validateIdentifier(identifier: Identifier, service: Service): Validated[String, Unit] =
     service.getIdentifier(identifier.key) match {

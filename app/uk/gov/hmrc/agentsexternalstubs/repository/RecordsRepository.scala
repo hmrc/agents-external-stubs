@@ -57,14 +57,14 @@ trait RecordsRepository {
     reads: Reads[T]
   ): Future[Seq[T]]
 
-  /** Finds records matching any of the given keys, regardless of which planet they belong to, up to `limit`.
-    * Only safe to rely on returning a single, unambiguous match when the identifier the keys are derived from
-    * is expected to be globally unique (e.g. a safeId minted uniquely per test run) - callers should treat more
-    * than one result as a sign that assumption doesn't hold. Returns the owning planetId alongside each record,
-    * since there is no session to source it from. Deliberately returns raw matches rather than picking a
-    * "winner" or logging here - `uk.gov.hmrc.agentsexternalstubs.repository` is configured ERROR-only in
-    * logback.xml, so a warning logged from this layer is silently swallowed; callers (e.g. RecordsService) are
-    * responsible for deciding how to handle/log ambiguity.
+  /** Finds records matching any of the given keys, regardless of which planet they belong to, up to `limit`. Only safe
+    * to rely on returning a single, unambiguous match when the identifier the keys are derived from is expected to be
+    * globally unique (e.g. a safeId minted uniquely per test run) - callers should treat more than one result as a sign
+    * that assumption doesn't hold. Returns the owning planetId alongside each record, since there is no session to
+    * source it from. Deliberately returns raw matches rather than picking a "winner" or logging here -
+    * `uk.gov.hmrc.agentsexternalstubs.repository` is configured ERROR-only in logback.xml, so a warning logged from
+    * this layer is silently swallowed; callers (e.g. RecordsService) are responsible for deciding how to handle/log
+    * ambiguity.
     */
   def findByKeysAnyPlanet[T](keys: Seq[String], limit: Int)(using
     recordType: RecordMetaData[T],
@@ -121,7 +121,7 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppCon
           .getOrElse(obj)
       }
 
-    ((entity.id, entity.uniqueKey) match {
+    (entity.id, entity.uniqueKey) match {
       case (None, None) =>
         val newId = ObjectId.get().toString
         collection
@@ -137,8 +137,8 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppCon
         collection
           .replaceOne(
             filter = Filters.equal(Record.ID, new ObjectId(id)),
-            replacement =
-              entityWithExtraJson.addField(UPDATED, Json.toJson(Instant.now())(using MongoJavatimeFormats.instantFormat)),
+            replacement = entityWithExtraJson
+              .addField(UPDATED, Json.toJson(Instant.now())(using MongoJavatimeFormats.instantFormat)),
             ReplaceOptions().upsert(true)
           )
           .toFuture()
@@ -172,7 +172,7 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppCon
                 .toFuture()
                 .map(_ => newId)
           }
-    })
+    }
   }
 
   def rawStore(record: JsonAbuse[Record]): Future[String] = {

@@ -295,7 +295,8 @@ trait TestRequests extends ScalaFutures {
 
   object Groups {
 
-    def getAll(affinityGroup: Option[String] = None, limit: Option[Int] = None, agentCode: Option[String] = None)(using authContext: AuthContext
+    def getAll(affinityGroup: Option[String] = None, limit: Option[Int] = None, agentCode: Option[String] = None)(using
+      authContext: AuthContext
     ): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/groups")
@@ -449,12 +450,10 @@ trait TestRequests extends ScalaFutures {
         .delete()
         .futureValue
 
-    def setKnownFacts[T: BodyWritable](enrolmentKey: String, payload: T)(using authContext: AuthContext
-    ): WSResponse =
+    def setKnownFacts[T: BodyWritable](enrolmentKey: String, payload: T)(using authContext: AuthContext): WSResponse =
       put(s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey", payload)
 
-    def queryKnownFacts(payload: EnrolmentsFromKnownFactsRequest)(using authContext: AuthContext
-    ): WSResponse =
+    def queryKnownFacts(payload: EnrolmentsFromKnownFactsRequest)(using authContext: AuthContext): WSResponse =
       post(s"/enrolment-store-proxy/enrolment-store/enrolments", payload)
 
     def removeKnownFacts(enrolmentKey: String)(using authContext: AuthContext): WSResponse =
@@ -516,7 +515,8 @@ trait TestRequests extends ScalaFutures {
     def deassignUser(userId: String, enrolmentKey: String)(using authContext: AuthContext): WSResponse =
       delete(s"/tax-enrolments/users/$userId/enrolments/$enrolmentKey")
 
-    def setEnrolmentFriendlyName[T: BodyWritable](groupId: String, enrolmentKey: String, payload: T)(using authContext: AuthContext
+    def setEnrolmentFriendlyName[T: BodyWritable](groupId: String, enrolmentKey: String, payload: T)(using
+      authContext: AuthContext
     ): WSResponse =
       put(s"/tax-enrolments/groups/$groupId/enrolments/$enrolmentKey/friendly_name", payload)
   }
@@ -917,24 +917,27 @@ trait TestRequests extends ScalaFutures {
     def getBusinessPartnerRecord(idType: String, idNumber: String)(using authContext: AuthContext): WSResponse =
       get(s"/registration/personal-details/$idType/$idNumber")
 
-    def subscribeToAgentServicesWithUtr[T: BodyWritable](utr: String, payload: T)(using authContext: AuthContext
+    def subscribeToAgentServicesWithUtr[T: BodyWritable](utr: String, payload: T)(using
+      authContext: AuthContext
     ): WSResponse =
       post(s"/registration/agents/utr/$utr", payload)
 
-    def subscribeToAgentServicesWithSafeId[T: BodyWritable](safeId: String, payload: T)(using authContext: AuthContext
+    def subscribeToAgentServicesWithSafeId[T: BodyWritable](safeId: String, payload: T)(using
+      authContext: AuthContext
     ): WSResponse =
       post(s"/registration/agents/safeId/$safeId", payload)
 
-    def registerIndividual[T: BodyWritable](idType: String, idNumber: String, payload: T)(using authContext: AuthContext
+    def registerIndividual[T: BodyWritable](idType: String, idNumber: String, payload: T)(using
+      authContext: AuthContext
     ): WSResponse =
       post(s"/registration/individual/$idType/$idNumber", payload)
 
-    def registerOrganisation[T: BodyWritable](idType: String, idNumber: String, payload: T)(using authContext: AuthContext
+    def registerOrganisation[T: BodyWritable](idType: String, idNumber: String, payload: T)(using
+      authContext: AuthContext
     ): WSResponse =
       post(s"/registration/organisation/$idType/$idNumber", payload)
 
-    def getSAAgentClientAuthorisationFlags(agentref: String, utr: String)(using authContext: AuthContext
-    ): WSResponse =
+    def getSAAgentClientAuthorisationFlags(agentref: String, utr: String)(using authContext: AuthContext): WSResponse =
       get(s"/sa/agents/$agentref/client/$utr")
 
     def registerIndividualWithoutID[T: BodyWritable](payload: T)(using authContext: AuthContext): WSResponse =
@@ -943,11 +946,13 @@ trait TestRequests extends ScalaFutures {
     def registerOrganisationWithoutID[T: BodyWritable](payload: T)(using authContext: AuthContext): WSResponse =
       post(s"/registration/02.00.00/organisation", payload)
 
-    def retrieveLegacyAgentClientPayeInformation[T: BodyWritable](agentCode: String, payload: T)(using authContext: AuthContext
+    def retrieveLegacyAgentClientPayeInformation[T: BodyWritable](agentCode: String, payload: T)(using
+      authContext: AuthContext
     ): WSResponse =
       post(s"/agents/paye/$agentCode/clients/compare", payload)
 
-    def removeLegacyAgentClientPayeRelationship(agentCode: String, taxOfficeNumber: String, taxOfficeReference: String)(using authContext: AuthContext
+    def removeLegacyAgentClientPayeRelationship(agentCode: String, taxOfficeNumber: String, taxOfficeReference: String)(
+      using authContext: AuthContext
     ): WSResponse =
       delete(s"/agents/paye/$agentCode/clients/$taxOfficeNumber/$taxOfficeReference")
 
@@ -966,7 +971,8 @@ trait TestRequests extends ScalaFutures {
     def getAmlsSubscriptionStatus(amlsRegistrationNumber: String)(using authContext: AuthContext): WSResponse =
       get(s"/anti-money-laundering/subscription/$amlsRegistrationNumber/status")
 
-    def getPPTSubscriptionDisplayRecord(regime: String, pptReferenceNumber: String)(using authContext: AuthContext
+    def getPPTSubscriptionDisplayRecord(regime: String, pptReferenceNumber: String)(using
+      authContext: AuthContext
     ): WSResponse =
       get(s"/plastic-packaging-tax/subscriptions/$regime/$pptReferenceNumber/display")
 
@@ -1081,7 +1087,8 @@ trait TestRequests extends ScalaFutures {
         .get()
         .futureValue
 
-    def createBusinessPartnerRecord[T: BodyWritable](payload: T, autoFill: Boolean = true)(using authContext: AuthContext
+    def createBusinessPartnerRecord[T: BodyWritable](payload: T, autoFill: Boolean = true)(using
+      authContext: AuthContext
     ): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/business-partner-record")
@@ -1142,7 +1149,8 @@ trait TestRequests extends ScalaFutures {
         .post[T](payload)
         .futureValue
 
-    def generatePPTSubscriptionDisplayRecord(seed: String, minimal: Boolean)(using authContext: AuthContext
+    def generatePPTSubscriptionDisplayRecord(seed: String, minimal: Boolean)(using
+      authContext: AuthContext
     ): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/ppt-subscription/generate")
@@ -1174,11 +1182,13 @@ trait TestRequests extends ScalaFutures {
     def createKnownFacts[T: BodyWritable](payload: T)(using authContext: AuthContext): WSResponse =
       post(s"/agents-external-stubs/known-facts", payload)
 
-    def upsertKnownFacts[T: BodyWritable](enrolmentKey: String, payload: T)(using authContext: AuthContext
+    def upsertKnownFacts[T: BodyWritable](enrolmentKey: String, payload: T)(using
+      authContext: AuthContext
     ): WSResponse =
       put(s"/agents-external-stubs/known-facts/$enrolmentKey", payload)
 
-    def upsertKnownFactVerifier[T: BodyWritable](enrolmentKey: String, payload: T)(using authContext: AuthContext
+    def upsertKnownFactVerifier[T: BodyWritable](enrolmentKey: String, payload: T)(using
+      authContext: AuthContext
     ): WSResponse =
       put(s"/agents-external-stubs/known-facts/$enrolmentKey/verifier", payload)
 

@@ -33,11 +33,11 @@ final case class JsonAbuse[+A: OFormat](
 object JsonAbuse {
 
   /** Format that turns the given type to Json and inserts the extra fields into the resulting object.
-    * @param extractExtraFieldsOnRead: When deserialising from Json, shall we attempt to extract
-    * the extra fields (if any) or only the core model?
-    * 'false' means that these fields are 'one-way' only (i.e. we can write them but we can't read them back)
-    * which is not a problem if we only need to use the extra fields in Mongo queries etc. which stay at Json level.
-    * 'true' will make all these extra fields available after deserialising, at the cost of performance.
+    * @param extractExtraFieldsOnRead:
+    *   When deserialising from Json, shall we attempt to extract the extra fields (if any) or only the core model?
+    *   'false' means that these fields are 'one-way' only (i.e. we can write them but we can't read them back) which is
+    *   not a problem if we only need to use the extra fields in Mongo queries etc. which stay at Json level. 'true'
+    *   will make all these extra fields available after deserialising, at the cost of performance.
     */
   def format[A](extractExtraFieldsOnRead: Boolean = false)(using fa: OFormat[A]): Format[JsonAbuse[A]] =
     new OFormat[JsonAbuse[A]] {

@@ -159,7 +159,8 @@ case class ConfidenceLevel(confidenceLevel: Int) extends Predicate {
     }
 }
 
-object ConfidenceLevel extends PredicateFormat[ConfidenceLevel]("confidenceLevel")(using ClassTag(classOf[ConfidenceLevel])) {
+object ConfidenceLevel
+    extends PredicateFormat[ConfidenceLevel]("confidenceLevel")(using ClassTag(classOf[ConfidenceLevel])) {
   given format: Format[ConfidenceLevel] = Json.format[ConfidenceLevel]
 
   val Default: Int = 600
@@ -181,10 +182,11 @@ case class HasNino(hasNino: Boolean, nino: Option[String] = None) extends Predic
   override def validate(context: AuthoriseContext): Either[String, Unit] =
     context.nino.isDefined == hasNino match {
       case false => if hasNino then Left("Nino required but not found") else Left("Nino found but not expected")
-      case true =>
+      case true  =>
         nino match {
-          case Some(expected) => if context.nino.exists(_.value == expected) then Right(()) else Left("Nino doesn't match")
-          case None           => Right(())
+          case Some(expected) =>
+            if context.nino.exists(_.value == expected) then Right(()) else Left("Nino doesn't match")
+          case None => Right(())
         }
     }
 }
@@ -201,7 +203,8 @@ case class CredentialRole(credentialRole: String) extends Predicate {
     }
 }
 
-object CredentialRole extends PredicateFormat[CredentialRole]("credentialRole")(using ClassTag(classOf[CredentialRole])) {
+object CredentialRole
+    extends PredicateFormat[CredentialRole]("credentialRole")(using ClassTag(classOf[CredentialRole])) {
   given format: Format[CredentialRole] = Json.format[CredentialRole]
 }
 

@@ -121,12 +121,12 @@ trait HttpHelpers {
 
   def whenSuccess[T](f: T => Future[Result])(jsResult: JsResult[T]): Future[Result] = jsResult match {
     case JsSuccess(payload, _) => f(payload)
-    case JsError(errs) =>
+    case JsError(errs)         =>
       Future.failed(new BadRequestException(s"Invalid payload: Parser failed ${errs
-        .map { case (path, errors) =>
-          s"at path $path with ${errors.map(e => e.messages.mkString(", ")).mkString(", ")}"
-        }
-        .mkString(", and ")}"))
+          .map { case (path, errors) =>
+            s"at path $path with ${errors.map(e => e.messages.mkString(", ")).mkString(", ")}"
+          }
+          .mkString(", and ")}"))
   }
 
 }

@@ -145,8 +145,7 @@ case object AllEnrolmentsRetrieve extends Retrieve {
   override def fill(response: AuthoriseResponse, context: AuthoriseContext)(using ec: ExecutionContext): MaybeResponse =
     if context.providerType == "PrivilegedApplication" then
       Right(response.copy(allEnrolments = context.strideRoles.map(Enrolment.apply(_))))
-    else
-      Right(response.copy(allEnrolments = context.principalEnrolments))
+    else Right(response.copy(allEnrolments = context.principalEnrolments))
 }
 
 case object AffinityGroupRetrieve extends Retrieve {

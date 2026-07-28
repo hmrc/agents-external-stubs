@@ -17,12 +17,11 @@
 package uk.gov.hmrc.agentsexternalstubs
 import play.api.libs.json.{JsArray, JsLookup, JsObject}
 
-/** You might want to add some custom properties to the json schema in order to enable
-  * custom record features, i.e. index keys and custom generators.
+/** You might want to add some custom properties to the json schema in order to enable custom record features, i.e.
+  * index keys and custom generators.
   *
-  * "x_uniqueKey": true - this will mark string property as a unique key
-  * "x_key": true - this will mark string property as a lookup key
-  * "x_gen": "xxx" - this will set a custom generator reference for the property
+  * "x_uniqueKey": true - this will mark string property as a unique key "x_key": true - this will mark string property
+  * as a lookup key "x_gen": "xxx" - this will set a custom generator reference for the property
   */
 object JsonSchema {
 
@@ -198,15 +197,15 @@ object JsonSchema {
                   r
                 } else throw new IllegalStateException(s"Reference format not supported, must start with #/: $ref")
               case None =>
-              readOneOf(
-                name,
-                path,
-                property,
-                isRef,
-                description,
-                required.contains(name),
-                Seq.empty
-              )
+                readOneOf(
+                  name,
+                  path,
+                  property,
+                  isRef,
+                  description,
+                  required.contains(name),
+                  Seq.empty
+                )
             }
         }
     }

@@ -92,8 +92,7 @@ class ExternalUserService @Inject() (
     userIdentifier: TaxIdentifier,
     planetId: String
   )(using ec: ExecutionContext): Future[Option[User]] =
-    if appConfig.syncUsersAllPlanets || planetId == Planet.DEFAULT then
-      maybeSyncExternalUser(userIdentifier, planetId)
+    if appConfig.syncUsersAllPlanets || planetId == Planet.DEFAULT then maybeSyncExternalUser(userIdentifier, planetId)
     else Future.successful(None)
 
   def lookupExternalUserByEnrolmentKey(
@@ -112,7 +111,7 @@ class ExternalUserService @Inject() (
   )(block: () => Future[Option[A]])(using ec: ExecutionContext): Future[Option[A]] =
     block().flatMap {
       case Some(a) => Future.successful(Some(a))
-      case None =>
+      case None    =>
         for {
           _      <- lookupExternalUser(userIdentifier, planetId)
           result <- block()

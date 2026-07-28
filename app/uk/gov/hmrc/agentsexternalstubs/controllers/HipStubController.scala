@@ -125,7 +125,9 @@ class HipStubController @Inject() (
     }
   }
 
-  private def handleGetAgentSubscription(arn: String, planetId: String)(using request: Request[AnyContent]): Future[Result] =
+  private def handleGetAgentSubscription(arn: String, planetId: String)(using
+    request: Request[AnyContent]
+  ): Future[Result] =
     hipStubService.validateBaseHeaders(
       request.headers.get("X-Transmitting-System"),
       request.headers.get("X-Originating-System"),
@@ -155,7 +157,7 @@ class HipStubController @Inject() (
                     Json.toJson(Errors("006", "Subscription Data Not Found"))
                   )
                 case Some(record) => Ok(Json.toJson(convertToGetAgentSubscriptionResponse(record)))
-                case None =>
+                case None         =>
                   Results.UnprocessableEntity(
                     Json.toJson(Errors("006", "Subscription Data Not Found"))
                   )
@@ -518,9 +520,8 @@ class HipStubController @Inject() (
         }
     }
 
-  /** UCR Customer API v2 - Search Individual By Identifier.
-    * Searches for an individual's VRNs and PAYE refs (EMPREFs) by NINO or UTR.
-    * Looks up the User in the stub database and extracts identifiers from their enrolments.
+  /** UCR Customer API v2 - Search Individual By Identifier. Searches for an individual's VRNs and PAYE refs (EMPREFs)
+    * by NINO or UTR. Looks up the User in the stub database and extracts identifiers from their enrolments.
     * @see
     *   https://admin.tax.service.gov.uk/api-hub/apis/details/ucr-customer-api-v2 "Search Individual By Identifier"
     */
@@ -539,16 +540,15 @@ class HipStubController @Inject() (
         case Right(_) =>
           ucrStubService.validateSystemId(request.headers.get("system-id")) match {
             case Left(errorResult) => Future.successful(errorResult)
-            case Right(_) =>
+            case Right(_)          =>
               ucrStubService.processIndividualIdentifierSearch(request.body, session.planetId, correlationId)
           }
       }
     }(SessionRecordNotFound)
   }
 
-  /** UCR Customer API v2 - Search Organisation By Identifier.
-    * Searches for an organisation's VRNs and PAYE refs (EMPREFs) by UTR.
-    * Looks up the User by CT UTR enrolment and extracts identifiers from their group's enrolments.
+  /** UCR Customer API v2 - Search Organisation By Identifier. Searches for an organisation's VRNs and PAYE refs
+    * (EMPREFs) by UTR. Looks up the User by CT UTR enrolment and extracts identifiers from their group's enrolments.
     * @see
     *   https://admin.tax.service.gov.uk/api-hub/apis/details/ucr-customer-api-v2 "Search Organisation By Identifier"
     */
@@ -567,7 +567,7 @@ class HipStubController @Inject() (
         case Right(_) =>
           ucrStubService.validateSystemId(request.headers.get("system-id")) match {
             case Left(errorResult) => Future.successful(errorResult)
-            case Right(_) =>
+            case Right(_)          =>
               ucrStubService.processOrganisationIdentifierSearch(request.body, session.planetId, correlationId)
           }
       }
@@ -581,7 +581,7 @@ class HipStubController @Inject() (
   private def correlationId(using request: Request[?]): (String, String) =
     "correlationId" -> request.headers.get("correlationid").get
 
-  //TODO this can be removed and the underlying models refactored once the test packs have moved over to the new endpoint
+  // TODO this can be removed and the underlying models refactored once the test packs have moved over to the new endpoint
   private def convertResponseToNewFormat(response: GetRelationships.Response): AgentRelationshipDisplayResponse =
     AgentRelationshipDisplayResponse(
       processingDate = Instant.now().truncatedTo(ChronoUnit.SECONDS).toString,

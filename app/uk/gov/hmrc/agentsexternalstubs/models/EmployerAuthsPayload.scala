@@ -19,14 +19,13 @@ package uk.gov.hmrc.agentsexternalstubs.models
 import play.api.libs.json.*
 import uk.gov.hmrc.agentsexternalstubs.models.EmployerAuthsPayload.*
 
-/** ----------------------------------------------------------------------------
-  * Historical note: this model originated from a schema-driven generator, but it
-  * is now maintained directly in this repo. The old regeneration instructions
+/** ---------------------------------------------------------------------------- Historical note: this model originated
+  * from a schema-driven generator, but it is now maintained directly in this repo. The old regeneration instructions
   * were removed because the referenced schema inputs are no longer present here.
   * ----------------------------------------------------------------------------
   *
-  *  EmployerAuthsPayload
-  *  -  EmpRef
+  * EmployerAuthsPayload
+  *   - EmpRef
   */
 case class EmployerAuthsPayload(empRefList: Seq[EmpRef]) {
 
@@ -43,7 +42,7 @@ object EmployerAuthsPayload {
 
   val validate: Validator[EmployerAuthsPayload] = Validator(checkProperty(_.empRefList, empRefListValidator))
 
-  given formats:Format[EmployerAuthsPayload] = Json.format[EmployerAuthsPayload]
+  given formats: Format[EmployerAuthsPayload] = Json.format[EmployerAuthsPayload]
 
   case class EmpRef(districtNumber: String, reference: String) {
 
@@ -71,7 +70,7 @@ object EmployerAuthsPayload {
       checkProperty(_.reference, referenceValidator)
     )
 
-    given formats:Format[EmpRef] = Json.format[EmpRef]
+    given formats: Format[EmpRef] = Json.format[EmpRef]
 
   }
 

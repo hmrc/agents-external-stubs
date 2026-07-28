@@ -35,7 +35,9 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[KnownFactsRepositoryMongo])
 trait KnownFactsRepository {
 
-  def findByEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(using ec: ExecutionContext): Future[Option[KnownFacts]]
+  def findByEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(using
+    ec: ExecutionContext
+  ): Future[Option[KnownFacts]]
 
   def findByIdentifier(identifier: Identifier, planetId: String): Future[Option[KnownFacts]]
 
@@ -76,7 +78,9 @@ class KnownFactsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: App
       replaceIndexes = true
     ) with KnownFactsRepository {
 
-  def findByEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(using ec: ExecutionContext): Future[Option[KnownFacts]] =
+  def findByEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(using
+    ec: ExecutionContext
+  ): Future[Option[KnownFacts]] =
     collection
       .find(Filters.equal(KnownFacts.UNIQUE_KEY, KnownFacts.uniqueKey(enrolmentKey.tag, planetId)))
       .toFuture()

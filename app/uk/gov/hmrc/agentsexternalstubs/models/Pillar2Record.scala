@@ -21,23 +21,22 @@ import play.api.libs.json.*
 import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
 import uk.gov.hmrc.agentsexternalstubs.models.Pillar2Record.{AccountStatus, AccountingPeriod, ContactDetails, FilingMemberDetails, UpeCorrespAddressDetails, UpeDetails}
 
-/** ----------------------------------------------------------------------------
-  * Historical note: this model originated from a schema-driven generator, but it
-  * is now maintained directly in this repo. The old regeneration instructions
+/** ---------------------------------------------------------------------------- Historical note: this model originated
+  * from a schema-driven generator, but it is now maintained directly in this repo. The old regeneration instructions
   * were removed because the referenced schema inputs are no longer present here.
   * ----------------------------------------------------------------------------
   *
   * A number of things were adjusted by hand:
-  *  - manually added plrReference for indexing and easy identification
-  *  - added 'unique key' and 'lookup keys'
-  *  - replaced the phone number generator to a standard UK phone number to avoid huge strings being generated
+  *   - manually added plrReference for indexing and easy identification
+  *   - added 'unique key' and 'lookup keys'
+  *   - replaced the phone number generator to a standard UK phone number to avoid huge strings being generated
   *
-  *  Pillar2Record
-  *  -  FormBundleNumber
-  *  -  UpeDetails
-  *  -  AccountingPeriod
-  *  -  UpeCorrespAddressDetails
-  *  -  PrimaryContactDetails
+  * Pillar2Record
+  *   - FormBundleNumber
+  *   - UpeDetails
+  *   - AccountingPeriod
+  *   - UpeCorrespAddressDetails
+  *   - PrimaryContactDetails
   */
 
 case class Pillar2Record(

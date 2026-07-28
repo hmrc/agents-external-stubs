@@ -67,7 +67,7 @@ object UserGenerator {
   def sex(userId: String): String = Gen.oneOf("M", "F").seeded(userId).get
 
   val agencyNameGen: Gen[String] = for {
-    ln <- surname
+    ln     <- surname
     suffix <- Gen.oneOf(
                 " Accountants",
                 " and Company",

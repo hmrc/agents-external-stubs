@@ -105,8 +105,7 @@ case class SimplifiedAuthoriseContext(
   groupsService: GroupsService,
   planetId: Option[String],
   executionContext: ExecutionContext
-)
-    extends AuthoriseUserContext(user, group) {
+) extends AuthoriseUserContext(user, group) {
 
   given ec: ExecutionContext = executionContext
 

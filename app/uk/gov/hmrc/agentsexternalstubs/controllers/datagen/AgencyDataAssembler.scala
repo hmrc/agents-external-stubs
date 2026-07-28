@@ -100,7 +100,7 @@ class AgencyDataAssembler extends Logging {
           Seq(Identifier("cbcId", Generator.cbcId(seed).value), Identifier("UTR", Generator.utr(seed)))
         case "HMRC-CBC-NONUK-ORG" => Seq(Identifier("cbcId", Generator.cbcId(seed).value))
         case "HMRC-CGT-PD"        => Seq(Identifier("CGTPDRef", Generator.cgtPdRef(seed)))
-        case "HMRC-PPT-ORG" =>
+        case "HMRC-PPT-ORG"       =>
           Seq(Identifier("EtmpRegistrationNumber", Generator.regex(Common.pptReferencePattern).sample.get))
         case "HMRC-TERS-ORG"    => Seq(Identifier("SAUTR", Generator.utr(seed)))
         case "HMRC-TERSNT-ORG"  => Seq(Identifier("URN", Generator.urn(seed).value))

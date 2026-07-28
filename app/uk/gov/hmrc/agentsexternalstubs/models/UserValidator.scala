@@ -27,7 +27,7 @@ case class UserValidator(affinityGroup: Option[String]) {
   val validateAffinityGroup: UserConstraint = _ =>
     affinityGroup match {
       case Some(AG.Individual) | Some(AG.Organisation) | Some(AG.Agent) | None => Valid(())
-      case _ =>
+      case _                                                                   =>
         Invalid("affinityGroup must be none, or one of [Individual, Organisation, Agent]")
     }
 
@@ -37,14 +37,14 @@ case class UserValidator(affinityGroup: Option[String]) {
           if affinityGroup.contains(AG.Individual) && user.nino.isDefined =>
         Valid(())
       case None => Valid(())
-      case _ =>
+      case _    =>
         Invalid("confidenceLevel can only be set for Individuals and has to be one of [50, 200, 250, 600]")
     }
 
   val validateCredentialStrength: UserConstraint = user =>
     user.credentialStrength match {
       case Some("weak") | Some("strong") | None => Valid(())
-      case _ =>
+      case _                                    =>
         Invalid("credentialStrength must be none, or one of [weak, strong]")
     }
 
@@ -52,8 +52,7 @@ case class UserValidator(affinityGroup: Option[String]) {
     affinityGroup match {
       case Some(AG.Individual | AG.Agent) =>
         if user.credentialRole.isEmpty || user.credentialRole.exists(User.CR.all) then Valid(())
-        else
-          Invalid("credentialRole must be none, or one of [Admin, User, Assistant] for Individual or Agent")
+        else Invalid("credentialRole must be none, or one of [Admin, User, Assistant] for Individual or Agent")
       case Some(AG.Organisation) =>
         if user.credentialRole.contains(User.CR.Admin) || user.credentialRole.contains(User.CR.User) then Valid(())
         else Invalid("credentialRole must be Admin or User for Organisation")
@@ -63,7 +62,7 @@ case class UserValidator(affinityGroup: Option[String]) {
   val validateConfidenceLevelAndNino: UserConstraint = user =>
     (affinityGroup, user.nino, user.confidenceLevel) match {
       case (Some(AG.Individual), Some(_), Some(_)) => Valid(())
-      case (Some(AG.Individual), None, Some(_)) =>
+      case (Some(AG.Individual), None, Some(_))    =>
         Invalid("confidenceLevel must be accompanied by NINO")
       case (Some(AG.Individual), Some(_), None) =>
         Invalid("NINO must be accompanied by confidenceLevel")
@@ -130,7 +129,7 @@ case class UserValidator(affinityGroup: Option[String]) {
 
   val validateEachDelegatedEnrolment: UserConstraint = user =>
     user.assignedDelegatedEnrolments match {
-      case s if s.isEmpty => Valid(())
+      case s if s.isEmpty                        => Valid(())
       case _ if affinityGroup.contains(AG.Agent) =>
         user.assignedDelegatedEnrolments
           .map(ek =>

@@ -32,10 +32,8 @@ case class NinoWithoutSuffix(nino: String) extends TaxIdentifier with SimpleName
   override val name: String = "nino-without-suffix"
   private val suffixlessNinoLength = 8
   def variations: Seq[String] =
-    if value.length > suffixlessNinoLength then
-      Seq(value)
-    else
-      Nino.validSuffixes.map(suffix => value + suffix) ++ Seq(value)
+    if value.length > suffixlessNinoLength then Seq(value)
+    else Nino.validSuffixes.map(suffix => value + suffix) ++ Seq(value)
 
   def allVariations: Seq[String] = {
     val suffixless = value.take(suffixlessNinoLength)

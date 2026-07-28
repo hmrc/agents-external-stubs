@@ -108,8 +108,7 @@ class JsonEncoder extends EncoderBase[ILoggingEvent] {
       if field.getValue().isValueNode() then
         val key = prefix + "_" + field.getKey()
         val value = field.getValue().asText()
-        if !key.contains("Authorization") && !value.contains("Bearer") then
-          eventNode.put(key, value)
+        if !key.contains("Authorization") && !value.contains("Bearer") then eventNode.put(key, value)
         else ()
       else if field.getValue().getNodeType() == JsonNodeType.OBJECT then
         putJsonNode(eventNode, field.getValue(), prefix + "_" + field.getKey())

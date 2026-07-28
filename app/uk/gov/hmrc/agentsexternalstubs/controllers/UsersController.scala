@@ -81,7 +81,7 @@ class UsersController @Inject() (
           case (_, _, _, Some(_)) =>
             for { // TODO note that this will probably be slow. Consider whether we really want to search users by affinity group (a property that no longer pertains to User)
               groups <- groupsService.findByPlanetId(session.planetId, affinityGroup)(effectiveLimit)
-              users <- Future.traverse(groups)(group =>
+              users  <- Future.traverse(groups)(group =>
                          usersService.findByGroupId(group.groupId, session.planetId)(Some(effectiveLimit))
                        )
             } yield users.flatten.take(effectiveLimit)
@@ -96,8 +96,7 @@ class UsersController @Inject() (
                 principalEnrolmentService.forall(userPrincipalEnrolmentServices.contains(_))
               }
               .take(limit.getOrElse(100))
-          else
-            users.take(limit.getOrElse(100))
+          else users.take(limit.getOrElse(100))
           Ok(RestfulResponse(Users(modifiedUsers)))
         }
       }(SessionRecordNotFound)
@@ -126,7 +125,7 @@ class UsersController @Inject() (
     given Request[AnyContent] = request
     withCurrentSession { session =>
       RegexPatterns.validNinoNoSpaces(nino) match {
-        case Left(_) => badRequestF("INVALID_NINO", s"Provided NINO $nino is not valid")
+        case Left(_)  => badRequestF("INVALID_NINO", s"Provided NINO $nino is not valid")
         case Right(_) =>
           usersService.findByNino(nino, session.planetId).map {
             case Some(user) => Ok(RestfulResponse(user)(using User.writes))
@@ -176,9 +175,8 @@ class UsersController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  /** In order to create a user, the stubs platform needs to know the planet id.
-    * This is either assumed from the session of the logged-in user, or supplied explicitly.
-    * The value supplied explicitly, if any, takes precedence.
+  /** In order to create a user, the stubs platform needs to know the planet id. This is either assumed from the session
+    * of the logged-in user, or supplied explicitly. The value supplied explicitly, if any, takes precedence.
     */
   def createUser(affinityGroup: Option[String], planetId: Option[String] = None): Action[JsValue] =
     Action.async(parse.tolerantJson) { request =>
@@ -212,7 +210,7 @@ class UsersController @Inject() (
         doCreateUser(planetId.getOrElse(session.planetId))
       }(ifSessionNotFound = planetId match {
         case Some(planetId) => doCreateUser(planetId)
-        case None =>
+        case None           =>
           Future.successful(BadRequest("Cannot create user without either an active session or a specified planetId"))
       })
     }
@@ -234,8 +232,8 @@ class UsersController @Inject() (
       withPayload[ApiPlatform.TestUser] { testUser =>
         val (user, group) = ApiPlatform.TestUser.asUserAndGroup(testUser)
         (for {
-          _            <- groupsService.createGroup(group, planetId)
-          createdUser  <- usersService.createUser(user, planetId, Some(testUser.affinityGroup))
+          _           <- groupsService.createGroup(group, planetId)
+          createdUser <- usersService.createUser(user, planetId, Some(testUser.affinityGroup))
         } yield Created(s"API Platform test user ${createdUser.userId} has been created on the planet $planetId")
           .withHeaders(HeaderNames.LOCATION -> routes.UsersController.getUser(createdUser.userId).url)).recover {
           case DuplicateUserException(msg, _) =>

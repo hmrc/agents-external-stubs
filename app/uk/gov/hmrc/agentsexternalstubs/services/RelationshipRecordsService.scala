@@ -40,7 +40,9 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
       )
   }
 
-  def authorise(relationship: RelationshipRecord, planetId: String, isExclusiveAgent: Boolean = true)(using ec: ExecutionContext): Future[Unit] =
+  def authorise(relationship: RelationshipRecord, planetId: String, isExclusiveAgent: Boolean = true)(using
+    ec: ExecutionContext
+  ): Future[Unit] =
     for {
       existing <-
         if isExclusiveAgent then
@@ -89,7 +91,9 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
 
     } yield result
 
-  private def deActivate(relationships: Seq[RelationshipRecord], planetId: String)(using ec: ExecutionContext): Future[Seq[String]] =
+  private def deActivate(relationships: Seq[RelationshipRecord], planetId: String)(using
+    ec: ExecutionContext
+  ): Future[Seq[String]] =
     Future.sequence(
       relationships
         .filter(_.active)
@@ -103,7 +107,9 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
   def findByKeys(keys: Seq[String], planetId: String): Future[Seq[RelationshipRecord]] =
     recordsRepository.findByKeys[RelationshipRecord](keys, planetId, limit = Some(MAX_DOCS))
 
-  def findByQuery(query: RelationshipRecordQuery, planetId: String)(using ec: ExecutionContext): Future[Seq[RelationshipRecord]] = {
+  def findByQuery(query: RelationshipRecordQuery, planetId: String)(using
+    ec: ExecutionContext
+  ): Future[Seq[RelationshipRecord]] = {
 
     val maybeActiveOnly: RelationshipRecord => Boolean = r => if query.activeOnly then r.active else true
 
@@ -116,7 +122,7 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
 
     val keys =
       if query.agent then
-        if !query.activeOnly && query.regime == "AGSV" then //AGSV to retrieve all types of inactive relationships
+        if !query.activeOnly && query.regime == "AGSV" then // AGSV to retrieve all types of inactive relationships
           RelationshipRecord.agentKeys(query.arn.getOrElse(throw new Exception("Missing arn parameter")))
         else
           Seq(
@@ -160,7 +166,7 @@ class RelationshipRecordsService @Inject() (recordsRepository: RecordsRepository
     if suppliedIdType == "none" then
       refNumber match {
         case value if MtdItId.isValid(value) => "MTDBSA"
-        case value =>
+        case value                           =>
           throw new RuntimeException(
             s"idType was not supplied in the query and refNumber $value has not been implemented as a idType lookup"
           )

@@ -49,8 +49,7 @@ class ExternalAuthorisationService @Inject() (
     _planetId: String,
     createNewAuthentication: AuthenticateRequest => Future[Option[AuthenticatedSession]]
   )(using ec: ExecutionContext, hc: HeaderCarrier): Future[Option[AuthenticatedSession]] =
-    if appConfig.isProxyMode then
-      Future.successful(None)
+    if appConfig.isProxyMode then Future.successful(None)
     else
       authorised()
         .retrieve(retrievals) {
@@ -180,10 +179,10 @@ class ExternalAuthorisationService @Inject() (
 
   def report(hc: HeaderCarrier): String =
     s"""Authorization:${hc.authorization
-      .map(_.value)
-      .getOrElse("-")} X-Session-ID:${hc.sessionId.getOrElse("-")} ForwardedFor:${hc.forwarded
-      .map(_.value)
-      .getOrElse("-")} RequestId:${hc.requestId.map(_.value).getOrElse("-")}"""
+        .map(_.value)
+        .getOrElse("-")} X-Session-ID:${hc.sessionId.getOrElse("-")} ForwardedFor:${hc.forwarded
+        .map(_.value)
+        .getOrElse("-")} RequestId:${hc.requestId.map(_.value).getOrElse("-")}"""
 
   private def merge(first: User, second: User): User = User(
     userId = first.userId,

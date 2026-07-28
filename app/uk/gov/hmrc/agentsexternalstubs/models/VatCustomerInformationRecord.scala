@@ -21,29 +21,28 @@ import play.api.libs.json.*
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.ApprovedInformation
 import uk.gov.hmrc.domain.Vrn
 
-/** ----------------------------------------------------------------------------
-  * Historical note: this model originated from a schema-driven generator, but it
-  * is now maintained directly in this repo. The old regeneration instructions
+/** ---------------------------------------------------------------------------- Historical note: this model originated
+  * from a schema-driven generator, but it is now maintained directly in this repo. The old regeneration instructions
   * were removed because the referenced schema inputs are no longer present here.
   * ----------------------------------------------------------------------------
   *
-  *  VatCustomerInformationRecord
-  *  -  Address
-  *  -  ApprovedInformation
-  *  -  BankDetails
-  *  -  BusinessActivities
-  *  -  ContactDetails
-  *  -  CorrespondenceContactDetails
-  *  -  CustomerDetails
-  *  -  Deregistration
-  *  -  FlatRateScheme
-  *  -  ForeignAddress
-  *  -  GroupOrPartner
-  *  -  IndividualName
-  *  -  NonStdTaxPeriods
-  *  -  PPOB
-  *  -  Period
-  *  -  UkAddress
+  * VatCustomerInformationRecord
+  *   - Address
+  *   - ApprovedInformation
+  *   - BankDetails
+  *   - BusinessActivities
+  *   - ContactDetails
+  *   - CorrespondenceContactDetails
+  *   - CustomerDetails
+  *   - Deregistration
+  *   - FlatRateScheme
+  *   - ForeignAddress
+  *   - GroupOrPartner
+  *   - IndividualName
+  *   - NonStdTaxPeriods
+  *   - PPOB
+  *   - Period
+  *   - UkAddress
   */
 case class VatCustomerInformationRecord(
   vrn: String,
@@ -105,7 +104,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
   override val sanitizers: Seq[Update] = Seq(approvedInformationSanitizer)
 
-  given formats:Format[VatCustomerInformationRecord] = Json.format[VatCustomerInformationRecord]
+  given formats: Format[VatCustomerInformationRecord] = Json.format[VatCustomerInformationRecord]
 
   sealed trait Address {
     def line4: Option[String] = None
@@ -334,7 +333,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       groupOrPartnerMbrsSanitizer
     )
 
-    given formats:Format[ApprovedInformation] = Json.format[ApprovedInformation]
+    given formats: Format[ApprovedInformation] = Json.format[ApprovedInformation]
 
   }
 
@@ -489,7 +488,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       bankBuildSocietyNameSanitizer
     )
 
-    given formats:Format[BankDetails] = Json.format[BankDetails]
+    given formats: Format[BankDetails] = Json.format[BankDetails]
 
   }
 
@@ -572,7 +571,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     override val sanitizers: Seq[Update] = Seq(mainCode2Sanitizer, mainCode3Sanitizer, mainCode4Sanitizer)
 
-    given formats:Format[BusinessActivities] = Json.format[BusinessActivities]
+    given formats: Format[BusinessActivities] = Json.format[BusinessActivities]
 
   }
 
@@ -664,7 +663,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     override val sanitizers: Seq[Update] =
       Seq(primaryPhoneNumberSanitizer, mobileNumberSanitizer, faxNumberSanitizer, emailAddressSanitizer)
 
-    given formats:Format[ContactDetails] = Json.format[ContactDetails]
+    given formats: Format[ContactDetails] = Json.format[ContactDetails]
 
   }
 
@@ -725,7 +724,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     override val sanitizers: Seq[Update] = Seq(RLSSanitizer, contactDetailsSanitizer)
 
-    given formats:Format[CorrespondenceContactDetails] = Json.format[CorrespondenceContactDetails]
+    given formats: Format[CorrespondenceContactDetails] = Json.format[CorrespondenceContactDetails]
 
   }
 
@@ -913,7 +912,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       individualOrOrganisationNameAlternativeSanitizer
     )
 
-    given formats:Format[CustomerDetails] = Json.format[CustomerDetails]
+    given formats: Format[CustomerDetails] = Json.format[CustomerDetails]
 
   }
 
@@ -987,7 +986,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     override val sanitizers: Seq[Update] =
       Seq(deregistrationReasonSanitizer, effectDateOfCancellationSanitizer, lastReturnDueDateSanitizer)
 
-    given formats:Format[Deregistration] = Json.format[Deregistration]
+    given formats: Format[Deregistration] = Json.format[Deregistration]
 
   }
 
@@ -1063,7 +1062,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     override val sanitizers: Seq[Update] = Seq(FRSCategorySanitizer, FRSPercentageSanitizer, startDateSanitizer)
 
-    given formats:Format[FlatRateScheme] = Json.format[FlatRateScheme]
+    given formats: Format[FlatRateScheme] = Json.format[FlatRateScheme]
 
   }
 
@@ -1158,7 +1157,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     override val sanitizers: Seq[Update] = Seq(line3Sanitizer, line4Sanitizer, postCodeSanitizer)
 
-    given formats:Format[ForeignAddress] = Json.format[ForeignAddress]
+    given formats: Format[ForeignAddress] = Json.format[ForeignAddress]
 
   }
 
@@ -1232,7 +1231,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     override val sanitizers: Seq[Update] = Seq(organisationNameSanitizer, individualSanitizer)
 
-    given formats:Format[GroupOrPartner] = Json.format[GroupOrPartner]
+    given formats: Format[GroupOrPartner] = Json.format[GroupOrPartner]
 
   }
 
@@ -1316,7 +1315,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
     override val sanitizers: Seq[Update] =
       Seq(titleSanitizer, firstNameSanitizer, middleNameSanitizer, lastNameSanitizer)
 
-    given formats:Format[IndividualName] = Json.format[IndividualName]
+    given formats: Format[IndividualName] = Json.format[IndividualName]
 
   }
 
@@ -1733,7 +1732,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
       period22Sanitizer
     )
 
-    given formats:Format[NonStdTaxPeriods] = Json.format[NonStdTaxPeriods]
+    given formats: Format[NonStdTaxPeriods] = Json.format[NonStdTaxPeriods]
 
   }
 
@@ -1808,7 +1807,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     override val sanitizers: Seq[Update] = Seq(RLSSanitizer, contactDetailsSanitizer, websiteAddressSanitizer)
 
-    given formats:Format[PPOB] = Json.format[PPOB]
+    given formats: Format[PPOB] = Json.format[PPOB]
 
   }
 
@@ -1856,7 +1855,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     override val sanitizers: Seq[Update] = Seq(stdReturnPeriodSanitizer, nonStdTaxPeriodsSanitizer)
 
-    given formats:Format[Period] = Json.format[Period]
+    given formats: Format[Period] = Json.format[Period]
 
   }
 
@@ -1945,7 +1944,7 @@ object VatCustomerInformationRecord extends RecordUtils[VatCustomerInformationRe
 
     override val sanitizers: Seq[Update] = Seq(line3Sanitizer, line4Sanitizer)
 
-    given formats:Format[UkAddress] = Json.format[UkAddress]
+    given formats: Format[UkAddress] = Json.format[UkAddress]
 
   }
 

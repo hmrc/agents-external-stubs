@@ -24,9 +24,8 @@ import wolfendale.scalacheck.regexp.RegexpGen
 
 import java.util.Locale
 
-object Generator extends uk.gov.hmrc.smartstub.Names
-    with uk.gov.hmrc.smartstub.Temporal
-    with uk.gov.hmrc.smartstub.Companies
+object Generator
+    extends uk.gov.hmrc.smartstub.Names with uk.gov.hmrc.smartstub.Temporal with uk.gov.hmrc.smartstub.Companies
     with uk.gov.hmrc.smartstub.Addresses {
 
   given uk.gov.hmrc.smartstub.ToLong[String] = (s: String) => s.hashCode.toLong

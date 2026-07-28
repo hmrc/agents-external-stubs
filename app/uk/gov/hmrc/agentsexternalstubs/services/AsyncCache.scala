@@ -37,7 +37,7 @@ class AsyncCache[K, V](
   def get(key: K, load: Future[V])(using ec: ExecutionContext): Future[V] =
     cache.getIfPresent(key) match {
       case Some(value) => Future.successful[V](value)
-      case None =>
+      case None        =>
         load.map { value =>
           keys(value).foreach(cache.put(_, value))
           value
@@ -47,7 +47,7 @@ class AsyncCache[K, V](
   def getOption(key: K, load: => Future[Option[V]])(using ec: ExecutionContext): Future[Option[V]] =
     cache.getIfPresent(key) match {
       case Some(value) => Future.successful[Option[V]](Some(value))
-      case None =>
+      case None        =>
         load.map {
           _.map { value =>
             keys(value).foreach(cache.put(_, value))

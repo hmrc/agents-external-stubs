@@ -249,7 +249,8 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfi
   override def create(user: User, planetId: String): Future[Unit] =
     collection
       .insertOne(
-        serializeUser(user, planetId).addField(UPDATED, Json.toJson(Instant.now())(using MongoJavatimeFormats.instantFormat))
+        serializeUser(user, planetId)
+          .addField(UPDATED, Json.toJson(Instant.now())(using MongoJavatimeFormats.instantFormat))
       )
       .toFuture()
       .map(_ => ())
@@ -302,7 +303,7 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfi
     }
 
   private val duplicatedUserMessageByKeyPrefix: Map[String, (String, String) => String] = Map(
-    "uid" -> ((k: String, p: String) => s"Duplicated user $k on $p"),
+    "uid"  -> ((k: String, p: String) => s"Duplicated user $k on $p"),
     "nino" -> ((k: String, p: String) =>
       s"Existing user already has this NINO ${k.toUpperCase}. Two individuals cannot have the same NINO on the same $p planet."
     ),

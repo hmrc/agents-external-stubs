@@ -67,7 +67,7 @@ class UserToRecordsSyncService @Inject() (
 
   def syncGroup(group: Group): Future[Unit] = for {
     users <- usersRepository.findByGroupId(group.groupId, group.planetId)(limit = None)
-    _ <- Future.traverse(users) { user =>
+    _     <- Future.traverse(users) { user =>
            def saveRecordId(recordId: String): Future[Unit] =
              usersRepository.syncRecordId(user.userId, recordId, group.planetId).map(_ => ())
            syncUserToRecords(saveRecordId, user, group)
@@ -679,7 +679,7 @@ class UserToRecordsSyncService @Inject() (
                     }
         id <- legacyRelationshipRecordsService.store(entity, autoFill = false, user.planetId.get)
         _  <- saveRecordId(id)
-        _ <- Future.sequence(
+        _  <- Future.sequence(
                group.delegatedEnrolments
                  .filter(_.key == "IR-SA")
                  .map(_.identifierValueOf("UTR"))
@@ -718,7 +718,7 @@ class UserToRecordsSyncService @Inject() (
           .map(s => EmployerAuths.EmpAuth.EmpRef(s(0), s(1)))
           .toSet
         group.agentCode match {
-          case None => Future.successful(())
+          case None            => Future.successful(())
           case Some(agentCode) =>
             for {
               recordOpt <-

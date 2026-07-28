@@ -26,10 +26,8 @@ case class SuspensionDetails(
 
   val suspendedRegimes: Set[String] =
     regimes.fold(Set.empty[String]) { rs =>
-      if rs.contains("ALL") || rs.contains("AGSV") then
-        SuspensionDetails.validSuspensionRegimes
-      else
-        rs
+      if rs.contains("ALL") || rs.contains("AGSV") then SuspensionDetails.validSuspensionRegimes
+      else rs
     }
 
   def isRegimeSuspended(service: Service): Boolean =

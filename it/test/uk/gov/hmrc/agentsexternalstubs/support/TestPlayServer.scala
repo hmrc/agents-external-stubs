@@ -68,31 +68,33 @@ trait TestPlayServer:
         op
       finally
         lock.unlock()
-    else
-      ()  
-        
+    else ()
+
   def run(): Unit =
     withLock:
-      testServer.get().fold({
-        println(s"Starting TestPlayServer at $port ... ")
-        val server = TestServer(port, app)
-        server.start()
-        val wsClient = app.injector.instanceOf[WSClient]
-        import scala.concurrent.duration.*
-        Await.result(wsClient.url(s"http://localhost:$port/ping/ping").withRequestTimeout(5.seconds).get(), 5.seconds)
-        testServer.set(Some(server))
-        Runtime.getRuntime.addShutdownHook(new Thread(() => stop()))
-        println("ready.")
-      })(identity)
-  
+      testServer
+        .get()
+        .fold {
+          println(s"Starting TestPlayServer at $port ... ")
+          val server = TestServer(port, app)
+          server.start()
+          val wsClient = app.injector.instanceOf[WSClient]
+          import scala.concurrent.duration.*
+          Await.result(wsClient.url(s"http://localhost:$port/ping/ping").withRequestTimeout(5.seconds).get(), 5.seconds)
+          testServer.set(Some(server))
+          Runtime.getRuntime.addShutdownHook(new Thread(() => stop()))
+          println("ready.")
+        }(identity)
+
   def stop(): Unit =
     withLock:
-      testServer.get().fold(identity)(
-        server =>
+      testServer
+        .get()
+        .fold(identity)(server =>
           println(s"Stopping TestPlayServer at $port ...")
           server.stop()
           testServer.set(None)
-      )
+        )
 
 object TestPlayServer extends TestPlayServer
 
@@ -102,6 +104,5 @@ class TestMetrics extends Metrics {
 }
 
 object FreePort:
-  val ports: (Int, Int) = Using.resources(new ServerSocket(0),new ServerSocket(0)):
-    (server,wiremock) =>
-      (server.getLocalPort, wiremock.getLocalPort)
+  val ports: (Int, Int) = Using.resources(new ServerSocket(0), new ServerSocket(0)): (server, wiremock) =>
+    (server.getLocalPort, wiremock.getLocalPort)

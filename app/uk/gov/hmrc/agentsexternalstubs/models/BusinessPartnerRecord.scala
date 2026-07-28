@@ -42,7 +42,7 @@ case class BusinessPartnerRecord(
   businessPartnerExists: Boolean = false,
   safeId: String,
   agentReferenceNumber: Option[String] = None,
-  utr: Option[String] = None, //required for HIP /etmp/RESTAdapter/generic/agent/subscription...
+  utr: Option[String] = None, // required for HIP /etmp/RESTAdapter/generic/agent/subscription...
   urn: Option[String] = None,
   nino: Option[String] = None,
   eori: Option[String] = None,
@@ -346,7 +346,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     isAnIndividualOrIsAnOrganisationAlternativeSanitizer
   )
 
-  given formats:Format[BusinessPartnerRecord] = Json.format[BusinessPartnerRecord]
+  given formats: Format[BusinessPartnerRecord] = Json.format[BusinessPartnerRecord]
 
   case class AgencyDetails(
     agencyName: Option[String] = None,
@@ -608,7 +608,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
         reriskStatusSanitizer
       )
 
-    given formats:Format[AgencyDetails] = Json.format[AgencyDetails]
+    given formats: Format[AgencyDetails] = Json.format[AgencyDetails]
 
     sealed trait AgencyAddress {
       def addressLine2: Option[String] = None
@@ -756,7 +756,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     override val sanitizers: Seq[Update] =
       Seq(phoneNumberSanitizer, mobileNumberSanitizer, faxNumberSanitizer, emailAddressSanitizer)
 
-    given formats:Format[ContactDetails] = Json.format[ContactDetails]
+    given formats: Format[ContactDetails] = Json.format[ContactDetails]
 
   }
 
@@ -920,7 +920,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
 
     override val sanitizers: Seq[Update] = Seq(addressLine2Sanitizer, addressLine3Sanitizer, addressLine4Sanitizer)
 
-    given formats:Format[UkAddress] = Json.format[UkAddress]
+    given formats: Format[UkAddress] = Json.format[UkAddress]
 
   }
 
@@ -1029,7 +1029,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
     override val sanitizers: Seq[Update] =
       Seq(addressLine2Sanitizer, addressLine3Sanitizer, addressLine4Sanitizer, postalCodeSanitizer)
 
-    given formats:Format[ForeignAddress] = Json.format[ForeignAddress]
+    given formats: Format[ForeignAddress] = Json.format[ForeignAddress]
 
   }
 
@@ -1092,7 +1092,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
 
     override val sanitizers: Seq[Update] = Seq(middleNameSanitizer)
 
-    given formats:Format[Individual] = Json.format[Individual]
+    given formats: Format[Individual] = Json.format[Individual]
 
   }
 

@@ -34,16 +34,15 @@ class ServicesSpec extends BaseUnitSpec with ValidatedMatchers {
     }
 
     import org.scalatest.Inspectors.*
-    "have Enrolment generator and validator" in {
+    "have Enrolment generator and validator" in
       forAll(Seq("foo", "bar", "baz", "zoo", "zig", "zag", "doc", "dot", "abc", "xyz")) { seed =>
         Services.services.foreach { s =>
           val enrolment = Generator.get(s.generator)(seed).get
           Enrolment.validate(enrolment) should be_Valid
         }
       }
-    }
 
-    "have knownFacts generator and validator" in {
+    "have knownFacts generator and validator" in
       forAll(Seq("foo", "bar", "baz", "zoo", "zig", "zag", "doc", "dot", "abc", "xyz")) { seed =>
         Services.services.foreach { s =>
           s.knownFacts.foreach { kf =>
@@ -52,6 +51,5 @@ class ServicesSpec extends BaseUnitSpec with ValidatedMatchers {
           }
         }
       }
-    }
   }
 }

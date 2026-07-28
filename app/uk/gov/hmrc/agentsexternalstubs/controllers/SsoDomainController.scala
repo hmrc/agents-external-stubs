@@ -23,8 +23,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.Future.successful
 
 @Singleton
-class SsoDomainController @Inject() (cc: MessagesControllerComponents)
-    extends BackendController(cc) {
+class SsoDomainController @Inject() (cc: MessagesControllerComponents) extends BackendController(cc) {
 
   def validate(domain: String): Action[AnyContent] = Action {
     if domain != "www.google.com" then NoContent else BadRequest

@@ -50,9 +50,9 @@ final class RecordsService @Inject() (recordsRepository: RecordsRepository, exte
       )
   }
 
-  /** Retrieve a record of the given type and by using the given identifier.
-    * There must be a `TakesKey` instance to instruct how the identifier is turned into a key for the lookup in the
-    * records repository. These instances are usually defined in the record type definition.
+  /** Retrieve a record of the given type and by using the given identifier. There must be a `TakesKey` instance to
+    * instruct how the identifier is turned into a key for the lookup in the records repository. These instances are
+    * usually defined in the record type definition.
     */
   def getRecord[A, K](identifier: K, planetId: String)(using
     ec: ExecutionContext,
@@ -80,9 +80,8 @@ final class RecordsService @Inject() (recordsRepository: RecordsRepository, exte
 
   /** Same as getRecord, but searches across all planets rather than a single known one, for use when there is no
     * session/planetId to scope the lookup to (e.g. a machine-to-machine caller with no resolvable session - see
-    * ExternalCurrentSession). Only safe when the identifier is expected to be globally unique; if it collides
-    * across planets, logs a warning and arbitrarily uses the first match. Returns the owning planetId alongside
-    * the record.
+    * ExternalCurrentSession). Only safe when the identifier is expected to be globally unique; if it collides across
+    * planets, logs a warning and arbitrarily uses the first match. Returns the owning planetId alongside the record.
     */
   def getRecordAnyPlanet[A, K](identifier: K)(using
     ec: ExecutionContext,

@@ -39,7 +39,7 @@ class UsersGroupsSearchStubController @Inject() (
     given Request[AnyContent] = request
     withCurrentSession { session =>
       for {
-        maybeUser <- usersService.findByUserId(userId, session.planetId)
+        maybeUser  <- usersService.findByUserId(userId, session.planetId)
         maybeGroup <- maybeUser.fold(Future.successful(Option.empty[Group]))(user =>
                         groupsService.findByGroupId(user.groupId.getOrElse(""), session.planetId)
                       )
@@ -79,8 +79,7 @@ class UsersGroupsSearchStubController @Inject() (
       Json.toJson(user).as[JsObject] + ("email" -> Json.toJson(Generator.email(user.userId)))
 
     withCurrentSession { session =>
-      if groupId == "wrongGroupId" then
-        Future.successful(notFound("GROUP_NOT_FOUND"))
+      if groupId == "wrongGroupId" then Future.successful(notFound("GROUP_NOT_FOUND"))
       else
         usersService
           .findByGroupId(groupId, session.planetId)(Some(100))
@@ -117,18 +116,9 @@ class UsersGroupsSearchStubController @Inject() (
 
 object UsersGroupsSearchStubController {
 
-  /** {
-    *     "userId": ":userId",
-    *     "name": "Subscribed MTD Agent",
-    *     "email": "default@email.com",
-    *     "affinityGroup": "Agent",
-    *     "agentCode": "LMNOPQ234568",
-    *     "agentFriendlyName": "MTD Agency",
-    *     "agentId": "?",
-    *     "credentialRole": "User",
-    *     "description": "ManualUserCreation",
-    *     "groupId": "04389535-78F7-4213-9169-FD0DD3553731"
-    * }
+  /** { "userId": ":userId", "name": "Subscribed MTD Agent", "email": "default@email.com", "affinityGroup": "Agent",
+    * "agentCode": "LMNOPQ234568", "agentFriendlyName": "MTD Agency", "agentId": "?", "credentialRole": "User",
+    * "description": "ManualUserCreation", "groupId": "04389535-78F7-4213-9169-FD0DD3553731" }
     */
   case class GetUserResponse(
     name: String,
@@ -160,16 +150,9 @@ object UsersGroupsSearchStubController {
       )
   }
 
-  /** {
-    *   "_links": [
-    *     { "rel": "users", "href": "/groups/:groupdId/users" }
-    *   ],
-    *   "groupId": ":groupId",
-    *   "affinityGroup": "Agent",
-    *   "agentCode": "NQJUEJCWT14",
-    *   "agentFriendlyName": "JoeBloggs",
-    *   "agentId": "?" //missing in GsoAdminGetUserDetailsByGroupId
-    * }
+  /** { "_links": [ { "rel": "users", "href": "/groups/:groupdId/users" } ], "groupId": ":groupId", "affinityGroup":
+    * "Agent", "agentCode": "NQJUEJCWT14", "agentFriendlyName": "JoeBloggs", "agentId": "?" //missing in
+    * GsoAdminGetUserDetailsByGroupId }
     */
   case class GetGroupResponse(
     groupId: String,

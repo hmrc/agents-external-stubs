@@ -61,8 +61,8 @@ class RoboticsController @Inject() (
             }
 
             val result: Either[String, EnrolmentKey] = for {
-              s   <- service
-              idf <- s.identifiers.headOption.toRight(s"No identifiers found for service ${s.name}")
+              s     <- service
+              idf   <- s.identifiers.headOption.toRight(s"No identifiers found for service ${s.name}")
               value <- Generator
                          .get(idf.valueGenerator)(session.userId)
                          .toRight(
@@ -217,7 +217,7 @@ object RoboticsController extends HttpHelpers {
                           .toRight(badRequest("MISSING_TARGET_SYSTEM", "targetSystem is required"))
                           .flatMap {
                             case ts @ ("CESA" | "COTAX") => Right(ts)
-                            case ts                      => Left(badRequest("INVALID_TARGET_SYSTEM", s"targetSystem '$ts' is not supported"))
+                            case ts => Left(badRequest("INVALID_TARGET_SYSTEM", s"targetSystem '$ts' is not supported"))
                           }
 
         postcode =

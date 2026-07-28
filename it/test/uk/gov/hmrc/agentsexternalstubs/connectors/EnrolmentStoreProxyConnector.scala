@@ -43,8 +43,7 @@ object ES8Request {
 }
 
 @Singleton
-class EnrolmentStoreProxyConnector @Inject() (appConfig: AppConfig, http: HttpClientV2)
-    extends TaxIdentifierSupport {
+class EnrolmentStoreProxyConnector @Inject() (appConfig: AppConfig, http: HttpClientV2) extends TaxIdentifierSupport {
 
   // ES0 - principal
   def getPrincipalUserIdFor(
@@ -130,7 +129,9 @@ class EnrolmentStoreProxyConnector @Inject() (appConfig: AppConfig, http: HttpCl
   }
 
   // ES8
-  def allocateEnrolmentToAgent(groupId: String, userId: String, taxIdentifier: TaxIdentifier, agentCode: AgentCode)(using hc: HeaderCarrier,
+  def allocateEnrolmentToAgent(groupId: String, userId: String, taxIdentifier: TaxIdentifier, agentCode: AgentCode)(
+    using
+    hc: HeaderCarrier,
     ec: ExecutionContext
   ): Future[Unit] = {
     val enrolmentKeyPrefix = enrolmentKeyPrefixFor(taxIdentifier)
@@ -152,7 +153,8 @@ class EnrolmentStoreProxyConnector @Inject() (appConfig: AppConfig, http: HttpCl
   }
 
   // ES9
-  def deallocateEnrolmentFromAgent(groupId: String, taxIdentifier: TaxIdentifier, agentCode: AgentCode)(using hc: HeaderCarrier,
+  def deallocateEnrolmentFromAgent(groupId: String, taxIdentifier: TaxIdentifier, agentCode: AgentCode)(using
+    hc: HeaderCarrier,
     ec: ExecutionContext
   ): Future[Unit] = {
     val enrolmentKeyPrefix = enrolmentKeyPrefixFor(taxIdentifier)

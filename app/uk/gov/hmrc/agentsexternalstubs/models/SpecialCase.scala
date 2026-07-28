@@ -108,12 +108,11 @@ object SpecialCase {
       json + ((UNIQUE_KEY, JsString(uniqueKey(key, planetId))))
     }
 
-    private final val renameId: Transformer = json => {
+    private final val renameId: Transformer = json =>
       (json \ "id").asOpt[JsObject] match {
         case None     => json
         case Some(id) => json.-("id").+(Id.ID -> id)
       }
-    }
 
     val writes: OWrites[SpecialCase] = Json
       .writes[SpecialCase]

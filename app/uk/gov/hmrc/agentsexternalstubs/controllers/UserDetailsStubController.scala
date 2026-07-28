@@ -49,32 +49,15 @@ class UserDetailsStubController @Inject() (
 
 object UserDetailsStubController {
 
-  /**  {
-    *    "name":"test",
-    *    "email":"test@test.com",
-    *    "affinityGroup" : "affinityGroup",
-    *    "description" : "description",
-    *    "lastName":"test",
-    *    "dateOfBirth":"1980-06-30",
-    *    "postCode":"NW94HD",
-    *    "authProviderId": "12345-PID",
-    *    "authProviderType": "Verify"
-    *  }
+  /** { "name":"test", "email":"test@test.com", "affinityGroup" : "affinityGroup", "description" : "description",
+    * "lastName":"test", "dateOfBirth":"1980-06-30", "postCode":"NW94HD", "authProviderId": "12345-PID",
+    * "authProviderType": "Verify" }
     *
-    *    or for a gateway user that's an agent
+    * or for a gateway user that's an agent
     *
-    *  {
-    *    "authProviderId" : "12345-credId",
-    *    "authProviderType" : "GovernmentGateway",
-    *    "name" : "test",
-    *    "email" : "test@test.com",
-    *    "affinityGroup" : "Agent",
-    *    "agentCode" : "TZRXXV",
-    *    "agentFriendlyName" : "Bodgitt & Legget LLP",
-    *    "agentId": "BDGL",
-    *    "credentialRole" : "admin",
-    *    "description" : "blah"
-    *  }
+    * { "authProviderId" : "12345-credId", "authProviderType" : "GovernmentGateway", "name" : "test", "email" :
+    * "test@test.com", "affinityGroup" : "Agent", "agentCode" : "TZRXXV", "agentFriendlyName" : "Bodgitt & Legget LLP",
+    * "agentId": "BDGL", "credentialRole" : "admin", "description" : "blah" }
     */
   case class GetUserResponse(
     authProviderId: String,
@@ -100,7 +83,8 @@ object UserDetailsStubController {
     def from(user: User, group: Option[Group], session: AuthenticatedSession): GetUserResponse = GetUserResponse(
       authProviderId = user.userId,
       authProviderType = session.providerType,
-      name = (if group.exists(_.affinityGroup == AG.Individual) then user.firstName else user.name).getOrElse("John Doe"),
+      name =
+        (if group.exists(_.affinityGroup == AG.Individual) then user.firstName else user.name).getOrElse("John Doe"),
       lastName = if group.exists(_.affinityGroup == AG.Individual) then user.lastName else None,
       email = Generator.email(user.userId),
       affinityGroup = group.fold("none")(_.affinityGroup),

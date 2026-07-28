@@ -48,7 +48,7 @@ class AuthenticationService @Inject() (
       authToken,
       authSessionRepository.findByAuthToken(authToken).flatMap {
         case Some(session) => Future.successful(Some(session))
-        case None =>
+        case None          =>
           val planetId = Planet.DEFAULT
           externalAuthorisationService.maybeExternalSession(planetId, this.authenticate)
       }

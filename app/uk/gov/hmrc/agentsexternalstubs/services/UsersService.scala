@@ -49,7 +49,7 @@ class UsersService @Inject() (
     ec: ExecutionContext
   ): Future[(Option[User], Option[Group])] =
     for {
-      maybeUser <- usersRepository.findByUserId(userId, planetId)
+      maybeUser  <- usersRepository.findByUserId(userId, planetId)
       maybeGroup <- maybeUser
                       .flatMap(_.groupId)
                       .fold(Future.successful(Option.empty[Group]))(gid => groupsService.findByGroupId(gid, planetId))
@@ -81,7 +81,7 @@ class UsersService @Inject() (
   ): Future[Option[User]] =
     usersRepository.findByPrincipalEnrolmentKey(enrolmentKey, planetId).flatMap {
       case Some(user) => Future.successful(Some(user))
-      case None =>
+      case None       =>
         externalUserService.lookupExternalUserByEnrolmentKey(enrolmentKey, planetId)
     }
 
@@ -109,11 +109,13 @@ class UsersService @Inject() (
 
   val usersCache = Scaffeine().maximumSize(1000).expireAfterWrite(10.minutes).build[Int, User]()
 
-  /** Create a new user. If the group corresponding to the groupId doesn't exist, it will create a group as well
-    * with the affinityGroup provided. (If the group does exist then the affinityGroup parameter has no effect.)
-    * If the new user has any assigned enrolments, corresponding group enrolments will be created.
+  /** Create a new user. If the group corresponding to the groupId doesn't exist, it will create a group as well with
+    * the affinityGroup provided. (If the group does exist then the affinityGroup parameter has no effect.) If the new
+    * user has any assigned enrolments, corresponding group enrolments will be created.
     */
-  def createUser(user: User, planetId: String, affinityGroup: Option[String])(using ec: ExecutionContext): Future[User] = {
+  def createUser(user: User, planetId: String, affinityGroup: Option[String])(using
+    ec: ExecutionContext
+  ): Future[User] = {
     val sanitizedAffinityGroup = affinityGroup.flatMap(AG.sanitize)
 
     val userKey = user.copy(planetId = None, recordIds = Seq.empty).hashCode()
@@ -166,112 +168,119 @@ class UsersService @Inject() (
     } yield newUser
   }
 
-  /** Update a user.
-    * If new assigned enrolments are being added to the user, corresponding group enrolments will be created.
+  /** Update a user. If new assigned enrolments are being added to the user, corresponding group enrolments will be
+    * created.
     */
   def updateUser(userId: String, planetId: String, modify: User => User)(using ec: ExecutionContext): Future[User] =
     for {
-      maybeUser <- findByUserId(userId, planetId)
+      maybeUser   <- findByUserId(userId, planetId)
       updatedUser <- maybeUser match {
                        case Some(existingUser) =>
                          val modified = modify(existingUser).copy(userId = userId, planetId = Some(planetId))
-                         if modified != existingUser then for {
-                           maybeGroup <- modified.groupId.fold(Future.successful(Option.empty[Group]))(gid =>
-                                           groupsService.findByGroupId(gid, planetId)
-                                         )
-                           refined <- refineAndValidateUser(modified, planetId, maybeGroup.map(_.affinityGroup))
-                           _       <- usersRepository.update(refined, planetId)
+                         if modified != existingUser then
+                           for {
+                             maybeGroup <- modified.groupId.fold(Future.successful(Option.empty[Group]))(gid =>
+                                             groupsService.findByGroupId(gid, planetId)
+                                           )
+                             refined <- refineAndValidateUser(modified, planetId, maybeGroup.map(_.affinityGroup))
+                             _       <- usersRepository.update(refined, planetId)
 
-                           // Capture the principal enrolment keys BEFORE any group principal-enrolment update (old ARN case)
-                           principalKeysBefore: Seq[EnrolmentKey] =
-                             maybeGroup.toSeq
-                               .flatMap(_.principalEnrolments)
-                               .flatMap(_.toEnrolmentKey)
+                             // Capture the principal enrolment keys BEFORE any group principal-enrolment update (old ARN case)
+                             principalKeysBefore: Seq[EnrolmentKey] =
+                               maybeGroup.toSeq
+                                 .flatMap(_.principalEnrolments)
+                                 .flatMap(_.toEnrolmentKey)
 
-                           desiredPrincipalEnrolments = refined.assignedPrincipalEnrolments.map(Enrolment.from)
-                           maybeUpdatedGroupAfterPrincipalSync <-
-                             maybeGroup match {
-                               case None => Future.successful(Option.empty[Group])
-                               case Some(grp) =>
-                                 val replaced =
-                                   grp.principalEnrolments.map { ge =>
-                                     desiredPrincipalEnrolments.find(_.key == ge.key).getOrElse(ge)
-                                   }
-                                 val added =
-                                   desiredPrincipalEnrolments.filterNot(de =>
-                                     grp.principalEnrolments.exists(_.key == de.key)
+                             desiredPrincipalEnrolments = refined.assignedPrincipalEnrolments.map(Enrolment.from)
+                             maybeUpdatedGroupAfterPrincipalSync <-
+                               maybeGroup match {
+                                 case None      => Future.successful(Option.empty[Group])
+                                 case Some(grp) =>
+                                   val replaced =
+                                     grp.principalEnrolments.map { ge =>
+                                       desiredPrincipalEnrolments.find(_.key == ge.key).getOrElse(ge)
+                                     }
+                                   val added =
+                                     desiredPrincipalEnrolments
+                                       .filterNot(de => grp.principalEnrolments.exists(_.key == de.key))
+                                   val newPrincipalEnrolments = replaced ++ added
+                                   if newPrincipalEnrolments == grp.principalEnrolments then
+                                     Future.successful(Some(grp))
+                                   else
+                                     groupsService
+                                       .updateGroup(
+                                         grp.groupId,
+                                         planetId,
+                                         g => g.copy(principalEnrolments = newPrincipalEnrolments)
+                                       )
+                                       .map(Some(_))
+                               }
+                             // now add any principal or delegated enrolments the group needs to have in order to maintain consistency
+                             principalEnrolmentsToAdd =
+                               maybeUpdatedGroupAfterPrincipalSync
+                                 .fold(Seq.empty[EnrolmentKey])(grp =>
+                                   refined.assignedPrincipalEnrolments
+                                     .filterNot(ek => grp.principalEnrolments.exists(_.toEnrolmentKey.contains(ek)))
+                                 )
+                                 .map(Enrolment.from(_))
+                             delegatedEnrolmentsToAdd =
+                               maybeUpdatedGroupAfterPrincipalSync
+                                 .fold(Seq.empty[EnrolmentKey])(grp =>
+                                   refined.assignedDelegatedEnrolments
+                                     .filterNot(ek => grp.delegatedEnrolments.exists(_.toEnrolmentKey.contains(ek)))
+                                 )
+                                 .map(Enrolment.from(_))
+                             maybeUpdatedGroup <-
+                               if (principalEnrolmentsToAdd.isEmpty && delegatedEnrolmentsToAdd.isEmpty) || maybeUpdatedGroupAfterPrincipalSync.isEmpty
+                               then Future.successful(maybeUpdatedGroupAfterPrincipalSync)
+                               else
+                                 groupsService
+                                   .updateGroup(
+                                     maybeUpdatedGroupAfterPrincipalSync.get.groupId,
+                                     planetId,
+                                     grp =>
+                                       grp.copy(
+                                         principalEnrolments = grp.principalEnrolments ++ principalEnrolmentsToAdd,
+                                         delegatedEnrolments = grp.delegatedEnrolments ++ delegatedEnrolmentsToAdd
+                                       )
                                    )
-                                 val newPrincipalEnrolments = replaced ++ added
-                                 if newPrincipalEnrolments == grp.principalEnrolments then Future.successful(Some(grp))
-                                 else
-                                   groupsService
-                                     .updateGroup(
-                                       grp.groupId,
-                                       planetId,
-                                       g => g.copy(principalEnrolments = newPrincipalEnrolments)
-                                     )
-                                     .map(Some(_))
-                             }
-                           // now add any principal or delegated enrolments the group needs to have in order to maintain consistency
-                           principalEnrolmentsToAdd =
-                             maybeUpdatedGroupAfterPrincipalSync
-                               .fold(Seq.empty[EnrolmentKey])(grp =>
-                                 refined.assignedPrincipalEnrolments.filterNot(ek =>
-                                   grp.principalEnrolments.exists(_.toEnrolmentKey.contains(ek))
-                                 )
-                               )
-                               .map(Enrolment.from(_))
-                           delegatedEnrolmentsToAdd =
-                             maybeUpdatedGroupAfterPrincipalSync
-                               .fold(Seq.empty[EnrolmentKey])(grp =>
-                                 refined.assignedDelegatedEnrolments.filterNot(ek =>
-                                   grp.delegatedEnrolments.exists(_.toEnrolmentKey.contains(ek))
-                                 )
-                               )
-                               .map(Enrolment.from(_))
-                           maybeUpdatedGroup <-
-                             if
-                               (principalEnrolmentsToAdd.isEmpty && delegatedEnrolmentsToAdd.isEmpty) || maybeUpdatedGroupAfterPrincipalSync.isEmpty
-                             then Future.successful(maybeUpdatedGroupAfterPrincipalSync)
-                             else
-                               groupsService
-                                 .updateGroup(
-                                   maybeUpdatedGroupAfterPrincipalSync.get.groupId,
-                                   planetId,
-                                   grp =>
-                                     grp.copy(
-                                       principalEnrolments = grp.principalEnrolments ++ principalEnrolmentsToAdd,
-                                       delegatedEnrolments = grp.delegatedEnrolments ++ delegatedEnrolmentsToAdd
-                                     )
-                                 )
-                                 .map(Some(_))
-                           // Delete known facts for BOTH "before" and "after" principal enrolment keys
-                           principalKeysAfter: Seq[EnrolmentKey] =
-                             maybeUpdatedGroup.toSeq
-                               .flatMap(_.principalEnrolments)
-                               .flatMap(_.toEnrolmentKey)
+                                   .map(Some(_))
+                             // Delete known facts for BOTH "before" and "after" principal enrolment keys
+                             principalKeysAfter: Seq[EnrolmentKey] =
+                               maybeUpdatedGroup.toSeq
+                                 .flatMap(_.principalEnrolments)
+                                 .flatMap(_.toEnrolmentKey)
 
-                           principalKeysToDelete: Seq[EnrolmentKey] =
-                             (principalKeysBefore ++ principalKeysAfter).distinct
+                             principalKeysToDelete: Seq[EnrolmentKey] =
+                               (principalKeysBefore ++ principalKeysAfter).distinct
 
-                           _ <-
-                             maybeUpdatedGroup.fold(Future.successful(())) { group =>
-                               deleteKnownFactsForKeys(principalKeysToDelete, planetId)
-                                 .flatMap(_ => updateKnownFacts(refined, group, planetId))
-                             }
-                           _ <- maybeUpdatedGroup.fold(Future.successful(()))(group =>
-                                  userRecordsService.syncUserToRecords(syncRecordId(refined, planetId), refined, group)
-                                )
-                           _ =
-                             AuthorisationCache
-                               .updateResultsFor(refined, maybeUpdatedGroup, UsersService.this, groupsService, planetId)
-                         } yield refined
+                             _ <-
+                               maybeUpdatedGroup.fold(Future.successful(())) { group =>
+                                 deleteKnownFactsForKeys(principalKeysToDelete, planetId)
+                                   .flatMap(_ => updateKnownFacts(refined, group, planetId))
+                               }
+                             _ <-
+                               maybeUpdatedGroup.fold(Future.successful(()))(group =>
+                                 userRecordsService.syncUserToRecords(syncRecordId(refined, planetId), refined, group)
+                               )
+                             _ =
+                               AuthorisationCache
+                                 .updateResultsFor(
+                                   refined,
+                                   maybeUpdatedGroup,
+                                   UsersService.this,
+                                   groupsService,
+                                   planetId
+                                 )
+                           } yield refined
                          else Future.successful(existingUser)
                        case None => Future.failed(new NotFoundException(s"User $userId not found"))
                      }
     } yield updatedUser
 
-  private def deleteKnownFactsForKeys(enrolmentKeys: Seq[EnrolmentKey], planetId: String)(using ec: ExecutionContext): Future[Unit] =
+  private def deleteKnownFactsForKeys(enrolmentKeys: Seq[EnrolmentKey], planetId: String)(using
+    ec: ExecutionContext
+  ): Future[Unit] =
     Future
       .sequence(enrolmentKeys.map(ek => knownFactsRepository.delete(ek, planetId)))
       .map(_ => ())
@@ -279,7 +288,7 @@ class UsersService @Inject() (
   def copyUser(userId: String, planetId: String, targetPlanetId: String)(using ec: ExecutionContext): Future[Unit] =
     for {
       maybeUser <- findByUserId(userId, planetId)
-      _ <- maybeUser match {
+      _         <- maybeUser match {
              case Some(user) => usersRepository.create(user.copy(recordIds = Seq.empty), targetPlanetId)
              case None       => Future.failed(new NotFoundException(s"User $userId not found"))
            }
@@ -290,7 +299,7 @@ class UsersService @Inject() (
 
   def deleteUser(userId: String, planetId: String)(using ec: ExecutionContext): Future[Unit] =
     for {
-      maybeUser <- findByUserId(userId, planetId)
+      maybeUser  <- findByUserId(userId, planetId)
       maybeGroup <- maybeUser
                       .flatMap(_.groupId)
                       .fold(Future.successful(Option.empty[Group]))(groupsService.findByGroupId(_, planetId))
@@ -301,7 +310,7 @@ class UsersService @Inject() (
                  _ <- usersRepository.delete(user.userId, planetId)
                  _ <- maybeGroup match {
                         case Some(group) => deleteKnownFacts(group, planetId)
-                        case None =>
+                        case None        =>
                           logger.warn(s"Deleting user $userId but the associated group was not found!")
                           Future.successful(())
                       }
@@ -311,7 +320,9 @@ class UsersService @Inject() (
            }
     } yield ()
 
-  private def refineAndValidateUser(user: User, planetId: String, affinityGroup: Option[String])(using ec: ExecutionContext): Future[User] =
+  private def refineAndValidateUser(user: User, planetId: String, affinityGroup: Option[String])(using
+    ec: ExecutionContext
+  ): Future[User] =
     if user.isNonCompliant.contains(true) then {
       User.validate(user, affinityGroup) match {
         case Right(u)     => Future.successful(u.copy(isNonCompliant = None, complianceIssues = None))
@@ -351,19 +362,19 @@ class UsersService @Inject() (
       )
       .map(_ => ())
 
-  private def checkCanAcceptUser(user: User, planetId: String)(using ec: ExecutionContext): Future[Either[List[String], User]] =
+  private def checkCanAcceptUser(user: User, planetId: String)(using
+    ec: ExecutionContext
+  ): Future[Either[List[String], User]] =
     user.groupId match {
-      case None => Future.successful(Right(user))
+      case None          => Future.successful(Right(user))
       case Some(groupId) =>
         findByGroupId(groupId, planetId)(limit = Some(101)).map { users => // TODO magic number: 101 (limit) Why?
           val maybeAdmin =
-            if
-              !user.credentialRole.contains(User.CR.Assistant) && (!users.exists(_.isAdmin) || users
+            if !user.credentialRole.contains(User.CR.Assistant) && (!users.exists(_.isAdmin) || users
                 .find(_.isAdmin)
                 .map(_.userId)
                 .contains(user.userId))
-            then
-              user.copy(credentialRole = Some(User.CR.User))
+            then user.copy(credentialRole = Some(User.CR.User))
             else user
           GroupUsersValidator
             .validate(users.filterNot(_.userId == maybeAdmin.userId) :+ maybeAdmin) match {
@@ -375,7 +386,7 @@ class UsersService @Inject() (
 
   private def checkCanRemoveUser(user: User, planetId: String)(using ec: ExecutionContext): Future[Unit] =
     user.groupId match {
-      case None => Future.successful(())
+      case None          => Future.successful(())
       case Some(groupId) =>
         findByGroupId(groupId, planetId)(limit = Some(101)) flatMap { users => // TODO magic number: 101 (limit) Why?
           GroupUsersValidator
@@ -387,7 +398,9 @@ class UsersService @Inject() (
         }
     }
 
-  def assignEnrolmentToUser(userId: String, enrolmentKey: EnrolmentKey, planetId: String)(using ec: ExecutionContext): Future[Unit] = {
+  def assignEnrolmentToUser(userId: String, enrolmentKey: EnrolmentKey, planetId: String)(using
+    ec: ExecutionContext
+  ): Future[Unit] = {
     val delegationEnrolmentKeys: DelegationEnrolmentKeys = DelegationEnrolmentKeys(enrolmentKey)
     def assignToUser(): Future[Unit] =
       findByUserId(userId, planetId)
@@ -400,10 +413,10 @@ class UsersService @Inject() (
             Future.failed(new BadRequestException("INVALID_CREDENTIAL_ID"))
           case Some(user) =>
             user.groupId match {
-              case None => Future.failed(new BadRequestException("INVALID_CREDENTIAL_ID"))
+              case None          => Future.failed(new BadRequestException("INVALID_CREDENTIAL_ID"))
               case Some(groupId) =>
                 groupsService.findByGroupId(groupId, planetId).flatMap {
-                  case None => Future.failed(new BadRequestException("INVALID_CREDENTIAL_ID"))
+                  case None        => Future.failed(new BadRequestException("INVALID_CREDENTIAL_ID"))
                   case Some(group) =>
                     val groupHasPrincipalEnrolment =
                       group.principalEnrolments.exists(_.matches(delegationEnrolmentKeys.primaryEnrolmentKey))
@@ -428,8 +441,7 @@ class UsersService @Inject() (
                               case None    => Future.failed(new NotFoundException("ALLOCATION_DOES_NOT_EXIST"))
                               case Some(_) => Future.unit
                             }
-                        else
-                          Future.unit
+                        else Future.unit
 
                       checkKnownFacts.flatMap(_ =>
                         usersRepository
@@ -456,13 +468,15 @@ class UsersService @Inject() (
     }
   }
 
-  def deassignEnrolmentFromUser(userId: String, enrolmentKey: EnrolmentKey, planetId: String)(using ec: ExecutionContext): Future[User] =
+  def deassignEnrolmentFromUser(userId: String, enrolmentKey: EnrolmentKey, planetId: String)(using
+    ec: ExecutionContext
+  ): Future[User] =
     knownFactsRepository.findByEnrolmentKey(enrolmentKey, planetId).flatMap {
-      case None => Future.failed(new NotFoundException("ALLOCATION_DOES_NOT_EXIST"))
+      case None    => Future.failed(new NotFoundException("ALLOCATION_DOES_NOT_EXIST"))
       case Some(_) =>
         findByUserId(userId, planetId)
           .flatMap {
-            case None => Future.failed(new NotFoundException("USER_ID_DOES_NOT_EXIST"))
+            case None    => Future.failed(new NotFoundException("USER_ID_DOES_NOT_EXIST"))
             case Some(_) =>
               updateUser(
                 userId,

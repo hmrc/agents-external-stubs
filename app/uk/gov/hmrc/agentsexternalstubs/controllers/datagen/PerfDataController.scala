@@ -55,24 +55,8 @@ class PerfDataController @Inject() (
 )(using ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
-  /** Accepts a JSON payload like:
-    * <pre>
-    * {
-    *  "agencies": [
-    *   {
-    *    "clients": 10,
-    *    "teamMembers": 3,
-    *    "times": 5
-    *   },
-    *   {
-    *    "clients": 460,
-    *    "teamMembers": 21,
-    *    "times": 20
-    *   }
-    *  ],
-    *  "populateFriendlyNames": false
-    * }
-    * </pre>
+  /** Accepts a JSON payload like: <pre> { "agencies": [ { "clients": 10, "teamMembers": 3, "times": 5 }, { "clients":
+    * 460, "teamMembers": 21, "times": 20 } ], "populateFriendlyNames": false } </pre>
     */
   def generate: Action[JsValue] = Action.async(parse.tolerantJson) { request =>
     given Request[JsValue] = request

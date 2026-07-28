@@ -48,7 +48,7 @@ trait TestStubs {
         authenticationService
           .authenticate(AuthenticateRequest(UUID.randomUUID().toString, user.userId, "any", providerType, planetId))
       mUser <- userService.findByUserId(user.userId, planetId)
-      user <- mUser match {
+      user  <- mUser match {
                 case Some(user) => Future.successful(user)
                 case None       => userService.createUser(user, planetId, affinityGroup)
               }
@@ -97,12 +97,10 @@ trait TestStubs {
     }
   }
 
-  def givenUserWithStrideRole(userId: String, planetId: String, role: String)(using ExecutionContext
-  ): Unit =
+  def givenUserWithStrideRole(userId: String, planetId: String, role: String)(using ExecutionContext): Unit =
     await(addStrideRole(userId, planetId, role))
 
-  private def addStrideRole(userId: String, planetId: String, role: String)(using ExecutionContext
-  ): Future[User] =
+  private def addStrideRole(userId: String, planetId: String, role: String)(using ExecutionContext): Future[User] =
     userService.updateUser(
       userId,
       planetId,

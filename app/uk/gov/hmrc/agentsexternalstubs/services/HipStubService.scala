@@ -42,8 +42,7 @@ class HipStubService @Inject() extends Logging {
     } else if !originatingSystem.getOrElse("").contains("MDTP") then {
       logger.error("originatingSystem header missing or invalid")
       Left(Errors("006", requestCouldNotBeProcessed))
-    } else if
-      !correlationid
+    } else if !correlationid
         .getOrElse("")
         .matches("^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$")
     then {
@@ -68,7 +67,7 @@ class HipStubService @Inject() extends Logging {
       Left(Errors("006", requestCouldNotBeProcessed))
     } else Right(true)
 
-  //yyyy-MM-ddTHH:mm:ssZ
+  // yyyy-MM-ddTHH:mm:ssZ
   private def isValidTimestamp(timestamp: String): Boolean =
     timestamp.matches("""^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$""") && {
       try {
@@ -208,7 +207,7 @@ class HipStubService @Inject() extends Logging {
       case "ITSA" => Some("MTDBSA")
       case "CGT"  => Some("ZCGT")
       case "PPT"  => Some("ZPPT")
-      case "TRS" =>
+      case "TRS"  =>
         if refNumber.matches("^((?i)[a-z]{2}trust[0-9]{8})$") then Some("URN")
         else if refNumber.matches("^\\d{10}$") then Some("UTR")
         else None

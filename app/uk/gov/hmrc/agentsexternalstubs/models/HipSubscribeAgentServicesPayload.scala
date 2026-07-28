@@ -98,5 +98,5 @@ object HipSubscribeAgentServicesPayload {
       .toEither
       .map(_ => payload)
 
-  given format:Format[HipSubscribeAgentServicesPayload] = Json.format[HipSubscribeAgentServicesPayload]
+  given format: Format[HipSubscribeAgentServicesPayload] = Json.format[HipSubscribeAgentServicesPayload]
 }

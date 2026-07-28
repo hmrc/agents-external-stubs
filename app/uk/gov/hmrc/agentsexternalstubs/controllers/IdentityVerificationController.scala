@@ -41,8 +41,7 @@ class IdentityVerificationController @Inject() (
   def storeNino(credId: String): Action[JsValue] = Action.async(parse.json) { request =>
     given Request[JsValue] = request
     withJsonBody[NinoClStoreEntry] { entry =>
-      if entry.credId != credId then
-        Future.successful(BadRequest)
+      if entry.credId != credId then Future.successful(BadRequest)
       else {
         withCurrentSession { session =>
           usersService

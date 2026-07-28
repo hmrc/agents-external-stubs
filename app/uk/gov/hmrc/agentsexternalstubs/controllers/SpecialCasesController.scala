@@ -83,7 +83,7 @@ class SpecialCasesController @Inject() (
     withCurrentSession { session =>
       withPayload[SpecialCase](specialCase =>
         specialCasesRepository.findById(id, session.planetId).flatMap {
-          case None => notFoundF("NOT_FOUND")
+          case None    => notFoundF("NOT_FOUND")
           case Some(_) =>
             specialCasesRepository
               .upsert(specialCase.copy(id = Some(Id(id)), planetId = None), session.planetId)
@@ -131,7 +131,7 @@ class SpecialCasesController @Inject() (
         } else {
           val key = SpecialCase.matchKey(rh.method, URLDecoder.decode(rh.uri, "utf-8"))
           specialCasesRepository.findByMatchKey(key, planetId).map {
-            case None => action(AuthenticatedSession.tagRequest(rh, maybeSession))
+            case None              => action(AuthenticatedSession.tagRequest(rh, maybeSession))
             case Some(specialCase) =>
               Accumulator.done(specialCase.response.asResult)
           }

@@ -162,7 +162,9 @@ object AgentSubscriptionDisplayResponse {
       reriskStatus = r.reriskStatus
     )
 
-    Json.toJsObject(base)(using summon[OWrites[BasePart]]) ++ Json.toJsObject(statuses)(using summon[OWrites[StatusPart]])
+    Json.toJsObject(base)(using summon[OWrites[BasePart]]) ++ Json.toJsObject(statuses)(using
+      summon[OWrites[StatusPart]]
+    )
   }
 
   given format: OFormat[AgentSubscriptionDisplayResponse] =

@@ -66,7 +66,7 @@ class RecordsController @Inject() (
       recordsRepository
         .findById[Record](recordId, session.planetId)
         .flatMap {
-          case None => notFoundF("NOT_FOUND_RECORD_ID")
+          case None         => notFoundF("NOT_FOUND_RECORD_ID")
           case Some(record) =>
             Record
               .fromJson(Record.typeOf(record), request.body) |> whenSuccess { payload =>
@@ -107,12 +107,12 @@ class RecordsController @Inject() (
 
   def generateBusinessDetails(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] = Action.async { request =>
     given Request[AnyContent] = request
-      withCurrentSession { session =>
-        val seed = seedOpt.getOrElse(session.sessionId)
-        val record = BusinessDetailsRecord.seed(seed)
-        val result = if minimal then record else BusinessDetailsRecord.sanitize(seed)(record)
-        okF(result, Link("create", routes.RecordsController.storeBusinessDetails(minimal).url))
-      }(SessionRecordNotFound)
+    withCurrentSession { session =>
+      val seed = seedOpt.getOrElse(session.sessionId)
+      val record = BusinessDetailsRecord.seed(seed)
+      val result = if minimal then record else BusinessDetailsRecord.sanitize(seed)(record)
+      okF(result, Link("create", routes.RecordsController.storeBusinessDetails(minimal).url))
+    }(SessionRecordNotFound)
   }
 
   def storeLegacyAgent(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) { request =>
@@ -128,34 +128,35 @@ class RecordsController @Inject() (
 
   def generateLegacyAgent(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] = Action.async { request =>
     given Request[AnyContent] = request
-      withCurrentSession { session =>
-        val seed = seedOpt.getOrElse(session.sessionId)
-        val record = LegacyAgentRecord.seed(seed)
-        val result = if minimal then record else LegacyAgentRecord.sanitize(seed)(record)
-        okF(result, Link("create", routes.RecordsController.storeLegacyAgent(minimal).url))
-      }(SessionRecordNotFound)
+    withCurrentSession { session =>
+      val seed = seedOpt.getOrElse(session.sessionId)
+      val record = LegacyAgentRecord.seed(seed)
+      val result = if minimal then record else LegacyAgentRecord.sanitize(seed)(record)
+      okF(result, Link("create", routes.RecordsController.storeLegacyAgent(minimal).url))
+    }(SessionRecordNotFound)
   }
 
   def storeLegacyRelationship(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) { request =>
     given Request[JsValue] = request
-      withCurrentSession { session =>
-        withPayload[LegacyRelationshipRecord](record =>
-          legacyRelationshipRecordsService
-            .store(record, autoFill, session.planetId)
-            .map(recordId =>
-              Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))).withHeaders(
-                HeaderNames.LOCATION -> record.nino
-                  .map(nino => routes.DesIfStubController.getLegacyRelationshipsByNino(nino).url)
-                  .orElse(record.utr.map(utr => routes.DesIfStubController.getLegacyRelationshipsByUtr(utr).url))
-                  .getOrElse("")
-              )
+    withCurrentSession { session =>
+      withPayload[LegacyRelationshipRecord](record =>
+        legacyRelationshipRecordsService
+          .store(record, autoFill, session.planetId)
+          .map(recordId =>
+            Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))).withHeaders(
+              HeaderNames.LOCATION -> record.nino
+                .map(nino => routes.DesIfStubController.getLegacyRelationshipsByNino(nino).url)
+                .orElse(record.utr.map(utr => routes.DesIfStubController.getLegacyRelationshipsByUtr(utr).url))
+                .getOrElse("")
             )
-        )
-      }(SessionRecordNotFound)
+          )
+      )
+    }(SessionRecordNotFound)
   }
 
-  def generateLegacyRelationship(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] = Action.async { request =>
-    given Request[AnyContent] = request
+  def generateLegacyRelationship(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] = Action.async {
+    request =>
+      given Request[AnyContent] = request
       withCurrentSession { session =>
         val seed = seedOpt.getOrElse(session.sessionId)
         val record = LegacyRelationshipRecord.seed(seed)
@@ -166,22 +167,23 @@ class RecordsController @Inject() (
 
   def storeVatCustomerInformation(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) { request =>
     given Request[JsValue] = request
-      withCurrentSession { session =>
-        withPayload[VatCustomerInformationRecord](record =>
-          recordsService
-            .store(record, autoFill, session.planetId)
-            .map(recordId =>
-              Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url)))
-                .withHeaders(
-                  HeaderNames.LOCATION -> routes.DesIfStubController.getVatCustomerInformation(record.vrn).url
-                )
-            )
-        )
-      }(SessionRecordNotFound)
+    withCurrentSession { session =>
+      withPayload[VatCustomerInformationRecord](record =>
+        recordsService
+          .store(record, autoFill, session.planetId)
+          .map(recordId =>
+            Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url)))
+              .withHeaders(
+                HeaderNames.LOCATION -> routes.DesIfStubController.getVatCustomerInformation(record.vrn).url
+              )
+          )
+      )
+    }(SessionRecordNotFound)
   }
 
-  def generateVatCustomerInformation(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] = Action.async { request =>
-    given Request[AnyContent] = request
+  def generateVatCustomerInformation(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] = Action.async {
+    request =>
+      given Request[AnyContent] = request
       withCurrentSession { session =>
         val seed = seedOpt.getOrElse(session.sessionId)
         val record = VatCustomerInformationRecord.seed(seed)
@@ -192,17 +194,18 @@ class RecordsController @Inject() (
 
   def storeBusinessPartnerRecord(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) { request =>
     given Request[JsValue] = request
-      withCurrentSession { session =>
-        withPayload[BusinessPartnerRecord](record =>
-          recordsService
-            .store(record, autoFill, session.planetId)
-            .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))))
-        )
-      }(SessionRecordNotFound)
+    withCurrentSession { session =>
+      withPayload[BusinessPartnerRecord](record =>
+        recordsService
+          .store(record, autoFill, session.planetId)
+          .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))))
+      )
+    }(SessionRecordNotFound)
   }
 
-  def generateBusinessPartnerRecord(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] = Action.async { request =>
-    given Request[AnyContent] = request
+  def generateBusinessPartnerRecord(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] = Action.async {
+    request =>
+      given Request[AnyContent] = request
       withCurrentSession { session =>
         val seed = seedOpt.getOrElse(session.sessionId)
         val record = BusinessPartnerRecord.seed(seed)
@@ -233,8 +236,9 @@ class RecordsController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def storePPTSubscriptionDisplayRecord(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) { request =>
-    given Request[JsValue] = request
+  def storePPTSubscriptionDisplayRecord(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) {
+    request =>
+      given Request[JsValue] = request
       withCurrentSession { session =>
         withPayload[PPTSubscriptionDisplayRecord](record =>
           recordsService
@@ -246,13 +250,13 @@ class RecordsController @Inject() (
 
   def storeCbcSubscriptionRecord(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) { request =>
     given Request[JsValue] = request
-      withCurrentSession { session =>
-        withPayload[CbcSubscriptionRecord](record =>
-          recordsService
-            .store(record, autoFill, session.planetId)
-            .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))))
-        )
-      }(SessionRecordNotFound)
+    withCurrentSession { session =>
+      withPayload[CbcSubscriptionRecord](record =>
+        recordsService
+          .store(record, autoFill, session.planetId)
+          .map(recordId => Created(RestfulResponse(Link("self", routes.RecordsController.getRecord(recordId).url))))
+      )
+    }(SessionRecordNotFound)
   }
 
   def storePillar2Record(autoFill: Boolean): Action[JsValue] = Action.async(parse.tolerantJson) { request =>
@@ -268,27 +272,27 @@ class RecordsController @Inject() (
 
   def generateRelationship(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] = Action.async { request =>
     given Request[AnyContent] = request
-      withCurrentSession { session =>
-        val seed = seedOpt.getOrElse(session.sessionId)
-        val record = RelationshipRecord.seed(seed)
-        val result = if minimal then record else RelationshipRecord.sanitize(seed)(record)
-        okF(result, Link("create", routes.RecordsController.storeRelationship(minimal).url))
-      }(SessionRecordNotFound)
+    withCurrentSession { session =>
+      val seed = seedOpt.getOrElse(session.sessionId)
+      val record = RelationshipRecord.seed(seed)
+      val result = if minimal then record else RelationshipRecord.sanitize(seed)(record)
+      okF(result, Link("create", routes.RecordsController.storeRelationship(minimal).url))
+    }(SessionRecordNotFound)
   }
 
   def generateEmployerAuths(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] = Action.async { request =>
     given Request[AnyContent] = request
-      withCurrentSession { session =>
-        val seed = seedOpt.getOrElse(session.sessionId)
-        val record = EmployerAuths.seed(seed)
-        val result = if minimal then record else EmployerAuths.sanitize(seed)(record)
-        okF(result, Link("create", routes.RecordsController.storeEmployerAuths(minimal).url))
-      }(SessionRecordNotFound)
+    withCurrentSession { session =>
+      val seed = seedOpt.getOrElse(session.sessionId)
+      val record = EmployerAuths.seed(seed)
+      val result = if minimal then record else EmployerAuths.sanitize(seed)(record)
+      okF(result, Link("create", routes.RecordsController.storeEmployerAuths(minimal).url))
+    }(SessionRecordNotFound)
   }
 
   def generatePPTSubscriptionDisplayRecord(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] =
     Action.async { request =>
-    given Request[AnyContent] = request
+      given Request[AnyContent] = request
       withCurrentSession { session =>
         val seed = seedOpt.getOrElse(session.sessionId)
         val record = PPTSubscriptionDisplayRecord.seed(seed)
@@ -299,7 +303,7 @@ class RecordsController @Inject() (
 
   def generateCbcSubscriptionRecord(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] =
     Action.async { request =>
-    given Request[AnyContent] = request
+      given Request[AnyContent] = request
       withCurrentSession { session =>
         val seed = seedOpt.getOrElse(session.sessionId)
         val record = CbcSubscriptionRecord.seed(seed)
@@ -310,7 +314,7 @@ class RecordsController @Inject() (
 
   def generatePillar2Record(seedOpt: Option[String], minimal: Boolean): Action[AnyContent] =
     Action.async { request =>
-    given Request[AnyContent] = request
+      given Request[AnyContent] = request
       withCurrentSession { session =>
         val seed = seedOpt.getOrElse(session.sessionId)
         val record = Pillar2Record.seed(seed)
