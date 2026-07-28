@@ -190,10 +190,10 @@ object Generator extends Names with Temporal with Companies with Addresses {
 
   lazy val emailGen: Gen[String] = for {
     domain       <- Gen.oneOf(".com", ".co.uk", ".uk", ".eu", ".me")
-    size         <- Gen.chooseNum[Int](10, 32 - domain.length)
+    host         <- Gen.oneOf("mail", "post", "email", "inbox", "domain")
+    size         <- Gen.chooseNum[Int](10, 32 - (domain.length + host.length))
     usernameSize <- Gen.chooseNum[Int](1, size - 3)
     username     <- stringMaxN(usernameSize)
-    host         <- stringMaxN(size - usernameSize - 1)
   } yield username + "@" + host + domain
   def email(seed: String): String = emailGen.seeded(seed).get
 
