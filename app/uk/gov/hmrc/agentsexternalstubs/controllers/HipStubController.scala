@@ -169,7 +169,6 @@ class HipStubController @Inject() (
         }
     }
 
-  private def terminatedTest(record: BusinessPartnerRecord): Boolean = false
   private def convertToGetAgentSubscriptionResponse(record: BusinessPartnerRecord): HipAgentSubscriptionResponse = {
     val (l1, l2, l3, l4, pc, cc) = record.addressDetails match {
       case UkAddress(l1, l2, l3, l4, pc, cc)      => (l1, l2, l3, l4, Some(pc), cc)

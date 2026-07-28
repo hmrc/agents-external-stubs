@@ -130,7 +130,7 @@ trait ExternalCurrentSession extends DesHttpHelpers {
     // avoids the global lookup landing on some unrelated caller's planet by coincidence
     // when the default planet would have resolved things correctly anyway.
     def fallBackToDefaultPlanet(): Future[Result] = {
-      val planetId = CurrentPlanetId(None, request)
+      val planetId = CurrentPlanetId(None)
       authenticationService.findByPlanetId(planetId).flatMap {
         case Some(session) =>
           body(session)
