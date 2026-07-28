@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
 
 sealed trait PersonalDetailsValidation {
   val id: String
@@ -38,16 +38,16 @@ object PersonalDetailsValidation {
 
 object PersonalDetailsValidationFormat {
 
-  implicit val personalDetailsValidationFormats: Format[PersonalDetailsValidation] = {
+  given personalDetailsValidationFormats: Format[PersonalDetailsValidation] = {
 
-    implicit class JsonOps(json: JsValue) {
+    extension (json: JsValue) {
 
-      lazy val toSuccessfulPersonalDetailsValidation: JsResult[SuccessfulPersonalDetailsValidation] = (
+      def toSuccessfulPersonalDetailsValidation: JsResult[SuccessfulPersonalDetailsValidation] = (
         (json \ "id").validate[String] and
           (json \ "personalDetails").validate[PersonalDetailsWithNino]
       )((id, pd) => SuccessfulPersonalDetailsValidation(id, pd))
 
-      lazy val toFailedPersonalDetailsValidation: JsResult[FailedPersonalDetailsValidation] =
+      def toFailedPersonalDetailsValidation: JsResult[FailedPersonalDetailsValidation] =
         (json \ "id")
           .validate[String]
           .map(id => FailedPersonalDetailsValidation(id))

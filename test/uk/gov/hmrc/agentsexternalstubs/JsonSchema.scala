@@ -17,12 +17,11 @@
 package uk.gov.hmrc.agentsexternalstubs
 import play.api.libs.json.{JsArray, JsLookup, JsObject}
 
-/** You might want to add some custom properties to the json schema in order to enable
-  * custom record features, i.e. index keys and custom generators.
+/** You might want to add some custom properties to the json schema in order to enable custom record features, i.e.
+  * index keys and custom generators.
   *
-  * "x_uniqueKey": true - this will mark string property as a unique key
-  * "x_key": true - this will mark string property as a lookup key
-  * "x_gen": "xxx" - this will set a custom generator reference for the property
+  * "x_uniqueKey": true - this will mark string property as a unique key "x_key": true - this will mark string property
+  * as a lookup key "x_gen": "xxx" - this will set a custom generator reference for the property
   */
 object JsonSchema {
 
@@ -43,7 +42,7 @@ object JsonSchema {
     val isBoolean: Boolean = false
 
     final def typeName: String = {
-      val n = if (isRef) pathToName(path) else name
+      val n = if (isRef) pathToName else name
       if (n.isEmpty) name else n.substring(0, 1).toUpperCase + n.substring(1)
     }
 
@@ -57,7 +56,7 @@ object JsonSchema {
 
     final def pathLastPart: String = path.split("/").last
 
-    private final def pathToName(path: String): String = {
+    private final def pathToName: String = {
       val name = pathLastPart
       if (name.endsWith("Type")) name.dropRight(4) else name
     }
@@ -104,7 +103,7 @@ object JsonSchema {
     isMandatory: Boolean
   ) extends Definition {
     override def shallBeValidated: Boolean =
-      pattern.isDefined || enum.isDefined || minLength.isDefined || maxLength.isDefined
+      pattern.isDefined || `enum`.isDefined || minLength.isDefined || maxLength.isDefined
   }
 
   case class NumberDefinition(
@@ -159,7 +158,7 @@ object JsonSchema {
     val desc = description.orElse((property \ "description").asOpt[String])
 
     def read(valueType: String, isMandatory: Boolean): Definition = valueType match {
-      case "object"  => readObject(name, path, property, schema, isRef, desc, isMandatory)
+      case "object"  => readObject(name, path, property, isRef, desc, isMandatory)
       case "string"  => readString(name, path, property, isRef, desc, isMandatory)
       case "number"  => readNumber(name, path, property, isRef, desc, isMandatory)
       case "boolean" => BooleanDefinition(name, path, isRef, desc, isMandatory = true)
@@ -202,11 +201,9 @@ object JsonSchema {
                   name,
                   path,
                   property,
-                  schema,
                   isRef,
                   description,
                   required.contains(name),
-                  required,
                   Seq.empty
                 )
             }
@@ -224,7 +221,7 @@ object JsonSchema {
   ): Definition = {
 
     val pattern = (property \ "pattern").asOpt[String]
-    val `enum` = (property \ "enum").asOpt[Seq[String]]
+    val enumValues = (property \ "enum").asOpt[Seq[String]]
     val minLength = (property \ "minLength").asOpt[Int]
     val maxLength = (property \ "maxLength").asOpt[Int]
     val isUniqueKey = (property \ "x_uniqueKey").asOpt[Boolean].getOrElse(false)
@@ -237,7 +234,7 @@ object JsonSchema {
       isRef,
       description = description,
       pattern = pattern,
-      enum = enum,
+      `enum` = enumValues,
       minLength = minLength,
       maxLength = maxLength,
       isUniqueKey = isUniqueKey,
@@ -278,7 +275,6 @@ object JsonSchema {
     name: String,
     path: String,
     property: JsObject,
-    schema: JsObject,
     isRef: Boolean,
     description: Option[String],
     isMandatory: Boolean
@@ -298,7 +294,7 @@ object JsonSchema {
           alternatives = alternatives
         )
       case None =>
-        readOneOf(name, path, property, schema, isRef, description, isMandatory, required, alternatives)
+        readOneOf(name, path, property, isRef, description, isMandatory, alternatives)
     }
   }
 
@@ -322,11 +318,9 @@ object JsonSchema {
     name: String,
     path: String,
     property: JsObject,
-    schema: JsObject,
     isRef: Boolean,
     description: Option[String],
     isMandatory: Boolean,
-    required: Seq[String],
     alternatives: Seq[Set[String]]
   ): Definition = (property \ "oneOf").asOpt[JsArray] match {
     case Some(_) =>

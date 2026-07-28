@@ -16,19 +16,19 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
-import play.api.http.Status._
+import play.api.http.Status.*
 import play.api.libs.json.{JsObject, JsValue}
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.AgencyDetails
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, PPOB}
-import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.*
 import uk.gov.hmrc.agentsexternalstubs.models.identifiers.SuspensionDetails
 import uk.gov.hmrc.agentsexternalstubs.models.identifiers.Arn
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.services.{RecordsService, RelationshipRecordsService}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
-import uk.gov.hmrc.agentsexternalstubs.support._
+import uk.gov.hmrc.agentsexternalstubs.support.*
 
 import java.time.{LocalDate, LocalDateTime}
 
@@ -45,7 +45,7 @@ class HipStubControllerISpec
 
     "results are found" should {
       "return 200" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val user = UserGenerator
           .agent("foo")
           .copy(assignedPrincipalEnrolments =
@@ -81,6 +81,7 @@ class HipStubControllerISpec
           )
         )
 
+        val nameParts = UserGenerator.nameForIndividual("none/012345678901234").split(" ")
         val result = HipStub.displayAgentRelationship(
           regime = Some("ITSA"),
           isAnAgent = Some(true),
@@ -89,16 +90,18 @@ class HipStubControllerISpec
         )
 
         result should haveStatus(OK)
-        result.json
-          .toString() should include(
-          """relationshipDisplayResponse":[{"refNumber":"012345678901234","arn":"ZARN1234567","individual":{"firstName":"Caden","lastName":"Foran"},"dateFrom":"2012-01-01","dateTo":"9999-12-31","contractAccountCategory":"33"}]}"""
+        result.json.toString() should include(
+          s"""relationshipDisplayResponse":[{"refNumber":"012345678901234","arn":"ZARN1234567","individual":{"firstName":"${nameParts.init
+              .mkString(
+                " "
+              )}","lastName":"${nameParts.last}"},"dateFrom":"2012-01-01","dateTo":"9999-12-31","contractAccountCategory":"33"}]}"""
         )
       }
     }
 
     "no relationship records are found for an agent" should {
       "return a 422 error" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val user = UserGenerator
           .agent("foo")
           .copy(assignedPrincipalEnrolments =
@@ -123,7 +126,7 @@ class HipStubControllerISpec
 
     "no relationship records are found for a non-agent" should {
       "return a 422 error" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val user = UserGenerator
           .agent("foo")
           .copy(assignedPrincipalEnrolments =
@@ -148,7 +151,7 @@ class HipStubControllerISpec
 
     "no business partner record is found" should {
       "return a 422 error" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = HipStub.displayAgentRelationship()
 
@@ -159,7 +162,7 @@ class HipStubControllerISpec
 
     "there is an issue with the headers" should {
       "return a 422 error" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = HipStub.displayAgentRelationship(transmittingSystemHeader = None)
 
@@ -173,7 +176,7 @@ class HipStubControllerISpec
 
     "there is an issue with the query parameters" should {
       "return a 422 error" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = HipStub.displayAgentRelationship(regime = None)
 
@@ -187,7 +190,7 @@ class HipStubControllerISpec
 
     "the agent is suspended" should {
       "return Agent Suspended error" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val user = UserGenerator
           .agent("foo")
           .copy(assignedPrincipalEnrolments =
@@ -240,7 +243,7 @@ class HipStubControllerISpec
   "HipStubController.updateAgentRelationship" when {
     "all request parameters are valid" should {
       "return Created" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val user = UserGenerator
           .agent("foo")
           .copy(assignedPrincipalEnrolments =
@@ -260,7 +263,7 @@ class HipStubControllerISpec
     }
     "deauthorise with matching authProfile" should {
       "return Created and end the relationship" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val user = UserGenerator
           .agent("foo")
           .copy(assignedPrincipalEnrolments =
@@ -298,7 +301,7 @@ class HipStubControllerISpec
     }
     "deauthorise with mismatched authProfile" should {
       "return 014 and leave the relationship active" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val user = UserGenerator
           .agent("foo")
           .copy(assignedPrincipalEnrolments =
@@ -338,7 +341,7 @@ class HipStubControllerISpec
     }
     "there is an issue with the headers" should {
       "return 422 Unprocessable Entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = HipStub.updateAgentRelationship(transmittingSystemHeader = None)
 
@@ -352,7 +355,7 @@ class HipStubControllerISpec
 
     "body contains invalid data" should {
       "return 422 Unprocessable Entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = HipStub.updateAgentRelationship(idType = Some("CTUTR"))
 
@@ -366,7 +369,7 @@ class HipStubControllerISpec
 
     "no business partner record found" should {
       "return 404 Not Found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = HipStub.updateAgentRelationship()
 
@@ -379,7 +382,7 @@ class HipStubControllerISpec
 
     "agent is suspended" should {
       "return 422 Unprocessable Entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val user = UserGenerator
           .agent("foo")
           .copy(assignedPrincipalEnrolments =
@@ -400,7 +403,7 @@ class HipStubControllerISpec
 
     "vat customer is insolvent" should {
       "return 422 Unprocessable Entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val user = UserGenerator
           .agent("foo")
           .copy(assignedPrincipalEnrolments =
@@ -436,7 +439,7 @@ class HipStubControllerISpec
 
     "deauthorise and no relationship exists" should {
       "return 422 Unprocessable Entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val user = UserGenerator
           .agent("foo")
           .copy(assignedPrincipalEnrolments =
@@ -456,7 +459,7 @@ class HipStubControllerISpec
   "HipStubController.itsaTaxPayerBusinessDetails" when {
     "results are found" should {
       "return 200" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val user = UserGenerator
           .agent("foo")
           .copy(assignedPrincipalEnrolments =
@@ -487,7 +490,7 @@ class HipStubControllerISpec
 
     "results are found for a suffixless nino request" should {
       "return 200" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val user = UserGenerator
           .agent("foo")
           .copy(assignedPrincipalEnrolments =
@@ -518,7 +521,7 @@ class HipStubControllerISpec
 
     "results are found for a suffixless nino in database" should {
       "return 200" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val user = UserGenerator
           .agent("foo")
           .copy(assignedPrincipalEnrolments =
@@ -549,7 +552,7 @@ class HipStubControllerISpec
 
     "results are not found due to suffix mismatch" should {
       "return 422" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val user = UserGenerator
           .agent("foo")
           .copy(assignedPrincipalEnrolments =
@@ -580,7 +583,7 @@ class HipStubControllerISpec
 
     "no ITSA taxpayer record is found" should {
       "return a 422 error" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val user = UserGenerator
           .agent("foo")
           .copy(assignedPrincipalEnrolments =
@@ -600,7 +603,7 @@ class HipStubControllerISpec
 
     "there is an issue with the headers" should {
       "return a 422 error" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = HipStub.itsaTaxPayerBusinessDetails(transmittingSystemHeader = None)
 
@@ -614,7 +617,7 @@ class HipStubControllerISpec
 
     "there is an issue with the query parameters" should {
       "return a 422 error" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = HipStub.itsaTaxPayerBusinessDetails(nino = None, mtdReference = None)
 
@@ -640,7 +643,7 @@ class HipStubControllerISpec
   "HipStubController.getAgentSubscription" when {
     "all request parameters are valid" should {
       "return the agent subscription response with status 200" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val (
           updateDetailsStatus,
@@ -760,7 +763,7 @@ class HipStubControllerISpec
       }
 
       "return the agent subscription response with status 200 with list of regimes when agent is suspended" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val (
           updateDetailsStatus,
@@ -849,7 +852,7 @@ class HipStubControllerISpec
 
     "base headers are invalid" should {
       "return 422 Unprocessable Entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val (
           updateDetailsStatus,
@@ -929,7 +932,7 @@ class HipStubControllerISpec
 
     "arn is invalid" should {
       "return 422 Unprocessable Entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result =
           HipStub.getSubscription(
@@ -943,7 +946,7 @@ class HipStubControllerISpec
 
     "business partner record does not exist" should {
       "return 422 Subscription Data Not Found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val safeId = "XA0000123456789"
 
@@ -961,7 +964,7 @@ class HipStubControllerISpec
 
     "if it's not an ASA agent" should {
       "return 422 unprocessable entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val (
           updateDetailsStatus,
@@ -1063,7 +1066,7 @@ class HipStubControllerISpec
 
     "all request parameters are valid" should {
       "return Created and update the business partner record" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val safeId = "XA0000123456789"
         val existingRecord = BusinessPartnerRecord(
@@ -1118,7 +1121,7 @@ class HipStubControllerISpec
           await(recordsService.getRecordMaybeExt[BusinessPartnerRecord, SafeId](SafeId(safeId), session.planetId))
         updated shouldBe defined
 
-        val record = updated.getOrElse(fail)
+        val record = updated.getOrElse(fail())
         record.isAnAgent shouldBe true
         record.isAnASAgent shouldBe true
 
@@ -1132,7 +1135,7 @@ class HipStubControllerISpec
             fail(s"Expected UkAddress but got: ${other.getClass.getSimpleName}")
         }
 
-        val agentDetails = record.agencyDetails.getOrElse(fail)
+        val agentDetails = record.agencyDetails.getOrElse(fail())
 
         agentDetails.agencyAddress match {
           case Some(a: BusinessPartnerRecord.UkAddress) =>
@@ -1168,7 +1171,7 @@ class HipStubControllerISpec
 
     "base headers are invalid" should {
       "return 422 Unprocessable Entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val safeId = "XA0000123456789"
         val existingRecord = BusinessPartnerRecord(
@@ -1206,7 +1209,7 @@ class HipStubControllerISpec
 
     "safeId is invalid" should {
       "return 422 Unprocessable Entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result =
           HipStub.createAgentSubscription(
@@ -1220,7 +1223,7 @@ class HipStubControllerISpec
 
     "body contains invalid data" should {
       "return 422 Unprocessable Entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val safeId = "XA0000123456789"
         val existingRecord = BusinessPartnerRecord(
@@ -1258,7 +1261,7 @@ class HipStubControllerISpec
 
     "business partner record does not exist" should {
       "return 422 SAFE ID Not found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val safeId = "XA0000123456789"
 
@@ -1274,7 +1277,7 @@ class HipStubControllerISpec
 
     "business partner is already subscribed" should {
       "return 422 with already subscribed message" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val safeId = "XA0000123456789"
         val existingRecord = BusinessPartnerRecord(
@@ -1400,7 +1403,7 @@ class HipStubControllerISpec
     )
     "all request parameters are valid" should {
       "return OK and amend the business partner record" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val arn = "ZARN0001391"
 
@@ -1444,7 +1447,7 @@ class HipStubControllerISpec
           )
 
         updated shouldBe defined
-        val record = updated.getOrElse(fail)
+        val record = updated.getOrElse(fail())
 
         record.agentReferenceNumber shouldBe Some(arn)
 
@@ -1458,7 +1461,7 @@ class HipStubControllerISpec
             fail(s"Expected UkAddress but got: ${other.getClass.getSimpleName}")
         }
 
-        val agentDetails = record.agencyDetails.getOrElse(fail)
+        val agentDetails = record.agencyDetails.getOrElse(fail())
 
         agentDetails.agencyName shouldBe Some("Alex Rider")
         agentDetails.agencyEmail shouldBe Some("test@example.com")
@@ -1483,7 +1486,7 @@ class HipStubControllerISpec
 
     "all request fields are empty" should {
       "return OK and leave the record mostly unchanged" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val arn = "ZARN0001392"
 
@@ -1553,8 +1556,8 @@ class HipStubControllerISpec
         val updated = await(recordsService.getRecordMaybeExt[BusinessPartnerRecord, Arn](Arn(arn), session.planetId))
         updated shouldBe defined
 
-        val record = updated.getOrElse(fail)
-        val agentDetails = record.agencyDetails.getOrElse(fail)
+        val record = updated.getOrElse(fail())
+        val agentDetails = record.agencyDetails.getOrElse(fail())
 
         agentDetails.agencyName shouldBe Some("Old Name")
         agentDetails.agencyEmail shouldBe None
@@ -1565,7 +1568,7 @@ class HipStubControllerISpec
 
     "partial payload" should {
       "update only the provided fields and leave others unchanged" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val arn = "ZARN0001393"
 
         val existingRecord = businessPartnerRecord(arn)
@@ -1580,7 +1583,7 @@ class HipStubControllerISpec
         result should haveStatus(OK)
 
         val updated = await(recordsService.getRecordMaybeExt[BusinessPartnerRecord, Arn](Arn(arn), session.planetId))
-        val agentDetails = updated.get.agencyDetails.getOrElse(fail)
+        val agentDetails = updated.get.agencyDetails.getOrElse(fail())
 
         agentDetails.agencyName shouldBe Some("James Bond")
         agentDetails.agencyEmail shouldBe Some("jbond@mi6.co.uk")
@@ -1591,7 +1594,7 @@ class HipStubControllerISpec
 
     "address only payload" should {
       "update only the address fields" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val arn = "ZARN0001394"
 
         val existingRecord = businessPartnerRecord(arn)
@@ -1620,7 +1623,7 @@ class HipStubControllerISpec
 
     "status only payload" should {
       "update only the status fields" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val arn = "ZARN0001395"
 
         val existingRecord = businessPartnerRecord(arn)
@@ -1635,7 +1638,7 @@ class HipStubControllerISpec
         result should haveStatus(OK)
 
         val updated = await(recordsService.getRecordMaybeExt[BusinessPartnerRecord, Arn](Arn(arn), session.planetId))
-        val agentDetails = updated.get.agencyDetails.getOrElse(fail)
+        val agentDetails = updated.get.agencyDetails.getOrElse(fail())
 
         agentDetails.updateDetailsStatus.map(_.status) shouldBe Some(AgencyDetailsStatusValue.Accepted)
         agentDetails.amlSupervisionUpdateStatus.map(_.status) shouldBe Some(AgencyDetailsStatusValue.Rejected)
@@ -1645,7 +1648,7 @@ class HipStubControllerISpec
 
     "payload with invalid enum values" should {
       "return 422 Unprocessable Entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val arn = "ZARN0001396"
 
         val existingRecord = businessPartnerRecord(arn)
@@ -1663,7 +1666,7 @@ class HipStubControllerISpec
 
     "base headers are invalid" should {
       "return 422 Unprocessable Entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result =
           HipStub.amendAgentSubscription(
@@ -1678,7 +1681,7 @@ class HipStubControllerISpec
 
     "arn is invalid" should {
       "return 422 Unprocessable Entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result =
           HipStub.amendAgentSubscription(
@@ -1692,7 +1695,7 @@ class HipStubControllerISpec
 
     "body contains invalid data" should {
       "return 422 Unprocessable Entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result =
           HipStub.amendAgentSubscription(
@@ -1707,7 +1710,7 @@ class HipStubControllerISpec
 
     "subscription does not exist" should {
       "return 422 Subscription Data Not Found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result =
           HipStub.amendAgentSubscription(
@@ -1750,7 +1753,7 @@ class HipStubControllerISpec
   "HipStubController.ucrIndividualIdentifierSearch" should {
 
     "return 200 with identifiers extracted from user enrolments when searching by NINO" in {
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      given session: AuthenticatedSession = SignIn.signInAndGetSession()
       val nino = "AB123456C"
       val user = UserGenerator
         .individual(nino = nino)
@@ -1773,7 +1776,7 @@ class HipStubControllerISpec
     }
 
     "return 200 with only NINO and UTR when user has no VAT or PAYE enrolments" in {
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      given session: AuthenticatedSession = SignIn.signInAndGetSession()
       val nino = "AB654321D"
       val user = UserGenerator.individual(nino = nino).copy(utr = Some("9876543210"))
       await(userService.createUser(user, session.planetId, Some(AG.Individual)))
@@ -1789,7 +1792,7 @@ class HipStubControllerISpec
     }
 
     "return 200 with no-match response when user is not found" in {
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
       val result = HipStub.ucrIndividualIdentifierSearch(identifierType = "NINO", identifierValue = "AB999999D")
 
@@ -1801,7 +1804,7 @@ class HipStubControllerISpec
     }
 
     "return 422 when HIP base headers are missing" in {
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
       val result = HipStub.ucrIndividualIdentifierSearch(
         identifierType = "NINO",
@@ -1813,7 +1816,7 @@ class HipStubControllerISpec
     }
 
     "return 400 when system-id header is missing" in {
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
       val result = HipStub.ucrIndividualIdentifierSearch(
         identifierType = "NINO",
@@ -1828,7 +1831,7 @@ class HipStubControllerISpec
   "HipStubController.ucrOrganisationIdentifierSearch" should {
 
     "return 200 with UTR, VRN and EMPREF identifiers when searching by CT UTR" in {
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      given session: AuthenticatedSession = SignIn.signInAndGetSession()
       val ctUtr = "1234567890"
       val user = UserGenerator
         .organisation()
@@ -1852,7 +1855,7 @@ class HipStubControllerISpec
     }
 
     "return 200 with only UTR when organisation has no VAT or PAYE enrolments" in {
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      given session: AuthenticatedSession = SignIn.signInAndGetSession()
       val ctUtr = "5554443332"
       val user = UserGenerator
         .organisation()
@@ -1869,7 +1872,7 @@ class HipStubControllerISpec
     }
 
     "return 200 with no-match response when organisation is not found" in {
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
       val result = HipStub.ucrOrganisationIdentifierSearch(identifierValue = "0000000001")
 
@@ -1881,7 +1884,7 @@ class HipStubControllerISpec
     }
 
     "return 422 when HIP base headers are missing" in {
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
       val result = HipStub.ucrOrganisationIdentifierSearch(
         identifierValue = "1234567890",
@@ -1892,7 +1895,7 @@ class HipStubControllerISpec
     }
 
     "return 400 when system-id header is missing" in {
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+      given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
       val result = HipStub.ucrOrganisationIdentifierSearch(
         identifierValue = "1234567890",

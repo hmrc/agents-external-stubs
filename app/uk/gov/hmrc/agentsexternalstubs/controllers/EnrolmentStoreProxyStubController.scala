@@ -18,13 +18,13 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import cats.data.Validated
 import play.api.Logger
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Request, Result}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.SetKnownFactsRequest.Legacy
-import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController._
+import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.*
 import uk.gov.hmrc.agentsexternalstubs.models.Validator.{Validator, check, checkProperty}
-import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import uk.gov.hmrc.agentsexternalstubs.models.*
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
 import uk.gov.hmrc.agentsexternalstubs.repository.{DuplicateUserException, KnownFactsRepository}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, EnrolmentAlreadyExists, GroupsService, RecordsService, UsersService}
 import uk.gov.hmrc.auth.core.UnsupportedCredentialRole
@@ -33,6 +33,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import java.time.{Instant, LocalDate, ZoneId}
 import javax.inject.{Inject, Singleton}
+import scala.annotation.unused
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
@@ -44,32 +45,34 @@ class EnrolmentStoreProxyStubController @Inject() (
   groupsService: GroupsService,
   recordsService: RecordsService,
   cc: ControllerComponents
-)(implicit executionContext: ExecutionContext)
+)(using executionContext: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
-  /** No session resolvable (e.g. a machine-to-machine caller with no live session on any planet) - fall back to
-    * finding which planet owns the BusinessPartnerRecord for the ARN embedded in this enrolment key, the same
-    * way HipStubController does for its BPR-keyed endpoints. Only safe because ARNs are minted globally unique
-    * (as of the safeId fix - see .claude/findings/validation-and-records.md). Logs a warning (doesn't fail) if
-    * more than one planet has a matching record - see RecordsRepository.findFirstByKeysAnyPlanet.
+  /** No session resolvable (e.g. a machine-to-machine caller with no live session on any planet) - fall back to finding
+    * which planet owns the BusinessPartnerRecord for the ARN embedded in this enrolment key, the same way
+    * HipStubController does for its BPR-keyed endpoints. Only safe because ARNs are minted globally unique (as of the
+    * safeId fix - see .claude/findings/validation-and-records.md). Logs a warning (doesn't fail) if more than one
+    * planet has a matching record - see RecordsRepository.findFirstByKeysAnyPlanet.
     */
   private def planetIdFromArnGlobally(enrolmentKey: EnrolmentKey): Future[Option[String]] =
     enrolmentKey.identifiers.find(_.key == "AgentReferenceNumber").map(_.value) match {
       case Some(arn) => recordsService.getRecordAnyPlanet[BusinessPartnerRecord, Arn](Arn(arn)).map(_.map(_._1))
-      case None =>
+      case None      =>
         Logger(getClass).warn(
           s"Cannot fall back to a global lookup for enrolmentKey $enrolmentKey - no AgentReferenceNumber identifier"
         )
         Future.successful(None)
     }
 
-  def getUserIds(enrolmentKey: EnrolmentKey, `type`: String): Action[AnyContent] = Action.async { implicit request =>
+  def getUserIds(enrolmentKey: EnrolmentKey, `type`: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       (for {
-        principal <- if (`type` == "all" || `type` == "principal")
-                       usersService.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
-                     else Future.successful(None)
-        delegated <- if (`type` == "all" || `type` == "delegated") {
+        principal <-
+          if `type` == "all" || `type` == "principal" then
+            usersService.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
+          else Future.successful(None)
+        delegated <- if `type` == "all" || `type` == "delegated" then {
                        usersService.findUserIdsByAssignedDelegatedEnrolmentKey(
                          enrolmentKey,
                          session.planetId,
@@ -84,15 +87,18 @@ class EnrolmentStoreProxyStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def getGroupIds(enrolmentKey: EnrolmentKey, `type`: String): Action[AnyContent] = Action.async { implicit request =>
+  def getGroupIds(enrolmentKey: EnrolmentKey, `type`: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       (for {
-        principal <- if (`type` == "all" || `type` == "principal")
-                       groupsService.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
-                     else Future.successful(None)
-        delegated <- if (`type` == "all" || `type` == "delegated")
-                       groupsService.findByDelegatedEnrolmentKey(enrolmentKey, session.planetId)(1000)
-                     else Future.successful(Seq.empty)
+        principal <-
+          if `type` == "all" || `type` == "principal" then
+            groupsService.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
+          else Future.successful(None)
+        delegated <-
+          if `type` == "all" || `type` == "delegated" then
+            groupsService.findByDelegatedEnrolmentKey(enrolmentKey, session.planetId)(1000)
+          else Future.successful(Seq.empty)
       } yield GetGroupIdsResponse.from(principal, delegated)).map {
         case GetGroupIdsResponse(None, None) => NoContent
         case response                        => Ok(RestfulResponse(response))
@@ -101,17 +107,17 @@ class EnrolmentStoreProxyStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def setKnownFacts(enrolmentKey: EnrolmentKey): Action[JsValue] = Action.async(parse.tolerantJson) {
-    implicit request =>
-      withCurrentSession(session => handleSetKnownFacts(enrolmentKey, session.planetId)) {
-        planetIdFromArnGlobally(enrolmentKey).flatMap {
-          case Some(planetId) => handleSetKnownFacts(enrolmentKey, planetId)
-          case None           => SessionRecordNotFound
-        }
+  def setKnownFacts(enrolmentKey: EnrolmentKey): Action[JsValue] = Action.async(parse.tolerantJson) { request =>
+    given Request[JsValue] = request
+    withCurrentSession(session => handleSetKnownFacts(enrolmentKey, session.planetId)) {
+      planetIdFromArnGlobally(enrolmentKey).flatMap {
+        case Some(planetId) => handleSetKnownFacts(enrolmentKey, planetId)
+        case None           => SessionRecordNotFound
       }
+    }
   }
 
-  private def handleSetKnownFacts(enrolmentKey: EnrolmentKey, planetId: String)(implicit
+  private def handleSetKnownFacts(enrolmentKey: EnrolmentKey, planetId: String)(using
     request: Request[JsValue]
   ): Future[Result] =
     withPayload[SetKnownFactsRequest] { payload =>
@@ -120,7 +126,8 @@ class EnrolmentStoreProxyStubController @Inject() (
         .map(_ => NoContent)
     }
 
-  def removeKnownFacts(enrolmentKey: EnrolmentKey): Action[AnyContent] = Action.async { implicit request =>
+  def removeKnownFacts(enrolmentKey: EnrolmentKey): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       knownFactsRepository
         .delete(enrolmentKey, session.planetId)
@@ -131,7 +138,8 @@ class EnrolmentStoreProxyStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def assignUser(userId: String, enrolmentKey: EnrolmentKey): Action[AnyContent] = Action.async { implicit request =>
+  def assignUser(userId: String, enrolmentKey: EnrolmentKey): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       usersService
         .assignEnrolmentToUser(userId, enrolmentKey, session.planetId)
@@ -147,7 +155,8 @@ class EnrolmentStoreProxyStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def deassignUser(userId: String, enrolmentKey: EnrolmentKey): Action[AnyContent] = Action.async { implicit request =>
+  def deassignUser(userId: String, enrolmentKey: EnrolmentKey): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       usersService
         .deassignEnrolmentFromUser(userId, enrolmentKey, session.planetId)
@@ -167,7 +176,7 @@ class EnrolmentStoreProxyStubController @Inject() (
   ): Action[AnyContent] = Action.async { implicit request =>
     withCurrentSession { session =>
       groupsService.findByGroupId(groupId, session.planetId).map {
-        case None => NotFound
+        case None        => NotFound
         case Some(group) =>
           val matched =
             group.principalEnrolments.find { e =>
@@ -194,7 +203,8 @@ class EnrolmentStoreProxyStubController @Inject() (
     groupId: String,
     enrolmentKey: EnrolmentKey,
     `legacy-agentCode`: Option[String]
-  ): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+  ): Action[JsValue] = Action.async(parse.tolerantJson) { request =>
+    given Request[JsValue] = request
     withCurrentSession(session =>
       handleAllocateGroupEnrolment(groupId, enrolmentKey, `legacy-agentCode`, session.planetId)
     ) {
@@ -210,7 +220,7 @@ class EnrolmentStoreProxyStubController @Inject() (
     enrolmentKey: EnrolmentKey,
     `legacy-agentCode`: Option[String],
     planetId: String
-  )(implicit request: Request[JsValue]): Future[Result] =
+  )(using request: Request[JsValue]): Future[Result] =
     withPayload[AllocateGroupEnrolmentRequest] { payload =>
       AllocateGroupEnrolmentRequest
         .validate(payload)
@@ -254,7 +264,8 @@ class EnrolmentStoreProxyStubController @Inject() (
     groupId: String,
     enrolmentKey: EnrolmentKey,
     `legacy-agentCode`: Option[String]
-  ): Action[AnyContent] = Action.async { implicit request =>
+  ): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       for {
         // First unassign the enrolment from any users belonging to this group
@@ -295,10 +306,10 @@ class EnrolmentStoreProxyStubController @Inject() (
     `max-records`: Option[Int],
     assignedToUser: Option[User] // if non-empty, only return the enrolments assigned to the given user.
   ): Future[Result] =
-    if (`type` != "principal" && `type` != "delegated") badRequestF("INVALID_ENROLMENT_TYPE")
-    else if (service.isDefined && !Services.servicesByKey.contains(service.get)) badRequestF("INVALID_SERVICE")
-    else if (`start-record`.isDefined && `start-record`.get < 1) badRequestF("INVALID_START_RECORD")
-    else if (`max-records`.isDefined && (`max-records`.get < 10 || `max-records`.get > 1000))
+    if `type` != "principal" && `type` != "delegated" then badRequestF("INVALID_ENROLMENT_TYPE")
+    else if service.isDefined && !Services.servicesByKey.contains(service.get) then badRequestF("INVALID_SERVICE")
+    else if `start-record`.isDefined && `start-record`.get < 1 then badRequestF("INVALID_START_RECORD")
+    else if `max-records`.isDefined && (`max-records`.get < 10 || `max-records`.get > 1000) then
       badRequestF("INVALID_MAX_RECORDS")
     else {
       groupsService.findByGroupId(groupId, planetId).flatMap {
@@ -307,16 +318,16 @@ class EnrolmentStoreProxyStubController @Inject() (
         case Some(group) =>
           val principal = `type` == "principal"
           val startRecord = `start-record`.getOrElse(1)
-          def assignedEnrolments(user: User) = if (principal) user.assignedPrincipalEnrolments
+          def assignedEnrolments(user: User) = if principal then user.assignedPrincipalEnrolments
           else user.assignedDelegatedEnrolments
-          val enrolments = (if (principal) group.principalEnrolments else group.delegatedEnrolments)
+          val enrolments = (if principal then group.principalEnrolments else group.delegatedEnrolments)
             .filter(e => service.forall(_ == e.key))
             .filter(e => assignedToUser.forall(user => e.toEnrolmentKey.exists(assignedEnrolments(user).contains(_))))
             .slice(startRecord - 1, startRecord - 1 + `max-records`.getOrElse(1000))
 
           val response = GetUserEnrolmentsResponse.from(startRecord, enrolments)
           Future.successful {
-            if (response.totalRecords == 0) NoContent
+            if response.totalRecords == 0 then NoContent
             else Ok(Json.toJson(response))
           }
       }
@@ -328,12 +339,13 @@ class EnrolmentStoreProxyStubController @Inject() (
     service: Option[String],
     `start-record`: Option[Int],
     `max-records`: Option[Int]
-  ): Action[AnyContent] = Action.async { implicit request =>
+  ): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
-      if (`type` != "principal" && `type` != "delegated") badRequestF("INVALID_ENROLMENT_TYPE")
-      else if (service.isDefined && !Services.servicesByKey.contains(service.get)) badRequestF("INVALID_SERVICE")
-      else if (`start-record`.isDefined && `start-record`.get < 1) badRequestF("INVALID_START_RECORD")
-      else if (`max-records`.isDefined && (`max-records`.get < 10 || `max-records`.get > 1000))
+      if `type` != "principal" && `type` != "delegated" then badRequestF("INVALID_ENROLMENT_TYPE")
+      else if service.isDefined && !Services.servicesByKey.contains(service.get) then badRequestF("INVALID_SERVICE")
+      else if `start-record`.isDefined && `start-record`.get < 1 then badRequestF("INVALID_START_RECORD")
+      else if `max-records`.isDefined && (`max-records`.get < 10 || `max-records`.get > 1000) then
         badRequestF("INVALID_MAX_RECORDS")
       else {
         usersService.findByUserId(userId, session.planetId).flatMap {
@@ -356,21 +368,22 @@ class EnrolmentStoreProxyStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  //ES3
+  // ES3
   def getGroupEnrolments(
     groupId: String,
     `type`: String,
     service: Option[String],
     `start-record`: Option[Int],
     `max-records`: Option[Int],
-    userId: Option[String],
-    `unassigned-clients`: Option[Boolean]
-  ): Action[AnyContent] = Action.async { implicit request =>
+    @unused _userId: Option[String],
+    @unused _unassignedClients: Option[Boolean]
+  ): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
-      if (`type` != "principal" && `type` != "delegated") badRequestF("INVALID_ENROLMENT_TYPE")
-      else if (service.isDefined && !Services.servicesByKey.contains(service.get)) badRequestF("INVALID_SERVICE")
-      else if (`start-record`.isDefined && `start-record`.get < 1) badRequestF("INVALID_START_RECORD")
-      else if (`max-records`.isDefined && (`max-records`.get < 10 || `max-records`.get > 1000))
+      if `type` != "principal" && `type` != "delegated" then badRequestF("INVALID_ENROLMENT_TYPE")
+      else if service.isDefined && !Services.servicesByKey.contains(service.get) then badRequestF("INVALID_SERVICE")
+      else if `start-record`.isDefined && `start-record`.get < 1 then badRequestF("INVALID_START_RECORD")
+      else if `max-records`.isDefined && (`max-records`.get < 10 || `max-records`.get > 1000) then
         badRequestF("INVALID_MAX_RECORDS")
       else {
         doGetGroupEnrolments(
@@ -386,7 +399,8 @@ class EnrolmentStoreProxyStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def getDelegatedEnrolments(groupId: String): Action[AnyContent] = Action.async { implicit request =>
+  def getDelegatedEnrolments(groupId: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       for {
         maybeGroup <- groupsService.findByGroupId(groupId, session.planetId)
@@ -404,12 +418,11 @@ class EnrolmentStoreProxyStubController @Inject() (
             .map(groupedByEnrolment => groupedByEnrolment._1 -> groupedByEnrolment._2.map(_._2))
         val enrolmentsToAssignedUsersMergedWithDelegatedEnrolments: Map[Enrolment, Seq[String]] =
           setOfDelegatedEnrolments.foldLeft(mapOfEnrolmentsToAssignedUsers) { (accumulatedMap, delegatedEnrolment) =>
-            if (
-              accumulatedMap.keySet.exists(assignedEnrolment =>
+            if accumulatedMap.keySet.exists(assignedEnrolment =>
                 assignedEnrolment.key == delegatedEnrolment.key &&
                   assignedEnrolment.identifiers == delegatedEnrolment.identifiers
               )
-            ) {
+            then {
               accumulatedMap
             } else {
               accumulatedMap + (delegatedEnrolment -> Seq("0"))
@@ -421,7 +434,7 @@ class EnrolmentStoreProxyStubController @Inject() (
             AssignedClient(
               enrolmentToUserIds._1.toEnrolmentKey.get.toString,
               None,
-              if (enrolmentToUserIds._2.size == 1) enrolmentToUserIds._2.head
+              if enrolmentToUserIds._2.size == 1 then enrolmentToUserIds._2.head
               else enrolmentToUserIds._2.size.toString
             )
           )
@@ -432,7 +445,8 @@ class EnrolmentStoreProxyStubController @Inject() (
   }
 
   def setEnrolmentFriendlyName(groupId: String, enrolmentKey: EnrolmentKey): Action[JsValue] =
-    Action.async(parse.tolerantJson) { implicit request =>
+    Action.async(parse.tolerantJson) { request =>
+      given Request[JsValue] = request
       withCurrentSession { session =>
         withPayload[SetFriendlyNameRequest] { payload =>
           SetFriendlyNameRequest
@@ -450,11 +464,12 @@ class EnrolmentStoreProxyStubController @Inject() (
 
   /** ES20 - ES allows for a list of known facts (identifiers and verifiers)
     *
-    *  Assume it is 1 identifier (cbcId) to get multiple identifiers (UTR and cbcId),
-    *  to allow us to construct the full enrolment key for HMRC-CBC-ORG
+    * Assume it is 1 identifier (cbcId) to get multiple identifiers (UTR and cbcId), to allow us to construct the full
+    * enrolment key for HMRC-CBC-ORG
     */
   def queryEnrolmentsFromKnownFacts: Action[JsValue] =
-    Action.async(parse.tolerantJson) { implicit request =>
+    Action.async(parse.tolerantJson) { request =>
+      given Request[JsValue] = request
       withCurrentSession { session =>
         withPayload[EnrolmentsFromKnownFactsRequest] { payload =>
           EnrolmentsFromKnownFactsRequest
@@ -484,17 +499,17 @@ class EnrolmentStoreProxyStubController @Inject() (
 
 object EnrolmentStoreProxyStubController {
 
-  //matches response from ES20
+  // matches response from ES20
   case class IdentifiersAndVerifiers(identifiers: Seq[Identifier], verifiers: Seq[KnownFact])
 
   object IdentifiersAndVerifiers {
-    implicit val formats: OFormat[IdentifiersAndVerifiers] = Json.format[IdentifiersAndVerifiers]
+    given formats: OFormat[IdentifiersAndVerifiers] = Json.format[IdentifiersAndVerifiers]
   }
 
   case class EnrolmentsFromKnownFactsResponse(service: String, enrolments: Seq[IdentifiersAndVerifiers])
 
   object EnrolmentsFromKnownFactsResponse {
-    implicit val formats: OFormat[EnrolmentsFromKnownFactsResponse] = Json.format[EnrolmentsFromKnownFactsResponse]
+    given formats: OFormat[EnrolmentsFromKnownFactsResponse] = Json.format[EnrolmentsFromKnownFactsResponse]
 
     def fromKnownFacts(knownFacts: KnownFacts): EnrolmentsFromKnownFactsResponse =
       EnrolmentsFromKnownFactsResponse(
@@ -512,7 +527,7 @@ object EnrolmentStoreProxyStubController {
   case class EnrolmentsFromKnownFactsRequest(service: String, knownFacts: Seq[Identifier])
 
   object EnrolmentsFromKnownFactsRequest {
-    implicit val formats: OFormat[EnrolmentsFromKnownFactsRequest] = Json.format[EnrolmentsFromKnownFactsRequest]
+    given formats: OFormat[EnrolmentsFromKnownFactsRequest] = Json.format[EnrolmentsFromKnownFactsRequest]
 
     private val serviceValidator: Validator[String] =
       check(Services(_).isDefined, s"INVALID_SERVICE")
@@ -526,28 +541,31 @@ object EnrolmentStoreProxyStubController {
   case class GetUserIdsResponse(principalUserIds: Option[Seq[String]], delegatedUserIds: Option[Seq[String]])
 
   object GetUserIdsResponse {
-    implicit val writes: Writes[GetUserIdsResponse] = Json.writes[GetUserIdsResponse]
+    given writes: Writes[GetUserIdsResponse] = Json.writes[GetUserIdsResponse]
 
     def from(principal: Option[User], delegated: Seq[String]): GetUserIdsResponse =
-      GetUserIdsResponse(principal.map(u => Seq(u.userId)), if (delegated.isEmpty) None else Some(delegated.distinct))
+      GetUserIdsResponse(
+        principal.map(u => Seq(u.userId)),
+        if delegated.isEmpty then None else Some(delegated.distinct)
+      )
   }
 
   case class GetGroupIdsResponse(principalGroupIds: Option[Seq[String]], delegatedGroupIds: Option[Seq[String]])
 
   object GetGroupIdsResponse {
-    implicit val writes: Writes[GetGroupIdsResponse] = Json.writes[GetGroupIdsResponse]
+    given writes: Writes[GetGroupIdsResponse] = Json.writes[GetGroupIdsResponse]
 
     def from(principal: Option[Group], delegated: Seq[Group]): GetGroupIdsResponse =
       GetGroupIdsResponse(
         principal.map(u => Seq(u.groupId)),
-        if (delegated.isEmpty) None else Some(delegated.map(_.groupId).distinct)
+        if delegated.isEmpty then None else Some(delegated.map(_.groupId).distinct)
       )
   }
 
   case class AllocateGroupEnrolmentRequest(userId: String, `type`: String)
 
   object AllocateGroupEnrolmentRequest {
-    implicit val reads: Reads[AllocateGroupEnrolmentRequest] = Json.reads[AllocateGroupEnrolmentRequest]
+    given reads: Reads[AllocateGroupEnrolmentRequest] = Json.reads[AllocateGroupEnrolmentRequest]
 
     val validate: AllocateGroupEnrolmentRequest => Validated[List[String], Unit] =
       Validator[AllocateGroupEnrolmentRequest](
@@ -562,10 +580,10 @@ object EnrolmentStoreProxyStubController {
     case class Legacy(previousVerifiers: Seq[KnownFact])
 
     object Legacy {
-      implicit val formats: Format[Legacy] = Json.format[Legacy]
+      given formats: Format[Legacy] = Json.format[Legacy]
     }
 
-    implicit val formats: Format[SetKnownFactsRequest] = Json.format[SetKnownFactsRequest]
+    given formats: Format[SetKnownFactsRequest] = Json.format[SetKnownFactsRequest]
 
     def generate(enrolmentKey: String, alreadyKnownFacts: String => Option[String]): Option[SetKnownFactsRequest] =
       KnownFacts
@@ -621,17 +639,21 @@ object EnrolmentStoreProxyStubController {
       )
     }
 
-    implicit val writes1: Writes[Enrolment] = Json.writes[Enrolment]
-    implicit val writes2: Writes[GetUserEnrolmentsResponse] = Json.writes[GetUserEnrolmentsResponse]
+    private def randomDateTimeInTheLastFiveYears: Instant = {
+      val start = LocalDate.now().minusYears(5)
+      val end = LocalDate.now()
+      Generator.date(start, end).sample.get.atStartOfDay(ZoneId.systemDefault).toInstant
+    }
+
+    given writes1: Writes[Enrolment] = Json.writes[Enrolment]
+    given writes2: Writes[GetUserEnrolmentsResponse] = Json.writes[GetUserEnrolmentsResponse]
   }
 
   case class SetFriendlyNameRequest(friendlyName: String)
 
   object SetFriendlyNameRequest {
 
-    implicit val format: Format[SetFriendlyNameRequest] = Json.format[SetFriendlyNameRequest]
-
-    import Validator._
+    given format: Format[SetFriendlyNameRequest] = Json.format[SetFriendlyNameRequest]
 
     private val friendlyNamePattern = "^[!%*^()_+\\-={}:;@~#,.?\\[\\]/A-Za-z0-9 ]{0,80}$"
     private val es19FriendlyNameValidator: Validator[String] =

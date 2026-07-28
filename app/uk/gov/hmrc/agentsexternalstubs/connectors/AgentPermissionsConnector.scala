@@ -18,18 +18,19 @@ package uk.gov.hmrc.agentsexternalstubs.connectors
 
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class AgentPermissionsConnector @Inject() (httpClientV2: HttpClientV2, appConfig: AppConfig)(implicit
+class AgentPermissionsConnector @Inject() (httpClientV2: HttpClientV2, appConfig: AppConfig)(using
   ec: ExecutionContext
 ) {
 
   val baseUrl: String = appConfig.agentPermissionsUrl
-  implicit val hc: HeaderCarrier = HeaderCarrier()
+  given HeaderCarrier = HeaderCarrier()
   def deleteTestData(arn: String): Future[Unit] =
     httpClientV2
       .delete(url"$baseUrl/test-only/agent-permissions/delete-test-data/arn/$arn")

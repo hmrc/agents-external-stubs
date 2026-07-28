@@ -26,7 +26,7 @@ import org.apache.commons.lang3.time.FastDateFormat
 import com.typesafe.config.ConfigFactory
 
 import scala.util.{Success, Try}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.databind.node.JsonNodeType
@@ -105,13 +105,12 @@ class JsonEncoder extends EncoderBase[ILoggingEvent] {
 
   final def putJsonNode(eventNode: ObjectNode, jsonNode: JsonNode, prefix: String): Unit =
     jsonNode.fields.asScala.foreach { field =>
-      if (field.getValue().isValueNode()) {
+      if field.getValue().isValueNode() then
         val key = prefix + "_" + field.getKey()
         val value = field.getValue().asText()
-        if (!key.contains("Authorization") && !value.contains("Bearer"))
-          eventNode.put(key, value)
+        if !key.contains("Authorization") && !value.contains("Bearer") then eventNode.put(key, value)
         else ()
-      } else if (field.getValue().getNodeType() == JsonNodeType.OBJECT)
+      else if field.getValue().getNodeType() == JsonNodeType.OBJECT then
         putJsonNode(eventNode, field.getValue(), prefix + "_" + field.getKey())
       else ()
     }

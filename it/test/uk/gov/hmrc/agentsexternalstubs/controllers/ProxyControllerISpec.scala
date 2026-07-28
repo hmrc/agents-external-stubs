@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.support._
+import uk.gov.hmrc.agentsexternalstubs.support.*
 
 class ProxyControllerISpec extends ServerBaseISpec with TestRequests with WireMockSupport {
 
@@ -28,7 +28,7 @@ class ProxyControllerISpec extends ServerBaseISpec with TestRequests with WireMo
 
     "POST /foo/abc/123" should {
       "pass the request to the foo target" in {
-        implicit val authContext: AuthContext = NotAuthorized
+        given authContext: AuthContext = NotAuthorized
 
         val response = post("/foo/abc/123?a=b", Json.parse("""{"foo":"bar"}"""))
         response.status shouldBe 400

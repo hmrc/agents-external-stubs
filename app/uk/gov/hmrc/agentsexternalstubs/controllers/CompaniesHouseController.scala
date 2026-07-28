@@ -26,23 +26,18 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.io.Source
 
 @Singleton
-class CompaniesHouseController @Inject() (cc: ControllerComponents)(implicit ec: ExecutionContext)
+class CompaniesHouseController @Inject() (cc: ControllerComponents)(using ec: ExecutionContext)
     extends BackendController(cc) {
 
   def findCompany(companyNumber: String): Action[AnyContent] = Action.async {
-    if (companyNumber == "87654321") {
-      dissolvedCompanyStausResponse(companyNumber)
-    } else {
-      companyResponse(companyNumber)
-    }
+    if companyNumber == "87654321" then dissolvedCompanyStausResponse(companyNumber)
+    else companyResponse(companyNumber)
   }
 
   def findCompanyOfficers(companyNumber: String, surname: Option[String]): Action[AnyContent] = Action.async {
-    if (surname.contains("Tester")) {
-      multipleOfficersResponse(companyNumber)
-    } else if (surname.contains("Empty") | companyNumber.equals("55555555")) {
-      emptyOfficersResponse(companyNumber)
-    } else {
+    if surname.contains("Tester") then multipleOfficersResponse(companyNumber)
+    else if surname.contains("Empty") | companyNumber.equals("55555555") then emptyOfficersResponse(companyNumber)
+    else
       companyNumber match {
         case "11111111" => officersForBusinessType("limited-company", "company-officers-template")
         case "11111116" => officersForBusinessType("limited-company", "six-company-officers-template")
@@ -52,10 +47,8 @@ class CompaniesHouseController @Inject() (cc: ControllerComponents)(implicit ec:
         case "33333336" => officersForBusinessType("limited-partnership", "six-company-officers-template")
         case "44444444" => officersForBusinessType("scottish-limited-partnership", "company-officers-template")
         case "44444446" => officersForBusinessType("scottish-limited-partnership", "six-company-officers-template")
-        case _          => companyOfficersResponse(companyNumber, surname.getOrElse(Generator.surname.sample.get).toUpperCase)
+        case _ => companyOfficersResponse(companyNumber, surname.getOrElse(Generator.surname.sample.get).toUpperCase)
       }
-
-    }
   }
 
   private def officersForBusinessType(businessType: String, template: String): Future[Result] =

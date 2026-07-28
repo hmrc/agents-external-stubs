@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 import java.util.regex.Pattern
 
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
 import uk.gov.hmrc.domain.TaxIdentifier
 
 import scala.util.matching.Regex
@@ -67,19 +67,19 @@ object RegexPatterns {
 
   def validate(regex: Regex): Matcher =
     value =>
-      if (regex.pattern.matcher(value).matches()) Right(value)
+      if regex.pattern.matcher(value).matches() then Right(value)
       else Left(s"Supplied value $value does not match pattern ${regex.pattern.toString}")
 
   def validateTrustTaxIdentifier(utrR: Regex, urnR: Regex): String => Either[String, TaxIdentifier] =
     value =>
-      if (utrR.pattern.matcher(value).matches()) Right(Utr(value))
-      else if (urnR.pattern.matcher(value).matches()) Right(Urn(value))
+      if utrR.pattern.matcher(value).matches() then Right(Utr(value))
+      else if urnR.pattern.matcher(value).matches() then Right(Urn(value))
       else Left(s"Supplied value $value does not match either ${utrR.pattern.toString} or ${urnR.pattern.toString}")
 
   def validate(pattern: String): Matcher =
     value => {
       val regex = Pattern.compile(pattern)
-      if (regex.matcher(value).matches()) Right(value)
+      if regex.matcher(value).matches() then Right(value)
       else Left(s"Supplied value $value does not match pattern ${regex.pattern}")
     }
 

@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
-import play.api.libs.json._
+import play.api.libs.json.*
 
 case class Enrolment(
   key: String,
@@ -45,19 +45,17 @@ object Enrolment {
   val ACTIVATED = "Activated"
 
   def from(ek: EnrolmentKey): Enrolment =
-    Enrolment(ek.service, if (ek.identifiers.isEmpty) None else Some(ek.identifiers))
+    Enrolment(ek.service, if ek.identifiers.isEmpty then None else Some(ek.identifiers))
 
   def apply(key: String, identifierKey: String, identifierValue: String): Enrolment =
     Enrolment(key, Some(Seq(Identifier(identifierKey, identifierValue))))
 
-  import Validator.Implicits._
-
-  val validate: Enrolment => Validated[String, Unit] = e => {
+  val validate: Enrolment => Validated[String, Unit] = e =>
     e.identifiers match {
-      case None => Valid(())
+      case None              => Valid(())
       case Some(identifiers) =>
         Services(e.key) match {
-          case None => Invalid(s"Unknown service ${e.key}")
+          case None          => Invalid(s"Unknown service ${e.key}")
           case Some(service) =>
             Validated
               .cond(
@@ -68,7 +66,6 @@ object Enrolment {
               .andThen(_ => identifiers.map(i => validateIdentifier(i, service)).reduce(_ combine _))
         }
     }
-  }
 
   def validateIdentifier(identifier: Identifier, service: Service): Validated[String, Unit] =
     service.getIdentifier(identifier.key) match {
@@ -85,7 +82,7 @@ object Enrolment {
           )
     }
 
-  import play.api.libs.functional.syntax._
+  import play.api.libs.functional.syntax.*
 
   val reads: Reads[Enrolment] = ((JsPath \ "key").read[String] and
     (JsPath \ "identifiers").readNullable[Seq[Identifier]] and
@@ -94,7 +91,7 @@ object Enrolment {
 
   val writes: Writes[Enrolment] = Json.writes[Enrolment]
 
-  implicit val format: Format[Enrolment] = Format(reads, writes)
+  given format: Format[Enrolment] = Format(reads, writes)
 
   // Space-saving format to facilitate large volumes of delegated enrolments (for performance tests)
   val tinyFormat: Format[Enrolment] = (
@@ -106,7 +103,7 @@ object Enrolment {
     enr =>
       (
         enr.toEnrolmentKey.getOrElse(throw new IllegalArgumentException("Invalid enrolment key")),
-        if (enr.state == Enrolment.ACTIVATED) None else Some(enr.state),
+        if enr.state == Enrolment.ACTIVATED then None else Some(enr.state),
         enr.friendlyName
       )
   )

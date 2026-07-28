@@ -30,7 +30,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 @Singleton
-class MicroserviceMonitoringFilter @Inject() (registry: MetricRegistry, routes: Routes)(implicit
+class MicroserviceMonitoringFilter @Inject() (registry: MetricRegistry, routes: Routes)(using
   ec: ExecutionContext,
   val mat: Materializer
 ) extends MonitoringFilter(registry) {
@@ -39,15 +39,15 @@ class MicroserviceMonitoringFilter @Inject() (registry: MetricRegistry, routes: 
 
 object KeyToPatternMappingFromRoutes {
   def apply(routes: Routes, placeholders: Set[String]): Seq[(String, String)] =
-    routes.documentation.map { case (method, route, _) =>
+    routes.documentation.map { case (_, route, _) =>
       val r = route.replace("<[^/]+>", "")
       val key = r
         .split("/")
         .map(p =>
-          if (p.startsWith("$")) {
+          if p.startsWith("$") then
             val name = p.substring(1)
-            if (placeholders.contains(name)) s"{$name}" else ":"
-          } else p
+            if placeholders.contains(name) then s"{$name}" else ":"
+          else p
         )
         .mkString("__")
       val pattern = r.replace("$", ":")
@@ -55,7 +55,7 @@ object KeyToPatternMappingFromRoutes {
     }
 }
 
-abstract class MonitoringFilter(metricRegistry: MetricRegistry)(implicit ec: ExecutionContext)
+abstract class MonitoringFilter(metricRegistry: MetricRegistry)(using ec: ExecutionContext)
     extends Filter with MonitoringKeyMatcher {
 
   override def apply(nextFilter: (RequestHeader) => Future[Result])(requestHeader: RequestHeader): Future[Result] =
@@ -71,14 +71,14 @@ abstract class MonitoringFilter(metricRegistry: MetricRegistry)(implicit ec: Exe
 
   private def monitor(
     serviceName: String
-  )(function: => Future[Result])(implicit ec: ExecutionContext): Future[Result] =
+  )(function: => Future[Result])(using ec: ExecutionContext): Future[Result] =
     timer(serviceName) {
       function
     }
 
   private def timer(
     serviceName: String
-  )(function: => Future[Result])(implicit ec: ExecutionContext): Future[Result] = {
+  )(function: => Future[Result])(using ec: ExecutionContext): Future[Result] = {
     val start = System.nanoTime()
     function.andThen {
       case Success(result) =>
@@ -98,7 +98,7 @@ abstract class MonitoringFilter(metricRegistry: MetricRegistry)(implicit ec: Exe
   private def recordFailure(serviceName: String, upstreamResponseCode: Int, startTime: Long): Unit = {
     val timerName = s"Timer-$serviceName"
     val counterName =
-      if (upstreamResponseCode >= 500) s"Http5xxErrorCount-$serviceName" else s"Http4xxErrorCount-$serviceName"
+      if upstreamResponseCode >= 500 then s"Http5xxErrorCount-$serviceName" else s"Http4xxErrorCount-$serviceName"
     metricRegistry.getTimers
       .getOrDefault(timerName, metricRegistry.timer(timerName))
       .update(System.nanoTime() - startTime, NANOSECONDS)
@@ -122,9 +122,8 @@ trait MonitoringKeyMatcher {
     var variables = Seq[String]()
     while (m.find()) {
       val variable = m.group().substring(1)
-      if (variables.contains(variable)) {
+      if variables.contains(variable) then
         throw new IllegalArgumentException(s"Duplicated variable name '$variable' in monitoring filter pattern '$p'")
-      }
       variables = variables :+ variable
     }
     for (v <- variables)
@@ -146,7 +145,7 @@ trait MonitoringKeyMatcher {
   }
 
   private def replaceVariables(key: String, variables: Seq[String], values: Seq[String]): String =
-    if (values.isEmpty) key
+    if values.isEmpty then key
     else
       values.zip(variables).foldLeft(key) { case (k, (value, variable)) =>
         k.replace(variable, value)

@@ -15,7 +15,7 @@
  */
 
 package uk.gov.hmrc.agentsexternalstubs.controllers
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.{AnyContent, Request, Result, Results}
 import uk.gov.hmrc.http.BadRequestException
 
@@ -25,7 +25,7 @@ import scala.util.{Failure, Success, Try}
 case class ErrorResponse(code: String, reason: Option[String])
 
 object ErrorResponse {
-  implicit val formats: OFormat[ErrorResponse] = Json.format[ErrorResponse]
+  given formats: OFormat[ErrorResponse] = Json.format[ErrorResponse]
 }
 
 trait HttpHelpers {
@@ -33,10 +33,10 @@ trait HttpHelpers {
   def success[T](value: T): Future[T] = Future.successful(value)
 
   def okF[T: Writes](entity: T, links: Link*): Future[Result] =
-    success(ok(entity, links: _*))
+    success(ok(entity, links*))
 
   def ok[T: Writes](entity: T, links: Link*): Result =
-    Results.Ok(RestfulResponse(entity, links: _*))
+    Results.Ok(RestfulResponse(entity, links*))
 
   def okF[T: Writes](entity: T, fix: JsValue => JsValue): Future[Result] =
     success(ok(entity, fix))
@@ -101,17 +101,17 @@ trait HttpHelpers {
 
   def withPayloadOrDefault[T](default: T)(
     f: T => Future[Result]
-  )(implicit request: Request[AnyContent], reads: Reads[T]): Future[Result] =
+  )(using request: Request[AnyContent], reads: Reads[T]): Future[Result] =
     request.body.asJson.map(j => validate(j)(f)).getOrElse(f(default))
 
   def withPayload[T](
     f: T => Future[Result]
-  )(implicit request: Request[JsValue], reads: Reads[T]): Future[Result] =
+  )(using request: Request[JsValue], reads: Reads[T]): Future[Result] =
     validate(request.body)(f)
 
   def validate[T](
     body: JsValue
-  )(f: T => Future[Result])(implicit reads: Reads[T]): Future[Result] =
+  )(f: T => Future[Result])(using reads: Reads[T]): Future[Result] =
     Try(body.validate[T]) match {
       case Success(validationResult) =>
         whenSuccess(f)(validationResult)
@@ -121,12 +121,12 @@ trait HttpHelpers {
 
   def whenSuccess[T](f: T => Future[Result])(jsResult: JsResult[T]): Future[Result] = jsResult match {
     case JsSuccess(payload, _) => f(payload)
-    case JsError(errs) =>
+    case JsError(errs)         =>
       Future.failed(new BadRequestException(s"Invalid payload: Parser failed ${errs
-        .map { case (path, errors) =>
-          s"at path $path with ${errors.map(e => e.messages.mkString(", ")).mkString(", ")}"
-        }
-        .mkString(", and ")}"))
+          .map { case (path, errors) =>
+            s"at path $path with ${errors.map(e => e.messages.mkString(", ")).mkString(", ")}"
+          }
+          .mkString(", and ")}"))
   }
 
 }
@@ -134,7 +134,7 @@ trait HttpHelpers {
 case class DesErrorResponse(code: String, reason: Option[String])
 
 object DesErrorResponse {
-  implicit val writes: Writes[DesErrorResponse] = Json.writes[DesErrorResponse]
+  given writes: Writes[DesErrorResponse] = Json.writes[DesErrorResponse]
 }
 
 trait DesHttpHelpers extends HttpHelpers {

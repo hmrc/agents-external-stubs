@@ -18,13 +18,13 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{Format, Json, OFormat}
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Request}
 import uk.gov.hmrc.agentsexternalstubs.controllers.CitizenDetailsStubController.{GetCitizenResponse, GetDesignatoryDetailsBasicResponse, GetDesignatoryDetailsResponse}
-import uk.gov.hmrc.agentsexternalstubs.models.{AG, AuthenticatedSession, Group, RegexPatterns, User, UserGenerator}
+import uk.gov.hmrc.agentsexternalstubs.models.{AG, Group, RegexPatterns, User, UserGenerator}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GroupsService, UsersService}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.Common
 
 import java.time.LocalDate
@@ -37,15 +37,16 @@ class CitizenDetailsStubController @Inject() (
   usersService: UsersService,
   groupsService: GroupsService,
   cc: ControllerComponents
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
-  def getCitizen(idName: String, taxId: String): Action[AnyContent] = Action.async { implicit request =>
+  def getCitizen(idName: String, taxId: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       idName match {
         case "nino" =>
           RegexPatterns.validNinoNoSpacesWithSuffix(taxId) match {
-            case Left(_) => badRequestF("INVALID_NINO", s"Provided NINO $taxId is not valid")
+            case Left(_)  => badRequestF("INVALID_NINO", s"Provided NINO $taxId is not valid")
             case Right(_) =>
               usersService.findByNino(taxId, session.planetId).map {
                 case None       => notFound("CITIZEN_RECORD_NOT_FOUND", s"Citizen record for $idName=$taxId not found")
@@ -54,7 +55,7 @@ class CitizenDetailsStubController @Inject() (
           }
         case "nino-no-suffix" =>
           RegexPatterns.validNinoNoSpacesNoSuffix(taxId) match {
-            case Left(_) => badRequestF("INVALID_NINO", s"Provided NINO $taxId is not valid")
+            case Left(_)  => badRequestF("INVALID_NINO", s"Provided NINO $taxId is not valid")
             case Right(_) =>
               usersService.findByNino(taxId, session.planetId).map {
                 case None       => notFound("CITIZEN_RECORD_NOT_FOUND", s"Citizen record for $idName=$taxId not found")
@@ -62,24 +63,25 @@ class CitizenDetailsStubController @Inject() (
               }
           }
         case "sautr" =>
-          if (taxId.matches(Common.utrPattern)) {
+          if taxId.matches(Common.utrPattern) then
             usersService.findByUtr(taxId, session.planetId).map {
               case None       => notFound("CITIZEN_RECORD_NOT_FOUND", s"Citizen record for $idName=$taxId not found")
               case Some(user) => Ok(RestfulResponse(GetCitizenResponse.from(user)))
             }
-          } else badRequestF("INVALID_UTR", s"Provided SAUTR $taxId is not valid")
+          else badRequestF("INVALID_UTR", s"Provided SAUTR $taxId is not valid")
         case _ => badRequestF("TAX_IDENTIFIER_NOT_SUPPORTED", s"tax identifier $idName not supported")
       }
     }(SessionRecordNotFound)
   }
 
-  def getDesignatoryDetails(nino: String): Action[AnyContent] = Action.async { implicit request =>
+  def getDesignatoryDetails(nino: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       RegexPatterns.validNinoNoSpacesWithSuffix(nino) match {
-        case Left(_) => badRequestF("INVALID_NINO", s"Provided NINO $nino is not valid")
+        case Left(_)  => badRequestF("INVALID_NINO", s"Provided NINO $nino is not valid")
         case Right(_) =>
           for {
-            maybeUser <- usersService.findByNino(nino, session.planetId)
+            maybeUser  <- usersService.findByNino(nino, session.planetId)
             maybeGroup <-
               maybeUser
                 .flatMap(_.groupId)
@@ -93,14 +95,15 @@ class CitizenDetailsStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def getDesignatoryDetailsBasic(nino: String): Action[AnyContent] = Action.async { implicit request =>
+  def getDesignatoryDetailsBasic(nino: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       RegexPatterns.validNinoNoSpacesWithSuffix(nino) match {
-        case Left(_) => badRequestF("INVALID_NINO", s"Provided NINO $nino is not valid")
+        case Left(_)  => badRequestF("INVALID_NINO", s"Provided NINO $nino is not valid")
         case Right(_) =>
           usersService.findByNino(nino, session.planetId).map {
             case None       => notFound("NOT_FOUND", s"Citizen details are not found for $nino")
-            case Some(user) => Ok(RestfulResponse(GetDesignatoryDetailsBasicResponse.from(user, session)))
+            case Some(user) => Ok(RestfulResponse(GetDesignatoryDetailsBasicResponse.from(user)))
           }
       }
     }(SessionRecordNotFound)
@@ -110,19 +113,8 @@ class CitizenDetailsStubController @Inject() (
 
 object CitizenDetailsStubController {
 
-  /** {
-    *   "name": {
-    *     "current": {
-    *       "firstName": "John",
-    *       "lastName": "Smith"
-    *     },
-    *     "previous": []
-    *   },
-    *   "ids": {
-    *     "nino": "AA055075C"
-    *   },
-    *   "dateOfBirth": "11121971"
-    * }
+  /** { "name": { "current": { "firstName": "John", "lastName": "Smith" }, "previous": [] }, "ids": { "nino":
+    * "AA055075C" }, "dateOfBirth": "11121971" }
     */
   case class GetCitizenResponse(
     name: GetCitizenResponse.Names,
@@ -137,18 +129,17 @@ object CitizenDetailsStubController {
     case class Names(current: Name, previous: Seq[Name] = Seq.empty)
     case class Ids(nino: Option[Nino], sautr: Option[Utr])
 
-    implicit val formats1: Format[Name] = Json.format[Name]
-    implicit val formats2: Format[Names] = Json.format[Names]
-    implicit val formats3: Format[Ids] = Json.format[Ids]
-    implicit val formats4: Format[GetCitizenResponse] = Json.format[GetCitizenResponse]
+    given formats1: Format[Name] = Json.format[Name]
+    given formats2: Format[Names] = Json.format[Names]
+    given formats3: Format[Ids] = Json.format[Ids]
+    given formats4: Format[GetCitizenResponse] = Json.format[GetCitizenResponse]
 
     private def convertName(name: Option[String]): Name =
       name
         .map { n =>
           val nameParts = n.split(" ")
-          val (fn, ln) = if (nameParts.length > 1) {
-            (nameParts.init.mkString(" "), Some(nameParts.last))
-          } else (nameParts.headOption.getOrElse("John"), Some("Doe"))
+          val (fn, ln) = if nameParts.length > 1 then (nameParts.init.mkString(" "), Some(nameParts.last))
+          else (nameParts.headOption.getOrElse("John"), Some("Doe"))
           Name(fn, ln)
         }
         .getOrElse(Name("John", Some("Doe")))
@@ -163,29 +154,10 @@ object CitizenDetailsStubController {
 
   }
 
-  /** {
-    *   "etag" : "115",
-    *   "person" : {
-    *     "firstName" : "HIPPY",
-    *     "middleName" : "T",
-    *     "lastName" : "NEWYEAR",
-    *     "title" : "Mr",
-    *     "honours": "BSC",
-    *     "sex" : "M",
-    *     "dateOfBirth" : "1952-04-01",
-    *     "nino" : "TW189213B",
-    *     "deceased" : false
-    *   },
-    *   "address" : {
-    *     "line1" : "26 FARADAY DRIVE",
-    *     "line2" : "PO BOX 45",
-    *     "line3" : "LONDON",
-    *     "postcode" : "CT1 1RQ",
-    *     "startDate": "2009-08-29",
-    *     "country" : "GREAT BRITAIN",
-    *     "type" : "Residential"
-    *   }
-    * }
+  /** { "etag" : "115", "person" : { "firstName" : "HIPPY", "middleName" : "T", "lastName" : "NEWYEAR", "title" : "Mr",
+    * "honours": "BSC", "sex" : "M", "dateOfBirth" : "1952-04-01", "nino" : "TW189213B", "deceased" : false }, "address"
+    * : { "line1" : "26 FARADAY DRIVE", "line2" : "PO BOX 45", "line3" : "LONDON", "postcode" : "CT1 1RQ", "startDate":
+    * "2009-08-29", "country" : "GREAT BRITAIN", "type" : "Residential" } }
     */
   case class GetDesignatoryDetailsResponse(
     etag: String,
@@ -246,19 +218,13 @@ object CitizenDetailsStubController {
       `type`: String = "Residential"
     )
 
-    implicit val format1: OFormat[Person] = Json.format[Person]
-    implicit val format2: OFormat[Address] = Json.format[Address]
-    implicit val format3: OFormat[GetDesignatoryDetailsResponse] = Json.format[GetDesignatoryDetailsResponse]
+    given format1: OFormat[Person] = Json.format[Person]
+    given format2: OFormat[Address] = Json.format[Address]
+    given format3: OFormat[GetDesignatoryDetailsResponse] = Json.format[GetDesignatoryDetailsResponse]
   }
 
-  /** {
-    *   "etag" : "115",
-    *   "firstName" : "HIPPY",
-    *   "lastName" : "NEWYEAR",
-    *   "title" : "Mr",
-    *   "nino" : "TW189213B",
-    *   "deceased" : false
-    * }
+  /** { "etag" : "115", "firstName" : "HIPPY", "lastName" : "NEWYEAR", "title" : "Mr", "nino" : "TW189213B", "deceased"
+    * : false }
     */
   case class GetDesignatoryDetailsBasicResponse(
     etag: String,
@@ -269,7 +235,7 @@ object CitizenDetailsStubController {
   )
 
   object GetDesignatoryDetailsBasicResponse {
-    def from(user: User, session: AuthenticatedSession): GetDesignatoryDetailsBasicResponse =
+    def from(user: User): GetDesignatoryDetailsBasicResponse =
       GetDesignatoryDetailsBasicResponse(
         etag = user.userId.reverse,
         firstName = user.firstName,
@@ -278,6 +244,6 @@ object CitizenDetailsStubController {
         deceased = user.isDeceased
       )
 
-    implicit val format1: OFormat[GetDesignatoryDetailsBasicResponse] = Json.format[GetDesignatoryDetailsBasicResponse]
+    given format1: OFormat[GetDesignatoryDetailsBasicResponse] = Json.format[GetDesignatoryDetailsBasicResponse]
   }
 }

@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.*
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{NotAuthorized, ServerBaseISpec, TestRequests}
 
@@ -38,7 +38,7 @@ class UserDetailsStubControllerISpec extends ServerBaseISpec with TestRequests w
           )
           .futureValue
 
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = testPlanet)
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = testPlanet)
 
         val user = Users.get(session.userId).json.as[User]
 
@@ -72,7 +72,7 @@ class UserDetailsStubControllerISpec extends ServerBaseISpec with TestRequests w
           )
           .futureValue
 
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = testPlanet)
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = testPlanet)
 
         val user = Users.get(session.userId).json.as[User]
 
@@ -107,7 +107,7 @@ class UserDetailsStubControllerISpec extends ServerBaseISpec with TestRequests w
           .futureValue
         groupsService.updateGroup(newUser.groupId.get, testPlanet, _.copy(agentFriendlyName = Some("Foo Ltd")))
 
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = testPlanet)
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = testPlanet)
 
         val user = Users.get(session.userId).json.as[User]
         val group = Groups.get(user.groupId.get).json.as[Group]
@@ -133,13 +133,13 @@ class UserDetailsStubControllerISpec extends ServerBaseISpec with TestRequests w
       }
 
       "respond 404 if not found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         val result = UserDetailsStub.getUser("bar")
         result should haveStatus(404)
       }
 
       "respond 401 if not authenticated" in {
-        val result = UserDetailsStub.getUser("foo")(NotAuthorized)
+        val result = UserDetailsStub.getUser("foo")(using NotAuthorized)
         result should haveStatus(401)
       }
     }

@@ -40,10 +40,11 @@ class RoboticsController @Inject() (
   val authenticationService: AuthenticationService,
   appConfig: AppConfig,
   actorSystem: ActorSystem
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
-  def invoke: Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def invoke: Action[JsValue] = Action.async(parse.json) { request =>
+    given Request[JsValue] = request
     withCurrentSession { session =>
       validateRequest(request) match {
         case Left(errorResult) =>
@@ -60,8 +61,8 @@ class RoboticsController @Inject() (
             }
 
             val result: Either[String, EnrolmentKey] = for {
-              s   <- service
-              idf <- s.identifiers.headOption.toRight(s"No identifiers found for service ${s.name}")
+              s     <- service
+              idf   <- s.identifiers.headOption.toRight(s"No identifiers found for service ${s.name}")
               value <- Generator
                          .get(idf.valueGenerator)(session.userId)
                          .toRight(
@@ -128,13 +129,13 @@ class RoboticsTaskActor(
   operationRequired: String,
   correlationId: String,
   requestId: String
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends org.apache.pekko.actor.Actor with play.api.Logging {
 
   def receive: PartialFunction[Any, Unit] = {
     case Start =>
       // Schedule callback after callbackDelay
-      scheduler.scheduleOnce(callbackDelay.millis, self, Callback)(ec)
+      scheduler.scheduleOnce(callbackDelay.millis, self, Callback)(using ec, self)
 
     case Callback =>
       val requestMessage = operationRequired match {
@@ -155,7 +156,7 @@ class RoboticsTaskActor(
       roboticsConnector.sendCallback(callbackPayload, correlationId)
 
       // Schedule known facts creation after knownFactsDelay
-      scheduler.scheduleOnce(knownFactsDelay.millis, self, CreateKnownFacts)(ec)
+      scheduler.scheduleOnce(knownFactsDelay.millis, self, CreateKnownFacts)(using ec, self)
 
     case CreateKnownFacts =>
       createKnownFacts(enrolmentKey, postcode)
@@ -216,7 +217,7 @@ object RoboticsController extends HttpHelpers {
                           .toRight(badRequest("MISSING_TARGET_SYSTEM", "targetSystem is required"))
                           .flatMap {
                             case ts @ ("CESA" | "COTAX") => Right(ts)
-                            case ts                      => Left(badRequest("INVALID_TARGET_SYSTEM", s"targetSystem '$ts' is not supported"))
+                            case ts => Left(badRequest("INVALID_TARGET_SYSTEM", s"targetSystem '$ts' is not supported"))
                           }
 
         postcode =

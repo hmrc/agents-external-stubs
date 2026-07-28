@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models.identifiers
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers.Service._
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.Service.*
 
 case class SuspensionDetails(
   suspensionStatus: Boolean,
@@ -26,10 +26,8 @@ case class SuspensionDetails(
 
   val suspendedRegimes: Set[String] =
     regimes.fold(Set.empty[String]) { rs =>
-      if (rs.contains("ALL") || rs.contains("AGSV"))
-        SuspensionDetails.validSuspensionRegimes
-      else
-        rs
+      if rs.contains("ALL") || rs.contains("AGSV") then SuspensionDetails.validSuspensionRegimes
+      else rs
     }
 
   def isRegimeSuspended(service: Service): Boolean =
@@ -87,7 +85,7 @@ object SuspensionDetails {
   lazy val validSuspensionRegimes: Set[String] =
     serviceToRegime.view.filterKeys(suspendableServices.contains(_)).values.toSet
 
-  implicit val formats: OFormat[SuspensionDetails] = Json.format
+  given OFormat[SuspensionDetails] = Json.format
 
   val notSuspended: SuspensionDetails = SuspensionDetails(suspensionStatus = false, None)
 

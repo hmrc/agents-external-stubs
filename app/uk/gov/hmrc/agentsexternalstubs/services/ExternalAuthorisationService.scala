@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 
 import play.api.Logger
 import uk.gov.hmrc.agentsexternalstubs.controllers.BearerToken
-import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.*
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.retrieve.~
@@ -28,6 +28,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
+import scala.annotation.nowarn
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
@@ -39,6 +40,7 @@ class ExternalAuthorisationService @Inject() (
   appConfig: AppConfig
 ) extends AuthorisedFunctions {
 
+  @nowarn("cat=deprecation")
   private val retrievals = Retrievals.credentials and Retrievals.credentialRole and Retrievals.credentialStrength and
     Retrievals.nino and Retrievals.groupIdentifier and Retrievals.dateOfBirth and Retrievals.name and
     Retrievals.allEnrolments and Retrievals.confidenceLevel and Retrievals.agentInformation and Retrievals.affinityGroup
@@ -46,10 +48,9 @@ class ExternalAuthorisationService @Inject() (
   final def maybeExternalSession(
     _planetId: String,
     createNewAuthentication: AuthenticateRequest => Future[Option[AuthenticatedSession]]
-  )(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[Option[AuthenticatedSession]] =
-    if (appConfig.isProxyMode) {
-      Future.successful(None)
-    } else {
+  )(using ec: ExecutionContext, hc: HeaderCarrier): Future[Option[AuthenticatedSession]] =
+    if appConfig.isProxyMode then Future.successful(None)
+    else
       authorised()
         .retrieve(retrievals) {
           case credentials ~ credentialRole ~ credentialStrength ~ nino ~ groupIdentifier ~ dateOfBirth ~
@@ -171,19 +172,17 @@ class ExternalAuthorisationService @Inject() (
                        Future.successful(None)
                    }
             } yield maybeSession
-          case _ => Future.successful(None)
         }
         .recover { case NonFatal(_) =>
           None
         }
-    }
 
   def report(hc: HeaderCarrier): String =
     s"""Authorization:${hc.authorization
-      .map(_.value)
-      .getOrElse("-")} X-Session-ID:${hc.sessionId.getOrElse("-")} ForwardedFor:${hc.forwarded
-      .map(_.value)
-      .getOrElse("-")} RequestId:${hc.requestId.map(_.value).getOrElse("-")}"""
+        .map(_.value)
+        .getOrElse("-")} X-Session-ID:${hc.sessionId.getOrElse("-")} ForwardedFor:${hc.forwarded
+        .map(_.value)
+        .getOrElse("-")} RequestId:${hc.requestId.map(_.value).getOrElse("-")}"""
 
   private def merge(first: User, second: User): User = User(
     userId = first.userId,

@@ -33,18 +33,17 @@ class ServicesSpec extends BaseUnitSpec with ValidatedMatchers {
       (json \ "services").as[JsArray].value should not be empty
     }
 
-    import org.scalatest.Inspectors._
-    "have Enrolment generator and validator" in {
-      forAll(Seq("foo", "bar", "baz", "zoo", "zig", "zag", "doc", "dot", "abc", "xyz")) { seed: String =>
+    import org.scalatest.Inspectors.*
+    "have Enrolment generator and validator" in
+      forAll(Seq("foo", "bar", "baz", "zoo", "zig", "zag", "doc", "dot", "abc", "xyz")) { seed =>
         Services.services.foreach { s =>
           val enrolment = Generator.get(s.generator)(seed).get
           Enrolment.validate(enrolment) should be_Valid
         }
       }
-    }
 
-    "have knownFacts generator and validator" in {
-      forAll(Seq("foo", "bar", "baz", "zoo", "zig", "zag", "doc", "dot", "abc", "xyz")) { seed: String =>
+    "have knownFacts generator and validator" in
+      forAll(Seq("foo", "bar", "baz", "zoo", "zig", "zag", "doc", "dot", "abc", "xyz")) { seed =>
         Services.services.foreach { s =>
           s.knownFacts.foreach { kf =>
             val value = Generator.get(kf.valueGenerator)(seed).get
@@ -52,6 +51,5 @@ class ServicesSpec extends BaseUnitSpec with ValidatedMatchers {
           }
         }
       }
-    }
   }
 }

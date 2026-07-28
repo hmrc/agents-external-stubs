@@ -55,7 +55,7 @@ object LegacyAgentRecord extends RecordUtils[LegacyAgentRecord] {
       address4 = record.address4.map(_.take(addressLineMaxLength))
     )
 
-  import Validator._
+  import Validator.*
 
   val validate: Validator[LegacyAgentRecord] = Validator(
     check(_.agentId.lengthMinMaxInclusive(1, 6), "Invalid agentId"),
@@ -70,8 +70,8 @@ object LegacyAgentRecord extends RecordUtils[LegacyAgentRecord] {
     check(_.postcode.isRight(RegexPatterns.validPostcode), "Invalid postcode")
   )
 
-  implicit val formats: Format[LegacyAgentRecord] = Json.format[LegacyAgentRecord]
-  implicit val recordType: RecordMetaData[LegacyAgentRecord] = RecordMetaData[LegacyAgentRecord]
+  given formats: Format[LegacyAgentRecord] = Json.format[LegacyAgentRecord]
+  given RecordMetaData[LegacyAgentRecord] = RecordMetaData[LegacyAgentRecord]
 
   val agentIdGen = Generator.pattern("999999")
 

@@ -28,7 +28,7 @@ import scala.collection.mutable
 @Singleton
 class PersonalDetailsValidationController @Inject() (cc: ControllerComponents) extends BackendController(cc) {
 
-  import uk.gov.hmrc.agentsexternalstubs.models.PersonalDetailsValidationFormat._
+  import uk.gov.hmrc.agentsexternalstubs.models.PersonalDetailsValidationFormat.given
 
   private val validationIds = mutable.Map[String, Boolean]()
 
@@ -44,11 +44,10 @@ class PersonalDetailsValidationController @Inject() (cc: ControllerComponents) e
 
   object personalDetailsValidationRepository {
     def get(id: String): PersonalDetailsValidation =
-      if (validationIds.getOrElse(id, false))
+      if validationIds.getOrElse(id, false) then
         PersonalDetailsValidation
           .successful(id, PersonalDetailsWithNino("Fred", "Bloggs", LocalDate.now(), Generator.ninoNoSpaces(id)))
-      else
-        PersonalDetailsValidation.failed(id)
+      else PersonalDetailsValidation.failed(id)
   }
 
 }

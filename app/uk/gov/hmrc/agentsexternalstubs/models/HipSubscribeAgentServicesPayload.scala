@@ -40,7 +40,7 @@ case class HipSubscribeAgentServicesPayload(
 
 object HipSubscribeAgentServicesPayload {
 
-  import Validator._
+  import Validator.*
 
   private val validationError =
     Errors("003", "Request could not be processed")
@@ -98,5 +98,5 @@ object HipSubscribeAgentServicesPayload {
       .toEither
       .map(_ => payload)
 
-  implicit val format: Format[HipSubscribeAgentServicesPayload] = Json.format[HipSubscribeAgentServicesPayload]
+  given format: Format[HipSubscribeAgentServicesPayload] = Json.format[HipSubscribeAgentServicesPayload]
 }

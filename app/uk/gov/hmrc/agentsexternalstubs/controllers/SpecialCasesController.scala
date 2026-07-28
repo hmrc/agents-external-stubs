@@ -23,7 +23,7 @@ import org.apache.pekko.util.ByteString
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{JsValue, Reads, Writes}
 import play.api.libs.streams.Accumulator
-import play.api.mvc._
+import play.api.mvc.*
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, Id, SpecialCase}
 import uk.gov.hmrc.agentsexternalstubs.repository.SpecialCasesRepository
@@ -39,12 +39,13 @@ class SpecialCasesController @Inject() (
   val authenticationService: AuthenticationService,
   appConfig: AppConfig,
   cc: ControllerComponents
-)(implicit materializer: Materializer, ec: ExecutionContext)
+)(using materializer: Materializer, ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
-  import SpecialCasesController._
+  import SpecialCasesController.given
 
-  val getAllSpecialCases: Action[AnyContent] = Action.async { implicit request =>
+  val getAllSpecialCases: Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       specialCasesRepository.findByPlanetId(session.planetId)(1000).map {
         case sc if sc.nonEmpty => ok(sc)
@@ -53,7 +54,8 @@ class SpecialCasesController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def getSpecialCase(id: String): Action[AnyContent] = Action.async { implicit request =>
+  def getSpecialCase(id: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       specialCasesRepository.findById(id, session.planetId).map {
         case Some(specialCase) => ok(specialCase)
@@ -62,7 +64,8 @@ class SpecialCasesController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def createSpecialCase: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+  def createSpecialCase: Action[JsValue] = Action.async(parse.tolerantJson) { request =>
+    given Request[JsValue] = request
     withCurrentSession { session =>
       withPayload[SpecialCase](specialCase =>
         specialCasesRepository
@@ -75,11 +78,12 @@ class SpecialCasesController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def updateSpecialCase(id: String): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+  def updateSpecialCase(id: String): Action[JsValue] = Action.async(parse.tolerantJson) { request =>
+    given Request[JsValue] = request
     withCurrentSession { session =>
       withPayload[SpecialCase](specialCase =>
         specialCasesRepository.findById(id, session.planetId).flatMap {
-          case None => notFoundF("NOT_FOUND")
+          case None    => notFoundF("NOT_FOUND")
           case Some(_) =>
             specialCasesRepository
               .upsert(specialCase.copy(id = Some(Id(id)), planetId = None), session.planetId)
@@ -93,7 +97,8 @@ class SpecialCasesController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def deleteSpecialCase(id: String): Action[AnyContent] = Action.async { implicit request =>
+  def deleteSpecialCase(id: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       specialCasesRepository.delete(id, session.planetId).map(_ => NoContent)
     }(SessionRecordNotFound)
@@ -105,8 +110,8 @@ class SpecialCasesController @Inject() (
       rh: RequestHeader
     ): Accumulator[ByteString, Result] =
       Accumulator.flatten(withMaybeCurrentSessionInCache { maybeSession =>
-        val planetId = CurrentPlanetId(maybeSession, rh)
-        if (appConfig.specialCasesUseTruncatedRequestUriMatch) {
+        val planetId = CurrentPlanetId(maybeSession)
+        if appConfig.specialCasesUseTruncatedRequestUriMatch then {
           specialCasesRepository.findByPlanetId(planetId)(25).map {
             _.flatMap { specialCase =>
               val lengthOfSpecialCase = specialCase.requestMatch.path.length
@@ -117,7 +122,7 @@ class SpecialCasesController @Inject() (
                     .decode(rh.uri, "utf-8")
                     .take(lengthOfSpecialCase)
                 )
-              if (specialCase.requestMatch.toKey == requestUriKeyToMatch)
+              if specialCase.requestMatch.toKey == requestUriKeyToMatch then
                 Some(Accumulator.done(specialCase.response.asResult))
               else None
             }.headOption
@@ -126,17 +131,17 @@ class SpecialCasesController @Inject() (
         } else {
           val key = SpecialCase.matchKey(rh.method, URLDecoder.decode(rh.uri, "utf-8"))
           specialCasesRepository.findByMatchKey(key, planetId).map {
-            case None => action(AuthenticatedSession.tagRequest(rh, maybeSession))
+            case None              => action(AuthenticatedSession.tagRequest(rh, maybeSession))
             case Some(specialCase) =>
               Accumulator.done(specialCase.response.asResult)
           }
         }
-      }(Request(rh, ()), ec))
+      }(using rh, ec))
   }
 }
 
 object SpecialCasesController {
 
-  implicit val reads: Reads[SpecialCase] = SpecialCase.external.reads
-  implicit val writes: Writes[SpecialCase] = SpecialCase.external.writes
+  given reads: Reads[SpecialCase] = SpecialCase.external.reads
+  given writes: Writes[SpecialCase] = SpecialCase.external.writes
 }

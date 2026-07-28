@@ -20,14 +20,14 @@ import cats.data.Validated.{Invalid, Valid}
 
 case class UserValidator(affinityGroup: Option[String]) {
 
-  import Validator._
+  import Validator.*
 
   type UserConstraint = User => Validated[String, Unit]
 
-  val validateAffinityGroup: UserConstraint = user =>
+  val validateAffinityGroup: UserConstraint = _ =>
     affinityGroup match {
       case Some(AG.Individual) | Some(AG.Organisation) | Some(AG.Agent) | None => Valid(())
-      case _ =>
+      case _                                                                   =>
         Invalid("affinityGroup must be none, or one of [Individual, Organisation, Agent]")
     }
 
@@ -37,25 +37,24 @@ case class UserValidator(affinityGroup: Option[String]) {
           if affinityGroup.contains(AG.Individual) && user.nino.isDefined =>
         Valid(())
       case None => Valid(())
-      case _ =>
+      case _    =>
         Invalid("confidenceLevel can only be set for Individuals and has to be one of [50, 200, 250, 600]")
     }
 
   val validateCredentialStrength: UserConstraint = user =>
     user.credentialStrength match {
       case Some("weak") | Some("strong") | None => Valid(())
-      case _ =>
+      case _                                    =>
         Invalid("credentialStrength must be none, or one of [weak, strong]")
     }
 
   val validateCredentialRole: UserConstraint = user =>
     affinityGroup match {
       case Some(AG.Individual | AG.Agent) =>
-        if (user.credentialRole.isEmpty || user.credentialRole.exists(User.CR.all)) Valid(())
-        else
-          Invalid("credentialRole must be none, or one of [Admin, User, Assistant] for Individual or Agent")
+        if user.credentialRole.isEmpty || user.credentialRole.exists(User.CR.all) then Valid(())
+        else Invalid("credentialRole must be none, or one of [Admin, User, Assistant] for Individual or Agent")
       case Some(AG.Organisation) =>
-        if (user.credentialRole.contains(User.CR.Admin) || user.credentialRole.contains(User.CR.User)) Valid(())
+        if user.credentialRole.contains(User.CR.Admin) || user.credentialRole.contains(User.CR.User) then Valid(())
         else Invalid("credentialRole must be Admin or User for Organisation")
       case _ => Valid(())
     }
@@ -63,7 +62,7 @@ case class UserValidator(affinityGroup: Option[String]) {
   val validateConfidenceLevelAndNino: UserConstraint = user =>
     (affinityGroup, user.nino, user.confidenceLevel) match {
       case (Some(AG.Individual), Some(_), Some(_)) => Valid(())
-      case (Some(AG.Individual), None, Some(_)) =>
+      case (Some(AG.Individual), None, Some(_))    =>
         Invalid("confidenceLevel must be accompanied by NINO")
       case (Some(AG.Individual), Some(_), None) =>
         Invalid("NINO must be accompanied by confidenceLevel")
@@ -93,9 +92,8 @@ case class UserValidator(affinityGroup: Option[String]) {
     }
 
   val validateEachPrincipalEnrolment: UserConstraint = user =>
-    if (user.assignedPrincipalEnrolments.isEmpty) Valid(())
+    if user.assignedPrincipalEnrolments.isEmpty then Valid(())
     else {
-      import Validator.Implicits._
       user.assignedPrincipalEnrolments
         .map(ek =>
           Validated
@@ -115,25 +113,24 @@ case class UserValidator(affinityGroup: Option[String]) {
     }
 
   val validatePrincipalEnrolmentsAreDistinct: UserConstraint = user =>
-    if (user.assignedPrincipalEnrolments.isEmpty) Valid(())
+    if user.assignedPrincipalEnrolments.isEmpty then Valid(())
     else {
       val keys = user.assignedPrincipalEnrolments.map(_.service)
-      if (keys.size == keys.distinct.size) Valid(())
+      if keys.size == keys.distinct.size then Valid(())
       else {
         val repeated: Iterable[String] = keys.groupBy(identity).filter { case (_, k) => k.size > 1 }.map(_._2.head)
         val redundant = repeated.map(r => (r, Services.apply(r))).collect {
           case (_, Some(s)) if !s.flags.multipleEnrolment => s.name
           case (r, None)                                  => r
         }
-        if (redundant.isEmpty) Valid(()) else Invalid(s"Repeated principal enrolments: ${redundant.mkString(", ")}")
+        if redundant.isEmpty then Valid(()) else Invalid(s"Repeated principal enrolments: ${redundant.mkString(", ")}")
       }
     }
 
   val validateEachDelegatedEnrolment: UserConstraint = user =>
     user.assignedDelegatedEnrolments match {
-      case s if s.isEmpty => Valid(())
+      case s if s.isEmpty                        => Valid(())
       case _ if affinityGroup.contains(AG.Agent) =>
-        import Validator.Implicits._
         user.assignedDelegatedEnrolments
           .map(ek =>
             Validated
@@ -151,17 +148,16 @@ case class UserValidator(affinityGroup: Option[String]) {
     }
 
   val validateDelegatedEnrolmentsValuesAreDistinct: UserConstraint = user =>
-    if (user.assignedDelegatedEnrolments.isEmpty) Valid(())
+    if user.assignedDelegatedEnrolments.isEmpty then Valid(())
     else {
-      import Validator.Implicits._
       val results = user.assignedDelegatedEnrolments
         .groupBy(_.service)
         .collect { case (service, eks) if eks.size > 1 => (service, eks) }
         .map { case (service, eks) =>
-          if (eks.size == eks.distinct.size) Valid(())
+          if eks.size == eks.distinct.size then Valid(())
           else Invalid(s", $service")
         }
-      if (results.isEmpty) Valid(())
+      if results.isEmpty then Valid(())
       else
         results
           .reduce(_ combine _)
@@ -181,7 +177,7 @@ case class UserValidator(affinityGroup: Option[String]) {
     validateAddress
   )
 
-  val validate: User => Validated[List[String], Unit] = Validator.validate(constraints: _*)
+  val validate: User => Validated[List[String], Unit] = Validator.validate(constraints*)
 
   object Common {
 

@@ -18,26 +18,26 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.json.{JsObject, Json, Reads, Writes}
 import play.api.libs.ws.WSClient
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.mvc.Http.{HeaderNames, MimeTypes}
 import uk.gov.hmrc.agentsexternalstubs.models.SpecialCase.RequestMatch
-import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.*
 import uk.gov.hmrc.agentsexternalstubs.repository.SpecialCasesRepository
-import uk.gov.hmrc.agentsexternalstubs.support._
+import uk.gov.hmrc.agentsexternalstubs.support.*
 
 class SpecialCasesControllerISpec extends ServerBaseISpec with TestRequests {
 
   lazy val wsClient = app.injector.instanceOf[WSClient]
   lazy val repo = app.injector.instanceOf[SpecialCasesRepository]
 
-  implicit val reads: Reads[SpecialCase] = SpecialCase.external.reads
-  implicit val writes: Writes[SpecialCase] = SpecialCase.external.writes
+  given reads: Reads[SpecialCase] = SpecialCase.external.reads
+  given writes: Writes[SpecialCase] = SpecialCase.external.writes
 
   "SpecialCasesController" when {
 
     "GET /agents-external-stubs/special-cases" should {
       "return 200 with all the entities on the planet" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val entity1 = SpecialCase(RequestMatch("/test1", "GET"), SpecialCase.Response(200), Some(session.planetId))
         val entity2 = SpecialCase(RequestMatch("/test2", "POST"), SpecialCase.Response(201), Some(session.planetId))
         val entity3 = SpecialCase(RequestMatch("/test3", "PUT"), SpecialCase.Response(202), Some(session.planetId))
@@ -64,7 +64,7 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with TestRequests {
       }
 
       "return 204 if none found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val entity1 = SpecialCase(RequestMatch("/test1", "GET"), SpecialCase.Response(200), Some(session.planetId))
         val entity2 = SpecialCase(RequestMatch("/test2", "POST"), SpecialCase.Response(201), Some(session.planetId))
         val entity3 = SpecialCase(RequestMatch("/test3", "PUT"), SpecialCase.Response(202), Some(session.planetId))
@@ -83,7 +83,7 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with TestRequests {
 
     "GET /agents-external-stubs/special-cases/:id" should {
       "return 200 with an entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val specialCase = SpecialCase(
           SpecialCase.RequestMatch("/test"),
           SpecialCase.Response(500, Some("FOO"), Seq(SpecialCase.Header("zig", "foo")))
@@ -104,7 +104,7 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with TestRequests {
 
     "POST /agents-external-stubs/special-cases" should {
       "create a special case and return entity location" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val createResult =
           SpecialCases.createSpecialCase(
             SpecialCase(
@@ -126,7 +126,7 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with TestRequests {
 
     "PUT /agents-external-stubs/special-cases/:id" should {
       "update a special case and return entity location" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val specialCase = SpecialCase(
           SpecialCase.RequestMatch("/test1/test2/test3"),
           SpecialCase.Response(404, Some("{zoo}"), Seq(SpecialCase.Header("zig", "zag")))
@@ -149,7 +149,7 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with TestRequests {
 
     "DELETE /agents-external-stubs/special-cases/:id" should {
       "remove special case" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val specialCase = SpecialCase(
           SpecialCase.RequestMatch("/test3"),
           SpecialCase.Response(404, None, Seq(SpecialCase.Header("zig", "zag")))
@@ -168,7 +168,7 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with TestRequests {
     "specialCase" should {
 
       "replace an ordinary GET response" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val user = Users.get(session.userId).json.as[User]
         val nino = user.nino.get.value.replace(" ", "")
         val result1 = CitizenDetailsStub.getCitizen("nino", nino)
@@ -204,7 +204,7 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with TestRequests {
       }
 
       "replace an ordinary POST response" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val agentCode = "testAgentCode"
 
@@ -255,7 +255,7 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with TestRequests {
       }
 
       "replace an ordinary GET response having X-SessionID only" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result2 = SpecialCases.createSpecialCase(
           SpecialCase(
@@ -268,7 +268,7 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with TestRequests {
         val sc = get(result2.header(HeaderNames.LOCATION).get).json.as[SpecialCase]
 
         val result3 =
-          DesStub.getBusinessDetails("foo", "bar")(AuthContext.fromTokenAndSessionId("foo", session.sessionId))
+          DesStub.getBusinessDetails("foo", "bar")(using AuthContext.fromTokenAndSessionId("foo", session.sessionId))
         result3 should haveStatus(427)
         result3.header(HeaderNames.CONTENT_TYPE) shouldBe Some("application/json")
         (result3.json \ "a").as[String] shouldBe "b"
@@ -278,14 +278,14 @@ class SpecialCasesControllerISpec extends ServerBaseISpec with TestRequests {
         result4 should haveStatus(202)
 
         val result5 =
-          DesStub.getBusinessDetails("foo", "bar")(AuthContext.fromTokenAndSessionId("foo", session.sessionId))
+          DesStub.getBusinessDetails("foo", "bar")(using AuthContext.fromTokenAndSessionId("foo", session.sessionId))
         result5 should haveStatus(583)
 
         val result6 = SpecialCases.deleteSpecialCase(sc.id.get.value)
         result6 should haveStatus(204)
 
         val result7 =
-          DesStub.getBusinessDetails("foo", "bar")(AuthContext.fromTokenAndSessionId("foo", session.sessionId))
+          DesStub.getBusinessDetails("foo", "bar")(using AuthContext.fromTokenAndSessionId("foo", session.sessionId))
         result7 should haveStatus(400)
       }
     }

@@ -26,32 +26,32 @@ object GroupValidator {
   val validateAffinityGroup: GroupConstraint = group =>
     group.affinityGroup match {
       case AG.Individual | AG.Organisation | AG.Agent => Valid(())
-      case _ =>
+      case _                                          =>
         Invalid("affinityGroup must be none, or one of [Individual, Organisation, Agent]")
     }
 
   val validateAgentCode: GroupConstraint = group =>
     group.agentCode match {
       case Some(_) if group.affinityGroup == AG.Agent => Valid(())
-      case None if group.affinityGroup == AG.Agent =>
+      case None if group.affinityGroup == AG.Agent    =>
         Invalid("agentCode is required for Agent")
       case _ => Valid(())
     }
 
   val validateSuspendedRegimes: GroupConstraint = group => {
     val validRegimes = Set("ALL", "ITSA", "VATC", "TRS", "CGT", "PPT", "PIR", "AGSV")
-    if (group.suspendedRegimes.isEmpty) Valid(())
+    if group.suspendedRegimes.isEmpty then Valid(())
     else
       group.suspendedRegimes
         .map(regime =>
-          if (validRegimes.contains(regime)) Valid(())
+          if validRegimes.contains(regime) then Valid(())
           else Invalid(s"suspended regime $regime not valid")
         )
         .reduce(_ combine _)
   }
 
   val validateEachPrincipalEnrolment: GroupConstraint = group =>
-    if (group.principalEnrolments.isEmpty) Valid(())
+    if group.principalEnrolments.isEmpty then Valid(())
     else {
       group.principalEnrolments
         .map(e =>
@@ -69,23 +69,23 @@ object GroupValidator {
     }
 
   val validatePrincipalEnrolmentsAreDistinct: GroupConstraint = group =>
-    if (group.principalEnrolments.isEmpty) Valid(())
+    if group.principalEnrolments.isEmpty then Valid(())
     else {
       val keys = group.principalEnrolments.map(_.key)
-      if (keys.size == keys.distinct.size) Valid(())
+      if keys.size == keys.distinct.size then Valid(())
       else {
         val repeated: Iterable[String] = keys.groupBy(identity).filter { case (_, k) => k.size > 1 }.map(_._2.head)
         val redundant = repeated.map(r => (r, Services.apply(r))).collect {
           case (_, Some(s)) if !s.flags.multipleEnrolment => s.name
           case (r, None)                                  => r
         }
-        if (redundant.isEmpty) Valid(()) else Invalid(s"Repeated principal enrolments: ${redundant.mkString(", ")}")
+        if redundant.isEmpty then Valid(()) else Invalid(s"Repeated principal enrolments: ${redundant.mkString(", ")}")
       }
     }
 
   val validateEachDelegatedEnrolment: GroupConstraint = group =>
     group.delegatedEnrolments match {
-      case s if s.isEmpty => Valid(())
+      case s if s.isEmpty                       => Valid(())
       case _ if group.affinityGroup == AG.Agent =>
         group.delegatedEnrolments
           .map(e =>
@@ -104,17 +104,17 @@ object GroupValidator {
     }
 
   val validateDelegatedEnrolmentsValuesAreDistinct: GroupConstraint = group =>
-    if (group.delegatedEnrolments.isEmpty) Valid(())
+    if group.delegatedEnrolments.isEmpty then Valid(())
     else {
       val results = group.delegatedEnrolments
         .groupBy(_.key)
         .collect { case (key, es) if es.size > 1 => (key, es) }
         .map { case (key, es) =>
           val keys = es.map(e => e.toEnrolmentKeyTag.getOrElse(e.key))
-          if (keys.size == keys.distinct.size) Valid(())
+          if keys.size == keys.distinct.size then Valid(())
           else Invalid(s", $key")
         }
-      if (results.isEmpty) Valid(())
+      if results.isEmpty then Valid(())
       else
         results
           .reduce(_ combine _)
@@ -131,5 +131,5 @@ object GroupValidator {
     validateSuspendedRegimes
   )
 
-  val validate: Group => Validated[List[String], Unit] = Validator.validate(constraints: _*)
+  val validate: Group => Validated[List[String], Unit] = Validator.validate(constraints*)
 }

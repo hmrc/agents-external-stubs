@@ -1,8 +1,23 @@
 import sbt.*
+import sbt.Tags
 import uk.gov.hmrc.DefaultBuildSettings
 
 ThisBuild / majorVersion := 0
-ThisBuild / scalaVersion := "2.13.16"
+ThisBuild / scalaVersion := "3.7.4"
+Global / concurrentRestrictions += Tags.limitAll(1)
+
+lazy val commonProjectSettings = Seq(
+  scalacOptions ++= Seq(
+    "-feature",
+    "-Werror",
+    "-language:implicitConversions"
+  ),
+  Compile / scalafmtOnCompile := true,
+  Test / scalafmtOnCompile := true,
+  Test / logBuffered := false,
+  Compile / scalacOptions ~= (_.distinct),
+  Test / scalacOptions ~= (_.distinct)
+)
 
 lazy val scoverageSettings = {
   import scoverage.ScoverageKeys
@@ -21,30 +36,21 @@ lazy val root = (project in file("."))
     name := "agents-external-stubs",
     organization := "uk.gov.hmrc",
     scalacOptions ++= Seq(
-      "-Xlint:-missing-interpolator,_",
-      "-Ywarn-dead-code",
-      "-deprecation",
-      "-feature",
-      "-unchecked",
       "-Wconf:src=target/.*:s", // silence warnings from compiled files
       "-Wconf:src=routes/.*:s", // silence warnings from routes files
-      "-Wconf:src=*html:w", // silence html warnings as they are wrong
-      "-language:implicitConversions"
+      "-Wconf:src=.*html:w", // silence html warnings as they are wrong
     ),
     PlayKeys.playDefaultPort := 9009,
     libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test,
     scoverageSettings,
+    commonProjectSettings,
     Compile / unmanagedResourceDirectories += baseDirectory.value / "resources",
     routesImport ++= Seq(
-      "uk.gov.hmrc.agentsexternalstubs.binders.UrlBinders._",
+      "uk.gov.hmrc.agentsexternalstubs.binders.UrlBinders.{*, given}",
       "uk.gov.hmrc.agentsexternalstubs.models._"
     ),
-    Compile / scalafmtOnCompile := true,
-    Test / scalafmtOnCompile := true,
-    Test / logBuffered := false
   )
   .settings(
-    //fix for scoverage compile errors for scala 2.13.10
     libraryDependencySchemes ++= Seq("org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always)
   )
   .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
@@ -56,7 +62,6 @@ lazy val it = project
   .settings(DefaultBuildSettings.itSettings())
   .settings(libraryDependencies ++= AppDependencies.test)
   .settings(
-    Compile / scalafmtOnCompile := true,
-    Test / scalafmtOnCompile := true,
-    Test / logBuffered := false
+    commonProjectSettings,
+    Test / parallelExecution := false
   )

@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.json.JsValue
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Request}
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models.{Group, GroupGenerator, Groups}
 import uk.gov.hmrc.agentsexternalstubs.repository.DuplicateGroupException
@@ -36,24 +36,24 @@ class GroupsController @Inject() (
   usersService: UsersService,
   val authenticationService: AuthenticationService,
   cc: ControllerComponents
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
   val groupIdFromPool = "groupIdFromPool"
 
   def getGroups(affinityGroup: Option[String], limit: Option[Int], agentCode: Option[String]): Action[AnyContent] =
-    Action.async { implicit request =>
+    Action.async { request =>
+      given Request[AnyContent] = request
       withCurrentSession { session =>
-        (if (agentCode.isDefined)
-           groupsService.findByAgentCode(agentCode.get, session.planetId).map(_.toSeq)
-         else
-           groupsService.findByPlanetId(session.planetId, affinityGroup)(limit.getOrElse(100))).map(groups =>
+        (if agentCode.isDefined then groupsService.findByAgentCode(agentCode.get, session.planetId).map(_.toSeq)
+         else groupsService.findByPlanetId(session.planetId, affinityGroup)(limit.getOrElse(100))).map(groups =>
           Ok(RestfulResponse(Groups(groups)))
         )
       }(SessionRecordNotFound)
     }
 
-  def getGroup(groupId: String): Action[AnyContent] = Action.async { implicit request =>
+  def getGroup(groupId: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       groupsService.findByGroupId(groupId, session.planetId).map {
         case Some(group) =>
@@ -64,14 +64,15 @@ class GroupsController @Inject() (
               Link("delete", routes.GroupsController.deleteGroup(groupId).url),
               Link("store", routes.GroupsController.createGroup.url),
               Link("list", routes.GroupsController.getGroups(None, None).url)
-            )(Group.format)
+            )(using Group.format)
           )
         case None => notFound("GROUP_NOT_FOUND", s"Could not find group $groupId")
       }
     }(SessionRecordNotFound)
   }
 
-  def updateCurrentGroup: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+  def updateCurrentGroup: Action[JsValue] = Action.async(parse.tolerantJson) { request =>
+    given Request[JsValue] = request
     withCurrentSession { session =>
       withPayload[Group](updatedGroup =>
         for {
@@ -98,7 +99,8 @@ class GroupsController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def updateGroup(groupId: String): Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+  def updateGroup(groupId: String): Action[JsValue] = Action.async(parse.tolerantJson) { request =>
+    given Request[JsValue] = request
     withCurrentSession { session =>
       withPayload[Group] { updatedGroup =>
         groupsService
@@ -115,16 +117,17 @@ class GroupsController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def createGroup: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+  def createGroup: Action[JsValue] = Action.async(parse.tolerantJson) { request =>
+    given Request[JsValue] = request
     withCurrentSession { session =>
       withPayload[Group] { group =>
         groupsService
           .createGroup(
             group.copy(
-              groupId = if (group.groupId == null) {
+              groupId = if group.groupId == null then
                 val randomSeed = session.sessionId + Instant.now().hashCode() + Random.nextString(length = 20)
                 GroupGenerator.groupId(seed = randomSeed)
-              } else group.groupId
+              else group.groupId
             ),
             session.planetId
           )
@@ -141,7 +144,8 @@ class GroupsController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def deleteGroup(groupId: String): Action[AnyContent] = Action.async { implicit request =>
+  def deleteGroup(groupId: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       groupsService.findByGroupId(groupId, session.planetId).flatMap {
         case Some(_) => groupsService.deleteGroup(groupId, session.planetId).map(_ => NoContent)
@@ -150,7 +154,8 @@ class GroupsController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def reindexAllGroups(): Action[AnyContent] = Action.async { implicit request =>
+  def reindexAllGroups(): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { _ =>
       groupsService.reindexAllGroups.map(result => Ok(result.toString))
     }(SessionRecordNotFound)

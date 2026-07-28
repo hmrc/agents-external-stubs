@@ -17,14 +17,14 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.Logging
-import play.api.libs.json._
-import play.api.mvc._
+import play.api.libs.json.*
+import play.api.mvc.*
 import uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.GetRelationships
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{ForeignAddress, UkAddress}
-import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import uk.gov.hmrc.agentsexternalstubs.models.*
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
-import uk.gov.hmrc.agentsexternalstubs.services._
+import uk.gov.hmrc.agentsexternalstubs.services.*
 import uk.gov.hmrc.domain.Vrn
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -42,10 +42,11 @@ class HipStubController @Inject() (
   recordsService: RecordsService,
   recordsRepository: RecordsRepository,
   cc: ControllerComponents
-)(implicit executionContext: ExecutionContext)
+)(using executionContext: ExecutionContext)
     extends BackendController(cc) with ExternalCurrentSession with Logging {
 
-  def displayAgentRelationship: Action[AnyContent] = Action.async { implicit request =>
+  def displayAgentRelationship: Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       hipStubService.validateBaseHeaders(
         request.headers.get("X-Transmitting-System"),
@@ -81,7 +82,7 @@ class HipStubController @Inject() (
                         case Some(businessPartnerRecord) =>
                           businessPartnerRecord.suspensionDetails match {
                             case Some(suspensionDetails) =>
-                              if (suspensionDetails.suspendedRegimes.contains(relationshipRecordQuery.regime)) {
+                              if suspensionDetails.suspendedRegimes.contains(relationshipRecordQuery.regime) then {
                                 Results.UnprocessableEntity(
                                   Json.toJson(Errors("059", s"${record.arn} is currently suspended"))
                                 )
@@ -111,7 +112,8 @@ class HipStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def getAgentSubscription(arn: String): Action[AnyContent] = Action.async { implicit request =>
+  def getAgentSubscription(arn: String): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession(session => handleGetAgentSubscription(arn, session.planetId)) {
       // No session resolvable (e.g. m2m caller with no live session on the default planet) - fall back to
       // finding the BusinessPartnerRecord by arn regardless of planet. Only safe because arn/safeId are now
@@ -123,7 +125,7 @@ class HipStubController @Inject() (
     }
   }
 
-  private def handleGetAgentSubscription(arn: String, planetId: String)(implicit
+  private def handleGetAgentSubscription(arn: String, planetId: String)(using
     request: Request[AnyContent]
   ): Future[Result] =
     hipStubService.validateBaseHeaders(
@@ -155,7 +157,7 @@ class HipStubController @Inject() (
                     Json.toJson(Errors("006", "Subscription Data Not Found"))
                   )
                 case Some(record) => Ok(Json.toJson(convertToGetAgentSubscriptionResponse(record)))
-                case None =>
+                case None         =>
                   Results.UnprocessableEntity(
                     Json.toJson(Errors("006", "Subscription Data Not Found"))
                   )
@@ -168,8 +170,6 @@ class HipStubController @Inject() (
               }
         }
     }
-
-  private def terminatedTest(record: BusinessPartnerRecord): Boolean = false
 
   private def convertToGetAgentSubscriptionResponse(record: BusinessPartnerRecord): HipAgentSubscriptionResponse = {
     val (l1, l2, l3, l4, pc, cc) = record.addressDetails match {
@@ -195,7 +195,7 @@ class HipStubController @Inject() (
         country = cc,
         phone = record.agencyDetails.flatMap(_.agencyTelephone),
         email = record.agencyDetails.flatMap(_.agencyEmail).getOrElse(""),
-        suspensionStatus = if (record.suspensionDetails.exists(_.suspensionStatus)) "T" else "F",
+        suspensionStatus = if record.suspensionDetails.exists(_.suspensionStatus) then "T" else "F",
         regime = regime,
         supervisoryBody = record.agencyDetails.flatMap(_.supervisoryBody),
         membershipNumber = record.agencyDetails.flatMap(_.membershipNumber),
@@ -219,7 +219,8 @@ class HipStubController @Inject() (
     )
   }
 
-  def updateAgentRelationship: Action[JsValue] = Action(parse.json).async { implicit request =>
+  def updateAgentRelationship: Action[JsValue] = Action(parse.json).async { request =>
+    given Request[JsValue] = request
     withCurrentSession { session =>
       hipStubService.validateBaseHeaders(
         request.headers.get("X-Transmitting-System"),
@@ -237,13 +238,13 @@ class HipStubController @Inject() (
               recordsService
                 .getRecordMaybeExt[BusinessPartnerRecord, Arn](Arn(payload.arn), session.planetId) flatMap {
                 case Some(businessPartnerRecord) =>
-                  if (agentIsSuspended(businessPartnerRecord, payload.regime))
+                  if agentIsSuspended(businessPartnerRecord, payload.regime) then
                     Future.successful(
                       Results.UnprocessableEntity(
                         Json.toJson(Errors("059", s"${payload.arn} is currently suspended"))
                       )
                     )
-                  else if (payload.action == "0001") {
+                  else if payload.action == "0001" then {
 
                     def checkInsolvency(): Future[Boolean] = for {
                       mVatInfo <-
@@ -263,7 +264,7 @@ class HipStubController @Inject() (
                       )
                       .map(_ => Created(withProcessingDate).withHeaders(correlationId))
 
-                    if (payload.regime != "VATC") authorise()
+                    if payload.regime != "VATC" then authorise()
                     else
                       checkInsolvency().flatMap {
                         case true =>
@@ -279,7 +280,7 @@ class HipStubController @Inject() (
                     relationshipRecordsService
                       .deAuthorise(UpdateRelationshipPayload.toRelationshipRecord(payload), session.planetId)
                       .map(result =>
-                        if (result.nonEmpty) Created(withProcessingDate).withHeaders(correlationId)
+                        if result.nonEmpty then Created(withProcessingDate).withHeaders(correlationId)
                         else UnprocessableEntity(Json.toJson(Errors("014", "No active relationship found")))
                       )
                   }
@@ -296,7 +297,8 @@ class HipStubController @Inject() (
 
   // HIP  API#5266 ITSA Taxpayer Business Details (previously IF API#1171).
   // Ignores parts of the API that are not relevant to our use case.
-  def itsaTaxPayerBusinessDetails: Action[AnyContent] = Action.async { implicit request =>
+  def itsaTaxPayerBusinessDetails: Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       hipStubService.validateBaseHeaders(
         request.headers.get("X-Transmitting-System"),
@@ -356,7 +358,8 @@ class HipStubController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def createAgentSubscription(safeId: String): Action[JsValue] = Action(parse.json).async { implicit request =>
+  def createAgentSubscription(safeId: String): Action[JsValue] = Action(parse.json).async { request =>
+    given Request[JsValue] = request
     withCurrentSession(session => handleCreateAgentSubscription(safeId, session.planetId)) {
       // No session resolvable - fall back to finding the BusinessPartnerRecord by safeId regardless of
       // planet. Only safe because safeId is now minted globally unique per test run, not the old shared
@@ -368,7 +371,7 @@ class HipStubController @Inject() (
     }
   }
 
-  private def handleCreateAgentSubscription(safeId: String, planetId: String)(implicit
+  private def handleCreateAgentSubscription(safeId: String, planetId: String)(using
     request: Request[JsValue]
   ): Future[Result] =
     hipStubService.validateBaseHeaders(
@@ -398,7 +401,7 @@ class HipStubController @Inject() (
                     case None =>
                       Future.successful(Results.UnprocessableEntity(Json.toJson(Errors("006", "SAFE ID Not found"))))
                     case Some(existingRecord) =>
-                      if (existingRecord.isAnASAgent)
+                      if existingRecord.isAnASAgent then
                         Future.successful(
                           Results.UnprocessableEntity(
                             Json.toJson(
@@ -435,7 +438,8 @@ class HipStubController @Inject() (
         }
     }
 
-  def amendAgentSubscription(arn: String): Action[JsValue] = Action(parse.json).async { implicit request =>
+  def amendAgentSubscription(arn: String): Action[JsValue] = Action(parse.json).async { request =>
+    given Request[JsValue] = request
     withCurrentSession(session => handleAmendAgentSubscription(arn, session.planetId)) {
       // No session resolvable - fall back to finding the BusinessPartnerRecord by arn regardless of
       // planet. Only safe because arn/safeId are now minted globally unique per test run - see
@@ -447,7 +451,7 @@ class HipStubController @Inject() (
     }
   }
 
-  private def handleAmendAgentSubscription(arn: String, planetId: String)(implicit
+  private def handleAmendAgentSubscription(arn: String, planetId: String)(using
     request: Request[JsValue]
   ): Future[Result] =
     hipStubService.validateBaseHeaders(
@@ -473,7 +477,7 @@ class HipStubController @Inject() (
               case Left(errors) =>
                 Future.successful(Results.UnprocessableEntity(Json.toJson(errors)))
               case Right(payload) =>
-                if (payload.isEmpty) {
+                if payload.isEmpty then {
                   Future.successful(
                     Results.Ok(Json.toJson(HipAmendAgentSubscriptionResponse(Instant.now())))
                   )
@@ -489,7 +493,7 @@ class HipStubController @Inject() (
                         )
 
                       case Some(existingRecord) =>
-                        if (!existingRecord.isAnASAgent) {
+                        if !existingRecord.isAnASAgent then {
                           Future.successful(
                             Results.UnprocessableEntity(
                               Json.toJson(Errors("002", "Incomplete subscription"))
@@ -516,13 +520,13 @@ class HipStubController @Inject() (
         }
     }
 
-  /** UCR Customer API v2 - Search Individual By Identifier.
-    * Searches for an individual's VRNs and PAYE refs (EMPREFs) by NINO or UTR.
-    * Looks up the User in the stub database and extracts identifiers from their enrolments.
+  /** UCR Customer API v2 - Search Individual By Identifier. Searches for an individual's VRNs and PAYE refs (EMPREFs)
+    * by NINO or UTR. Looks up the User in the stub database and extracts identifiers from their enrolments.
     * @see
     *   https://admin.tax.service.gov.uk/api-hub/apis/details/ucr-customer-api-v2 "Search Individual By Identifier"
     */
-  def ucrIndividualIdentifierSearch: Action[JsValue] = Action(parse.json).async { implicit request =>
+  def ucrIndividualIdentifierSearch: Action[JsValue] = Action(parse.json).async { request =>
+    given Request[JsValue] = request
     withCurrentSession { session =>
       val correlationId = request.headers.get("correlationid").getOrElse(java.util.UUID.randomUUID().toString)
       hipStubService.validateBaseHeaders(
@@ -536,20 +540,20 @@ class HipStubController @Inject() (
         case Right(_) =>
           ucrStubService.validateSystemId(request.headers.get("system-id")) match {
             case Left(errorResult) => Future.successful(errorResult)
-            case Right(_) =>
+            case Right(_)          =>
               ucrStubService.processIndividualIdentifierSearch(request.body, session.planetId, correlationId)
           }
       }
     }(SessionRecordNotFound)
   }
 
-  /** UCR Customer API v2 - Search Organisation By Identifier.
-    * Searches for an organisation's VRNs and PAYE refs (EMPREFs) by UTR.
-    * Looks up the User by CT UTR enrolment and extracts identifiers from their group's enrolments.
+  /** UCR Customer API v2 - Search Organisation By Identifier. Searches for an organisation's VRNs and PAYE refs
+    * (EMPREFs) by UTR. Looks up the User by CT UTR enrolment and extracts identifiers from their group's enrolments.
     * @see
     *   https://admin.tax.service.gov.uk/api-hub/apis/details/ucr-customer-api-v2 "Search Organisation By Identifier"
     */
-  def ucrOrganisationIdentifierSearch: Action[JsValue] = Action(parse.json).async { implicit request =>
+  def ucrOrganisationIdentifierSearch: Action[JsValue] = Action(parse.json).async { request =>
+    given Request[JsValue] = request
     withCurrentSession { session =>
       val correlationId = request.headers.get("correlationid").getOrElse(java.util.UUID.randomUUID().toString)
       hipStubService.validateBaseHeaders(
@@ -563,7 +567,7 @@ class HipStubController @Inject() (
         case Right(_) =>
           ucrStubService.validateSystemId(request.headers.get("system-id")) match {
             case Left(errorResult) => Future.successful(errorResult)
-            case Right(_) =>
+            case Right(_)          =>
               ucrStubService.processOrganisationIdentifierSearch(request.body, session.planetId, correlationId)
           }
       }
@@ -574,10 +578,10 @@ class HipStubController @Inject() (
     businessPartnerRecord.suspensionDetails.fold(false)(_.suspendedRegimes.contains(regime))
 
   private val withProcessingDate = Json.parse(s"""{"success":{"processingDate": "${LocalDateTime.now()}"}}""")
-  private def correlationId(implicit request: Request[_]): (String, String) =
+  private def correlationId(using request: Request[?]): (String, String) =
     "correlationId" -> request.headers.get("correlationid").get
 
-  //TODO this can be removed and the underlying models refactored once the test packs have moved over to the new endpoint
+  // TODO this can be removed and the underlying models refactored once the test packs have moved over to the new endpoint
   private def convertResponseToNewFormat(response: GetRelationships.Response): AgentRelationshipDisplayResponse =
     AgentRelationshipDisplayResponse(
       processingDate = Instant.now().truncatedTo(ChronoUnit.SECONDS).toString,

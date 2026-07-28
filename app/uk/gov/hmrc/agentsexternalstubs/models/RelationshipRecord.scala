@@ -35,7 +35,7 @@ case class RelationshipRecord(
   id: Option[String] = None
 ) extends Record {
 
-  import RelationshipRecord._
+  import RelationshipRecord.*
 
   override def lookupKeys: Seq[String] =
     Seq(
@@ -54,10 +54,10 @@ case class RelationshipRecord(
 
 object RelationshipRecord extends RecordUtils[RelationshipRecord] {
 
-  implicit val recordUtils: RecordUtils[RelationshipRecord] = this
+  given RecordUtils[RelationshipRecord] = this
 
-  implicit val formats: Format[RelationshipRecord] = Json.format[RelationshipRecord]
-  implicit val recordType: RecordMetaData[RelationshipRecord] = RecordMetaData[RelationshipRecord]
+  given formats: Format[RelationshipRecord] = Json.format[RelationshipRecord]
+  given RecordMetaData[RelationshipRecord] = RecordMetaData[RelationshipRecord]
 
   def fullKey(regime: String, arn: String, idType: String, refNumber: String): String =
     s"FK/$regime/$arn/$idType/$refNumber"
@@ -100,7 +100,7 @@ object RelationshipRecord extends RecordUtils[RelationshipRecord] {
     active <- Generator.booleanGen
   } yield RelationshipRecord(regime, arn, idType, refNumber, active)
 
-  import Validator._
+  import Validator.*
 
   val startDateSanitizer: Update = seed =>
     entity =>
@@ -111,7 +111,7 @@ object RelationshipRecord extends RecordUtils[RelationshipRecord] {
 
   val endDateSanitizer: Update = seed =>
     entity =>
-      if (entity.active) entity
+      if entity.active then entity
       else
         entity.copy(
           endDate = entity.endDate.orElse(
@@ -126,7 +126,7 @@ object RelationshipRecord extends RecordUtils[RelationshipRecord] {
           )
         )
 
-  val itsaRegimeSanitizer: Update = seed =>
+  val itsaRegimeSanitizer: Update = _ =>
     entity => entity.copy(regime = "ITSA", authProfile = None, relationshipType = None)
 
   val vatcRegimeSanitizer: Update = seed =>

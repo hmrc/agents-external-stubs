@@ -20,10 +20,10 @@ import org.scalatest.BeforeAndAfterEach
 import play.api.http.Status
 import play.api.libs.ws.WSClient
 import play.mvc.Http.HeaderNames
-import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.*
 import uk.gov.hmrc.agentsexternalstubs.services.GroupsService
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
-import uk.gov.hmrc.agentsexternalstubs.support._
+import uk.gov.hmrc.agentsexternalstubs.support.*
 
 class GroupsControllerISpec extends ServerBaseISpec with TestRequests with TestStubs with BeforeAndAfterEach {
 
@@ -36,14 +36,14 @@ class GroupsControllerISpec extends ServerBaseISpec with TestRequests with TestS
 
     "GET /agents-external-stubs/groups/:groupId" should {
       "return 404 NotFound for non existent group id" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession()
         val result = Groups.get("1261a762761")
         result should haveStatus(404)
       }
 
       "return 404 NotFound if group exists but on a different planet" in {
         SignIn.signInAndGetSession()
-        implicit val authSession2: AuthenticatedSession = SignIn.signInAndGetSession("boo")
+        given authSession2: AuthenticatedSession = SignIn.signInAndGetSession("boo")
         val result = Groups.get("foo")
         result should haveStatus(404)
       }
@@ -52,7 +52,7 @@ class GroupsControllerISpec extends ServerBaseISpec with TestRequests with TestS
         userService
           .createUser(UserGenerator.individual("testUser", groupId = "testGroup"), "testPlanet", Some(AG.Individual))
           .futureValue
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("testUser", planetId = "testPlanet")
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession("testUser", planetId = "testPlanet")
         val result = Groups.get("testGroup")
         result should haveStatus(200)
         val group = result.json.as[Group]
@@ -63,7 +63,7 @@ class GroupsControllerISpec extends ServerBaseISpec with TestRequests with TestS
 
     "POST /agents-external-stubs/groups/" should {
       "store a new group" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession()
         val result = Groups.create(
           GroupGenerator.generate(authSession.planetId, AG.Individual, groupId = Some("yuwyquhh"))
         )
@@ -72,7 +72,7 @@ class GroupsControllerISpec extends ServerBaseISpec with TestRequests with TestS
       }
 
       "fail if trying to store group with duplicated groupId on the same planet" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession()
         val result1 = Groups.create(
           GroupGenerator.generate(authSession.planetId, AG.Individual, groupId = Some("yuwyquhh"))
         )
@@ -85,7 +85,7 @@ class GroupsControllerISpec extends ServerBaseISpec with TestRequests with TestS
       }
 
       "sanitize invalid group and succeed" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession()
         val result = Groups.create(
           GroupGenerator.generate(authSession.planetId, AG.Individual, groupId = Some("yuwyquhh"))
         )
@@ -95,7 +95,7 @@ class GroupsControllerISpec extends ServerBaseISpec with TestRequests with TestS
 
     "PUT /agents-external-stubs/groups" should {
       "update current group" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
         val group = GroupGenerator.generate(authSession.planetId, AG.Individual, groupId = Some("someGroupId"))
         Groups.create(group)
         val result = Groups.updateCurrent(group.copy(principalEnrolments = Seq(aValidEnrolment)))
@@ -108,7 +108,7 @@ class GroupsControllerISpec extends ServerBaseISpec with TestRequests with TestS
 
     "PUT /agents-external-stubs/groups/:groupId" should {
       "return 404 if groupId not found" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession()
         val result = Groups.update(
           Group(
             authSession.planetId,
@@ -121,7 +121,7 @@ class GroupsControllerISpec extends ServerBaseISpec with TestRequests with TestS
       }
 
       "update an existing group" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession("7728378273")
         val group = Group(authSession.planetId, "7728378273", AG.Individual)
         Groups.create(group)
         val result = Groups.update(group.copy(principalEnrolments = Seq(aValidEnrolment)))
@@ -134,14 +134,14 @@ class GroupsControllerISpec extends ServerBaseISpec with TestRequests with TestS
 
     "DELETE /agents-external-stubs/groups/:groupId" should {
       "return 204 if group can be removed" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession()
         val groupId = Users.get(authSession.userId).json.as[User].groupId.get
         val result = Groups.delete(groupId)
         result should haveStatus(204)
       }
 
       "return 404 if groupId not found" in {
-        implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
+        given authSession: AuthenticatedSession = SignIn.signInAndGetSession()
         val result = Groups.delete("ABC123")
         result should haveStatus(404)
       }
@@ -182,7 +182,7 @@ class GroupsControllerISpec extends ServerBaseISpec with TestRequests with TestS
           )
           .futureValue
 
-        implicit val currentAuthSession: AuthenticatedSession =
+        given currentAuthSession: AuthenticatedSession =
           SignIn.signInAndGetSession("foo1", planetId = "thisPlanet")
         val otherPlanetAuthSession: AuthenticatedSession = SignIn.signInAndGetSession("boo1", planetId = "otherPlanet")
 
@@ -193,7 +193,9 @@ class GroupsControllerISpec extends ServerBaseISpec with TestRequests with TestS
         groups1.map(_.groupId) should contain.only("foo1group", "foo2group", "foo3group")
         groups1.map(_.affinityGroup) should contain.only("Individual", "Agent", "Organisation")
 
-        val result2 = Groups.getAll()(otherPlanetAuthSession)
+        val result2 = Groups.getAll()(using
+          AuthContext.fromTokenAndSessionId(otherPlanetAuthSession.authToken, otherPlanetAuthSession.sessionId)
+        )
         result2 should haveStatus(200)
         val groups2 = result2.json.as[Groups].groups
         groups2.size shouldBe 2
@@ -224,7 +226,7 @@ class GroupsControllerISpec extends ServerBaseISpec with TestRequests with TestS
           )
           .futureValue
 
-        implicit val currentAuthSession: AuthenticatedSession =
+        given currentAuthSession: AuthenticatedSession =
           SignIn.signInAndGetSession("foo1", planetId = "testPlanet")
 
         val result1 = Groups.getAll(affinityGroup = Some("Agent"))
@@ -246,7 +248,7 @@ class GroupsControllerISpec extends ServerBaseISpec with TestRequests with TestS
 
   "POST /agents-external-stubs/groups/re-index" should {
     "re-index all existing groups" in {
-      implicit val authSession: AuthenticatedSession = SignIn.signInAndGetSession()
+      given authSession: AuthenticatedSession = SignIn.signInAndGetSession()
       val result = Groups.reindexAllGroups
       result.status shouldBe 200
       result.body should include("true")

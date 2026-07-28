@@ -17,9 +17,9 @@
 package uk.gov.hmrc.agentsexternalstubs.connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock
-import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import play.api.libs.ws.WSClient
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests, WireMockSupport}
 import uk.gov.hmrc.http.client.HttpClientV2
@@ -33,7 +33,7 @@ class AgentAccessControlConnectorISpec extends ServerBaseISpec with TestRequests
 
   "AgentAccessControlConnector" when {
 
-    implicit val hc: HeaderCarrier = HeaderCarrier()
+    given hc: HeaderCarrier = HeaderCarrier()
 
     "checking epaye delegated auth rule" should {
       "return true" in {

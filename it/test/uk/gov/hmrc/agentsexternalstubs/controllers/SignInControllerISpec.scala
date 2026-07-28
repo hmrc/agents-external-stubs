@@ -43,7 +43,7 @@ class SignInControllerISpec extends ServerBaseISpec with TestRequests {
 
       "authenticate anonymous user and return current session data" in {
         val authToken = SignIn.signInAndGetSession("foo", "boo").authToken
-        val result = SignIn.currentSession(AuthContext.fromToken(authToken))
+        val result = SignIn.currentSession(using AuthContext.fromToken(authToken))
         result.status shouldBe 200
       }
 
@@ -68,7 +68,7 @@ class SignInControllerISpec extends ServerBaseISpec with TestRequests {
     "GET /agents-external-stubs/sign-out" should {
       "remove authentication" in {
         val authToken = SignIn.signInAndGetSession("foo", "boo").authToken
-        val result = SignIn.signOut(AuthContext.fromToken(authToken))
+        val result = SignIn.signOut(using AuthContext.fromToken(authToken))
         result should haveStatus(204)
         result.header(HeaderNames.LOCATION) should be(empty)
       }

@@ -17,27 +17,26 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalacheck.{Arbitrary, Gen}
-import play.api.libs.json._
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import play.api.libs.json.*
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
 import uk.gov.hmrc.agentsexternalstubs.models.Pillar2Record.{AccountStatus, AccountingPeriod, ContactDetails, FilingMemberDetails, UpeCorrespAddressDetails, UpeDetails}
 
-/** ----------------------------------------------------------------------------
-  * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
-  * How to regenerate? Run this command in the project root directory:
-  * sbt "test:runMain uk.gov.hmrc.agentsexternalstubs.RecordClassGeneratorFromJsonSchema schema.json app/uk/gov/hmrc/agentsexternalstubs/models/Pillar2Record.scala Pillar2Record "
+/** ---------------------------------------------------------------------------- Historical note: this model originated
+  * from a schema-driven generator, but it is now maintained directly in this repo. The old regeneration instructions
+  * were removed because the referenced schema inputs are no longer present here.
   * ----------------------------------------------------------------------------
   *
   * A number of things were adjusted by hand:
-  *  - manually added plrReference for indexing and easy identification
-  *  - added 'unique key' and 'lookup keys'
-  *  - replaced the phone number generator to a standard UK phone number to avoid huge strings being generated
+  *   - manually added plrReference for indexing and easy identification
+  *   - added 'unique key' and 'lookup keys'
+  *   - replaced the phone number generator to a standard UK phone number to avoid huge strings being generated
   *
-  *  Pillar2Record
-  *  -  FormBundleNumber
-  *  -  UpeDetails
-  *  -  AccountingPeriod
-  *  -  UpeCorrespAddressDetails
-  *  -  PrimaryContactDetails
+  * Pillar2Record
+  *   - FormBundleNumber
+  *   - UpeDetails
+  *   - AccountingPeriod
+  *   - UpeCorrespAddressDetails
+  *   - PrimaryContactDetails
   */
 
 case class Pillar2Record(
@@ -96,14 +95,14 @@ case class Pillar2Record(
 
 object Pillar2Record extends RecordUtils[Pillar2Record] {
 
-  implicit val recordUtils: RecordUtils[Pillar2Record] = this
-  implicit val takesPlrIdKey: TakesKey[Pillar2Record, PlrId] = TakesKey(plrId => Seq(plrReferenceKey(plrId.value)))
+  given recordUtils: RecordUtils[Pillar2Record] = this
+  given takesPlrIdKey: TakesKey[Pillar2Record, PlrId] = TakesKey(plrId => Seq(plrReferenceKey(plrId.value)))
 
-  implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
-  implicit val recordType: RecordMetaData[Pillar2Record] = RecordMetaData[Pillar2Record]
+  given arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
+  given recordType: RecordMetaData[Pillar2Record] = RecordMetaData[Pillar2Record]
 
-  import Generator.GenOps._
-  import Validator._
+  import Generator.GenOps.*
+  import Validator.*
 
   def plrReferenceKey(key: String): String = s"""plrReference:${key.toUpperCase}"""
 
@@ -201,7 +200,7 @@ object Pillar2Record extends RecordUtils[Pillar2Record] {
     accountStatusSanitizer
   )
 
-  implicit val formats: Format[Pillar2Record] = Json.format[Pillar2Record]
+  given formats: Format[Pillar2Record] = Json.format[Pillar2Record]
 
   case class AccountStatus(inactive: Boolean = false) {
 
@@ -222,7 +221,7 @@ object Pillar2Record extends RecordUtils[Pillar2Record] {
 
     override val sanitizers: Seq[Update] = Seq()
 
-    implicit val formats: Format[AccountStatus] = Json.format[AccountStatus]
+    given formats: Format[AccountStatus] = Json.format[AccountStatus]
 
   }
 
@@ -256,7 +255,7 @@ object Pillar2Record extends RecordUtils[Pillar2Record] {
 
     override val sanitizers: Seq[Update] = Seq(dueDateSanitizer)
 
-    implicit val formats: Format[AccountingPeriod] = Json.format[AccountingPeriod]
+    given formats: Format[AccountingPeriod] = Json.format[AccountingPeriod]
 
   }
 
@@ -303,7 +302,7 @@ object Pillar2Record extends RecordUtils[Pillar2Record] {
 
     override val sanitizers: Seq[Update] = Seq(telephoneSanitizer)
 
-    implicit val formats: Format[ContactDetails] = Json.format[ContactDetails]
+    given formats: Format[ContactDetails] = Json.format[ContactDetails]
 
   }
 
@@ -380,7 +379,7 @@ object Pillar2Record extends RecordUtils[Pillar2Record] {
 
     override val sanitizers: Seq[Update] = Seq(customerIdentification1Sanitizer, customerIdentification2Sanitizer)
 
-    implicit val formats: Format[FilingMemberDetails] = Json.format[FilingMemberDetails]
+    given formats: Format[FilingMemberDetails] = Json.format[FilingMemberDetails]
 
   }
 
@@ -489,7 +488,7 @@ object Pillar2Record extends RecordUtils[Pillar2Record] {
     override val sanitizers: Seq[Update] =
       Seq(addressLine2Sanitizer, addressLine3Sanitizer, addressLine4Sanitizer, postCodeSanitizer)
 
-    implicit val formats: Format[UpeCorrespAddressDetails] = Json.format[UpeCorrespAddressDetails]
+    given formats: Format[UpeCorrespAddressDetails] = Json.format[UpeCorrespAddressDetails]
 
   }
 
@@ -575,7 +574,7 @@ object Pillar2Record extends RecordUtils[Pillar2Record] {
 
     override val sanitizers: Seq[Update] = Seq(customerIdentification1Sanitizer, customerIdentification2Sanitizer)
 
-    implicit val formats: Format[UpeDetails] = Json.format[UpeDetails]
+    given formats: Format[UpeDetails] = Json.format[UpeDetails]
 
   }
 

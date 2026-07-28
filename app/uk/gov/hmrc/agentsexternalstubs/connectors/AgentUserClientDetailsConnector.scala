@@ -19,17 +19,18 @@ package uk.gov.hmrc.agentsexternalstubs.connectors
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class AgentUserClientDetailsConnector @Inject() (httpClientV2: HttpClientV2, appConfig: AppConfig)(implicit
+class AgentUserClientDetailsConnector @Inject() (httpClientV2: HttpClientV2, appConfig: AppConfig)(using
   ec: ExecutionContext
 ) {
 
   val baseUrl: String = appConfig.agentUserClientDetailsUrl
-  implicit val hc: HeaderCarrier = HeaderCarrier()
+  given HeaderCarrier = HeaderCarrier()
   def deleteTestData(arn: String, groupId: String): Future[Unit] =
     httpClientV2
       .delete(url"$baseUrl/test-only/agent-user-client-details/delete-test-data/arn/$arn/groupId/$groupId")

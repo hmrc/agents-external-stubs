@@ -23,8 +23,8 @@ sealed abstract class Service(
   val id: String,
   val invitationIdPrefix: Char,
   val enrolmentKey: String,
-  val supportedSuppliedClientIdType: ClientIdType[_ <: TaxIdentifier],
-  val supportedClientIdType: ClientIdType[_ <: TaxIdentifier]
+  val supportedSuppliedClientIdType: ClientIdType[? <: TaxIdentifier],
+  val supportedClientIdType: ClientIdType[? <: TaxIdentifier]
 ) {
 
   override def toString: String = this.id
@@ -51,8 +51,7 @@ object Service {
   val HMRCPILLAR2ORG = "HMRC-PILLAR2-ORG"
   val HMRCMTDITSUPP = "HMRC-MTD-IT-SUPP"
 
-  case object MtdIt
-      extends Service(
+  case object MtdIt extends Service(
         "HMRC-MTD-IT",
         'A',
         "HMRC-MTD-IT",
@@ -60,8 +59,7 @@ object Service {
         MtdItIdType
       )
 
-  case object PersonalIncomeRecord
-      extends Service(
+  case object PersonalIncomeRecord extends Service(
         "PERSONAL-INCOME-RECORD",
         'B',
         "HMRC-NI",
@@ -69,8 +67,7 @@ object Service {
         NinoType
       )
 
-  case object Vat
-      extends Service(
+  case object Vat extends Service(
         "HMRC-MTD-VAT",
         'C',
         "HMRC-MTD-VAT",
@@ -78,8 +75,7 @@ object Service {
         VrnType
       )
 
-  case object Trust
-      extends Service(
+  case object Trust extends Service(
         "HMRC-TERS-ORG",
         'D',
         "HMRC-TERS-ORG",
@@ -87,8 +83,7 @@ object Service {
         UtrType
       )
 
-  case object TrustNT
-      extends Service(
+  case object TrustNT extends Service(
         "HMRC-TERSNT-ORG",
         'F',
         "HMRC-TERSNT-ORG",
@@ -96,8 +91,7 @@ object Service {
         UrnType
       )
 
-  case object CapitalGains
-      extends Service(
+  case object CapitalGains extends Service(
         "HMRC-CGT-PD",
         'E',
         "HMRC-CGT-PD",
@@ -105,8 +99,7 @@ object Service {
         CgtRefType
       )
 
-  case object Ppt
-      extends Service(
+  case object Ppt extends Service(
         "HMRC-PPT-ORG",
         'G',
         "HMRC-PPT-ORG",
@@ -114,8 +107,7 @@ object Service {
         PptRefType
       )
 
-  case object Cbc
-      extends Service(
+  case object Cbc extends Service(
         "HMRC-CBC-ORG",
         'H',
         "HMRC-CBC-ORG",
@@ -123,8 +115,7 @@ object Service {
         CbcIdType
       )
 
-  case object CbcNonUk
-      extends Service(
+  case object CbcNonUk extends Service(
         "HMRC-CBC-NONUK-ORG",
         'J',
         "HMRC-CBC-NONUK-ORG",
@@ -132,8 +123,7 @@ object Service {
         CbcIdType
       )
 
-  case object Pillar2
-      extends Service(
+  case object Pillar2 extends Service(
         "HMRC-PILLAR2-ORG",
         'K',
         "HMRC-PILLAR2-ORG",
@@ -141,8 +131,7 @@ object Service {
         PlrIdType
       )
 
-  case object MtdItSupp
-      extends Service(
+  case object MtdItSupp extends Service(
         "HMRC-MTD-IT-SUPP",
         'L',
         "HMRC-MTD-IT-SUPP",
@@ -171,14 +160,14 @@ object Service {
   def apply(id: String): Service = forId(id)
   def unapply(service: Service): Option[String] = Some(service.id)
 
-  val reads = new SimpleObjectReads[Service]("id", Service.apply)
-  val writes = new SimpleObjectWrites[Service](_.id)
-  implicit val format: Format[Service] = Format(reads, writes)
+  given SimpleObjectReads[Service] = new SimpleObjectReads[Service]("id", Service.apply)
+  given SimpleObjectWrites[Service] = new SimpleObjectWrites[Service](_.id)
+  given Format[Service] = Format(summon[SimpleObjectReads[Service]], summon[SimpleObjectWrites[Service]])
 
 }
 
 sealed abstract class ClientIdType[+T <: TaxIdentifier](
-  val clazz: Class[_],
+  val clazz: Class[?],
   val id: String,
   val enrolmentId: String,
   val createUnderlying: String => T
@@ -204,8 +193,7 @@ object ClientIdType {
 
 }
 
-case object NinoType
-    extends ClientIdType(
+case object NinoType extends ClientIdType(
       classOf[NinoWithoutSuffix],
       "ni",
       "NINO",
@@ -214,8 +202,7 @@ case object NinoType
   override def isValid(value: String): Boolean = NinoWithoutSuffix.isValid(value)
 }
 
-case object MtdItIdType
-    extends ClientIdType(
+case object MtdItIdType extends ClientIdType(
       classOf[MtdItId],
       "MTDITID",
       "MTDITID",
@@ -224,8 +211,7 @@ case object MtdItIdType
   override def isValid(value: String): Boolean = MtdItId.isValid(value)
 }
 
-case object VrnType
-    extends ClientIdType(
+case object VrnType extends ClientIdType(
       classOf[Vrn],
       "vrn",
       "VRN",
@@ -234,8 +220,7 @@ case object VrnType
   override def isValid(value: String): Boolean = Vrn.isValid(value)
 }
 
-case object UtrType
-    extends ClientIdType(
+case object UtrType extends ClientIdType(
       classOf[Utr],
       "utr",
       "SAUTR",
@@ -244,8 +229,7 @@ case object UtrType
   override def isValid(value: String): Boolean = value.matches("^\\d{10}$")
 }
 
-case object UrnType
-    extends ClientIdType(
+case object UrnType extends ClientIdType(
       classOf[Urn],
       "urn",
       "URN",
@@ -254,8 +238,7 @@ case object UrnType
   override def isValid(value: String): Boolean = value.matches("^([A-Z0-9]{1,15})$")
 }
 
-case object CgtRefType
-    extends ClientIdType(
+case object CgtRefType extends ClientIdType(
       classOf[CgtRef],
       "CGTPDRef",
       "CGTPDRef",
@@ -264,8 +247,7 @@ case object CgtRefType
   override def isValid(value: String): Boolean = CgtRef.isValid(value)
 }
 
-case object PptRefType
-    extends ClientIdType(
+case object PptRefType extends ClientIdType(
       classOf[PptRef],
       "EtmpRegistrationNumber",
       "EtmpRegistrationNumber",
@@ -274,8 +256,7 @@ case object PptRefType
   override def isValid(value: String): Boolean = PptRef.isValid(value)
 }
 
-case object CbcIdType
-    extends ClientIdType(
+case object CbcIdType extends ClientIdType(
       classOf[CbcId],
       "cbcId",
       "cbcId",
@@ -284,8 +265,7 @@ case object CbcIdType
   override def isValid(value: String): Boolean = CbcId.isValid(value)
 }
 
-case object PlrIdType
-    extends ClientIdType(
+case object PlrIdType extends ClientIdType(
       classOf[PlrId],
       "PLRID",
       "PLRID",
@@ -310,7 +290,7 @@ case class ClientIdentifier[T <: TaxIdentifier](underlying: T) {
 
 object ClientIdentifier {
 
-  type ClientId = ClientIdentifier[_ <: TaxIdentifier]
+  type ClientId = ClientIdentifier[? <: TaxIdentifier]
 
   def apply(
     value: String,
@@ -320,6 +300,6 @@ object ClientIdentifier {
     .getOrElse(throw new IllegalArgumentException("Invalid Client Id Type: " + typeId))
     .createUnderlying(value.replaceAll("\\s", ""))
 
-  implicit def wrap[T <: TaxIdentifier](taxId: T): ClientIdentifier[T] = ClientIdentifier(taxId)
+  given [T <: TaxIdentifier]: Conversion[T, ClientIdentifier[T]] = ClientIdentifier(_)
 
 }

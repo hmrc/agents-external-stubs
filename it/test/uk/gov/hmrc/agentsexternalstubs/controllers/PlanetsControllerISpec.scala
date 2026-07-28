@@ -18,11 +18,11 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.agentsexternalstubs.controllers.SpecialCasesController.writes
-import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.repository._
-import uk.gov.hmrc.agentsexternalstubs.support._
+import uk.gov.hmrc.agentsexternalstubs.models.*
+import uk.gov.hmrc.agentsexternalstubs.repository.*
+import uk.gov.hmrc.agentsexternalstubs.support.*
 
 class PlanetsControllerISpec extends ServerBaseISpec with TestRequests with ExampleDesPayloads {
 
@@ -39,7 +39,7 @@ class PlanetsControllerISpec extends ServerBaseISpec with TestRequests with Exam
 
     "DELETE /agents-external-stubs/planets/:planetId" should {
       "remove all planet related data and return 204" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val enrolmentKey = EnrolmentKey("HMRC-MTD-IT", Seq(Identifier("MTDITID", "XAAA12345678901")))
         Seq(
           Users.create(UserGenerator.individual(), Some(AG.Individual)), // this should also create a group

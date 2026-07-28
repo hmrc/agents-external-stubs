@@ -28,18 +28,18 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 final class RecordsService @Inject() (recordsRepository: RecordsRepository, externalUserService: ExternalUserService) {
 
-  def findByKeys[T](keys: Seq[String], planetId: String)(implicit
+  def findByKeys[T](keys: Seq[String], planetId: String)(using
     metadata: RecordMetaData[T],
     reads: Reads[T]
   ): Future[Seq[T]] =
     recordsRepository.findByKeys[T](keys, planetId, limit = Some(1000))
 
-  def store[A <: Record](record: A, autoFill: Boolean, planetId: String)(implicit
+  def store[A <: Record](record: A, autoFill: Boolean, planetId: String)(using
     recordUtils: RecordUtils[A],
     writes: Writes[A]
   ): Future[String] = {
     val entity =
-      if (autoFill)
+      if autoFill then
         recordUtils.sanitize(record.uniqueKey.getOrElse(throw new RuntimeException("no unique key!")))(record)
       else record
     recordUtils
@@ -50,11 +50,11 @@ final class RecordsService @Inject() (recordsRepository: RecordsRepository, exte
       )
   }
 
-  /** Retrieve a record of the given type and by using the given identifier.
-    * There must be an implicit instance of TakesKey to instruct how the identifier is to be turned into a key for
-    * the lookup in the records repository. These instances are usually defined in the record type definition.
+  /** Retrieve a record of the given type and by using the given identifier. There must be a `TakesKey` instance to
+    * instruct how the identifier is turned into a key for the lookup in the records repository. These instances are
+    * usually defined in the record type definition.
     */
-  def getRecord[A, K](identifier: K, planetId: String)(implicit
+  def getRecord[A, K](identifier: K, planetId: String)(using
     ec: ExecutionContext,
     metadata: RecordMetaData[A],
     ev: TakesKey[A, K],
@@ -67,7 +67,7 @@ final class RecordsService @Inject() (recordsRepository: RecordsRepository, exte
   /** Same as getRecord, but if not found it will try to find an external user (from api-platform) with the given
     * identifier, sync it (if found) and try again.
     */
-  def getRecordMaybeExt[A, K <: TaxIdentifier](identifier: K, planetId: String)(implicit
+  def getRecordMaybeExt[A, K <: TaxIdentifier](identifier: K, planetId: String)(using
     ec: ExecutionContext,
     metadata: RecordMetaData[A],
     ev: TakesKey[A, K],
@@ -80,11 +80,10 @@ final class RecordsService @Inject() (recordsRepository: RecordsRepository, exte
 
   /** Same as getRecord, but searches across all planets rather than a single known one, for use when there is no
     * session/planetId to scope the lookup to (e.g. a machine-to-machine caller with no resolvable session - see
-    * ExternalCurrentSession). Only safe when the identifier is expected to be globally unique; if it collides
-    * across planets, logs a warning and arbitrarily uses the first match. Returns the owning planetId alongside
-    * the record.
+    * ExternalCurrentSession). Only safe when the identifier is expected to be globally unique; if it collides across
+    * planets, logs a warning and arbitrarily uses the first match. Returns the owning planetId alongside the record.
     */
-  def getRecordAnyPlanet[A, K](identifier: K)(implicit
+  def getRecordAnyPlanet[A, K](identifier: K)(using
     ec: ExecutionContext,
     metadata: RecordMetaData[A],
     ev: TakesKey[A, K],
@@ -101,7 +100,7 @@ final class RecordsService @Inject() (recordsRepository: RecordsRepository, exte
       matches.headOption
     }
 
-  def deleteRecord[A, K](identifier: K, planetId: String)(implicit
+  def deleteRecord[A, K](identifier: K, planetId: String)(using
     ec: ExecutionContext,
     metadata: RecordMetaData[A],
     ev: TakesKey[A, K]

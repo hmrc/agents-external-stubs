@@ -15,6 +15,7 @@
  */
 
 package uk.gov.hmrc.agentsexternalstubs.support
+
 import com.codahale.metrics.{MetricRegistry, SharedMetricRegistries}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -26,17 +27,19 @@ import uk.gov.hmrc.play.bootstrap.audit.DisabledDatastreamMetricsProvider
 import uk.gov.hmrc.play.bootstrap.graphite.GraphiteMetricsModule
 import uk.gov.hmrc.play.bootstrap.metrics.{DisabledMetricsFilter, Metrics, MetricsFilter}
 
+import java.net.ServerSocket
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.{Lock, ReentrantLock}
 import scala.concurrent.Await
+import scala.util.Using
 
-trait TestPlayServer {
+trait TestPlayServer:
 
-  private val testServer: AtomicReference[TestServer] = new AtomicReference[TestServer]()
+  private val testServer: AtomicReference[Option[TestServer]] = new AtomicReference(None)
   private val lock: Lock = new ReentrantLock()
 
-  val port: Int = 2222
-  val wireMockPort: Int = 1111
+  val port: Int = FreePort.ports._1
+  val wireMockPort: Int = FreePort.ports._2
 
   lazy val app: Application = appBuilder.build()
 
@@ -53,36 +56,45 @@ trait TestPlayServer {
 
   protected def appBuilder: GuiceApplicationBuilder =
     new GuiceApplicationBuilder()
-      .configure(configuration: _*)
+      .configure(configuration*)
       .disable[GraphiteMetricsModule]
       .overrides(bind[MetricsFilter].to[DisabledMetricsFilter])
       .overrides(bind(classOf[DatastreamMetrics]).toProvider(classOf[DisabledDatastreamMetricsProvider]))
       .overrides(bind[Metrics].to[TestMetrics])
 
+  private def withLock(op: => Unit): Unit =
+    if lock.tryLock() then
+      try
+        op
+      finally
+        lock.unlock()
+    else ()
+
   def run(): Unit =
-    if (lock.tryLock()) try if (testServer.get() == null) {
-      println(s"Starting TestPlayServer at $port ... ")
-      val server = TestServer(port, app)
-      server.start()
-      val wsClient = app.injector.instanceOf[WSClient]
-      import scala.concurrent.duration._
-      Await.result(wsClient.url(s"http://localhost:$port/ping/ping").withRequestTimeout(5.seconds).get(), 5.seconds)
-      testServer.set(server)
-      Runtime.getRuntime.addShutdownHook(new Thread(new Runnable {
-        override def run(): Unit =
-          stop()
-      }))
-      println("ready.")
-    } finally lock.unlock()
+    withLock:
+      testServer
+        .get()
+        .fold {
+          println(s"Starting TestPlayServer at $port ... ")
+          val server = TestServer(port, app)
+          server.start()
+          val wsClient = app.injector.instanceOf[WSClient]
+          import scala.concurrent.duration.*
+          Await.result(wsClient.url(s"http://localhost:$port/ping/ping").withRequestTimeout(5.seconds).get(), 5.seconds)
+          testServer.set(Some(server))
+          Runtime.getRuntime.addShutdownHook(new Thread(() => stop()))
+          println("ready.")
+        }(identity)
 
   def stop(): Unit =
-    if (lock.tryLock()) try if (testServer.get() != null) {
-      println(s"Stopping TestPlayServer at $port ...")
-      testServer.get().stop()
-      testServer.set(null)
-    } finally lock.unlock()
-
-}
+    withLock:
+      testServer
+        .get()
+        .fold(identity)(server =>
+          println(s"Stopping TestPlayServer at $port ...")
+          server.stop()
+          testServer.set(None)
+        )
 
 object TestPlayServer extends TestPlayServer
 
@@ -90,3 +102,7 @@ class TestMetrics extends Metrics {
 
   def defaultRegistry: MetricRegistry = SharedMetricRegistries.getOrCreate("test")
 }
+
+object FreePort:
+  val ports: (Int, Int) = Using.resources(new ServerSocket(0), new ServerSocket(0)): (server, wiremock) =>
+    (server.getLocalPort, wiremock.getLocalPort)

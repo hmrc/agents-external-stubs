@@ -22,7 +22,7 @@ import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.agentsexternalstubs.models.RegexPatterns.Matcher
 
 import scala.io.Source
-import java.io._
+import java.io.*
 import java.nio.charset.StandardCharsets
 
 case class Service(
@@ -47,7 +47,7 @@ case class Service(
 
 object Service {
 
-  implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
+  given Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
 
   case class Identifier(name: String, description: String, regex: String, pattern: Option[String])
       extends IdentifierLike {
@@ -56,7 +56,7 @@ object Service {
       valueGenerator.map(value =>
         uk.gov.hmrc.agentsexternalstubs.models.Identifier(
           name,
-          if (value.nonEmpty) value else throw new Exception(s"Could not generate value for an identifier $name")
+          if value.nonEmpty then value else throw new Exception(s"Could not generate value for an identifier $name")
         )
       )
   }
@@ -88,11 +88,11 @@ object Services {
 
   def apply(name: String): Option[Service] = servicesByKey.get(name)
 
-  implicit val f0: Format[Service.Identifier] = Json.format[Service.Identifier]
-  implicit val f1: Format[Service.KnownFact] = Json.format[Service.KnownFact]
-  implicit val f2: Format[Service.Flags] = Json.format[Service.Flags]
-  implicit val f3: Format[Service] = Json.format[Service]
-  implicit val f4: Format[Services] = Json.format[Services]
+  given Format[Service.Identifier] = Json.format[Service.Identifier]
+  given Format[Service.KnownFact] = Json.format[Service.KnownFact]
+  given Format[Service.Flags] = Json.format[Service.Flags]
+  given Format[Service] = Json.format[Service]
+  given Format[Services] = Json.format[Services]
 
   val services: Seq[Service] = {
     val json = Source

@@ -25,13 +25,13 @@ sealed trait SubscribeAgentServiceResponse
 case class DesIfResponse(safeId: String, agentRegistrationNumber: String) extends SubscribeAgentServiceResponse
 
 object DesIfResponse {
-  implicit val writes: Writes[DesIfResponse] = Json.writes[DesIfResponse]
+  given Writes[DesIfResponse] = Json.writes[DesIfResponse]
 }
 
 case class HipResponse(processingDate: LocalDateTime, arn: String) extends SubscribeAgentServiceResponse
 
 object HipResponse {
-  implicit val writes: Writes[HipResponse] = Writes { response =>
+  given Writes[HipResponse] = Writes { response =>
     Json.obj(
       "success" -> Json.obj(
         "processingDate" -> response.processingDate.toString,
@@ -44,7 +44,7 @@ object HipResponse {
 case class HipAmendAgentSubscriptionResponse(processingDate: Instant)
 
 object HipAmendAgentSubscriptionResponse {
-  implicit val writes: Writes[HipAmendAgentSubscriptionResponse] = Writes { response =>
+  given Writes[HipAmendAgentSubscriptionResponse] = Writes { response =>
     Json.obj(
       "success" -> Json.obj(
         "processingDate" -> response.processingDate.toString

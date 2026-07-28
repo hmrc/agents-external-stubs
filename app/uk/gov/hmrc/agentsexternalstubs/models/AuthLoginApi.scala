@@ -73,19 +73,16 @@ object AuthLoginApi {
     object DelegatedEnrolment {
 
       def from(group: Group): Option[Seq[DelegatedEnrolment]] =
-        if (group.delegatedEnrolments.isEmpty)
-          None
+        if group.delegatedEnrolments.isEmpty then None
         else {
           val delegatedEnrolments =
             group.delegatedEnrolments
               .map(e =>
-                delegatedAuthRuleFor(e.key).map(rule =>
-                  DelegatedEnrolment(e.key, e.identifiers.getOrElse(Seq.empty), rule)
-                )
+                delegatedAuthRuleFor(e.key)
+                  .map(rule => DelegatedEnrolment(e.key, e.identifiers.getOrElse(Seq.empty), rule))
               )
               .collect { case Some(e) => e }
-          if (delegatedEnrolments.isEmpty)
-            None
+          if delegatedEnrolments.isEmpty then None
           else Some(delegatedEnrolments)
         }
 
@@ -102,17 +99,17 @@ object AuthLoginApi {
           case _               => None
         }
 
-      implicit val formats: Format[DelegatedEnrolment] = Json.format[DelegatedEnrolment]
+      given Format[DelegatedEnrolment] = Json.format[DelegatedEnrolment]
     }
 
     case class MdtpInformation(deviceId: String, sessionId: String)
     object MdtpInformation {
-      implicit val formats: Format[MdtpInformation] = Json.format[MdtpInformation]
+      given Format[MdtpInformation] = Json.format[MdtpInformation]
     }
 
     case class GatewayInformation(gatewayToken: Option[String])
     object GatewayInformation {
-      implicit val formats: Format[GatewayInformation] = Json.format[GatewayInformation]
+      given Format[GatewayInformation] = Json.format[GatewayInformation]
     }
 
     case class ItmpAddress(
@@ -127,7 +124,7 @@ object AuthLoginApi {
     )
 
     object ItmpAddress {
-      implicit val formats: OFormat[ItmpAddress] = Json.format[ItmpAddress]
+      given OFormat[ItmpAddress] = Json.format[ItmpAddress]
     }
 
     case class ItmpData(
@@ -139,16 +136,16 @@ object AuthLoginApi {
     )
 
     object ItmpData {
-      implicit val formats: OFormat[ItmpData] = Json.format[ItmpData]
+      given OFormat[ItmpData] = Json.format[ItmpData]
     }
 
-    implicit val formats: Format[Request] = Json.format[Request]
+    given Format[Request] = Json.format[Request]
 
   }
 
   case class Response(authToken: String, sessionAuthorityUri: String)
 
   object Response {
-    implicit val reads: Reads[Response] = Json.reads[Response]
+    given Reads[Response] = Json.reads[Response]
   }
 }

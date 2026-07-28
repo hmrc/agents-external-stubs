@@ -16,19 +16,18 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import play.api.libs.json._
-import uk.gov.hmrc.agentsexternalstubs.models.SubscribeAgentServicesPayload._
+import play.api.libs.json.*
+import uk.gov.hmrc.agentsexternalstubs.models.SubscribeAgentServicesPayload.*
 
-/** ----------------------------------------------------------------------------
-  * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
-  * How to regenerate? Run this command in the project root directory:
-  * sbt "test:runMain uk.gov.hmrc.agentsexternalstubs.RecordClassGeneratorFromJsonSchema docs/schemas/DES1173.json app/uk/gov/hmrc/agentsexternalstubs/models/SubscribeAgentServicesPayload.scala SubscribeAgentServicesPayload output:payload"
+/** ---------------------------------------------------------------------------- Historical note: this model originated
+  * from a schema-driven generator, but it is now maintained directly in this repo. The old regeneration instructions
+  * were removed because the referenced schema inputs are no longer present here.
   * ----------------------------------------------------------------------------
   *
-  *  SubscribeAgentServicesPayload
-  *  -  AgencyAddress
-  *  -  ForeignAddress
-  *  -  UkAddress
+  * SubscribeAgentServicesPayload
+  *   - AgencyAddress
+  *   - ForeignAddress
+  *   - UkAddress
   */
 case class SubscribeAgentServicesPayload(
   safeId: Option[String] = None,
@@ -59,7 +58,7 @@ case class SubscribeAgentServicesPayload(
 
 object SubscribeAgentServicesPayload {
 
-  import Validator._
+  import Validator.*
 
   val safeIdValidator: Validator[Option[String]] =
     check(_.matches(Common.safeIdPattern), s"""Invalid safeId, does not matches regex ${Common.safeIdPattern}""")
@@ -83,7 +82,7 @@ object SubscribeAgentServicesPayload {
     checkProperty(_.agencyEmail, agencyEmailValidator)
   )
 
-  implicit val formats: Format[SubscribeAgentServicesPayload] = Json.format[SubscribeAgentServicesPayload]
+  given formats: Format[SubscribeAgentServicesPayload] = Json.format[SubscribeAgentServicesPayload]
 
   sealed trait AgencyAddress {
     def addressLine2: Option[String] = None
@@ -100,7 +99,7 @@ object SubscribeAgentServicesPayload {
       case x: ForeignAddress => ForeignAddress.validate(x)
     }
 
-    implicit val reads: Reads[AgencyAddress] = new Reads[AgencyAddress] {
+    given reads: Reads[AgencyAddress] = new Reads[AgencyAddress] {
       override def reads(json: JsValue): JsResult[AgencyAddress] = {
         val r0 =
           UkAddress.formats.reads(json).flatMap(e => UkAddress.validate(e).fold(_ => JsError(), _ => JsSuccess(e)))
@@ -127,7 +126,7 @@ object SubscribeAgentServicesPayload {
         )
     }
 
-    implicit val writes: Writes[AgencyAddress] = new Writes[AgencyAddress] {
+    given writes: Writes[AgencyAddress] = new Writes[AgencyAddress] {
       override def writes(o: AgencyAddress): JsValue = o match {
         case x: UkAddress      => UkAddress.formats.writes(x)
         case x: ForeignAddress => ForeignAddress.formats.writes(x)
@@ -199,7 +198,7 @@ object SubscribeAgentServicesPayload {
       checkProperty(_.countryCode, countryCodeValidator)
     )
 
-    implicit val formats: Format[ForeignAddress] = Json.format[ForeignAddress]
+    given formats: Format[ForeignAddress] = Json.format[ForeignAddress]
 
   }
 
@@ -266,7 +265,7 @@ object SubscribeAgentServicesPayload {
       checkProperty(_.countryCode, countryCodeValidator)
     )
 
-    implicit val formats: Format[UkAddress] = Json.format[UkAddress]
+    given formats: Format[UkAddress] = Json.format[UkAddress]
 
   }
 

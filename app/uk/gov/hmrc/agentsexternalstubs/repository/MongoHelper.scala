@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.agentsexternalstubs.repository
 
-import com.mongodb.client.result.UpdateResult
 import org.mongodb.scala.result
 
 import scala.concurrent.Future
@@ -37,16 +36,16 @@ object MongoHelper {
 //      Future.successful(())
 //  }
 
-  def interpretInsertOneResult: ((result.InsertOneResult, String)) => Future[String] = { case (r, id) =>
+  def interpretInsertOneResult: ((result.InsertOneResult, String)) => Future[String] = { case (_, id) =>
     // TODO! No idea how to replicate the 'interpret' logic with the newer Mongo library
     Future.successful(id)
   }
 
-  def interpretUpdateResult: ((result.UpdateResult, String)) => Future[String] = { case (r, id) =>
+  def interpretUpdateResult: ((result.UpdateResult, String)) => Future[String] = { case (_, id) =>
     // TODO! No idea how to replicate the 'interpret' logic with the newer Mongo library
     Future.successful(id)
   }
-  def interpretUpdateResultUnit(r: UpdateResult): Future[Unit] =
+  def interpretUpdateResultUnit(): Future[Unit] =
     // TODO! No idea how to replicate the 'interpret' logic with the newer Mongo library
     Future.successful(())
 }

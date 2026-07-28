@@ -34,5 +34,6 @@ case class AmlsSubscriptionStatusResponse(
 )
 
 object AmlsSubscriptionStatusResponse {
-  implicit val format: OFormat[AmlsSubscriptionStatusResponse] = Json.format[AmlsSubscriptionStatusResponse]
+  given OFormat[AmlsSubscriptionStatusResponse] = Json.format[AmlsSubscriptionStatusResponse]
+  val format: OFormat[AmlsSubscriptionStatusResponse] = summon[OFormat[AmlsSubscriptionStatusResponse]]
 }

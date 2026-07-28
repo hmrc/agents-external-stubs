@@ -22,8 +22,9 @@ import java.util.UUID
 
 object GroupGenerator {
 
-  import uk.gov.hmrc.agentsexternalstubs.models.Generator._
-  import uk.gov.hmrc.smartstub._
+  import uk.gov.hmrc.agentsexternalstubs.models.Generator.*
+  import uk.gov.hmrc.agentsexternalstubs.models.Generator.given
+  import uk.gov.hmrc.smartstub.*
 
   def nameForIndividual(groupId: String): String =
     (for {
@@ -58,7 +59,7 @@ object GroupGenerator {
   def agentId(seed: String): String = agentIdGen.seeded(seed).get
 
   val agencyNameGen: Gen[String] = for {
-    ln <- surname
+    ln     <- surname
     suffix <- Gen.oneOf(
                 " Accountants",
                 " and Company",
@@ -117,7 +118,7 @@ object GroupGenerator {
       delegatedEnrolments = delegatedEnrolments
     )).sample.get
 
-  def organisation(planetId: String, groupId: Option[String], name: String = null): Group =
+  def organisation(planetId: String, groupId: Option[String]): Group =
     (for {
       groupId <- groupId.fold(groupIdGen)(Gen.const)
     } yield Group(

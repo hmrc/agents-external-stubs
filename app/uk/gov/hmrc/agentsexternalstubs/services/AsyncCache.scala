@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 import com.github.blemale.scaffeine.Scaffeine
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 class AsyncCache[K, V](
   maximumSize: Int,
@@ -34,20 +34,20 @@ class AsyncCache[K, V](
     s2.build[K, V]()
   }
 
-  def get(key: K, load: Future[V])(implicit ec: ExecutionContext): Future[V] =
+  def get(key: K, load: Future[V])(using ec: ExecutionContext): Future[V] =
     cache.getIfPresent(key) match {
       case Some(value) => Future.successful[V](value)
-      case None =>
+      case None        =>
         load.map { value =>
           keys(value).foreach(cache.put(_, value))
           value
         }
     }
 
-  def getOption(key: K, load: => Future[Option[V]])(implicit ec: ExecutionContext): Future[Option[V]] =
+  def getOption(key: K, load: => Future[Option[V]])(using ec: ExecutionContext): Future[Option[V]] =
     cache.getIfPresent(key) match {
       case Some(value) => Future.successful[Option[V]](Some(value))
-      case None =>
+      case None        =>
         load.map {
           _.map { value =>
             keys(value).foreach(cache.put(_, value))

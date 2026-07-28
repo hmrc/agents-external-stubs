@@ -16,15 +16,17 @@
 
 package uk.gov.hmrc.agentsexternalstubs.support
 import org.mongodb.scala.bson.BsonDocument
+import org.mongodb.scala.SingleObservableFuture
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, TestSuite}
 import play.api.{Application, Logging}
-import uk.gov.hmrc.agentsexternalstubs.repository._
+import uk.gov.hmrc.agentsexternalstubs.repository.*
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.{Lock, ReentrantLock}
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
+import scala.concurrent.ExecutionContext.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 
@@ -46,18 +48,30 @@ trait MongoDB extends BeforeAndAfterAll with BeforeAndAfterEach {
 
 object MongoDB extends Logging {
 
+  given ExecutionContext = global
+
   private val lock: Lock = new ReentrantLock()
-  private val initialized: AtomicBoolean = new AtomicBoolean(false)
+  private val mongoComponentRef: AtomicReference[MongoComponent] = new AtomicReference[MongoComponent]()
 
   val databaseName: String = "agents-external-stubs-tests"
   val uri: String = s"mongodb://127.0.0.1:27017/$databaseName"
-  lazy val mongoComponent: MongoComponent = MongoComponent(uri)
+  private def mongoComponent: MongoComponent = {
+    val current = mongoComponentRef.get()
+    if (current != null) current
+    else {
+      val created = MongoComponent(uri)
+      if (mongoComponentRef.compareAndSet(null, created)) created else mongoComponentRef.get()
+    }
+  }
 
   def initializeMongo(app: Application, force: Boolean = false): Unit =
-    if (lock.tryLock()) try if (!initialized.get() || force) {
+    if (lock.tryLock()) try {
+      val _ = force
       logger.debug("Initializing MongoDB ... ")
-      Await.result(mongoComponent.database.drop().toFuture, Duration("10s"))
-      val repos: Seq[PlayMongoRepository[_]] = Seq(
+      val component = MongoComponent(uri)
+      mongoComponentRef.set(component)
+      Await.result(component.database.drop().toFuture, Duration("10s"))
+      val repos: Seq[PlayMongoRepository[?]] = Seq(
         app.injector.instanceOf[AuthenticatedSessionsRepository],
         app.injector.instanceOf[UsersRepositoryMongo],
         app.injector.instanceOf[GroupsRepositoryMongo],
@@ -65,8 +79,7 @@ object MongoDB extends Logging {
         app.injector.instanceOf[KnownFactsRepositoryMongo],
         app.injector.instanceOf[SpecialCasesRepositoryMongo]
       )
-      Await.result(Future.sequence(repos.map(_.ensureIndexes)), Duration("10s"))
-      initialized.set(true)
+      Await.result(Future.sequence(repos.map(_.ensureIndexes())), Duration("10s"))
       logger.debug("MongoDB ready.")
     } finally lock.unlock()
 

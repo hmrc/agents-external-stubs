@@ -17,14 +17,14 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalacheck.{Arbitrary, Gen}
-import play.api.libs.json._
+import play.api.libs.json.*
 import uk.gov.hmrc.domain.AgentCode
 import uk.gov.hmrc.agentsexternalstubs.models.EmployerAuths.EmpAuth
 
 /** ----------------------------------------------------------------------------
-  * THIS FILE HAS BEEN GENERATED - DO NOT MODIFY IT, CHANGE THE SCHEMA IF NEEDED
-  * How to regenerate? Run this command in the project root directory:
-  * sbt "test:runMain uk.gov.hmrc.agentsexternalstubs.RecordClassGeneratorFromJsonSchema docs/schemas/employerAuths.schema_v0_6.json app/uk/gov/hmrc/agentsexternalstubs/models/EmployerAuths.scala EmployerAuths output:record"
+  * Historical note: this model originated from a schema-driven generator, but it
+  * is now maintained directly in this repo. The old regeneration instructions
+  * were removed because the referenced schema inputs are no longer present here.
   * ----------------------------------------------------------------------------
   *
   *  EmployerAuths
@@ -52,16 +52,16 @@ case class EmployerAuths(
 
 object EmployerAuths extends RecordUtils[EmployerAuths] {
 
-  implicit val recordUtils: RecordUtils[EmployerAuths] = this
+  given recordUtils: RecordUtils[EmployerAuths] = this
 
-  implicit val arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
-  implicit val recordType: RecordMetaData[EmployerAuths] = RecordMetaData[EmployerAuths]
+  given arbitrary: Arbitrary[Char] = Arbitrary(Gen.alphaNumChar)
+  given recordType: RecordMetaData[EmployerAuths] = RecordMetaData[EmployerAuths]
 
-  implicit val agentCodeKey: TakesKey[EmployerAuths, AgentCode] = TakesKey(ac => Seq(uniqueKey(ac.value)))
+  given agentCodeKey: TakesKey[EmployerAuths, AgentCode] = TakesKey(ac => Seq(uniqueKey(ac.value)))
 
   def uniqueKey(key: String): String = s"""agentCode:${key.toUpperCase}"""
 
-  import Validator._
+  import Validator.*
 
   val agentCodeValidator: Validator[String] = check(
     _.matches(Common.agentCodePattern),
@@ -88,7 +88,7 @@ object EmployerAuths extends RecordUtils[EmployerAuths] {
 
   override val sanitizers: Seq[Update] = Seq(empAuthListSanitizer)
 
-  implicit val formats: Format[EmployerAuths] = Json.format[EmployerAuths]
+  given formats: Format[EmployerAuths] = Json.format[EmployerAuths]
 
   case class EmpAuth(
     empRef: EmpAuth.EmpRef,
@@ -191,7 +191,7 @@ object EmployerAuths extends RecordUtils[EmployerAuths] {
     override val sanitizers: Seq[Update] =
       Seq(empRefSanitizer, aoRefSanitizer, agentClientRefSanitizer, employerName1Sanitizer, employerName2Sanitizer)
 
-    implicit val formats: Format[EmpAuth] = Json.format[EmpAuth]
+    given formats: Format[EmpAuth] = Json.format[EmpAuth]
 
     case class EmpRef(districtNumber: String, reference: String) {
 
@@ -229,7 +229,7 @@ object EmployerAuths extends RecordUtils[EmployerAuths] {
 
       override val sanitizers: Seq[Update] = Seq()
 
-      implicit val formats: Format[EmpRef] = Json.format[EmpRef]
+      given formats: Format[EmpRef] = Json.format[EmpRef]
 
     }
 
@@ -287,7 +287,7 @@ object EmployerAuths extends RecordUtils[EmployerAuths] {
 
       override val sanitizers: Seq[Update] = Seq()
 
-      implicit val formats: Format[AoRef] = Json.format[AoRef]
+      given formats: Format[AoRef] = Json.format[AoRef]
 
     }
 

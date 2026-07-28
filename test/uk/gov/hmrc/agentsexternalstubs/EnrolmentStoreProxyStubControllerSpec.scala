@@ -36,7 +36,7 @@ class EnrolmentStoreProxyStubControllerSpec extends BaseUnitSpec {
 
   trait Setup {
 
-    implicit val ex: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
+    given ex: ExecutionContext = scala.concurrent.ExecutionContext.global
 
     val mockAuthenticationService: AuthenticationService = mock[AuthenticationService]
     val mockKnownFactsRepository: KnownFactsRepository = mock[KnownFactsRepository]
@@ -55,10 +55,10 @@ class EnrolmentStoreProxyStubControllerSpec extends BaseUnitSpec {
       mockGroupsService,
       mockRecordsService,
       cc
-    )(ex) {
+    )(using ex) {
       override def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(
         ifSessionNotFound: => Future[Result]
-      )(implicit request: Request[T], ec: ExecutionContext, hc: HeaderCarrier): Future[Result] =
+      )(using request: Request[T], ec: ExecutionContext, hc: HeaderCarrier): Future[Result] =
         body(
           AuthenticatedSession("sessionId", "foo1", "authToken", "principal", "planetId")
         )
@@ -79,7 +79,7 @@ class EnrolmentStoreProxyStubControllerSpec extends BaseUnitSpec {
           anyString(),
           any[Option[String]](),
           anyString()
-        )(any[ExecutionContext]())
+        )(using any[ExecutionContext]())
       )
         .thenReturn(Future.failed(DuplicateUserException("")))
       val result: Future[Result] =

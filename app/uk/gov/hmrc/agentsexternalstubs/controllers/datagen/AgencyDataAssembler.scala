@@ -17,10 +17,10 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers.datagen
 
 import play.api.Logging
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
 import uk.gov.hmrc.agentsexternalstubs.models.PPTSubscriptionDisplayRecord.Common
 import uk.gov.hmrc.agentsexternalstubs.models.User.CR
-import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.*
 
 import scala.annotation.tailrec
 import scala.util.Random
@@ -100,7 +100,7 @@ class AgencyDataAssembler extends Logging {
           Seq(Identifier("cbcId", Generator.cbcId(seed).value), Identifier("UTR", Generator.utr(seed)))
         case "HMRC-CBC-NONUK-ORG" => Seq(Identifier("cbcId", Generator.cbcId(seed).value))
         case "HMRC-CGT-PD"        => Seq(Identifier("CGTPDRef", Generator.cgtPdRef(seed)))
-        case "HMRC-PPT-ORG" =>
+        case "HMRC-PPT-ORG"       =>
           Seq(Identifier("EtmpRegistrationNumber", Generator.regex(Common.pptReferencePattern).sample.get))
         case "HMRC-TERS-ORG"    => Seq(Identifier("SAUTR", Generator.utr(seed)))
         case "HMRC-TERSNT-ORG"  => Seq(Identifier("URN", Generator.urn(seed).value))

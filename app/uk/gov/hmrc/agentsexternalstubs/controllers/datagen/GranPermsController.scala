@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers.datagen
 
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{Action, ControllerComponents}
+import play.api.mvc.{Action, ControllerComponents, Request}
 import uk.gov.hmrc.agentsexternalstubs.controllers.CurrentSession
 import uk.gov.hmrc.agentsexternalstubs.models.{AG, GranPermsGenRequest, GranPermsGenResponse}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GranPermsService, UsersService}
@@ -34,11 +34,12 @@ class GranPermsController @Inject() (
   val authenticationService: AuthenticationService,
   cc: ControllerComponents,
   appConfig: AppConfig
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
   def massGenerateAgentsAndClients: Action[JsValue] =
-    Action.async(parse.tolerantJson) { implicit request =>
+    Action.async(parse.tolerantJson) { request =>
+      given Request[JsValue] = request
       withCurrentSession { session =>
         withPayload[GranPermsGenRequest] { genRequest =>
           usersService.findUserAndGroup(session.userId, session.planetId).flatMap {
@@ -48,7 +49,7 @@ class GranPermsController @Inject() (
               Future.successful(BadRequest("Too many agents requested."))
             case _ if genRequest.numberOfClients > appConfig.granPermsTestGenMaxClients =>
               Future.successful(BadRequest("Too many clients requested."))
-            case (Some(currentUser), mGroup) if !(mGroup.exists(_.affinityGroup == AG.Agent)) =>
+            case (Some(_), mGroup) if !mGroup.exists(_.affinityGroup == AG.Agent) =>
               Future.successful(Unauthorized("Currently logged-in user is not an Agent."))
             case (Some(currentUser), _) if !currentUser.isAdmin =>
               Future.successful(Unauthorized("Currently logged-in user is not a group Admin."))

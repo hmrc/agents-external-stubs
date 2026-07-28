@@ -18,11 +18,11 @@ package uk.gov.hmrc.agentsexternalstubs.support
 
 import org.scalatest.concurrent.ScalaFutures
 import play.api.http.{CookiesConfiguration, HeaderNames, MimeTypes}
-import play.api.libs.json.{JsObject, JsValue, Json, Writes}
-import play.api.libs.ws.{BodyWritable, WSClient, WSCookie, WSResponse}
+import play.api.libs.json.{JsObject, Json, Writes}
+import play.api.libs.ws.{BodyWritable, WSClient, WSCookie, WSResponse, writeableOf_JsValue}
 import play.api.mvc.{Cookie, DefaultCookieHeaderEncoding}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.EnrolmentsFromKnownFactsRequest
-import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.*
 import uk.gov.hmrc.http.{Authorization, HeaderCarrier}
 
 import java.util.UUID
@@ -74,57 +74,55 @@ trait TestRequests extends ScalaFutures {
 
   def wsClient: WSClient
 
-  implicit def jsonBodyWritable[T](implicit
-    writes: Writes[T],
-    jsValueBodyWritable: BodyWritable[JsValue]
-  ): BodyWritable[T] = jsValueBodyWritable.map(writes.writes)
+  given jsonBodyWritable[T](using writes: Writes[T]): BodyWritable[T] =
+    writeableOf_JsValue.map(writes.writes)
 
-  implicit def headerCarrier(implicit authSession: AuthenticatedSession): HeaderCarrier =
+  given headerCarrier(using authSession: AuthenticatedSession): HeaderCarrier =
     HeaderCarrier(authorization = Some(Authorization(s"Bearer ${authSession.authToken}")))
 
-  implicit def fromImplicitAuthenticatedSession(implicit authSession: AuthenticatedSession): AuthContext =
+  given fromImplicitAuthenticatedSession(using authSession: AuthenticatedSession): AuthContext =
     AuthContext.fromTokenAndSessionId(authSession.authToken, authSession.sessionId)
 
-  implicit def fromAuthenticatedSession(authSession: AuthenticatedSession): AuthContext =
+  def fromAuthenticatedSession(authSession: AuthenticatedSession): AuthContext =
     AuthContext.fromToken(authSession.authToken)
 
-  def get(path: String)(implicit authContext: AuthContext): WSResponse =
+  def get(path: String)(using authContext: AuthContext): WSResponse =
     wsClient
       .url(s"$url$path")
-      .withHttpHeaders(authContext.headers: _*)
+      .withHttpHeaders(authContext.headers*)
       .get()
       .futureValue
 
-  def post[T: BodyWritable](path: String, payload: T)(implicit authContext: AuthContext): WSResponse =
+  def post[T: BodyWritable](path: String, payload: T)(using authContext: AuthContext): WSResponse =
     wsClient
       .url(s"$url$path")
-      .withHttpHeaders(authContext.headers: _*)
+      .withHttpHeaders(authContext.headers*)
       .post[T](payload)
       .futureValue
 
-  def post(path: String)(implicit authContext: AuthContext): WSResponse =
+  def post(path: String)(using authContext: AuthContext): WSResponse =
     wsClient
       .url(s"$url$path")
-      .withHttpHeaders(authContext.headers: _*)
+      .withHttpHeaders(authContext.headers*)
       .post("")
       .futureValue
 
-  def put[T: BodyWritable](path: String, payload: T)(implicit authContext: AuthContext): WSResponse =
+  def put[T: BodyWritable](path: String, payload: T)(using authContext: AuthContext): WSResponse =
     wsClient
       .url(s"$url$path")
-      .withHttpHeaders(authContext.headers: _*)
+      .withHttpHeaders(authContext.headers*)
       .put[T](payload)
       .futureValue
 
-  def delete(path: String)(implicit authContext: AuthContext): WSResponse =
+  def delete(path: String)(using authContext: AuthContext): WSResponse =
     wsClient
       .url(s"$url$path")
-      .withHttpHeaders(authContext.headers: _*)
+      .withHttpHeaders(authContext.headers*)
       .delete()
       .futureValue
 
   object SignIn {
-    def currentSession(implicit authContext: AuthContext): WSResponse =
+    def currentSession(using authContext: AuthContext): WSResponse =
       get("/agents-external-stubs/session/current")
 
     def signInAndGetSession(
@@ -166,24 +164,24 @@ trait TestRequests extends ScalaFutures {
         .get()
         .futureValue
 
-    def signOut(implicit authContext: AuthContext): WSResponse = get(s"/agents-external-stubs/sign-out")
+    def signOut(using authContext: AuthContext): WSResponse = get(s"/agents-external-stubs/sign-out")
   }
 
   object AuthStub {
-    def authorise(body: String)(implicit authContext: AuthContext): WSResponse =
+    def authorise(body: String)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/auth/authorise")
-        .withHttpHeaders(Seq(HeaderNames.CONTENT_TYPE -> MimeTypes.JSON) ++ authContext.headers: _*)
+        .withHttpHeaders(Seq(HeaderNames.CONTENT_TYPE -> MimeTypes.JSON) ++ authContext.headers*)
         .post(Json.parse(body))
         .futureValue
 
-    def getAuthority()(implicit authContext: AuthContext): WSResponse =
+    def getAuthority()(using authContext: AuthContext): WSResponse =
       get(s"/auth/authority")
 
-    def getIds()(implicit authContext: AuthContext): WSResponse =
+    def getIds()(using authContext: AuthContext): WSResponse =
       get(s"/auth/_ids")
 
-    def getEnrolments()(implicit authContext: AuthContext): WSResponse =
+    def getEnrolments()(using authContext: AuthContext): WSResponse =
       get(s"/auth/_enrolments")
   }
 
@@ -196,9 +194,7 @@ trait TestRequests extends ScalaFutures {
       agentCode: Option[String] = None,
       affinityGroup: Option[String] = None,
       principalEnrolmentService: Option[String] = None
-    )(implicit
-      authContext: AuthContext
-    ): WSResponse = {
+    )(using authContext: AuthContext): WSResponse = {
       val queryParams = Seq(
         "affinityGroup"             -> affinityGroup,
         "limit"                     -> limit.map(_.toString),
@@ -211,37 +207,37 @@ trait TestRequests extends ScalaFutures {
       }
       wsClient
         .url(s"$url/agents-external-stubs/users")
-        .withQueryStringParameters(queryParams: _*)
-        .withHttpHeaders(authContext.headers: _*)
+        .withQueryStringParameters(queryParams*)
+        .withHttpHeaders(authContext.headers*)
         .get()
         .futureValue
     }
 
-    def get(userId: String)(implicit authContext: AuthContext): WSResponse =
+    def get(userId: String)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/users/$userId")
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .get()
         .futureValue
 
-    def updateCurrent(user: User)(implicit authContext: AuthContext): WSResponse =
+    def updateCurrent(user: User)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/users")
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .put(Json.toJson(user))
         .futureValue
 
-    def updateCurrentLegacy(userJson: JsObject)(implicit authContext: AuthContext): WSResponse =
+    def updateCurrentLegacy(userJson: JsObject)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/users")
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .put(userJson)
         .futureValue
 
-    def update(user: User)(implicit authContext: AuthContext): WSResponse =
+    def update(user: User)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/users/${user.userId}?userIdFromPool")
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .put(Json.toJson(user))
         .futureValue
 
@@ -255,7 +251,7 @@ trait TestRequests extends ScalaFutures {
       agentCode: Option[String] = None,
       agentFriendlyName: Option[String] = None,
       agentId: Option[String] = None
-    )(implicit authContext: AuthContext): WSResponse = {
+    )(using authContext: AuthContext): WSResponse = {
       val maybeNewGroup = affinityGroup.map(ag =>
         GroupGenerator
           .generate(user.planetId.getOrElse(""), affinityGroup = ag, groupId = user.groupId)
@@ -276,139 +272,139 @@ trait TestRequests extends ScalaFutures {
     }
 
     // Only use this to add a user to an existing group
-    def unsafeCreate(user: User)(implicit authContext: AuthContext): WSResponse =
+    def unsafeCreate(user: User)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/users?userIdFromPool")
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .post(Json.toJson(user))
         .futureValue
 
-    def delete(userId: String)(implicit authContext: AuthContext): WSResponse =
+    def delete(userId: String)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/users/$userId")
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .delete()
         .futureValue
 
-    def createApiPlatformTestUser[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
+    def createApiPlatformTestUser[T: BodyWritable](payload: T)(using authContext: AuthContext): WSResponse =
       post("/agents-external-stubs/users/api-platform", payload)
 
-    def reindexAllUsers(implicit authContext: AuthContext): WSResponse =
+    def reindexAllUsers(using authContext: AuthContext): WSResponse =
       post("/agents-external-stubs/users/re-index")
   }
 
   object Groups {
 
-    def getAll(affinityGroup: Option[String] = None, limit: Option[Int] = None, agentCode: Option[String] = None)(
-      implicit authContext: AuthContext
+    def getAll(affinityGroup: Option[String] = None, limit: Option[Int] = None, agentCode: Option[String] = None)(using
+      authContext: AuthContext
     ): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/groups")
         .withQueryStringParameters(
           Seq("affinityGroup" -> affinityGroup, "limit" -> limit.toString, "agentCode" -> agentCode).collect {
             case (name, Some(value: String)) => (name, value)
-          }: _*
+          }*
         )
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .get()
         .futureValue
 
-    def get(groupId: String)(implicit authContext: AuthContext): WSResponse =
+    def get(groupId: String)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/groups/$groupId")
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .get()
         .futureValue
 
-    def updateCurrent(group: Group)(implicit authContext: AuthContext): WSResponse =
+    def updateCurrent(group: Group)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/groups")
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .put(Json.toJson(group))
         .futureValue
 
-    def update(group: Group)(implicit authContext: AuthContext): WSResponse =
+    def update(group: Group)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/groups/${group.groupId}")
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .put(Json.toJson(group))
         .futureValue
 
-    def create(group: Group)(implicit authContext: AuthContext): WSResponse =
+    def create(group: Group)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/groups")
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .post(Json.toJson(group))
         .futureValue
 
-    def delete(groupId: String)(implicit authContext: AuthContext): WSResponse =
+    def delete(groupId: String)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/groups/$groupId")
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .delete()
         .futureValue
 
-    def reindexAllGroups(implicit authContext: AuthContext): WSResponse =
+    def reindexAllGroups(using authContext: AuthContext): WSResponse =
       post("/agents-external-stubs/groups/re-index")
   }
 
   object UserDetailsStub {
-    def getUser(id: String)(implicit authContext: AuthContext): WSResponse =
+    def getUser(id: String)(using authContext: AuthContext): WSResponse =
       get(s"/user-details/id/$id")
   }
 
   object CitizenDetailsStub {
-    def getCitizen(idName: String, taxId: String)(implicit authContext: AuthContext): WSResponse =
+    def getCitizen(idName: String, taxId: String)(using authContext: AuthContext): WSResponse =
       get(s"/citizen-details/$idName/$taxId")
 
-    def getDesignatoryDetails(nino: String)(implicit authContext: AuthContext): WSResponse =
+    def getDesignatoryDetails(nino: String)(using authContext: AuthContext): WSResponse =
       get(s"/citizen-details/$nino/designatory-details")
 
-    def getDesignatoryDetailsBasic(nino: String)(implicit authContext: AuthContext): WSResponse =
+    def getDesignatoryDetailsBasic(nino: String)(using authContext: AuthContext): WSResponse =
       get(s"/citizen-details/$nino/designatory-details/basic")
   }
 
   object UsersGroupSearchStub {
-    def getUser(userId: String)(implicit authContext: AuthContext): WSResponse =
+    def getUser(userId: String)(using authContext: AuthContext): WSResponse =
       get(s"/users-groups-search/users/$userId")
 
-    def getGroup(groupId: String)(implicit authContext: AuthContext): WSResponse =
+    def getGroup(groupId: String)(using authContext: AuthContext): WSResponse =
       get(s"/users-groups-search/groups/$groupId")
 
-    def getGroupUsers(groupId: String)(implicit authContext: AuthContext): WSResponse =
+    def getGroupUsers(groupId: String)(using authContext: AuthContext): WSResponse =
       get(s"/users-groups-search/groups/$groupId/users")
 
-    def getGroupByAgentCode(agentCode: String, agentId: String)(implicit authContext: AuthContext): WSResponse =
+    def getGroupByAgentCode(agentCode: String, agentId: String)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/users-groups-search/groups")
         .withQueryStringParameters("agentCode" -> agentCode, "agentId" -> agentId)
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .get()
         .futureValue
   }
 
   object EnrolmentStoreProxyStub {
 
-    def getDelegatedEnrolments(groupId: String)(implicit authContext: AuthContext): WSResponse =
+    def getDelegatedEnrolments(groupId: String)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/enrolment-store-proxy/enrolment-store/groups/$groupId/delegated")
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .get()
         .futureValue
 
-    def getUserIds(enrolmentKey: String, _type: String = "all")(implicit authContext: AuthContext): WSResponse =
+    def getUserIds(enrolmentKey: String, _type: String = "all")(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/users")
         .withQueryStringParameters("type" -> _type)
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .get()
         .futureValue
 
-    def getGroupIds(enrolmentKey: String, _type: String = "all")(implicit authContext: AuthContext): WSResponse =
+    def getGroupIds(enrolmentKey: String, _type: String = "all")(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/groups")
         .withQueryStringParameters("type" -> _type)
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .get()
         .futureValue
 
@@ -418,7 +414,7 @@ trait TestRequests extends ScalaFutures {
     )(implicit authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/enrolment-store-proxy/enrolment-store/groups/$groupId/enrolments/$enrolmentKey")
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .get()
         .futureValue
 
@@ -427,13 +423,13 @@ trait TestRequests extends ScalaFutures {
       enrolmentKey: String,
       payload: T,
       `legacy-agentCode`: Option[String] = None
-    )(implicit authContext: AuthContext): WSResponse =
+    )(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/enrolment-store-proxy/enrolment-store/groups/$groupId/enrolments/$enrolmentKey")
         .withQueryStringParameters(Seq("legacy-agentCode" -> `legacy-agentCode`).collect {
           case (name, Some(value: String)) => (name, value)
-        }: _*)
-        .withHttpHeaders(authContext.headers: _*)
+        }*)
+        .withHttpHeaders(authContext.headers*)
         .post[T](payload)
         .futureValue
 
@@ -442,29 +438,25 @@ trait TestRequests extends ScalaFutures {
       enrolmentKey: String,
       `legacy-agentCode`: Option[String] = None,
       keepAgentAllocations: Option[String] = None
-    )(implicit authContext: AuthContext): WSResponse =
+    )(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/enrolment-store-proxy/enrolment-store/groups/$groupId/enrolments/$enrolmentKey")
         .withQueryStringParameters(
           Seq("legacy-agentCode" -> `legacy-agentCode`, "keepAgentAllocations" -> keepAgentAllocations).collect {
             case (name, Some(value: String)) => (name, value)
-          }: _*
+          }*
         )
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .delete()
         .futureValue
 
-    def setKnownFacts[T: BodyWritable](enrolmentKey: String, payload: T)(implicit
-      authContext: AuthContext
-    ): WSResponse =
+    def setKnownFacts[T: BodyWritable](enrolmentKey: String, payload: T)(using authContext: AuthContext): WSResponse =
       put(s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey", payload)
 
-    def queryKnownFacts(payload: EnrolmentsFromKnownFactsRequest)(implicit
-      authContext: AuthContext
-    ): WSResponse =
+    def queryKnownFacts(payload: EnrolmentsFromKnownFactsRequest)(using authContext: AuthContext): WSResponse =
       post(s"/enrolment-store-proxy/enrolment-store/enrolments", payload)
 
-    def removeKnownFacts(enrolmentKey: String)(implicit authContext: AuthContext): WSResponse =
+    def removeKnownFacts(enrolmentKey: String)(using authContext: AuthContext): WSResponse =
       delete(s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey")
 
     def getUserEnrolments(
@@ -473,7 +465,7 @@ trait TestRequests extends ScalaFutures {
       service: Option[String] = None,
       `start-record`: Option[Int] = None,
       `max-records`: Option[Int] = None
-    )(implicit authContext: AuthContext): WSResponse =
+    )(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/enrolment-store-proxy/enrolment-store/users/$userId/enrolments")
         .withQueryStringParameters(
@@ -484,9 +476,9 @@ trait TestRequests extends ScalaFutures {
             "max-records"  -> `max-records`.map(_.toString)
           ).collect { case (name, Some(value: String)) =>
             (name, value)
-          }: _*
+          }*
         )
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .get()
         .futureValue
 
@@ -498,7 +490,7 @@ trait TestRequests extends ScalaFutures {
       `max-records`: Option[Int] = None,
       userId: Option[String] = None,
       `unassigned-clients`: Option[Boolean] = None
-    )(implicit authContext: AuthContext): WSResponse =
+    )(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/enrolment-store-proxy/enrolment-store/groups/$groupId/enrolments")
         .withQueryStringParameters(
@@ -511,19 +503,19 @@ trait TestRequests extends ScalaFutures {
             "unassigned-clients" -> `unassigned-clients`.map(_.toString)
           ).collect { case (name, Some(value: String)) =>
             (name, value)
-          }: _*
+          }*
         )
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .get()
         .futureValue
 
-    def assignUser(userId: String, enrolmentKey: String)(implicit authContext: AuthContext): WSResponse =
+    def assignUser(userId: String, enrolmentKey: String)(using authContext: AuthContext): WSResponse =
       post(s"/tax-enrolments/users/$userId/enrolments/$enrolmentKey")
 
-    def deassignUser(userId: String, enrolmentKey: String)(implicit authContext: AuthContext): WSResponse =
+    def deassignUser(userId: String, enrolmentKey: String)(using authContext: AuthContext): WSResponse =
       delete(s"/tax-enrolments/users/$userId/enrolments/$enrolmentKey")
 
-    def setEnrolmentFriendlyName[T: BodyWritable](groupId: String, enrolmentKey: String, payload: T)(implicit
+    def setEnrolmentFriendlyName[T: BodyWritable](groupId: String, enrolmentKey: String, payload: T)(using
       authContext: AuthContext
     ): WSResponse =
       put(s"/tax-enrolments/groups/$groupId/enrolments/$enrolmentKey/friendly_name", payload)
@@ -545,7 +537,7 @@ trait TestRequests extends ScalaFutures {
       originatingSystemHeader: Option[String] = Some("MDTP"),
       correlationIdHeader: Option[String] = Some("dc87872c-3fe2-4dbf-ab72-0bfe8bccc502"),
       receiptDateHeader: Option[String] = Some("2024-11-22T12:54:24Z")
-    )(implicit authContext: AuthContext): WSResponse =
+    )(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/etmp/RESTAdapter/rosm/agent-relationship")
         .withQueryStringParameters(
@@ -562,7 +554,7 @@ trait TestRequests extends ScalaFutures {
             "authProfile"      -> authProfile
           ).collect { case (name, Some(value: String)) =>
             (name, value)
-          }: _*
+          }*
         )
         .withHttpHeaders(
           authContext.headers ++
@@ -573,7 +565,7 @@ trait TestRequests extends ScalaFutures {
               "X-Receipt-Date"        -> receiptDateHeader
             ).collect { case (name, Some(value: String)) =>
               (name, value)
-            }: _*
+            }*
         )
         .get()
         .futureValue
@@ -584,7 +576,7 @@ trait TestRequests extends ScalaFutures {
       originatingSystemHeader: Option[String] = Some("MDTP"),
       correlationIdHeader: Option[String] = Some("dc87872c-3fe2-4dbf-ab72-0bfe8bccc502"),
       receiptDateHeader: Option[String] = Some("2024-11-22T12:54:24Z")
-    )(implicit authContext: AuthContext): WSResponse =
+    )(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/etmp/RESTAdapter/generic/agent/subscription/$arn")
         .withHttpHeaders(
@@ -596,7 +588,7 @@ trait TestRequests extends ScalaFutures {
               "X-Receipt-Date"        -> receiptDateHeader
             ).collect { case (name, Some(value: String)) =>
               (name, value)
-            }: _*
+            }*
         )
         .get()
         .futureValue
@@ -614,7 +606,7 @@ trait TestRequests extends ScalaFutures {
       originatingSystemHeader: Option[String] = Some("MDTP"),
       correlationIdHeader: Option[String] = Some("dc87872c-3fe2-4dbf-ab72-0bfe8bccc502"),
       receiptDateHeader: Option[String] = Some("2024-11-22T12:54:24Z")
-    )(implicit authContext: AuthContext): WSResponse =
+    )(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/etmp/RESTAdapter/rosm/agent-relationship")
         .withHttpHeaders(
@@ -626,7 +618,7 @@ trait TestRequests extends ScalaFutures {
               "X-Receipt-Date"        -> receiptDateHeader
             ).collect { case (name, Some(value: String)) =>
               (name, value)
-            }: _*
+            }*
         )
         .post(
           Json.toJson(
@@ -653,7 +645,7 @@ trait TestRequests extends ScalaFutures {
       receiptDateHeader: Option[String] = Some("2024-11-22T12:54:24Z"),
       messageTypeHeader: Option[String] = Some("TaxpayerDisplay"),
       regimeTypeHeader: Option[String] = Some("ITSA")
-    )(implicit authContext: AuthContext): WSResponse =
+    )(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/etmp/RESTAdapter/itsa/taxpayer/business-details")
         .withQueryStringParameters(
@@ -662,7 +654,7 @@ trait TestRequests extends ScalaFutures {
             "mtdReference" -> mtdReference
           ).collect { case (name, Some(value: String)) =>
             (name, value)
-          }: _*
+          }*
         )
         .withHttpHeaders(
           authContext.headers ++
@@ -675,7 +667,7 @@ trait TestRequests extends ScalaFutures {
               "X-Regime-Type"         -> regimeTypeHeader
             ).collect { case (name, Some(value: String)) =>
               (name, value)
-            }: _*
+            }*
         )
         .get()
         .futureValue
@@ -703,7 +695,7 @@ trait TestRequests extends ScalaFutures {
       transmittingSystemHeader: Option[String] = Some("HIP"),
       originatingSystemHeader: Option[String] = Some("MDTP"),
       receiptDateHeader: Option[String] = Some("2025-01-30T23:59:59Z")
-    )(implicit authContext: AuthContext): WSResponse = {
+    )(using authContext: AuthContext): WSResponse = {
       val payload = Json.obj(
         "name"                        -> name,
         "addr1"                       -> addr1,
@@ -733,7 +725,7 @@ trait TestRequests extends ScalaFutures {
               "X-Transmitting-System" -> transmittingSystemHeader,
               "X-Originating-System"  -> originatingSystemHeader,
               "X-Receipt-Date"        -> receiptDateHeader
-            ).collect { case (k, Some(v)) => k -> v }: _*
+            ).collect { case (k, Some(v)) => k -> v }*
         )
         .post(payload)
         .futureValue
@@ -762,7 +754,7 @@ trait TestRequests extends ScalaFutures {
       transmittingSystemHeader: Option[String] = Some("HIP"),
       originatingSystemHeader: Option[String] = Some("MDTP"),
       receiptDateHeader: Option[String] = Some("2025-01-30T23:59:59Z")
-    )(implicit authContext: AuthContext): WSResponse = {
+    )(using authContext: AuthContext): WSResponse = {
       val payload = Json.obj(
         "name"                        -> name,
         "addr1"                       -> addr1,
@@ -792,7 +784,7 @@ trait TestRequests extends ScalaFutures {
               "X-Transmitting-System" -> transmittingSystemHeader,
               "X-Originating-System"  -> originatingSystemHeader,
               "X-Receipt-Date"        -> receiptDateHeader
-            ).collect { case (k, Some(v)) => k -> v }: _*
+            ).collect { case (k, Some(v)) => k -> v }*
         )
         .put(payload)
         .futureValue
@@ -806,7 +798,7 @@ trait TestRequests extends ScalaFutures {
       originatingSystemHeader: Option[String] = Some("MDTP-AgentRegistration"),
       correlationIdHeader: Option[String] = Some("f0bd1f32-de51-45cc-9b18-0520d6e3ab1a"),
       receiptDateHeader: Option[String] = Some("2025-01-30T23:59:59Z")
-    )(implicit authContext: AuthContext): WSResponse = {
+    )(using authContext: AuthContext): WSResponse = {
       val payload = Json.obj(
         "identifier" -> Json.obj(
           "type"  -> identifierType,
@@ -825,7 +817,7 @@ trait TestRequests extends ScalaFutures {
               "X-Originating-System"  -> originatingSystemHeader,
               "correlationid"         -> correlationIdHeader,
               "X-Receipt-Date"        -> receiptDateHeader
-            ).collect { case (k, Some(v)) => k -> v }: _*
+            ).collect { case (k, Some(v)) => k -> v }*
         )
         .post(payload)
         .futureValue
@@ -838,7 +830,7 @@ trait TestRequests extends ScalaFutures {
       originatingSystemHeader: Option[String] = Some("MDTP-AgentRegistration"),
       correlationIdHeader: Option[String] = Some("f0bd1f32-de51-45cc-9b18-0520d6e3ab1a"),
       receiptDateHeader: Option[String] = Some("2025-01-30T23:59:59Z")
-    )(implicit authContext: AuthContext): WSResponse = {
+    )(using authContext: AuthContext): WSResponse = {
       val payload = Json.obj(
         "identifier" -> Json.obj(
           "type"  -> "UTR",
@@ -856,7 +848,7 @@ trait TestRequests extends ScalaFutures {
               "X-Originating-System"  -> originatingSystemHeader,
               "correlationid"         -> correlationIdHeader,
               "X-Receipt-Date"        -> receiptDateHeader
-            ).collect { case (k, Some(v)) => k -> v }: _*
+            ).collect { case (k, Some(v)) => k -> v }*
         )
         .post(payload)
         .futureValue
@@ -865,10 +857,10 @@ trait TestRequests extends ScalaFutures {
 
   object DesStub {
 
-    def authoriseOrDeAuthoriseRelationship[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
+    def authoriseOrDeAuthoriseRelationship[T: BodyWritable](payload: T)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/registration/relationship")
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .post[T](payload)
         .futureValue
 
@@ -882,7 +874,7 @@ trait TestRequests extends ScalaFutures {
       arn: Option[String] = None,
       from: Option[String] = None,
       to: Option[String] = None
-    )(implicit authContext: AuthContext): WSResponse =
+    )(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/registration/relationship")
         .withQueryStringParameters(
@@ -898,346 +890,344 @@ trait TestRequests extends ScalaFutures {
             "to"              -> to
           ).collect { case (name, Some(value: String)) =>
             (name, value)
-          }: _*
+          }*
         )
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .get()
         .futureValue
 
-    def getLegacyRelationshipsByNino(nino: String)(implicit authContext: AuthContext): WSResponse =
+    def getLegacyRelationshipsByNino(nino: String)(using authContext: AuthContext): WSResponse =
       get(s"/registration/relationship/nino/$nino")
 
-    def getLegacyRelationshipsByUtr(utr: String)(implicit authContext: AuthContext): WSResponse =
+    def getLegacyRelationshipsByUtr(utr: String)(using authContext: AuthContext): WSResponse =
       get(s"/registration/relationship/utr/$utr")
 
-    def getTrustKnownFacts(utr: String)(implicit authContext: AuthContext): WSResponse =
+    def getTrustKnownFacts(utr: String)(using authContext: AuthContext): WSResponse =
       get(s"/trusts/agent-known-fact-check/$utr")
 
-    def getBusinessDetails(idType: String, idNumber: String)(implicit authContext: AuthContext): WSResponse =
+    def getBusinessDetails(idType: String, idNumber: String)(using authContext: AuthContext): WSResponse =
       get(s"/registration/business-details/$idType/$idNumber")
 
-    def getVatCustomerInformation(vrn: String)(implicit authContext: AuthContext): WSResponse =
+    def getVatCustomerInformation(vrn: String)(using authContext: AuthContext): WSResponse =
       get(s"/vat/customer/vrn/$vrn/information")
 
-    def getVatKnownFacts(vrn: String)(implicit authContext: AuthContext): WSResponse =
+    def getVatKnownFacts(vrn: String)(using authContext: AuthContext): WSResponse =
       get(s"/vat/known-facts/control-list/$vrn")
 
-    def getBusinessPartnerRecord(idType: String, idNumber: String)(implicit authContext: AuthContext): WSResponse =
+    def getBusinessPartnerRecord(idType: String, idNumber: String)(using authContext: AuthContext): WSResponse =
       get(s"/registration/personal-details/$idType/$idNumber")
 
-    def subscribeToAgentServicesWithUtr[T: BodyWritable](utr: String, payload: T)(implicit
+    def subscribeToAgentServicesWithUtr[T: BodyWritable](utr: String, payload: T)(using
       authContext: AuthContext
     ): WSResponse =
       post(s"/registration/agents/utr/$utr", payload)
 
-    def subscribeToAgentServicesWithSafeId[T: BodyWritable](safeId: String, payload: T)(implicit
+    def subscribeToAgentServicesWithSafeId[T: BodyWritable](safeId: String, payload: T)(using
       authContext: AuthContext
     ): WSResponse =
       post(s"/registration/agents/safeId/$safeId", payload)
 
-    def registerIndividual[T: BodyWritable](idType: String, idNumber: String, payload: T)(implicit
+    def registerIndividual[T: BodyWritable](idType: String, idNumber: String, payload: T)(using
       authContext: AuthContext
     ): WSResponse =
       post(s"/registration/individual/$idType/$idNumber", payload)
 
-    def registerOrganisation[T: BodyWritable](idType: String, idNumber: String, payload: T)(implicit
+    def registerOrganisation[T: BodyWritable](idType: String, idNumber: String, payload: T)(using
       authContext: AuthContext
     ): WSResponse =
       post(s"/registration/organisation/$idType/$idNumber", payload)
 
-    def getSAAgentClientAuthorisationFlags(agentref: String, utr: String)(implicit
-      authContext: AuthContext
-    ): WSResponse =
+    def getSAAgentClientAuthorisationFlags(agentref: String, utr: String)(using authContext: AuthContext): WSResponse =
       get(s"/sa/agents/$agentref/client/$utr")
 
-    def registerIndividualWithoutID[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
+    def registerIndividualWithoutID[T: BodyWritable](payload: T)(using authContext: AuthContext): WSResponse =
       post(s"/registration/02.00.00/individual", payload)
 
-    def registerOrganisationWithoutID[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
+    def registerOrganisationWithoutID[T: BodyWritable](payload: T)(using authContext: AuthContext): WSResponse =
       post(s"/registration/02.00.00/organisation", payload)
 
-    def retrieveLegacyAgentClientPayeInformation[T: BodyWritable](agentCode: String, payload: T)(implicit
+    def retrieveLegacyAgentClientPayeInformation[T: BodyWritable](agentCode: String, payload: T)(using
       authContext: AuthContext
     ): WSResponse =
       post(s"/agents/paye/$agentCode/clients/compare", payload)
 
     def removeLegacyAgentClientPayeRelationship(agentCode: String, taxOfficeNumber: String, taxOfficeReference: String)(
-      implicit authContext: AuthContext
+      using authContext: AuthContext
     ): WSResponse =
       delete(s"/agents/paye/$agentCode/clients/$taxOfficeNumber/$taxOfficeReference")
 
-    def getCtReference(idType: String, idValue: String)(implicit authContext: AuthContext): WSResponse =
+    def getCtReference(idType: String, idValue: String)(using authContext: AuthContext): WSResponse =
       get(s"/corporation-tax/identifiers/$idType/$idValue")
 
-    def getTrustKnownFactsUtr(utr: String)(implicit authContext: AuthContext): WSResponse =
+    def getTrustKnownFactsUtr(utr: String)(using authContext: AuthContext): WSResponse =
       get(s"/trusts/agent-known-fact-check/UTR/$utr")
 
-    def getTrustKnownFactsUrn(urn: String)(implicit authContext: AuthContext): WSResponse =
+    def getTrustKnownFactsUrn(urn: String)(using authContext: AuthContext): WSResponse =
       get(s"/trusts/agent-known-fact-check/URN/$urn")
 
-    def getTrustKnownFactsUrnIncorrectly(urn: String)(implicit authContext: AuthContext): WSResponse =
+    def getTrustKnownFactsUrnIncorrectly(urn: String)(using authContext: AuthContext): WSResponse =
       get(s"/trusts/agent-known-fact-check/$urn")
 
-    def getAmlsSubscriptionStatus(amlsRegistrationNumber: String)(implicit authContext: AuthContext): WSResponse =
+    def getAmlsSubscriptionStatus(amlsRegistrationNumber: String)(using authContext: AuthContext): WSResponse =
       get(s"/anti-money-laundering/subscription/$amlsRegistrationNumber/status")
 
-    def getPPTSubscriptionDisplayRecord(regime: String, pptReferenceNumber: String)(implicit
+    def getPPTSubscriptionDisplayRecord(regime: String, pptReferenceNumber: String)(using
       authContext: AuthContext
     ): WSResponse =
       get(s"/plastic-packaging-tax/subscriptions/$regime/$pptReferenceNumber/display")
 
-    def getPillar2Record(plrReference: String)(implicit authContext: AuthContext): WSResponse =
+    def getPillar2Record(plrReference: String)(using authContext: AuthContext): WSResponse =
       get(s"/pillar2/subscription/$plrReference")
 
   }
 
   object DataStreamStubs {
-    def writeAudit(event: String)(implicit authContext: AuthContext): WSResponse =
+    def writeAudit(event: String)(using authContext: AuthContext): WSResponse =
       post("/write/audit", event)
 
-    def writeAuditMerged(event: String)(implicit authContext: AuthContext): WSResponse =
+    def writeAuditMerged(event: String)(using authContext: AuthContext): WSResponse =
       post("/write/audit/merged", event)
 
   }
 
   object NiExemptionRegistrationStubs {
-    def niBusinesses[T: BodyWritable](utr: String, payload: T)(implicit authContext: AuthContext): WSResponse =
+    def niBusinesses[T: BodyWritable](utr: String, payload: T)(using authContext: AuthContext): WSResponse =
       post(s"/ni-exemption-registration/ni-businesses/$utr", payload)
   }
 
   object SsoValidateDomain {
     def validate(domain: String): WSResponse =
-      get(s"/sso/validate/domain/$domain")(NotAuthorized)
+      get(s"/sso/validate/domain/$domain")(using NotAuthorized)
   }
 
   object SsoGetDomains {
     def getDomains: WSResponse =
-      get(s"/sso/domains")(NotAuthorized)
+      get(s"/sso/domains")(using NotAuthorized)
   }
 
   object GranPermsStubs {
-    def massGenerateAgentsAndClients(payload: GranPermsGenRequest)(implicit authContext: AuthContext): WSResponse =
+    def massGenerateAgentsAndClients(payload: GranPermsGenRequest)(using authContext: AuthContext): WSResponse =
       post("/agents-external-stubs/test/gran-perms/generate-users", payload)
   }
 
   object Records {
-    def getRecords()(implicit authContext: AuthContext): WSResponse =
+    def getRecords()(using authContext: AuthContext): WSResponse =
       get(s"/agents-external-stubs/records")
 
-    def getRecord(recordId: String)(implicit authContext: AuthContext): WSResponse =
+    def getRecord(recordId: String)(using authContext: AuthContext): WSResponse =
       get(s"/agents-external-stubs/records/$recordId")
 
-    def updateRecord[T: BodyWritable](recordId: String, payload: T)(implicit authContext: AuthContext): WSResponse =
+    def updateRecord[T: BodyWritable](recordId: String, payload: T)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/$recordId")
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .put[T](payload)
         .futureValue
 
-    def deleteRecord(recordId: String)(implicit authContext: AuthContext): WSResponse =
+    def deleteRecord(recordId: String)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/record/$recordId")
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .delete()
         .futureValue
 
-    def createBusinessDetails[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
+    def createBusinessDetails[T: BodyWritable](payload: T)(using authContext: AuthContext): WSResponse =
       post(s"/agents-external-stubs/records/business-details", payload)
 
-    def generateBusinessDetails(seed: String, minimal: Boolean)(implicit authContext: AuthContext): WSResponse =
+    def generateBusinessDetails(seed: String, minimal: Boolean)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/business-details/generate")
         .withQueryStringParameters("seed" -> seed, "minimal" -> minimal.toString)
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .get()
         .futureValue
 
-    def createLegacyAgent[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
+    def createLegacyAgent[T: BodyWritable](payload: T)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/legacy-agent")
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .post[T](payload)
         .futureValue
 
-    def generateLegacyAgent(seed: String, minimal: Boolean)(implicit authContext: AuthContext): WSResponse =
+    def generateLegacyAgent(seed: String, minimal: Boolean)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/legacy-agent/generate")
         .withQueryStringParameters("seed" -> seed, "minimal" -> minimal.toString)
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .get()
         .futureValue
 
-    def createLegacyRelationship[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
+    def createLegacyRelationship[T: BodyWritable](payload: T)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/legacy-relationship")
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .post[T](payload)
         .futureValue
 
-    def generateLegacyRelationship(seed: String, minimal: Boolean)(implicit authContext: AuthContext): WSResponse =
+    def generateLegacyRelationship(seed: String, minimal: Boolean)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/legacy-relationship/generate")
         .withQueryStringParameters("seed" -> seed, "minimal" -> minimal.toString)
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .get()
         .futureValue
 
-    def createVatCustomerInformation[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
+    def createVatCustomerInformation[T: BodyWritable](payload: T)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/vat-customer-information")
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .post[T](payload)
         .futureValue
 
-    def generateVatCustomerInformation(seed: String, minimal: Boolean)(implicit authContext: AuthContext): WSResponse =
+    def generateVatCustomerInformation(seed: String, minimal: Boolean)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/vat-customer-information/generate")
         .withQueryStringParameters("seed" -> seed, "minimal" -> minimal.toString)
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .get()
         .futureValue
 
-    def createBusinessPartnerRecord[T: BodyWritable](payload: T, autoFill: Boolean = true)(implicit
+    def createBusinessPartnerRecord[T: BodyWritable](payload: T, autoFill: Boolean = true)(using
       authContext: AuthContext
     ): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/business-partner-record")
         .withQueryStringParameters(("autoFill", autoFill.toString))
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .post[T](payload)
         .futureValue
 
-    def generateBusinessPartnerRecord(seed: String, minimal: Boolean)(implicit authContext: AuthContext): WSResponse =
+    def generateBusinessPartnerRecord(seed: String, minimal: Boolean)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/business-partner-record/generate")
         .withQueryStringParameters("seed" -> seed, "minimal" -> minimal.toString)
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .get()
         .futureValue
 
-    def createRelationship[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
+    def createRelationship[T: BodyWritable](payload: T)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/relationship")
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .post[T](payload)
         .futureValue
 
-    def generateRelationship(seed: String, minimal: Boolean)(implicit authContext: AuthContext): WSResponse =
+    def generateRelationship(seed: String, minimal: Boolean)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/relationship/generate")
         .withQueryStringParameters("seed" -> seed, "minimal" -> minimal.toString)
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .get()
         .futureValue
 
-    def createEmployerAuths[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
+    def createEmployerAuths[T: BodyWritable](payload: T)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/employer-auths")
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .post[T](payload)
         .futureValue
 
-    def generateEmployerAuths(seed: String, minimal: Boolean)(implicit authContext: AuthContext): WSResponse =
+    def generateEmployerAuths(seed: String, minimal: Boolean)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/employer-auths/generate")
         .withQueryStringParameters("seed" -> seed, "minimal" -> minimal.toString)
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .get()
         .futureValue
 
-    def createPPTSubscriptionDisplayRecord[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
+    def createPPTSubscriptionDisplayRecord[T: BodyWritable](payload: T)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/ppt-subscription")
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .post[T](payload)
         .futureValue
 
-    def createPillar2Record[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
+    def createPillar2Record[T: BodyWritable](payload: T)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/pillar2-subscription")
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .post[T](payload)
         .futureValue
 
-    def generatePPTSubscriptionDisplayRecord(seed: String, minimal: Boolean)(implicit
+    def generatePPTSubscriptionDisplayRecord(seed: String, minimal: Boolean)(using
       authContext: AuthContext
     ): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/ppt-subscription/generate")
         .withQueryStringParameters("seed" -> seed, "minimal" -> minimal.toString)
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .get()
         .futureValue
 
-    def createCbcSubscriptionRecord[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
+    def createCbcSubscriptionRecord[T: BodyWritable](payload: T)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/cbc-subscription")
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .post[T](payload)
         .futureValue
 
-    def generateCbcSubscriptionRecord(seed: String, minimal: Boolean)(implicit authContext: AuthContext): WSResponse =
+    def generateCbcSubscriptionRecord(seed: String, minimal: Boolean)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/agents-external-stubs/records/cbc-subscription/generate")
         .withQueryStringParameters("seed" -> seed, "minimal" -> minimal.toString)
-        .withHttpHeaders(authContext.headers: _*)
+        .withHttpHeaders(authContext.headers*)
         .get()
         .futureValue
   }
 
   object KnownFacts {
-    def getKnownFacts(enrolmentKey: String)(implicit authContext: AuthContext): WSResponse =
+    def getKnownFacts(enrolmentKey: String)(using authContext: AuthContext): WSResponse =
       get(s"/agents-external-stubs/known-facts/$enrolmentKey")
 
-    def createKnownFacts[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
+    def createKnownFacts[T: BodyWritable](payload: T)(using authContext: AuthContext): WSResponse =
       post(s"/agents-external-stubs/known-facts", payload)
 
-    def upsertKnownFacts[T: BodyWritable](enrolmentKey: String, payload: T)(implicit
+    def upsertKnownFacts[T: BodyWritable](enrolmentKey: String, payload: T)(using
       authContext: AuthContext
     ): WSResponse =
       put(s"/agents-external-stubs/known-facts/$enrolmentKey", payload)
 
-    def upsertKnownFactVerifier[T: BodyWritable](enrolmentKey: String, payload: T)(implicit
+    def upsertKnownFactVerifier[T: BodyWritable](enrolmentKey: String, payload: T)(using
       authContext: AuthContext
     ): WSResponse =
       put(s"/agents-external-stubs/known-facts/$enrolmentKey/verifier", payload)
 
-    def deleteKnownFacts(enrolmentKey: String)(implicit authContext: AuthContext): WSResponse =
+    def deleteKnownFacts(enrolmentKey: String)(using authContext: AuthContext): WSResponse =
       delete(s"/agents-external-stubs/known-facts/$enrolmentKey")
 
-    def createPAYEKnownFacts(agentId: String)(implicit authContext: AuthContext): WSResponse =
+    def createPAYEKnownFacts(agentId: String)(using authContext: AuthContext): WSResponse =
       post(s"/agents-external-stubs/known-facts/regime/PAYE/$agentId")
   }
 
   object SpecialCases {
-    def getAllSpecialCases(implicit authContext: AuthContext): WSResponse =
+    def getAllSpecialCases(using authContext: AuthContext): WSResponse =
       get(s"/agents-external-stubs/special-cases")
 
-    def getSpecialCase(id: String)(implicit authContext: AuthContext): WSResponse =
+    def getSpecialCase(id: String)(using authContext: AuthContext): WSResponse =
       get(s"/agents-external-stubs/special-cases/$id")
 
-    def createSpecialCase[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
+    def createSpecialCase[T: BodyWritable](payload: T)(using authContext: AuthContext): WSResponse =
       post(s"/agents-external-stubs/special-cases", payload)
 
-    def updateSpecialCase[T: BodyWritable](id: String, payload: T)(implicit authContext: AuthContext): WSResponse =
+    def updateSpecialCase[T: BodyWritable](id: String, payload: T)(using authContext: AuthContext): WSResponse =
       put(s"/agents-external-stubs/special-cases/$id", payload)
 
-    def deleteSpecialCase(id: String)(implicit authContext: AuthContext): WSResponse =
+    def deleteSpecialCase(id: String)(using authContext: AuthContext): WSResponse =
       delete(s"/agents-external-stubs/special-cases/$id")
   }
 
   object Config {
-    def getServices()(implicit authContext: AuthContext): WSResponse =
+    def getServices()(using authContext: AuthContext): WSResponse =
       get(s"/agents-external-stubs/config/services")
   }
 
   object Planets {
-    def destroy(planetId: String)(implicit authContext: AuthContext): WSResponse =
+    def destroy(planetId: String)(using authContext: AuthContext): WSResponse =
       delete(s"/agents-external-stubs/planets/$planetId")
   }
 
   object Robotics {
-    def invokeRobotics[T: BodyWritable](payload: T)(implicit authContext: AuthContext): WSResponse =
+    def invokeRobotics[T: BodyWritable](payload: T)(using authContext: AuthContext): WSResponse =
       wsClient
         .url(s"$url/RTServer/rest/nice/rti/ra/invocation")
         .withHttpHeaders(
@@ -1246,7 +1236,7 @@ trait TestRequests extends ScalaFutures {
               "correlationId" -> Some("it-test-invoke-robotics-correlation-id")
             ).collect { case (name, Some(value: String)) =>
               (name, value)
-            }: _*
+            }*
         )
         .post[T](payload)
         .futureValue

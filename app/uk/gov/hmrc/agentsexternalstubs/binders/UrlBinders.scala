@@ -17,14 +17,15 @@
 package uk.gov.hmrc.agentsexternalstubs.binders
 
 import play.api.mvc.PathBindable
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
 import uk.gov.hmrc.agentsexternalstubs.models.EnrolmentKey
 
 object UrlBinders {
 
-  implicit val enrolmentKeyBinder: PathBindable[EnrolmentKey] = new PathBindable[EnrolmentKey] {
+  given enrolmentKeyBinder: PathBindable[EnrolmentKey] = new PathBindable[EnrolmentKey] {
     override def bind(key: String, value: String): Either[String, EnrolmentKey] = EnrolmentKey.parse(value)
     override def unbind(key: String, value: EnrolmentKey): String = value.toString
   }
-  implicit object ArnBinder extends SimpleObjectBinder[Arn](Arn.apply, _.value)
+
+  given ArnBinder: SimpleObjectBinder[Arn] = new SimpleObjectBinder[Arn](Arn.apply, _.value)
 }

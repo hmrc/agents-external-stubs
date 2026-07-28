@@ -25,7 +25,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class ExternalTestDataCleanupService @Inject() (
   aucdConnector: AgentUserClientDetailsConnector,
   apConnector: AgentPermissionsConnector
-)(implicit ec: ExecutionContext) {
+)(using ec: ExecutionContext) {
 
   def deleteTestData(arn: String, groupId: String): Future[Unit] =
     for {

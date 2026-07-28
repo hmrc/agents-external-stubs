@@ -12,10 +12,10 @@ object AppDependencies {
     "uk.gov.hmrc"          %% s"bootstrap-backend-$playVer" % bootstrapVer,
     "uk.gov.hmrc.mongo"    %% s"hmrc-mongo-$playVer"        % mongoVer,
     "uk.gov.hmrc"          %% s"domain-$playVer"            % "11.0.0",
-    "uk.gov.hmrc"          %% "stub-data-generator"         % "1.4.0", // cannot update without moving to Scala 3
+    "uk.gov.hmrc"          %% "stub-data-generator"         % "1.6.0",
     "org.playframework"    %% "play-json"                   % "3.0.6",
     "org.typelevel"        %% "cats-core"                   % "2.13.0",
-    "io.github.wolfendale" %% "scalacheck-gen-regexp"       % "0.1.3",
+    "io.github.wolfendale" %% "scalacheck-gen-regexp"       % "1.1.0",
     "com.github.blemale"   %% "scaffeine"                   % "5.3.0"
   )
 

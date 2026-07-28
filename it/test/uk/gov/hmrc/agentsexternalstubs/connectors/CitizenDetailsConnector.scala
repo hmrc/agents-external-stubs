@@ -19,10 +19,9 @@ package uk.gov.hmrc.agentsexternalstubs.connectors
 import play.api.libs.json.{JsPath, Reads}
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.play.bootstrap.metrics.Metrics
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -33,7 +32,7 @@ case class CitizenDateOfBirth(dateOfBirth: Option[LocalDate])
 
 object CitizenDateOfBirth {
   val format: DateTimeFormatter = DateTimeFormatter.ofPattern("ddMMyyyy")
-  implicit val reads: Reads[CitizenDateOfBirth] =
+  given reads: Reads[CitizenDateOfBirth] =
     (JsPath \ "dateOfBirth")
       .readNullable[String]
       .map {
@@ -43,11 +42,11 @@ object CitizenDateOfBirth {
 }
 
 @Singleton
-class CitizenDetailsConnector @Inject() (appConfig: AppConfig, http: HttpClientV2, metrics: Metrics) {
+class CitizenDetailsConnector @Inject() (appConfig: AppConfig, http: HttpClientV2) {
 
   def getCitizenDateOfBirth(
     nino: Nino
-  )(implicit c: HeaderCarrier, ec: ExecutionContext): Future[Option[CitizenDateOfBirth]] = {
+  )(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[CitizenDateOfBirth]] = {
     val url = appConfig.citizenDetailsUrl + s"/citizen-details/nino/${nino.value}"
     http
       .get(url"$url")

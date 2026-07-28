@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{JsValue, Json, OWrites, Reads}
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Request}
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models.{EnrolmentKey, KnownFact, KnownFacts, User}
 import uk.gov.hmrc.agentsexternalstubs.repository.{KnownFactsRepository, UsersRepository}
@@ -33,17 +33,18 @@ class KnownFactsController @Inject() (
   usersRepository: UsersRepository,
   val authenticationService: AuthenticationService,
   cc: ControllerComponents
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
-  import KnownFactsController._
+  import KnownFactsController.*
 
-  def getKnownFacts(enrolmentKey: EnrolmentKey): Action[AnyContent] = Action.async { implicit request =>
+  def getKnownFacts(enrolmentKey: EnrolmentKey): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       knownFactsRepository
         .findByEnrolmentKey(enrolmentKey, session.planetId)
         .flatMap {
-          case None => notFoundF("NOT_FOUND")
+          case None     => notFoundF("NOT_FOUND")
           case Some(kf) =>
             for {
               maybeUser <- usersRepository.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
@@ -53,7 +54,8 @@ class KnownFactsController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  val createKnownFacts: Action[JsValue] = Action.async(parse.tolerantJson) { implicit request =>
+  val createKnownFacts: Action[JsValue] = Action.async(parse.tolerantJson) { request =>
+    given Request[JsValue] = request
     withCurrentSession { session =>
       withPayload[KnownFacts](knownFacts =>
         knownFactsRepository
@@ -68,40 +70,41 @@ class KnownFactsController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def upsertKnownFacts(enrolmentKey: EnrolmentKey): Action[JsValue] = Action.async(parse.tolerantJson) {
-    implicit request =>
-      withCurrentSession { session =>
-        withPayload[KnownFacts](knownFacts =>
-          knownFactsRepository
-            .findByEnrolmentKey(enrolmentKey, session.planetId)
-            .flatMap {
-              case None =>
-                knownFactsRepository
-                  .upsert(
-                    KnownFacts.sanitize(enrolmentKey.tag)(knownFacts.copy(enrolmentKey = enrolmentKey)),
-                    session.planetId
-                  )
-                  .map(_ =>
-                    Created(s"Known facts ${knownFacts.enrolmentKey.tag} has been created.")
-                      .withHeaders(HeaderNames.LOCATION -> routes.KnownFactsController.getKnownFacts(enrolmentKey).url)
-                  )
-              case Some(_) =>
-                knownFactsRepository
-                  .upsert(
-                    KnownFacts.sanitize(enrolmentKey.tag)(knownFacts.copy(enrolmentKey = enrolmentKey)),
-                    session.planetId
-                  )
-                  .map(_ =>
-                    Accepted(s"Known facts ${knownFacts.enrolmentKey.tag} has been updated.")
-                      .withHeaders(HeaderNames.LOCATION -> routes.KnownFactsController.getKnownFacts(enrolmentKey).url)
-                  )
-            }
-        )
-      }(SessionRecordNotFound)
+  def upsertKnownFacts(enrolmentKey: EnrolmentKey): Action[JsValue] = Action.async(parse.tolerantJson) { request =>
+    given Request[JsValue] = request
+    withCurrentSession { session =>
+      withPayload[KnownFacts](knownFacts =>
+        knownFactsRepository
+          .findByEnrolmentKey(enrolmentKey, session.planetId)
+          .flatMap {
+            case None =>
+              knownFactsRepository
+                .upsert(
+                  KnownFacts.sanitize(enrolmentKey.tag)(knownFacts.copy(enrolmentKey = enrolmentKey)),
+                  session.planetId
+                )
+                .map(_ =>
+                  Created(s"Known facts ${knownFacts.enrolmentKey.tag} has been created.")
+                    .withHeaders(HeaderNames.LOCATION -> routes.KnownFactsController.getKnownFacts(enrolmentKey).url)
+                )
+            case Some(_) =>
+              knownFactsRepository
+                .upsert(
+                  KnownFacts.sanitize(enrolmentKey.tag)(knownFacts.copy(enrolmentKey = enrolmentKey)),
+                  session.planetId
+                )
+                .map(_ =>
+                  Accepted(s"Known facts ${knownFacts.enrolmentKey.tag} has been updated.")
+                    .withHeaders(HeaderNames.LOCATION -> routes.KnownFactsController.getKnownFacts(enrolmentKey).url)
+                )
+          }
+      )
+    }(SessionRecordNotFound)
   }
 
   def upsertKnownFactVerifier(enrolmentKey: EnrolmentKey): Action[JsValue] = Action.async(parse.tolerantJson) {
-    implicit request =>
+    request =>
+      given Request[JsValue] = request
       withCurrentSession { session =>
         withPayload[KnownFact](knownFact =>
           knownFactsRepository
@@ -129,7 +132,8 @@ class KnownFactsController @Inject() (
       }(SessionRecordNotFound)
   }
 
-  def deleteKnownFacts(enrolmentKey: EnrolmentKey): Action[AnyContent] = Action.async { implicit request =>
+  def deleteKnownFacts(enrolmentKey: EnrolmentKey): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       knownFactsRepository
         .findByEnrolmentKey(enrolmentKey, session.planetId)
@@ -140,14 +144,15 @@ class KnownFactsController @Inject() (
     }(SessionRecordNotFound)
   }
 
-  def createPAYEKnownFacts(agentId: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def createPAYEKnownFacts(agentId: String): Action[JsValue] = Action.async(parse.json) { request =>
+    given Request[JsValue] = request
     withCurrentSession { session =>
       withPayload[CreatePAYEKnownFactsRequest] { payload =>
         val enrolmentKey = EnrolmentKey.from("IR-PAYE-AGENT", "IRAgentReference" -> agentId)
         val maybeKnownFacts = KnownFacts.generate(
           enrolmentKey,
           agentId,
-          key => if (key == "IRAgentPostcode") Some(payload.postCode) else None
+          key => if key == "IRAgentPostcode" then Some(payload.postCode) else None
         )
         maybeKnownFacts match {
           case Some(knownFacts) =>
@@ -170,14 +175,14 @@ object KnownFactsController {
   case class EnrolmentInfo(enrolmentKey: String, verifiers: Seq[KnownFact], user: Option[User], agents: Seq[User])
 
   object EnrolmentInfo {
-    implicit val writes: OWrites[EnrolmentInfo] = Json.writes[EnrolmentInfo]
-    implicit val reads: Reads[EnrolmentInfo] = Json.reads[EnrolmentInfo] // just for ISpec
+    given writes: OWrites[EnrolmentInfo] = Json.writes[EnrolmentInfo]
+    given reads: Reads[EnrolmentInfo] = Json.reads[EnrolmentInfo] // just for ISpec
   }
 
   case class CreatePAYEKnownFactsRequest(postCode: String)
 
   object CreatePAYEKnownFactsRequest {
-    implicit val reads: Reads[CreatePAYEKnownFactsRequest] = Json.reads[CreatePAYEKnownFactsRequest]
+    given reads: Reads[CreatePAYEKnownFactsRequest] = Json.reads[CreatePAYEKnownFactsRequest]
   }
 
   def addVerifier(verifiers: Seq[KnownFact], knownFact: KnownFact): Seq[KnownFact] =

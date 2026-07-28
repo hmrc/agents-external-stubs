@@ -16,22 +16,22 @@
 
 package uk.gov.hmrc.agentsexternalstubs.services
 
-import play.api.test.Helpers._
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import play.api.test.Helpers.*
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.UkAddress
-import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.*
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
-import uk.gov.hmrc.agentsexternalstubs.support._
+import uk.gov.hmrc.agentsexternalstubs.support.*
 import uk.gov.hmrc.domain.{AgentCode, Nino, Vrn}
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.UUID
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 class UserToRecordsSyncServiceISpec extends AppBaseISpec {
 
-  implicit val defaultTimeout: FiniteDuration = 60.seconds
+  given defaultTimeout: FiniteDuration = 60.seconds
 
   lazy val usersService: UsersService = app.injector.instanceOf[UsersService]
   lazy val groupsService: GroupsService = app.injector.instanceOf[GroupsService]

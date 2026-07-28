@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.*
 import uk.gov.hmrc.agentsexternalstubs.services.{GroupsService, RelationshipRecordsService, UsersService}
 import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests}
 
@@ -43,7 +43,7 @@ class GranPermsControllerISpec extends ServerBaseISpec with TestRequests {
         )
         .futureValue
 
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession(testUserId, planetId = testPlanetId)
+      given session: AuthenticatedSession = SignIn.signInAndGetSession(testUserId, planetId = testPlanetId)
 
       val payload = GranPermsGenRequest("test", 3, 10, false, None, None, None, None)
 
@@ -84,7 +84,7 @@ class GranPermsControllerISpec extends ServerBaseISpec with TestRequests {
         )
         .futureValue
 
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession(testUserId, planetId = testPlanetId)
+      given session: AuthenticatedSession = SignIn.signInAndGetSession(testUserId, planetId = testPlanetId)
 
       val payload = GranPermsGenRequest("test", 6, 10, false, None, None, None, None)
 
@@ -106,7 +106,7 @@ class GranPermsControllerISpec extends ServerBaseISpec with TestRequests {
         )
         .futureValue
 
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession(testUserId, planetId = testPlanetId)
+      given session: AuthenticatedSession = SignIn.signInAndGetSession(testUserId, planetId = testPlanetId)
 
       val payload = GranPermsGenRequest("test", 5, 11, false, None, None, None, None)
 
@@ -126,7 +126,7 @@ class GranPermsControllerISpec extends ServerBaseISpec with TestRequests {
         )
         .futureValue
 
-      implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("notAnAgent", planetId = testPlanetId)
+      given session: AuthenticatedSession = SignIn.signInAndGetSession("notAnAgent", planetId = testPlanetId)
 
       val payload = GranPermsGenRequest("test", 5, 10, false, None, None, None, None)
 
@@ -139,7 +139,7 @@ class GranPermsControllerISpec extends ServerBaseISpec with TestRequests {
 
   "return 401 Unauthorized when user is not an Admin" in {
 
-    implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+    given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
     val group = groupsService
       .createGroup(
@@ -181,7 +181,7 @@ class GranPermsControllerISpec extends ServerBaseISpec with TestRequests {
       )
       .futureValue
 
-    implicit val session: AuthenticatedSession = SignIn.signInAndGetSession(testUserId, planetId = testPlanetId)
+    given session: AuthenticatedSession = SignIn.signInAndGetSession(testUserId, planetId = testPlanetId)
 
     // Create some clients
     val payload1 = GranPermsGenRequest("test1", 0, 5, false, None, None, None, None)

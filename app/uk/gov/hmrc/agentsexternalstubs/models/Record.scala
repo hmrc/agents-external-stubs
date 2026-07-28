@@ -16,9 +16,8 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import play.api.libs.json._
-import shapeless.record
-import uk.gov.hmrc.agentsexternalstubs.syntax.|>
+import play.api.libs.json.*
+import uk.gov.hmrc.agentsexternalstubs.syntax.*
 
 trait Record {
 
@@ -75,7 +74,7 @@ object Record {
     case r: PPTSubscriptionDisplayRecord => PPTSubscriptionDisplayRecord.formats.writes(r)
     case r: CbcSubscriptionRecord        => CbcSubscriptionRecord.formats.writes(r)
     case r: Pillar2Record                => Pillar2Record.formats.writes(r)
-    case _                               => throw new UnsupportedOperationException(s"Cannot serialize $record")
+    case other                           => throw new UnsupportedOperationException(s"Cannot serialize $other")
   }
 
   final def fromJson(typeName: String, json: JsValue): JsResult[Record] = typeName match {
@@ -92,6 +91,6 @@ object Record {
     case other                          => JsError(s"Record type $other not supported")
   }
 
-  implicit val formats: OFormat[Record] = OFormat[Record](reads, writes)
+  given formats: OFormat[Record] = OFormat[Record](reads, writes)
 
 }

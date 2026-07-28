@@ -20,8 +20,9 @@ import uk.gov.hmrc.agentsexternalstubs.connectors.AgentAccessControlConnector
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
 
-import scala.concurrent.{Await, ExecutionContext}
-import scala.concurrent.duration._
+import scala.concurrent.Await
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.*
 import uk.gov.hmrc.agentsexternalstubs.services.{GroupsService, UsersService}
 
 import java.time.LocalDate
@@ -59,7 +60,7 @@ trait AuthoriseContext {
 
 abstract class AuthoriseUserContext(user: User, group: Option[Group]) extends AuthoriseContext {
 
-  implicit val ec: ExecutionContext
+  given ec: ExecutionContext
 
   final val timeout: Duration = 30.seconds
 
@@ -98,16 +99,17 @@ abstract class AuthoriseUserContext(user: User, group: Option[Group]) extends Au
 
   override def principalEnrolments: Seq[Enrolment] = {
     val enrolments =
-      if (
-        group.exists(g => g.affinityGroup == AG.Individual || g.affinityGroup == AG.Organisation) && user.nino.isDefined
-      )
+      if group.exists(g =>
+          g.affinityGroup == AG.Individual || g.affinityGroup == AG.Organisation
+        ) && user.nino.isDefined
+      then
         group.map(_.principalEnrolments).getOrElse(Seq.empty) :+ Enrolment(
           "HMRC-NI",
           "NINO",
           nino.get.value
         ) // TODO should we use here (and in the rest of this class) the group's enrolments or the user's assigned ones?
       else group.map(_.principalEnrolments).getOrElse(Seq.empty)
-    if (user.isAdmin) enrolments
+    if user.isAdmin then enrolments
     else {
       enrolments.toSet
         .union((user.groupId, user.planetId) match {
@@ -128,7 +130,7 @@ abstract class AuthoriseUserContext(user: User, group: Option[Group]) extends Au
 
   override def delegatedEnrolments: Seq[Enrolment] = {
     val enrolments = group.map(_.delegatedEnrolments).getOrElse(Seq.empty)
-    if (user.isAdmin) enrolments
+    if user.isAdmin then enrolments
     else {
       enrolments.toSet
         .union((user.groupId, user.planetId) match {
@@ -155,9 +157,13 @@ case class FullAuthoriseContext(
   groupsService: GroupsService,
   authenticatedSession: AuthenticatedSession,
   request: AuthoriseRequest,
-  agentAccessControlConnector: AgentAccessControlConnector
-)(implicit val ec: ExecutionContext, hc: HeaderCarrier)
-    extends AuthoriseUserContext(user, group) {
+  agentAccessControlConnector: AgentAccessControlConnector,
+  executionContext: ExecutionContext,
+  hc: HeaderCarrier
+) extends AuthoriseUserContext(user, group) {
+
+  given ec: ExecutionContext = executionContext
+  given HeaderCarrier = hc
 
   override def providerType: String = authenticatedSession.providerType
   override def planetId: Option[String] = Some(authenticatedSession.planetId)

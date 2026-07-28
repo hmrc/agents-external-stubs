@@ -54,8 +54,8 @@ object ApiPlatform {
   ) {
 
     val affinityGroup: String =
-      if (individualDetails.isDefined) AG.Individual
-      else if (organisationDetails.isDefined) AG.Organisation
+      if individualDetails.isDefined then AG.Individual
+      else if organisationDetails.isDefined then AG.Organisation
       else AG.Agent
 
     val services: Seq[String] = Seq(
@@ -80,26 +80,26 @@ object ApiPlatform {
 
   object TestUser {
 
-    implicit lazy val formats1: Format[Address] = Json.format[Address]
-    implicit lazy val formats2: Format[IndividualDetails] = Json.format[IndividualDetails]
-    implicit lazy val formats3: Format[OrganisationDetails] = Json.format[OrganisationDetails]
-    implicit lazy val formats4: Format[TestUser] = Json.format[TestUser]
+    given formats1: Format[Address] = Json.format[Address]
+    given formats2: Format[IndividualDetails] = Json.format[IndividualDetails]
+    given formats3: Format[OrganisationDetails] = Json.format[OrganisationDetails]
+    given formats4: Format[TestUser] = Json.format[TestUser]
 
     def asUserAndGroup(testUser: TestUser): (User, Group) = {
       val groupId = GroupGenerator.groupId(seed = testUser.hashCode().toString)
       val user = User(
         userId = testUser.userId,
         groupId = Some(groupId),
-        confidenceLevel = if (testUser.affinityGroup == AG.Individual) Some(ConfidenceLevel.Default) else None,
+        confidenceLevel = if testUser.affinityGroup == AG.Individual then Some(ConfidenceLevel.Default) else None,
         credentialStrength = Some("strong"),
-        nino = if (testUser.affinityGroup == AG.Individual) testUser.nino.map(Nino.apply) else None,
+        nino = if testUser.affinityGroup == AG.Individual then testUser.nino.map(Nino.apply) else None,
         name = (testUser.affinityGroup match {
           case AG.Individual   => testUser.individualDetails.map(d => d.firstName + " " + d.lastName)
           case AG.Organisation => testUser.organisationDetails.map(d => d.name)
           case _               => None
         }).orElse(Option(testUser.userFullName)),
         dateOfBirth =
-          if (testUser.affinityGroup == AG.Individual) testUser.individualDetails.map(_.dateOfBirth) else None,
+          if testUser.affinityGroup == AG.Individual then testUser.individualDetails.map(_.dateOfBirth) else None,
         address = (testUser.affinityGroup match {
           case AG.Individual   => testUser.individualDetails.map(_.address)
           case AG.Organisation => testUser.organisationDetails.map(_.address)
@@ -116,13 +116,14 @@ object ApiPlatform {
         additionalInformation =
           testUser.vatRegistrationDate.map(date => AdditionalInformation(vatRegistrationDate = Some(date))),
         utr =
-          if (testUser.affinityGroup == AG.Agent) None else testUser.saUtr.orElse(Some(Generator.utr(testUser.userId)))
+          if testUser.affinityGroup == AG.Agent then None
+          else testUser.saUtr.orElse(Some(Generator.utr(testUser.userId)))
       )
       val group = Group(
         groupId = groupId,
         planetId = "",
         affinityGroup = testUser.affinityGroup,
-        agentFriendlyName = if (testUser.affinityGroup == AG.Agent) Some(testUser.userFullName) else None,
+        agentFriendlyName = if testUser.affinityGroup == AG.Agent then Some(testUser.userFullName) else None,
         principalEnrolments = mapServicesToEnrolments(testUser)
       )
       (user, group)
@@ -146,11 +147,11 @@ object ApiPlatform {
                 )
               )
             )
-          case "submit-vat-returns" => testUser.vrn.map(Enrolment("HMCE-VATDEC-ORG", "VATRegNo", _))
-          case "mtd-vat"            => testUser.vrn.map(Enrolment("HMRC-MTD-VAT", "VRN", _))
-          case "mtd-income-tax"     => testUser.mtdItId.map(Enrolment("HMRC-MTD-IT", "MTDITID", _))
-          case "agent-services"     => testUser.arn.map(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", _))
-          case "lisa"               => testUser.lisaManRefNum.map(Enrolment("HMRC-LISA-ORG", "ZREF", _))
+          case "submit-vat-returns"         => testUser.vrn.map(Enrolment("HMCE-VATDEC-ORG", "VATRegNo", _))
+          case "mtd-vat"                    => testUser.vrn.map(Enrolment("HMRC-MTD-VAT", "VRN", _))
+          case "mtd-income-tax"             => testUser.mtdItId.map(Enrolment("HMRC-MTD-IT", "MTDITID", _))
+          case "agent-services"             => testUser.arn.map(Enrolment("HMRC-AS-AGENT", "AgentReferenceNumber", _))
+          case "lisa"                       => testUser.lisaManRefNum.map(Enrolment("HMRC-LISA-ORG", "ZREF", _))
           case "secure-electronic-transfer" =>
             testUser.secureElectronicTransferReferenceNumber.map(Enrolment("HMRC-SET-ORG", "SETReference", _))
           case "relief-at-source" =>

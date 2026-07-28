@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import java.time.LocalDate
 
-import play.api.libs.json._
+import play.api.libs.json.*
 import uk.gov.hmrc.domain.Nino
 
 trait PersonalDetails {
@@ -34,11 +34,11 @@ trait PersonalDetailsPostCode {
 }
 
 object PersonalDetails {
-  implicit val implicitPersonalDetailsWrite: Writes[PersonalDetails] = new Writes[PersonalDetails] {
+  given implicitPersonalDetailsWrite: Writes[PersonalDetails] = new Writes[PersonalDetails] {
     override def writes(details: PersonalDetails): JsValue =
       details.toJson
   }
-  implicit val withNinoFormats: Format[PersonalDetailsWithNino] = Json.format
+  given withNinoFormats: Format[PersonalDetailsWithNino] = Json.format
 }
 
 case class PersonalDetailsWithNino(firstName: String, lastName: String, dateOfBirth: LocalDate, nino: Nino)

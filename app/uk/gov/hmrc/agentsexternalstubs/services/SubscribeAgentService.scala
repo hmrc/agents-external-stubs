@@ -16,9 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.services
 
-import play.api.libs.json.{Json, Writes}
-import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{AddressDetails, AgencyDetails, ContactDetails, ForeignAddress, UkAddress}
-import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.*
 
 object SubscribeAgentService {
 
@@ -178,7 +176,7 @@ object SubscribeAgentService {
         )
 
     val updatedAddress =
-      if (payload.addressProvided) {
+      if payload.addressProvided then
         payload.country match {
           case Some("GB") =>
             BusinessPartnerRecord.UkAddress(
@@ -199,22 +197,11 @@ object SubscribeAgentService {
               payload.country.getOrElse("")
             )
         }
-      } else {
+      else
         existingRecord.addressDetails match {
           case addr: BusinessPartnerRecord.UkAddress      => addr
           case addr: BusinessPartnerRecord.ForeignAddress => addr
-          case other                                      =>
-            // fallback: wrap as ForeignAddress with empty fields if original type is not one of the above
-            BusinessPartnerRecord.ForeignAddress(
-              addressLine1 = "",
-              addressLine2 = None,
-              addressLine3 = None,
-              addressLine4 = None,
-              postalCode = None,
-              countryCode = "GB"
-            )
         }
-      }
 
     existingRecord
       .modifyAgentReferenceNumber { case None =>

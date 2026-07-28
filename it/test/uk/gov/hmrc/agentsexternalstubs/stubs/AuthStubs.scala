@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.stubs
 
-import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import play.api.libs.json.Json
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthoriseRequest, AuthoriseResponse}

@@ -19,10 +19,11 @@ package uk.gov.hmrc.agentsexternalstubs.connectors
 import javax.inject.{Inject, Singleton}
 import play.api.http.HeaderNames
 import play.api.libs.json.Json
+import play.api.libs.ws.writeableOf_JsValue
 import uk.gov.hmrc.agentsexternalstubs.models.AuthLoginApi
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -32,7 +33,7 @@ class AuthLoginApiConnector @Inject() (appConfig: AppConfig, http: HttpClientV2)
 
   def loginToGovernmentGateway(
     authLoginApiRequest: AuthLoginApi.Request
-  )(implicit c: HeaderCarrier, ec: ExecutionContext): Future[AuthLoginApi.Response] = {
+  )(using c: HeaderCarrier, ec: ExecutionContext): Future[AuthLoginApi.Response] = {
     val url = appConfig.authLoginApiUrl + s"/government-gateway/session/login"
     for {
       response <-

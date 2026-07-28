@@ -19,13 +19,13 @@ package uk.gov.hmrc.agentsexternalstubs.connectors
 import play.api.Logger
 import play.api.http.Status
 import play.api.libs.json.{Json, OWrites}
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import play.api.libs.ws.writeableOf_JsValue
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.domain.{AgentCode, Nino, TaxIdentifier}
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
-import uk.gov.hmrc.play.bootstrap.metrics.Metrics
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -39,17 +39,16 @@ import scala.concurrent.{ExecutionContext, Future}
 
 case class ES8Request(userId: String, `type`: String)
 object ES8Request {
-  implicit val writes: OWrites[ES8Request] = Json.writes[ES8Request]
+  given writes: OWrites[ES8Request] = Json.writes[ES8Request]
 }
 
 @Singleton
-class EnrolmentStoreProxyConnector @Inject() (appConfig: AppConfig, http: HttpClientV2, metrics: Metrics)
-    extends TaxIdentifierSupport {
+class EnrolmentStoreProxyConnector @Inject() (appConfig: AppConfig, http: HttpClientV2) extends TaxIdentifierSupport {
 
   // ES0 - principal
   def getPrincipalUserIdFor(
     taxIdentifier: TaxIdentifier
-  )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[String] = {
+  )(using hc: HeaderCarrier, ec: ExecutionContext): Future[String] = {
     val enrolmentKeyPrefix = enrolmentKeyPrefixFor(taxIdentifier)
     val enrolmentKey = enrolmentKeyPrefix + "~" + taxIdentifier.value
     val url =
@@ -77,7 +76,7 @@ class EnrolmentStoreProxyConnector @Inject() (appConfig: AppConfig, http: HttpCl
   // ES1 - principal
   def getPrincipalGroupIdFor(
     taxIdentifier: TaxIdentifier
-  )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[String] = {
+  )(using hc: HeaderCarrier, ec: ExecutionContext): Future[String] = {
     val enrolmentKeyPrefix = enrolmentKeyPrefixFor(taxIdentifier)
     val enrolmentKey = enrolmentKeyPrefix + "~" + taxIdentifier.value
     val url =
@@ -105,19 +104,19 @@ class EnrolmentStoreProxyConnector @Inject() (appConfig: AppConfig, http: HttpCl
   // ES1 - delegated
   def getDelegatedGroupIdsFor(
     taxIdentifier: TaxIdentifier
-  )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Set[String]] = {
+  )(using hc: HeaderCarrier, ec: ExecutionContext): Future[Set[String]] = {
     val enrolmentKey = enrolmentKeyPrefixFor(taxIdentifier) + "~" + taxIdentifier.value
     getDelegatedGroupIdsFor(enrolmentKey)
   }
 
   def getDelegatedGroupIdsForHMCEVATDECORG(
     vrn: Vrn
-  )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Set[String]] =
+  )(using hc: HeaderCarrier, ec: ExecutionContext): Future[Set[String]] =
     getDelegatedGroupIdsFor(s"HMCE-VATDEC-ORG~VATRegNo~${vrn.value}")
 
   protected def getDelegatedGroupIdsFor(
     enrolmentKey: String
-  )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Set[String]] = {
+  )(using hc: HeaderCarrier, ec: ExecutionContext): Future[Set[String]] = {
     val url =
       appConfig.enrolmentStoreProxyUrl + s"/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/groups?type=delegated"
     http
@@ -131,7 +130,7 @@ class EnrolmentStoreProxyConnector @Inject() (appConfig: AppConfig, http: HttpCl
 
   // ES8
   def allocateEnrolmentToAgent(groupId: String, userId: String, taxIdentifier: TaxIdentifier, agentCode: AgentCode)(
-    implicit
+    using
     hc: HeaderCarrier,
     ec: ExecutionContext
   ): Future[Unit] = {
@@ -154,7 +153,7 @@ class EnrolmentStoreProxyConnector @Inject() (appConfig: AppConfig, http: HttpCl
   }
 
   // ES9
-  def deallocateEnrolmentFromAgent(groupId: String, taxIdentifier: TaxIdentifier, agentCode: AgentCode)(implicit
+  def deallocateEnrolmentFromAgent(groupId: String, taxIdentifier: TaxIdentifier, agentCode: AgentCode)(using
     hc: HeaderCarrier,
     ec: ExecutionContext
   ): Future[Unit] = {

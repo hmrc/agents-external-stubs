@@ -44,14 +44,14 @@ case class AuthoriseResponse(
 )
 
 object AuthoriseResponse {
-  implicit val formats: Format[AuthoriseResponse] = Json.format[AuthoriseResponse]
+  given Format[AuthoriseResponse] = Json.format[AuthoriseResponse]
 }
 
 sealed trait Retrieve {
   type MaybeResponse = Retrieve.MaybeResponse
 
   def key: String
-  def fill(response: AuthoriseResponse, context: AuthoriseContext)(implicit ec: ExecutionContext): MaybeResponse
+  def fill(response: AuthoriseResponse, context: AuthoriseContext)(using ec: ExecutionContext): MaybeResponse
 }
 
 object Retrieve {
@@ -87,30 +87,24 @@ object Retrieve {
 }
 
 case class UnsupportedRetrieve(key: String) extends Retrieve {
-  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(implicit
-    ec: ExecutionContext
-  ): MaybeResponse =
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(using ec: ExecutionContext): MaybeResponse =
     Left(s"Retrieval of $key not supported")
 }
 
 case class Credentials(providerId: String, providerType: String, planetId: Option[String] = None)
 object Credentials {
-  implicit val format: Format[Credentials] = Json.format[Credentials]
+  given Format[Credentials] = Json.format[Credentials]
 }
 
 case object CredentialsRetrieve extends Retrieve {
   val key = "credentials"
-  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(implicit
-    ec: ExecutionContext
-  ): MaybeResponse =
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(using ec: ExecutionContext): MaybeResponse =
     Right(response.copy(credentials = Some(Credentials(context.userId, context.providerType, context.planetId))))
 }
 
 case object OptionalCredentialsRetrieve extends Retrieve {
   val key = "optionalCredentials"
-  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(implicit
-    ec: ExecutionContext
-  ): MaybeResponse =
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(using ec: ExecutionContext): MaybeResponse =
     Right(
       response.copy(optionalCredentials = Some(Credentials(context.userId, context.providerType, context.planetId)))
     )
@@ -118,23 +112,19 @@ case object OptionalCredentialsRetrieve extends Retrieve {
 
 case class GGCredId(ggCredId: String)
 object GGCredId {
-  implicit val format: Format[GGCredId] = Json.format[GGCredId]
+  given Format[GGCredId] = Json.format[GGCredId]
 }
 
 case object AuthProviderIdRetrieve extends Retrieve {
   val key = "authProviderId"
-  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(implicit
-    ec: ExecutionContext
-  ): MaybeResponse =
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(using ec: ExecutionContext): MaybeResponse =
     Right(response.copy(authProviderId = Some(GGCredId(context.userId))))
 }
 
 case object AuthorisedEnrolmentsRetrieve extends Retrieve {
   val key = "authorisedEnrolments"
-  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(implicit
-    ec: ExecutionContext
-  ): MaybeResponse =
-    if (context.providerType == "PrivilegedApplication")
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(using ec: ExecutionContext): MaybeResponse =
+    if context.providerType == "PrivilegedApplication" then
       Right(
         response.copy(
           authorisedEnrolments = context.strideRoles
@@ -152,60 +142,45 @@ case object AuthorisedEnrolmentsRetrieve extends Retrieve {
 
 case object AllEnrolmentsRetrieve extends Retrieve {
   val key = "allEnrolments"
-  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(implicit
-    ec: ExecutionContext
-  ): MaybeResponse =
-    if (context.providerType == "PrivilegedApplication")
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(using ec: ExecutionContext): MaybeResponse =
+    if context.providerType == "PrivilegedApplication" then
       Right(response.copy(allEnrolments = context.strideRoles.map(Enrolment.apply(_))))
-    else
-      Right(response.copy(allEnrolments = context.principalEnrolments))
+    else Right(response.copy(allEnrolments = context.principalEnrolments))
 }
 
 case object AffinityGroupRetrieve extends Retrieve {
   val key = "affinityGroup"
-  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(implicit
-    ec: ExecutionContext
-  ): MaybeResponse =
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(using ec: ExecutionContext): MaybeResponse =
     Right(response.copy(affinityGroup = context.affinityGroup))
 }
 
 case object ConfidenceLevelRetrieve extends Retrieve {
   val key = "confidenceLevel"
-  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(implicit
-    ec: ExecutionContext
-  ): MaybeResponse =
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(using ec: ExecutionContext): MaybeResponse =
     Right(response.copy(confidenceLevel = context.confidenceLevel.orElse(Some(50))))
 }
 
 case object CredentialStrengthRetrieve extends Retrieve {
   val key = "credentialStrength"
-  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(implicit
-    ec: ExecutionContext
-  ): MaybeResponse =
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(using ec: ExecutionContext): MaybeResponse =
     Right(response.copy(credentialStrength = context.credentialStrength))
 }
 
 case object NinoRetrieve extends Retrieve {
   val key = "nino"
-  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(implicit
-    ec: ExecutionContext
-  ): MaybeResponse =
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(using ec: ExecutionContext): MaybeResponse =
     Right(response.copy(nino = context.nino))
 }
 
 case object CredentialRoleRetrieve extends Retrieve {
   val key = "credentialRole"
-  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(implicit
-    ec: ExecutionContext
-  ): MaybeResponse =
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(using ec: ExecutionContext): MaybeResponse =
     Right(response.copy(credentialRole = context.credentialRole))
 }
 
 case object GroupIdentifierRetrieve extends Retrieve {
   val key = "groupIdentifier"
-  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(implicit
-    ec: ExecutionContext
-  ): MaybeResponse =
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(using ec: ExecutionContext): MaybeResponse =
     Right(response.copy(groupIdentifier = context.groupId))
 }
 
@@ -214,14 +189,14 @@ case class Name(name: Option[String], lastName: Option[String] = None) {
 }
 
 object Name {
-  implicit val format: Format[Name] = Json.format[Name]
+  given Format[Name] = Json.format[Name]
 
   def parse(name: Option[String]): Name =
     name
       .map { n =>
         val p = n.split(" ")
-        if (p.isEmpty) Name(None, None)
-        else if (p.length == 1) Name(Some(n), None)
+        if p.isEmpty then Name(None, None)
+        else if p.length == 1 then Name(Some(n), None)
         else {
           Name(Some(p.init.mkString(" ")), Some(p.last))
         }
@@ -231,9 +206,7 @@ object Name {
 
 case object NameRetrieve extends Retrieve {
   val key = "name"
-  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(implicit
-    ec: ExecutionContext
-  ): MaybeResponse =
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(using ec: ExecutionContext): MaybeResponse =
     Right(response.copy(name = nameFromContext(context)))
 
   protected[models] def nameFromContext(context: AuthoriseContext): Some[Name] =
@@ -245,38 +218,30 @@ case object NameRetrieve extends Retrieve {
 
 case object OptionalNameRetrieve extends Retrieve {
   val key = "optionalName"
-  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(implicit
-    ec: ExecutionContext
-  ): MaybeResponse =
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(using ec: ExecutionContext): MaybeResponse =
     Right(response.copy(optionalName = NameRetrieve.nameFromContext(context)))
 }
 
 case object DateOfBirthRetrieve extends Retrieve {
   val key = "dateOfBirth"
-  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(implicit
-    ec: ExecutionContext
-  ): MaybeResponse =
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(using ec: ExecutionContext): MaybeResponse =
     Right(response.copy(dateOfBirth = context.dateOfBirth))
 }
 
 case object AgentCodeRetrieve extends Retrieve {
   val key = "agentCode"
-  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(implicit
-    ec: ExecutionContext
-  ): MaybeResponse =
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(using ec: ExecutionContext): MaybeResponse =
     Right(response.copy(agentCode = context.agentCode))
 }
 
 case class AgentInformation(agentCode: Option[String], agentFriendlyName: Option[String], agentId: Option[String])
 object AgentInformation {
-  implicit val format: Format[AgentInformation] = Json.format[AgentInformation]
+  given Format[AgentInformation] = Json.format[AgentInformation]
 }
 
 case object AgentInformationRetrieve extends Retrieve {
   val key = "agentInformation"
-  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(implicit
-    ec: ExecutionContext
-  ): MaybeResponse =
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(using ec: ExecutionContext): MaybeResponse =
     Right(
       response.copy(agentInformation = AgentInformation(context.agentCode, context.agentFriendlyName, context.agentId))
     )
@@ -284,16 +249,12 @@ case object AgentInformationRetrieve extends Retrieve {
 
 case object EmailRetrieve extends Retrieve {
   val key = "email"
-  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(implicit
-    ec: ExecutionContext
-  ): MaybeResponse =
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(using ec: ExecutionContext): MaybeResponse =
     Right(response.copy(email = context.email))
 }
 
 case object InternalIdRetrieve extends Retrieve {
   val key = "internalId"
-  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(implicit
-    ec: ExecutionContext
-  ): MaybeResponse =
+  override def fill(response: AuthoriseResponse, context: AuthoriseContext)(using ec: ExecutionContext): MaybeResponse =
     Right(response.copy(internalId = context.internalId))
 }

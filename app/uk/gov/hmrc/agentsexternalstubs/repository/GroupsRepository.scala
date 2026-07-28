@@ -16,15 +16,14 @@
 
 package uk.gov.hmrc.agentsexternalstubs.repository
 
-import com.google.inject.ImplementedBy
 import org.mongodb.scala.MongoWriteException
-import org.mongodb.scala.model._
+import org.mongodb.scala.model.*
 import org.mongodb.scala.result.DeleteResult
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.{Logger, Logging}
 import uk.gov.hmrc.agentsexternalstubs.models.{Enrolment, EnrolmentKey, Group}
-import uk.gov.hmrc.agentsexternalstubs.repository.GroupsRepositoryMongo._
-import uk.gov.hmrc.agentsexternalstubs.syntax.|>
+import uk.gov.hmrc.agentsexternalstubs.repository.GroupsRepositoryFields.*
+import uk.gov.hmrc.agentsexternalstubs.syntax.*
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
@@ -38,7 +37,6 @@ import scala.util.control.NonFatal
 
 case class DuplicateGroupException(msg: String, key: Option[String] = None) extends IllegalStateException(msg)
 
-@ImplementedBy(classOf[GroupsRepositoryMongo])
 trait GroupsRepository {
   def findByGroupId(groupId: String, planetId: String): Future[Option[Group]]
   def findByPlanetId(planetId: String, affinityGroup: Option[String])(limit: Int): Future[Seq[Group]]
@@ -65,20 +63,20 @@ trait GroupsRepository {
   def destroyPlanet(planetId: String): Future[Unit]
 }
 
-object GroupsRepositoryMongo {
-  private final val UNIQUE_KEYS = "_uniqueKeys"
-  private final val KEYS = "_keys"
-  private final val GROUP_ID = "groupId"
-  private final val PLANET_ID = "planetId"
-  private final val UPDATED = "lastUpdatedAt"
+object GroupsRepositoryFields {
+  final val UNIQUE_KEYS = "_uniqueKeys"
+  final val KEYS = "_keys"
+  final val GROUP_ID = "groupId"
+  final val PLANET_ID = "planetId"
+  final val UPDATED = "lastUpdatedAt"
 }
 
 @Singleton
-class GroupsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfig)(implicit val ec: ExecutionContext)
+class GroupsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfig)(using ExecutionContext)
     extends PlayMongoRepository[JsonAbuse[Group]](
       mongoComponent = mongo,
       collectionName = "groups",
-      domainFormat = JsonAbuse.format[Group](extractExtraFieldsOnRead = false)(
+      domainFormat = JsonAbuse.format[Group](extractExtraFieldsOnRead = false)(using
         Group.compressedFormat /* use space-saving Enrolment Json representation */
       ),
       indexes = Seq(
@@ -88,7 +86,7 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConf
         IndexModel(Indexes.ascending(PLANET_ID), IndexOptions().name("keyPlanetId")),
         IndexModel(
           Indexes.ascending(UPDATED),
-          IndexOptions().name("TtlIndex").expireAfter(appConfig.collectionsTtl, TimeUnit.DAYS)
+          IndexOptions().name("TtlIndex").expireAfter(appConfig.collectionsTtl.toLong, TimeUnit.DAYS)
         )
       ),
       replaceIndexes = true,
@@ -201,14 +199,14 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConf
       .addField(UNIQUE_KEYS, JsArray(group.uniqueKeys.map(key => JsString(keyOf(key, planetId)))))
       .addField(
         KEYS,
-        JsArray((group.lookupKeys.map(key => keyOf(key, planetId)) :+ planetIdKey(planetId)).map(JsString))
+        JsArray((group.lookupKeys.map(key => keyOf(key, planetId)) :+ planetIdKey(planetId)).map(JsString.apply))
       )
 
   override def create(group: Group, planetId: String): Future[Unit] =
     collection
       .insertOne(
         serializeGroup(group, planetId)
-          .addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat))
+          .addField(UPDATED, Json.toJson(Instant.now())(using MongoJavatimeFormats.instantFormat))
       )
       .toFuture()
       .map(_ => ())
@@ -222,7 +220,7 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConf
       .findOneAndReplace(
         filter = Filters.equal(UNIQUE_KEYS, keyOf(groupIdIndexKey(group.groupId), planetId)),
         replacement = serializeGroup(group, planetId)
-          .addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat)),
+          .addField(UPDATED, Json.toJson(Instant.now())(using MongoJavatimeFormats.instantFormat)),
         options = FindOneAndReplaceOptions().upsert(true)
       )
       .toFuture()
@@ -265,7 +263,7 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConf
 
   private val duplicatedGroupMessageByKeyPrefix: Map[String, (String, String) => String] = Map(
     "gid" -> ((k: String, p: String) => s"Duplicated group $k on $p"),
-    "ac" -> ((k: String, p: String) =>
+    "ac"  -> ((k: String, p: String) =>
       s"Existing group already has this agentCode $k. Two groups cannot share the same agentCode on the same $p planet."
     ),
     "penr" -> ((k: String, p: String) =>

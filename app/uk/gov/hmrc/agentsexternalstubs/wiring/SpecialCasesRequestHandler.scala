@@ -20,7 +20,7 @@ import play.api.OptionalDevContext
 
 import javax.inject.Inject
 import play.api.http.{HttpConfiguration, HttpErrorHandler, HttpFilters}
-import play.api.mvc._
+import play.api.mvc.*
 import play.api.routing.Router
 import play.core.WebCommands
 import uk.gov.hmrc.agentsexternalstubs.controllers.SpecialCasesController
@@ -47,9 +47,9 @@ class SpecialCasesRequestHandler @Inject() (
   val health = "/ping"
 
   override def handlerForRequest(request: RequestHeader): (RequestHeader, Handler) =
-    if (appConfig.specialCasesDisabled || request.path.startsWith(context) || request.path.startsWith(health)) {
+    if appConfig.specialCasesDisabled || request.path.startsWith(context) || request.path.startsWith(health) then
       super.handlerForRequest(request)
-    } else {
+    else
       val (requestHeader, handler) = super.handlerForRequest(request)
       (
         requestHeader,
@@ -58,6 +58,5 @@ class SpecialCasesRequestHandler @Inject() (
           case _                       => handler
         }
       )
-    }
 
 }

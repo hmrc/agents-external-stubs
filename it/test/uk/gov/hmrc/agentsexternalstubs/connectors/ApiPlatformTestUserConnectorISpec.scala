@@ -17,10 +17,10 @@
 package uk.gov.hmrc.agentsexternalstubs.connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock
-import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import play.api.libs.ws.WSClient
-import play.api.test.Helpers._
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import play.api.test.Helpers.*
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
 import uk.gov.hmrc.agentsexternalstubs.models.ApiPlatform.TestUser
 import uk.gov.hmrc.agentsexternalstubs.models.Generator
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
@@ -39,7 +39,7 @@ class ApiPlatformTestUserConnectorISpec
 
   "ApiPlatformTestUserConnector" when {
 
-    implicit val hc: HeaderCarrier = HeaderCarrier()
+    given hc: HeaderCarrier = HeaderCarrier()
 
     "looking for an individual with nino" should {
       "returns some test user if exists" in {

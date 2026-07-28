@@ -16,14 +16,13 @@
 
 package uk.gov.hmrc.agentsexternalstubs.repository
 
-import com.google.inject.ImplementedBy
 import org.bson.types.ObjectId
-import org.mongodb.scala.model._
-import play.api.libs.json.{OWrites => _, _}
+import org.mongodb.scala.model.*
+import play.api.libs.json.{OWrites as _, *}
 import uk.gov.hmrc.agentsexternalstubs.models.SpecialCase.internal
 import uk.gov.hmrc.agentsexternalstubs.models.{Id, SpecialCase}
-import uk.gov.hmrc.agentsexternalstubs.repository.SpecialCasesRepositoryMongo._
-import uk.gov.hmrc.agentsexternalstubs.syntax.|>
+import uk.gov.hmrc.agentsexternalstubs.repository.SpecialCasesRepositoryFields.{*, given}
+import uk.gov.hmrc.agentsexternalstubs.syntax.*
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
@@ -34,13 +33,12 @@ import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
-object SpecialCasesRepositoryMongo {
-  private final val PLANET_ID = "planetId"
-  private final val UPDATED = "lastUpdatedAt"
-  implicit val specialCaseFormat: OFormat[SpecialCase] = Json.format[SpecialCase]
+object SpecialCasesRepositoryFields {
+  final val PLANET_ID = "planetId"
+  final val UPDATED = "lastUpdatedAt"
+  given specialCaseFormat: OFormat[SpecialCase] = Json.format[SpecialCase]
 }
 
-@ImplementedBy(classOf[SpecialCasesRepositoryMongo])
 trait SpecialCasesRepository {
 
   def findById(id: String, planetId: String): Future[Option[SpecialCase]]
@@ -57,19 +55,19 @@ trait SpecialCasesRepository {
 }
 
 @Singleton
-class SpecialCasesRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfig)(implicit
+class SpecialCasesRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfig)(using
   val ec: ExecutionContext
 ) extends PlayMongoRepository[JsonAbuse[SpecialCase]](
       mongoComponent = mongo,
       collectionName = "specialCases",
-      domainFormat = JsonAbuse.format()(OFormat[SpecialCase](internal.reads, internal.writes)),
+      domainFormat = JsonAbuse.format()(using OFormat[SpecialCase](internal.reads, internal.writes)),
       indexes = Seq(
         IndexModel(Indexes.ascending(SpecialCase.UNIQUE_KEY), IndexOptions().name("SpecialCasesByKey").unique(true)),
         IndexModel(Indexes.ascending(PLANET_ID)),
         IndexModel(Indexes.ascending(Id.ID, PLANET_ID), IndexOptions().name("SpecialCaseId").unique(true)),
         IndexModel(
           Indexes.ascending(UPDATED),
-          IndexOptions().name("TtlIndex").expireAfter(appConfig.collectionsTtl, TimeUnit.DAYS)
+          IndexOptions().name("TtlIndex").expireAfter(appConfig.collectionsTtl.toLong, TimeUnit.DAYS)
         )
       ),
       replaceIndexes = true
@@ -117,7 +115,7 @@ class SpecialCasesRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: A
                     Filters.equal(PLANET_ID, planetId)
                   ),
                   replacement = JsonAbuse(specialCase.copy(planetId = Some(planetId)))
-                    .addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat)),
+                    .addField(UPDATED, Json.toJson(Instant.now())(using MongoJavatimeFormats.instantFormat)),
                   ReplaceOptions().upsert(false)
                 )
                 .toFuture()
@@ -140,7 +138,7 @@ class SpecialCasesRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: A
                           Filters.equal(PLANET_ID, planetId)
                         ),
                         replacement = JsonAbuse(specialCase.copy(planetId = Some(planetId)))
-                          .addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat)),
+                          .addField(UPDATED, Json.toJson(Instant.now())(using MongoJavatimeFormats.instantFormat)),
                         options = ReplaceOptions().upsert(false)
                       )
                       .toFuture()
@@ -150,7 +148,7 @@ class SpecialCasesRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: A
                     collection
                       .insertOne(
                         JsonAbuse(specialCase.copy(planetId = Some(planetId), id = Some(Id(newId))))
-                          .addField(UPDATED, Json.toJson(Instant.now())(MongoJavatimeFormats.instantFormat))
+                          .addField(UPDATED, Json.toJson(Instant.now())(using MongoJavatimeFormats.instantFormat))
                       )
                       .toFuture()
                       .map((_, newId))

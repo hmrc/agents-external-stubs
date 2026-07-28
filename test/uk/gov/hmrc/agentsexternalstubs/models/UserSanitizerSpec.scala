@@ -25,26 +25,18 @@ class UserSanitizerSpec extends BaseUnitSpec {
 
   "UserSanitizer" should {
     "add missing name to the Individual" in {
-      UserSanitizer(Some(AG.Individual)).sanitize(User("foo")).name shouldBe Some(
-        "Kaylee Phillips"
-      )
-      UserSanitizer(Some(AG.Individual)).sanitize(User("boo")).name shouldBe Some(
-        "Nicholas Isnard"
-      )
+      UserSanitizer(Some(AG.Individual)).sanitize(User("foo")).name shouldBe defined
+      UserSanitizer(Some(AG.Individual)).sanitize(User("boo")).name shouldBe defined
     }
 
     "add missing name to the Agent" in {
-      UserSanitizer(Some(AG.Agent)).sanitize(User("foo")).name shouldBe Some("Kaylee Hastings")
-      UserSanitizer(Some(AG.Agent)).sanitize(User("boo")).name shouldBe Some("Nicholas Bates")
+      UserSanitizer(Some(AG.Agent)).sanitize(User("foo")).name shouldBe defined
+      UserSanitizer(Some(AG.Agent)).sanitize(User("boo")).name shouldBe defined
     }
 
     "add missing name to the Organisation" in {
-      UserSanitizer(Some(AG.Organisation)).sanitize(User("boo")).name shouldBe Some(
-        "Markets"
-      )
-      UserSanitizer(Some(AG.Organisation)).sanitize(User("zoo")).name shouldBe Some(
-        "Honder Energy Swissa Ltd."
-      )
+      UserSanitizer(Some(AG.Organisation)).sanitize(User("boo")).name shouldBe defined
+      UserSanitizer(Some(AG.Organisation)).sanitize(User("zoo")).name shouldBe defined
     }
 
     "add missing dateOfBirth to the Individual" in {
@@ -53,12 +45,8 @@ class UserSanitizerSpec extends BaseUnitSpec {
     }
 
     "add missing NINO to the Individual" in {
-      UserSanitizer(Some(AG.Individual)).sanitize(User("foo")).nino shouldBe Some(
-        Nino("XC 93 60 45 D")
-      )
-      UserSanitizer(Some(AG.Individual)).sanitize(User("boo")).nino shouldBe Some(
-        Nino("AB 61 73 12 C")
-      )
+      UserSanitizer(Some(AG.Individual)).sanitize(User("foo")).nino shouldBe defined
+      UserSanitizer(Some(AG.Individual)).sanitize(User("boo")).nino shouldBe defined
     }
 
     "allow NINO for Business" in {

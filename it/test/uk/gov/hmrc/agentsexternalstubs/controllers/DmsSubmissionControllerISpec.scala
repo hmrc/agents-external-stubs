@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.agentsexternalstubs.support.ServerBaseISpec
 
 class DmsSubmissionControllerISpec extends ServerBaseISpec {

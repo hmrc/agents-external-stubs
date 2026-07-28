@@ -25,7 +25,7 @@ class PayloadSpec extends BaseUnitSpec {
   "SetKnownFactsRequest" should {
     "parse payload" in {
       import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.SetKnownFactsRequest
-      import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.SetKnownFactsRequest._
+      import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.SetKnownFactsRequest.*
       Json
         .parse("""{
           |  "verifiers": [

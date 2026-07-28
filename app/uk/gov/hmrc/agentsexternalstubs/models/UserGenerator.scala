@@ -24,8 +24,9 @@ import java.time.format.DateTimeFormatter
 
 object UserGenerator {
 
-  import uk.gov.hmrc.agentsexternalstubs.models.Generator._
-  import uk.gov.hmrc.smartstub._
+  import uk.gov.hmrc.agentsexternalstubs.models.Generator.*
+  import uk.gov.hmrc.agentsexternalstubs.models.Generator.given
+  import uk.gov.hmrc.smartstub.*
 
   def nameForIndividual(userId: String): String =
     (for {
@@ -66,7 +67,7 @@ object UserGenerator {
   def sex(userId: String): String = Gen.oneOf("M", "F").seeded(userId).get
 
   val agencyNameGen: Gen[String] = for {
-    ln <- surname
+    ln     <- surname
     suffix <- Gen.oneOf(
                 " Accountants",
                 " and Company",

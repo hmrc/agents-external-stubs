@@ -37,17 +37,17 @@ trait CurrentSession extends HttpHelpers with RequestAwareLogging {
     case e: BadRequestException    => badRequest("BAD_REQUEST", e.getMessage)
     case e: HttpException          => Results.Status(e.responseCode)(errorMessage("SERVER_ERROR", Some(e.getMessage)))
     case e: AuthorisationException => forbidden(e.getMessage)
-    case NonFatal(e) =>
+    case NonFatal(e)               =>
       e.printStackTrace()
       internalServerError("SERVER_ERROR", e.getMessage)
   }
 
   final def withMaybeCurrentSession[T, R](
     body: Option[AuthenticatedSession] => Future[R]
-  )(implicit request: Request[T], ec: ExecutionContext, hc: HeaderCarrier): Future[R] =
+  )(using request: Request[T], ec: ExecutionContext, hc: HeaderCarrier): Future[R] =
     AuthenticatedSession.fromRequest(request) match {
       case s @ Some(_) => body(s)
-      case None =>
+      case None        =>
         for {
           maybeSession1 <- request.headers.get(HeaderNames.AUTHORIZATION) match {
                              case Some(BearerToken(authToken)) =>
@@ -71,7 +71,7 @@ trait CurrentSession extends HttpHelpers with RequestAwareLogging {
 
   final def withMaybeCurrentSessionInCache[R](
     body: Option[AuthenticatedSession] => Future[R]
-  )(implicit request: RequestHeader, ec: ExecutionContext): Future[R] =
+  )(using request: RequestHeader, ec: ExecutionContext): Future[R] =
     request.headers.get(uk.gov.hmrc.http.HeaderNames.xSessionId) match {
       case Some(sessionId) =>
         authenticationService.findBySessionId(sessionId).flatMap(body)
@@ -81,7 +81,7 @@ trait CurrentSession extends HttpHelpers with RequestAwareLogging {
 
   def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(
     ifSessionNotFound: => Future[Result]
-  )(implicit request: Request[T], ec: ExecutionContext, hc: HeaderCarrier): Future[Result] = withMaybeCurrentSession {
+  )(using request: Request[T], ec: ExecutionContext, hc: HeaderCarrier): Future[Result] = withMaybeCurrentSession {
     case Some(session) => body(session)
     case None          => ifSessionNotFound
   }
@@ -103,7 +103,7 @@ trait ExternalCurrentSession extends DesHttpHelpers {
 
   case class DesErrorResponse(code: String, reason: Option[String])
   object DesErrorResponse {
-    implicit val writes: Writes[DesErrorResponse] = Json.writes[DesErrorResponse]
+    given writes: Writes[DesErrorResponse] = Json.writes[DesErrorResponse]
   }
 
   override def errorMessage(code: String, reason: Option[String]): JsValue =
@@ -119,8 +119,7 @@ trait ExternalCurrentSession extends DesHttpHelpers {
 
   final def withCurrentSession[T](body: AuthenticatedSession => Future[Result])(
     ifSessionNotFound: => Future[Result]
-  )(implicit request: Request[T], ec: ExecutionContext): Future[Result] = {
-
+  )(using request: Request[T], ec: ExecutionContext): Future[Result] = {
     // When DES request originates from an API gateway (no X-Session-ID at all) - fall back
     // to whatever session currently exists on the default planet before finally giving up
     // via ifSessionNotFound (some controllers use that slot to attempt a further, more
@@ -131,7 +130,7 @@ trait ExternalCurrentSession extends DesHttpHelpers {
     // avoids the global lookup landing on some unrelated caller's planet by coincidence
     // when the default planet would have resolved things correctly anyway.
     def fallBackToDefaultPlanet(): Future[Result] = {
-      val planetId = CurrentPlanetId(None, request)
+      val planetId = CurrentPlanetId(None)
       authenticationService.findByPlanetId(planetId).flatMap {
         case Some(session) =>
           body(session)
@@ -174,7 +173,7 @@ trait ExternalCurrentSession extends DesHttpHelpers {
 
 object CurrentPlanetId {
 
-  def apply(maybeSession: Option[AuthenticatedSession], rh: RequestHeader): String =
+  def apply(maybeSession: Option[AuthenticatedSession]): String =
     maybeSession match {
       case Some(session) => session.planetId
       case None          => Planet.DEFAULT

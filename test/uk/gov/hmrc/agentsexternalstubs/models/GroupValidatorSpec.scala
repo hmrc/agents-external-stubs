@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentsexternalstubs.models
 
-import org.scalatest.Inspectors._
+import org.scalatest.Inspectors.*
 import uk.gov.hmrc.agentsexternalstubs.support.{BaseUnitSpec, ValidatedMatchers}
 
 class GroupValidatorSpec extends BaseUnitSpec with ValidatedMatchers {

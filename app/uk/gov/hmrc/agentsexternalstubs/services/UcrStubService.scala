@@ -19,7 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Result, Results}
-import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.*
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -29,7 +29,7 @@ import scala.io.Source
 class UcrStubService @Inject() (
   usersService: UsersService,
   groupsService: GroupsService
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends Logging {
 
   def validateSystemId(systemId: Option[String]): Either[Result, Boolean] =

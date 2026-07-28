@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
-import play.api.libs.json._
+import play.api.libs.json.*
 
 case class KnownFacts(
   enrolmentKey: EnrolmentKey,
@@ -57,36 +57,34 @@ object KnownFacts {
 
   private final val addVerifiersKeys: Transformer = json => {
     val verifiers = (json \ "verifiers").as[Seq[KnownFact]]
-    if (verifiers.isEmpty) json
+    if verifiers.isEmpty then json
     else {
       val planetId = planetIdOf(json)
       val keys = verifiers.map(key => verifierKey(key, planetId))
-      if (keys.isEmpty) json else json + ((VERIFIERS_KEYS, JsArray(keys.map(JsString))))
+      if keys.isEmpty then json else json + ((VERIFIERS_KEYS, JsArray(keys.map(JsString.apply))))
     }
   }
 
   private final val addIdentifierKeys: Transformer = json => {
     val identifiers = (json \ "identifiers").as[Seq[Identifier]]
-    if (identifiers.isEmpty) json
+    if identifiers.isEmpty then json
     else {
       val planetId = planetIdOf(json)
       val keys = identifiers.map(key => identifierKey(key, planetId))
-      if (keys.isEmpty) json else json + ((IDENTIFIER_KEYS, JsArray(keys.map(JsString))))
+      if keys.isEmpty then json else json + ((IDENTIFIER_KEYS, JsArray(keys.map(JsString.apply))))
     }
   }
 
-  implicit val reads: Reads[KnownFacts] = Json.reads[KnownFacts]
-  implicit val writes: OWrites[KnownFacts] = Json
+  given reads: Reads[KnownFacts] = Json.reads[KnownFacts]
+  given writes: OWrites[KnownFacts] = Json
     .writes[KnownFacts]
     .transform(addUniqueKey.andThen(addVerifiersKeys).andThen(addIdentifierKeys))
 
-  val formats: Format[KnownFacts] = Format(reads, writes)
-
-  import Validator.Implicits._
+  given formats: Format[KnownFacts] = Format(reads, writes)
 
   val validate: KnownFacts => Validated[String, Unit] = kf =>
     Services(kf.enrolmentKey.service) match {
-      case None => Invalid(s"Unknown service ${kf.enrolmentKey.service}")
+      case None          => Invalid(s"Unknown service ${kf.enrolmentKey.service}")
       case Some(service) =>
         Validated
           .cond(
@@ -95,14 +93,14 @@ object KnownFacts {
             s"Known facts verifiers must represent distinct keys, unlike $kf"
           )
           .andThen(_ =>
-            if (kf.verifiers.nonEmpty) kf.verifiers.map(v => validateVerifier(v, service)).reduce(_ combine _)
+            if kf.verifiers.nonEmpty then kf.verifiers.map(v => validateVerifier(v, service)).reduce(_ combine _)
             else Valid(())
           )
     }
 
   def validateVerifier(knownFact: KnownFact, service: Service): Validated[String, Unit] =
     service.getKnownFact(knownFact.key) match {
-      case None => Invalid(s"Service ${service.name} does not know about ${knownFact.key} verifier")
+      case None                   => Invalid(s"Service ${service.name} does not know about ${knownFact.key} verifier")
       case Some(serviceKnownFact) =>
         serviceKnownFact
           .validate(knownFact.value)
@@ -136,23 +134,22 @@ object KnownFacts {
     seed =>
       entity =>
         service.getKnownFact(entity.key) match {
-          case None => entity
+          case None            => entity
           case Some(knownFact) =>
-            if (entity.value.isEmpty || !entity.value.matches(knownFact.regex))
+            if entity.value.isEmpty || !entity.value.matches(knownFact.regex) then
               entity.copy(value = Generator.get(knownFact.valueGenerator)(seed).getOrElse(""))
             else entity
         }
 
   val verifiersSanitizer: String => KnownFacts => KnownFacts = seed =>
-    entity => {
+    entity =>
       Services(entity.enrolmentKey.service) match {
-        case None => entity
+        case None          => entity
         case Some(service) =>
           val verifiers =
             service.knownFacts.map(kf => entity.verifiers.find(_.key == kf.name).getOrElse(KnownFact(kf.name, "")))
           entity.copy(verifiers = verifiers.map(knownFactSanitizer(service)(seed)))
       }
-    }
 
   def sanitize(s: String)(entity: KnownFacts): KnownFacts =
     Seq(verifiersSanitizer).foldLeft(entity)((u, fx) => fx(s)(u))

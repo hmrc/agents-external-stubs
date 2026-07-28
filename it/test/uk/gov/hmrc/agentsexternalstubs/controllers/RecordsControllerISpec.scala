@@ -21,7 +21,7 @@ import play.api.libs.ws.WSClient
 import play.mvc.Http.HeaderNames
 import uk.gov.hmrc.agentsexternalstubs.models.{AuthenticatedSession, BusinessDetailsRecord, Record}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
-import uk.gov.hmrc.agentsexternalstubs.support._
+import uk.gov.hmrc.agentsexternalstubs.support.*
 
 class RecordsControllerISpec extends ServerBaseISpec with TestRequests with TestStubs with ExampleDesPayloads {
 
@@ -31,7 +31,7 @@ class RecordsControllerISpec extends ServerBaseISpec with TestRequests with Test
 
     "GET /agents-external-stubs/records" should {
       "respond 200 with a list of records" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val createResult1 = Records.createBusinessDetails(Json.parse(validBusinessDetailsPayload))
         createResult1 should haveStatus(201)
@@ -64,7 +64,7 @@ class RecordsControllerISpec extends ServerBaseISpec with TestRequests with Test
 
     "GET /agents-external-stubs/records/:recordId" should {
       "respond 200 with a record" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val createResult1 = Records.createBusinessDetails(Json.parse(validBusinessDetailsPayload))
         createResult1 should haveStatus(201)
@@ -89,7 +89,7 @@ class RecordsControllerISpec extends ServerBaseISpec with TestRequests with Test
 
     "PUT /agents-external-stubs/records/:recordId" should {
       "update a record and return 202" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val createResult1 = Records.createBusinessDetails(Json.parse(validBusinessDetailsPayload))
         createResult1 should haveStatus(201)
@@ -111,7 +111,7 @@ class RecordsControllerISpec extends ServerBaseISpec with TestRequests with Test
 
     "GET /agents-external-stubs/records/business-details/generate" should {
       "respond 200 with a minimal auto-generated entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = Records.generateBusinessDetails("foo", minimal = true)
         result should haveStatus(200)
@@ -125,7 +125,7 @@ class RecordsControllerISpec extends ServerBaseISpec with TestRequests with Test
       }
 
       "respond 200 with a complete auto-generated entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = Records.generateBusinessDetails("bar", minimal = false)
         result should haveStatus(200)
@@ -141,7 +141,7 @@ class RecordsControllerISpec extends ServerBaseISpec with TestRequests with Test
 
     "GET /agents-external-stubs/records/vat-customer-information/generate" should {
       "respond 200 with a minimal auto-generated entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = Records.generateVatCustomerInformation("foo", minimal = true)
         result should haveStatus(200)
@@ -151,7 +151,7 @@ class RecordsControllerISpec extends ServerBaseISpec with TestRequests with Test
       }
 
       "respond 200 with a complete auto-generated entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = Records.generateVatCustomerInformation("foo", minimal = false)
         result should haveStatus(200)
@@ -163,7 +163,7 @@ class RecordsControllerISpec extends ServerBaseISpec with TestRequests with Test
 
     "GET /agents-external-stubs/records/legacy-agent/generate" should {
       "respond 200 with a minimal auto-generated entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = Records.generateLegacyAgent("foo", minimal = true)
         result should haveStatus(200)
@@ -175,7 +175,7 @@ class RecordsControllerISpec extends ServerBaseISpec with TestRequests with Test
       }
 
       "respond 200 with a complete auto-generated entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = Records.generateLegacyAgent("foo", minimal = false)
         result should haveStatus(200)
@@ -191,7 +191,7 @@ class RecordsControllerISpec extends ServerBaseISpec with TestRequests with Test
 
     "GET /agents-external-stubs/records/legacy-relationship/generate" should {
       "respond 200 with a minimal auto-generated entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = Records.generateLegacyRelationship("foo", minimal = true)
         result should haveStatus(200)
@@ -201,7 +201,7 @@ class RecordsControllerISpec extends ServerBaseISpec with TestRequests with Test
       }
 
       "respond 200 with a complete auto-generated entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = Records.generateLegacyRelationship("foo", minimal = false)
         result should haveStatus(200)
@@ -213,7 +213,7 @@ class RecordsControllerISpec extends ServerBaseISpec with TestRequests with Test
 
     "GET /agents-external-stubs/records/business-partner-record/generate" should {
       "respond 200 with a minimal auto-generated entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = Records.generateBusinessPartnerRecord("foo", minimal = true)
         result should haveStatus(200)
@@ -227,7 +227,7 @@ class RecordsControllerISpec extends ServerBaseISpec with TestRequests with Test
       }
 
       "respond 200 with a complete auto-generated entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = Records.generateBusinessPartnerRecord("foo", minimal = false)
         result should haveStatus(200)
@@ -245,7 +245,7 @@ class RecordsControllerISpec extends ServerBaseISpec with TestRequests with Test
 
     "GET /agents-external-stubs/records/ppt-registration/generate" should {
       "respond 200 with a minimal auto-generated entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = Records.generatePPTSubscriptionDisplayRecord("foo", minimal = true)
         result should haveStatus(200)
@@ -255,7 +255,7 @@ class RecordsControllerISpec extends ServerBaseISpec with TestRequests with Test
       }
 
       "respond 200 with a complete auto-generated entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = Records.generatePPTSubscriptionDisplayRecord("foo", minimal = false)
         result should haveStatus(200)
@@ -267,7 +267,7 @@ class RecordsControllerISpec extends ServerBaseISpec with TestRequests with Test
 
     "GET /agents-external-stubs/records/cbc-subscription/generate" should {
       "respond 200 with a minimal auto-generated entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = Records.generateCbcSubscriptionRecord("foo", minimal = true)
         result should haveStatus(200)
@@ -277,7 +277,7 @@ class RecordsControllerISpec extends ServerBaseISpec with TestRequests with Test
       }
 
       "respond 200 with a complete auto-generated entity" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = Records.generateCbcSubscriptionRecord("foo", minimal = false)
         result should haveStatus(200)

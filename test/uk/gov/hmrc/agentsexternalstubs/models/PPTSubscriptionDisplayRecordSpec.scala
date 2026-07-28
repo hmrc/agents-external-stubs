@@ -26,8 +26,8 @@ class PPTSubscriptionDisplayRecordSpec extends BaseUnitSpec {
 
   "CustomerDetails" should {
 
-    "be generated correctly" in {
-      Inspectors.forAll(seeds) { seed: String =>
+    "be generated correctly" in
+      Inspectors.forAll(seeds) { seed =>
         val entity = CustomerDetails.generate(seed)
         entity.customerType match {
           case "Individual" =>
@@ -39,7 +39,6 @@ class PPTSubscriptionDisplayRecordSpec extends BaseUnitSpec {
           case _ => fail(s"Unknown customer type ${entity.customerType}")
         }
       }
-    }
 
   }
 

@@ -31,14 +31,13 @@ object GroupSanitizer extends RecordUtils[Group] {
     } yield Group(groupId = groupId, planetId = planetId, affinityGroup = affinityGroup)
 
   private val ensureGroupHaveGroupId: Update = seed =>
-    group => if (group.groupId.isEmpty) group.copy(groupId = Some(GroupGenerator.groupId(seed)).get) else group
+    group => if group.groupId.isEmpty then group.copy(groupId = Some(GroupGenerator.groupId(seed)).get) else group
 
-  private val ensureAgentHaveAgentCode: Update = seed =>
+  private val ensureAgentHaveAgentCode: Update = _ =>
     group =>
       group.affinityGroup match {
         case AG.Agent =>
-          if (group.agentCode.isEmpty)
-            group.copy(agentCode = Some(GroupGenerator.agentCode(group.groupId)))
+          if group.agentCode.isEmpty then group.copy(agentCode = Some(GroupGenerator.agentCode(group.groupId)))
           else group
         case _ => group.copy(agentCode = None)
       }
@@ -47,41 +46,40 @@ object GroupSanitizer extends RecordUtils[Group] {
     group =>
       group.affinityGroup match {
         case AG.Agent =>
-          import uk.gov.hmrc.smartstub._
-          import uk.gov.hmrc.agentsexternalstubs.models.Generator._
-          if (group.agentId.isEmpty)
+          import uk.gov.hmrc.smartstub.*
+          import uk.gov.hmrc.agentsexternalstubs.models.Generator.given
+          if group.agentId.isEmpty then
             group.copy(agentId = Some(LegacyRelationshipRecord.agentIdGen.seeded(group.groupId).get))
           else group
         case _ => group.copy(agentId = None)
       }
 
-  private val ensureAgentHaveFriendlyName: Update = seed =>
+  private val ensureAgentHaveFriendlyName: Update = _ =>
     group =>
       group.affinityGroup match {
         case AG.Agent =>
-          if (group.agentFriendlyName.isEmpty)
+          if group.agentFriendlyName.isEmpty then
             group.copy(agentFriendlyName = Some(GroupGenerator.agentFriendlyName(group.groupId)))
           else group
         case _ => group.copy(agentFriendlyName = None)
       }
 
-  private val ensurePrincipalEnrolmentKeysAreDistinct: Update = seed =>
-    group => {
+  private val ensurePrincipalEnrolmentKeysAreDistinct: Update = _ =>
+    group =>
       group.copy(principalEnrolments =
         group.principalEnrolments
           .groupBy(_.key)
           .collect {
             case (key, es) if es.size == 1 || Services(key).exists(_.flags.multipleEnrolment) => es
-            case (_, es) =>
+            case (_, es)                                                                      =>
               Seq(es.maxBy(_.identifiers.map(_.size).getOrElse(0)))
           }
           .flatten
           .toSeq
       )
-    }
 
   private val ensurePrincipalEnrolmentsHaveIdentifiers: Update = seed =>
-    group => {
+    group =>
       group.copy(principalEnrolments =
         group.principalEnrolments
           .groupBy(_.key)
@@ -90,10 +88,9 @@ object GroupSanitizer extends RecordUtils[Group] {
           }
           .toSeq
       )
-    }
 
   private val ensureDelegatedEnrolmentsHaveIdentifiers: Update = seed =>
-    group => {
+    group =>
       group.copy(delegatedEnrolments =
         group.delegatedEnrolments
           .groupBy(_.key)
@@ -102,18 +99,17 @@ object GroupSanitizer extends RecordUtils[Group] {
           }
           .toSeq
       )
-    }
 
   private val ensureEnrolmentHaveIdentifier: String => Enrolment => Enrolment = seed =>
     e =>
-      if (e.identifiers.isEmpty) Services(e.key).flatMap(s => Generator.get(s.generator)(seed)).getOrElse(e)
+      if e.identifiers.isEmpty then Services(e.key).flatMap(s => Generator.get(s.generator)(seed)).getOrElse(e)
       else
         e.copy(identifiers = e.identifiers.map(_.map { i =>
           val key: String =
-            if (i.key.isEmpty) Services(e.key).flatMap(s => s.identifiers.headOption.map(_.name)).getOrElse("")
+            if i.key.isEmpty then Services(e.key).flatMap(s => s.identifiers.headOption.map(_.name)).getOrElse("")
             else i.key
           val value: String =
-            if (i.value.isEmpty)
+            if i.value.isEmpty then
               Services(e.key)
                 .flatMap(s => s.getIdentifier(key).flatMap(i => Generator.get(i.valueGenerator)(seed)))
                 .getOrElse("")

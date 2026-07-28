@@ -19,9 +19,9 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import play.api.http.HeaderNames
-import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
-import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, GroupsService, UsersService}
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Request, Result}
+import uk.gov.hmrc.agentsexternalstubs.models.*
+import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, UsersService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -36,18 +36,18 @@ import play.api.Logger
 class SignInController @Inject() (
   val authenticationService: AuthenticationService,
   usersService: UsersService,
-  groupsService: GroupsService,
   authLoginApiConnector: AuthLoginApiConnector,
   appConfig: AppConfig,
   cc: ControllerComponents
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BackendController(cc) with CurrentSession {
 
-  def signIn(): Action[AnyContent] = Action.async { implicit request =>
+  def signIn(): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     val userIdFromPool = request.getQueryString("userIdFromPool").isDefined
     withPayloadOrDefault[SignInRequest](SignInRequest(None, None, None, None)) { signInRequest =>
       withCurrentSession { session =>
-        if (signInRequest.userId.contains(session.userId))
+        if signInRequest.userId.contains(session.userId) then
           Future.successful(
             Ok.withHeaders(
               HeaderNames.LOCATION                    -> routes.SignInController.session(session.authToken).url,
@@ -62,7 +62,8 @@ class SignInController @Inject() (
     }
   }
 
-  def signOut(): Action[AnyContent] = Action.async { implicit request =>
+  def signOut(): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
       authenticationService.removeAuthentication(session.authToken).map(_ => NoContent)
     }(Future.successful(NoContent))
@@ -71,10 +72,7 @@ class SignInController @Inject() (
   private def createNewAuthentication(
     signInRequest: SignInRequest,
     userIdFromPool: Boolean
-  )(implicit
-    hc: HeaderCarrier,
-    ec: ExecutionContext
-  ): Future[Result] = {
+  )(using hc: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
 
     val planetId =
       signInRequest.planetId.getOrElse(Generator.planetID(Random.nextString(8)))
@@ -92,7 +90,7 @@ class SignInController @Inject() (
         )
       (user, mGroup) <- mExistingUser match {
                           case Some(existingUser) => Future.successful((existingUser, mExistingGroup))
-                          case _ =>
+                          case _                  =>
                             usersService
                               .createUser(
                                 signInRequest.newUserData.map(_.copy(userId = userId)).getOrElse(User(userId)),
@@ -103,10 +101,9 @@ class SignInController @Inject() (
                         }
       isNewUser = mExistingUser.isEmpty
       maybeExistingSession <-
-        if (
-          appConfig.syncToAuthLoginApi &&
+        if appConfig.syncToAuthLoginApi &&
           signInRequest.syncToAuthLoginApi.getOrElse(false)
-        ) {
+        then {
           authLoginApiConnector
             .loginToGovernmentGateway(AuthLoginApi.Request.fromUserAndGroup(user, mGroup))
             .map { response =>
@@ -144,18 +141,18 @@ class SignInController @Inject() (
                            )
       result <- Future.successful(maybeNewSession match {
                   case Some(session) =>
-                    if (isNewUser) {
+                    if isNewUser then {
                       Created.withHeaders(
-                        HeaderNames.LOCATION                    -> routes.SignInController.session(session.authToken).url,
-                        HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
+                        HeaderNames.LOCATION      -> routes.SignInController.session(session.authToken).url,
+                        HeaderNames.AUTHORIZATION -> s"Bearer ${session.authToken}",
                         uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId,
                         "X-Planet-ID"                           -> planetId,
                         "X-User-ID"                             -> user.userId
                       )
                     } else {
                       Accepted.withHeaders(
-                        HeaderNames.LOCATION                    -> routes.SignInController.session(session.authToken).url,
-                        HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
+                        HeaderNames.LOCATION      -> routes.SignInController.session(session.authToken).url,
+                        HeaderNames.AUTHORIZATION -> s"Bearer ${session.authToken}",
                         uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId,
                         "X-Planet-ID"                           -> planetId,
                         "X-User-ID"                             -> user.userId
@@ -171,7 +168,7 @@ class SignInController @Inject() (
       maybeSession <- authenticationService.findByAuthToken(authToken)
     } yield maybeSession match {
       case Some(session) =>
-        Ok(RestfulResponse(session, Link("delete", routes.SignInController.signOut.url)))
+        Ok(RestfulResponse(session, Link("delete", routes.SignInController.signOut().url)))
           .withHeaders(
             HeaderNames.AUTHORIZATION               -> s"Bearer ${session.authToken}",
             uk.gov.hmrc.http.HeaderNames.xSessionId -> session.sessionId,
@@ -182,9 +179,10 @@ class SignInController @Inject() (
     }
   }
 
-  def currentSession: Action[AnyContent] = Action.async { implicit request =>
+  def currentSession: Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
     withCurrentSession { session =>
-      okF(session, Link("delete", routes.SignInController.signOut.url))
+      okF(session, Link("delete", routes.SignInController.signOut().url))
     }(notFoundF("MISSING_AUTH_SESSION"))
   }
 

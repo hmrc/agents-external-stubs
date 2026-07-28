@@ -17,9 +17,8 @@
 package uk.gov.hmrc.agentsexternalstubs.services
 
 import play.api.Logging
-import uk.gov.hmrc.agentsexternalstubs.models.Validator.{Validator, _}
-import uk.gov.hmrc.agentsexternalstubs.models._
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import uk.gov.hmrc.agentsexternalstubs.models.*
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
 import uk.gov.hmrc.domain.TaxIdentifier
 
 import java.time.format.{DateTimeFormatter, DateTimeParseException}
@@ -37,20 +36,19 @@ class HipStubService @Inject() extends Logging {
     correlationid: Option[String],
     receiptDate: Option[String]
   ): Either[Errors, Boolean] =
-    if (!transmittingSystem.getOrElse("").equals("HIP")) {
+    if !transmittingSystem.getOrElse("").equals("HIP") then {
       logger.error("transmittingSystem header missing or invalid")
       Left(Errors("006", requestCouldNotBeProcessed))
-    } else if (!originatingSystem.getOrElse("").contains("MDTP")) {
+    } else if !originatingSystem.getOrElse("").contains("MDTP") then {
       logger.error("originatingSystem header missing or invalid")
       Left(Errors("006", requestCouldNotBeProcessed))
-    } else if (
-      !correlationid
+    } else if !correlationid
         .getOrElse("")
         .matches("^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$")
-    ) {
+    then {
       logger.error("correlationid header missing or invalid")
       Left(Errors("006", requestCouldNotBeProcessed))
-    } else if (!isValidTimestamp(receiptDate.getOrElse(""))) {
+    } else if !isValidTimestamp(receiptDate.getOrElse("")) then {
       logger.error("receiptDate header missing or invalid")
       Left(Errors("006", requestCouldNotBeProcessed))
     } else {
@@ -61,15 +59,15 @@ class HipStubService @Inject() extends Logging {
     xMessageType: Option[String],
     xRegimeType: Option[String]
   ): Either[Errors, Boolean] =
-    if (xMessageType.getOrElse("") != "TaxpayerDisplay") {
+    if xMessageType.getOrElse("") != "TaxpayerDisplay" then {
       logger.error("messageType header missing or invalid")
       Left(Errors("006", requestCouldNotBeProcessed))
-    } else if (xRegimeType.getOrElse("") != "ITSA") {
+    } else if xRegimeType.getOrElse("") != "ITSA" then {
       logger.error("regimeType header missing or invalid")
       Left(Errors("006", requestCouldNotBeProcessed))
     } else Right(true)
 
-  //yyyy-MM-ddTHH:mm:ssZ
+  // yyyy-MM-ddTHH:mm:ssZ
   private def isValidTimestamp(timestamp: String): Boolean =
     timestamp.matches("""^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$""") && {
       try {
@@ -92,40 +90,40 @@ class HipStubService @Inject() extends Logging {
     relationshipType: Option[String] = None,
     authProfile: Option[String] = None
   ): Either[Errors, RelationshipRecordQuery] =
-    if (regime.forall(_.isEmpty)) {
+    if regime.forall(_.isEmpty) then {
       logger.error("Missing SAP Number or Regime")
       Left(Errors("001", "Missing SAP Number or Regime"))
-    } else if (!regime.get.matches("^.{1,10}$")) {
+    } else if !regime.get.matches("^.{1,10}$") then {
       logger.error("Invalid Regime Type")
       Left(Errors("002", "Invalid Regime Type"))
-    } else if (isAnAgent.isEmpty) {
+    } else if isAnAgent.isEmpty then {
       logger.error("isAnAgent NOT SUPPLIED")
       Left(Errors("006", requestCouldNotBeProcessed))
-    } else if (activeOnly.isEmpty) {
+    } else if activeOnly.isEmpty then {
       logger.error("activeOnly NOT SUPPLIED")
       Left(Errors("006", requestCouldNotBeProcessed))
-    } else if (isAnAgent.get.toBoolean && arn.isEmpty) {
+    } else if isAnAgent.get.toBoolean && arn.isEmpty then {
       logger.error("Missing ARN Number")
       Left(Errors("008", "Missing ARN Number"))
-    } else if (isAnAgent.get.toBoolean && !arn.get.matches("^[A-Z]ARN[0-9]{7}$")) {
+    } else if isAnAgent.get.toBoolean && !arn.get.matches("^[A-Z]ARN[0-9]{7}$") then {
       logger.error("Invalid ARN value")
       Left(Errors("004", "Invalid ARN value"))
-    } else if (!isAnAgent.get.toBoolean && !refNumber.getOrElse("").matches("^.{1,15}$")) {
+    } else if !isAnAgent.get.toBoolean && !refNumber.getOrElse("").matches("^.{1,15}$") then {
       logger.error("Reference number is missing or invalid")
       Left(Errors("003", "Reference number is missing or invalid"))
-    } else if (idType.nonEmpty && !idType.get.matches("^.{1,6}$")) {
+    } else if idType.nonEmpty && !idType.get.matches("^.{1,6}$") then {
       logger.error("idType INVALID")
       Left(Errors("006", requestCouldNotBeProcessed))
-    } else if (!activeOnly.get.toBoolean && (dateTo.isEmpty || dateFrom.isEmpty)) {
+    } else if !activeOnly.get.toBoolean && (dateTo.isEmpty || dateFrom.isEmpty) then {
       logger.error("'dateTo' and 'dateFrom' mandatory if 'activeOnly' is false")
       Left(Errors("006", requestCouldNotBeProcessed))
-    } else if (!activeOnly.get.toBoolean && (!isValidDate(dateTo.get) || !isValidDate(dateFrom.get))) {
+    } else if !activeOnly.get.toBoolean && (!isValidDate(dateTo.get) || !isValidDate(dateFrom.get)) then {
       logger.error("'dateTo' or 'dateFrom' is invalid")
       Left(Errors("006", requestCouldNotBeProcessed))
-    } else if (relationshipType.nonEmpty && !relationshipType.get.matches("^ZA01$")) {
+    } else if relationshipType.nonEmpty && !relationshipType.get.matches("^ZA01$") then {
       logger.error("relationshipType INVALID")
       Left(Errors("006", requestCouldNotBeProcessed))
-    } else if (authProfile.nonEmpty && !authProfile.get.matches("^(ALL00001|ITSAS001)$")) {
+    } else if authProfile.nonEmpty && !authProfile.get.matches("^(ALL00001|ITSAS001)$") then {
       logger.error("authProfile INVALID")
       Left(Errors("006", requestCouldNotBeProcessed))
     } else {
@@ -152,19 +150,19 @@ class HipStubService @Inject() extends Logging {
   ): Either[Errors, TaxIdentifier] =
     (mtdReference, nino) match {
       case (Some(mtdId), Some(nino)) =>
-        if (MtdItId.isValid(mtdId) && NinoWithoutSuffix.isValid(nino)) Right(NinoWithoutSuffix(nino))
+        if MtdItId.isValid(mtdId) && NinoWithoutSuffix.isValid(nino) then Right(NinoWithoutSuffix(nino))
         else {
           logger.error("mtdItId or nino is invalid")
           Left(Errors("006", requestCouldNotBeProcessed))
         }
       case (Some(mtdId), None) =>
-        if (MtdItId.isValid(mtdId)) Right(MtdItId(mtdId))
+        if MtdItId.isValid(mtdId) then Right(MtdItId(mtdId))
         else {
           logger.error("mtdItId is invalid")
           Left(Errors("006", requestCouldNotBeProcessed))
         }
       case (None, Some(nino)) =>
-        if (NinoWithoutSuffix.isValid(nino)) Right(NinoWithoutSuffix(nino))
+        if NinoWithoutSuffix.isValid(nino) then Right(NinoWithoutSuffix(nino))
         else {
           logger.error("nino is invalid")
           Left(Errors("006", requestCouldNotBeProcessed))
@@ -184,21 +182,21 @@ class HipStubService @Inject() extends Logging {
     }
 
   def validateUpdateRelationshipPayload(payload: UpdateRelationshipPayload): Either[Errors, UpdateRelationshipPayload] =
-    if (!List("VATC", "ITSA", "CGT", "PPT", "TRS", "PLR", "CBC").contains(payload.regime))
+    if !List("VATC", "ITSA", "CGT", "PPT", "TRS", "PLR", "CBC").contains(payload.regime) then
       Left(Errors("002", "Invalid Regime Type"))
-    else if (!payload.refNumber.matches("^.{1,15}$")) Left(Errors("003", "Reference number is missing or invalid"))
-    else if (!validIdTypeForRegime(payload.regime, payload.refNumber).contains(payload.idType.getOrElse("")))
+    else if !payload.refNumber.matches("^.{1,15}$") then Left(Errors("003", "Reference number is missing or invalid"))
+    else if !validIdTypeForRegime(payload.regime, payload.refNumber).contains(payload.idType.getOrElse("")) then
       Left(Errors("013", "ID Type is invalid or missing"))
-    else if (!payload.arn.matches("^[A-Z]ARN[0-9]{7}$")) Left(Errors("004", "Invalid ARN value"))
-    else if (!List("0001", "0002").contains(payload.action)) Left(Errors("???", "unrecognised action"))
-    else if (!validateRelationshipType(payload.regime, payload.relationshipType))
+    else if !payload.arn.matches("^[A-Z]ARN[0-9]{7}$") then Left(Errors("004", "Invalid ARN value"))
+    else if !List("0001", "0002").contains(payload.action) then Left(Errors("???", "unrecognised action"))
+    else if !validateRelationshipType(payload.regime, payload.relationshipType) then
       Left(Errors("012", "Relationship type is invalid or missing"))
     else
       payload.authProfile.fold[Either[Errors, UpdateRelationshipPayload]](
-        if (Seq("TRS", "CBC").contains(payload.regime)) Right(payload)
+        if Seq("TRS", "CBC").contains(payload.regime) then Right(payload)
         else Left(Errors("005", "Relationship Authorisation Profile missing"))
       )(authProfile =>
-        if (!validateAuthProfile(payload.regime, authProfile))
+        if !validateAuthProfile(payload.regime, authProfile) then
           Left(Errors("004", "Incorrect Relationship Authorisation Profile"))
         else Right(payload)
       )
@@ -209,9 +207,9 @@ class HipStubService @Inject() extends Logging {
       case "ITSA" => Some("MTDBSA")
       case "CGT"  => Some("ZCGT")
       case "PPT"  => Some("ZPPT")
-      case "TRS" =>
-        if (refNumber.matches("^((?i)[a-z]{2}trust[0-9]{8})$")) Some("URN")
-        else if (refNumber.matches("^\\d{10}$")) Some("UTR")
+      case "TRS"  =>
+        if refNumber.matches("^((?i)[a-z]{2}trust[0-9]{8})$") then Some("URN")
+        else if refNumber.matches("^\\d{10}$") then Some("UTR")
         else None
       case "PLR" => Some("ZPLR")
       case "CBC" => Some("CBC")
@@ -232,6 +230,6 @@ class HipStubService @Inject() extends Logging {
     }
 
   def validateArn(arn: String): Either[Errors, Arn] =
-    if (Arn.isValid(arn)) Right(Arn(arn)) else Left(Errors("004", "Invalid ARN value"))
+    if Arn.isValid(arn) then Right(Arn(arn)) else Left(Errors("004", "Invalid ARN value"))
 
 }

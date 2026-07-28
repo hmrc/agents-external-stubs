@@ -19,7 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import play.api.Logger
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.agentsexternalstubs.models.UserIdGenerator
-import uk.gov.hmrc.agentsexternalstubs.repository._
+import uk.gov.hmrc.agentsexternalstubs.repository.*
 import uk.gov.hmrc.agentsexternalstubs.services.AuthorisationCache
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -36,7 +36,7 @@ class PlanetsController @Inject() (
   authSessionRepository: AuthenticatedSessionsRepository,
   groupsRepository: GroupsRepository,
   cc: ControllerComponents
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BackendController(cc) {
 
   def destroy(planetId: String): Action[AnyContent] = Action.async {

@@ -18,11 +18,11 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
-import play.api.test.Helpers._
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers._
+import play.api.test.Helpers.*
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
 import uk.gov.hmrc.agentsexternalstubs.models.identifiers.{Service => identifierService}
 import uk.gov.hmrc.agentsexternalstubs.controllers.EnrolmentStoreProxyStubController.{EnrolmentsFromKnownFactsRequest, SetKnownFactsRequest}
-import uk.gov.hmrc.agentsexternalstubs.models._
+import uk.gov.hmrc.agentsexternalstubs.models.*
 import uk.gov.hmrc.agentsexternalstubs.repository.KnownFactsRepository
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
 import uk.gov.hmrc.agentsexternalstubs.support.{AuthContext, ServerBaseISpec, TestRequests}
@@ -47,7 +47,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
               affinityGroup = Some(AG.Agent)
             )
             .futureValue
-          implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1", planetId = "testPlanetId")
+          given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1", planetId = "testPlanetId")
 
           val result = EnrolmentStoreProxyStub.getDelegatedEnrolments("group1")
 
@@ -81,7 +81,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             affinityGroup = Some(AG.Agent)
           )
           .futureValue
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1", planetId = "testPlanet")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1", planetId = "testPlanet")
 
         val result = EnrolmentStoreProxyStub.getUserIds("IR-SA~UTR~12345678", "principal")
 
@@ -92,7 +92,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "respond 200 with user ids matching provided assigned enrolment key" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         Users.update(
           UserGenerator
             .individual(userId = "foo1")
@@ -148,7 +148,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
           )
           .futureValue
 
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1", planetId = "testPlanet")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1", planetId = "testPlanet")
 
         val result = EnrolmentStoreProxyStub.getUserIds("IR-SA~UTR~12345678", "all")
 
@@ -159,7 +159,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "respond 204 if enrolment key not found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         Users.update(
           UserGenerator
             .individual(userId = "foo1")
@@ -184,7 +184,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "respond 400 if enrolment key is invalid" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
 
         val result = EnrolmentStoreProxyStub.getUserIds("IR-SA~~87654321", "all")
 
@@ -212,7 +212,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             affinityGroup = Some(AG.Agent)
           )
           .futureValue
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1", planetId = "testPlanet")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1", planetId = "testPlanet")
 
         val result = EnrolmentStoreProxyStub.getGroupIds("IR-SA~UTR~12345678", "principal")
 
@@ -223,7 +223,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "respond 200 with group ids matching provided delegated enrolment key" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         Users.update(
           UserGenerator
             .individual(userId = "foo1", groupId = "group1")
@@ -292,7 +292,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
           )
           .futureValue
 
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1", planetId = "testPlanet")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1", planetId = "testPlanet")
 
         val result = EnrolmentStoreProxyStub.getGroupIds("IR-SA~UTR~12345678", "all")
 
@@ -304,7 +304,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "respond 400 if enrolment key is invalid" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
 
         val result = EnrolmentStoreProxyStub.getGroupIds("~UTR~87654321", "all")
 
@@ -373,7 +373,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             affinityGroup = Some(AG.Individual)
           )
           .futureValue
-        implicit val session: AuthenticatedSession =
+        given session: AuthenticatedSession =
           SignIn.signInAndGetSession("00000000123166122235", planetId = "testPlanet")
         EnrolmentStoreProxyStub
           .setKnownFacts(
@@ -414,7 +414,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "allocate delegated enrolment to the group identified by groupId" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         Users.create(UserGenerator.agent(userId = "0000000021313132", groupId = "group1"), Some(AG.Agent))
         Users.create(
           UserGenerator.individual().withAssignedPrincipalEnrolment(EnrolmentKey("IR-SA~UTR~12345678")),
@@ -463,7 +463,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "allocate delegated secondary enrolment to the group" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         val delegationType =
           DelegationEnrolmentKeys(EnrolmentKey("HMRC-MTD-IT-SUPP", Seq(Identifier("MTDITID", "ZIZI45093893553"))))
 
@@ -495,7 +495,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "allocate delegated secondary enrolment to two groups identified by groupId" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         Users.create(UserGenerator.agent(userId = "0000000021313132", groupId = "group1"), Some(AG.Agent))
         Users.create(UserGenerator.agent(userId = "0000000021313133", groupId = "group2"), Some(AG.Agent))
         Users.create(
@@ -505,7 +505,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
           Some(AG.Individual)
         )
 
-        //Delegate first agent
+        // Delegate first agent
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
           "group1",
           "HMRC-MTD-IT-SUPP~MTDITID~ZIZI45093893553",
@@ -524,7 +524,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         val user: User = await(userService.findByUserId("0000000021313132", session.planetId)).get
         user.assignedDelegatedEnrolments should contain.only(EnrolmentKey("HMRC-MTD-IT-SUPP~MTDITID~ZIZI45093893553"))
 
-        //Delegate second agent
+        // Delegate second agent
         val result2 = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
           "group2",
           "HMRC-MTD-IT-SUPP~MTDITID~ZIZI45093893553",
@@ -545,7 +545,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "create known facts for a delegated enrolment when missing" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         val mtdItId = "ABCD12345678906"
         val enrolmentKey = s"HMRC-MTD-IT-SUPP~MTDITID~$mtdItId"
 
@@ -567,7 +567,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 409 for secondary enrolment if delegated secondary enrolment is already assigned " in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         EnrolmentStoreProxyStub
           .setKnownFacts(
             "HMRC-MTD-IT~MTDITID~ZIZI45093893553",
@@ -601,7 +601,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 409 for secondary enrolment if delegated primary enrolment is already assigned \"" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         EnrolmentStoreProxyStub
           .setKnownFacts(
             "HMRC-MTD-IT~MTDITID~ZIZI45093893553",
@@ -642,7 +642,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             affinityGroup = Some(AG.Individual)
           )
           .futureValue
-        implicit val session: AuthenticatedSession =
+        given session: AuthenticatedSession =
           SignIn.signInAndGetSession("00000000123166122235", planetId = "testPlanet")
         EnrolmentStoreProxyStub
           .setKnownFacts(
@@ -676,7 +676,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "allocate delegated enrolment to the agent even if principal enrolment does not exist" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         val mtdItId = "ABCD12345678907"
         val enrolmentKey = s"HMRC-MTD-IT-SUPP~MTDITID~$mtdItId"
         Users.create(UserGenerator.agent(userId = "0000000021313132", groupId = "group1"), Some(AG.Agent))
@@ -697,7 +697,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "allocate delegated enrolment to the group identified by legacy-agentCode" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         Users.create(
           UserGenerator.agent(userId = "0000000021313132", groupId = "group1"),
           Some(AG.Agent),
@@ -738,7 +738,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "allocate delegated enrolment to the agent (identified by legacy-agentCode) even if principal enrolment does not exist" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         val mtdItId = "ABCD12345678908"
         val enrolmentKey = s"HMRC-MTD-IT-SUPP~MTDITID~$mtdItId"
         Users.create(
@@ -764,7 +764,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 400 if groupId does not exist" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo")
         Users.create(UserGenerator.individual(userId = "00000000123166122235", groupId = "group1"), Some(AG.Individual))
         EnrolmentStoreProxyStub
           .setKnownFacts(
@@ -795,7 +795,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
           )
           .futureValue
 
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("agentAdmin", planetId = "testPlanet")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("agentAdmin", planetId = "testPlanet")
 
         Groups.create(GroupGenerator.generate(session.planetId, AG.Agent, groupId = Some("noAdminGroup")))
 
@@ -820,7 +820,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             affinityGroup = Some(AG.Agent)
           )
           .futureValue
-        implicit val session: AuthenticatedSession =
+        given session: AuthenticatedSession =
           SignIn.signInAndGetSession("00000000123166122235", planetId = "testPlanet")
 
         EnrolmentStoreProxyStub
@@ -860,7 +860,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             affinityGroup = Some(AG.Individual)
           )
           .futureValue
-        implicit val session: AuthenticatedSession =
+        given session: AuthenticatedSession =
           SignIn.signInAndGetSession("00000000123166122235", planetId = "testPlanet")
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
@@ -879,7 +879,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 400 if enrolment key is invalid" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("00000000123166122235")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("00000000123166122235")
         Users.update(UserGenerator.individual(userId = "00000000123166122235", groupId = "group1"))
 
         val result = EnrolmentStoreProxyStub.allocateEnrolmentToGroup(
@@ -895,7 +895,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 409 if principal enrolment is already assigned" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         EnrolmentStoreProxyStub
           .setKnownFacts(
             "IR-SA~UTR~12345678",
@@ -923,7 +923,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 409 if delegated enrolment is already assigned" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         EnrolmentStoreProxyStub
           .setKnownFacts(
             "IR-SA~UTR~12345678",
@@ -968,7 +968,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             Some(AG.Individual)
           )
           .futureValue
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "testPlanet")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "testPlanet")
 
         val result = EnrolmentStoreProxyStub.deallocateEnrolmentFromGroup("group1", "IR-SA~UTR~12345678")
 
@@ -1010,7 +1010,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
           )
           .futureValue
 
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1", planetId = "testPlanet")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1", planetId = "testPlanet")
 
         // check that the two users to which we have assigned the delegated enrolment, show up in the query
         userService
@@ -1035,7 +1035,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "deallocate delegated enrolment from the group identified by legacy-AgentCode" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         Users.create(
           UserGenerator
             .agent(userId = "foo1", groupId = "group1")
@@ -1054,7 +1054,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "fail if groupId is not found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         Users.create(
           UserGenerator
             .agent(userId = "foo1", groupId = "group1")
@@ -1073,7 +1073,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "fail if legacy-AgentCode is not found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         Users.create(
           UserGenerator
             .agent(userId = "foo1", groupId = "group1")
@@ -1094,7 +1094,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
 
     "PUT /enrolment-store/enrolments/:enrolmentKey" should {
       "return 204 NoContent" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val result = EnrolmentStoreProxyStub.setKnownFacts(
           enrolmentKey = "IR-SA~UTR~12345678",
           payload = Json.parse("""{
@@ -1130,7 +1130,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
 
     "DELETE /enrolment-store/enrolments/:enrolmentKey" should {
       "return 204 NoContent" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         EnrolmentStoreProxyStub.setKnownFacts(
           enrolmentKey = "IR-SA~UTR~12345678",
           payload = Json.parse("""{
@@ -1154,7 +1154,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 204 if enrolment does not exist" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = EnrolmentStoreProxyStub.removeKnownFacts("IR-SA~UTR~12345678")
 
@@ -1167,7 +1167,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         userService
           .createUser(UserGenerator.individual("foo"), planetId = "testPlanet", Some(AG.Individual))
           .futureValue
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "testPlanet")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "testPlanet")
 
         val result = EnrolmentStoreProxyStub.getUserEnrolments("foo")
 
@@ -1176,7 +1176,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 200 with a list of principal enrolments if assigned to the user" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val enrolmentKey = Enrolment("IR-SA", "UTR", "12345678").toEnrolmentKey.get
         userService
           .updateUser(session.userId, session.planetId, _.withAssignedPrincipalEnrolment(enrolmentKey))
@@ -1203,7 +1203,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 204 with an empty list of principal enrolments if allocated to the group but not to the user" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         val enrolment = Enrolment("IR-SA", "UTR", "12345678")
         Groups.create(
           GroupGenerator
@@ -1224,7 +1224,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 204 with an empty list of delegated enrolments" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = EnrolmentStoreProxyStub.getUserEnrolments(session.userId, `type` = "delegated")
 
@@ -1249,7 +1249,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
           .futureValue
         groupsService.updateGroup(user.groupId.get, "testPlanet", _.copy(agentCode = Some("ABCDEF")))
 
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("testUserId", planetId = "testPlanet")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("testUserId", planetId = "testPlanet")
 
         val result = EnrolmentStoreProxyStub.getUserEnrolments(session.userId, `type` = "delegated")
 
@@ -1273,7 +1273,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 204 with an empty list of delegated enrolments if assigned to the group but not to the user" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         Groups.create(
           GroupGenerator
             .generate(session.planetId, affinityGroup = AG.Agent, groupId = Some("group1"))
@@ -1326,7 +1326,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
           )
           .futureValue
 
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "testPlanet")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "testPlanet")
 
         val result = EnrolmentStoreProxyStub
           .getUserEnrolments("foo", `type` = "delegated", `start-record` = Some(3), `max-records` = Some(12))
@@ -1364,7 +1364,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 404 if userId not found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = EnrolmentStoreProxyStub.getUserEnrolments("foo")
 
@@ -1372,7 +1372,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 400 if type param is invalid" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = EnrolmentStoreProxyStub.getUserEnrolments(session.userId, `type` = "foo")
 
@@ -1380,7 +1380,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 400 if service param is invalid" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = EnrolmentStoreProxyStub.getUserEnrolments(session.userId, service = Some("FOO"))
 
@@ -1388,7 +1388,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 400 if start-record param is invalid" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = EnrolmentStoreProxyStub.getUserEnrolments(session.userId, `start-record` = Some(-1))
 
@@ -1396,7 +1396,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 400 if max-records param is invalid" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = EnrolmentStoreProxyStub.getUserEnrolments(session.userId, `max-records` = Some(1001))
 
@@ -1404,7 +1404,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
     }
 
-    //ES3
+    // ES3
     "GET /enrolment-store/groups/:groupId/enrolments" should {
       "return 204 with an empty list of principal enrolments" in {
         userService
@@ -1415,7 +1415,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             affinityGroup = Some(AG.Individual)
           )
           .futureValue
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "testPlanet")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "testPlanet")
 
         val result = EnrolmentStoreProxyStub.getGroupEnrolments("group1")
 
@@ -1424,7 +1424,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 200 with a list of principal enrolments" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         Users.create(
           UserGenerator
             .individual(userId = session.userId, groupId = "group1")
@@ -1461,7 +1461,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             affinityGroup = Some(AG.Individual)
           )
           .futureValue
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "testPlanet")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo", planetId = "testPlanet")
 
         val result = EnrolmentStoreProxyStub.getGroupEnrolments("group1", `type` = "delegated")
 
@@ -1470,7 +1470,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 200 with a list of delegated enrolments" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         Users.create(
           UserGenerator
             .agent(userId = session.userId, groupId = "group1")
@@ -1502,7 +1502,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 200 with a list of delegated primary and secondary enrolments" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
         Users.create(
           UserGenerator
             .agent(userId = session.userId, groupId = "group1")
@@ -1563,7 +1563,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             )
         userService.createUser(user, "testPlanet", affinityGroup = Some(AG.Agent)).futureValue
 
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("testUser", planetId = "testPlanet")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("testUser", planetId = "testPlanet")
 
         val result = EnrolmentStoreProxyStub
           .getGroupEnrolments("group1", `type` = "delegated", `start-record` = Some(3), `max-records` = Some(12))
@@ -1601,7 +1601,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 404 if groupId not found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = EnrolmentStoreProxyStub.getGroupEnrolments("foo")
 
@@ -1609,7 +1609,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 400 if type param is invalid" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = EnrolmentStoreProxyStub.getGroupEnrolments("foo", `type` = "foo")
 
@@ -1617,7 +1617,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 400 if service param is invalid" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = EnrolmentStoreProxyStub.getGroupEnrolments("foo", service = Some("FOO"))
 
@@ -1625,7 +1625,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 400 if start-record param is invalid" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = EnrolmentStoreProxyStub.getGroupEnrolments("foo", `start-record` = Some(-1))
 
@@ -1633,7 +1633,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 400 if max-records param is invalid" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession()
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
 
         val result = EnrolmentStoreProxyStub.getGroupEnrolments("foo", `max-records` = Some(1001))
 
@@ -1652,7 +1652,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
 //            affinityGroup = Some(AG.Individual)
 //          )
 //          .futureValue
-//        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("testUserId", planetId = "testPlanet")
+//        given session: AuthenticatedSession = SignIn.signInAndGetSession("testUserId", planetId = "testPlanet")
 //
 //        val result = EnrolmentStoreProxyStub.setEnrolmentFriendlyName(
 //          "group2",
@@ -1675,7 +1675,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
           )
           .futureValue
 
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("testUserId", planetId = "testPlanet")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("testUserId", planetId = "testPlanet")
 
         val result = EnrolmentStoreProxyStub.setEnrolmentFriendlyName(
           "group2",
@@ -1687,7 +1687,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 400 BadRequest if the payload is invalid with wrong key " in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         val result = EnrolmentStoreProxyStub.setEnrolmentFriendlyName(
           "group2",
           "IR-SA~UTR~12345678",
@@ -1697,7 +1697,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 400 BadRequest if the payload is invalid with illegal char " in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         val result = EnrolmentStoreProxyStub.setEnrolmentFriendlyName(
           "group2",
           "IR-SA~UTR~12345678",
@@ -1707,7 +1707,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 404 NotFound if the groupId does not exist " in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         val result = EnrolmentStoreProxyStub.setEnrolmentFriendlyName(
           "group2",
           "IR-SA~UTR~12345678",
@@ -1717,7 +1717,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 404 NotFound if the enrolment is not found " in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         Users.create(
           UserGenerator
             .agent(userId = "foo2", groupId = "group2", credentialRole = "Admin")
@@ -1741,7 +1741,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       val adminUser = UserGenerator.agent(userId = "testAdmin", groupId = "testGroup", credentialRole = "Admin")
       val assistantUser =
         UserGenerator.agent(userId = "testAssistant", groupId = "testGroup", credentialRole = "Assistant")
-      def setKnownFacts()(implicit ac: AuthContext) = EnrolmentStoreProxyStub
+      def setKnownFacts()(using ac: AuthContext) = EnrolmentStoreProxyStub
         .setKnownFacts(
           enrolmentKey,
           SetKnownFactsRequest
@@ -1750,7 +1750,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         )
 
       "assign an enrolment to a user successfully" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         setKnownFacts()
         Groups.create(
           GroupGenerator
@@ -1766,7 +1766,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         user.assignedDelegatedEnrolments should contain.only(EnrolmentKey(enrolmentKey))
       }
       "return 400 Bad Request if the user was already assigned the enrolment" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         setKnownFacts()
         Groups.create(
           GroupGenerator
@@ -1783,7 +1783,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         user.assignedDelegatedEnrolments should contain.only(EnrolmentKey(enrolmentKey))
       }
       "return 403 Forbidden if the enrolment is not allocated to the user's group" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         setKnownFacts()
         Groups.create(
           GroupGenerator.generate(session.planetId, AG.Agent, groupId = Some("testGroup"))
@@ -1797,7 +1797,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         user.assignedDelegatedEnrolments should be(empty)
       }
       "return 404 Not Found if the user id does not exist" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         setKnownFacts()
         Groups.create(
           GroupGenerator.generate(session.planetId, AG.Agent, groupId = Some("testGroup"))
@@ -1808,7 +1808,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         result should haveStatus(404)
       }
       "return 404 Not Found if the enrolment key does not exist" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         setKnownFacts()
         Groups.create(
           GroupGenerator
@@ -1830,7 +1830,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       val adminUser = UserGenerator.agent(userId = "testAdmin", groupId = "testGroup", credentialRole = "Admin")
       val assistantUser = UserGenerator
         .agent(userId = "testAssistant", groupId = "testGroup", credentialRole = "Assistant")
-      def setKnownFacts()(implicit ac: AuthContext) = EnrolmentStoreProxyStub
+      def setKnownFacts()(using ac: AuthContext) = EnrolmentStoreProxyStub
         .setKnownFacts(
           enrolmentKey,
           SetKnownFactsRequest
@@ -1838,7 +1838,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
             .getOrElse(fail("Could not generate known facts"))
         )
       "deassign an enrolment successfully" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         setKnownFacts()
         Users.create(adminUser.withAssignedDelegatedEnrolment(EnrolmentKey(enrolmentKey)), Some(AG.Agent))
         Users.create(assistantUser.copy(assignedDelegatedEnrolments = Seq(EnrolmentKey(enrolmentKey))), Some(AG.Agent))
@@ -1849,7 +1849,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         user.assignedDelegatedEnrolments should be(empty)
       }
       "return 204 No Content (but no error) if the enrolment was not assigned to the user in the first place" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         setKnownFacts()
         Groups.create(
           GroupGenerator
@@ -1864,7 +1864,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         result should haveStatus(204)
       }
       "return 404 Not Found if the user id does not exist" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         setKnownFacts()
         Users.create(adminUser.copy(assignedDelegatedEnrolments = Seq(enrolment.toEnrolmentKey.get)), Some(AG.Agent))
         val result = EnrolmentStoreProxyStub.deassignUser("bar", enrolmentKey)
@@ -1876,7 +1876,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
     "POST /enrolment-store-proxy/enrolment-store/enrolments (ES20)" should {
       val cbcId = "XECBC0666272111"
 
-      def setKnownFacts(enrolmentKey: String)(implicit ac: AuthContext) = EnrolmentStoreProxyStub
+      def setKnownFacts(enrolmentKey: String)(using ac: AuthContext) = EnrolmentStoreProxyStub
         .setKnownFacts(
           enrolmentKey,
           SetKnownFactsRequest
@@ -1885,7 +1885,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
         )
 
       "return OK with matching identifiers and verifiers" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
         val enrolmentKey = s"HMRC-CBC-ORG~cbcId~$cbcId~UTR~8989040376"
         setKnownFacts(enrolmentKey)
 
@@ -1902,7 +1902,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return OK with correct service when multiple services share same identifier" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
 
         val cbcId = "XECBC0666272111"
         val ekCbc = EnrolmentKey.from(identifierService.Cbc.id, "cbcId" -> cbcId)
@@ -1924,7 +1924,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return 204 when identifier exists but service does not match" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
 
         val cbcId = "XECBC0666272111"
 
@@ -1943,7 +1943,7 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
       }
 
       "return NoContent if nothing found" in {
-        implicit val session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
 
         val result = EnrolmentStoreProxyStub.queryKnownFacts(
           EnrolmentsFromKnownFactsRequest("HMRC-CBC-ORG", Seq(Identifier("cbcId", cbcId)))

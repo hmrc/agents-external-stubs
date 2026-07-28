@@ -35,7 +35,7 @@ class RecordSpec extends BaseUnitSpec with ValidatedMatchers {
       id = Some("abc")
     )
 
-  implicit val optionGenStrategy: Generator.OptionGenStrategy = Generator.AlwaysSome
+  given Generator.OptionGenStrategy = Generator.AlwaysSome
 
   val registrationJson =
     """{"regime":"ITSA","arn":"ZARN1234567","idType":"none","refNumber":"012345678901234","active":true,"_record_type":"RelationshipRecord","_id":{"$oid":"abc"}}"""
@@ -55,66 +55,59 @@ class RecordSpec extends BaseUnitSpec with ValidatedMatchers {
   }
 
   "RelationshipRecord" should {
-    "generate valid entity from seed" in {
-      Inspectors.forAll(seeds) { seed: String =>
+    "generate valid entity from seed" in
+      Inspectors.forAll(seeds) { seed =>
         val entity = RelationshipRecord.generate(seed)
         RelationshipRecord.validate(entity) should beValid
       }
-    }
   }
 
   "BusinessDetailsRecord" should {
-    "generate valid entity from seed" in {
-      Inspectors.forAll(seeds) { seed: String =>
+    "generate valid entity from seed" in
+      Inspectors.forAll(seeds) { seed =>
         val entity = BusinessDetailsRecord.generate(seed)
         BusinessDetailsRecord.validate(entity) should beValid
       }
-    }
   }
 
   "LegacyAgentRecord" should {
-    "generate valid entity from seed" in {
-      Inspectors.forAll(seeds) { seed: String =>
+    "generate valid entity from seed" in
+      Inspectors.forAll(seeds) { seed =>
         val entity = LegacyAgentRecord.generate(seed)
         LegacyAgentRecord.validate(entity) should beValid
       }
-    }
   }
 
   "LegacyRelationshipRecord" should {
-    "generate valid entity from seed" in {
-      Inspectors.forAll(seeds) { seed: String =>
+    "generate valid entity from seed" in
+      Inspectors.forAll(seeds) { seed =>
         val entity = LegacyRelationshipRecord.generate(seed)
         LegacyRelationshipRecord.validate(entity) should beValid
       }
-    }
   }
 
   "VatCustomerInformationRecord" should {
-    "generate valid entity from seed" in {
-      Inspectors.forAll(seeds) { seed: String =>
+    "generate valid entity from seed" in
+      Inspectors.forAll(seeds) { seed =>
         val entity = VatCustomerInformationRecord.generate(seed)
         VatCustomerInformationRecord.validate(entity) should beValid
       }
-    }
   }
 
   "GetBusinessPartnerRecord" should {
-    "generate valid entity from seed" in {
-      Inspectors.forAll(seeds) { seed: String =>
+    "generate valid entity from seed" in
+      Inspectors.forAll(seeds) { seed =>
         val entity = BusinessPartnerRecord.generate(seed)
         BusinessPartnerRecord.validate(entity) should beValid
       }
-    }
   }
 
   "EmployerAuths" should {
-    "generate valid entity from seed" in {
-      Inspectors.forAll(seeds) { seed: String =>
+    "generate valid entity from seed" in
+      Inspectors.forAll(seeds) { seed =>
         val entity = EmployerAuths.generate(seed)
         EmployerAuths.validate(entity) should beValid
       }
-    }
   }
 
 }

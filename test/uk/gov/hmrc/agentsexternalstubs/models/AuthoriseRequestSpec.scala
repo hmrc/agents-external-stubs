@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.models
 
 import play.api.libs.json.Json
 import uk.gov.hmrc.agentsexternalstubs.support.BaseUnitSpec
-import org.mockito.Mockito._
+import org.mockito.Mockito.*
 import uk.gov.hmrc.domain.Nino
 
 class AuthoriseRequestSpec extends BaseUnitSpec {

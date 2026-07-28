@@ -16,13 +16,12 @@
 
 package uk.gov.hmrc.agentsexternalstubs.connectors
 
-import play.api.libs.json._
+import play.api.libs.json.*
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.domain.AgentCode
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.play.bootstrap.metrics.Metrics
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -30,13 +29,13 @@ import scala.concurrent.{ExecutionContext, Future}
 case class GroupInfo(groupId: String, affinityGroup: Option[String], agentCode: Option[AgentCode])
 
 object GroupInfo {
-  implicit val formats: Format[GroupInfo] = Json.format[GroupInfo]
+  given formats: Format[GroupInfo] = Json.format[GroupInfo]
 }
 
 @Singleton
-class UsersGroupsSearchConnector @Inject() (appConfig: AppConfig, http: HttpClientV2, metrics: Metrics) {
+class UsersGroupsSearchConnector @Inject() (appConfig: AppConfig, http: HttpClientV2) {
 
-  def getGroupInfo(groupId: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[GroupInfo] = {
+  def getGroupInfo(groupId: String)(using hc: HeaderCarrier, ec: ExecutionContext): Future[GroupInfo] = {
     val url = appConfig.usersGroupsSearchUrl + s"/users-groups-search/groups/$groupId"
     http
       .get(url"$url")

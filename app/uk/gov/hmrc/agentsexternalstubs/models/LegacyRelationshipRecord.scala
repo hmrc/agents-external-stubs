@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentsexternalstubs.models
 
 import org.scalacheck.Gen
-import play.api.libs.json._
+import play.api.libs.json.*
 import uk.gov.hmrc.agentsexternalstubs.models.identifiers.NinoWithoutSuffix
 
 case class LegacyRelationshipRecord(
@@ -41,14 +41,14 @@ case class LegacyRelationshipRecord(
 
 object LegacyRelationshipRecord extends RecordUtils[LegacyRelationshipRecord] {
 
-  implicit val recordUtils: RecordUtils[LegacyRelationshipRecord] = this
+  given RecordUtils[LegacyRelationshipRecord] = this
 
   def agentIdKey(agentId: String): String = s"agentId:$agentId"
   def agentIdAndUtrKey(agentId: String, utr: String): String = s"agentId:$agentId;utr:${utr.replace(" ", "")}"
   def ninoKeys(nino: String): Seq[String] = NinoWithoutSuffix(nino).variations.map(variant => s"nino:$variant")
   def utrKey(utr: String): String = s"utr:${utr.replace(" ", "")}"
 
-  import Validator._
+  import Validator.*
   val validate: Validator[LegacyRelationshipRecord] = Validator(
     check(_.agentId.lengthMinMaxInclusive(1, 6), "Invalid agentId"),
     check(_.nino.isRight(RegexPatterns.validNinoNoSpaces), "Invalid nino"),
@@ -58,17 +58,18 @@ object LegacyRelationshipRecord extends RecordUtils[LegacyRelationshipRecord] {
 
   val writes: Writes[LegacyRelationshipRecord] = Json.writes[LegacyRelationshipRecord]
 
-  import play.api.libs.functional.syntax._
+  import play.api.libs.functional.syntax.*
   val reads: Reads[LegacyRelationshipRecord] =
     ((JsPath \ "agentId").read[String] and
       (JsPath \ "nino").readNullable[String] and
       (JsPath \ "utr").readNullable[String] and
       (JsPath \ "id").readNullable[String] and
       (JsPath \ "Auth_64-8").readNullable[Boolean] and
-      (JsPath \ "Auth_i64-8").readNullable[Boolean])(LegacyRelationshipRecord.apply _)
+      (JsPath \ "Auth_i64-8").readNullable[Boolean])(LegacyRelationshipRecord.apply)
 
-  implicit val formats: Format[LegacyRelationshipRecord] = Format(reads, writes)
-  implicit val recordType: RecordMetaData[LegacyRelationshipRecord] =
+  given Format[LegacyRelationshipRecord] = Format(reads, writes)
+  val formats: Format[LegacyRelationshipRecord] = summon[Format[LegacyRelationshipRecord]]
+  given RecordMetaData[LegacyRelationshipRecord] =
     RecordMetaData[LegacyRelationshipRecord]
 
   val agentIdGen = Generator.pattern("999999")
@@ -84,8 +85,8 @@ object LegacyRelationshipRecord extends RecordUtils[LegacyRelationshipRecord] {
       `Auth_i64-8` = auth_i64_8
     )
 
-  val ninoSanitizer: Update = seed => e => e.copy(nino = e.nino.orElse(Some(Generator.ninoNoSpaces(e.agentId).value)))
-  val utrSanitizer: Update = seed => e => e.copy(utr = e.utr.orElse(Some(Generator.utr(e.agentId).value)))
+  val ninoSanitizer: Update = _ => e => e.copy(nino = e.nino.orElse(Some(Generator.ninoNoSpaces(e.agentId).value)))
+  val utrSanitizer: Update = _ => e => e.copy(utr = e.utr.orElse(Some(Generator.utr(e.agentId))))
 
   override val sanitizers: Seq[Update] = Seq(ninoSanitizer, utrSanitizer)
 }

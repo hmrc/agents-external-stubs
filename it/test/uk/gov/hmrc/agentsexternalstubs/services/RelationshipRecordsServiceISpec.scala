@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.agentsexternalstubs.services
 
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.agentsexternalstubs.models.RelationshipRecord
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
-import uk.gov.hmrc.agentsexternalstubs.support._
+import uk.gov.hmrc.agentsexternalstubs.support.*
 
 import java.time.LocalDate
 
@@ -444,7 +444,7 @@ class RelationshipRecordsServiceISpec extends AppBaseISpec {
       await(service.authorise(RelationshipRecord("R1", "A1", "D", "C2"), "pluto"))
       await(service.authorise(RelationshipRecord("R1", "A1", "D", "C3"), "pluto"))
       await(service.authorise(RelationshipRecord("R2", "A1", "D", "C1"), "pluto"))
-      await(service.authorise(RelationshipRecord("R1", "A2", "D", "C1"), "pluto")) //replaces #2
+      await(service.authorise(RelationshipRecord("R1", "A2", "D", "C1"), "pluto")) // replaces #2
 
       val allOfAgent = await(
         service.findByQuery(
