@@ -49,6 +49,9 @@ object Generator
   def regex(regex: String): Gen[String] =
     knownRegex.getOrElse(regex, RegexpGen.from(regex).retryUntil(s => s.matches(regex)))
 
+  // Override necessary because original function occasionally returns company names with leading or trailing whitespace, which can cause problems in tests
+  override def company: Gen[String] = super.company.map(_.trim)
+
   lazy val booleanGen: Gen[Boolean] = Gen.frequency(80 -> Gen.const(true), 20 -> Gen.const(false))
 
   case class OptionGenStrategy(someFrequency: Int)
