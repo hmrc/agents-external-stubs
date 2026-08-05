@@ -43,6 +43,7 @@ class CompaniesHouseController @Inject() (cc: ControllerComponents)(using ec: Ex
         case "11111116" => officersForBusinessType("limited-company", "six-company-officers-template")
         case "22222222" => officersForBusinessType("limited-liability-partnership", "company-officers-template")
         case "22222226" => officersForBusinessType("limited-liability-partnership", "six-company-officers-template")
+        case "22222227" => officersForBusinessType("limited-liability-partnership", "seven-company-officers-template")
         case "33333333" => officersForBusinessType("limited-partnership", "company-officers-template")
         case "33333336" => officersForBusinessType("limited-partnership", "six-company-officers-template")
         case "44444444" => officersForBusinessType("scottish-limited-partnership", "company-officers-template")
