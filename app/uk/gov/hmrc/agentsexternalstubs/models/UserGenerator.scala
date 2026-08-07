@@ -81,7 +81,7 @@ object UserGenerator {
               )
   } yield s"$ln$suffix"
   def agentFriendlyName(userId: String): String =
-    agencyNameGen.seeded(userId + "_agent").get
+    agencyNameGen.seeded(userId + "_agent").get.trim
 
   def individual(
     userId: String = UUID.randomUUID().toString,
