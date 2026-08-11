@@ -69,6 +69,7 @@ object GroupGenerator {
                 " Professional Services",
                 " Accountancy",
                 " Chartered Accountants And Business Advisers",
+                " Chartered Accountants & Business Advisers",
                 " Group of Accountants",
                 " Professional",
                 " And " + ln,
