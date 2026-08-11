@@ -568,7 +568,7 @@ class UserToRecordsSyncService @Inject() (
               AgencyDetails
                 .generate(user.userId)
                 .withAgencyAddress(Some(address))
-                .withAgencyName(group.agentFriendlyName.map(_.take(40)))
+                .withAgencyName(group.agentFriendlyName.map(_.take(40).trim))
             )
           )
           .withSuspensionDetails(SuspensionDetails(group.suspendedRegimes.nonEmpty, Some(group.suspendedRegimes)))
