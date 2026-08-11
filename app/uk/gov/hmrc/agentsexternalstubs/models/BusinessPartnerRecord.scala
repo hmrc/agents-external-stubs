@@ -491,7 +491,7 @@ object BusinessPartnerRecord extends RecordUtils[BusinessPartnerRecord] {
             .fold(_ => None, _ => entity.agencyName)
             .orElse(
               Generator.get(
-                UserGenerator.agencyNameGen.map(_.take(40).trim).suchThat(_.length >= 1).suchThat(_.length <= 40)
+                GroupGenerator.agencyNameGen.map(_.take(40).trim).suchThat(_.length >= 1).suchThat(_.length <= 40)
               )(seed)
             )
         )
