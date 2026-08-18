@@ -522,6 +522,16 @@ trait TestRequests extends ScalaFutures {
   }
 
   object HipStub {
+
+    def getTrustKnownFactsUtr(idValue: String)(using authContext: AuthContext): WSResponse =
+      get(s"/etmp/RESTAdapter/trustsandestates/agent-known-fact-check/UTR/$idValue")
+
+    def getTrustKnownFactsUrn(idValue: String)(using authContext: AuthContext): WSResponse =
+      get(s"/etmp/RESTAdapter/trustsandestates/agent-known-fact-check/URN/$idValue")
+
+    def getTrustKnownFacts(idType: String, idValue: String)(using authContext: AuthContext): WSResponse =
+      get(s"/etmp/RESTAdapter/trustsandestates/agent-known-fact-check/$idType/$idValue")
+
     def displayAgentRelationship(
       regime: Option[String] = Some("VAT"),
       isAnAgent: Option[Boolean] = Some(true),
@@ -901,9 +911,6 @@ trait TestRequests extends ScalaFutures {
 
     def getLegacyRelationshipsByUtr(utr: String)(using authContext: AuthContext): WSResponse =
       get(s"/registration/relationship/utr/$utr")
-
-    def getTrustKnownFacts(utr: String)(using authContext: AuthContext): WSResponse =
-      get(s"/trusts/agent-known-fact-check/$utr")
 
     def getBusinessDetails(idType: String, idNumber: String)(using authContext: AuthContext): WSResponse =
       get(s"/registration/business-details/$idType/$idNumber")

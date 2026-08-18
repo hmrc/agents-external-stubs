@@ -214,9 +214,10 @@ Endpoint | Description
 `POST /agents/paye/:agentCode/clients/compare` | Returns agent-client authorisations for epaye
 `DELETE /agents/paye/:agentCode/clients/:taxOfficeNumber/:taxOfficeReference` | Removes given agent-client authorisation for epaye
 `GET /corporation-tax/identifiers/:idType/:idValue` | Provides the ability for a Taxpayer to retrieve the Corporation Tax Unique Taxpayer Reference (CTUTR) given a Company Registration Number (CRN) identifier
-`GET /trusts/agent-known-fact-check/URN/:urn` | Get known facts (enrolment) information
-`GET /trusts/agent-known-fact-check/UTF/:utf` | Get known facts (enrolment) information
-`GET /trusts/agent-known-fact-check/:trustTaxIdentifier` | Get known facts (enrolment) information
+`GET /trusts/agent-known-fact-check/UTR/:utr` | Get known facts (enrolment) information (Deprecated)
+`GET /trusts/agent-known-fact-check/URN/:urn` | Get known facts (enrolment) information (Deprecated)
+`GET /etmp/RESTAdapter/trustsandestates/agent-known-fact-check/UTR/:utr` | Get known facts (enrolment) information via the ETMP/HIP variant
+`GET /etmp/RESTAdapter/trustsandestates/agent-known-fact-check/URN/:urn` | Get known facts (enrolment) information via the ETMP/HIP variant
 `GET /anti-money-laundering/subscription/:amlsRegistrationNumber/status` | Get AMLS subscription status. Use XAML00000100000 Pending; XAML00000200000 Approved; XAML00000300000 Suspended; XAML00000400000 Rejected (use current year start and current year end dates for currentRegYearStartDate and currentRegYearEndDate respectively)
 `GET /plastic-packaging-tax/subscriptions/:regime/:pptReferenceNumber/display` | API #1712 Get Plastic Packaging Tax Subscription Display
 
