@@ -202,8 +202,8 @@ object Generator
   lazy val addressGen: Gen[Address] = ukAddress
     .map {
       case street :: town :: postcode :: Nil =>
-        val cleanStreet = street.replaceAll("""[^A-Za-z0-9 .,()!@-]""", "").trim
-        val cleanTown = town.replaceAll("""[^A-Za-z0-9 .,()!@-]""", "").trim
+        val cleanStreet = street.trim.replaceAll("""[^A-Za-z0-9 .,()!@-]""", "")
+        val cleanTown = town.trim.replaceAll("""[^A-Za-z0-9 .,()!@-]""", "")
         Address(cleanStreet, cleanTown, postcode)
       case _ => throw new GeneratorException("Cannot map address")
     }
