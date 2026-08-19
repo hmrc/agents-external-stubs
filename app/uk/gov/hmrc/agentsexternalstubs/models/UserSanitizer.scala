@@ -178,8 +178,8 @@ case class UserSanitizer(affinityGroup: Option[String]) extends RecordUtils[User
       case None =>
         Some(
           User.Address(
-            line1 = Some(newAddress.street.take(35)),
-            line2 = Some(newAddress.town.take(35)),
+            line1 = Some(newAddress.street.trim.take(35)),
+            line2 = Some(newAddress.town.trim.take(35)),
             postcode = Some(newAddress.postcode),
             countryCode = Some("GB")
           )
@@ -187,8 +187,8 @@ case class UserSanitizer(affinityGroup: Option[String]) extends RecordUtils[User
       case Some(address) =>
         Some(
           address.copy(
-            line1 = address.line1.map(_.take(35)).orElse(Some(newAddress.street.take(35))),
-            line2 = address.line2.map(_.take(35)).orElse(Some(newAddress.town.take(35))),
+            line1 = address.line1.map(_.take(35).trim).orElse(Some(newAddress.street.trim.take(35))),
+            line2 = address.line2.map(_.take(35).trim).orElse(Some(newAddress.town.trim.take(35))),
             postcode = UserValidator(affinityGroup)
               .postalCodeValidator(address.postcode)
               .fold(_ => None, _ => address.postcode)
