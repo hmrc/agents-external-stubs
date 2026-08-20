@@ -80,7 +80,10 @@ GET           /pillar2/subscription/:plrReference                               
 GET           /trusts/agent-known-fact-check/UTR/:utr                                                @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getTrustKnownFactsUTR(utr: String)
 GET           /trusts/agent-known-fact-check/URN/:urn                                                @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getTrustKnownFactsURN(urn: String)
 
-GET           /subscriptions/:regime/:idType/:cgtRef                                                 @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getCgtSubscription(regime: String, idType: String, cgtRef: String)
+GET           /etmp/RESTAdapter/trustsandestates/agent-known-fact-check/UTR/:utr                     @uk.gov.hmrc.agentsexternalstubs.controllers.HipStubController.getTrustKnownFactsUTR(utr: String)
+GET           /etmp/RESTAdapter/trustsandestates/agent-known-fact-check/URN/:urn                     @uk.gov.hmrc.agentsexternalstubs.controllers.HipStubController.getTrustKnownFactsURN(urn: String)
+
+GET           /subscriptions/:regime/:idType/:cgtRef                                                               @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getCgtSubscription(regime: String, idType: String, cgtRef: String)
 
 GET           /anti-money-laundering/subscription/:amlsRegistrationNumber/status                     @uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.getAmlsSubscriptionStatus(amlsRegistrationNumber: String)
 

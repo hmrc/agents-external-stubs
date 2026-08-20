@@ -20,11 +20,11 @@ import play.api.http.Status.*
 import play.api.libs.json.{JsObject, JsValue}
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
+import uk.gov.hmrc.agentsexternalstubs.models.*
+import uk.gov.hmrc.agentsexternalstubs.models.AgentKnownFactCheckResponse.{AgentSuccessResponse, ValidationErrors}
 import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.AgencyDetails
 import uk.gov.hmrc.agentsexternalstubs.models.VatCustomerInformationRecord.{ApprovedInformation, CustomerDetails, PPOB}
-import uk.gov.hmrc.agentsexternalstubs.models.*
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers.SuspensionDetails
-import uk.gov.hmrc.agentsexternalstubs.models.identifiers.Arn
+import uk.gov.hmrc.agentsexternalstubs.models.identifiers.{Arn, SuspensionDetails}
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.services.{RecordsService, RelationshipRecordsService}
 import uk.gov.hmrc.agentsexternalstubs.stubs.TestStubs
@@ -32,8 +32,7 @@ import uk.gov.hmrc.agentsexternalstubs.support.*
 
 import java.time.{LocalDate, LocalDateTime}
 
-class HipStubControllerISpec
-    extends ServerBaseISpec with TestRequests with TestStubs with ExampleDesPayloads with WireMockSupport {
+class HipStubControllerISpec extends ServerBaseISpec with TestRequests with TestStubs with WireMockSupport {
 
   lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
   lazy val repo: RecordsRepository = app.injector.instanceOf[RecordsRepository]
@@ -1903,6 +1902,112 @@ class HipStubControllerISpec
       )
 
       result should haveStatus(BAD_REQUEST)
+    }
+  }
+
+  "HipStubController.getTrustKnownFactsUTR" should {
+    "return 200 for a happy path" in {
+      val session = SignIn.signInAndGetSession()
+      given AuthContext = AuthContext.fromTokenAndSessionId(session.authToken, session.sessionId)
+
+      userService
+        .updateUser(
+          session.userId,
+          session.planetId,
+          _.copy(
+            credentialRole = Some(User.CR.Admin),
+            name = Some("Trust User"),
+            address = Some(User.Address(line1 = Some("1 Street"), countryCode = Some("GB")))
+          )
+        )
+        .futureValue
+
+      val currentUser =
+        userService.findByUserId(session.userId, session.planetId).futureValue.getOrElse(fail("Missing user"))
+      val groupId = currentUser.groupId.getOrElse(fail("Missing group id"))
+
+      groupsService
+        .updateGroup(
+          groupId,
+          session.planetId,
+          group =>
+            group.copy(
+              affinityGroup = "Organisation",
+              principalEnrolments = group.principalEnrolments :+ Enrolment("HMRC-TERS-ORG", "SAUTR", "1234567890")
+            )
+        )
+        .futureValue
+
+      val response = HipStub.getTrustKnownFactsUtr("1234567890")
+      response should haveStatus(200)
+      noException shouldBe thrownBy(response.json.as[AgentSuccessResponse])
+    }
+
+    "return 401 when no session exists" in {
+      given AuthContext = NotAuthorized
+      HipStub.getTrustKnownFactsUtr("1234567890") should haveStatus(UNAUTHORIZED)
+    }
+
+    "return 422 for invalid utr length" in {
+      val session = SignIn.signInAndGetSession()
+      given AuthContext = AuthContext.fromTokenAndSessionId(session.authToken, session.sessionId)
+
+      val response = HipStub.getTrustKnownFactsUtr("12345678901234567890") // 20 digits, invalid
+      response should haveStatus(UNPROCESSABLE_ENTITY)
+      noException shouldBe thrownBy(response.json.as[ValidationErrors])
+    }
+  }
+
+  "HipStubController.getTrustKnownFactsURN" should {
+    "return 200 for a happy path" in {
+      val session = SignIn.signInAndGetSession()
+      given AuthContext = AuthContext.fromTokenAndSessionId(session.authToken, session.sessionId)
+
+      userService
+        .updateUser(
+          session.userId,
+          session.planetId,
+          _.copy(
+            credentialRole = Some(User.CR.Admin),
+            name = Some("Trust User"),
+            address = Some(User.Address(line1 = Some("1 Street"), countryCode = Some("GB")))
+          )
+        )
+        .futureValue
+
+      val currentUser =
+        userService.findByUserId(session.userId, session.planetId).futureValue.getOrElse(fail("Missing user"))
+      val groupId = currentUser.groupId.getOrElse(fail("Missing group id"))
+
+      groupsService
+        .updateGroup(
+          groupId,
+          session.planetId,
+          group =>
+            group.copy(
+              affinityGroup = "Organisation",
+              principalEnrolments = group.principalEnrolments :+ Enrolment("HMRC-TERSNT-ORG", "URN", "AATRUST00000000")
+            )
+        )
+        .futureValue
+
+      val response = HipStub.getTrustKnownFactsUrn("AATRUST00000000")
+      response should haveStatus(200)
+      noException shouldBe thrownBy(response.json.as[AgentSuccessResponse])
+    }
+
+    "return 401 when no session exists" in {
+      given AuthContext = NotAuthorized
+      HipStub.getTrustKnownFactsUrn("aatrust00000000") should haveStatus(UNAUTHORIZED)
+    }
+
+    "return 422 for invalid urn" in {
+      val session = SignIn.signInAndGetSession()
+      given AuthContext = AuthContext.fromTokenAndSessionId(session.authToken, session.sessionId)
+
+      val response = HipStub.getTrustKnownFactsUrn("BAD")
+      response should haveStatus(UNPROCESSABLE_ENTITY)
+      noException shouldBe thrownBy(response.json.as[ValidationErrors])
     }
   }
 
