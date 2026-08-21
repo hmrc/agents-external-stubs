@@ -21,10 +21,9 @@ import org.scalatest.OptionValues
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
-import play.api.Application
+import play.api.i18n.{Lang, Messages, MessagesApi}
 import play.api.libs.json.JsValue
 import play.api.libs.ws.{BodyWritable, writeableOf_JsValue}
-import play.api.i18n.{Lang, Messages, MessagesApi}
 import play.api.mvc.Result
 import play.api.test.Helpers.defaultAwaitTimeout
 import play.api.test.{FakeRequest, Helpers}
@@ -35,7 +34,7 @@ import uk.gov.hmrc.play.http.HeaderCarrierConverter
 import java.util.UUID
 import scala.concurrent.Future
 
-abstract class BaseISpec extends AnyWordSpecLike with Matchers with OptionValues with ScalaFutures {
+abstract class BaseISpec extends AnyWordSpecLike with Matchers with OptionValues with ScalaFutures with TestPlayServer {
   // the following is a collection of useful methods that should minimise
   // the changes required when migrating away from hmrctest, which is now deprecated.
   def status(result: Result): Int = result.header.status
@@ -51,8 +50,6 @@ abstract class BaseISpec extends AnyWordSpecLike with Matchers with OptionValues
       case Some(s) if s.contains("charset=") => Some(s.split("; *charset=").drop(1).mkString.trim)
       case _                                 => None
     }
-
-  def app: Application
 
   protected given Materializer = app.materializer
   protected given BodyWritable[JsValue] = writeableOf_JsValue

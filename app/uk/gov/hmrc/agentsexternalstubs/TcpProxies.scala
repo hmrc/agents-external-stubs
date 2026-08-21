@@ -20,60 +20,56 @@ import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Flow, Tcp}
 import org.apache.pekko.util.ByteString
-import javax.inject.{Inject, Singleton}
-import play.api.Logger
+import play.api.Logging
+import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
 
 @Singleton
-class TcpProxies @Inject() (appConfig: AppConfig)(using system: ActorSystem, materializer: Materializer) {
+class TcpProxies @Inject (
+  appConfig: AppConfig,
+  applicationLifecycle: ApplicationLifecycle
+)(using system: ActorSystem)
+    extends Logging:
 
-  if (appConfig.isProxyMode) {
-    Logger(getClass).info("Starting local TCP proxies ...")
+  val proxiedServices: Map[String, Int] = Map(
+    "auth"                        -> appConfig.authPort,
+    "citizen-details"             -> appConfig.citizenDetailsPort,
+    "user-details"                -> appConfig.userDetailsPort,
+    "users-groups-search"         -> appConfig.usersGroupsSearchPort,
+    "enrolment-store-proxy"       -> appConfig.enrolmentStoreProxyPort,
+    "tax-enrolments"              -> appConfig.taxEnrolmentsPort,
+    "ni-exemption-registration"   -> appConfig.niExemptionRegistrationPort,
+    "des"                         -> appConfig.desPort,
+    "datastream"                  -> appConfig.dataStreamPort,
+    "sso"                         -> appConfig.ssoPort,
+    "file-upload"                 -> appConfig.fileUploadPort,
+    "file-upload-frontend"        -> appConfig.fileUploadFrontendPort,
+    "identity-verification"       -> appConfig.identityVerification,
+    "personal-details-validation" -> appConfig.personalDetailsValidation,
+    "companies-house-api-proxy"   -> appConfig.companiesHouseApiProxyPort
+  )
 
-    given ec: ExecutionContext = system.dispatcher
+  if !appConfig.isProxyMode then logger.info("TCP proxying feature is switched off")
+  else
+    logger.info("Starting local TCP proxies ...")
 
-    val agentsExternalStubsPort = Try(appConfig.httpPort.toInt).toOption.getOrElse(9009)
+    given ExecutionContext = system.dispatcher
 
-    val tcpOutgoingConnection: Flow[ByteString, ByteString, Future[Tcp.OutgoingConnection]] =
-      Tcp().outgoingConnection("localhost", agentsExternalStubsPort)
+    val tcp = Tcp()
+    val tcpProxy = Flow[ByteString].via(tcp.outgoingConnection("localhost", appConfig.httpPort))
 
-    val tcpProxy = Flow[ByteString].via(tcpOutgoingConnection)
-
-    def startProxy(port: Int, serviceName: String): Future[Unit] =
-      Tcp(system)
+    def startProxy(serviceName: String, port: Int): Future[Unit] =
+      tcp
         .bindAndHandle(tcpProxy, interface = "localhost", port = port)
-        .map(s => Logger(getClass).info(s"Listening for $serviceName requests on ${s.localAddress}"))
-        .recover { case e: Exception =>
-          Logger(getClass).error(s"Could not start TCP proxy for $serviceName requests on $port because of $e")
-        }
+        .map: binding =>
+          logger.info(s"Listening for $serviceName requests on ${binding.localAddress}")
+          applicationLifecycle.addStopHook: () =>
+            logger.info(s"Stopping TCP proxy for $serviceName requests on $port")
+            binding.unbind()
+        .recover: err =>
+          logger.error(s"Could not start TCP proxy for $serviceName requests on $port because of $err")
 
-    Future
-      .sequence(
-        Seq(
-          startProxy(appConfig.authPort, "auth"),
-          startProxy(appConfig.citizenDetailsPort, "citizen-details"),
-          startProxy(appConfig.userDetailsPort, "user-details"),
-          startProxy(appConfig.usersGroupsSearchPort, "users-groups-search"),
-          startProxy(appConfig.enrolmentStoreProxyPort, "enrolment-store-proxy"),
-          startProxy(appConfig.taxEnrolmentsPort, "tax-enrolments"),
-          startProxy(appConfig.niExemptionRegistrationPort, "ni-exemption-registration"),
-          startProxy(appConfig.desPort, "des"),
-          startProxy(appConfig.dataStreamPort, "datastream"),
-          startProxy(appConfig.ssoPort, "sso"),
-          startProxy(appConfig.fileUploadPort, "file-upload"),
-          startProxy(appConfig.fileUploadFrontendPort, "file-upload-frontend"),
-          startProxy(appConfig.identityVerification, "identity-verification"),
-          startProxy(appConfig.personalDetailsValidation, "personal-details-validation"),
-          startProxy(appConfig.companiesHouseApiProxyPort, "companies-house-api-proxy")
-        )
-      )
-      .map(_ => Logger(getClass).info("All proxies have started."))
-
-  } else {
-    Logger(getClass).info("TCP proxying feature is switched off")
-  }
-
-}
+    Future.traverse(proxiedServices)(startProxy)
