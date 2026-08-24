@@ -20,8 +20,10 @@ import play.api.Logging
 import play.api.libs.json.*
 import play.api.mvc.*
 import uk.gov.hmrc.agentsexternalstubs.controllers.DesIfStubController.GetRelationships
-import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{ForeignAddress, UkAddress}
 import uk.gov.hmrc.agentsexternalstubs.models.*
+import uk.gov.hmrc.agentsexternalstubs.models.AgentKnownFactCheckResponse.{AgentSuccessResponse, ValidationErrors}
+import uk.gov.hmrc.agentsexternalstubs.models.BusinessPartnerRecord.{ForeignAddress, UkAddress}
+import uk.gov.hmrc.agentsexternalstubs.models.TrustDetailsResponse.getErrorResponseFor
 import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
 import uk.gov.hmrc.agentsexternalstubs.repository.RecordsRepository
 import uk.gov.hmrc.agentsexternalstubs.services.*
@@ -37,6 +39,8 @@ import scala.concurrent.{ExecutionContext, Future}
 class HipStubController @Inject() (
   hipStubService: HipStubService,
   ucrStubService: UcrStubService,
+  groupsService: GroupsService,
+  usersService: UsersService,
   val authenticationService: AuthenticationService,
   relationshipRecordsService: RelationshipRecordsService,
   recordsService: RecordsService,
@@ -44,6 +48,56 @@ class HipStubController @Inject() (
   cc: ControllerComponents
 )(using executionContext: ExecutionContext)
     extends BackendController(cc) with ExternalCurrentSession with Logging {
+
+  private val HMRC_TERS_ORG = "HMRC-TERS-ORG"
+  private val HMRC_TERSNT_ORG = "HMRC-TERSNT-ORG"
+
+  def getTrustKnownFactsUTR(utr: String): Action[AnyContent] =
+    getTrustKnownFacts(utr, RegexPatterns.validUtr, HMRC_TERS_ORG, "SAUTR")
+
+  def getTrustKnownFactsURN(urn: String): Action[AnyContent] =
+    getTrustKnownFacts(urn, RegexPatterns.validUrn, HMRC_TERSNT_ORG, "URN")
+
+  private def getTrustKnownFacts(
+    id: String,
+    validation: RegexPatterns.Matcher,
+    service: String,
+    key: String
+  ): Action[AnyContent] = Action.async { request =>
+    given Request[AnyContent] = request
+    withCurrentSession { session =>
+      validation(id)
+        .fold(
+          _ => success(UnprocessableEntity(Json.toJson(ValidationErrors.invalidUrnOrUtr))),
+          taxIdentifier => {
+            val enrolmentKey = EnrolmentKey(service, Seq(Identifier(key, taxIdentifier)))
+            for {
+              maybeGroup     <- groupsService.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
+              maybeAdminUser <- maybeGroup.fold(Future.successful(Option.empty[User]))(g =>
+                                  usersService.findAdminByGroupId(g.groupId, session.planetId)
+                                )
+            } yield (maybeGroup, maybeAdminUser) match {
+              case (Some(group), Some(user)) =>
+                val maybeUtr =
+                  extractEnrolmentValue(HMRC_TERS_ORG)(group)
+                val maybeUrn =
+                  extractEnrolmentValue(HMRC_TERSNT_ORG)(group)
+                val trustDetails = TrustDetailsResponse(
+                  TrustDetails(
+                    maybeUtr,
+                    maybeUrn,
+                    user.name.getOrElse(""),
+                    TrustAddress(user.address),
+                    "TERS"
+                  )
+                )
+                Ok(Json.toJson(AgentSuccessResponse(trustDetails)))
+              case _ => getErrorResponseFor(id)
+            }
+          }
+        )
+    }(SessionRecordNotFound)
+  }
 
   def displayAgentRelationship: Action[AnyContent] = Action.async { request =>
     given Request[AnyContent] = request
@@ -600,4 +654,11 @@ class HipStubController @Inject() (
         )
       )
     )
+
+  private def extractEnrolmentValue(serviceKey: String)(record: Group) =
+    record.principalEnrolments
+      .find(_.key == serviceKey)
+      .flatMap(_.toEnrolmentKeyTag)
+      .map(_.split('~').takeRight(1).mkString)
+
 }
