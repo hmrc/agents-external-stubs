@@ -818,7 +818,7 @@ trait TestRequests extends ScalaFutures {
         "registryMarker"  -> "GREEN"
       )
       wsClient
-        .url(s"$url/customer/v2/api/individuals/identifier-search")
+        .url(s"$url/mulesoft/customer/v2/api/individuals/identifier-search")
         .withHttpHeaders(
           authContext.headers ++
             Seq(
@@ -849,7 +849,7 @@ trait TestRequests extends ScalaFutures {
         "registryMarker" -> "GREEN"
       )
       wsClient
-        .url(s"$url/customer/v2/api/organisations/identifier-search")
+        .url(s"$url/mulesoft/customer/v2/api/organisations/identifier-search")
         .withHttpHeaders(
           authContext.headers ++
             Seq(
