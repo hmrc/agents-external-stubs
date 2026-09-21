@@ -9,7 +9,7 @@ object AppDependencies {
   lazy val compile: Seq[ModuleID] = Seq(
     "uk.gov.hmrc"          %% s"bootstrap-backend-$playVer" % bootstrapVer,
     "uk.gov.hmrc.mongo"    %% s"hmrc-mongo-$playVer"        % mongoVer,
-    "uk.gov.hmrc"          %% s"domain-$playVer"            % "13.0.0",
+    "uk.gov.hmrc"          %% s"domain-$playVer"            % "11.0.0",
     "uk.gov.hmrc"          %% "stub-data-generator"         % "1.6.0",
     "org.playframework"    %% "play-json"                   % "3.0.6",
     "org.typelevel"        %% "cats-core"                   % "2.13.0",
