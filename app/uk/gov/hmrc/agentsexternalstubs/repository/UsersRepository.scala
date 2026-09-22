@@ -110,7 +110,8 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfi
   override def findByUserId(userId: String, planetId: String): Future[Option[User]] =
     collection
       .find(Filters.equal(UNIQUE_KEYS, keyOf(User.userIdKey(userId), planetId)))
-      .headOption()
+      .first()
+      .toFutureOption()
       .map(_.map(_.value))
 
   override def findByUserIdContains(partialUserId: String, planetId: String, limit: Int): Future[Seq[User]] =
@@ -128,13 +129,15 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfi
   override def findByNino(nino: String, planetId: String): Future[Option[User]] =
     collection
       .find(Filters.in(UNIQUE_KEYS, User.ninoIndexKeys(nino).map(keyOf(_, planetId))*))
-      .headOption()
+      .first()
+      .toFutureOption()
       .map(_.map(_.value))
 
   override def findByUtr(utr: String, planetId: String): Future[Option[User]] =
     collection
       .find(Filters.equal(KEYS, keyOf(User.utrIndexKey(utr), planetId)))
-      .headOption()
+      .first()
+      .toFutureOption()
       .map(_.map(_.value))
 
   override def findByPlanetId(planetId: String)(
@@ -159,13 +162,15 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfi
           Filters.equal(KEYS, keyOf(User.groupIdWithCredentialRoleKey(groupId, User.CR.Admin), planetId))
         )
       )
-      .headOption()
+      .first()
+      .toFutureOption()
       .map(_.map(_.value))
 
   override def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String): Future[Option[User]] =
     collection
       .find(Filters.equal(KEYS, keyOf(User.assignedPrincipalEnrolmentIndexKey(enrolmentKey.toString), planetId)))
-      .headOption()
+      .first()
+      .toFutureOption()
       .map(_.map(_.value))
 
   override def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
