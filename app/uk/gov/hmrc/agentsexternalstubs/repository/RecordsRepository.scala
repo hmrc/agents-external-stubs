@@ -233,8 +233,9 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppCon
           Filters.equal(PLANET_ID, planetId)
         )
       )
-      .map(_.value.asInstanceOf[T]) // TODO asInstanceOf is bad
-      .headOption()
+      .first()
+      .toFutureOption()
+      .map(_.map(_.value.asInstanceOf[T])) // TODO asInstanceOf is bad
 
   override def findByPlanetId(planetId: String, limit: Option[Int] = None): Future[Seq[Record]] =
     collection
