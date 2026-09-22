@@ -121,15 +121,15 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConf
           Filters.equal("groupId", groupId)
         )
       )
-      .toFuture()
-      .map(_.headOption)
+      .first()
+      .toFutureOption()
       .map(_.map(_.value))
 
   override def findByPrincipalEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String): Future[Option[Group]] =
     collection
       .find(Filters.equal(UNIQUE_KEYS, keyOf(principalEnrolmentIndexKey(enrolmentKey.toString), planetId)))
-      .toFuture()
-      .map(_.headOption)
+      .first()
+      .toFutureOption()
       .map(_.map(_.value))
 
   override def findByDelegatedEnrolmentKey(enrolmentKey: EnrolmentKey, planetId: String)(
@@ -191,8 +191,8 @@ class GroupsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConf
           Filters.equal("agentCode", agentCode)
         )
       )
-      .toFuture()
-      .map(_.headOption)
+      .first()
+      .toFutureOption()
       .map(_.map(_.value))
 
   private def planetIdKey(planetId: String): String = s"planet:$planetId"
