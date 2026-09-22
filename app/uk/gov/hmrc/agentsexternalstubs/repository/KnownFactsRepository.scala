@@ -83,15 +83,15 @@ class KnownFactsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: App
   ): Future[Option[KnownFacts]] =
     collection
       .find(Filters.equal(KnownFacts.UNIQUE_KEY, KnownFacts.uniqueKey(enrolmentKey.tag, planetId)))
-      .toFuture()
-      .map(_.headOption)
+      .first()
+      .toFutureOption()
       .map(_.map(_.value))
 
   override def findByIdentifier(identifier: Identifier, planetId: String): Future[Option[KnownFacts]] =
     collection
       .find(Filters.equal(KnownFacts.IDENTIFIER_KEYS, identifierKey(identifier, planetId)))
-      .toFuture()
-      .map(_.headOption)
+      .first()
+      .toFutureOption()
       .map(_.map(_.value))
 
   override def findAllByIdentifier(identifier: Identifier, planetId: String): Future[Seq[KnownFacts]] =
@@ -103,8 +103,8 @@ class KnownFactsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: App
   override def findByVerifier(knownFacts: KnownFact, planetId: String): Future[Option[KnownFacts]] =
     collection
       .find(Filters.equal(KnownFacts.VERIFIERS_KEYS, verifierKey(knownFacts, planetId)))
-      .toFuture()
-      .map(_.headOption)
+      .first()
+      .toFutureOption()
       .map(_.map(_.value))
 
   def upsert(knownFacts: KnownFacts, planetId: String): Future[Unit] =
