@@ -81,7 +81,8 @@ class SpecialCasesRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: A
           Filters.equal(PLANET_ID, planetId)
         )
       )
-      .headOption()
+      .first()
+      .toFutureOption()
       .map(_.map(_.value))
 
   def findByMatchKey(key: String, planetId: String): Future[Option[SpecialCase]] =

@@ -147,7 +147,8 @@ class RecordsRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppCon
       case (None, Some(uniqueKey)) =>
         collection
           .find(Filters.equal(UNIQUE_KEY, keyOf(uniqueKey, planetId, typeName)))
-          .headOption()
+          .first()
+          .toFutureOption()
           .map(_.flatMap(_.value.id))
           .flatMap {
             case Some(recordId) =>
