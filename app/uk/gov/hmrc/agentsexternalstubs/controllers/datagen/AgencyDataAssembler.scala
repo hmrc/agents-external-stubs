@@ -165,7 +165,7 @@ class AgencyDataAssembler extends Logging {
         .agent(
           userId = f"perf-test-$indexAgency%04d-A$index%05d",
           groupId = agentUser.groupId.orNull,
-          credentialRole = "User",
+          credentialRole = "Assistant",
           nino = f"AB${index + AGENT_NINO_OFFSET + 1}%06dC",
           assignedPrincipalEnrolments = agentUser.assignedPrincipalEnrolments
         )
