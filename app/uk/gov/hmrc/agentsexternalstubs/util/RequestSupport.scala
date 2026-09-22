@@ -16,23 +16,17 @@
 
 package uk.gov.hmrc.agentsexternalstubs.util
 
-import play.api.mvc.{Request, RequestHeader}
+import play.api.mvc.RequestHeader
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendHeaderCarrierProvider
 
-import javax.inject.Inject
-
-class RequestSupport @Inject() () {
-  def hc(using request: Request[?]): HeaderCarrier = RequestSupport.hc
-}
 
 object RequestSupport {
 
   given HeaderCarrier(using request: RequestHeader): HeaderCarrier = HcProvider.headerCarrier
-  def hc(using request: RequestHeader): HeaderCarrier = summon[HeaderCarrier]
 
   private object HcProvider extends BackendHeaderCarrierProvider {
-    def headerCarrier(using request: RequestHeader): HeaderCarrier = RequestSupport.hc
+    def headerCarrier(using request: RequestHeader): HeaderCarrier = this.hc
   }
 
 }
