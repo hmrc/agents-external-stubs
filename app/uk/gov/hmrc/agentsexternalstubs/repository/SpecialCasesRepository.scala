@@ -90,8 +90,8 @@ class SpecialCasesRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: A
       .find(
         Filters.equal(SpecialCase.UNIQUE_KEY, SpecialCase.uniqueKey(key, planetId))
       )
-      .toFuture()
-      .map(_.headOption)
+      .first()
+      .toFutureOption()
       .map(_.map(_.value))
 
   def findByPlanetId(planetId: String)(limit: Int): Future[Seq[SpecialCase]] =
@@ -128,8 +128,8 @@ class SpecialCasesRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: A
                 .find(
                   Filters.equal(SpecialCase.UNIQUE_KEY, SpecialCase.uniqueKey(specialCase.requestMatch.toKey, planetId))
                 )
-                .toFuture()
-                .map(_.headOption)
+                .first()
+                .toFutureOption()
                 .flatMap {
                   case Some(sc) =>
                     collection
