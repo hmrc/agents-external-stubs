@@ -20,7 +20,6 @@ import play.api.mvc.RequestHeader
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendHeaderCarrierProvider
 
-
 object RequestSupport {
 
   given HeaderCarrier(using request: RequestHeader): HeaderCarrier = HcProvider.headerCarrier
