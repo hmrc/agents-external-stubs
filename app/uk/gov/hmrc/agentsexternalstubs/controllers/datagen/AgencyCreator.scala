@@ -118,6 +118,7 @@ class AgencyCreator @Inject() (
         agencyCreationPayload.agentUser.assignedPrincipalEnrolments.headOption
           .flatMap(_.identifiers.headOption.map(_.value))
       )
+      .withIsAnASAgent(true)
       .withAgencyDetails(
         Some(
           AgencyDetails
