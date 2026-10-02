@@ -34,23 +34,24 @@ class HipStubService @Inject() extends Logging {
     transmittingSystem: Option[String],
     originatingSystem: Option[String],
     correlationid: Option[String],
-    receiptDate: Option[String]
+    receiptDate: Option[String],
+    apiValidationErrorCode: String = "006"
   ): Either[Errors, Boolean] =
     if !transmittingSystem.getOrElse("").equals("HIP") then {
       logger.error("transmittingSystem header missing or invalid")
-      Left(Errors("006", requestCouldNotBeProcessed))
+      Left(Errors(apiValidationErrorCode, requestCouldNotBeProcessed))
     } else if !originatingSystem.getOrElse("").contains("MDTP") then {
       logger.error("originatingSystem header missing or invalid")
-      Left(Errors("006", requestCouldNotBeProcessed))
+      Left(Errors(apiValidationErrorCode, requestCouldNotBeProcessed))
     } else if !correlationid
         .getOrElse("")
         .matches("^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$")
     then {
       logger.error("correlationid header missing or invalid")
-      Left(Errors("006", requestCouldNotBeProcessed))
+      Left(Errors(apiValidationErrorCode, requestCouldNotBeProcessed))
     } else if !isValidTimestamp(receiptDate.getOrElse("")) then {
       logger.error("receiptDate header missing or invalid")
-      Left(Errors("006", requestCouldNotBeProcessed))
+      Left(Errors(apiValidationErrorCode, requestCouldNotBeProcessed))
     } else {
       Right(true)
     }

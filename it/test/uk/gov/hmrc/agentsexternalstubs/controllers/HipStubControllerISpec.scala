@@ -2011,4 +2011,133 @@ class HipStubControllerISpec extends ServerBaseISpec with TestRequests with Test
     }
   }
 
+  "HipStubController.etmpRegistrationServices" when {
+
+    def businessPartnerRecord(utr: String) = BusinessPartnerRecord(
+      businessPartnerExists = true,
+      safeId = "XA0000123456789",
+      isAnIndividual = true,
+      individual = Some(BusinessPartnerRecord.Individual("Bill", None, "Jones", "1990-01-01")),
+      organisation = None,
+      isAnAgent = true,
+      isAnASAgent = true,
+      utr = Some(utr),
+      agentReferenceNumber = Some("ZARN0001391"),
+      addressDetails = BusinessPartnerRecord.UkAddress(
+        addressLine1 = "10 Old Street",
+        addressLine2 = None,
+        addressLine3 = None,
+        addressLine4 = None,
+        postalCode = "AA11AA",
+        countryCode = "GB"
+      ),
+      contactDetails = Some(BusinessPartnerRecord.ContactDetails()),
+      agencyDetails = Some(
+        AgencyDetails(
+          agencyName = Some("Old Name"),
+          agencyAddress = None,
+          agencyEmail = None,
+          agencyTelephone = None,
+          supervisoryBody = None,
+          membershipNumber = None,
+          evidenceObjectReference = None,
+          updateDetailsStatus = None,
+          amlSupervisionUpdateStatus = None,
+          directorPartnerUpdateStatus = None,
+          acceptNewTermsStatus = None,
+          reriskStatus = None
+        )
+      ),
+      suspensionDetails = None,
+      id = None
+    )
+
+    "all request parameters are valid" should {
+      "return CREATED when the BPR exists" in {
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val existingRecord = businessPartnerRecord("1234567890")
+
+        await(repo.store(existingRecord, session.planetId))
+
+        val result =
+          HipStub.etmpRegistrationServices(
+            idType = "UTR",
+            idValue = "1234567890",
+            regime = "ITSA",
+            transmittingSystemHeader = Some("HIP"),
+            originatingSystemHeader = Some("MDTP"),
+            correlationIdHeader = Some("f0bd1f32-de51-45cc-9b18-0520d6e3ab1a"),
+            receiptDateHeader = Some("2025-01-30T23:59:59Z")
+          )
+
+        result should haveStatus(CREATED)
+        result should haveValidJsonBody(
+          haveProperty[JsObject]("success", not be empty)
+        )
+      }
+
+      "return UnprocessableEntity with code 002 No match found" in {
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val existingRecord = businessPartnerRecord("1234567890")
+
+        await(repo.store(existingRecord, session.planetId))
+
+        val result =
+          HipStub.etmpRegistrationServices(
+            idType = "UTR",
+            idValue = "1234567899",
+            regime = "ITSA",
+            transmittingSystemHeader = Some("HIP"),
+            originatingSystemHeader = Some("MDTP"),
+            correlationIdHeader = Some("f0bd1f32-de51-45cc-9b18-0520d6e3ab1a"),
+            receiptDateHeader = Some("2025-01-30T23:59:59Z")
+          )
+
+        result should haveStatus(UNPROCESSABLE_ENTITY)
+        result.json.toString should include("""code":"002","text":"No match found""")
+      }
+    }
+
+    "request headers are invalid" should {
+      "return 422 Unprocessable Entity" in {
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result =
+          HipStub.etmpRegistrationServices(
+            idType = "UTR",
+            idValue = "1234567890",
+            regime = "ITSA",
+            transmittingSystemHeader = Some("INVALID"),
+            originatingSystemHeader = Some("MDTP"),
+            correlationIdHeader = Some("f0bd1f32-de51-45cc-9b18-0520d6e3ab1a"),
+            receiptDateHeader = Some("2025-01-30T23:59:59Z")
+          )
+
+        result should haveStatus(UNPROCESSABLE_ENTITY)
+        result.json.toString should include("""code":"001","text":"Request could not be processed""")
+      }
+    }
+    "request body is invalid" should {
+      "return 422 Unprocessable Entity" in {
+        given session: AuthenticatedSession = SignIn.signInAndGetSession()
+
+        val result =
+          HipStub.etmpRegistrationServices(
+            idType = "UTR",
+            idValue = "1234567890",
+            regime = "INVALID",
+            transmittingSystemHeader = Some("HIP"),
+            originatingSystemHeader = Some("MDTP"),
+            correlationIdHeader = Some("f0bd1f32-de51-45cc-9b18-0520d6e3ab1a"),
+            receiptDateHeader = Some("2025-01-30T23:59:59Z")
+          )
+
+        result should haveStatus(UNPROCESSABLE_ENTITY)
+        result.json.toString should include("""code":"001","text":"Request could not be processed""")
+      }
+    }
+  }
+
 }

@@ -863,6 +863,35 @@ trait TestRequests extends ScalaFutures {
         .post(payload)
         .futureValue
     }
+
+    def etmpRegistrationServices(
+      idType: String,
+      idValue: String,
+      regime: String,
+      transmittingSystemHeader: Option[String] = Some("HIP"),
+      originatingSystemHeader: Option[String] = Some("MDTP"),
+      correlationIdHeader: Option[String] = Some("f0bd1f32-de51-45cc-9b18-0520d6e3ab1a"),
+      receiptDateHeader: Option[String] = Some("2025-01-30T23:59:59Z")
+    )(using authContext: AuthContext): WSResponse = {
+      val payload = Json.obj(
+        "isAnAgent"         -> false,
+        "regime"            -> regime,
+        "requiresNameMatch" -> false
+      )
+      wsClient
+        .url(s"$url/etmp/RESTAdapter/registration/$idType/$idValue")
+        .withHttpHeaders(
+          authContext.headers ++
+            Seq(
+              "X-Transmitting-System" -> transmittingSystemHeader,
+              "X-Originating-System"  -> originatingSystemHeader,
+              "correlationid"         -> correlationIdHeader,
+              "X-Receipt-Date"        -> receiptDateHeader
+            ).collect { case (k, Some(v)) => k -> v }*
+        )
+        .post(payload)
+        .futureValue
+    }
   }
 
   object DesStub {
