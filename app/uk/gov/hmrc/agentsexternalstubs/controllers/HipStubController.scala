@@ -574,6 +574,61 @@ class HipStubController @Inject() (
         }
     }
 
+    /** API#5987 ETMP Registration Service
+      * https://admin.tax.service.gov.uk/integration-hub/apis/details/48aa1b50-b9a9-43e0-994b-586eec1b524a Notable
+      * differences to the API spec:
+      *   - Only accepts ITSA regime
+      *   - Only accepts UTR as the idType
+      *   - Does not implement the Create BPR functionality as per the API spec (when individual or org details are
+      *     provided) since our current use does not require this.
+      */
+
+  def etmpRegistrationServices(idType: String, idNumber: String): Action[JsValue] = Action(parse.json).async {
+    request =>
+      given Request[JsValue] = request
+
+      withCurrentSession { session =>
+        hipStubService.validateBaseHeaders(
+          request.headers.get("X-Transmitting-System"),
+          request.headers.get("X-Originating-System"),
+          request.headers.get("correlationid"),
+          request.headers.get("X-Receipt-Date"),
+          apiValidationErrorCode = "001"
+        ) match {
+          case Left(invalidHeadersResponse) =>
+            Future.successful(Results.UnprocessableEntity(Json.toJson(invalidHeadersResponse)))
+          case Right(_) =>
+            if idType == "UTR" then {
+              if !RegexPatterns.validUtr(idNumber).isRight then
+                Future.successful(
+                  Results.UnprocessableEntity(Json.toJson(Errors("001", "Request could not be processed")))
+                )
+              else
+                HipEtmpRegistrationServicesPayload.validateHipEtmpRegistrationServicesPayload(
+                  request.body.as[HipEtmpRegistrationServicesPayload]
+                ) match {
+                  case Left(errors) =>
+                    Future.successful(Results.UnprocessableEntity(Json.toJson(errors)))
+                  case Right(_) =>
+                    recordsService
+                      .getRecordMaybeExt[BusinessPartnerRecord, Utr](Utr(idNumber), session.planetId)
+                      .map:
+                        case Some(record) =>
+                          val response = Json.obj(
+                            "success" -> Json.toJson(Registration.fixSchemaDifferences(Json.toJson(record)))
+                          )
+                          Results.Created(response)
+                        case None =>
+                          Results.UnprocessableEntity(Json.toJson(Errors("002", "No match found")))
+
+                }
+            } else {
+              Future.successful(Results.NotImplemented(s"$idType is not supported"))
+            }
+        }
+      }(SessionRecordNotFound)
+  }
+
   /** UCR Customer API v2 - Search Individual By Identifier. Searches for an individual's VRNs and PAYE refs (EMPREFs)
     * by NINO or UTR. Looks up the User in the stub database and extracts identifiers from their enrolments.
     * @see
@@ -660,5 +715,18 @@ class HipStubController @Inject() (
       .find(_.key == serviceKey)
       .flatMap(_.toEnrolmentKeyTag)
       .map(_.split('~').takeRight(1).mkString)
+
+}
+
+object Registration {
+
+  def fixSchemaDifferences(value: JsValue): JsValue = value match {
+    case obj: JsObject =>
+      (obj \ "addressDetails").asOpt[JsObject] match {
+        case Some(address) => obj.-("addressDetails").+("address" -> address)
+        case None          => obj
+      }
+    case other => other
+  }
 
 }
