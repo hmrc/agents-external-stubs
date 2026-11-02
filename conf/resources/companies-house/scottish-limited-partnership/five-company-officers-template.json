@@ -1,0 +1,118 @@
+{
+  "total_results": 9,
+  "items_per_page": 35,
+  "etag": "0905d15615b770cd4fcc27fdc1c959474ae4c03e",
+  "items": [
+    {
+      "appointed_on": "2015-04-10",
+      "occupation": "Partner",
+      "country_of_residence": "United Kingdom",
+      "date_of_birth": {
+        "year": 1967,
+        "month": 6
+      },
+      "officer_role": "general-partner-in-a-limited-partnership",
+      "name": "René O’Connor",
+      "links": {
+        "officer": {
+          "appointments": "/officers/dbqMMJq0QpFW1hTw93U7MJNh_nc/appointments"
+        }
+      }
+    },
+    {
+      "appointed_on": "2015-04-09",
+      "occupation": "Partner",
+      "country_of_residence": "United Kingdom",
+      "date_of_birth": {
+        "year": 1973,
+        "month": 8
+      },
+      "officer_role": "limited-partner-in-a-limited-partnership",
+      "address": {
+        "locality": "London",
+        "country": "England",
+        "address_line_1": "189a Goldhurst Terrace",
+        "postal_code": "NW6 3ER"
+      },
+      "name": "LØVRING, Jean-Pierre",
+      "links": {
+        "officer": {
+          "appointments": "/officers/mlvDFJq0QpFX1hTw93U7MJNh_ko/appointments"
+        }
+      }
+    },
+    {
+      "appointed_on": "2022-04-10",
+      "occupation": "Partner",
+      "country_of_residence": "United Kingdom",
+      "date_of_birth": {
+        "year": 1977,
+        "month": 7
+      },
+      "officer_role": "limited-partner-in-a-limited-partnership",
+      "address": {
+        "locality": "London",
+        "country": "England",
+        "address_line_1": "9 Charcot Road",
+        "postal_code": "NW9 5XW"
+      },
+      "name": "ST.JOHN, John Doe",
+      "links": {
+        "officer": {
+          "appointments": "/officers/ccqMMJq0QpFW1hTw93U7MJNh_rw/appointments"
+        }
+      }
+    },
+    {
+      "appointed_on": "2016-01-29",
+      "occupation": "Partner",
+      "country_of_residence": "United Kingdom",
+      "date_of_birth": {
+        "year": 1974,
+        "month": 9
+      },
+      "officer_role": "general-partner-in-a-limited-partnership",
+      "address": {
+        "locality": "London",
+        "country": "England",
+        "address_line_1": "189a Goldhurst Terrace",
+        "postal_code": "NW6 3ER"
+      },
+      "name": "François Müller",
+      "links": {
+        "officer": {
+          "appointments": "/officers/ppvDFJq0QpFX1hTw93U7MJNh_tt/appointments"
+        }
+      }
+    },
+    {
+      "appointed_on": "2018-01-29",
+      "occupation": "Partner",
+      "country_of_residence": "United Kingdom",
+      "date_of_birth": {
+        "year": 1969,
+        "month": 2
+      },
+      "officer_role": "general-partner-in-a-limited-partnership",
+      "address": {
+        "locality": "London",
+        "country": "England",
+        "address_line_1": "189a Goldhurst Terrace",
+        "postal_code": "NW6 3ER"
+      },
+      "name": "LØVRING, Mathias Brask",
+      "links": {
+        "officer": {
+          "appointments": "/officers/ppvDFJq0QpFX1hTw93U7MJNh_tt/appointments"
+        }
+      }
+    }
+  ],
+  "links": {
+    "self": "/company/44444445/appointments"
+  },
+  "active_count": 4,
+  "kind": "officer-list",
+  "start_index": 0,
+  "resigned_count": 0
+}
