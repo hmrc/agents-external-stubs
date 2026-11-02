@@ -22,7 +22,8 @@ import org.scalatest.time.{Millis, Seconds, Span}
 import scala.concurrent.ExecutionContext
 
 abstract class ServerBaseISpec
-    extends BaseISpec with ScalaFutures with JsonMatchers with WSResponseMatchers with IntegrationPatience {
+    extends BaseISpec with ScalaFutures with JsonMatchers with WSResponseMatchers with IntegrationPatience
+    with MongoDB {
 
   override val patienceConfig: PatienceConfig = PatienceConfig(
     timeout = scaled(Span(25, Seconds)),
