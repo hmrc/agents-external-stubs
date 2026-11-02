@@ -93,7 +93,7 @@ object GroupValidator {
               .cond(
                 Services(e.key)
                   .map(_.affinityGroups)
-                  .forall(ag => ag.contains(AG.Individual) || ag.contains(AG.Organisation)),
+                  .forall(ag => ag.isEmpty || ag.contains(AG.Individual) || ag.contains(AG.Organisation)),
                 (),
                 s"Enrolment for ${e.key} may not be delegated to an Agent."
               )
