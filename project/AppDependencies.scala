@@ -22,5 +22,5 @@ object AppDependencies {
     "com.github.pathikrit"   %% "better-files"              % "3.9.2",
     "org.scalatestplus.play" %% "scalatestplus-play"        % "7.0.2"
   ).map(_ % Test)
-  
+
 }
