@@ -137,7 +137,7 @@ case class UserValidator(affinityGroup: Option[String]) {
               .cond(
                 Services(ek.service)
                   .map(_.affinityGroups)
-                  .forall(ag => ag.contains(AG.Individual) || ag.contains(AG.Organisation)),
+                  .forall(ag => ag.isEmpty || ag.contains(AG.Individual) || ag.contains(AG.Organisation)),
                 (),
                 s"Enrolment for ${ek.service} may not be delegated to an Agent."
               )

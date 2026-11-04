@@ -124,7 +124,7 @@ class HipStubService @Inject() extends Logging {
     } else if relationshipType.nonEmpty && !relationshipType.get.matches("^ZA01$") then {
       logger.error("relationshipType INVALID")
       Left(Errors("006", requestCouldNotBeProcessed))
-    } else if authProfile.nonEmpty && !authProfile.get.matches("^(ALL00001|ITSAS001)$") then {
+    } else if authProfile.nonEmpty && !authProfile.get.matches("^(ALL00001|ITSAS001|VATCS001)$") then {
       logger.error("authProfile INVALID")
       Left(Errors("006", requestCouldNotBeProcessed))
     } else {
@@ -227,6 +227,7 @@ class HipStubService @Inject() extends Logging {
   private def validateAuthProfile(regime: String, authProfile: String): Boolean =
     regime match {
       case "ITSA" => List("ALL00001", "ITSAS001").contains(authProfile)
+      case "VATC" => List("ALL00001", "VATCS001").contains(authProfile)
       case _      => authProfile == "ALL00001"
     }
 

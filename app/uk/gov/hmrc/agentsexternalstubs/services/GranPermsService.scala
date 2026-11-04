@@ -181,6 +181,7 @@ class GranPermsService @Inject() (
       case "HMRC-MTD-IT"        => ("ITSA", "MTDBSA", Some("ZA01"), Some("ALL00001"))
       case "HMRC-MTD-IT-SUPP"   => ("ITSA", "MTDBSA", Some("ZA01"), Some("ITSAS001"))
       case "HMRC-MTD-VAT"       => ("VATC", "VRN", Some("ZA01"), Some("ALL00001"))
+      case "HMRC-MTD-VAT-SUPP"  => ("VATC", "VRN", Some("ZA01"), Some("VATCS001"))
       case "HMRC-CGT-PD"        => ("CGT", "ZCGT", Some("ZA01"), Some("ALL00001"))
       case "HMRC-PPT-ORG"       => ("PPT", "ZPPT", Some("ZA01"), Some("ALL00001"))
       case "HMRC-TERS-ORG"      => ("TRS", "UTR", None, None)

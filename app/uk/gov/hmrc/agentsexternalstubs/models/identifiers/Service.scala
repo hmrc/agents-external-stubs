@@ -75,6 +75,14 @@ object Service {
         VrnType
       )
 
+  case object VatSupp extends Service(
+        "HMRC-MTD-VAT-SUPP",
+        'M',
+        "HMRC-MTD-VAT-SUPP",
+        VrnType,
+        VrnType
+      )
+
   case object Trust extends Service(
         "HMRC-TERS-ORG",
         'D',
