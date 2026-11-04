@@ -34,7 +34,6 @@ trait WireMockSupport extends BeforeAndAfterAll with BeforeAndAfterEach {
   def wireMockPort: Int
   val wireMockHost = "localhost"
   def wireMockBaseUrlAsString = s"http://$wireMockHost:$wireMockPort"
-  def wireMockBaseUrl = new URL(wireMockBaseUrlAsString)
 
   protected def basicWireMockConfig(): WireMockConfiguration = wireMockConfig()
 
