@@ -57,9 +57,13 @@ class ExternalUserService @Inject() (
             case None => apiPlatformTestUserConnector.getIndividualUserByVrn(vrn.value)
             case r    => Future.successful(r)
           }
+      case plrId: PlrId =>
+        apiPlatformTestUserConnector.getOrganisationUserByPillar2Id(plrId.value)
       case _ =>
         Future.failed(
-          new IllegalArgumentException(s"Unknown identifier $userIdentifier, expected one of: nino, utr, vrn")
+          new IllegalArgumentException(
+            s"Unknown identifier $userIdentifier, expected one of: nino, utr, vrn, pillar2Id"
+          )
         )
     }
 
@@ -119,9 +123,10 @@ class ExternalUserService @Inject() (
     }
 
   private def identifierFor(enrolmentKey: EnrolmentKey): Option[TaxIdentifier] = enrolmentKey.service match {
-    case "HMRC-NI"      => enrolmentKey.identifiers.headOption.map(i => Nino(i.value))
-    case "HMRC-MTD-VAT" => enrolmentKey.identifiers.headOption.map(i => Vrn(i.value))
-    case _              => None
+    case "HMRC-NI"          => enrolmentKey.identifiers.headOption.map(i => Nino(i.value))
+    case "HMRC-MTD-VAT"     => enrolmentKey.identifiers.headOption.map(i => Vrn(i.value))
+    case "HMRC-PILLAR2-ORG" => enrolmentKey.identifiers.headOption.map(i => PlrId(i.value))
+    case _                  => None
   }
 
 }

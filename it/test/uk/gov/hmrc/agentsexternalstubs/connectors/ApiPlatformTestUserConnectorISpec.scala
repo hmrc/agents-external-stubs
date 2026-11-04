@@ -165,6 +165,30 @@ class ApiPlatformTestUserConnectorISpec
         result shouldBe None
       }
     }
+
+    "looking for an organisation with a Pillar 2 ID" should {
+      "return the ASA test-user fields when the user exists" in {
+        val pillar2Id = "XAPLR1234567890"
+        WireMock.stubFor(
+          WireMock
+            .get(urlEqualTo(s"/organisations/pillar2Id/$pillar2Id"))
+            .willReturn(
+              aResponse()
+                .withStatus(200)
+                .withBody(testOrganisationResponse())
+            )
+        )
+
+        val result = await(connector.getOrganisationUserByPillar2Id(pillar2Id))
+
+        result.flatMap(_.pillar2Id) shouldBe Some(pillar2Id)
+        result.flatMap(_.capitalGainsTaxOnUKPropertyReference) shouldBe Some("XACGTP123456789")
+        result.flatMap(_.plasticPackagingTaxRegistrationNumber) shouldBe Some("XAPPT0001234567")
+        result.flatMap(_.countryByCountryReportingId) shouldBe Some("XACBC1234567890")
+        result.flatMap(_.trustsUniqueTaxpayerReference) shouldBe Some("8876543210")
+        result.flatMap(_.trustsUniqueReferenceNumber) shouldBe Some("XATRUST12345678")
+      }
+    }
   }
 }
 
@@ -226,7 +250,13 @@ trait ExampleApiPlatformTestUserResponses {
       |  "lisaManagerReferenceNumber":"Z123456",
       |  "secureElectronicTransferReferenceNumber":"123456789012",
       |  "pensionSchemeAdministratorIdentifier":"A1234567",
-      |  "eoriNumber":"${Generator.eoriGen.sample.get}"
+      |  "eoriNumber":"${Generator.eoriGen.sample.get}",
+      |  "pillar2Id":"XAPLR1234567890",
+      |  "capitalGainsTaxOnUKPropertyReference":"XACGTP123456789",
+      |  "plasticPackagingTaxRegistrationNumber":"XAPPT0001234567",
+      |  "countryByCountryReportingId":"XACBC1234567890",
+      |  "trustsUniqueTaxpayerReference":"8876543210",
+      |  "trustsUniqueReferenceNumber":"XATRUST12345678"
       |}
      """.stripMargin
 }

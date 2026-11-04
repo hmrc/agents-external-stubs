@@ -464,6 +464,8 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
         val userId = "apitestuser"
         val utr = Generator.utr(userId)
         val nino = Generator.ninoNoSpaces(userId)
+        val cgtReference = "XACGTP123456789"
+        val pptReference = "XAPPT0001234567"
         val payload = Json.parse(s"""{
           |   "userId": "$userId",
           |   "userFullName": "API Test User",
@@ -471,6 +473,8 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
           |   "affinityGroup": "Individual",
           |   "saUtr": "$utr",
           |   "nino": "$nino",
+          |   "capitalGainsTaxOnUKPropertyReference": "$cgtReference",
+          |   "plasticPackagingTaxRegistrationNumber": "$pptReference",
           |   "individualDetails": {
           |      "firstName": "Test",
           |      "lastName": "User",
@@ -498,7 +502,15 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
         user.name shouldBe Some("Test User")
         group.affinityGroup shouldBe AG.Individual
         group.principalEnrolments should contain(Enrolment("IR-SA", "UTR", utr))
+        group.principalEnrolments should contain(Enrolment("HMRC-CGT-PD", "CGTPDRef", cgtReference))
+        group.principalEnrolments should contain(
+          Enrolment("HMRC-PPT-ORG", "EtmpRegistrationNumber", pptReference)
+        )
         user.facts("businesspostcode") shouldBe Some("CR12 3XZ")
+
+        val records = user.recordIds.map(Records.getRecord(_).json)
+        records.exists(json => (json \ "cgtPdRef").asOpt[String].contains(cgtReference)) shouldBe true
+        records.exists(json => (json \ "pptReference").asOpt[String].contains(pptReference)) shouldBe true
       }
     }
 
@@ -508,6 +520,12 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       val utr = Generator.utr(userId)
       val eori = Generator.eori(userId)
       val vrn = Generator.vrn(userId).value
+      val pillar2Id = "XAPLR1234567890"
+      val cgtReference = "XACGTP123456789"
+      val pptReference = "XAPPT0001234567"
+      val cbcId = "XACBC1234567890"
+      val trustUtr = "8876543210"
+      val trustUrn = "XATRUST12345678"
       val payload = Json.parse(s"""{
         |   "userId": "$userId",
         |   "userFullName": "API Test User",
@@ -516,6 +534,12 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
         |   "ctUtr": "$utr",
         |   "eoriNumber": "$eori",
         |   "vrn": "$vrn",
+        |   "pillar2Id": "$pillar2Id",
+        |   "capitalGainsTaxOnUKPropertyReference": "$cgtReference",
+        |   "plasticPackagingTaxRegistrationNumber": "$pptReference",
+        |   "countryByCountryReportingId": "$cbcId",
+        |   "trustsUniqueTaxpayerReference": "$trustUtr",
+        |   "trustsUniqueReferenceNumber": "$trustUrn",
         |   "organisationDetails": {
         |      "name": "Test Organisation User",
         |      "address": {
@@ -548,7 +572,26 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       group.principalEnrolments should contain(Enrolment("HMRC-CUS-ORG", "EORINumber", eori))
       group.principalEnrolments should contain(Enrolment("HMRC-MTD-VAT", "VRN", vrn))
       group.principalEnrolments should contain(Enrolment("HMCE-VATDEC-ORG", "VATRegNo", vrn))
+      group.principalEnrolments should contain(Enrolment("HMRC-PILLAR2-ORG", "PLRID", pillar2Id))
+      group.principalEnrolments should contain(Enrolment("HMRC-CGT-PD", "CGTPDRef", cgtReference))
+      group.principalEnrolments should contain(
+        Enrolment("HMRC-PPT-ORG", "EtmpRegistrationNumber", pptReference)
+      )
+      group.principalEnrolments should contain(
+        Enrolment(
+          "HMRC-CBC-ORG",
+          Some(Seq(Identifier("cbcId", cbcId), Identifier("UTR", Generator.utr(userId))))
+        )
+      )
+      group.principalEnrolments should contain(Enrolment("HMRC-TERS-ORG", "SAUTR", trustUtr))
+      group.principalEnrolments should contain(Enrolment("HMRC-TERSNT-ORG", "URN", trustUrn))
       user.facts("Postcode") shouldBe Some("CR12 3XZ")
+
+      val records = user.recordIds.map(Records.getRecord(_).json)
+      records.exists(json => (json \ "plrReference").asOpt[String].contains(pillar2Id)) shouldBe true
+      records.exists(json => (json \ "cgtPdRef").asOpt[String].contains(cgtReference)) shouldBe true
+      records.exists(json => (json \ "pptReference").asOpt[String].contains(pptReference)) shouldBe true
+      records.exists(json => (json \ "cbcId").asOpt[String].contains(cbcId)) shouldBe true
     }
 
     "store a new agent user" in {
