@@ -253,7 +253,13 @@ class EnrolmentStoreProxyStubController @Inject() (
                      )
             } yield Created)
               .recover {
-                case _: EnrolmentAlreadyExists                          => Conflict
+                case _: EnrolmentAlreadyExists =>
+                  Conflict(
+                    Json.obj(
+                      "code"    -> "MULTIPLE_ENROLMENTS_INVALID",
+                      "message" -> "The group already has an HMRC-AS-AGENT enrolment"
+                    )
+                  )
                 case _: DuplicateUserException                          => Conflict
                 case UnsupportedCredentialRole("INVALID_CREDENTIAL_ID") => Forbidden
               }
