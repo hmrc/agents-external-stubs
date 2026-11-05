@@ -18,6 +18,7 @@ package uk.gov.hmrc.agentsexternalstubs.services
 
 import cats.data.Validated.{Invalid, Valid}
 import com.github.blemale.scaffeine.Scaffeine
+import play.api.Logger
 import play.api.i18n.Lang.logger
 import uk.gov.hmrc.agentsexternalstubs.models.*
 import uk.gov.hmrc.agentsexternalstubs.models.identifiers.NinoWithoutSuffix
@@ -41,6 +42,17 @@ class UsersService @Inject() (
 
   def findByUserId(userId: String, planetId: String): Future[Option[User]] =
     usersRepository.findByUserId(userId, planetId)
+
+  def findByUserIdAnyPlanet(userId: String)(using ExecutionContext): Future[Option[User]] =
+    usersRepository.findByUserIdAnyPlanet(userId).map { matches =>
+      if (matches.size > 1) {
+        Logger(getClass).warn(
+          s"findByUserIdAnyPlanet found more than one user with userId '$userId' across planets " +
+            s"[${matches.flatMap(_.planetId).mkString(", ")}]. Not resolving a planet from it."
+        )
+        None
+      } else matches.headOption
+    }
 
   def findByUserIdContains(partialUserId: String, planetId: String)(limit: Int): Future[Seq[User]] =
     usersRepository.findByUserIdContains(partialUserId, planetId, limit)

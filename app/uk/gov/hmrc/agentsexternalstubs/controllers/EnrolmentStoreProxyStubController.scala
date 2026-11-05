@@ -64,6 +64,12 @@ class EnrolmentStoreProxyStubController @Inject() (
         Future.successful(None)
     }
 
+  /** Same no-session fallback for ES2, which carries no ARN. UserIds are not globally unique on a shared stub, so an
+    * ambiguous match resolves to no planet (401) rather than the first one - see UsersService.findByUserIdAnyPlanet.
+    */
+  private def planetIdFromUserIdGlobally(userId: String): Future[Option[String]] =
+    usersService.findByUserIdAnyPlanet(userId).map(_.flatMap(_.planetId))
+
   def getUserIds(enrolmentKey: EnrolmentKey, `type`: String): Action[AnyContent] = Action.async { request =>
     given Request[AnyContent] = request
     withCurrentSession { session =>
@@ -140,20 +146,28 @@ class EnrolmentStoreProxyStubController @Inject() (
 
   def assignUser(userId: String, enrolmentKey: EnrolmentKey): Action[AnyContent] = Action.async { request =>
     given Request[AnyContent] = request
-    withCurrentSession { session =>
-      usersService
-        .assignEnrolmentToUser(userId, enrolmentKey, session.planetId)
-        .map(_ => Created)
-        .recover {
-          case e: NotFoundException =>
-            notFound(e.getMessage)
-          case e: BadRequestException =>
-            badRequest(e.getMessage)
-          case e: ForbiddenException =>
-            forbidden(e.getMessage)
-        }
-    }(SessionRecordNotFound)
+    def withSession(session: AuthenticatedSession): Future[Result] =
+      handleAssignUser(userId, enrolmentKey, session.planetId)
+    def withoutSession: Future[Result] =
+      planetIdFromArnGlobally(enrolmentKey).flatMap {
+        case Some(planetId) => handleAssignUser(userId, enrolmentKey, planetId)
+        case None           => SessionRecordNotFound
+      }
+    withCurrentSession(withSession)(withoutSession)
   }
+
+  private def handleAssignUser(userId: String, enrolmentKey: EnrolmentKey, planetId: String): Future[Result] =
+    usersService
+      .assignEnrolmentToUser(userId, enrolmentKey, planetId)
+      .map(_ => Created)
+      .recover {
+        case e: NotFoundException =>
+          notFound(e.getMessage)
+        case e: BadRequestException =>
+          badRequest(e.getMessage)
+        case e: ForbiddenException =>
+          forbidden(e.getMessage)
+      }
 
   def deassignUser(userId: String, enrolmentKey: EnrolmentKey): Action[AnyContent] = Action.async { request =>
     given Request[AnyContent] = request
@@ -347,32 +361,48 @@ class EnrolmentStoreProxyStubController @Inject() (
     `max-records`: Option[Int]
   ): Action[AnyContent] = Action.async { request =>
     given Request[AnyContent] = request
-    withCurrentSession { session =>
-      if `type` != "principal" && `type` != "delegated" then badRequestF("INVALID_ENROLMENT_TYPE")
-      else if service.isDefined && !Services.servicesByKey.contains(service.get) then badRequestF("INVALID_SERVICE")
-      else if `start-record`.isDefined && `start-record`.get < 1 then badRequestF("INVALID_START_RECORD")
-      else if `max-records`.isDefined && (`max-records`.get < 10 || `max-records`.get > 1000) then
-        badRequestF("INVALID_MAX_RECORDS")
-      else {
-        usersService.findByUserId(userId, session.planetId).flatMap {
-          case None =>
-            notFoundF("INVALID_CREDENTIAL_ID")
-          case Some(user) if user.groupId.isEmpty =>
-            notFoundF("INVALID_GROUP_ID")
-          case Some(user) =>
-            doGetGroupEnrolments(
-              session.planetId,
-              user.groupId.get,
-              `type`,
-              service,
-              `start-record`,
-              `max-records`,
-              assignedToUser = Some(user)
-            )
-        }
+    def withSession(session: AuthenticatedSession): Future[Result] =
+      handleGetUserEnrolments(userId, `type`, service, `start-record`, `max-records`, session.planetId)
+    def withoutSession: Future[Result] =
+      planetIdFromUserIdGlobally(userId).flatMap {
+        case Some(planetId) =>
+          handleGetUserEnrolments(userId, `type`, service, `start-record`, `max-records`, planetId)
+        case None => SessionRecordNotFound
       }
-    }(SessionRecordNotFound)
+    withCurrentSession(withSession)(withoutSession)
   }
+
+  private def handleGetUserEnrolments(
+    userId: String,
+    `type`: String,
+    service: Option[String],
+    `start-record`: Option[Int],
+    `max-records`: Option[Int],
+    planetId: String
+  ): Future[Result] =
+    if `type` != "principal" && `type` != "delegated" then badRequestF("INVALID_ENROLMENT_TYPE")
+    else if service.isDefined && !Services.servicesByKey.contains(service.get) then badRequestF("INVALID_SERVICE")
+    else if `start-record`.isDefined && `start-record`.get < 1 then badRequestF("INVALID_START_RECORD")
+    else if `max-records`.isDefined && (`max-records`.get < 10 || `max-records`.get > 1000) then
+      badRequestF("INVALID_MAX_RECORDS")
+    else {
+      usersService.findByUserId(userId, planetId).flatMap {
+        case None =>
+          notFoundF("INVALID_CREDENTIAL_ID")
+        case Some(user) if user.groupId.isEmpty =>
+          notFoundF("INVALID_GROUP_ID")
+        case Some(user) =>
+          doGetGroupEnrolments(
+            planetId,
+            user.groupId.get,
+            `type`,
+            service,
+            `start-record`,
+            `max-records`,
+            assignedToUser = Some(user)
+          )
+      }
+    }
 
   // ES3
   def getGroupEnrolments(

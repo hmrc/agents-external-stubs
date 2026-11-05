@@ -43,6 +43,7 @@ case class DuplicateUserException(msg: String, key: Option[String] = None) exten
 trait UsersRepository {
 
   def findByUserId(userId: String, planetId: String): Future[Option[User]]
+  def findByUserIdAnyPlanet(userId: String): Future[Seq[User]]
   def findByUserIdContains(partialUserId: String, planetId: String, limit: Int): Future[Seq[User]]
   def findByNino(nino: String, planetId: String): Future[Option[User]]
   def findByUtr(utr: String, planetId: String): Future[Option[User]]
@@ -112,6 +113,13 @@ class UsersRepositoryMongo @Inject() (mongo: MongoComponent, appConfig: AppConfi
       .find(Filters.equal(UNIQUE_KEYS, keyOf(User.userIdKey(userId), planetId)))
       .first()
       .toFutureOption()
+      .map(_.map(_.value))
+
+  override def findByUserIdAnyPlanet(userId: String): Future[Seq[User]] =
+    collection
+      .find(Filters.equal(USER_ID, userId))
+      .limit(2)
+      .toFuture()
       .map(_.map(_.value))
 
   override def findByUserIdContains(partialUserId: String, planetId: String, limit: Int): Future[Seq[User]] =

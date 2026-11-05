@@ -1402,6 +1402,36 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
 
         result should haveStatus(400)
       }
+
+      "return 204 without a session, resolving the planet from the userId" in {
+        userService
+          .createUser(UserGenerator.individual("userWithoutSession"), planetId = "testPlanet", Some(AG.Individual))
+          .futureValue
+
+        val result = wsClient
+          .url(s"$url/enrolment-store-proxy/enrolment-store/users/userWithoutSession/enrolments")
+          .get()
+          .futureValue
+
+        result should haveStatus(204)
+        result.body shouldBe empty
+      }
+
+      "return 401 without a session when the userId exists on more than one planet" in {
+        userService
+          .createUser(UserGenerator.individual("ambiguousUser"), planetId = "planetOne", Some(AG.Individual))
+          .futureValue
+        userService
+          .createUser(UserGenerator.individual("ambiguousUser"), planetId = "planetTwo", Some(AG.Individual))
+          .futureValue
+
+        val result = wsClient
+          .url(s"$url/enrolment-store-proxy/enrolment-store/users/ambiguousUser/enrolments")
+          .get()
+          .futureValue
+
+        result should haveStatus(401)
+      }
     }
 
     // ES3
@@ -1822,6 +1852,41 @@ class EnrolmentStoreProxyStubControllerISpec extends ServerBaseISpec with TestRe
 
         val user = await(userService.findByUserId("testAssistant", session.planetId)).get
         user.assignedDelegatedEnrolments should be(empty)
+      }
+      "assign an enrolment without a session, resolving the planet from the ARN in the enrolment key" in {
+        given session: AuthenticatedSession = SignIn.signInAndGetSession("foo1")
+        val asAgentEnrolmentKey = "HMRC-AS-AGENT~AgentReferenceNumber~XARN0000777"
+        EnrolmentStoreProxyStub.setKnownFacts(
+          asAgentEnrolmentKey,
+          SetKnownFactsRequest
+            .generate(asAgentEnrolmentKey, _ => None)
+            .getOrElse(fail("Could not generate known facts"))
+        )
+        Groups.create(
+          GroupGenerator
+            .generate(session.planetId, AG.Agent, groupId = Some("groupWithoutSession"))
+            .copy(principalEnrolments = Seq(Enrolment.from(EnrolmentKey(asAgentEnrolmentKey))))
+        )
+        Users.create(
+          UserGenerator
+            .agent(userId = "adminWithoutSession", groupId = "groupWithoutSession", credentialRole = "Admin")
+            .copy(assignedPrincipalEnrolments = Seq(EnrolmentKey(asAgentEnrolmentKey))),
+          Some(AG.Agent)
+        )
+        Users.create(
+          UserGenerator
+            .agent(userId = "assistantWithoutSession", groupId = "groupWithoutSession", credentialRole = "Assistant"),
+          Some(AG.Agent)
+        )
+
+        val result = wsClient
+          .url(s"$url/tax-enrolments/users/assistantWithoutSession/enrolments/$asAgentEnrolmentKey")
+          .post("")
+          .futureValue
+        result should haveStatus(201)
+
+        val user = await(userService.findByUserId("assistantWithoutSession", session.planetId)).get
+        user.assignedPrincipalEnrolments should contain.only(EnrolmentKey(asAgentEnrolmentKey))
       }
     }
     "DELETE /tax-enrolments/users/:userId/enrolments/:enrolmentKey (ES12)" should {
