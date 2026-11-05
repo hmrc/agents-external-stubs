@@ -53,6 +53,11 @@ class ApiPlatformTestUserConnector @Inject() (appConfig: AppConfig, http: HttpCl
   def getOrganisationUserByVrn(vrn: String)(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
     getUser(appConfig.apiPlatformTestUserUrl + s"/organisations/vrn/$vrn")
 
+  def getOrganisationUserByPillar2Id(
+    pillar2Id: String
+  )(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
+    getUser(appConfig.apiPlatformTestUserUrl + s"/organisations/pillar2Id/$pillar2Id")
+
   private def getUser(url: String)(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
     http
       .get(url"$url")

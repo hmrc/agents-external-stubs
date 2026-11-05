@@ -524,7 +524,7 @@ class DesIfStubController @Inject() (
     withCurrentSession { session =>
       if PlrId.isValid(plrReference) then {
         recordsService
-          .getRecord[Pillar2Record, PlrId](PlrId(plrReference), session.planetId)
+          .getRecordMaybeExt[Pillar2Record, PlrId](PlrId(plrReference), session.planetId)
           .map {
             case Some(record) => Ok(s"""{"success": ${Json.toJson(record)}}""")
             case None         => notFound("SUBSCRIPTION_NOT_FOUND")

@@ -50,7 +50,13 @@ object ApiPlatform {
     arn: Option[String] = None,
     lisaManRefNum: Option[String] = None,
     secureElectronicTransferReferenceNumber: Option[String] = None,
-    pensionSchemeAdministratorIdentifier: Option[String] = None
+    pensionSchemeAdministratorIdentifier: Option[String] = None,
+    pillar2Id: Option[String] = None,
+    capitalGainsTaxOnUKPropertyReference: Option[String] = None,
+    plasticPackagingTaxRegistrationNumber: Option[String] = None,
+    countryByCountryReportingId: Option[String] = None,
+    trustsUniqueTaxpayerReference: Option[String] = None,
+    trustsUniqueReferenceNumber: Option[String] = None
   ) {
 
     val affinityGroup: String =
@@ -70,7 +76,12 @@ object ApiPlatform {
       lisaManRefNum.map(_ => "lisa"),
       secureElectronicTransferReferenceNumber.map(_ => "secure-electronic-transfer"),
       pensionSchemeAdministratorIdentifier.map(_ => "relief-at-source"),
-      eoriNumber.map(_ => "customs-services")
+      eoriNumber.map(_ => "customs-services"),
+      pillar2Id.map(_ => "pillar-2"),
+      capitalGainsTaxOnUKPropertyReference.map(_ => "capital-gains-tax-uk-property"),
+      plasticPackagingTaxRegistrationNumber.map(_ => "plastic-packaging-tax"),
+      countryByCountryReportingId.map(_ => "country-by-country-reporting"),
+      trustsUniqueTaxpayerReference.orElse(trustsUniqueReferenceNumber).map(_ => "trusts")
     ).collect { case Some(x) => x }
   }
 
@@ -129,8 +140,8 @@ object ApiPlatform {
       (user, group)
     }
 
-    def mapServicesToEnrolments(testUser: ApiPlatform.TestUser): Seq[Enrolment] =
-      testUser.services
+    def mapServicesToEnrolments(testUser: ApiPlatform.TestUser): Seq[Enrolment] = {
+      val serviceEnrolments = testUser.services
         .map {
           case "national-insurance" => testUser.nino.map(Enrolment("HMRC-PT", "NINO", _))
           case "self-assessment"    => testUser.saUtr.map(Enrolment("IR-SA", "UTR", _))
@@ -156,9 +167,36 @@ object ApiPlatform {
             testUser.secureElectronicTransferReferenceNumber.map(Enrolment("HMRC-SET-ORG", "SETReference", _))
           case "relief-at-source" =>
             testUser.pensionSchemeAdministratorIdentifier.map(Enrolment("HMRC-PSA-ORG", "PSAID", _))
-          case "customs-services" => testUser.eoriNumber.map(Enrolment("HMRC-CUS-ORG", "EORINumber", _))
+          case "customs-services"              => testUser.eoriNumber.map(Enrolment("HMRC-CUS-ORG", "EORINumber", _))
+          case "pillar-2"                      => testUser.pillar2Id.map(Enrolment("HMRC-PILLAR2-ORG", "PLRID", _))
+          case "capital-gains-tax-uk-property" =>
+            testUser.capitalGainsTaxOnUKPropertyReference.map(Enrolment("HMRC-CGT-PD", "CGTPDRef", _))
+          case "plastic-packaging-tax" =>
+            testUser.plasticPackagingTaxRegistrationNumber.map(
+              Enrolment("HMRC-PPT-ORG", "EtmpRegistrationNumber", _)
+            )
+          case "country-by-country-reporting" =>
+            testUser.countryByCountryReportingId.map(cbcId =>
+              Enrolment(
+                "HMRC-CBC-ORG",
+                Some(
+                  Seq(
+                    Identifier("cbcId", cbcId),
+                    // api-platform-test-user deliberately omits this identifier from its public response.
+                    Identifier("UTR", Generator.utr(testUser.userId))
+                  )
+                )
+              )
+            )
+          case "trusts" =>
+            testUser.trustsUniqueTaxpayerReference.map(Enrolment("HMRC-TERS-ORG", "SAUTR", _))
         }
         .collect { case Some(x) => x }
+
+      serviceEnrolments ++ testUser.trustsUniqueReferenceNumber
+        .map(Enrolment("HMRC-TERSNT-ORG", "URN", _))
+        .toSeq
+    }
   }
 
 }

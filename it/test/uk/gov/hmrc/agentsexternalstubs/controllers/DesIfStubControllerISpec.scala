@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
+import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, stubFor, urlEqualTo}
 import play.api.http.Status.{BAD_REQUEST, UNAUTHORIZED}
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
@@ -629,6 +631,40 @@ class DesIfStubControllerISpec
 
       Records.createPillar2Record(Json.parse(validPillar2SubscriptionPayload)) should haveStatus(201)
       DesStub.getPillar2Record("XAPLR2222222222") should haveStatus(200)
+    }
+
+    "import an API Platform test user and retry when the local record is missing" in {
+      val pillar2Id = "XAPLR1234567890"
+      stubFor(
+        WireMock
+          .get(urlEqualTo(s"/organisations/pillar2Id/$pillar2Id"))
+          .willReturn(
+            aResponse()
+              .withStatus(200)
+              .withBody(s"""{
+                |  "userId": "pillar2-api-test-user",
+                |  "userFullName": "Pillar 2 Organisation",
+                |  "emailAddress": "pillar2@example.com",
+                |  "organisationDetails": {
+                |    "name": "Pillar 2 Organisation",
+                |    "address": {
+                |      "line1": "1 Test Street",
+                |      "line2": "London",
+                |      "postcode": "AA1 1AA"
+                |    }
+                |  },
+                |  "pillar2Id": "$pillar2Id"
+                |}""".stripMargin)
+          )
+      )
+
+      val session = SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+      given AuthContext = AuthContext.fromTokenAndSessionId(session.authToken, session.sessionId)
+
+      val result = DesStub.getPillar2Record(pillar2Id)
+
+      result should haveStatus(200)
+      (result.json \ "success" \ "plrReference").as[String] shouldBe pillar2Id
     }
 
     "return 401 when no session exists" in {
