@@ -1,5 +1,4 @@
-import sbt.*
-import sbt.Tags
+import sbt.{Tags, *}
 import uk.gov.hmrc.DefaultBuildSettings
 
 ThisBuild / majorVersion := 0
