@@ -9,6 +9,8 @@ Support channel: `#event-agents-external-stubs`
 
 This service SHOULD NOT be run on PRODUCTION environment.
 
+The repeatable External Test profile verification for APB-12584 is documented in [docs/apb-12584-et-profile-test.md](docs/apb-12584-et-profile-test.md).
+
 ## Principles
 
 - dynamic (data can be changed, no initial data included)
