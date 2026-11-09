@@ -46,7 +46,7 @@ trait AppConfig {
 
   // Proxies config
   val isProxyMode: Boolean
-  val httpPort: Int
+  val tcpProxyPort: Int
 
   val authPort: Int
   val userDetailsPort: Int
@@ -104,7 +104,7 @@ class AppConfigImpl @Inject() (config: ServicesConfig) extends AppConfig {
   val agentServicesAccountUrl: String = config.baseUrl("agent-services-account")
 
   // Proxies config
-  val httpPort: Int = config.getInt("http.port")
+  val tcpProxyPort: Int = config.getInt("tcpProxyTargetPort")
 
   val authPort: Int = config.getConfInt("auth.port", 0)
   val userDetailsPort: Int = config.getConfInt("user-details.port", 0)

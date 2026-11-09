@@ -48,7 +48,7 @@ trait TestPlayServer extends GuiceOneServerPerSuite:
         "metrics.enabled"                                   -> false,
         "auditing.enabled"                                  -> false,
         "mongodb.uri"                                       -> MongoDB.uri,
-        "http.port"                                         -> assignedPort,
+        "tcpProxyTargetPort"                                -> assignedPort,
         "gran-perms-test-gen-max-clients"                   -> 10,
         "gran-perms-test-gen-max-agents"                    -> 5
       )
