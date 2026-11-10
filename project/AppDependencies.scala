@@ -16,10 +16,11 @@ object AppDependencies {
     "io.github.wolfendale" %% "scalacheck-gen-regexp"       % "1.1.0",
     "com.github.blemale"   %% "scaffeine"                   % "5.3.0"
   )
-
   lazy val test: Seq[ModuleID] = Seq(
-    "uk.gov.hmrc"          %% s"bootstrap-test-$playVer"  % bootstrapVer,
-    "uk.gov.hmrc.mongo"    %% s"hmrc-mongo-test-$playVer" % mongoVer,
-    "com.github.pathikrit" %% "better-files"              % "3.9.2"
+    "uk.gov.hmrc"            %% s"bootstrap-test-$playVer"  % bootstrapVer,
+    "uk.gov.hmrc.mongo"      %% s"hmrc-mongo-test-$playVer" % mongoVer,
+    "com.github.pathikrit"   %% "better-files"              % "3.9.2",
+    "org.scalatestplus.play" %% "scalatestplus-play"        % "7.0.2"
   ).map(_ % Test)
+
 }
