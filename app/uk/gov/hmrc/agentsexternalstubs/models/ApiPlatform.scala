@@ -15,7 +15,7 @@
  */
 
 package uk.gov.hmrc.agentsexternalstubs.models
-import play.api.libs.json.{Format, Json}
+import play.api.libs.json.{Format, Json, JsonValidationError}
 import uk.gov.hmrc.agentsexternalstubs.models.User.AdditionalInformation
 import uk.gov.hmrc.domain.{EmpRef, Nino}
 
@@ -35,6 +35,7 @@ object ApiPlatform {
   case class TestUser(
     userId: String,
     userFullName: String,
+    affinityGroup: String,
     emailAddress: Option[String] = None,
     password: Option[String] = None,
     individualDetails: Option[IndividualDetails] = None,
@@ -58,12 +59,6 @@ object ApiPlatform {
     trustsUniqueTaxpayerReference: Option[String] = None,
     trustsUniqueReferenceNumber: Option[String] = None
   ) {
-
-    val affinityGroup: String =
-      if individualDetails.isDefined then AG.Individual
-      else if organisationDetails.isDefined then AG.Organisation
-      else AG.Agent
-
     val services: Seq[String] = Seq(
       nino.map(_ => "national-insurance"),
       ctUtr.map(_ => "corporation-tax"),
@@ -94,7 +89,14 @@ object ApiPlatform {
     given formats1: Format[Address] = Json.format[Address]
     given formats2: Format[IndividualDetails] = Json.format[IndividualDetails]
     given formats3: Format[OrganisationDetails] = Json.format[OrganisationDetails]
-    given formats4: Format[TestUser] = Json.format[TestUser]
+    given formats4: Format[TestUser] = Format(
+      Json
+        .reads[TestUser]
+        .filter(JsonValidationError("affinityGroup must be Individual, Organisation or Agent"))(testUser =>
+          Set(AG.Individual, AG.Organisation, AG.Agent).contains(testUser.affinityGroup)
+        ),
+      Json.writes[TestUser]
+    )
 
     def asUserAndGroup(testUser: TestUser): (User, Group) = {
       val groupId = GroupGenerator.groupId(seed = testUser.hashCode().toString)
