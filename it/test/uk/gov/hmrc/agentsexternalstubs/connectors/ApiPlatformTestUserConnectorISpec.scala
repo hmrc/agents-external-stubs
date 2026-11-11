@@ -18,8 +18,10 @@ package uk.gov.hmrc.agentsexternalstubs.connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.*
+import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.*
+import uk.gov.hmrc.agentsexternalstubs.models.AG
 import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
 import uk.gov.hmrc.agentsexternalstubs.models.ApiPlatform.TestUser
 import uk.gov.hmrc.agentsexternalstubs.models.Generator
@@ -28,6 +30,8 @@ import uk.gov.hmrc.agentsexternalstubs.support.{ServerBaseISpec, TestRequests, W
 import uk.gov.hmrc.domain.{Nino, Vrn}
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.HeaderCarrier
+
+import java.time.LocalDate
 
 class ApiPlatformTestUserConnectorISpec
     extends ServerBaseISpec with TestRequests with TestStubs with WireMockSupport
@@ -150,6 +154,26 @@ class ApiPlatformTestUserConnectorISpec
         user.name shouldBe Some("Company ABF123")
       }
 
+      "retain Organisation affinity when the response also contains individual details" in {
+        WireMock.stubFor(
+          WireMock
+            .get(urlEqualTo("/organisations/vrn/666119668"))
+            .willReturn(
+              aResponse()
+                .withStatus(200)
+                .withBody(testOrganisationResponseWithIndividualDetails(Vrn("666119668")))
+            )
+        )
+
+        val result = await(connector.getOrganisationUserByVrn("666119668"))
+
+        result.flatMap(_.individualDetails.map(_.dateOfBirth)) shouldBe Some(LocalDate.parse("1960-06-01"))
+
+        val (user, group) = result.map(TestUser.asUserAndGroup).get
+        group.affinityGroup shouldBe AG.Organisation
+        user.name shouldBe Some("Company ABF123")
+      }
+
       "return none if missing" in {
         WireMock.stubFor(
           WireMock
@@ -259,4 +283,25 @@ trait ExampleApiPlatformTestUserResponses {
       |  "trustsUniqueReferenceNumber":"XATRUST12345678"
       |}
      """.stripMargin
+
+  def testOrganisationResponseWithIndividualDetails(
+    vrn: Vrn = Generator.vrnGen.sample.map(Vrn.apply).get,
+    utr: Utr = Generator.utrGen.sample.map(Utr.apply).get
+  ): String = {
+    val response = Json.parse(testOrganisationResponse(vrn, utr)).as[JsObject]
+    Json.stringify(
+      response + (
+        "individualDetails" -> Json.obj(
+          "firstName"   -> "Ida",
+          "lastName"    -> "Newton",
+          "dateOfBirth" -> "1960-06-01",
+          "address"     -> Json.obj(
+            "line1"    -> "45 Springfield Rise",
+            "line2"    -> "Glasgow",
+            "postcode" -> "TS1 1PA"
+          )
+        )
+      )
+    )
+  }
 }

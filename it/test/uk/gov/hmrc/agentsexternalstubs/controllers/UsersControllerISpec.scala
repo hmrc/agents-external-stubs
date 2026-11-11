@@ -594,6 +594,46 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       records.exists(json => (json \ "cbcId").asOpt[String].contains(cbcId)) shouldBe true
     }
 
+    "store an explicitly declared organisation that also contains individual details" in {
+      given authSession: AuthenticatedSession = SignIn.signInAndGetSession()
+      val userId = "organisation-with-individual-details"
+      val pillar2Id = "XAPLR1234567890"
+      val payload = Json.parse(s"""{
+        |   "userId": "$userId",
+        |   "userFullName": "API Test Organisation",
+        |   "affinityGroup": "Organisation",
+        |   "pillar2Id": "$pillar2Id",
+        |   "individualDetails": {
+        |      "firstName": "Test",
+        |      "lastName": "User",
+        |      "dateOfBirth": "1972-12-23",
+        |      "address": {
+        |        "line1": "11 High Lane",
+        |        "line2": "Croydon",
+        |        "postcode": "CR12 3XZ"
+        |      }
+        |   },
+        |   "organisationDetails": {
+        |      "name": "Test Organisation User",
+        |      "address": {
+        |        "line1": "11 High Lane",
+        |        "line2": "Croydon",
+        |        "postcode": "CR12 3XZ"
+        |      }
+        |   }
+        |}
+      """.stripMargin)
+
+      val result = Users.createApiPlatformTestUser(payload)
+
+      result should haveStatus(201)
+      val (user, group) = userService.findUserAndGroup(userId, authSession.planetId).futureValue
+      group.map(_.affinityGroup) shouldBe Some(AG.Organisation)
+      group.flatMap(_.principalEnrolments.find(_.key == "HMRC-PILLAR2-ORG")) shouldBe defined
+      user.flatMap(_.name) shouldBe Some("Test Organisation User")
+      user.flatMap(_.dateOfBirth) shouldBe None
+    }
+
     "store a new agent user" in {
       val userId = "apitestuser"
       val arn = Generator.arn(userId).value

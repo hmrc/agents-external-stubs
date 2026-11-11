@@ -17,6 +17,8 @@
 package uk.gov.hmrc.agentsexternalstubs.connectors
 
 import play.api.http.Status.OK
+import play.api.libs.json.{JsObject, JsString}
+import uk.gov.hmrc.agentsexternalstubs.models.AG
 import uk.gov.hmrc.agentsexternalstubs.models.ApiPlatform.TestUser
 import uk.gov.hmrc.agentsexternalstubs.wiring.AppConfig
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
@@ -30,42 +32,47 @@ import uk.gov.hmrc.http.client.HttpClientV2
 class ApiPlatformTestUserConnector @Inject() (appConfig: AppConfig, http: HttpClientV2) {
 
   def getIndividualUserByNino(nino: String)(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
-    getUser(appConfig.apiPlatformTestUserUrl + s"/individuals/nino/$nino")
+    getUser(appConfig.apiPlatformTestUserUrl + s"/individuals/nino/$nino", AG.Individual)
 
   def getIndividualUserByShortNino(
     nino: String
   )(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
-    getUser(appConfig.apiPlatformTestUserUrl + s"/individuals/shortnino/$nino")
+    getUser(appConfig.apiPlatformTestUserUrl + s"/individuals/shortnino/$nino", AG.Individual)
 
   def getIndividualUserBySaUtr(
     saUtr: String
   )(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
-    getUser(appConfig.apiPlatformTestUserUrl + s"/individuals/sautr/$saUtr")
+    getUser(appConfig.apiPlatformTestUserUrl + s"/individuals/sautr/$saUtr", AG.Individual)
 
   def getIndividualUserByVrn(vrn: String)(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
-    getUser(appConfig.apiPlatformTestUserUrl + s"/individuals/vrn/$vrn")
+    getUser(appConfig.apiPlatformTestUserUrl + s"/individuals/vrn/$vrn", AG.Individual)
 
   def getOrganisationUserByEmpRef(
     empRef: String
   )(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
-    getUser(appConfig.apiPlatformTestUserUrl + s"/organisations/empref/$empRef")
+    getUser(appConfig.apiPlatformTestUserUrl + s"/organisations/empref/$empRef", AG.Organisation)
 
   def getOrganisationUserByVrn(vrn: String)(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
-    getUser(appConfig.apiPlatformTestUserUrl + s"/organisations/vrn/$vrn")
+    getUser(appConfig.apiPlatformTestUserUrl + s"/organisations/vrn/$vrn", AG.Organisation)
 
   def getOrganisationUserByPillar2Id(
     pillar2Id: String
   )(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
-    getUser(appConfig.apiPlatformTestUserUrl + s"/organisations/pillar2Id/$pillar2Id")
+    getUser(appConfig.apiPlatformTestUserUrl + s"/organisations/pillar2Id/$pillar2Id", AG.Organisation)
 
-  private def getUser(url: String)(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
+  private def getUser(
+    url: String,
+    affinityGroup: String
+  )(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
     http
       .get(url"$url")
       .execute[HttpResponse]
       .map(response =>
         response.status match {
-          case OK => Option.apply(response.json.as[TestUser])
-          case _  => None
+          case OK =>
+            val payload = response.json.as[JsObject] + ("affinityGroup" -> JsString(affinityGroup))
+            Option.apply(payload.as[TestUser])
+          case _ => None
         }
       )
 
