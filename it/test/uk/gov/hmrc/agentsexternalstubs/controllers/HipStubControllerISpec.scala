@@ -1058,8 +1058,108 @@ class HipStubControllerISpec extends ServerBaseISpec with TestRequests with Test
         result should haveStatus(UNAUTHORIZED)
         result.json.toString should include("""{"code":"UNAUTHORIZED","reason":"SessionRecordNotFound"}""")
       }
+
+      "return 200 for an agent-registration call without a session, resolving the planet from the ARN while a session is live on the default planet" in {
+        SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+        val arn = Generator.arn("XA0000123456789").value
+        val planetId = agentRegistrationPlanetId
+        await(repo.store(subscribedBusinessPartnerRecord(arn), planetId))
+
+        given AuthContext = AgentRegistrationCall
+        val result = HipStub.getSubscription(arn = arn)
+
+        result should haveStatus(OK)
+      }
     }
   }
+
+  private object AgentRegistrationCall extends AuthContext {
+    def headers: Seq[(String, String)] = Seq("User-Agent" -> "agent-registration-risking")
+  }
+
+  private object ApiCall extends AuthContext {
+    def headers: Seq[(String, String)] = Seq("User-Agent" -> "api-test-client")
+  }
+
+  private val agentRegistrationPlanetId = "MMTAR_6af4596ecf2df910979dd432"
+
+  private def subscribedBusinessPartnerRecord(arn: String): BusinessPartnerRecord = BusinessPartnerRecord(
+    businessPartnerExists = true,
+    safeId = "XA0000123456789",
+    isAnIndividual = true,
+    individual = Some(BusinessPartnerRecord.Individual("Bill", None, "Jones", "1990-01-01")),
+    organisation = None,
+    addressDetails = BusinessPartnerRecord.UkAddress(
+      addressLine1 = "10 Old Street",
+      addressLine2 = None,
+      addressLine3 = None,
+      addressLine4 = None,
+      postalCode = "AA11AA",
+      countryCode = "GB"
+    ),
+    contactDetails = Some(BusinessPartnerRecord.ContactDetails()),
+    agencyDetails = Some(
+      AgencyDetails(
+        agencyName = Some("Old Name"),
+        agencyAddress = None,
+        agencyEmail = None,
+        agencyTelephone = None,
+        supervisoryBody = None,
+        membershipNumber = None,
+        evidenceObjectReference = None,
+        updateDetailsStatus = Some(UpdateDetailsStatus(AgencyDetailsStatusValue.fromString("ACCEPTED"))),
+        amlSupervisionUpdateStatus = Some(AmlSupervisionUpdateStatus(AgencyDetailsStatusValue.fromString("ACCEPTED"))),
+        directorPartnerUpdateStatus =
+          Some(DirectorPartnerUpdateStatus(AgencyDetailsStatusValue.fromString("ACCEPTED"))),
+        acceptNewTermsStatus = Some(AcceptNewTermsStatus(AgencyDetailsStatusValue.fromString("ACCEPTED"))),
+        reriskStatus = Some(ReriskStatus(AgencyDetailsStatusValue.fromString("ACCEPTED")))
+      )
+    ),
+    suspensionDetails = Some(SuspensionDetails(false, None)),
+    id = None
+  ).copy(isAnAgent = true, isAnASAgent = true, agentReferenceNumber = Some(arn))
+
+  private def unsubscribedBusinessPartnerRecord(safeId: String): BusinessPartnerRecord = BusinessPartnerRecord(
+    businessPartnerExists = true,
+    safeId = safeId,
+    isAnIndividual = true,
+    individual = Some(BusinessPartnerRecord.Individual("Bill", None, "Jones", "1990-01-01")),
+    organisation = None,
+    addressDetails = BusinessPartnerRecord.UkAddress(
+      addressLine1 = "10 New Street",
+      addressLine2 = None,
+      addressLine3 = None,
+      addressLine4 = None,
+      postalCode = "AA11AA",
+      countryCode = "GB"
+    ),
+    contactDetails = Some(BusinessPartnerRecord.ContactDetails()),
+    agencyDetails = None,
+    suspensionDetails = None,
+    id = None
+  )
+
+  private def createAgentSubscriptionWithValidPayload(safeId: String)(using AuthContext) =
+    HipStub.createAgentSubscription(
+      safeId = safeId,
+      name = "Alex Rider",
+      addr1 = "River House",
+      addr2 = Some("London"),
+      addr3 = None,
+      addr4 = None,
+      postcode = Some("W11AA"),
+      country = "GB",
+      phone = Some("01911234567"),
+      email = "test@example.com",
+      supervisoryBody = Some("Mi6"),
+      membershipNumber = Some("MEM123"),
+      evidenceObjectReference = Some("123e4567-e89b-12d3-a456-426614174000"),
+      updateDetailsStatus = "ACCEPTED",
+      amlSupervisionUpdateStatus = "PENDING",
+      directorPartnerUpdateStatus = "REQUIRED",
+      acceptNewTermsStatus = "ACCEPTED",
+      reriskStatus = "REJECTED"
+    )
 
   "HipStubController.createAgentSubscription" when {
 
@@ -1356,6 +1456,58 @@ class HipStubControllerISpec extends ServerBaseISpec with TestRequests with Test
 
         result should haveStatus(UNAUTHORIZED)
         result.json.toString should include("""{"code":"UNAUTHORIZED","reason":"SessionRecordNotFound"}""")
+      }
+
+      "return 201 for an agent-registration call without a session, resolving the planet from the safeId while a session is live on the default planet" in {
+        SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+        val safeId = "XA0000123456789"
+        val planetId = agentRegistrationPlanetId
+        await(repo.store(unsubscribedBusinessPartnerRecord(safeId), planetId))
+
+        given AuthContext = AgentRegistrationCall
+        val result = createAgentSubscriptionWithValidPayload(safeId)
+
+        result should haveStatus(CREATED)
+        await(recordsService.getRecordMaybeExt[BusinessPartnerRecord, SafeId](SafeId(safeId), planetId))
+          .map(_.isAnASAgent) shouldBe Some(true)
+      }
+
+      "return 201 for an API call without a session, resolving the planet from the safeId when no session is live on the default planet" in {
+        val safeId = "XA0000123456789"
+        await(repo.store(unsubscribedBusinessPartnerRecord(safeId), "some-other-planet"))
+
+        given AuthContext = ApiCall
+        val result = createAgentSubscriptionWithValidPayload(safeId)
+
+        result should haveStatus(CREATED)
+        await(recordsService.getRecordMaybeExt[BusinessPartnerRecord, SafeId](SafeId(safeId), "some-other-planet"))
+          .map(_.isAnASAgent) shouldBe Some(true)
+      }
+
+      "return 422 for an API call without a session, staying on the default planet while a session is live there" in {
+        SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+        val safeId = "XA0000123456789"
+        val planetId = agentRegistrationPlanetId
+        await(repo.store(unsubscribedBusinessPartnerRecord(safeId), planetId))
+
+        given AuthContext = ApiCall
+        val result = createAgentSubscriptionWithValidPayload(safeId)
+
+        result should haveStatus(UNPROCESSABLE_ENTITY)
+        result.json.toString should include("""code":"006","text":"SAFE ID Not found""")
+        await(recordsService.getRecordMaybeExt[BusinessPartnerRecord, SafeId](SafeId(safeId), planetId))
+          .map(_.isAnASAgent) shouldBe Some(false)
+      }
+
+      "return 422 for an agent-registration call without a session when the safeId exists on no planet" in {
+        SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+        val safeId = "XA0000123456789"
+
+        given AuthContext = AgentRegistrationCall
+        val result = createAgentSubscriptionWithValidPayload(safeId)
+
+        result should haveStatus(UNPROCESSABLE_ENTITY)
+        result.json.toString should include("""code":"006","text":"SAFE ID Not found""")
       }
     }
   }
@@ -1734,6 +1886,20 @@ class HipStubControllerISpec extends ServerBaseISpec with TestRequests with Test
 
         result should haveStatus(UNAUTHORIZED)
         result.json.toString should include("""{"code":"UNAUTHORIZED","reason":"SessionRecordNotFound"}""")
+      }
+
+      "return 200 for an agent-registration call without a session, resolving the planet from the ARN while a session is live on the default planet" in {
+        SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+        val arn = "ZARN0001391"
+        val planetId = agentRegistrationPlanetId
+        await(repo.store(businessPartnerRecord(arn), planetId))
+
+        given AuthContext = AgentRegistrationCall
+        val result = HipStub.amendAgentSubscription(arn = arn, name = Some("Alex Rider"))
+
+        result should haveStatus(OK)
+        await(recordsService.getRecordMaybeExt[BusinessPartnerRecord, Arn](Arn(arn), planetId))
+          .flatMap(_.agencyDetails.flatMap(_.agencyName)) shouldBe Some("Alex Rider")
       }
     }
   }

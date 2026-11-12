@@ -51,6 +51,7 @@ class HipStubController @Inject() (
 
   private val HMRC_TERS_ORG = "HMRC-TERS-ORG"
   private val HMRC_TERSNT_ORG = "HMRC-TERSNT-ORG"
+  private val REGISTRATION_RISKING_USER_AGENT = "agent-registration-risking"
 
   def getTrustKnownFactsUTR(utr: String): Action[AnyContent] =
     getTrustKnownFacts(utr, RegexPatterns.validUtr, HMRC_TERS_ORG, "SAUTR")
@@ -168,16 +169,33 @@ class HipStubController @Inject() (
 
   def getAgentSubscription(arn: String): Action[AnyContent] = Action.async { request =>
     given Request[AnyContent] = request
-    withCurrentSession(session => handleGetAgentSubscription(arn, session.planetId)) {
-      // No session resolvable (e.g. m2m caller with no live session on the default planet) - fall back to
-      // finding the BusinessPartnerRecord by arn regardless of planet. Only safe because arn/safeId are now
-      // minted globally unique per test run - see .claude/findings/validation-and-records.md.
-      recordsService.getRecordAnyPlanet[BusinessPartnerRecord, Arn](Arn(arn)).flatMap {
-        case Some((planetId, _)) => handleGetAgentSubscription(arn, planetId)
-        case None                => SessionRecordNotFound
+    def withSession(session: AuthenticatedSession): Future[Result] =
+      handleGetAgentSubscription(arn, session.planetId)
+    def withoutSession(ifNotFound: => Future[Result]): Future[Result] =
+      planetIdFromArnGlobally(arn).flatMap {
+        case Some(planetId) => handleGetAgentSubscription(arn, planetId)
+        case None           => ifNotFound
       }
-    }
+    if isAgentRegistrationCall then withoutSession(withCurrentSession(withSession)(SessionRecordNotFound))
+    else withCurrentSession(withSession)(withoutSession(SessionRecordNotFound))
   }
+
+  /** agent-registration-risking runs from a scheduler, so it has no session. On a shared stub the default planet nearly
+    * always has a live session, which withCurrentSession would pick before the lookup by identifier; for that caller
+    * the lookup goes first. Every other caller keeps the usual order.
+    */
+  private def isAgentRegistrationCall(using request: Request[?]): Boolean =
+    request.headers.get(uk.gov.hmrc.http.HeaderNames.xSessionId).isEmpty &&
+      request.headers.get(USER_AGENT).contains(REGISTRATION_RISKING_USER_AGENT)
+
+  /** Only safe because arn and safeId are minted globally unique per test run - see
+    * .claude/findings/validation-and-records.md; getRecordAnyPlanet warns otherwise.
+    */
+  private def planetIdFromArnGlobally(arn: String): Future[Option[String]] =
+    recordsService.getRecordAnyPlanet[BusinessPartnerRecord, Arn](Arn(arn)).map(_.map(_._1))
+
+  private def planetIdFromSafeIdGlobally(safeId: String): Future[Option[String]] =
+    recordsService.getRecordAnyPlanet[BusinessPartnerRecord, SafeId](SafeId(safeId)).map(_.map(_._1))
 
   private def handleGetAgentSubscription(arn: String, planetId: String)(using
     request: Request[AnyContent]
@@ -414,15 +432,15 @@ class HipStubController @Inject() (
 
   def createAgentSubscription(safeId: String): Action[JsValue] = Action(parse.json).async { request =>
     given Request[JsValue] = request
-    withCurrentSession(session => handleCreateAgentSubscription(safeId, session.planetId)) {
-      // No session resolvable - fall back to finding the BusinessPartnerRecord by safeId regardless of
-      // planet. Only safe because safeId is now minted globally unique per test run, not the old shared
-      // hardcoded value - see .claude/findings/validation-and-records.md.
-      recordsService.getRecordAnyPlanet[BusinessPartnerRecord, SafeId](SafeId(safeId)).flatMap {
-        case Some((planetId, _)) => handleCreateAgentSubscription(safeId, planetId)
-        case None                => SessionRecordNotFound
+    def withSession(session: AuthenticatedSession): Future[Result] =
+      handleCreateAgentSubscription(safeId, session.planetId)
+    def withoutSession(ifNotFound: => Future[Result]): Future[Result] =
+      planetIdFromSafeIdGlobally(safeId).flatMap {
+        case Some(planetId) => handleCreateAgentSubscription(safeId, planetId)
+        case None           => ifNotFound
       }
-    }
+    if isAgentRegistrationCall then withoutSession(withCurrentSession(withSession)(SessionRecordNotFound))
+    else withCurrentSession(withSession)(withoutSession(SessionRecordNotFound))
   }
 
   private def handleCreateAgentSubscription(safeId: String, planetId: String)(using
@@ -494,15 +512,15 @@ class HipStubController @Inject() (
 
   def amendAgentSubscription(arn: String): Action[JsValue] = Action(parse.json).async { request =>
     given Request[JsValue] = request
-    withCurrentSession(session => handleAmendAgentSubscription(arn, session.planetId)) {
-      // No session resolvable - fall back to finding the BusinessPartnerRecord by arn regardless of
-      // planet. Only safe because arn/safeId are now minted globally unique per test run - see
-      // .claude/findings/validation-and-records.md.
-      recordsService.getRecordAnyPlanet[BusinessPartnerRecord, Arn](Arn(arn)).flatMap {
-        case Some((planetId, _)) => handleAmendAgentSubscription(arn, planetId)
-        case None                => SessionRecordNotFound
+    def withSession(session: AuthenticatedSession): Future[Result] =
+      handleAmendAgentSubscription(arn, session.planetId)
+    def withoutSession(ifNotFound: => Future[Result]): Future[Result] =
+      planetIdFromArnGlobally(arn).flatMap {
+        case Some(planetId) => handleAmendAgentSubscription(arn, planetId)
+        case None           => ifNotFound
       }
-    }
+    if isAgentRegistrationCall then withoutSession(withCurrentSession(withSession)(SessionRecordNotFound))
+    else withCurrentSession(withSession)(withoutSession(SessionRecordNotFound))
   }
 
   private def handleAmendAgentSubscription(arn: String, planetId: String)(using
