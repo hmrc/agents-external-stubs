@@ -38,31 +38,35 @@ class CountryByCountryController @Inject() (
   /** MTDP -> (EIS -> ETMP) */
   def displaySubscriptionForCbC: Action[JsValue] = Action.async(parse.tolerantJson) { request =>
     given Request[JsValue] = request
-    withCurrentSession(session =>
-      withPayload[DisplaySubscriptionForCbCRequestPayload] { payload =>
-        DisplaySubscriptionForCbCRequestPayload
-          .validate(payload)
-          .fold(
-            errors => // add other error responses? 409, 503
-              errorResponse(400, "Invalid JSON document", errors.toString()),
-            _ => {
-              val cbcId = payload.displaySubscriptionForCBCRequest.requestDetail.IDNumber
+    withPayload[DisplaySubscriptionForCbCRequestPayload] { payload =>
+      DisplaySubscriptionForCbCRequestPayload
+        .validate(payload)
+        .fold(
+          errors => // add other error responses? 409, 503
+            errorResponse(400, "Invalid JSON document", errors.toString()),
+          _ => {
+            val cbcId = CbcId(payload.displaySubscriptionForCBCRequest.requestDetail.IDNumber)
+            withCurrentSession(session =>
               recordsService
-                .getRecord[CbcSubscriptionRecord, CbcId](CbcId(cbcId), session.planetId)
-                .flatMap(maybeRecord =>
-                  maybeRecord.fold(
-                    errorResponse(NOT_FOUND)
-                  )(record =>
-                    Future.successful(
-                      Ok(Json.toJson(DisplaySubscriptionForCbC.fromRecord(record)))
-                    )
-                  )
-                )
+                .getRecord[CbcSubscriptionRecord, CbcId](cbcId, session.planetId)
+                .flatMap(recordResponse)
+            ) {
+              // Backend IF calls do not carry a resolvable user session. CBC IDs are globally unique, so use the
+              // matching record to recover the owning planet rather than rejecting the request with 401.
+              recordsService.getRecordAnyPlanet[CbcSubscriptionRecord, CbcId](cbcId).flatMap {
+                case Some((_, record)) => recordResponse(Some(record))
+                case None              => SessionRecordNotFound
+              }
             }
-          )
-      }
-    )(SessionRecordNotFound)
+          }
+        )
+    }
   }
+
+  private def recordResponse(maybeRecord: Option[CbcSubscriptionRecord]): Future[Result] =
+    maybeRecord.fold(errorResponse(NOT_FOUND))(record =>
+      Future.successful(Ok(Json.toJson(DisplaySubscriptionForCbC.fromRecord(record))))
+    )
 
   private def errorResponse(
     code: Int,
