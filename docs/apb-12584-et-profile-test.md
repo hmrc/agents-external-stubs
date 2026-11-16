@@ -456,14 +456,17 @@ The command automatically:
 
 1. validates the saved API organisation and Mongo evidence;
 2. refreshes the agent OAuth token without printing it;
-3. tests MTD-VAT, taxable Trusts, non-taxable Trusts, CGT, PPT, UK CBC and
+3. cancels pending invitations for the same service on the dedicated test
+   agent, including the MTD-VAT invitation created by the earlier V2
+   pull-through step;
+4. tests MTD-VAT, taxable Trusts, non-taxable Trusts, CGT, PPT, UK CBC and
    Pillar 2;
-4. performs create, get, cancel and final-get for every scenario;
-5. tests list invitations, absent relationship checking and idempotent
+5. performs create, get, cancel and final-get for every scenario;
+6. tests list invitations, absent relationship checking and idempotent
    deauthorisation;
-6. confirms every cancelled invitation finishes with status `Cancelled`;
-7. writes private requests and responses under `raw/`; and
-8. writes a sanitised summary to `v3-matrix-summary.json` in the work directory.
+7. confirms every cancelled invitation finishes with status `Cancelled`;
+8. writes private requests and responses under `raw/`; and
+9. writes a sanitised summary to `v3-matrix-summary.json` in the work directory.
 
 The terminal and sanitised summary contain only scenario names, HTTP statuses,
 invitation prefixes, final statuses and PASS/FAIL. They do not contain client

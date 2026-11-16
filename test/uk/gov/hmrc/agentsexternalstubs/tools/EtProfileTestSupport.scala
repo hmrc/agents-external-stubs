@@ -109,14 +109,17 @@ object EtProfileTestSupport:
   def invitationListed(response: JsValue, invitationId: String): Boolean =
     response
       .asOpt[Seq[JsValue]]
-      .exists(
-        _.exists(entry =>
-          (entry \ "href")
-            .asOpt[String]
-            .flatMap(href => scala.util.Try(URI.create(href).getPath.split('/').last).toOption)
-            .contains(invitationId)
-        )
+      .exists(_.exists(entry => invitationIdFromHref(entry).contains(invitationId)))
+
+  def pendingInvitationIds(response: JsValue, service: String): Seq[String] =
+    response
+      .asOpt[Seq[JsValue]]
+      .getOrElse(Seq.empty)
+      .filter(entry =>
+        (entry \ "service").asOpt[String].contains(service) && (entry \ "status").asOpt[String].contains("Pending")
       )
+      .flatMap(invitationIdFromHref)
+      .distinct
 
   def validateOrganisation(document: JsValue): Seq[Check] =
     requiredOrganisationFields.map: (path, predicate) =>
@@ -287,6 +290,11 @@ object EtProfileTestSupport:
         field.toIntOption match
           case Some(index) => json.asOpt[Seq[JsValue]].flatMap(_.lift(index))
           case None        => (json \ field).toOption
+
+  private def invitationIdFromHref(entry: JsValue): Option[String] =
+    (entry \ "href")
+      .asOpt[String]
+      .flatMap(href => scala.util.Try(URI.create(href).getPath.split('/').last).toOption)
 
   private def requiredRecordString(
     document: JsValue,

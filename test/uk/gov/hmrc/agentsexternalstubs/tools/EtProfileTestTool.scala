@@ -640,6 +640,7 @@ object EtProfileTestTool:
   ): V3MatrixResult =
     val prefix = s"v3-matrix-${scenario.slug}"
     cancelPreviousPendingMatrixInvitation(workspace, invitationsUrl, token, prefix)
+    cancelPendingInvitationsForService(workspace, invitationsUrl, token, prefix, scenario.service)
     writePrivate(workspace.rawDir.resolve(s"$prefix-request.json"), Json.prettyPrint(scenario.requestBody))
     val create = postJson(invitationsUrl, token, "application/vnd.hmrc.3.0+json", scenario.requestBody)
     saveResponse(workspace, s"$prefix-create-response.json", create)
@@ -711,6 +712,38 @@ object EtProfileTestTool:
           println(
             s"Recovered interrupted ${prefix.stripPrefix("v3-matrix-")} scenario by cancelling its pending invitation."
           )
+
+  private def cancelPendingInvitationsForService(
+    workspace: Workspace,
+    invitationsUrl: String,
+    token: String,
+    prefix: String,
+    service: String
+  ): Unit =
+    val list = get(invitationsUrl, token, "application/vnd.hmrc.3.0+json")
+    saveResponse(workspace, s"$prefix-pre-create-list-response.json", list)
+    ensure(
+      Set(200, 204).contains(list.statusCode()),
+      s"List invitations before ${prefix.stripPrefix("v3-matrix-")} returned HTTP ${list.statusCode()}; expected 200 or 204. " +
+        s"Inspect ${workspace.rawDir.resolve(s"$prefix-pre-create-list-response.json")}"
+    )
+    val pendingIds =
+      if list.statusCode() == 200 then EtProfileTestSupport.pendingInvitationIds(parse(list.body()), service)
+      else Seq.empty
+    pendingIds.zipWithIndex.foreach: (id, index) =>
+      val cancel = patch(s"$invitationsUrl/$id", token, "application/vnd.hmrc.3.0+json")
+      saveResponse(workspace, s"$prefix-pre-create-cancel-${index + 1}-response.txt", cancel)
+      requireStatus(
+        workspace,
+        cancel,
+        204,
+        s"Cancel existing pending $service invitation",
+        s"$prefix-pre-create-cancel-${index + 1}-response.txt"
+      )
+    if pendingIds.nonEmpty then
+      println(
+        s"Cancelled ${pendingIds.size} existing pending $service invitation(s) on the dedicated test agent before creating the V3 scenario."
+      )
 
   private def mongoHelp(workspace: Workspace, source: String): Unit =
     val organisation = organisationPath(workspace, source)

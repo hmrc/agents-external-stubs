@@ -105,6 +105,28 @@ class EtProfileTestSupportSpec extends BaseUnitSpec:
 
       EtProfileTestSupport.invitationListed(response, "D9876543210") shouldBe false
 
+  "pendingInvitationIds" should:
+    "return only pending invitations for the requested service" in:
+      val response = Json.arr(
+        Json.obj(
+          "href"    -> "/agent/AARN1234567/invitations/C1234567890",
+          "service" -> "MTD-VAT",
+          "status"  -> "Pending"
+        ),
+        Json.obj(
+          "href"    -> "/agent/AARN1234567/invitations/C0987654321",
+          "service" -> "MTD-VAT",
+          "status"  -> "Cancelled"
+        ),
+        Json.obj(
+          "href"    -> "/agent/AARN1234567/invitations/D1234567890",
+          "service" -> "TRUSTS",
+          "status"  -> "Pending"
+        )
+      )
+
+      EtProfileTestSupport.pendingInvitationIds(response, "MTD-VAT") shouldBe Seq("C1234567890")
+
   "validateOrganisation" should:
     "accept a complete organisation with correctly formatted identifiers" in:
       EtProfileTestSupport.validateOrganisation(validOrganisation).forall(_.passed) shouldBe true
