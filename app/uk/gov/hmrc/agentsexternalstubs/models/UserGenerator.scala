@@ -73,7 +73,8 @@ object UserGenerator {
     nino: String = null,
     name: String = null,
     dateOfBirth: String = null,
-    groupId: String = null
+    groupId: String = null,
+    utr: String = null
   ): User =
     User(
       userId = userId,
@@ -84,7 +85,8 @@ object UserGenerator {
       dateOfBirth = Option(dateOfBirth)
         .map(LocalDate.parse(_, DateTimeFormatter.ISO_DATE))
         .orElse(Option(UserGenerator.dateOfBirth(userId))),
-      groupId = Option(groupId).orElse(Option(UserGenerator.groupId(userId)))
+      groupId = Option(groupId).orElse(Option(UserGenerator.groupId(userId))),
+      utr = Option(utr)
     )
 
   def agent(

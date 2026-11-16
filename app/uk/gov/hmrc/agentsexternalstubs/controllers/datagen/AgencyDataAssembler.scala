@@ -117,7 +117,8 @@ class AgencyDataAssembler extends Logging {
               groupId = UserGenerator.groupId(userId),
               confidenceLevel = ConfidenceLevel.Default,
               credentialRole = User.CR.User,
-              nino = f"AB${index + 1}%06dC"
+              nino = f"AB${index + 1}%06dC",
+              utr = Generator.utr(seed)
             )
             .withAssignedPrincipalEnrolment(service = serviceKey, identifiers)
         case AG.Organisation =>
