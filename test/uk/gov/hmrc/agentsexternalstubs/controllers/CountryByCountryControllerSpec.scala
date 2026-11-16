@@ -36,14 +36,14 @@ class CountryByCountryControllerSpec extends BaseUnitSpec:
   private val requestBody = Json.obj(
     "displaySubscriptionForCBCRequest" -> Json.obj(
       "requestCommon" -> Json.obj(
-        "regime" -> "CBC",
-        "receiptDate" -> "2026-11-12T15:23:14Z",
+        "regime"                   -> "CBC",
+        "receiptDate"              -> "2026-11-12T15:23:14Z",
         "acknowledgementReference" -> "0123456789abcdef0123456789abcdef",
-        "originatingSystem" -> "MDTP",
-        "conversationID" -> "contract-test"
+        "originatingSystem"        -> "MDTP",
+        "conversationID"           -> "contract-test"
       ),
       "requestDetail" -> Json.obj(
-        "IDType" -> "CBC",
+        "IDType"   -> "CBC",
         "IDNumber" -> cbcId
       )
     )

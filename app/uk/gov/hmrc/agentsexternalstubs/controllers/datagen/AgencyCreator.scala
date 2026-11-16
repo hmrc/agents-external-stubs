@@ -269,6 +269,7 @@ class AgencyCreator @Inject() (
           BusinessDetailsRecord
             .generate(identifier.toString)
             .withMtdId(identifier.value)
+            .withNino(client.nino.map(_.nino).getOrElse(""))
             .withBusinessData(
               Some(
                 Seq(
