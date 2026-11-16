@@ -308,8 +308,8 @@ object EtProfileTestTool:
         |  6. Protect the file with chmod 600, then run:
         |       ${command(workspace, "exchange-code")}
         |
-        |The OAuth code is sensitive, short-lived and single-use. Do not paste it into
-        |a command argument, Git, Jira, screenshots or chat.
+        |The tool reads the short-lived, single-use OAuth code only from the protected
+        |oauth-code.txt file and never prints its value.
         |""".stripMargin
     )
 
@@ -1031,8 +1031,8 @@ object EtProfileTestTool:
         | 13. Validate the completed configuration with:
         |     $RunPrefix check-config --work-dir $$PWD/.local/et-testing/APB-12584"
         |
-        |Never put credentials in command arguments, Git, Jira, screenshots or chat.
-        |The tool never prints credential values.
+        |The tool reads these values only from the protected operator.env file and
+        |never prints them.
         |
         |Full local runbook:
         |  docs/apb-12584-et-profile-test.md
