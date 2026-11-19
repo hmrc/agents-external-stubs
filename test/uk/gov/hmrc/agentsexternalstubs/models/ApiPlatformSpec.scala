@@ -61,6 +61,25 @@ class ApiPlatformSpec extends BaseUnitSpec {
       )
     }
 
+    "preserve generated PPT and Pillar 2 dates for downstream records" in {
+      val pptRegistrationDate = LocalDate.of(2021, 3, 4)
+      val pillar2RegistrationDate = LocalDate.of(2020, 2, 3)
+      val testUser = TestUser(
+        userId = "organisation-user-id",
+        userFullName = "Test Organisation",
+        affinityGroup = AG.Organisation,
+        organisationDetails = Some(OrganisationDetails("Test Organisation", address)),
+        plasticPackagingTaxRegistrationDate = Some(pptRegistrationDate),
+        pillar2RegistrationDate = Some(pillar2RegistrationDate)
+      )
+
+      val (user, _) = TestUser.asUserAndGroup(testUser)
+
+      user.additionalInformation.flatMap(_.pptRegistrationDate) shouldBe Some(pptRegistrationDate)
+      user.additionalInformation.flatMap(_.pillar2RegistrationDate) shouldBe Some(pillar2RegistrationDate)
+      User.knownFactsOf(user).get("PPTRegistrationDate") shouldBe Some("04/03/21")
+    }
+
     "reject an unsupported explicit affinity" in {
       val result = Json
         .obj(

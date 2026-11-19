@@ -102,7 +102,14 @@ class UserToRecordsSyncService @Inject() (
     final val PayeAgentMatch = Group.Matches(_ == AG.Agent, "IR-PAYE-AGENT")
 
     val pillar2Record: UserAndGroupRecordsSync = saveRecordId => { case (user, Pillar2Match(_, plrId)) =>
-      val pillar2Record = Pillar2Record.generate(plrId).withPlrReference(plrId)
+      val pillar2Record = Pillar2Record
+        .generate(plrId)
+        .withPlrReference(plrId)
+        .modifyUpeDetails { case upeDetails =>
+          user.additionalInformation
+            .flatMap(_.pillar2RegistrationDate)
+            .fold(upeDetails)(registrationDate => upeDetails.withRegistrationDate(registrationDate.toString))
+        }
       val identifier = Identifier(PlrIdType.id, plrId)
       val ek = EnrolmentKey(Pillar2.id, Seq(identifier))
 

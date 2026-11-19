@@ -104,7 +104,11 @@ object User {
     given formats: Format[Address] = Json.format[Address]
   }
 
-  case class AdditionalInformation(vatRegistrationDate: Option[LocalDate] = None)
+  case class AdditionalInformation(
+    vatRegistrationDate: Option[LocalDate] = None,
+    pptRegistrationDate: Option[LocalDate] = None,
+    pillar2RegistrationDate: Option[LocalDate] = None
+  )
 
   object AdditionalInformation {
     given formats: Format[AdditionalInformation] = Json.format[AdditionalInformation]
@@ -208,6 +212,8 @@ object User {
     val postcodeOpt = user.address.flatMap(_.postcode)
     val vatRegDateOpt = user.additionalInformation
       .flatMap(_.vatRegistrationDate.map(_.format(DateTimeFormatter.ofPattern("dd/MM/yy"))))
+    val pptRegDateOpt = user.additionalInformation
+      .flatMap(_.pptRegistrationDate.map(_.format(DateTimeFormatter.ofPattern("dd/MM/yy"))))
     Seq(
       "PostCode"            -> postcodeOpt,
       "BusinessPostcode"    -> postcodeOpt,
@@ -219,6 +225,7 @@ object User {
       "IRPCODE"             -> postcodeOpt,
       "IREFFREGDATE"        -> vatRegDateOpt,
       "VATRegistrationDate" -> vatRegDateOpt,
+      "PPTRegistrationDate" -> pptRegDateOpt,
       "CountryCode"         -> user.address.flatMap(_.countryCode)
     ).collect { case (a, Some(b)) =>
       (a, b)

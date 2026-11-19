@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
+import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, stubFor, urlEqualTo}
 import play.api.libs.json.{JsArray, JsBoolean, JsObject}
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.agentsexternalstubs.models.*
@@ -24,7 +26,7 @@ import uk.gov.hmrc.agentsexternalstubs.support.*
 import java.time.LocalDateTime
 import java.util.UUID
 
-class CountryByCountryControllerISpec extends ServerBaseISpec with TestRequests {
+class CountryByCountryControllerISpec extends ServerBaseISpec with TestRequests with WireMockSupport {
 
   lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
   val cbcId = "XACBC1234567890"
@@ -91,6 +93,46 @@ class CountryByCountryControllerISpec extends ServerBaseISpec with TestRequests 
         val errorDetail = (result.json \ "displaySubscriptionForCBCResponse" \ "errorDetail").as[JsObject]
         errorDetail should haveProperty[String]("errorCode", be("404"))
         errorDetail should haveProperty[String]("errorMessage", be("Record not found"))
+      }
+
+      "import an API Platform test user and retry when the local record is missing" in {
+        stubFor(
+          WireMock
+            .get(urlEqualTo(s"/organisations/cbc/$cbcId"))
+            .willReturn(
+              aResponse()
+                .withStatus(200)
+                .withBody(s"""{
+                  |  "userId": "cbc-api-test-user",
+                  |  "userFullName": "CBC Organisation",
+                  |  "emailAddress": "cbc@example.com",
+                  |  "organisationDetails": {
+                  |    "name": "CBC Organisation",
+                  |    "address": {
+                  |      "line1": "4 Test Street",
+                  |      "line2": "London",
+                  |      "postcode": "AA1 1AD"
+                  |    }
+                  |  },
+                  |  "countryByCountryReportingId": "$cbcId"
+                  |}""".stripMargin)
+            )
+        )
+        given AuthContext = NotAuthorized
+
+        val result = post[DisplaySubscriptionForCbCRequestPayload](
+          "/dac6/dct50d/v1",
+          DisplaySubscriptionForCbCRequestPayload(
+            DisplaySubscriptionForCBCRequest(
+              CbCRequestCommon("CBC", None, LocalDateTime.now(), acknowledgementReference),
+              CbCRequestDetail(IDNumber = cbcId)
+            )
+          )
+        )
+
+        result should haveStatus(200)
+        (result.json \ "displaySubscriptionForCBCResponse" \ "responseDetail" \ "subscriptionID")
+          .as[String] shouldBe cbcId
       }
 
       "respond BAD_REQUEST with error response if invalid payload" in {

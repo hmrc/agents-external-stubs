@@ -579,6 +579,39 @@ class DesIfStubControllerISpec
       get("/subscriptions/CGT/ZCGT/XACGTP123456789") should haveStatus(200)
     }
 
+    "import an API Platform test user and retry when the local user is missing" in {
+      val cgtPdRef = "XACGTP987654321"
+      stubFor(
+        WireMock
+          .get(urlEqualTo(s"/organisations/cgtpdref/$cgtPdRef"))
+          .willReturn(
+            aResponse()
+              .withStatus(200)
+              .withBody(s"""{
+                |  "userId": "cgt-api-test-user",
+                |  "userFullName": "CGT Organisation",
+                |  "organisationDetails": {
+                |    "name": "CGT Organisation",
+                |    "address": {
+                |      "line1": "3 Test Street",
+                |      "line2": "London",
+                |      "postcode": "AA1 1AC"
+                |    }
+                |  },
+                |  "capitalGainsTaxOnUKPropertyReference": "$cgtPdRef"
+                |}""".stripMargin)
+          )
+      )
+      val session = SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+      given AuthContext = AuthContext.fromTokenAndSessionId(session.authToken, session.sessionId)
+
+      val response = get(s"/subscriptions/CGT/ZCGT/$cgtPdRef")
+
+      response should haveStatus(200)
+      (response.json \ "subscriptionDetails" \ "typeOfPersonDetails" \ "organisationName")
+        .as[String] shouldBe "CGT Organisation"
+    }
+
     "return 401 when no session exists" in {
       given AuthContext = NotAuthorized
       get("/subscriptions/CGT/ZCGT/XACGTP123456789") should haveStatus(UNAUTHORIZED)
@@ -610,6 +643,40 @@ class DesIfStubControllerISpec
 
       Records.createPPTSubscriptionDisplayRecord(Json.parse(validPPTSubscriptionDisplayPayload)) should haveStatus(201)
       DesStub.getPPTSubscriptionDisplayRecord("PPT", "XAPPT0001234567") should haveStatus(200)
+    }
+
+    "import an API Platform test user and preserve its registration date when the local record is missing" in {
+      val pptReference = "XAPPT0007654321"
+      val pptRegistrationDate = "2021-03-04"
+      stubFor(
+        WireMock
+          .get(urlEqualTo(s"/organisations/ppt/$pptReference"))
+          .willReturn(
+            aResponse()
+              .withStatus(200)
+              .withBody(s"""{
+                |  "userId": "ppt-api-test-user",
+                |  "userFullName": "PPT Organisation",
+                |  "organisationDetails": {
+                |    "name": "PPT Organisation",
+                |    "address": {
+                |      "line1": "2 Test Street",
+                |      "line2": "London",
+                |      "postcode": "AA1 1AB"
+                |    }
+                |  },
+                |  "plasticPackagingTaxRegistrationNumber": "$pptReference",
+                |  "plasticPackagingTaxRegistrationDate": "$pptRegistrationDate"
+                |}""".stripMargin)
+          )
+      )
+      val session = SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+      given AuthContext = AuthContext.fromTokenAndSessionId(session.authToken, session.sessionId)
+
+      val response = DesStub.getPPTSubscriptionDisplayRecord("PPT", pptReference)
+
+      response should haveStatus(200)
+      (response.json \ "legalEntityDetails" \ "dateOfApplication").as[String] shouldBe pptRegistrationDate
     }
 
     "return 401 when no session exists" in {
@@ -653,7 +720,8 @@ class DesIfStubControllerISpec
                 |      "postcode": "AA1 1AA"
                 |    }
                 |  },
-                |  "pillar2Id": "$pillar2Id"
+                |  "pillar2Id": "$pillar2Id",
+                |  "pillar2RegistrationDate": "2020-02-03"
                 |}""".stripMargin)
           )
       )
@@ -665,6 +733,7 @@ class DesIfStubControllerISpec
 
       result should haveStatus(200)
       (result.json \ "success" \ "plrReference").as[String] shouldBe pillar2Id
+      (result.json \ "success" \ "upeDetails" \ "registrationDate").as[String] shouldBe "2020-02-03"
     }
 
     "return 401 when no session exists" in {

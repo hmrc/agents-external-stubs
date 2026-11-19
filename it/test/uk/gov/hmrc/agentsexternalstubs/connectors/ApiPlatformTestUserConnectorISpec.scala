@@ -208,9 +208,91 @@ class ApiPlatformTestUserConnectorISpec
         result.flatMap(_.pillar2Id) shouldBe Some(pillar2Id)
         result.flatMap(_.capitalGainsTaxOnUKPropertyReference) shouldBe Some("XACGTP123456789")
         result.flatMap(_.plasticPackagingTaxRegistrationNumber) shouldBe Some("XAPPT0001234567")
+        result.flatMap(_.plasticPackagingTaxRegistrationDate) shouldBe Some(LocalDate.parse("2021-03-04"))
+        result.flatMap(_.pillar2RegistrationDate) shouldBe Some(LocalDate.parse("2020-02-03"))
         result.flatMap(_.countryByCountryReportingId) shouldBe Some("XACBC1234567890")
         result.flatMap(_.trustsUniqueTaxpayerReference) shouldBe Some("8876543210")
         result.flatMap(_.trustsUniqueReferenceNumber) shouldBe Some("XATRUST12345678")
+      }
+    }
+
+    "looking for an organisation with a Trust UTR" should {
+      "return the matching organisation test user" in {
+        val utr = "8876543210"
+        stubFor(
+          WireMock
+            .get(urlEqualTo(s"/organisations/trustUtr/$utr"))
+            .willReturn(aResponse().withStatus(200).withBody(testOrganisationResponse()))
+        )
+
+        val result = await(connector.getOrganisationUserByTrustUtr(utr))
+
+        result.flatMap(_.trustsUniqueTaxpayerReference) shouldBe Some(utr)
+        result.map(_.affinityGroup) shouldBe Some(AG.Organisation)
+      }
+    }
+
+    "looking for an organisation with a Trust URN" should {
+      "return the matching organisation test user" in {
+        val urn = "XATRUST12345678"
+        stubFor(
+          WireMock
+            .get(urlEqualTo(s"/organisations/trustUrn/$urn"))
+            .willReturn(aResponse().withStatus(200).withBody(testOrganisationResponse()))
+        )
+
+        val result = await(connector.getOrganisationUserByTrustUrn(urn))
+
+        result.flatMap(_.trustsUniqueReferenceNumber) shouldBe Some(urn)
+        result.map(_.affinityGroup) shouldBe Some(AG.Organisation)
+      }
+    }
+
+    "looking for an organisation with a CGT property disposal reference" should {
+      "return the matching organisation test user" in {
+        val cgtPdRef = "XACGTP123456789"
+        stubFor(
+          WireMock
+            .get(urlEqualTo(s"/organisations/cgtpdref/$cgtPdRef"))
+            .willReturn(aResponse().withStatus(200).withBody(testOrganisationResponse()))
+        )
+
+        val result = await(connector.getOrganisationUserByCgtPdRef(cgtPdRef))
+
+        result.flatMap(_.capitalGainsTaxOnUKPropertyReference) shouldBe Some(cgtPdRef)
+        result.map(_.affinityGroup) shouldBe Some(AG.Organisation)
+      }
+    }
+
+    "looking for an organisation with a PPT reference" should {
+      "return the matching organisation test user" in {
+        val pptRef = "XAPPT0001234567"
+        stubFor(
+          WireMock
+            .get(urlEqualTo(s"/organisations/ppt/$pptRef"))
+            .willReturn(aResponse().withStatus(200).withBody(testOrganisationResponse()))
+        )
+
+        val result = await(connector.getOrganisationUserByPptRef(pptRef))
+
+        result.flatMap(_.plasticPackagingTaxRegistrationNumber) shouldBe Some(pptRef)
+        result.map(_.affinityGroup) shouldBe Some(AG.Organisation)
+      }
+    }
+
+    "looking for an organisation with a CBC ID" should {
+      "return the matching organisation test user" in {
+        val cbcId = "XACBC1234567890"
+        stubFor(
+          WireMock
+            .get(urlEqualTo(s"/organisations/cbc/$cbcId"))
+            .willReturn(aResponse().withStatus(200).withBody(testOrganisationResponse()))
+        )
+
+        val result = await(connector.getOrganisationUserByCbcId(cbcId))
+
+        result.flatMap(_.countryByCountryReportingId) shouldBe Some(cbcId)
+        result.map(_.affinityGroup) shouldBe Some(AG.Organisation)
       }
     }
   }
@@ -278,6 +360,8 @@ trait ExampleApiPlatformTestUserResponses {
       |  "pillar2Id":"XAPLR1234567890",
       |  "capitalGainsTaxOnUKPropertyReference":"XACGTP123456789",
       |  "plasticPackagingTaxRegistrationNumber":"XAPPT0001234567",
+      |  "plasticPackagingTaxRegistrationDate":"2021-03-04",
+      |  "pillar2RegistrationDate":"2020-02-03",
       |  "countryByCountryReportingId":"XACBC1234567890",
       |  "trustsUniqueTaxpayerReference":"8876543210",
       |  "trustsUniqueReferenceNumber":"XATRUST12345678"

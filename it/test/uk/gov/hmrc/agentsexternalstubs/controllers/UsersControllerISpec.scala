@@ -523,6 +523,8 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       val pillar2Id = "XAPLR1234567890"
       val cgtReference = "XACGTP123456789"
       val pptReference = "XAPPT0001234567"
+      val pptRegistrationDate = "2021-03-04"
+      val pillar2RegistrationDate = "2020-02-03"
       val cbcId = "XACBC1234567890"
       val trustUtr = "8876543210"
       val trustUrn = "XATRUST12345678"
@@ -537,6 +539,8 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
         |   "pillar2Id": "$pillar2Id",
         |   "capitalGainsTaxOnUKPropertyReference": "$cgtReference",
         |   "plasticPackagingTaxRegistrationNumber": "$pptReference",
+        |   "plasticPackagingTaxRegistrationDate": "$pptRegistrationDate",
+        |   "pillar2RegistrationDate": "$pillar2RegistrationDate",
         |   "countryByCountryReportingId": "$cbcId",
         |   "trustsUniqueTaxpayerReference": "$trustUtr",
         |   "trustsUniqueReferenceNumber": "$trustUrn",
@@ -592,6 +596,16 @@ class UsersControllerISpec extends ServerBaseISpec with TestRequests with TestSt
       records.exists(json => (json \ "cgtPdRef").asOpt[String].contains(cgtReference)) shouldBe true
       records.exists(json => (json \ "pptReference").asOpt[String].contains(pptReference)) shouldBe true
       records.exists(json => (json \ "cbcId").asOpt[String].contains(cbcId)) shouldBe true
+      records
+        .find(json => (json \ "plrReference").asOpt[String].contains(pillar2Id))
+        .flatMap(json => (json \ "upeDetails" \ "registrationDate").asOpt[String]) shouldBe Some(
+        pillar2RegistrationDate
+      )
+      records
+        .find(json => (json \ "pptReference").asOpt[String].contains(pptReference))
+        .flatMap(json => (json \ "legalEntityDetails" \ "dateOfApplication").asOpt[String]) shouldBe Some(
+        pptRegistrationDate
+      )
     }
 
     "store an explicitly declared organisation that also contains individual details" in {
