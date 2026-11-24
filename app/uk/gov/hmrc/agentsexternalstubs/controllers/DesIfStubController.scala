@@ -401,7 +401,7 @@ class DesIfStubController @Inject() (
           taxIdentifier => {
             val enrolmentKey = EnrolmentKey(service, Seq(Identifier(key, taxIdentifier)))
             for {
-              maybeGroup     <- groupsService.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
+              maybeGroup     <- findGroupMaybeExt(enrolmentKey, session.planetId)
               maybeAdminUser <- maybeGroup.fold(Future.successful(Option.empty[User]))(g =>
                                   usersService.findAdminByGroupId(g.groupId, session.planetId)
                                 )

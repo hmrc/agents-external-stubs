@@ -107,7 +107,8 @@ object User {
   case class AdditionalInformation(
     vatRegistrationDate: Option[LocalDate] = None,
     pptRegistrationDate: Option[LocalDate] = None,
-    pillar2RegistrationDate: Option[LocalDate] = None
+    pillar2RegistrationDate: Option[LocalDate] = None,
+    emailAddress: Option[String] = None
   )
 
   object AdditionalInformation {

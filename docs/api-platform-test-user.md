@@ -70,6 +70,7 @@ Field | Affinity group | Enrolment
 `plasticPackagingTaxRegistrationDate` | Individual or Organisation | Preserved as the PPT subscription `dateOfApplication`
 `pillar2RegistrationDate` | Organisation | Preserved as the Pillar 2 UPE `registrationDate`
 `countryByCountryReportingId` | Organisation | `HMRC-CBC-ORG` / `cbcId`
+`emailAddress` | Organisation with CBC | Preserved as the CBC subscription primary-contact email
 `trustsUniqueTaxpayerReference` | Organisation | `HMRC-TERS-ORG` / `SAUTR`
 `trustsUniqueReferenceNumber` | Organisation | `HMRC-TERSNT-ORG` / `URN`
 
@@ -83,7 +84,9 @@ for identifiers supported by its fetch API: NINO, SA UTR, VRN, Pillar 2 ID, CGT 
 reference, CBC ID, taxable Trust UTR and non-taxable Trust URN.
 
 PPT and Pillar 2 registration dates from the test-user response are retained unchanged in the generated AES records so
-they can be used as invitation known facts. CBC lookup also supports backend calls without a resolvable user session:
-it first searches existing records across planets, then imports the API Platform test user into the default planet when
-no record exists. A missing upstream test user remains a not-found result; the stubs do not fabricate a customer merely
-because an identifier has a valid format.
+they can be used as invitation known facts. For CBC, the test-user `emailAddress` becomes the subscription
+primary-contact email and the matching invitation known fact; when it is absent, AES retains its generated-email
+fallback. CBC lookup also supports backend calls without a resolvable user session: it first searches existing records
+across planets, then imports the API Platform test user into the default planet when no record exists. A missing upstream
+test user remains a not-found result; the stubs do not fabricate a customer merely because an identifier has a valid
+format.

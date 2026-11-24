@@ -132,13 +132,15 @@ object ApiPlatform {
           Seq(
             testUser.vatRegistrationDate,
             testUser.plasticPackagingTaxRegistrationDate,
-            testUser.pillar2RegistrationDate
+            testUser.pillar2RegistrationDate,
+            testUser.emailAddress
           ).exists(_.isDefined)
         )(
           AdditionalInformation(
             vatRegistrationDate = testUser.vatRegistrationDate,
             pptRegistrationDate = testUser.plasticPackagingTaxRegistrationDate,
-            pillar2RegistrationDate = testUser.pillar2RegistrationDate
+            pillar2RegistrationDate = testUser.pillar2RegistrationDate,
+            emailAddress = testUser.emailAddress
           )
         ),
         utr =

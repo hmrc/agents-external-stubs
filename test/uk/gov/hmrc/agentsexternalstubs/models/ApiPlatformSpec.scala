@@ -80,6 +80,21 @@ class ApiPlatformSpec extends BaseUnitSpec {
       User.knownFactsOf(user).get("PPTRegistrationDate") shouldBe Some("04/03/21")
     }
 
+    "preserve the API Platform email for downstream subscription records" in {
+      val emailAddress = "cbc@example.com"
+      val testUser = TestUser(
+        userId = "organisation-user-id",
+        userFullName = "Test Organisation",
+        affinityGroup = AG.Organisation,
+        emailAddress = Some(emailAddress),
+        organisationDetails = Some(OrganisationDetails("Test Organisation", address))
+      )
+
+      val (user, _) = TestUser.asUserAndGroup(testUser)
+
+      user.additionalInformation.flatMap(_.emailAddress) shouldBe Some(emailAddress)
+    }
+
     "reject an unsupported explicit affinity" in {
       val result = Json
         .obj(

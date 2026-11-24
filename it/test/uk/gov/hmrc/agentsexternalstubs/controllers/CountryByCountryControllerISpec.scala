@@ -96,6 +96,7 @@ class CountryByCountryControllerISpec extends ServerBaseISpec with TestRequests 
       }
 
       "import an API Platform test user and retry when the local record is missing" in {
+        val emailAddress = "cbc@example.com"
         stubFor(
           WireMock
             .get(urlEqualTo(s"/organisations/cbc/$cbcId"))
@@ -105,7 +106,7 @@ class CountryByCountryControllerISpec extends ServerBaseISpec with TestRequests 
                 .withBody(s"""{
                   |  "userId": "cbc-api-test-user",
                   |  "userFullName": "CBC Organisation",
-                  |  "emailAddress": "cbc@example.com",
+                  |  "emailAddress": "$emailAddress",
                   |  "organisationDetails": {
                   |    "name": "CBC Organisation",
                   |    "address": {
@@ -133,6 +134,8 @@ class CountryByCountryControllerISpec extends ServerBaseISpec with TestRequests 
         result should haveStatus(200)
         (result.json \ "displaySubscriptionForCBCResponse" \ "responseDetail" \ "subscriptionID")
           .as[String] shouldBe cbcId
+        (result.json \ "displaySubscriptionForCBCResponse" \ "responseDetail" \ "primaryContact" \ 0 \ "email")
+          .as[String] shouldBe emailAddress
       }
 
       "respond BAD_REQUEST with error response if invalid payload" in {

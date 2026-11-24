@@ -484,6 +484,39 @@ class DesIfStubControllerISpec
       DesStub.getTrustKnownFactsUtr("1234567890") should haveStatus(200)
     }
 
+    "import an API Platform test user and retry when the local user is missing" in {
+      val utr = "8876543210"
+      stubFor(
+        WireMock
+          .get(urlEqualTo(s"/organisations/trustUtr/$utr"))
+          .willReturn(
+            aResponse()
+              .withStatus(200)
+              .withBody(s"""{
+                |  "userId": "trust-utr-api-test-user",
+                |  "userFullName": "Trust UTR Organisation",
+                |  "organisationDetails": {
+                |    "name": "Trust UTR Organisation",
+                |    "address": {
+                |      "line1": "1 Test Street",
+                |      "line2": "London",
+                |      "postcode": "AA1 1AA"
+                |    }
+                |  },
+                |  "trustsUniqueTaxpayerReference": "$utr"
+                |}""".stripMargin)
+          )
+      )
+      val session = SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+      given AuthContext = AuthContext.fromTokenAndSessionId(session.authToken, session.sessionId)
+
+      val response = DesStub.getTrustKnownFactsUtr(utr)
+
+      response should haveStatus(200)
+      (response.json \ "trustDetails" \ "utr").as[String] shouldBe utr
+      (response.json \ "trustDetails" \ "trustName").as[String] shouldBe "Trust UTR Organisation"
+    }
+
     "return 401 when no session exists" in {
       given AuthContext = NotAuthorized
       DesStub.getTrustKnownFactsUtr("1234567890") should haveStatus(UNAUTHORIZED)
@@ -530,6 +563,39 @@ class DesIfStubControllerISpec
         .futureValue
 
       DesStub.getTrustKnownFactsUrn("AATRUST00000000") should haveStatus(200)
+    }
+
+    "import an API Platform test user and retry when the local user is missing" in {
+      val urn = "XATRUST12345678"
+      stubFor(
+        WireMock
+          .get(urlEqualTo(s"/organisations/trustUrn/$urn"))
+          .willReturn(
+            aResponse()
+              .withStatus(200)
+              .withBody(s"""{
+                |  "userId": "trust-urn-api-test-user",
+                |  "userFullName": "Trust URN Organisation",
+                |  "organisationDetails": {
+                |    "name": "Trust URN Organisation",
+                |    "address": {
+                |      "line1": "2 Test Street",
+                |      "line2": "London",
+                |      "postcode": "AA1 1AB"
+                |    }
+                |  },
+                |  "trustsUniqueReferenceNumber": "$urn"
+                |}""".stripMargin)
+          )
+      )
+      val session = SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+      given AuthContext = AuthContext.fromTokenAndSessionId(session.authToken, session.sessionId)
+
+      val response = DesStub.getTrustKnownFactsUrn(urn)
+
+      response should haveStatus(200)
+      (response.json \ "trustDetails" \ "urn").as[String] shouldBe urn
+      (response.json \ "trustDetails" \ "trustName").as[String] shouldBe "Trust URN Organisation"
     }
 
     "return 401 when no session exists" in {
@@ -610,6 +676,8 @@ class DesIfStubControllerISpec
       response should haveStatus(200)
       (response.json \ "subscriptionDetails" \ "typeOfPersonDetails" \ "organisationName")
         .as[String] shouldBe "CGT Organisation"
+      (response.json \ "subscriptionDetails" \ "addressDetails" \ "postalCode")
+        .as[String] shouldBe "AA1 1AC"
     }
 
     "return 401 when no session exists" in {

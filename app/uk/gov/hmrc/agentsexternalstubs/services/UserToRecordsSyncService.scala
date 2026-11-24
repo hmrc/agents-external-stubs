@@ -197,9 +197,12 @@ class UserToRecordsSyncService @Inject() (
       case (user, CbcUkMatch(_, _)) =>
         val enrolmentKey = user.assignedPrincipalEnrolments.filter(_.service.contains("HMRC-CBC-ORG")).head
         val cbcId = enrolmentKey.identifiers.filter(_.key == "cbcId").map(id => id.value).head
-        val cbcRecord = CbcSubscriptionRecord.generateWith(cbcId, isUK = true)
+        val generatedCbcRecord = CbcSubscriptionRecord.generateWith(cbcId, isUK = true)
+        val cbcRecord = user.additionalInformation
+          .flatMap(_.emailAddress)
+          .fold(generatedCbcRecord)(generatedCbcRecord.withEmail)
 
-        // overrides email with value generated from record
+        // Keep the enrolment known fact aligned with the email exposed by the CBC subscription response.
         def updateKnownFacts(knownFacts: Option[KnownFacts]) = {
           val updatedKnownFacts = Seq(KnownFact("Email", cbcRecord.primaryContact.head.email))
           knownFactsRepository.upsert(knownFacts.get.copy(verifiers = updatedKnownFacts), user.planetId.get)
