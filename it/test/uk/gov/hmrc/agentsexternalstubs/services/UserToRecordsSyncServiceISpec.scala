@@ -546,6 +546,16 @@ class UserToRecordsSyncServiceISpec extends AppBaseISpec {
       val result1 =
         await(recordsService.getRecord[CbcSubscriptionRecord, CbcId](CbcId("XACBC4940653845"), planetId))
       result1.map(_.cbcId) shouldBe Some("XACBC4940653845")
+      val generatedEmail = result1.flatMap(_.primaryContact.headOption.map(_.email))
+      generatedEmail.value should not be empty
+      val enrolmentKey = EnrolmentKey(
+        "HMRC-CBC-ORG",
+        Seq(Identifier("UTR", "4478078113"), Identifier("cbcId", "XACBC4940653845"))
+      )
+      knownFactsRepository
+        .findByEnrolmentKey(enrolmentKey, planetId)
+        .futureValue
+        .flatMap(_.getVerifierValue("Email")) shouldBe generatedEmail
 
       val result2 = await(usersService.findByUserId(user.userId, planetId))
       result2.map(_.recordIds.size).get shouldBe 1

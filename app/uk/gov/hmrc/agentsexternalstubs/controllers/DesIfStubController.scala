@@ -372,6 +372,15 @@ class DesIfStubController @Inject() (
   private val HMRC_TERS_ORG = "HMRC-TERS-ORG"
   private val HMRC_TERSNT_ORG = "HMRC-TERSNT-ORG"
 
+  private def findGroupMaybeExt(enrolmentKey: EnrolmentKey, planetId: String): Future[Option[Group]] =
+    groupsService.findByPrincipalEnrolmentKey(enrolmentKey, planetId).flatMap {
+      case group @ Some(_) => Future.successful(group)
+      case None            =>
+        usersService
+          .findByPrincipalEnrolmentKey(enrolmentKey, planetId)
+          .flatMap(_ => groupsService.findByPrincipalEnrolmentKey(enrolmentKey, planetId))
+    }
+
   def getTrustKnownFactsUTR(utr: String): Action[AnyContent] =
     getTrustsKnownFacts(utr, RegexPatterns.validUtr, HMRC_TERS_ORG, "SAUTR")
 
@@ -392,7 +401,7 @@ class DesIfStubController @Inject() (
           taxIdentifier => {
             val enrolmentKey = EnrolmentKey(service, Seq(Identifier(key, taxIdentifier)))
             for {
-              maybeGroup     <- groupsService.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
+              maybeGroup     <- findGroupMaybeExt(enrolmentKey, session.planetId)
               maybeAdminUser <- maybeGroup.fold(Future.successful(Option.empty[User]))(g =>
                                   usersService.findAdminByGroupId(g.groupId, session.planetId)
                                 )
@@ -436,7 +445,7 @@ class DesIfStubController @Inject() (
               _ => badRequestF("INVALID_IDVALUE", "Submission has not passed validation. Invalid parameter idValue."),
               _ =>
                 for {
-                  maybeGroup <- groupsService.findByPrincipalEnrolmentKey(
+                  maybeGroup <- findGroupMaybeExt(
                                   EnrolmentKey("HMRC-CGT-PD", Seq(Identifier("CGTPDRef", cgtRef))),
                                   session.planetId
                                 )
@@ -508,7 +517,7 @@ class DesIfStubController @Inject() (
             error => badRequestF("INVALID_PPT_REFERENCE_NUMBER", error),
             regNumber =>
               recordsService
-                .getRecord[PPTSubscriptionDisplayRecord, PptRef](PptRef(regNumber), session.planetId)
+                .getRecordMaybeExt[PPTSubscriptionDisplayRecord, PptRef](PptRef(regNumber), session.planetId)
                 .map {
                   case Some(record) => Ok(Json.toJson(record))
                   case None         => notFound("NOT_FOUND")

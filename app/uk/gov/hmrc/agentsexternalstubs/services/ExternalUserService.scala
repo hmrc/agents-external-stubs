@@ -59,19 +59,60 @@ class ExternalUserService @Inject() (
           }
       case plrId: PlrId =>
         apiPlatformTestUserConnector.getOrganisationUserByPillar2Id(plrId.value)
+      case pptRef: PptRef =>
+        apiPlatformTestUserConnector.getOrganisationUserByPptRef(pptRef.value)
+      case cbcId: CbcId =>
+        apiPlatformTestUserConnector.getOrganisationUserByCbcId(cbcId.value)
       case _ =>
         Future.failed(
           new IllegalArgumentException(
-            s"Unknown identifier $userIdentifier, expected one of: nino, utr, vrn, pillar2Id"
+            s"Unknown identifier $userIdentifier, expected one of: nino, utr, vrn, pillar2Id, pptRef, cbcId"
           )
         )
     }
 
+    syncExternalUser(userFromApiPlatform(userIdentifier), userIdentifier.toString, planetId)
+  }
+
+  private def maybeSyncExternalUserByEnrolmentKey(
+    enrolmentKey: EnrolmentKey,
+    planetId: String
+  )(using ec: ExecutionContext): Future[Option[User]] = {
+    given HeaderCarrier = HeaderCarrier()
+
+    def identifierValue(key: String): Option[String] =
+      enrolmentKey.identifiers.find(_.key == key).map(_.value)
+
+    def externalUser = enrolmentKey.service match {
+      case "HMRC-TERS-ORG" =>
+        identifierValue("SAUTR").fold(Future.successful(Option.empty[TestUser]))(
+          apiPlatformTestUserConnector.getOrganisationUserByTrustUtr
+        )
+      case "HMRC-TERSNT-ORG" =>
+        identifierValue("URN").fold(Future.successful(Option.empty[TestUser]))(
+          apiPlatformTestUserConnector.getOrganisationUserByTrustUrn
+        )
+      case "HMRC-CGT-PD" =>
+        identifierValue("CGTPDRef").fold(Future.successful(Option.empty[TestUser]))(
+          apiPlatformTestUserConnector.getOrganisationUserByCgtPdRef
+        )
+      case _ => Future.successful(None)
+    }
+
+    syncExternalUser(externalUser, enrolmentKey.service, planetId)
+  }
+
+  private def syncExternalUser(
+    externalUser: => Future[Option[TestUser]],
+    identifierDescription: String,
+    planetId: String
+  )(using ec: ExecutionContext): Future[Option[User]] =
+
     if appConfig.syncUsersAllPlanets || planetId == Planet.DEFAULT then
-      userFromApiPlatform(userIdentifier)
+      externalUser
         .flatMap {
           case None =>
-            Logger(getClass).warn(s"External user definition not found for $userIdentifier.")
+            Logger(getClass).warn(s"External user definition not found for $identifierDescription.")
             Future.successful(None)
           case Some(testUser) =>
             /* TODO (maybe): We don't create the group explicitly as the logic in UsersService should take care of creating a group for us.
@@ -90,7 +131,6 @@ class ExternalUserService @Inject() (
           None
         }
     else Future.successful(None)
-  }
 
   def lookupExternalUser(
     userIdentifier: TaxIdentifier,
@@ -103,9 +143,14 @@ class ExternalUserService @Inject() (
     enrolmentKey: EnrolmentKey,
     planetId: String
   )(using ec: ExecutionContext): Future[Option[User]] =
-    identifierFor(enrolmentKey) match {
-      case None                 => Future.successful(None)
-      case Some(userIdentifier) => lookupExternalUser(userIdentifier, planetId)
+    enrolmentKey.service match {
+      case "HMRC-TERS-ORG" | "HMRC-TERSNT-ORG" | "HMRC-CGT-PD" =>
+        maybeSyncExternalUserByEnrolmentKey(enrolmentKey, planetId)
+      case _ =>
+        identifierFor(enrolmentKey) match {
+          case None                 => Future.successful(None)
+          case Some(userIdentifier) => lookupExternalUser(userIdentifier, planetId)
+        }
     }
 
   // try the action given in 'block'. If it returns None, do an external user sync for the given id and try again (once)
@@ -126,6 +171,8 @@ class ExternalUserService @Inject() (
     case "HMRC-NI"          => enrolmentKey.identifiers.headOption.map(i => Nino(i.value))
     case "HMRC-MTD-VAT"     => enrolmentKey.identifiers.headOption.map(i => Vrn(i.value))
     case "HMRC-PILLAR2-ORG" => enrolmentKey.identifiers.headOption.map(i => PlrId(i.value))
+    case "HMRC-PPT-ORG"     => enrolmentKey.identifiers.headOption.map(i => PptRef(i.value))
+    case "HMRC-CBC-ORG"     => enrolmentKey.identifiers.find(_.key == "cbcId").map(i => CbcId(i.value))
     case _                  => None
   }
 

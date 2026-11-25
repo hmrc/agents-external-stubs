@@ -55,6 +55,8 @@ object ApiPlatform {
     pillar2Id: Option[String] = None,
     capitalGainsTaxOnUKPropertyReference: Option[String] = None,
     plasticPackagingTaxRegistrationNumber: Option[String] = None,
+    plasticPackagingTaxRegistrationDate: Option[LocalDate] = None,
+    pillar2RegistrationDate: Option[LocalDate] = None,
     countryByCountryReportingId: Option[String] = None,
     trustsUniqueTaxpayerReference: Option[String] = None,
     trustsUniqueReferenceNumber: Option[String] = None
@@ -126,8 +128,21 @@ object ApiPlatform {
           )
         ),
         assignedPrincipalEnrolments = mapServicesToEnrolments(testUser).flatMap(_.toEnrolmentKey),
-        additionalInformation =
-          testUser.vatRegistrationDate.map(date => AdditionalInformation(vatRegistrationDate = Some(date))),
+        additionalInformation = Option.when(
+          Seq(
+            testUser.vatRegistrationDate,
+            testUser.plasticPackagingTaxRegistrationDate,
+            testUser.pillar2RegistrationDate,
+            testUser.emailAddress
+          ).exists(_.isDefined)
+        )(
+          AdditionalInformation(
+            vatRegistrationDate = testUser.vatRegistrationDate,
+            pptRegistrationDate = testUser.plasticPackagingTaxRegistrationDate,
+            pillar2RegistrationDate = testUser.pillar2RegistrationDate,
+            emailAddress = testUser.emailAddress
+          )
+        ),
         utr =
           if testUser.affinityGroup == AG.Agent then None
           else testUser.saUtr.orElse(Some(Generator.utr(testUser.userId)))

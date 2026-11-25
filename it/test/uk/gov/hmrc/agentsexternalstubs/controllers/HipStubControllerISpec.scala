@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.agentsexternalstubs.controllers
 
+import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, stubFor, urlEqualTo}
 import play.api.http.Status.*
 import play.api.libs.json.{JsObject, JsValue}
 import play.api.libs.ws.WSClient
@@ -2109,6 +2111,38 @@ class HipStubControllerISpec extends ServerBaseISpec with TestRequests with Test
       noException shouldBe thrownBy(response.json.as[AgentSuccessResponse])
     }
 
+    "import an API Platform test user and retry when the local user is missing" in {
+      val utr = "8876543210"
+      stubFor(
+        WireMock
+          .get(urlEqualTo(s"/organisations/trustUtr/$utr"))
+          .willReturn(
+            aResponse()
+              .withStatus(200)
+              .withBody(s"""{
+                |  "userId": "trust-utr-api-test-user",
+                |  "userFullName": "Trust UTR Organisation",
+                |  "organisationDetails": {
+                |    "name": "Trust UTR Organisation",
+                |    "address": {
+                |      "line1": "1 Test Street",
+                |      "line2": "London",
+                |      "postcode": "AA1 1AA"
+                |    }
+                |  },
+                |  "trustsUniqueTaxpayerReference": "$utr"
+                |}""".stripMargin)
+          )
+      )
+      val session = SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+      given AuthContext = AuthContext.fromTokenAndSessionId(session.authToken, session.sessionId)
+
+      val response = HipStub.getTrustKnownFactsUtr(utr)
+
+      response should haveStatus(OK)
+      response.json.as[AgentSuccessResponse].success.trustDetails.utr shouldBe Some(utr)
+    }
+
     "return 401 when no session exists" in {
       given AuthContext = NotAuthorized
       HipStub.getTrustKnownFactsUtr("1234567890") should haveStatus(UNAUTHORIZED)
@@ -2160,6 +2194,38 @@ class HipStubControllerISpec extends ServerBaseISpec with TestRequests with Test
       val response = HipStub.getTrustKnownFactsUrn("AATRUST00000000")
       response should haveStatus(200)
       noException shouldBe thrownBy(response.json.as[AgentSuccessResponse])
+    }
+
+    "import an API Platform test user and retry when the local user is missing" in {
+      val urn = "XATRUST12345678"
+      stubFor(
+        WireMock
+          .get(urlEqualTo(s"/organisations/trustUrn/$urn"))
+          .willReturn(
+            aResponse()
+              .withStatus(200)
+              .withBody(s"""{
+                |  "userId": "trust-urn-api-test-user",
+                |  "userFullName": "Trust URN Organisation",
+                |  "organisationDetails": {
+                |    "name": "Trust URN Organisation",
+                |    "address": {
+                |      "line1": "2 Test Street",
+                |      "line2": "London",
+                |      "postcode": "AA1 1AB"
+                |    }
+                |  },
+                |  "trustsUniqueReferenceNumber": "$urn"
+                |}""".stripMargin)
+          )
+      )
+      val session = SignIn.signInAndGetSession(planetId = Planet.DEFAULT)
+      given AuthContext = AuthContext.fromTokenAndSessionId(session.authToken, session.sessionId)
+
+      val response = HipStub.getTrustKnownFactsUrn(urn)
+
+      response should haveStatus(OK)
+      response.json.as[AgentSuccessResponse].success.trustDetails.urn shouldBe Some(urn)
     }
 
     "return 401 when no session exists" in {

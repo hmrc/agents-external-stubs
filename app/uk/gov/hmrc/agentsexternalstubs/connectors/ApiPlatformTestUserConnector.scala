@@ -60,6 +60,31 @@ class ApiPlatformTestUserConnector @Inject() (appConfig: AppConfig, http: HttpCl
   )(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
     getUser(appConfig.apiPlatformTestUserUrl + s"/organisations/pillar2Id/$pillar2Id", AG.Organisation)
 
+  def getOrganisationUserByTrustUtr(
+    utr: String
+  )(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
+    getUser(appConfig.apiPlatformTestUserUrl + s"/organisations/trustUtr/$utr", AG.Organisation)
+
+  def getOrganisationUserByTrustUrn(
+    urn: String
+  )(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
+    getUser(appConfig.apiPlatformTestUserUrl + s"/organisations/trustUrn/$urn", AG.Organisation)
+
+  def getOrganisationUserByCgtPdRef(
+    cgtPdRef: String
+  )(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
+    getUser(appConfig.apiPlatformTestUserUrl + s"/organisations/cgtpdref/$cgtPdRef", AG.Organisation)
+
+  def getOrganisationUserByPptRef(
+    pptRef: String
+  )(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
+    getUser(appConfig.apiPlatformTestUserUrl + s"/organisations/ppt/$pptRef", AG.Organisation)
+
+  def getOrganisationUserByCbcId(
+    cbcId: String
+  )(using c: HeaderCarrier, ec: ExecutionContext): Future[Option[TestUser]] =
+    getUser(appConfig.apiPlatformTestUserUrl + s"/organisations/cbc/$cbcId", AG.Organisation)
+
   private def getUser(
     url: String,
     affinityGroup: String

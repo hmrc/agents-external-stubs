@@ -53,6 +53,15 @@ class HipStubController @Inject() (
   private val HMRC_TERSNT_ORG = "HMRC-TERSNT-ORG"
   private val REGISTRATION_RISKING_USER_AGENT = "agent-registration-risking"
 
+  private def findGroupMaybeExt(enrolmentKey: EnrolmentKey, planetId: String): Future[Option[Group]] =
+    groupsService.findByPrincipalEnrolmentKey(enrolmentKey, planetId).flatMap {
+      case group @ Some(_) => Future.successful(group)
+      case None            =>
+        usersService
+          .findByPrincipalEnrolmentKey(enrolmentKey, planetId)
+          .flatMap(_ => groupsService.findByPrincipalEnrolmentKey(enrolmentKey, planetId))
+    }
+
   def getTrustKnownFactsUTR(utr: String): Action[AnyContent] =
     getTrustKnownFacts(utr, RegexPatterns.validUtr, HMRC_TERS_ORG, "SAUTR")
 
@@ -73,7 +82,7 @@ class HipStubController @Inject() (
           taxIdentifier => {
             val enrolmentKey = EnrolmentKey(service, Seq(Identifier(key, taxIdentifier)))
             for {
-              maybeGroup     <- groupsService.findByPrincipalEnrolmentKey(enrolmentKey, session.planetId)
+              maybeGroup     <- findGroupMaybeExt(enrolmentKey, session.planetId)
               maybeAdminUser <- maybeGroup.fold(Future.successful(Option.empty[User]))(g =>
                                   usersService.findAdminByGroupId(g.groupId, session.planetId)
                                 )

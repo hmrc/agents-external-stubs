@@ -19,7 +19,7 @@ package uk.gov.hmrc.agentsexternalstubs.controllers
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents, Request, Result}
 import uk.gov.hmrc.agentsexternalstubs.models.identifiers.*
-import uk.gov.hmrc.agentsexternalstubs.models.{CbcSubscriptionRecord, DisplaySubscriptionForCbC, DisplaySubscriptionForCbCRequestPayload}
+import uk.gov.hmrc.agentsexternalstubs.models.{CbcSubscriptionRecord, DisplaySubscriptionForCbC, DisplaySubscriptionForCbCRequestPayload, Planet}
 import uk.gov.hmrc.agentsexternalstubs.services.{AuthenticationService, RecordsService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -48,14 +48,17 @@ class CountryByCountryController @Inject() (
             val cbcId = CbcId(payload.displaySubscriptionForCBCRequest.requestDetail.IDNumber)
             withCurrentSession(session =>
               recordsService
-                .getRecord[CbcSubscriptionRecord, CbcId](cbcId, session.planetId)
+                .getRecordMaybeExt[CbcSubscriptionRecord, CbcId](cbcId, session.planetId)
                 .flatMap(recordResponse)
             ) {
               // Backend IF calls do not carry a resolvable user session. CBC IDs are globally unique, so use the
               // matching record to recover the owning planet rather than rejecting the request with 401.
               recordsService.getRecordAnyPlanet[CbcSubscriptionRecord, CbcId](cbcId).flatMap {
                 case Some((_, record)) => recordResponse(Some(record))
-                case None              => SessionRecordNotFound
+                case None              =>
+                  recordsService
+                    .getRecordMaybeExt[CbcSubscriptionRecord, CbcId](cbcId, Planet.DEFAULT)
+                    .flatMap(recordResponse)
               }
             }
           }
